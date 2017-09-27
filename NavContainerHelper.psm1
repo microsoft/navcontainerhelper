@@ -173,7 +173,7 @@ function Get-ContainerName {
         [string]$containerId
     )
 
-    docker ps --format='{{.Names}}' --filter "id=$containerId"
+    docker ps --format='{{.Names}}' -a --filter "id=$containerId"
 }
 
 function Get-ContainerId {
