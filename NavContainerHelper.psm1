@@ -887,6 +887,9 @@ function Replace-NavServerContainer {
         Remove-Item $certificatePfxFile -force
         Remove-Item "c:\run\my\SetupCertificate.ps1" -force
         ') | Add-Content "c:\myfolder\SetupCertificate.ps1"
+    } else {
+        # Self signed cert. - use hostname as publicDnsName
+        $newPublicDnsName = $hostname
     }
 
     $id = docker images -q $newImageName
@@ -915,4 +918,15 @@ function Replace-NavServerContainer {
     Write-Host -ForegroundColor Green "Setup new Nav container"
     . $SetupNavContainerScript
     . $setupDesktopScript
+}
+
+function Recreate-NavServerContainer {
+    Param(
+        [string]$certificatePfxUrl = "", 
+        [string]$certificatePfxPassword = "", 
+        [string]$publicDnsName = ""
+    )
+
+    $imageName = Get-NavContainerImageName -containerName navserver
+    Replace-NavServerContainer -imageName $imageName -certificatePfxUrl $certificatePfxUrl -certificatePfxPassword $certificatePfxPassword -publicDnsName $publicDnsName
 }
