@@ -11,6 +11,37 @@ $containerExtensionsFolder = "C:\DEMO\Extensions"
 
 $sessions = @{}
 
+function HelperGetContainersForDynParam {
+    # Set the dynamic parameters name
+    $ParameterName = 'containerName'
+        
+    # Create the dictionary 
+    $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+
+    # Create the collection of attributes
+    $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+        
+    # Create and set the parameters' attributes
+    $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+    $ParameterAttribute.Mandatory = $true
+    $ParameterAttribute.Position = 0
+
+    # Add the attributes to the attributes collection
+    $AttributeCollection.Add($ParameterAttribute)
+
+    # Generate and set the ValidateSet 
+    $arrSet =  docker ps -a --format '{{.Names}}'
+    $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+
+    # Add the ValidateSet to the attributes collection
+    $AttributeCollection.Add($ValidateSetAttribute)
+
+    # Create and return the dynamic parameter
+    $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+    $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
+    return $RuntimeParameterDictionary 
+}
+
 function Log([string]$line, [string]$color = "Gray") { 
     Write-Host -ForegroundColor $color $line
 }
@@ -33,50 +64,60 @@ function Get-DefaultVmAdminUsername {
 }
 
 function Get-NavContainerSession {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    if (!($sessions.ContainsKey($containerName))) {
-        $session = New-PSSession -ContainerId (Get-ContainerId -containerName $containerName) -RunAsAdministrator
-        Invoke-Command -Session $session -ScriptBlock {
-            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-            if (Test-Path $serviceTierFolder -PathType Container) {
-                Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -wa SilentlyContinue
-            }
-            
-            $roleTailoredClientFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName
-            if (Test-Path $roleTailoredClientFolder -PathType Container) {
-                $NavIde = Join-Path $roleTailoredClientFolder "finsql.exe"
-                Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -wa SilentlyContinue
-                Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -wa SilentlyContinue
-                Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Apps.Tools.psd1" -wa SilentlyContinue
-                Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Model.Tools.psd1" -wa SilentlyContinue
-                $txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
-                if (!(Test-Path $txt2al)) {
-                    $txt2al = ""
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        if (!($sessions.ContainsKey($containerName))) {
+            $session = New-PSSession -ContainerId (Get-ContainerId -containerName $containerName) -RunAsAdministrator
+            Invoke-Command -Session $session -ScriptBlock {
+                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+                if (Test-Path $serviceTierFolder -PathType Container) {
+                    Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -wa SilentlyContinue
                 }
-            }
+                
+                $roleTailoredClientFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName
+                if (Test-Path $roleTailoredClientFolder -PathType Container) {
+                    $NavIde = Join-Path $roleTailoredClientFolder "finsql.exe"
+                    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -wa SilentlyContinue
+                    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -wa SilentlyContinue
+                    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Apps.Tools.psd1" -wa SilentlyContinue
+                    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Model.Tools.psd1" -wa SilentlyContinue
+                    $txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
+                    if (!(Test-Path $txt2al)) {
+                        $txt2al = ""
+                    }
+                }
 
-            . c:\run\HelperFunctions.ps1 | Out-Null
-            cd c:\run
+                . c:\run\HelperFunctions.ps1 | Out-Null
+                cd c:\run
+            }
+            $sessions.Add($containerName, $session)
         }
-        $sessions.Add($containerName, $session)
+        $sessions[$containerName]
     }
-    $sessions[$containerName]
 }
 
 function Remove-NavContainerSession {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    if ($sessions.ContainsKey($containerName)) {
-        $session = $sessions[$containerName]
-        Remove-PSSession -Session $session
-        $sessions.Remove($containerName)
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        if ($sessions.ContainsKey($containerName)) {
+            $session = $sessions[$containerName]
+            Remove-PSSession -Session $session
+            $sessions.Remove($containerName)
+        }
     }
 }
 
@@ -94,77 +135,117 @@ function Download-File {
 }
 
 function Enter-NavContainer {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    $session = Get-NavContainerSession $containerName
-    Enter-PSSession -Session $session
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        $session = Get-NavContainerSession $containerName
+        Enter-PSSession -Session $session
+    }
 }
 
 function Open-NavContainer {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    Start-Process "cmd.exe" @("/C";"docker exec -it $containerName powershell -noexit C:\Run\prompt.ps1")
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        Start-Process "cmd.exe" @("/C";"docker exec -it $containerName powershell -noexit C:\Run\prompt.ps1")
+    }
 }
 
 function Get-NavContainerNavVersion {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    docker inspect --format='{{.Config.Labels.version}}-{{.Config.Labels.country}}' $containerName
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        docker inspect --format='{{.Config.Labels.version}}-{{.Config.Labels.country}}' $containerName
+    }
 }
 
 function Get-NavContainerImageName {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    docker inspect --format='{{.Config.Image}}' $containerName
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        docker inspect --format='{{.Config.Image}}' $containerName
+    }
 }
 
 function Get-NavContainerGenericTag {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    docker inspect --format='{{.Config.Labels.tag}}' $containerName
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        docker inspect --format='{{.Config.Labels.tag}}' $containerName
+    }
 }
 
 function Get-NavContainerOsVersion {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    # returns empty with generic tag 0.0.2.3 or earlier
-    docker inspect --format='{{.Config.Labels.osversion}}' $containerName
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        # returns empty with generic tag 0.0.2.3 or earlier
+        docker inspect --format='{{.Config.Labels.osversion}}' $containerName
+    }
 }
 
 function Get-NavContainerLegal {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    docker inspect --format='{{.Config.Labels.legal}}' $containerName
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        docker inspect --format='{{.Config.Labels.legal}}' $containerName
+    }
 }
 
 function Get-NavContainerCountry {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    docker inspect --format='{{.Config.Labels.country}}' $containerName
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        docker inspect --format='{{.Config.Labels.country}}' $containerName
+    }
 }
 
 function Get-ContainerName {
@@ -177,19 +258,24 @@ function Get-ContainerName {
 }
 
 function Get-ContainerId {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    $id = ""
-    docker ps --filter name="$containerName" -a -q --no-trunc | % {
-        $name = Get-ContainerName -containerId $_
-        if ($name -eq $containerName) {
-            $id = $_
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        $id = ""
+        docker ps --filter name="$containerName" -a -q --no-trunc | % {
+            $name = Get-ContainerName -containerId $_
+            if ($name -eq $containerName) {
+                $id = $_
+            }
         }
+        $id
     }
-    $id
 }
 
 function New-DesktopShortcut {
@@ -372,50 +458,60 @@ function New-CSideDevContainer {
 }
 
 function Remove-CSideDevContainer {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    if ($containerName -eq "navserver") {
-        throw "You should not remove the navserver container. Use Replace-NavServerContainer to replace the navserver container."
-    }
+    DynamicParam {return (HelperGetContainersForDynParam)}
 
-    $id = Get-ContainerId -containerName $containerName
-    if ($id) {
-        Write-Host "Removing container $containerName"
-        docker rm $id -f | Out-Null
-        $containerFolder = Join-Path $ExtensionsFolder $containerName
-        Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
-        Write-Host "Removing Desktop Shortcuts for container $containerName"
-        Remove-DesktopShortcut -Name "$containerName Web Client"
-        Remove-DesktopShortcut -Name "$containerName Windows Client"
-        Remove-DesktopShortcut -Name "$containerName CSIDE"
-        Remove-DesktopShortcut -Name "$containerName Command Prompt"
-        Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
-        Remove-NavContainerSession $containerName
-        Write-Host -ForegroundColor Green "Successfully removed container $containerName"
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        if ($containerName -eq "navserver") {
+            throw "You should not remove the navserver container. Use Replace-NavServerContainer to replace the navserver container."
+        }
+
+        $id = Get-ContainerId -containerName $containerName
+        if ($id) {
+            Write-Host "Removing container $containerName"
+            docker rm $id -f | Out-Null
+            $containerFolder = Join-Path $ExtensionsFolder $containerName
+            Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
+            Write-Host "Removing Desktop Shortcuts for container $containerName"
+            Remove-DesktopShortcut -Name "$containerName Web Client"
+            Remove-DesktopShortcut -Name "$containerName Windows Client"
+            Remove-DesktopShortcut -Name "$containerName CSIDE"
+            Remove-DesktopShortcut -Name "$containerName Command Prompt"
+            Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
+            Remove-NavContainerSession $containerName
+            Write-Host -ForegroundColor Green "Successfully removed container $containerName"
+        }
     }
 }
 
 function Wait-NavContainerReady {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
-    )
+    [CmdletBinding()]
+    Param
+    ()
 
-    Write-Host "Waiting for container $containerName to be ready, this shouldn't take more than a few minutes"
-    Write-Host "Time:          ½              1              ½              2"
-    $cnt = 150
-    $log = ""
-    do {
-        Write-Host -NoNewline "."
-        Start-Sleep -Seconds 2
-        $logs = docker logs $containerName
-        if ($logs) { $log = [string]::Join(" ",$logs) }
-        if ($log.Contains("<ScriptBlock>")) { $cnt = 0 }
-    } while ($cnt-- -gt 0 -and !($log.Contains("Ready for connections!")))
-    Write-Host "Ready"
+    DynamicParam {return (HelperGetContainersForDynParam)}
+
+    Process {
+        $containerName = $PsBoundParameters['containerName']
+
+        Write-Host "Waiting for container $containerName to be ready, this shouldn't take more than a few minutes"
+        Write-Host "Time:          ½              1              ½              2"
+        $cnt = 150
+        $log = ""
+        do {
+            Write-Host -NoNewline "."
+            Start-Sleep -Seconds 2
+            $logs = docker logs $containerName
+            if ($logs) { $log = [string]::Join(" ",$logs) }
+            if ($log.Contains("<ScriptBlock>")) { $cnt = 0 }
+        } while ($cnt-- -gt 0 -and !($log.Contains("Ready for connections!")))
+        Write-Host "Ready"
+    }
 }
 
 function Get-LocaleFromCountry {
