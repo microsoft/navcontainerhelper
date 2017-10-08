@@ -12,31 +12,51 @@ $containerExtensionsFolder = "C:\DEMO\Extensions"
 $sessions = @{}
 
 function HelperGetContainersForDynParam {
-    # Set the dynamic parameters name
     $ParameterName = 'containerName'
         
-    # Create the dictionary 
     $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 
-    # Create the collection of attributes
     $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
         
-    # Create and set the parameters' attributes
     $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
     $ParameterAttribute.Mandatory = $true
     $ParameterAttribute.Position = 0
 
-    # Add the attributes to the attributes collection
     $AttributeCollection.Add($ParameterAttribute)
 
-    # Generate and set the ValidateSet 
     $arrSet =  docker ps -a --format '{{.Names}}'
     $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
-
-    # Add the ValidateSet to the attributes collection
     $AttributeCollection.Add($ValidateSetAttribute)
 
-    # Create and return the dynamic parameter
+    $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
+    $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
+    return $RuntimeParameterDictionary 
+}
+
+function HelperGetContainersAndImagesForDynParam {
+    $ParameterName = 'containerOrImageName'
+        
+    $RuntimeParameterDictionary = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
+    $AttributeCollection = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
+
+    $ParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
+    $ParameterAttribute.Mandatory = $true
+    $ParameterAttribute.Position = 0
+
+    $AttributeCollection.Add($ParameterAttribute)
+
+    $arrSet =  docker ps -a --format '{{.Names}}'
+    if ($arrSet) {
+        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+        $AttributeCollection.Add($ValidateSetAttribute)
+    }
+
+    $arrSet = (docker images --format "{{.Repository}}:{{.Tag}}") | Where-Object { $_.Contains("/dynamics-nav:") }
+    if ($arrSet) {
+        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
+        $AttributeCollection.Add($ValidateSetAttribute)
+    }
+
     $RuntimeParameter = New-Object System.Management.Automation.RuntimeDefinedParameter($ParameterName, [string], $AttributeCollection)
     $RuntimeParameterDictionary.Add($ParameterName, $RuntimeParameter)
     return $RuntimeParameterDictionary 
@@ -168,12 +188,11 @@ function Get-NavContainerNavVersion {
     Param
     ()
 
-    DynamicParam {return (HelperGetContainersForDynParam)}
+    DynamicParam {return (HelperGetContainersAndImagesForDynParam)}
 
     Process {
-        $containerName = $PsBoundParameters['containerName']
-
-        docker inspect --format='{{.Config.Labels.version}}-{{.Config.Labels.country}}' $containerName
+        $containerOrImageName = $PsBoundParameters['containerOrImageName']
+        docker inspect --format='{{.Config.Labels.version}}-{{.Config.Labels.country}}' $containerOrImageName
     }
 }
 
@@ -196,12 +215,12 @@ function Get-NavContainerGenericTag {
     Param
     ()
 
-    DynamicParam {return (HelperGetContainersForDynParam)}
+    DynamicParam {return (HelperGetContainersAndImagesForDynParam)}
 
     Process {
-        $containerName = $PsBoundParameters['containerName']
+        $containerOrImageName = $PsBoundParameters['containerOrImageName']
 
-        docker inspect --format='{{.Config.Labels.tag}}' $containerName
+        docker inspect --format='{{.Config.Labels.tag}}' $containerOrImageName
     }
 }
 
@@ -210,13 +229,13 @@ function Get-NavContainerOsVersion {
     Param
     ()
 
-    DynamicParam {return (HelperGetContainersForDynParam)}
+    DynamicParam {return (HelperGetContainersAndImagesForDynParam)}
 
     Process {
-        $containerName = $PsBoundParameters['containerName']
+        $containerOrImageName = $PsBoundParameters['containerOrImageName']
 
         # returns empty with generic tag 0.0.2.3 or earlier
-        docker inspect --format='{{.Config.Labels.osversion}}' $containerName
+        docker inspect --format='{{.Config.Labels.osversion}}' $containerOrImageName
     }
 }
 
@@ -225,12 +244,12 @@ function Get-NavContainerLegal {
     Param
     ()
 
-    DynamicParam {return (HelperGetContainersForDynParam)}
+    DynamicParam {return (HelperGetContainersAndImagesForDynParam)}
 
     Process {
-        $containerName = $PsBoundParameters['containerName']
+        $containerOrImageName = $PsBoundParameters['containerOrImageName']
 
-        docker inspect --format='{{.Config.Labels.legal}}' $containerName
+        docker inspect --format='{{.Config.Labels.legal}}' $containerOrImageName
     }
 }
 
@@ -239,12 +258,12 @@ function Get-NavContainerCountry {
     Param
     ()
 
-    DynamicParam {return (HelperGetContainersForDynParam)}
+    DynamicParam {return (HelperGetContainersAndImagesForDynParam)}
 
     Process {
-        $containerName = $PsBoundParameters['containerName']
+        $containerOrImageName = $PsBoundParameters['containerOrImageName']
 
-        docker inspect --format='{{.Config.Labels.country}}' $containerName
+        docker inspect --format='{{.Config.Labels.country}}' $containerOrImageName
     }
 }
 
