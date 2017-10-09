@@ -45,13 +45,9 @@ function HelperGetContainersAndImagesForDynParam {
 
     $AttributeCollection.Add($ParameterAttribute)
 
-    $arrSet =  docker ps -a --format '{{.Names}}'
-    if ($arrSet) {
-        $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
-        $AttributeCollection.Add($ValidateSetAttribute)
-    }
+    [array]$arrSet =  docker ps -a --format '{{.Names}}'
+    $arrSet += (docker images --format "{{.Repository}}:{{.Tag}}") | Where-Object { $_.Contains("/dynamics-nav:") }
 
-    $arrSet = (docker images --format "{{.Repository}}:{{.Tag}}") | Where-Object { $_.Contains("/dynamics-nav:") }
     if ($arrSet) {
         $ValidateSetAttribute = New-Object System.Management.Automation.ValidateSetAttribute($arrSet)
         $AttributeCollection.Add($ValidateSetAttribute)
