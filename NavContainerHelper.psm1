@@ -301,9 +301,10 @@ function New-DesktopShortcut {
         [string]$TargetPath, 
         [string]$WorkingDirectory = "", 
         [string]$IconLocation = "", 
-        [string]$Arguments = ""
+        [string]$Arguments = "",
+        [string]$FolderName = "Desktop"
     )
-    $filename = Join-Path ([Environment]::GetFolderPath("Desktop")) "$Name.lnk"
+    $filename = Join-Path ([Environment]::GetFolderPath($FolderName)) "$Name.lnk"
     if (Test-Path -Path $filename) {
         Remove-Item $filename -force
     }
@@ -327,9 +328,10 @@ function New-DesktopShortcut {
 function Remove-DesktopShortcut {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$Name
+        [string]$Name,
+        [string]$FolderName = "Desktop"
     )
-    $filename = Join-Path ([Environment]::GetFolderPath("Desktop")) "$Name.lnk"
+    $filename = Join-Path ([Environment]::GetFolderPath($FolderName)) "$Name.lnk"
     if (Test-Path -Path $filename) {
         Remove-Item $filename -force
     }
