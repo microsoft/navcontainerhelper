@@ -365,14 +365,14 @@ function New-CSideDevContainer {
             throw "You need to specify devImageName if you are not using the scripts inside the Nav on Azure DEMO VMs"
         }
         $devImageName = Get-NavContainerImageName -containerName navserver
-        $devCountry = Get-NavContainerCountry -containerName navserver
+        $devCountry = Get-NavContainerCountry -containerOrImageName navserver
     } else {
         $imageId = docker images -q $devImageName
         if (!($imageId)) {
             Write-Host "Pulling docker Image $devImageName"
             docker pull $devImageName
         }
-        $devCountry = Get-NavContainerCountry $devImageName
+        $devCountry = Get-NavContainerCountry -containerOrImageName $devImageName
     }
 
     Remove-CSideDevContainer $containerName
@@ -385,7 +385,7 @@ function New-CSideDevContainer {
     New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
     $locale = Get-LocaleFromCountry $devCountry
-    $navversion = Get-NavContainerNavversion -containerName $devImageName
+    $navversion = Get-NavContainerNavversion -containerOrImageName $devImageName
     Write-Host "Image Name: $devImageName"
     Write-Host "NAV Version: $navversion"
 
@@ -731,7 +731,7 @@ function Convert-ModifiedObjectsToAl {
 
     $suffix = "-newsyntax"
 
-    $navversion = Get-NavContainerNavversion -containerName $containerName
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
     $modifiedFolder   = Join-Path $ExtensionsFolder "$containerName\modified$suffix"
     $myOriginalFolder = Join-Path $ExtensionsFolder "$containerName\original$suffix"
@@ -1063,7 +1063,7 @@ function Replace-NavServerContainer {
         Write-Host "pulling $newImageName"
         docker pull $newImageName
     }
-    $country = Get-NavContainerCountry -containerName $newImageName
+    $country = Get-NavContainerCountry -containerOrImageName $newImageName
 
     $id = Get-ContainerId -containerName navserver
     if ($id) {
