@@ -393,7 +393,9 @@ function New-CSideDevContainer {
         $devCountry = Get-NavContainerCountry -containerOrImageName $devImageName
     }
 
-    Remove-CSideDevContainer $containerName
+    if (Test-Container -containerName $containerName) {
+        Remove-CSideDevContainer $containerName
+    }
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
