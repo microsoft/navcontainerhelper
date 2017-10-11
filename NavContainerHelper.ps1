@@ -37,4 +37,5 @@ Write-Host "Install-NavContainerApp       Install App in Nav container"
 Write-Host "Uninstall-NavContainerApp     Uninstall App from Nav container"
 Write-Host "Unpublish-NavContainerApp     Unpublish App from Nav container"
 Write-Host "Get-NavContainerAppInfo       Get info about installed apps from Nav Container"
+Write-Host "Get-NavSipCryptoProvider      Get Nav Sip Crypto Provider from container to sign extensions"
 Write-Host
