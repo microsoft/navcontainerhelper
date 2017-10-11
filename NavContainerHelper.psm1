@@ -981,11 +981,8 @@ function Get-NAVSipCryptoProvider {
         [string]$containerName = "navserver"
     )
 
-    Push-Location
-    Set-Location c:\windows\system32
-    RegSvr32 /u /s NavSip.dll
-    Set-Location c:\windows\syswow64
-    RegSvr32 /u /s NavSip.dll
+    RegSvr32 /u /s c:\windows\system32\NavSip.dll
+    RegSvr32 /u /s c:\windows\syswow64\NavSip.dll
 
     $session = Get-NavContainerSession -containerName $containerName
 
@@ -1014,12 +1011,8 @@ function Get-NAVSipCryptoProvider {
     } -ArgumentList $navSipPath
     [System.IO.File]::WriteAllBytes($navSipPath, $navsip)
 
-    Set-Location c:\windows\system32
-    RegSvr32 /s NavSip.dll
-    Set-Location c:\windows\syswow64
-    RegSvr32 /s NavSip.dll
-
-    Pop-Location
+    RegSvr32 /s c:\windows\system32\NavSip.dll
+    RegSvr32 /s c:\windows\syswow64\NavSip.dll
 }
 
 function Replace-NavServerContainer {
