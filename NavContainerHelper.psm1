@@ -987,6 +987,8 @@ function Get-NAVSipCryptoProvider {
     Set-Location c:\windows\syswow64
     RegSvr32 /u /s NavSip.dll
 
+    $session = Get-NavContainerSession -containerName $containerName
+
     $msvcr120Path = "C:\Windows\System32\msvcr120.dll"
     if (!(Test-Path $msvcr120Path)) {
         Log "Copy msvcr120.dll from container $containerName"
@@ -999,7 +1001,6 @@ function Get-NAVSipCryptoProvider {
 
     Log "Copy NAV SIP crypto provider from container $containerName"
     $navSipPath = "C:\Windows\System32\NavSip.dll"
-    $session = Get-NavContainerSession -containerName $containerName
     $navsip = Invoke-Command -Session $session -ScriptBlock {
         Param($navSipPath) 
         [System.IO.File]::ReadAllBytes($navSipPath)
