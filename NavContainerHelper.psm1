@@ -88,9 +88,10 @@ function Get-NavContainerSession {
 
     Process {
         $containerName = $PsBoundParameters['containerName']
+        $containerId = Get-ContainerId -containerName $containerName
 
-        if (!($sessions.ContainsKey($containerName))) {
-            $session = New-PSSession -ContainerId (Get-ContainerId -containerName $containerName) -RunAsAdministrator
+        if (!($sessions.ContainsKey($containerId))) {
+            $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
             Invoke-Command -Session $session -ScriptBlock {
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
                 if (Test-Path $serviceTierFolder -PathType Container) {
@@ -113,9 +114,9 @@ function Get-NavContainerSession {
                 . c:\run\HelperFunctions.ps1 | Out-Null
                 cd c:\run
             }
-            $sessions.Add($containerName, $session)
+            $sessions.Add($containerId, $session)
         }
-        $sessions[$containerName]
+        $sessions[$containerId]
     }
 }
 
@@ -128,11 +129,12 @@ function Remove-NavContainerSession {
 
     Process {
         $containerName = $PsBoundParameters['containerName']
+        $containerId = Get-ContainerId -containerName $containerName
 
-        if ($sessions.ContainsKey($containerName)) {
-            $session = $sessions[$containerName]
+        if ($sessions.ContainsKey($containerId)) {
+            $session = $sessions[$containerId]
             Remove-PSSession -Session $session
-            $sessions.Remove($containerName)
+            $sessions.Remove($containerId)
         }
     }
 }
@@ -272,6 +274,23 @@ function Get-ContainerName {
     docker ps --format='{{.Names}}' -a --filter "id=$containerId"
 }
 
+function Test-Container {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$containerName
+    )
+    Process {
+        $exist = $false;
+        docker ps --filter name="$containerName" -a -q --no-trunc | % {
+            $name = Get-ContainerName -containerId $_
+            if ($name -eq $containerName) {
+                $exist = $true
+            }
+        }
+        $exist
+    }
+}
+
 function Get-ContainerId {
     [CmdletBinding()]
     Param
@@ -360,8 +379,7 @@ function New-CSideDevContainer {
     $containerLicenseFile = $licenseFile.Replace("$demoFolder\", "$containerDemoFolder\")
 
     if ($devImageName -eq "") {
-        $id = Get-ContainerId -containerName navserver
-        if ($id -eq "") {
+        if (!(Test-Container -containerName navserver)) {
             throw "You need to specify devImageName if you are not using the scripts inside the Nav on Azure DEMO VMs"
         }
         $devImageName = Get-NavContainerImageName -containerName navserver
@@ -488,10 +506,10 @@ function Remove-CSideDevContainer {
             throw "You should not remove the navserver container. Use Replace-NavServerContainer to replace the navserver container."
         }
 
-        $id = Get-ContainerId -containerName $containerName
-        if ($id) {
+        if (Test-Container -containerName $containerName) {
+            $containerId = Get-ContainerId -containerName $containerName
             Write-Host "Removing container $containerName"
-            docker rm $id -f | Out-Null
+            docker rm $containerId -f | Out-Null
             $containerFolder = Join-Path $ExtensionsFolder $containerName
             Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
             Write-Host "Removing Desktop Shortcuts for container $containerName"
@@ -1032,8 +1050,6 @@ function Replace-NavServerContainer {
 
     . C:\DEMO\Settings.ps1
 
-    Remove-NavContainerSession $containerName
-
     if ($newCertificatePfxUrl -ne "" -and $newCertificatePfxPassword -ne "" -and $newPublicDnsName -ne "") {
         Download-File -sourceUrl $newCertificatePfxUrl -destinationFile "c:\demo\certificate.pfx"
     
@@ -1058,28 +1074,24 @@ function Replace-NavServerContainer {
         $newPublicDnsName = $hostname
     }
 
-    $id = docker images -q $newImageName
-    if (!($id)) {
+    $imageId = docker images -q $newImageName
+    if (!($imageId)) {
         Write-Host "pulling $newImageName"
         docker pull $newImageName
     }
     $country = Get-NavContainerCountry -containerOrImageName $newImageName
 
-    $id = Get-ContainerId -containerName navserver
-    if ($id) {
+    if (Test-Container -containerName navserver) {
         Write-Host "Remove container navserver"
-        docker rm $id -f | Out-Null
+        Remove-NavContainerSession -containerName $containerName
+        $containerId = Get-ContainerId -containerName $containerName
+        docker rm $containerId -f | Out-Null
     }
     
     $settingsScript = "c:\demo\settings.ps1"
-    ('$imageName = "' + $newImageName + '"')              | Set-Content $settingsScript
-    ('$Country = "' + $Country + '"')                     | Add-Content $settingsScript
-    ('$hostName = "' + $hostname + '"')                   | Add-Content $settingsScript
-    ('$publicDnsName = "' + $newPublicDnsName + '"')      | Add-Content $settingsScript
-    ('$containerName = "' + $containerName + '"')         | Add-Content $settingsScript
-    ('$navAdminUsername = "' + $navAdminUsername + '"')   | Add-Content $settingsScript
-    ('$vmAdminUsername = "' + $vmAdminUsername + '"')     | Add-Content $settingsScript
-    ('$adminPassword = "' + $adminPassword + '"')         | Add-Content $settingsScript
+    $settings = Get-Content -Path  $settingsScript
+    0..($settings.Count-1) | % { if ($settings[$_].StartsWith('$navDockerImage = ')) { $settings[$_] = ('$navDockerImage = "'+$newImageName + '"') } }
+    Set-Content -Path $settingsScript -Value $settings
 
     Write-Host -ForegroundColor Green "Setup new Nav container"
     . $SetupNavContainerScript
