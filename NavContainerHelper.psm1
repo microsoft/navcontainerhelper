@@ -981,52 +981,44 @@ function Get-NAVSipCryptoProvider {
         [string]$containerName = "navserver"
     )
 
-    $sipPath = "C:\Windows\System32\NavSip.dll"
+    Push-Location
+    Set-Location c:\windows\system32
+    RegSvr32 /u /s NavSip.dll
+    Set-Location c:\windows\syswow64
+    RegSvr32 /u /s NavSip.dll
+
+    $msvcr120Path = "C:\Windows\System32\msvcr120.dll"
+    if (!(Test-Path $msvcr120Path)) {
+        Log "Copy msvcr120.dll from container $containerName"
+        $msvcr120 = Invoke-Command -Session $session -ScriptBlock {
+            Param($msvcr120Path) 
+            [System.IO.File]::ReadAllBytes($msvcr120Path)
+        } -ArgumentList $msvcr120Path
+        [System.IO.File]::WriteAllBytes($msvcr120Path, $msvcr120)
+    }
 
     Log "Copy NAV SIP crypto provider from container $containerName"
+    $navSipPath = "C:\Windows\System32\NavSip.dll"
     $session = Get-NavContainerSession -containerName $containerName
     $navsip = Invoke-Command -Session $session -ScriptBlock {
-        Param($sipPath) 
-        [System.IO.File]::ReadAllBytes("C:\Windows\System32\NavSip.dll")
-    } -ArgumentList $sipPath
-    [System.IO.File]::WriteAllBytes($sipPath, $navsip)
+        Param($navSipPath) 
+        [System.IO.File]::ReadAllBytes($navSipPath)
+    } -ArgumentList $navSipPath
+    [System.IO.File]::WriteAllBytes($navSipPath, $navsip)
+    $navSipPath = "C:\Windows\SysWow64\NavSip.dll"
+    $session = Get-NavContainerSession -containerName $containerName
+    $navsip = Invoke-Command -Session $session -ScriptBlock {
+        Param($navSipPath) 
+        [System.IO.File]::ReadAllBytes($navSipPath)
+    } -ArgumentList $navSipPath
+    [System.IO.File]::WriteAllBytes($navSipPath, $navsip)
 
-    Log "Installing NAV SIP crypto provider"
+    Set-Location c:\windows\system32
+    RegSvr32 /s NavSip.dll
+    Set-Location c:\windows\syswow64
+    RegSvr32 /s NavSip.dll
 
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllCreateIndirectData\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPCreateIndirectData' -Force | Out-Null
-
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetCaps\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPGetCaps' -Force | Out-Null
-
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllGetSignedDataMsg\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPGetSignedDataMsg' -Force | Out-Null
-
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllIsMyFileType2\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPIsFileSupportedName' -Force | Out-Null
-
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllPutSignedDataMsg\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPPutSignedDataMsg' -Force | Out-Null
-
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllRemoveSignedDataMsg\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPRemoveSignedDataMsg' -Force | Out-Null
-
-    $registryPath = 'HKLM:\SOFTWARE\Microsoft\Cryptography\OID\EncodingType 0\CryptSIPDllVerifyIndirectData\{36FFA03E-F824-48E7-8E07-4A2DCB034CC7}'
-    New-Item -Path $registryPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'Dll' -Value $sipPath -Force | Out-Null
-    New-ItemProperty -Path $registryPath -PropertyType string -Name 'FuncName' -Value 'NavSIPVerifyIndirectData' -Force | Out-Null
+    Pop-Location
 }
 
 function Replace-NavServerContainer {
