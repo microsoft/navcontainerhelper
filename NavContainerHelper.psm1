@@ -509,6 +509,7 @@ function Remove-CSideDevContainer {
         }
 
         if (Test-Container -containerName $containerName) {
+            Remove-NavContainerSession $containerName
             $containerId = Get-ContainerId -containerName $containerName
             Write-Host "Removing container $containerName"
             docker rm $containerId -f | Out-Null
@@ -520,7 +521,6 @@ function Remove-CSideDevContainer {
             Remove-DesktopShortcut -Name "$containerName CSIDE"
             Remove-DesktopShortcut -Name "$containerName Command Prompt"
             Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
-            Remove-NavContainerSession $containerName
             Write-Host -ForegroundColor Green "Successfully removed container $containerName"
         }
     }
