@@ -376,6 +376,9 @@ function New-CSideDevContainer {
     if (!(Test-Path $licenseFile)) {
         throw "License file '$licenseFile' must exist in order to create a Developer Server Container."
     }
+    if (!($licenseFile.Contains($demoFolder))) {
+        throw "License file '$licenseFile' must be placed in $demoFolder folder or any of its subfolders and referenced using full-path format."
+    }
     $containerLicenseFile = $licenseFile.Replace("$demoFolder\", "$containerDemoFolder\")
 
     if ($devImageName -eq "") {
