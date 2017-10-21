@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.0.1'
+ModuleVersion = '0.1.0.2'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -88,7 +88,10 @@ FunctionsToExport = 'Get-NavContainerAppInfo', 'UnInstall-NavContainerApp',
                'Enter-NavContainer', 'Remove-DesktopShortcut', 
                'Get-NavContainerSharedFolders', 'Test-NavContainer', 
                'Replace-NavServerContainer', 'Convert-ModifiedObjectsToAl', 
-               'Compile-ObjectsInNavContainer'
+               'Compile-ObjectsInNavContainer', 'Write-NavContainerHelperWelcomeText',
+               'Download-File', 'Get-LocaleFromCountry',
+               'Copy-FileFromNavContainer', 'Copy-FileToNavContainer'
+
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()

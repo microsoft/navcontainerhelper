@@ -38,107 +38,6 @@ function Get-DefaultVmAdminUsername {
     }    
 }
 
-function Download-File {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$sourceUrl,
-        [Parameter(Mandatory=$true)]
-        [string]$destinationFile
-    )
-
-    Write-Host "Downloading $destinationFile"
-    Remove-Item -Path $destinationFile -Force -ErrorAction Ignore
-    (New-Object System.Net.WebClient).DownloadFile($sourceUrl, $destinationFile)
-}
-
-function Get-LocaleFromCountry {
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$country
-    )
-
-    $locales = @{
-        "finus" = "en-US"
-        "finca" = "en-CA"
-        "fingb" = "en-GB"
-        "findk" = "da-DK"
-        "at"    = "de-AT"
-        "au"    = "en-AU" 
-        "be"    = "nl-BE"
-        "ch"    = "de-CH"
-        "cz"    = "cs-CZ"
-        "de"    = "de-DE"
-        "dk"    = "da-DK"
-        "es"    = "es-ES"
-        "fi"    = "fi-FI"
-        "fr"    = "fr-FR"
-        "gb"    = "en-GB"
-        "in"    = "en-IN"
-        "is"    = "is-IS"
-        "it"    = "it-IT"
-        "na"    = "en-US"
-        "nl"    = "nl-NL"
-        "no"    = "nb-NO"
-        "nz"    = "en-NZ"
-        "ru"    = "ru-RU"
-        "se"    = "sv-SE"
-        "w1"    = "en-US"
-        "us"    = "en-US"
-        "mx"    = "es-MX"
-        "ca"    = "en-CA"
-        "dech"  = "de-CH"
-        "frbe"  = "fr-BE"
-        "frca"  = "fr-CA"
-        "frch"  = "fr-CH"
-        "itch"  = "it-CH"
-        "nlbe"  = "nl-BE"
-    }
-
-    return $locales[$country]
-}
-
-function Copy-FileFromNavContainer {
-
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$true)]
-        [string]$containerPath,
-        [Parameter(Mandatory=$false)]
-        [string]$localPath = $containerPath
-    )
-
-    Process {
-        if (!(Test-NavContainer -containerName $containerName)) {
-            throw "Container $containerName does not exist"
-        }
-        Log "Copy from container $containerName ($containerPath) to $localPath"
-        $id = Get-NavContainerId -containerName $containerName 
-        docker cp ${id}:$containerPath $localPath
-    }
-}
-
-function Copy-FileToNavContainer {
-
-    Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$true)]
-        [string]$localPath,
-        [Parameter(Mandatory=$false)]
-        [string]$containerPath = $localPath
-    )
-
-    Process {
-        if (!(Test-NavContainer -containerName $containerName)) {
-            throw "Container $containerName does not exist"
-        }
-        Log "Copy $localPath to container ${containerName} ($containerPath)"
-        $id = Get-NavContainerId -containerName $containerName 
-        docker cp $localPath ${id}:$containerPath
-    }
-}
-
 function Update-Hosts {
     Param(
         [Parameter(Mandatory=$true)]
@@ -1733,7 +1632,6 @@ function Remove-DesktopShortcut {
 }
 Export-ModuleMember Remove-DesktopShortcut
 
-#region Print Welcome text
 function Write-NavContainerHelperWelcomeText {
     clear
     Write-Host -ForegroundColor Yellow "Welcome to the Nav Container Helper PowerShell Prompt"
@@ -1789,4 +1687,108 @@ function Write-NavContainerHelperWelcomeText {
     Write-Host
 }
 Export-ModuleMember Write-NavContainerHelperWelcomeText
-#endregion Print Welcome text
+
+function Download-File {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$sourceUrl,
+        [Parameter(Mandatory=$true)]
+        [string]$destinationFile
+    )
+
+    Write-Host "Downloading $destinationFile"
+    Remove-Item -Path $destinationFile -Force -ErrorAction Ignore
+    (New-Object System.Net.WebClient).DownloadFile($sourceUrl, $destinationFile)
+}
+Export-ModuleMember Download-File
+
+function Get-LocaleFromCountry {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$country
+    )
+
+    $locales = @{
+        "finus" = "en-US"
+        "finca" = "en-CA"
+        "fingb" = "en-GB"
+        "findk" = "da-DK"
+        "at"    = "de-AT"
+        "au"    = "en-AU" 
+        "be"    = "nl-BE"
+        "ch"    = "de-CH"
+        "cz"    = "cs-CZ"
+        "de"    = "de-DE"
+        "dk"    = "da-DK"
+        "es"    = "es-ES"
+        "fi"    = "fi-FI"
+        "fr"    = "fr-FR"
+        "gb"    = "en-GB"
+        "in"    = "en-IN"
+        "is"    = "is-IS"
+        "it"    = "it-IT"
+        "na"    = "en-US"
+        "nl"    = "nl-NL"
+        "no"    = "nb-NO"
+        "nz"    = "en-NZ"
+        "ru"    = "ru-RU"
+        "se"    = "sv-SE"
+        "w1"    = "en-US"
+        "us"    = "en-US"
+        "mx"    = "es-MX"
+        "ca"    = "en-CA"
+        "dech"  = "de-CH"
+        "frbe"  = "fr-BE"
+        "frca"  = "fr-CA"
+        "frch"  = "fr-CH"
+        "itch"  = "it-CH"
+        "nlbe"  = "nl-BE"
+    }
+
+    return $locales[$country]
+}
+Export-ModuleMember Get-LocaleFromCountry
+
+function Copy-FileFromNavContainer {
+
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$containerName,
+        [Parameter(Mandatory=$true)]
+        [string]$containerPath,
+        [Parameter(Mandatory=$false)]
+        [string]$localPath = $containerPath
+    )
+
+    Process {
+        if (!(Test-NavContainer -containerName $containerName)) {
+            throw "Container $containerName does not exist"
+        }
+        Log "Copy from container $containerName ($containerPath) to $localPath"
+        $id = Get-NavContainerId -containerName $containerName 
+        docker cp ${id}:$containerPath $localPath
+    }
+}
+Export-ModuleMember Copy-FileFromNavContainer
+
+function Copy-FileToNavContainer {
+
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$containerName,
+        [Parameter(Mandatory=$true)]
+        [string]$localPath,
+        [Parameter(Mandatory=$false)]
+        [string]$containerPath = $localPath
+    )
+
+    Process {
+        if (!(Test-NavContainer -containerName $containerName)) {
+            throw "Container $containerName does not exist"
+        }
+        Log "Copy $localPath to container ${containerName} ($containerPath)"
+        $id = Get-NavContainerId -containerName $containerName 
+        docker cp $localPath ${id}:$containerPath
+    }
+}
+Export-ModuleMember Copy-FileToNavContainer
