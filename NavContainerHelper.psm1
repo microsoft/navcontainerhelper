@@ -599,7 +599,9 @@ function New-CSideDevContainer {
         [string]$vmAdminUsername = (Get-DefaultVmAdminUsername), 
         [string]$adminPassword = (Get-DefaultAdminPassword),
         [string]$memoryLimit = "4G",
-        [switch]$UpdateHosts
+        [switch]$UpdateHosts,
+        [ValidateSet('Windows','NavUserPassword')]
+        [string]$AuthenticationType='Windows'
     )
 
     if ($containerName -eq "navserver") {
@@ -684,7 +686,7 @@ function New-CSideDevContainer {
                  --hostname $containerName `
                  --env accept_eula=Y `
                  --env useSSL=N `
-                 --env auth=Windows `
+                 --env auth=$AuthenticationType `
                  --env username=$vmAdminUsername `
                  --env password=$adminPassword `
                  --env ExitOnError=N `
