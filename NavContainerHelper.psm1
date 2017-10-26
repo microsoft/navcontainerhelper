@@ -20,22 +20,40 @@ function Log([string]$line, [string]$color = "Gray") {
 }
 
 function Get-DefaultAdminPassword {
-    if (!(Test-Path "$demoFolder\settings.ps1")) {
-        throw "You need to specify adminPassword"
+    if (Test-Path "$demoFolder\settings.ps1") {
+        . "$demoFolder\settings.ps1"
+        if (Test-Path "$demoFolder\eas.key") {
+            $key = Get-Content -Path "c:\demo\aes.key"
+            ConvertTo-SecureString -String $adminPassword -Key $key
+        } else {
+            ConvertTo-SecureString -String $adminPassword
+        }
+    } else {
+        Read-Host -Prompt "Please enter the admin password for the Nav Container" -AsSecureString
     }
-    . "$demoFolder\settings.ps1"
-    return $adminPassword
 }
 
 function Get-DefaultVmAdminUsername {
     if (Test-Path "$demoFolder\settings.ps1") {
         . "$demoFolder\settings.ps1"
-        return $vmAdminUsername
-    } elseif ("$env:USERNAME" -ne "") {        
-        return "$env:USERNAME"
+        $vmAdminUsername
     } else {
-        return "vmadmin"
-    }    
+        "$env:USERNAME"
+    }
+}
+
+function Get-NavContainerAuth {
+    Param
+    (
+        [string]$containerName
+    )
+
+    $session = Get-NavContainerSession -containerName $containerName
+    Invoke-Command -Session $session -ScriptBlock { 
+        $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+        [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+        $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
+    }
 }
 
 function Update-Hosts {
@@ -134,7 +152,7 @@ Export-ModuleMember -function Get-NavContainerSession
   Remove a PSSession for a Nav Container
  .Description
   If a session exists in the session cache, it will be removed and disposed.
-  Remove-CsideDevContainer automatically removes sessions created.
+  Remove-NavContainer automatically removes sessions created.
  .Parameter containerName
   Name of the container for which you want to remove the session
  .Example
@@ -583,8 +601,10 @@ Export-ModuleMember -function Get-NavContainerId
   Memory limit for the container (default 4G)
  .Parameter updateHosts
   Include this switch if you want to update the hosts file with the IP address of the container
+ .Parameter auth
+  Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
  .Example
-  New-SideDevContainer -containerName test
+  New-CSideDevContainer -containerName test
  .Example
   New-SideDevContainer -containerName test -memoryLimit 3G -devImageName "navdocker.azurecr.io/dynamics-nav:2017" -updateHosts
  .Example
@@ -597,9 +617,11 @@ function New-CSideDevContainer {
         [string]$devImageName = "", 
         [string]$licenseFile = "",
         [string]$vmAdminUsername = (Get-DefaultVmAdminUsername), 
-        [string]$adminPassword = (Get-DefaultAdminPassword),
+        [SecureString]$adminPassword = (Get-DefaultAdminPassword),
         [string]$memoryLimit = "4G",
-        [switch]$UpdateHosts
+        [switch]$updateHosts,
+        [ValidateSet('Windows','NavUserPassword')]
+        [string]$auth='Windows'
     )
 
     if ($containerName -eq "navserver") {
@@ -631,15 +653,17 @@ function New-CSideDevContainer {
         $devCountry = Get-NavContainerCountry -containerOrImageName $devImageName
     }
 
-    Write-Host "Creating C/SIDE developer container $containerName"
+    Write-Host "Creating Nav container $containerName"
     Write-Host "Using image $devImageName"
     Write-Host "Using license file $licenseFile"
     $navversion = Get-NavContainerNavversion -containerOrImageName $devImageName
     Write-Host "NAV Version: $navversion"
+    $genericTag = Get-NavContainerGenericTag -containerOrImageName $devImageName
+    Write-Host "Generic Tag: $genericTag"
     $locale = Get-LocaleFromCountry $devCountry
 
     if (Test-NavContainer -containerName $containerName) {
-        Remove-CSideDevContainer $containerName -UpdateHosts:$UpdateHosts
+        Remove-NavContainer $containerName -UpdateHosts:$UpdateHosts
     }
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
@@ -658,7 +682,7 @@ function New-CSideDevContainer {
 
     'sqlcmd -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
     ' | Set-Content -Path "$myfolder\AdditionalSetup.ps1"
-
+    
     if (Test-Path $programFilesFolder) {
         Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore
     }
@@ -677,27 +701,56 @@ function New-CSideDevContainer {
     $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
     $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
     ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-
+    
     Write-Host "Creating container $containerName from image $devImageName"
-    $id = docker run `
-                 --name $containerName `
-                 --hostname $containerName `
-                 --env accept_eula=Y `
-                 --env useSSL=N `
-                 --env auth=Windows `
-                 --env username=$vmAdminUsername `
-                 --env password=$adminPassword `
-                 --env ExitOnError=N `
-                 --env locale=$locale `
-                 --env licenseFile="$containerLicenseFile" `
-                 --memory $memoryLimit `
-                 --volume "${demoFolder}:$containerDemoFolder" `
-                 --volume "${myFolder}:C:\Run\my" `
-                 --volume "${programFilesFolder}:C:\navpfiles" `
-                 --restart always `
-                 --detach `
-                 $devImageName
-
+    if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
+        $passwordKeyFile = "$myfolder\aes.key"
+        $passwordKey = New-Object Byte[] 16
+        [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
+        Set-Content -Path $passwordKeyFile -Value $passwordKey
+        $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
+        $id = docker run `
+                     --name $containerName `
+                     --hostname $containerName `
+                     --env accept_eula=Y `
+                     --env useSSL=N `
+                     --env auth=$auth `
+                     --env username=$vmAdminUsername `
+                     --env securePassword=$encPassword `
+                     --env passwordKeyFile=$passwordKeyFile `
+                     --env removePasswordKeyFile=Y `
+                     --env ExitOnError=N `
+                     --env locale=$locale `
+                     --env licenseFile="$containerLicenseFile" `
+                     --memory $memoryLimit `
+                     --volume "${demoFolder}:$containerDemoFolder" `
+                     --volume "${myFolder}:C:\Run\my" `
+                     --volume "${programFilesFolder}:C:\navpfiles" `
+                     --restart always `
+                     --detach `
+                     $devImageName
+    } else {
+        $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword)))
+        $id = docker run `
+                     --name $containerName `
+                     --hostname $containerName `
+                     --env accept_eula=Y `
+                     --env useSSL=N `
+                     --env auth=Windows `
+                     --env username=$vmAdminUsername `
+                     --env password=$plainPassword `
+                     --env ExitOnError=N `
+                     --env locale=$locale `
+                     --env licenseFile="$containerLicenseFile" `
+                     --memory $memoryLimit `
+                     --volume "${demoFolder}:$containerDemoFolder" `
+                     --volume "${myFolder}:C:\Run\my" `
+                     --volume "${programFilesFolder}:C:\navpfiles" `
+                     --restart always `
+                     --detach `
+                     $devImageName
+        Clear-Variable -Name "plainPassword"
+    }
     Wait-NavContainerReady $containerName
 
     if ($UpdateHosts) {
@@ -707,8 +760,8 @@ function New-CSideDevContainer {
     }
 
     Write-Host "Create Desktop Shortcuts for $containerName"
+
     $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
-    
     $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
     [System.IO.File]::ReadAllText($customConfigFile)'
     [xml]$customConfig = docker exec $containerName powershell $ps
@@ -716,31 +769,185 @@ function New-CSideDevContainer {
     $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
     $databaseServer = "$containerName"
     if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-
-    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "http://${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
     New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
     New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
+    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "http://${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
     New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd"
     New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1"
 
-    $suffix = "-newsyntax"
-    $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
-    if (!(Test-Path $originalFolder)) {
-        # Export base objects
-        Export-NavContainerObjects -containerName $containerName `
-                                   -objectsFolder $originalFolder `
-                                   -filter "" `
-                                   -adminPassword $adminPassword `
-                                   -ExportToNewSyntax $true
+    $false, $true | % {
+        $newSyntax = $_
+        $suffix = ""
+        if ($newSyntax) { $suffix = "-newsyntax" }
+        $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
+        if (!(Test-Path $originalFolder)) {
+            # Export base objects
+            Export-NavContainerObjects -containerName $containerName `
+                                       -objectsFolder $originalFolder `
+                                       -filter "" `
+                                       -adminPassword $adminPassword `
+                                       -ExportToNewSyntax $newSyntax
+        }
     }
-
-    Write-Host -ForegroundColor Green "C/SIDE developer container $containerName successfully created"
+    Write-Host -ForegroundColor Green "CSide development container $containerName successfully created"
 }
 Export-ModuleMember -function New-CSideDevContainer
 
 <# 
  .Synopsis
-  Remove CSide Development container
+  Create or refresh a Nav container
+ .Description
+  Creates a new Nav container based on a Nav Docker Image
+  Adds shortcut on the desktop for Web Client and Container PowerShell prompt
+ .Parameter containerName
+  Name of the new Nav container (if the container already exists it will be replaced)
+ .Parameter devImageName
+  Name of the image you want to use for your Nav container (default is to grab the imagename from the navserver container)
+ .Parameter licenseFile
+  Path or Secure Url of the licenseFile you want to use (default c:\demo\license.flf)
+ .Parameter vmAdminUsername
+  Name of the administrator user you want to add to the container
+ .Parameter adminPassword
+  Password of the administrator user you want to add to the container
+ .Parameter memoryLimit
+  Memory limit for the container (default 4G)
+ .Parameter updateHosts
+  Include this switch if you want to update the hosts file with the IP address of the container
+ .Parameter auth
+  Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
+ .Example
+  New-NavContainer -containerName test
+ .Example
+  New-NavContainer -containerName test -memoryLimit 3G -devImageName "navdocker.azurecr.io/dynamics-nav:2017" -updateHosts
+ .Example
+  New-NavContainer -containerName test -adminPassword <mypassword> -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -devImageName "navdocker.azurecr.io/dynamics-nav:devpreview-finus"
+#>
+function New-NavContainer {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$containerName, 
+        [string]$devImageName = "", 
+        [string]$licenseFile = "",
+        [string]$vmAdminUsername = (Get-DefaultVmAdminUsername),
+        [SecureString]$adminPassword = (Get-DefaultAdminPassword),
+        [string]$memoryLimit = "4G",
+        [switch]$updateHosts,
+        [ValidateSet('Windows','NavUserPassword')]
+        [string]$auth='Windows'
+    )
+
+    if ($containerName -eq "navserver") {
+        throw "You cannot create a Nav container called navserver. Use Replace-NavServerContainer to replace the navserver container."
+    }
+  
+    if ($devImageName -eq "") {
+        if (!(Test-NavContainer -containerName navserver)) {
+            throw "You need to specify the name of the docker image you want to use for your Nav container."
+        }
+        $devImageName = Get-NavContainerImageName -containerName navserver
+        $devCountry = Get-NavContainerCountry -containerOrImageName navserver
+    } else {
+        $imageId = docker images -q $devImageName
+        if (!($imageId)) {
+            Write-Host "Pulling docker Image $devImageName"
+            docker pull $devImageName
+        }
+        $devCountry = Get-NavContainerCountry -containerOrImageName $devImageName
+    }
+
+    Write-Host "Creating Nav container $containerName"
+    Write-Host "Using image $devImageName"
+    Write-Host "Using license file $licenseFile"
+    $navversion = Get-NavContainerNavversion -containerOrImageName $devImageName
+    Write-Host "NAV Version: $navversion"
+    $genericTag = Get-NavContainerGenericTag -containerOrImageName $devImageName
+    Write-Host "Generic Tag: $genericTag"
+    $locale = Get-LocaleFromCountry $devCountry
+
+    if (Test-NavContainer -containerName $containerName) {
+        Remove-NavContainer $containerName -UpdateHosts:$UpdateHosts
+    }
+
+    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+    $myFolder = Join-Path $containerFolder "my"
+    New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+    if ("$licensefile" -eq "" -or $licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+        $containerLicenseFile = $licenseFile
+    } else {
+        Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
+        $containerLicenseFile = "c:\run\my\license.flf"
+    }
+
+    Write-Host "Creating container $containerName from image $devImageName"
+    if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
+        $passwordKeyFile = "$myfolder\aes.key"
+        $passwordKey = New-Object Byte[] 16
+        [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
+        Set-Content -Path $passwordKeyFile -Value $passwordKey
+        $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
+        $id = docker run `
+                     --name $containerName `
+                     --hostname $containerName `
+                     --env accept_eula=Y `
+                     --env useSSL=N `
+                     --env auth=$auth `
+                     --env username=$vmAdminUsername `
+                     --env securePassword=$encPassword `
+                     --env passwordKeyFile=$passwordKeyFile `
+                     --env removePasswordKeyFile=Y `
+                     --env ExitOnError=N `
+                     --env locale=$locale `
+                     --env licenseFile="$containerLicenseFile" `
+                     --memory $memoryLimit `
+                     --volume "${demoFolder}:$containerDemoFolder" `
+                     --volume "${myFolder}:C:\Run\my" `
+                     --restart always `
+                     --detach `
+                     $devImageName
+    } else {
+        $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword)))
+        $id = docker run `
+                     --name $containerName `
+                     --hostname $containerName `
+                     --env accept_eula=Y `
+                     --env useSSL=N `
+                     --env auth=Windows `
+                     --env username=$vmAdminUsername `
+                     --env password=$plainPassword `
+                     --env ExitOnError=N `
+                     --env locale=$locale `
+                     --env licenseFile="$containerLicenseFile" `
+                     --memory $memoryLimit `
+                     --volume "${demoFolder}:$containerDemoFolder" `
+                     --volume "${myFolder}:C:\Run\my" `
+                     --restart always `
+                     --detach `
+                     $devImageName
+        Clear-Variable -Name "plainPassword"
+    }
+    Wait-NavContainerReady $containerName
+
+    if ($UpdateHosts) {
+        $ip = Get-NavContainerIpAddress -containerName $containerName
+        Write-Host "Add $ip $containerName to hosts"
+        Update-Hosts -hostName $containerName -ip $ip
+    }
+
+    Write-Host "Create Desktop Shortcuts for $containerName"
+
+    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "http://${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
+    New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd"
+    New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1"
+
+    Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
+}
+Export-ModuleMember -function New-NavContainer
+
+<# 
+ .Synopsis
+  Remove Nav container
  .Description
   Remove container, Session, Shortcuts, temp. files and entries in the hosts file,
  .Parameter containerName
@@ -748,11 +955,11 @@ Export-ModuleMember -function New-CSideDevContainer
  .Parameter updateHosts
   Include this switch if you want to update the hosts file and remove the container entry
  .Example
-  Remove-CSideDevContainer -containerName devServer
+  Remove-NavContainer -containerName devServer
  .Example
-  Remove-CSideDevContainer -containerName test -updateHosts
+  Remove-NavContainer -containerName test -updateHosts
 #>
-function Remove-CSideDevContainer {
+function Remove-NavContainer {
     [CmdletBinding()]
     Param
     (
@@ -787,7 +994,7 @@ function Remove-CSideDevContainer {
         }
     }
 }
-Export-ModuleMember -function Remove-CSideDevContainer
+Export-ModuleMember -function Remove-NavContainer
 
 <# 
  .Synopsis
@@ -838,8 +1045,10 @@ Export-ModuleMember -function Wait-NavContainerReady
   Name of the container for which you want to enter a session
  .Parameter objectsFolder
   The folder to which the objects are exported (needs to be shared with the container)
+ .Parameter vmadminUsername
+  Username of the administrator user in the container (defaults to sa)
  .Parameter adminPassword
-  The admin password for the container
+  The admin password for the container (if using NavUserPassword authentication)
  .Parameter filter
   Specifies which objects to export (default is modified=Yes)
  .Parameter exportToNewSyntax
@@ -847,7 +1056,7 @@ Export-ModuleMember -function Wait-NavContainerReady
  .Example
   Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects
  .Example
-  Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects -adminPassword <password> -filter ""
+  Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects -adminPassword <adminPassword> -filter ""
 #>
 function Export-NavContainerObjects {
     Param(
@@ -855,15 +1064,21 @@ function Export-NavContainerObjects {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFolder, 
-        [string]$adminPassword = (Get-DefaultAdminPassword), 
+        [string]$vmadminUsername = 'sa',
+        [SecureString]$adminPassword = $null, 
         [string]$filter = "modified=Yes", 
         [bool]$exportToNewSyntax = $true
     )
 
+    $containerAuth = Get-NavContainerAuth -containerName $containerName
+    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
+        $adminPassword = Get-DefaultAdminPassword
+    }
+
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $adminPassword, $exportToNewSyntax)
+    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $vmadminUsername, $adminPassword, $exportToNewSyntax)
 
         $objectsFile = "$objectsFolder.txt"
         Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
@@ -885,23 +1100,23 @@ function Export-NavContainerObjects {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
+        $creds = @{}
+        if ($adminPassword) {
+            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        }
         if ($exportToNewSyntax) {
-            Export-NAVApplicationObject -DatabaseName $databaseName `
+            Export-NAVApplicationObject @creds -DatabaseName $databaseName `
                                         -Path $objectsFile `
                                         -DatabaseServer $databaseServer `
                                         -Force `
                                         -Filter "$filter" `
-                                        -ExportToNewSyntax `
-                                        -Username "sa" `
-                                        -Password $adminPassword | Out-Null
+                                        -ExportToNewSyntax | Out-Null
         } else {
-            Export-NAVApplicationObject -DatabaseName $databaseName `
+            Export-NAVApplicationObject @creds -DatabaseName $databaseName `
                                         -Path $objectsFile `
                                         -DatabaseServer $databaseServer `
                                         -Force `
-                                        -Filter "$filter" `
-                                        -Username "sa" `
-                                        -Password $adminPassword | Out-Null
+                                        -Filter "$filter" | Out-Null
         }
         Write-Host "Split $objectsFile to $objectsFolder"
         New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
@@ -909,7 +1124,7 @@ function Export-NavContainerObjects {
                                        -Destination $objectsFolder
         Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
     
-    }  -ArgumentList $filter, $containerObjectsFolder, $adminPassword, $exportToNewSyntax
+    }  -ArgumentList $filter, $containerObjectsFolder, $vmadminUsername, $adminPassword, $exportToNewSyntax
 }
 Export-ModuleMember -function Export-NavContainerObjects
 
@@ -1068,8 +1283,10 @@ Export-ModuleMember -function Convert-Txt2Al
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects
+ .Parameter vmadminUsername
+  Username of the administrator user in the container (defaults to sa)
  .Parameter adminPassword
-  The admin password for the container
+  The admin password for the container (if using NavUserPassword authentication)
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
  .Example
@@ -1081,9 +1298,15 @@ function Convert-ModifiedObjectsToAl {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [string]$adminPassword = (Get-DefaultAdminPassword), 
+        [string]$vmadminUsername = 'sa',
+        [SecureString]$adminPassword = $null, 
         [int]$startId = 50100
     )
+
+    $containerAuth = Get-NavContainerAuth -containerName $containerName
+    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
+        $adminPassword = Get-DefaultAdminPassword
+    }
 
     $session = Get-NavContainerSession -containerName $containerName
     $txt2al = Invoke-Command -Session $session -ScriptBlock { $txt2al }
@@ -1112,6 +1335,7 @@ function Convert-ModifiedObjectsToAl {
     Export-NavContainerObjects -containerName $containerName `
                                -objectsFolder $modifiedFolder `
                                -filter "modified=Yes" `
+                               -vmadminUsername $vmadminUsername `
                                -adminPassword $adminPassword `
                                -exportToNewSyntax $true
 
@@ -1144,6 +1368,10 @@ Export-ModuleMember -Function Convert-ModifiedObjectsToAl
   Name of the container for which you want to enter a session
  .Parameter objectsFile
   Path of the objects file you want to import
+ .Parameter vmadminUsername
+  Username of the administrator user in the container (defaults to sa)
+ .Parameter adminPassword
+  The admin password for the container (if using NavUserPassword authentication)
  .Example
   Import-ObjectsToNavContainer -containerName test2 -objectsFile c:\temp\objects.txt -adminPassword <adminpassword>
 #>
@@ -1153,8 +1381,14 @@ function Import-ObjectsToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFile,
-        [string]$adminPassword = (Get-DefaultAdminPassword)
+        [string]$vmadminUsername = 'sa',
+        [SecureString]$adminPassword = $null
     )
+
+    $containerAuth = Get-NavContainerAuth -containerName $containerName
+    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
+        $adminPassword = Get-DefaultAdminPassword
+    }
 
     $containerObjectsFile = Get-NavContainerPath -containerName $containerName -path $objectsFile
     $copied = $false
@@ -1165,7 +1399,7 @@ function Import-ObjectsToNavContainer {
     }
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, $adminPassword, $copied)
+    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, $vmadminUsername, $adminPassword, $copied)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -1174,14 +1408,16 @@ function Import-ObjectsToNavContainer {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
     
+        $creds = @{}
+        if ($adminPassword) {
+            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        }
         Write-Host "Importing Objects from $objectsFile"
-        Import-NAVApplicationObject -Path $objectsFile `
+        Import-NAVApplicationObject @creds -Path $objectsFile `
                                     -DatabaseName $databaseName `
                                     -DatabaseServer $databaseServer `
                                     -ImportAction Overwrite `
                                     -SynchronizeSchemaChanges Force `
-                                    -Username "sa" `
-                                    -Password $adminPassword `
                                     -NavServerName localhost `
                                     -NavServerInstance NAV `
                                     -NavServerManagementPort 7045 `
@@ -1191,7 +1427,7 @@ function Import-ObjectsToNavContainer {
             Remove-Item -Path $objectsFile -Force
         }
     
-    } -ArgumentList $containerObjectsFile, $adminPassword, $copied
+    } -ArgumentList $containerObjectsFile, $vmadminUsername, $adminPassword, $copied
     Write-Host -ForegroundColor Green "Objects successfully imported"
 }
 Export-ModuleMember -Function Import-ObjectsToNavContainer
@@ -1205,8 +1441,10 @@ Export-ModuleMember -Function Import-ObjectsToNavContainer
   Name of the container for which you want to enter a session
  .Parameter filter
   filter of the objects you want to compile (default is modified=Yes)
+ .Parameter vmadminUsername
+  Username of the administrator user in the container (defaults to sa)
  .Parameter adminPassword
-  Password of the administrator user in the container
+  Password of the administrator user in the container (if using NavUserPassword authentication)
  .Example
   Compile-ObjectsToNavContainer -containerName test2 -adminPassword <adminpassword>
 #>
@@ -1215,11 +1453,17 @@ function Compile-ObjectsInNavContainer {
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [string]$filter = "modified=Yes", 
-        [string]$adminPassword = (Get-DefaultAdminPassword)
+        [string]$vmadminUsername = 'sa',
+        [SecureString]$adminPassword = $null
     )
 
+    $containerAuth = Get-NavContainerAuth -containerName $containerName
+    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
+        $adminPassword = Get-DefaultAdminPassword
+    }
+
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, $adminPassword)
+    Invoke-Command -Session $session -ScriptBlock { Param($filter, $vmadminUsername, $adminPassword)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -1228,18 +1472,21 @@ function Compile-ObjectsInNavContainer {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
+        $creds = @{}
+        if ($adminPassword) {
+            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        }
         Write-Host "Compiling objects"
-        Compile-NAVApplicationObject -Filter $filter `
+        Compile-NAVApplicationObject @creds -Filter $filter `
                                      -DatabaseName $databaseName `
                                      -DatabaseServer $databaseServer `
                                      -Recompile `
                                      -SynchronizeSchemaChanges Force `
-                                     -Username "sa" `
-                                     -Password $adminPassword `
                                      -NavServerName localhost `
                                      -NavServerInstance NAV `
                                      -NavServerManagementPort 7045
-    } -ArgumentList $filter, $adminPassword
+
+    } -ArgumentList $filter, $vmadminUsername, $adminPassword
     Write-Host -ForegroundColor Green "Objects successfully compiled"
 }
 Export-ModuleMember -Function Compile-ObjectsInNavContainer
@@ -1651,8 +1898,9 @@ function Write-NavContainerHelperWelcomeText {
     Write-Host "Test-NavContainer             Test whether a Nav container exists"
     Write-Host
     Write-Host -ForegroundColor Yellow "Container handling functions"
+    Write-Host "New-NavContainer              Create new Nav container"
     Write-Host "New-CSideDevContainer         Create new C/SIDE development container"
-    Write-Host "Remove-CSideDevContainer      Remove C/SIDE development container"
+    Write-Host "Remove-NavContainer           Remove Nav container"
     Write-Host "Get-NavContainerSession       Create new session to a Nav container"
     Write-Host "Remove-NavContainerSession    Remove Nav container session"
     Write-Host "Enter-NavContainer            Enter Nav container session"
