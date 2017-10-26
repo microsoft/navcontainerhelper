@@ -22,8 +22,8 @@ function Log([string]$line, [string]$color = "Gray") {
 function Get-DefaultAdminPassword {
     if (Test-Path "$demoFolder\settings.ps1") {
         . "$demoFolder\settings.ps1"
-        if (Test-Path "$demoFolder\eas.key") {
-            $key = Get-Content -Path "c:\demo\aes.key"
+        if (Test-Path "$demoFolder\aes.key") {
+            $key = Get-Content -Path "$demoFolder\aes.key"
             ConvertTo-SecureString -String $adminPassword -Key $key
         } else {
             ConvertTo-SecureString -String $adminPassword
