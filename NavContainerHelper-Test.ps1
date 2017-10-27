@@ -215,7 +215,7 @@ Import-ObjectsToNavContainer -containerName $containerName `
                              -adminPassword $password
 
 # Compile-ObjectsToNavContainer
-Compile-ObjectsInNavContainer -containerName $containerName
+Compile-ObjectsInNavContainer -containerName $containerName `
                               -adminPassword $password
 
 # Import-ObjectsToNavContainer (.txt)

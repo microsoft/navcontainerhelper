@@ -707,28 +707,33 @@ function New-CSideDevContainer {
         $passwordKeyFile = "$myfolder\aes.key"
         $passwordKey = New-Object Byte[] 16
         [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
-        Set-Content -Path $passwordKeyFile -Value $passwordKey
-        $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
-        $id = docker run `
-                     --name $containerName `
-                     --hostname $containerName `
-                     --env accept_eula=Y `
-                     --env useSSL=N `
-                     --env auth=$auth `
-                     --env username=$vmAdminUsername `
-                     --env securePassword=$encPassword `
-                     --env passwordKeyFile=$passwordKeyFile `
-                     --env removePasswordKeyFile=Y `
-                     --env ExitOnError=N `
-                     --env locale=$locale `
-                     --env licenseFile="$containerLicenseFile" `
-                     --memory $memoryLimit `
-                     --volume "${demoFolder}:$containerDemoFolder" `
-                     --volume "${myFolder}:C:\Run\my" `
-                     --volume "${programFilesFolder}:C:\navpfiles" `
-                     --restart always `
-                     --detach `
-                     $devImageName
+        try {
+            Set-Content -Path $passwordKeyFile -Value $passwordKey
+            $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
+            $id = docker run `
+                         --name $containerName `
+                         --hostname $containerName `
+                         --env accept_eula=Y `
+                         --env useSSL=N `
+                         --env auth=$auth `
+                         --env username=$vmAdminUsername `
+                         --env securePassword=$encPassword `
+                         --env passwordKeyFile=$passwordKeyFile `
+                         --env removePasswordKeyFile=Y `
+                         --env ExitOnError=N `
+                         --env locale=$locale `
+                         --env licenseFile="$containerLicenseFile" `
+                         --memory $memoryLimit `
+                         --volume "${demoFolder}:$containerDemoFolder" `
+                         --volume "${myFolder}:C:\Run\my" `
+                         --volume "${programFilesFolder}:C:\navpfiles" `
+                         --restart always `
+                         --detach `
+                         $devImageName
+            Wait-NavContainerReady $containerName
+        } finally {
+            Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
+        }
     } else {
         $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword)))
         $id = docker run `
@@ -736,7 +741,7 @@ function New-CSideDevContainer {
                      --hostname $containerName `
                      --env accept_eula=Y `
                      --env useSSL=N `
-                     --env auth=Windows `
+                     --env auth=$auth `
                      --env username=$vmAdminUsername `
                      --env password=$plainPassword `
                      --env ExitOnError=N `
@@ -750,8 +755,8 @@ function New-CSideDevContainer {
                      --detach `
                      $devImageName
         Clear-Variable -Name "plainPassword"
+        Wait-NavContainerReady $containerName
     }
-    Wait-NavContainerReady $containerName
 
     if ($UpdateHosts) {
         $ip = Get-NavContainerIpAddress -containerName $containerName
@@ -826,7 +831,7 @@ function New-NavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [string]$devImageName = "", 
+        [string]$imageName = "", 
         [string]$licenseFile = "",
         [string]$vmAdminUsername = (Get-DefaultVmAdminUsername),
         [SecureString]$adminPassword = (Get-DefaultAdminPassword),
@@ -840,27 +845,27 @@ function New-NavContainer {
         throw "You cannot create a Nav container called navserver. Use Replace-NavServerContainer to replace the navserver container."
     }
   
-    if ($devImageName -eq "") {
+    if ($imageName -eq "") {
         if (!(Test-NavContainer -containerName navserver)) {
             throw "You need to specify the name of the docker image you want to use for your Nav container."
         }
-        $devImageName = Get-NavContainerImageName -containerName navserver
+        $imageName = Get-NavContainerImageName -containerName navserver
         $devCountry = Get-NavContainerCountry -containerOrImageName navserver
     } else {
-        $imageId = docker images -q $devImageName
+        $imageId = docker images -q $imageName
         if (!($imageId)) {
-            Write-Host "Pulling docker Image $devImageName"
-            docker pull $devImageName
+            Write-Host "Pulling docker Image $imageName"
+            docker pull $imageName
         }
-        $devCountry = Get-NavContainerCountry -containerOrImageName $devImageName
+        $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
 
     Write-Host "Creating Nav container $containerName"
-    Write-Host "Using image $devImageName"
+    Write-Host "Using image $imageName"
     Write-Host "Using license file $licenseFile"
-    $navversion = Get-NavContainerNavversion -containerOrImageName $devImageName
+    $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
     Write-Host "NAV Version: $navversion"
-    $genericTag = Get-NavContainerGenericTag -containerOrImageName $devImageName
+    $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
     Write-Host "Generic Tag: $genericTag"
     $locale = Get-LocaleFromCountry $devCountry
 
@@ -880,32 +885,37 @@ function New-NavContainer {
         $containerLicenseFile = "c:\run\my\license.flf"
     }
 
-    Write-Host "Creating container $containerName from image $devImageName"
+    Write-Host "Creating container $containerName from image $imageName"
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
         $passwordKeyFile = "$myfolder\aes.key"
         $passwordKey = New-Object Byte[] 16
         [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
-        Set-Content -Path $passwordKeyFile -Value $passwordKey
-        $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
-        $id = docker run `
-                     --name $containerName `
-                     --hostname $containerName `
-                     --env accept_eula=Y `
-                     --env useSSL=N `
-                     --env auth=$auth `
-                     --env username=$vmAdminUsername `
-                     --env securePassword=$encPassword `
-                     --env passwordKeyFile=$passwordKeyFile `
-                     --env removePasswordKeyFile=Y `
-                     --env ExitOnError=N `
-                     --env locale=$locale `
-                     --env licenseFile="$containerLicenseFile" `
-                     --memory $memoryLimit `
-                     --volume "${demoFolder}:$containerDemoFolder" `
-                     --volume "${myFolder}:C:\Run\my" `
-                     --restart always `
-                     --detach `
-                     $devImageName
+        try {
+            Set-Content -Path $passwordKeyFile -Value $passwordKey
+            $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
+            $id = docker run `
+                         --name $containerName `
+                         --hostname $containerName `
+                         --env accept_eula=Y `
+                         --env useSSL=N `
+                         --env auth=$auth `
+                         --env username=$vmAdminUsername `
+                         --env securePassword=$encPassword `
+                         --env passwordKeyFile=$passwordKeyFile `
+                         --env removePasswordKeyFile=Y `
+                         --env ExitOnError=N `
+                         --env locale=$locale `
+                         --env licenseFile="$containerLicenseFile" `
+                         --memory $memoryLimit `
+                         --volume "${demoFolder}:$containerDemoFolder" `
+                         --volume "${myFolder}:C:\Run\my" `
+                         --restart always `
+                         --detach `
+                         $imageName
+            Wait-NavContainerReady $containerName
+        } finally {
+            Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
+        }
     } else {
         $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword)))
         $id = docker run `
@@ -913,7 +923,7 @@ function New-NavContainer {
                      --hostname $containerName `
                      --env accept_eula=Y `
                      --env useSSL=N `
-                     --env auth=Windows `
+                     --env auth=$Auth `
                      --env username=$vmAdminUsername `
                      --env password=$plainPassword `
                      --env ExitOnError=N `
@@ -924,10 +934,10 @@ function New-NavContainer {
                      --volume "${myFolder}:C:\Run\my" `
                      --restart always `
                      --detach `
-                     $devImageName
+                     $imageName
         Clear-Variable -Name "plainPassword"
+        Wait-NavContainerReady $containerName
     }
-    Wait-NavContainerReady $containerName
 
     if ($UpdateHosts) {
         $ip = Get-NavContainerIpAddress -containerName $containerName
