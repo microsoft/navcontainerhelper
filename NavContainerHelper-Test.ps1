@@ -11,10 +11,11 @@ $username = $env:USERNAME
 $password = Read-Host -AsSecureString -Prompt "Please enter the admin password for Nav Container"
 
 # TEMP solution: The following files must exist
-$licenseFile = "c:\temp\license.flf"
+$licenseFile = "c:\demo\license.flf"
 
 $fobPath = "C:\temp\Test.fob"
 $txtPath = "C:\temp\Test.txt"
+$deltaPath = "C:\demo\Delta"
 
 $v1AppPath = "C:\temp\Search2.navx"
 $v1AppName = "Search"
@@ -25,7 +26,8 @@ $v2AppName = "Search"
 docker pull $imageName
 
 # New-CSideDevContainer
-New-CSideDevContainer -containerName $containerName `
+New-CSideDevContainer -accept_eula `
+                      -containerName $containerName `
                       -devImageName $imageName `
                       -licenseFile $licenseFile `
                       -vmAdminUsername $username `
@@ -108,6 +110,13 @@ Import-ObjectsToNavContainer -containerName $containerName `
 # Compile-ObjectsToNavContainer
 Compile-ObjectsInNavContainer -containerName $containerName
 
+# Import-ObjectsToNavContainer (.txt)
+Import-DeltasToNavContainer -containerName $containerName `
+                            -deltaFolder $deltaPath
+
+# Compile-ObjectsToNavContainer
+Compile-ObjectsInNavContainer -containerName $containerName
+
 # Convert-ModifiedObjectsToAl
 Convert-ModifiedObjectsToAl -containerName $containerName `
                             -startId 50100
@@ -140,7 +149,8 @@ if (Test-Path $v2AppPath) {
 Remove-NavContainer -containerName $containerName -UpdateHosts
 
 # New-CSideDevContainer
-New-CSideDevContainer -containerName $containerName `
+New-CSideDevContainer -accept_eula `
+                      -containerName $containerName `
                       -devImageName $imageName `
                       -licenseFile $licenseFile `
                       -vmAdminUsername $username `
