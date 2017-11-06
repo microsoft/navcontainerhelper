@@ -1272,7 +1272,7 @@ function Convert-ModifiedObjectsToAl {
         throw "You cannot run Convert-ModifiedObjectsToAl on this Nav Container, the txt2al tool is not present."
     }
 
-    Export-ModifiedObjectsAsDeltas -containerName $containerName -vmadminUsername $vmadminUsername -adminPassword $adminPassword -openFolder:$false
+    Export-ModifiedObjectsAsDeltas -containerName $containerName -vmadminUsername $vmadminUsername -adminPassword $adminPassword -openFolder:$false -useNewSyntax
 
     $suffix = "-newsyntax"
 
