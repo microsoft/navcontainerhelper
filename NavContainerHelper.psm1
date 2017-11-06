@@ -639,8 +639,14 @@ Export-ModuleMember -function Get-NavContainerId
   Memory limit for the container (default 4G)
  .Parameter updateHosts
   Include this switch if you want to update the hosts file with the IP address of the container
+ .Parameter useSSL
+  Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
+ .Parameter additionalParameters
+  This allows you to transfer an additional number of parameters to the docker run
+ .Parameter myscripts
+  This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
  .Example
   New-CSideDevContainer -containerName test
  .Example
@@ -660,9 +666,11 @@ function New-CSideDevContainer {
         [SecureString]$adminPassword = (Get-DefaultAdminPassword),
         [string]$memoryLimit = "4G",
         [switch]$updateHosts,
+        [switch]$useSSL,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
-        [string[]]$additionalParameters = @()
+        [string[]]$additionalParameters = @(),
+        [string[]]$myScripts = @()
     )
 
     New-NavContainer -accept_eula:$accept_eula `
@@ -675,8 +683,10 @@ function New-CSideDevContainer {
                      -memoryLimit $memoryLimit `
                      -includeCSide `
                      -updateHosts:$updateHosts `
+                     -useSSL:$useSSL `
                      -auth $auth `
-                     -additionalParameters $additionalParameters
+                     -additionalParameters $additionalParameters `
+                     -myScripts $myScripts
 }
 Export-ModuleMember -function New-CSideDevContainer
 
@@ -702,16 +712,24 @@ Export-ModuleMember -function New-CSideDevContainer
   Memory limit for the container (default 4G)
  .Parameter updateHosts
   Include this switch if you want to update the hosts file with the IP address of the container
+ .Parameter useSSL
+  Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter includeCSide
   Include this switch if you want to have Windows Client and CSide development environment available on the host
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
+ .Parameter additionalParameters
+  This allows you to transfer an additional number of parameters to the docker run
+ .Parameter myscripts
+  This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
  .Example
   New-NavContainer -containerName test
  .Example
-  New-NavContainer -containerName test -memoryLimit 3G -devImageName "navdocker.azurecr.io/dynamics-nav:2017" -updateHosts
+  New-NavContainer -containerName test -memoryLimit 3G -imageName "navdocker.azurecr.io/dynamics-nav:2017" -updateHosts
  .Example
-  New-NavContainer -containerName test -adminPassword <mypassword> -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -devImageName "navdocker.azurecr.io/dynamics-nav:devpreview-finus"
+  New-NavContainer -containerName test -imageName "navdocker.azurecr.io/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+ .Example
+  New-NavContainer -containerName test -adminPassword <mypassword> -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "navdocker.azurecr.io/dynamics-nav:devpreview-finus"
 #>
 function New-NavContainer {
     Param(
@@ -725,10 +743,12 @@ function New-NavContainer {
         [SecureString]$adminPassword = (Get-DefaultAdminPassword),
         [string]$memoryLimit = "4G",
         [switch]$updateHosts,
+        [switch]$useSSL,
         [switch]$includeCSide,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
-        [string[]]$additionalParameters
+        [string[]]$additionalParameters,
+        [string[]]$myScripts
     )
 
     if (!$accept_eula) {
@@ -748,6 +768,12 @@ function New-NavContainer {
         } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         } elseif (!(Test-Path $licenseFile)) {
             throw "License file '$licenseFile' must exist in order to create a Developer Server Container."
+        }
+    }
+
+    $myScripts | % {
+        if (!(Test-Path $_ -PathType Leaf)) {
+            throw "Script file $_ does not exist"
         }
     }
 
@@ -784,6 +810,10 @@ function New-NavContainer {
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
+    $myScripts | % {
+        Copy-Item -Path $_ -Destination $myFolder -Force
+    }
+
     if ("$licensefile" -eq "" -or $licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         $containerLicenseFile = $licenseFile
     } else {
@@ -796,7 +826,7 @@ function New-NavContainer {
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         'sqlcmd -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
-        ' | Set-Content -Path "$myfolder\AdditionalSetup.ps1"
+        ' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
         
         if (Test-Path $programFilesFolder) {
             Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore
@@ -823,7 +853,6 @@ function New-NavContainer {
     $parameters = @(
                     "--name $containerName",
                     "--hostname $containerName",
-                    "--env useSSL=N",
                     "--env auth=$auth"
                     "--env username=$vmAdminUsername",
                     "--env ExitOnError=N",
@@ -834,6 +863,12 @@ function New-NavContainer {
                     "--volume ""${myFolder}:C:\Run\my""",
                     "--restart always"
                    )
+
+    if ($useSSL) {
+        $parameters += "--env useSSL=Y"
+    } else {
+        $parameters += "--env useSSL=N"
+    }
 
     if ($includeCSide) {
         $parameters += "--volume ""${programFilesFolder}:C:\navpfiles"""
@@ -876,7 +911,12 @@ function New-NavContainer {
 
     Write-Host "Create Desktop Shortcuts for $containerName"
 
-    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "http://${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
+    if ($useSSL) {
+        $protocol = "https://"
+    } else {
+        $protocol = "http://"
+    }
+    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$protocol${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
     New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd"
     New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1"
 
