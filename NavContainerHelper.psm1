@@ -747,8 +747,8 @@ function New-NavContainer {
         [switch]$includeCSide,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
-        [string[]]$additionalParameters,
-        [string[]]$myScripts
+        [string[]]$additionalParameters = @(),
+        [string[]]$myScripts = @()
     )
 
     if (!$accept_eula) {

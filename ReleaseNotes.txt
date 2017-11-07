@@ -1,0 +1,2 @@
+0.1.1.6
+Added default values for additionalParameters and myScripts
