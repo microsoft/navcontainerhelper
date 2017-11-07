@@ -771,9 +771,11 @@ function New-NavContainer {
         }
     }
 
-    $myScripts | % {
-        if (!(Test-Path $_ -PathType Leaf)) {
-            throw "Script file $_ does not exist"
+    if ($myScripts){
+        $myScripts | % {
+            if (!(Test-Path $_ -PathType Leaf)) {
+                throw "Script file $_ does not exist"
+            }
         }
     }
 
@@ -809,11 +811,13 @@ function New-NavContainer {
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-
-    $myScripts | % {
-        Copy-Item -Path $_ -Destination $myFolder -Force
+    
+    if ($myScripts) {
+        $myScripts | % {
+            Copy-Item -Path $_ -Destination $myFolder -Force
+        }
     }
-
+    
     if ("$licensefile" -eq "" -or $licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         $containerLicenseFile = $licenseFile
     } else {
