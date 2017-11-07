@@ -667,26 +667,45 @@ function New-CSideDevContainer {
         [string]$memoryLimit = "4G",
         [switch]$updateHosts,
         [switch]$useSSL,
+        [switch]$exportObjectsToText,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
         [string[]]$myScripts = @()
     )
 
-    New-NavContainer -accept_eula:$accept_eula `
-                     -accept_outdated:$accept_outdated `
-                     -containerName $containerName `
-                     -imageName $devImageName `
-                     -licenseFile $licenseFile `
-                     -vmAdminUsername $vmAdminUsername `
-                     -adminPassword $adminPassword `
-                     -memoryLimit $memoryLimit `
-                     -includeCSide `
-                     -updateHosts:$updateHosts `
-                     -useSSL:$useSSL `
-                     -auth $auth `
-                     -additionalParameters $additionalParameters `
-                     -myScripts $myScripts
+    if (!$exportObjectsToText) {
+        New-NavContainer -accept_eula:$accept_eula `
+                        -accept_outdated:$accept_outdated `
+                        -containerName $containerName `
+                        -imageName $devImageName `
+                        -licenseFile $licenseFile `
+                        -vmAdminUsername $vmAdminUsername `
+                        -adminPassword $adminPassword `
+                        -memoryLimit $memoryLimit `
+                        -includeCSide `
+                        -updateHosts:$updateHosts `
+                        -useSSL:$useSSL `
+                        -auth $auth `
+                        -additionalParameters $additionalParameters `
+                        -myScripts $myScripts
+    } else {
+        New-NavContainer -accept_eula:$accept_eula `
+        -accept_outdated:$accept_outdated `
+        -containerName $containerName `
+        -imageName $devImageName `
+        -licenseFile $licenseFile `
+        -vmAdminUsername $vmAdminUsername `
+        -adminPassword $adminPassword `
+        -memoryLimit $memoryLimit `
+        -includeCSide `
+        -exportObjectsToText `
+        -updateHosts:$updateHosts `
+        -useSSL:$useSSL `
+        -auth $auth `
+        -additionalParameters $additionalParameters `
+        -myScripts $myScripts        
+    }
 }
 Export-ModuleMember -function New-CSideDevContainer
 
@@ -745,6 +764,7 @@ function New-NavContainer {
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$includeCSide,
+        [switch]$exportObjectsToText,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
@@ -932,18 +952,20 @@ function New-NavContainer {
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
 
-        $false, $true | % {
-            $newSyntax = $_
-            $suffix = ""
-            if ($newSyntax) { $suffix = "-newsyntax" }
-            $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
-            if (!(Test-Path $originalFolder)) {
-                # Export base objects
-                Export-NavContainerObjects -containerName $containerName `
-                                           -objectsFolder $originalFolder `
-                                           -filter "" `
-                                           -adminPassword $adminPassword `
-                                           -ExportToNewSyntax:$newSyntax
+        if ($exportObjectsToText) {
+            $false, $true | % {
+                $newSyntax = $_
+                $suffix = ""
+                if ($newSyntax) { $suffix = "-newsyntax" }
+                $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
+                if (!(Test-Path $originalFolder)) {
+                    # Export base objects
+                    Export-NavContainerObjects -containerName $containerName `
+                                            -objectsFolder $originalFolder `
+                                            -filter "" `
+                                            -adminPassword $adminPassword `
+                                            -ExportToNewSyntax:$newSyntax
+                }
             }
         }
     }
