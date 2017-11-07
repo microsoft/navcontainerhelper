@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.0.3'
+ModuleVersion = '0.1.1.5'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -74,20 +74,21 @@ FunctionsToExport = 'Get-NavContainerAppInfo', 'UnInstall-NavContainerApp',
                'Open-NavContainer', 'Export-NavContainerObjects', 
                'Sync-NavContainerApp', 'UnPublish-NavContainerApp', 
                'Get-NavContainerId', 'Wait-NavContainerReady', 
-               'Create-MyDeltaFolder', 'Import-ObjectsToNavContainer', 
+               'Create-MyDeltaFolder', 'Import-ObjectsToNavContainer', 'Import-DeltasToNavContainer', 
                'Recreate-NavServerContainer', 'Get-NavContainerIpAddress', 
-               'Install-NavContainerApp', 'Remove-CSideDevContainer', 
+               'Install-NavContainerApp', 'Remove-NavContainer', 
                'Get-NavContainerLegal', 'Get-NavContainerSession', 
                'Get-NavContainerGenericTag', 'Convert-Txt2Al', 
                'Get-NavContainerName', 'Publish-NavContainerApp', 
                'Create-MyOriginalFolder', 'New-CSideDevContainer', 
+               'New-NavContainer', 
                'Get-NavContainerImageName', 'Get-NavContainerPath', 
                'Remove-NavContainerSession', 'Get-NavContainerOsVersion', 
                'New-DesktopShortcut', 
                'Install-NAVSipCryptoProviderFromNavContainer', 
                'Enter-NavContainer', 'Remove-DesktopShortcut', 
                'Get-NavContainerSharedFolders', 'Test-NavContainer', 
-               'Replace-NavServerContainer', 'Convert-ModifiedObjectsToAl', 
+               'Replace-NavServerContainer', 'Convert-ModifiedObjectsToAl', 'Export-ModifiedObjectsAsDeltas', 
                'Compile-ObjectsInNavContainer', 'Write-NavContainerHelperWelcomeText',
                'Download-File', 'Get-LocaleFromCountry',
                'Copy-FileFromNavContainer', 'Copy-FileToNavContainer'
