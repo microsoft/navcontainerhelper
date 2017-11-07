@@ -667,45 +667,28 @@ function New-CSideDevContainer {
         [string]$memoryLimit = "4G",
         [switch]$updateHosts,
         [switch]$useSSL,
-        [switch]$exportObjectsToText,
+        [switch]$doNotExportObjectsToText,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
         [string[]]$myScripts = @()
     )
 
-    if (!$exportObjectsToText) {
-        New-NavContainer -accept_eula:$accept_eula `
-                        -accept_outdated:$accept_outdated `
-                        -containerName $containerName `
-                        -imageName $devImageName `
-                        -licenseFile $licenseFile `
-                        -vmAdminUsername $vmAdminUsername `
-                        -adminPassword $adminPassword `
-                        -memoryLimit $memoryLimit `
-                        -includeCSide `
-                        -updateHosts:$updateHosts `
-                        -useSSL:$useSSL `
-                        -auth $auth `
-                        -additionalParameters $additionalParameters `
-                        -myScripts $myScripts
-    } else {
-        New-NavContainer -accept_eula:$accept_eula `
-        -accept_outdated:$accept_outdated `
-        -containerName $containerName `
-        -imageName $devImageName `
-        -licenseFile $licenseFile `
-        -vmAdminUsername $vmAdminUsername `
-        -adminPassword $adminPassword `
-        -memoryLimit $memoryLimit `
-        -includeCSide `
-        -exportObjectsToText `
-        -updateHosts:$updateHosts `
-        -useSSL:$useSSL `
-        -auth $auth `
-        -additionalParameters $additionalParameters `
-        -myScripts $myScripts        
-    }
+    New-NavContainer -accept_eula:$accept_eula `
+                     -accept_outdated:$accept_outdated `
+                     -containerName $containerName `
+                     -imageName $devImageName `
+                     -licenseFile $licenseFile `
+                     -vmAdminUsername $vmAdminUsername `
+                     -adminPassword $adminPassword `
+                     -memoryLimit $memoryLimit `
+                     -includeCSide `
+                     -doNotExportObjectsToText:$doNotExportObjectsToText `
+                     -updateHosts:$updateHosts `
+                     -useSSL:$useSSL `
+                     -auth $auth `
+                     -additionalParameters $additionalParameters `
+                     -myScripts $myScripts
 }
 Export-ModuleMember -function New-CSideDevContainer
 
@@ -764,7 +747,7 @@ function New-NavContainer {
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$includeCSide,
-        [switch]$exportObjectsToText,
+        [switch]$doNotExportObjectsToText,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
@@ -779,11 +762,13 @@ function New-NavContainer {
         throw "You cannot create a Nav container called navserver. Use Replace-NavServerContainer to replace the navserver container."
     }
 
-    if ($includeCSide) {  
+    if ($includeCSide) {
         if ($licenseFile -eq "") {
-            $licenseFile = "C:\DEMO\license.flf"
-            if (!(Test-Path -Path $licenseFile)) {
-                throw "You must specify a license file to use for the CSide Development container."
+            if (!$doNotExportObjectsToText) {
+                $licenseFile = "C:\DEMO\license.flf"
+                if (!(Test-Path -Path $licenseFile)) {
+                    throw "You must specify a license file to use for the CSide Development container."
+                }
             }
         } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         } elseif (!(Test-Path $licenseFile)) {
@@ -814,7 +799,11 @@ function New-NavContainer {
 
     Write-Host "Creating Nav container $containerName"
     Write-Host "Using image $imageName"
-    Write-Host "Using license file $licenseFile"
+    
+    if (!($licenseFile -eq "")) {
+        Write-Host "Using license file $licenseFile"
+    }
+
     $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
     Write-Host "NAV Version: $navversion"
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
@@ -833,7 +822,7 @@ function New-NavContainer {
     $myScripts | % {
         Copy-Item -Path $_ -Destination $myFolder -Force
     }
-
+    
     if ("$licensefile" -eq "" -or $licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         $containerLicenseFile = $licenseFile
     } else {
@@ -952,7 +941,7 @@ function New-NavContainer {
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
 
-        if ($exportObjectsToText) {
+        if (!$doNotExportObjectsToText) {
             $false, $true | % {
                 $newSyntax = $_
                 $suffix = ""
