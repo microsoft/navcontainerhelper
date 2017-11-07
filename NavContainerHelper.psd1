@@ -91,7 +91,7 @@ FunctionsToExport = 'Get-NavContainerAppInfo', 'UnInstall-NavContainerApp',
                'Export-ModifiedObjectsAsDeltas', 'Compile-ObjectsInNavContainer', 
                'Write-NavContainerHelperWelcomeText', 'Download-File', 
                'Get-LocaleFromCountry', 'Copy-FileFromNavContainer', 
-               'Copy-FileToNavContainer','Start-NavContainerAppDataUpgrade'
+               'Copy-FileToNavContainer', 'Start-NavContainerAppDataUpgrade'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
@@ -129,7 +129,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.1.1.8
+        ReleaseNotes = '0.1.1.9
+Added Start-NavContainerAppDataUpgrade function
+
+0.1.1.8
 Added ReleaseNotes a few versions back
 
 0.1.1.7
@@ -143,7 +146,67 @@ Added -additionalParameters and -myScripts to New-CsideDevContainer and New-NavC
 Added -useSSL switch to New-CsideDevContainer and New-NavContainer
 
 0.1.1.4
-Fixed a bug in Convert-ModifiedObjectsToAl, where conversion would end up with an empty AL folder'
+Fixed a bug in Convert-ModifiedObjectsToAl, where conversion would end up with an empty AL folder
+
+0.1.1.3
+Secure passwords for creating containers
+
+0.1.1.2 and earlier
+Initial releases
+use help on the individual functions to get info.
+
+Container info functions
+------------------------
+Get-NavContainerNavVersion      Get Nav version from Nav Container
+Get-NavContainerImageName       Get ImageName from Nav container
+Get-NavContainerGenericTag      Get Nav generic image tag from Nav container
+Get-NavContainerOsVersion       Get OS version from Nav container
+Get-NavContainerLegal           Get Legal link from Nav container
+Get-NavContainerCountry         Get Localization version from Nav Container
+Get-NavContainerIpAddress       Get IP Address to a Nav container
+Get-NavContainerSharedFolders   Get Shared Folders from a Nav container
+Get-NavContainerPath            Get the path inside a Nav container to a shared file
+Get-NavContainerName            Get the name of a Nav container
+Get-NavContainerId              Get the Id of a Nav container
+Test-NavContainer               Test whether a Nav container exists
+
+Container handling functions
+----------------------------
+New-NavContainer                Create new Nav container
+New-CSideDevContainer           Create new C/SIDE development container
+Remove-NavContainer             Remove Nav container
+Get-NavContainerSession         Create new session to a Nav container
+Remove-NavContainerSession      Remove Nav container session
+Enter-NavContainer              Enter Nav container session
+Open-NavContainer               Open Nav container in new window
+Wait-NavContainerReady          Wait for Nav Container to become ready
+
+Object handling functions
+-------------------------
+Import-ObjectsToNavContainer    Import objects from .txt or .fob file
+Import-DeltasToNavContainer     Merge delta files and Import objects
+Compile-ObjectsInNavContainer   Compile objects
+Export-NavContainerObjects      Export objects from Nav container
+Create-MyOriginalFolder         Create folder with the original objects for modified objects
+Create-MyDeltaFolder            Create folder with deltas for modified objects
+Convert-Txt2Al                  Convert deltas folder to al folder
+Export-ModifiedObjectsAsDeltas  Export objects, create baseline and create deltas
+Convert-ModifiedObjectsToAl     Export objects, create baseline, create deltas and convert to .al files
+
+App handling functions
+----------------------
+Publish-NavContainerApp         Publish App to Nav container
+Sync-NavContainerApp            Sync App in Nav container
+Install-NavContainerApp         Install App in Nav container
+Uninstall-NavContainerApp       Uninstall App from Nav container
+Unpublish-NavContainerApp       Unpublish App from Nav container
+Get-NavContainerAppInfo         Get info about installed apps from Nav Container
+Install-NAVSipCryptoProviderFromNavContainer Install Nav Sip Crypto Provider locally from container to sign extensions
+
+Azure VM specific functions
+---------------------------
+Replace-NavServerContainer      Replace navserver (primary) container
+Recreate-NavServerContainer     Recreate navserver (primary) container'
 
         # External dependent modules of this module
         # ExternalModuleDependencies = ''
