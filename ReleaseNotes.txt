@@ -1,2 +1,15 @@
+0.1.1.8
+Added ReleaseNotes a few versions back
+
+0.1.1.7
+Added ReleaseNotes to PowerShell Gallery
+
 0.1.1.6
 Added default values for additionalParameters and myScripts
+
+0.1.1.5
+Added -additionalParameters and -myScripts to New-CsideDevContainer and New-NavContainer
+Added -useSSL switch to New-CsideDevContainer and New-NavContainer
+
+0.1.1.4
+Fixed a bug in Convert-ModifiedObjectsToAl, where conversion would end up with an empty AL folder
