@@ -4,7 +4,7 @@
 
 # This script performs a simple happy-path test of most navcontainerhelper functions
 
-$imageName = "navdocker.azurecr.io/dynamics-nav:11.0.18920.0"
+$imageName = "navdocker.azurecr.io/dynamics-nav:devpreview"
 $containerName = "test"
 
 $username = $env:USERNAME
@@ -17,10 +17,10 @@ $fobPath = "C:\temp\Test.fob"
 $txtPath = "C:\temp\Test.txt"
 $deltaPath = "C:\demo\Delta"
 
-$v1AppPath = "C:\temp\Search2.navx"
+$v1AppPath = "C:\temp\Search.navx"
 $v1AppName = "Search"
 
-$v2AppPath = "C:\temp\uns\Search2.app"
+$v2AppPath = "C:\temp\uns\Search.app"
 $v2AppName = "Search"
 
 docker pull $imageName

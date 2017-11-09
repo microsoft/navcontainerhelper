@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.1.9'
+ModuleVersion = '0.1.2.0'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -129,7 +129,13 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.1.1.9
+        ReleaseNotes = '0.1.2.0
+When specifying -includeCSide containers are started with EnableSymbolLoad
+Refactored all functions into different script files
+Only clear object modified flag if using localhost\SQLExpress
+Specify server in sqlcmd
+
+0.1.1.9
 Added Start-NavContainerAppDataUpgrade function
 
 0.1.1.8
