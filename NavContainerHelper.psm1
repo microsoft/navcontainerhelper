@@ -836,7 +836,7 @@ function New-NavContainer {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-        'sqlcmd -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
+        'sqlcmd -S tcp:127.0.0.1\sqlexpress -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
         ' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
         
         if (Test-Path $programFilesFolder) {
