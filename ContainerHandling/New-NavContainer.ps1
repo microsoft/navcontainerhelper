@@ -160,7 +160,7 @@ function New-NavContainer {
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Clear modified flag on all objects
-        'sqlcmd -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
+        'sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
         ' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
         if ($version.Major -gt 10) {
