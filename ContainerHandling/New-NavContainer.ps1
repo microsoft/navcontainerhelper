@@ -253,10 +253,16 @@ function New-NavContainer {
         [xml]$customConfig = docker exec $containerName powershell $ps
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         $databaseServer = "$containerName"
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
+        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
+        if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+            $csideParameters += ", generatesymbolreference=yes"
+        }
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
-        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
+        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters
 
         if (!$doNotExportObjectsToText) {
             

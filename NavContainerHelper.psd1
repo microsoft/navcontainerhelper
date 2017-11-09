@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.2.0'
+ModuleVersion = '0.1.2.1'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -129,11 +129,15 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.1.2.0
+        ReleaseNotes = '0.1.2.1
+Add generatesymbolreference=yes to CSide shortcut if EnableSymbolLoading is true
+
+0.1.2.0
 When specifying -includeCSide containers are started with EnableSymbolLoad
 Refactored all functions into different script files
 Only clear object modified flag if using localhost\SQLExpress
 Specify server in sqlcmd
+Export-NavContainerObjects doesn''t fail on NAV2016 and NAV2017 due to missing ExportToNewSyntax parameter
 
 0.1.1.9
 Added Start-NavContainerAppDataUpgrade function
