@@ -764,10 +764,12 @@ function New-NavContainer {
 
     if ($includeCSide) {
         if ($licenseFile -eq "") {
-            if (!$doNotExportObjectsToText) {
-                $licenseFile = "C:\DEMO\license.flf"
-                if (!(Test-Path -Path $licenseFile)) {
-                    throw "You must specify a license file to use for the CSide Development container."
+            $licenseFile = "C:\DEMO\license.flf"
+            if (!(Test-Path -Path $licenseFile)) {
+                if ($doNotExportObjectsToText) {
+                    $licenseFile = ""
+                } else {
+                    throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
                 }
             }
         } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -800,7 +802,7 @@ function New-NavContainer {
     Write-Host "Creating Nav container $containerName"
     Write-Host "Using image $imageName"
     
-    if (!($licenseFile -eq "")) {
+    if ("$licenseFile" -ne "") {
         Write-Host "Using license file $licenseFile"
     }
 
@@ -942,18 +944,22 @@ function New-NavContainer {
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
 
         if (!$doNotExportObjectsToText) {
-            $false, $true | % {
-                $newSyntax = $_
+            
+            $version = [SYstem.Version]($navversion.split('-')[0])
+
+            # Include newsyntax if NAV Version is greater than NAV 2017
+            0..($version.Major -gt 10) | % {
+                $newSyntax = ($_ -eq 1)
                 $suffix = ""
                 if ($newSyntax) { $suffix = "-newsyntax" }
                 $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
                 if (!(Test-Path $originalFolder)) {
                     # Export base objects
                     Export-NavContainerObjects -containerName $containerName `
-                                            -objectsFolder $originalFolder `
-                                            -filter "" `
-                                            -adminPassword $adminPassword `
-                                            -ExportToNewSyntax:$newSyntax
+                                               -objectsFolder $originalFolder `
+                                               -filter "" `
+                                               -adminPassword $adminPassword `
+                                               -ExportToNewSyntax:$newSyntax
                 }
             }
         }
@@ -1117,17 +1123,19 @@ function Export-NavContainerObjects {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
-        $creds = @{}
+        $params = @{}
         if ($adminPassword) {
-            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+            $params = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        }
+        if ($exportToNewSyntax) {
+            $params += @{ 'ExportToNewSyntax' = $true }
         }
 
-        Export-NAVApplicationObject @creds -DatabaseName $databaseName `
+        Export-NAVApplicationObject @params -DatabaseName $databaseName `
                                     -Path $objectsFile `
                                     -DatabaseServer $databaseServer `
                                     -Force `
-                                    -Filter "$filter" `
-                                    -ExportToNewSyntax:$ExportToNewSyntax | Out-Null
+                                    -Filter "$filter" | Out-Null
 
         Write-Host "Split $objectsFile to $objectsFolder"
         New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
@@ -1475,12 +1483,12 @@ function Import-ObjectsToNavContainer {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
     
-        $creds = @{}
+        $params = @{}
         if ($adminPassword) {
-            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+            $params = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
         }
         Write-Host "Importing Objects from $objectsFile"
-        Import-NAVApplicationObject @creds -Path $objectsFile `
+        Import-NAVApplicationObject @params -Path $objectsFile `
                                     -DatabaseName $databaseName `
                                     -DatabaseServer $databaseServer `
                                     -ImportAction Overwrite `
@@ -1557,11 +1565,6 @@ function Import-DeltasToNavContainer {
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($deltaFolder, $originalFolder, $mergedObjectsFile, $mergeResultFile, $vmadminUsername, $adminPassword)
     
-        $creds = @{}
-        if ($adminPassword) {
-            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
-        }
-
         Write-Host "Merging Deltas from $deltaFolder"
         Update-NAVApplicationObject -TargetPath $originalFolder `
                                     -DeltaPath $deltaFolder `
@@ -1622,12 +1625,12 @@ function Compile-ObjectsInNavContainer {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
-        $creds = @{}
+        $params = @{}
         if ($adminPassword) {
-            $creds = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+            $params = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
         }
         Write-Host "Compiling objects"
-        Compile-NAVApplicationObject @creds -Filter $filter `
+        Compile-NAVApplicationObject @params -Filter $filter `
                                      -DatabaseName $databaseName `
                                      -DatabaseServer $databaseServer `
                                      -Recompile `
