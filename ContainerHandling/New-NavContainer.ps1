@@ -141,6 +141,20 @@ function New-NavContainer {
         $containerLicenseFile = "c:\run\my\license.flf"
     }
 
+    $parameters = @(
+                    "--name $containerName",
+                    "--hostname $containerName",
+                    "--env auth=$auth"
+                    "--env username=$vmAdminUsername",
+                    "--env ExitOnError=N",
+                    "--env locale=$locale",
+                    "--env licenseFile=""$containerLicenseFile""",
+                    "--memory $memoryLimit",
+                    "--volume ""${demoFolder}:$containerDemoFolder""",
+                    "--volume ""${myFolder}:C:\Run\my""",
+                    "--restart always"
+                   )
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -149,20 +163,8 @@ function New-NavContainer {
         'sqlcmd -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
         ' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
-        # Enable Symbol loading at Server Startup
         if ($version.Major -gt 10) {
-            if (!(Test-Path "$myfolder\SetupConfiguration.ps1")) {
-                # If SetupConfiguration wasn't already overridden, we need to call base SetupConfiguration
-                '. (Join-Path $runPath $MyInvocation.MyCommand.Name)' | Set-Content -Path "$myfolder\SetupConfiguration.ps1"
-            }
-            '$CustomConfigFile =  Join-Path $ServiceTierFolder "CustomSettings.config"
-            $CustomConfig = [xml](Get-Content $CustomConfigFile)
-            $enableSymbolLoadingAtServerStartupNode = $customConfig.SelectSingleNode("//appSettings/add[@key=''EnableSymbolLoadingAtServerStartup'']")
-            if ($enableSymbolLoadingAtServerStartupNode) {
-                $enableSymbolLoadingAtServerStartupNode.Value = "true"
-                $CustomConfig.Save($CustomConfigFile)
-            }
-            ' | Add-Content -Path "$myfolder\SetupConfiguration.ps1"
+            $parameters += "--env enableSymbolLoading=Y"
         }
         
         if (Test-Path $programFilesFolder) {
@@ -186,20 +188,6 @@ function New-NavContainer {
     }
 
     Write-Host "Creating container $containerName from image $imageName"
-
-    $parameters = @(
-                    "--name $containerName",
-                    "--hostname $containerName",
-                    "--env auth=$auth"
-                    "--env username=$vmAdminUsername",
-                    "--env ExitOnError=N",
-                    "--env locale=$locale",
-                    "--env licenseFile=""$containerLicenseFile""",
-                    "--memory $memoryLimit",
-                    "--volume ""${demoFolder}:$containerDemoFolder""",
-                    "--volume ""${myFolder}:C:\Run\my""",
-                    "--restart always"
-                   )
 
     if ($useSSL) {
         $parameters += "--env useSSL=Y"
