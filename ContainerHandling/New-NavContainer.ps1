@@ -12,10 +12,8 @@
   Name of the image you want to use for your Nav container (default is to grab the imagename from the navserver container)
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use (default c:\demo\license.flf)
- .Parameter vmAdminUsername
-  Name of the administrator user you want to add to the container
- .Parameter adminPassword
-  Password of the administrator user you want to add to the container
+ .Parameter credential
+  Username and Password for the NAV Container
  .Parameter memoryLimit
   Memory limit for the container (default 4G)
  .Parameter updateHosts
@@ -39,7 +37,7 @@
  .Example
   New-NavContainer -containerName test -imageName "navdocker.azurecr.io/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-NavContainer -containerName test -adminPassword <mypassword> -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "navdocker.azurecr.io/dynamics-nav:devpreview-finus"
+  New-NavContainer -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "navdocker.azurecr.io/dynamics-nav:devpreview-finus"
 #>
 function New-NavContainer {
     Param(
@@ -49,8 +47,7 @@ function New-NavContainer {
         [string]$containerName, 
         [string]$imageName = "", 
         [string]$licenseFile = "",
-        [string]$vmAdminUsername = (Get-DefaultVmAdminUsername),
-        [SecureString]$adminPassword = (Get-DefaultAdminPassword),
+        [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$memoryLimit = "4G",
         [switch]$updateHosts,
         [switch]$useSSL,
@@ -68,6 +65,14 @@ function New-NavContainer {
 
     if ($containerName -eq "navserver") {
         throw "You cannot create a Nav container called navserver. Use Replace-NavServerContainer to replace the navserver container."
+    }
+
+    if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
+        if ($auth -eq "Windows") {
+            $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
+        } else {
+            $credential = get-credential -Message "Using NavUserPassword Authentication. Please enter username/password for the Containter."
+        }
     }
 
     if ($includeCSide) {
@@ -145,7 +150,7 @@ function New-NavContainer {
                     "--name $containerName",
                     "--hostname $containerName",
                     "--env auth=$auth"
-                    "--env username=$vmAdminUsername",
+                    "--env username=$($credential.UserName)",
                     "--env ExitOnError=N",
                     "--env locale=$locale",
                     "--env licenseFile=""$containerLicenseFile""",
@@ -206,7 +211,7 @@ function New-NavContainer {
         [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
         try {
             Set-Content -Path $passwordKeyFile -Value $passwordKey
-            $encPassword = ConvertFrom-SecureString -SecureString $adminPassword -Key $passwordKey
+            $encPassword = ConvertFrom-SecureString -SecureString $credential.Password -Key $passwordKey
             
             $parameters += @(
                              "--env securePassword=$encPassword",
@@ -222,7 +227,7 @@ function New-NavContainer {
             Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
         }
     } else {
-        $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword)))
+        $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
         $parameters += "--env password=""$plainPassword"""
         $parameters += $additionalParameters
         $id = DockerRun -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters
@@ -273,11 +278,15 @@ function New-NavContainer {
                 if ($newSyntax) { $suffix = "-newsyntax" }
                 $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
                 if (!(Test-Path $originalFolder)) {
+                    $sqlCredential = $null
+                    if ($auth -eq "NavUserPassword") {
+                        $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
+                    }
                     # Export base objects
                     Export-NavContainerObjects -containerName $containerName `
                                                -objectsFolder $originalFolder `
                                                -filter "" `
-                                               -adminPassword $adminPassword `
+                                               -sqlCredential $sqlCredential `
                                                -ExportToNewSyntax:$newSyntax
                 }
             }

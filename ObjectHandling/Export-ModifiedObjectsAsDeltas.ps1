@@ -10,10 +10,8 @@
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects
- .Parameter vmadminUsername
-  Username of the administrator user in the container (defaults to sa)
- .Parameter adminPassword
-  The admin password for the container (if using NavUserPassword authentication)
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
  .Parameter openFolder
@@ -27,16 +25,12 @@ function Export-ModifiedObjectsAsDeltas {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [string]$vmadminUsername = 'sa',
-        [SecureString]$adminPassword = $null, 
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [switch]$useNewSyntax = $false,
-        [switch]$openFolder = $true
+        [switch]$openFolder
     )
 
-    $containerAuth = Get-NavContainerAuth -containerName $containerName
-    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
-        $adminPassword = Get-DefaultAdminPassword
-    }
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     if ((Get-NavContainerSharedFolders -containerName $containerName)[$demoFolder] -ne $containerDemoFolder) {
         throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $demoFolder to $containerDemoFolder in the container (docker run ... -v ${demoFolder}:$containerDemoFolder ... <image>)."
@@ -61,8 +55,7 @@ function Export-ModifiedObjectsAsDeltas {
     Export-NavContainerObjects -containerName $containerName `
                                -objectsFolder $modifiedFolder `
                                -filter "modified=Yes" `
-                               -vmadminUsername $vmadminUsername `
-                               -adminPassword $adminPassword `
+                               -sqlCredential $sqlCredential `
                                -exportToNewSyntax:$useNewSyntax
 
     Create-MyOriginalFolder -originalFolder $originalFolder `

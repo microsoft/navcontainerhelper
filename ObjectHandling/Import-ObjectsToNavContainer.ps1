@@ -8,12 +8,10 @@
   Name of the container for which you want to enter a session
  .Parameter objectsFile
   Path of the objects file you want to import
- .Parameter vmadminUsername
-  Username of the administrator user in the container (defaults to sa)
- .Parameter adminPassword
-  The admin password for the container (if using NavUserPassword authentication)
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Example
-  Import-ObjectsToNavContainer -containerName test2 -objectsFile c:\temp\objects.txt -adminPassword <adminpassword>
+  Import-ObjectsToNavContainer -containerName test2 -objectsFile c:\temp\objects.txt -sqlCredential (get-credential -credential 'sa')
 #>
 function Import-ObjectsToNavContainer {
     Param(
@@ -21,15 +19,10 @@ function Import-ObjectsToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFile,
-        [string]$vmadminUsername = 'sa',
-        [SecureString]$adminPassword = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
 
-    $containerAuth = Get-NavContainerAuth -containerName $containerName
-    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
-        $adminPassword = Get-DefaultAdminPassword
-    }
-
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $containerObjectsFile = Get-NavContainerPath -containerName $containerName -path $objectsFile
     $copied = $false
     if ("$containerObjectsFile" -eq "") {
@@ -39,7 +32,7 @@ function Import-ObjectsToNavContainer {
     }
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, $vmadminUsername, $adminPassword, $copied)
+    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, $sqlCredential, $copied)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -49,8 +42,8 @@ function Import-ObjectsToNavContainer {
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
     
         $params = @{}
-        if ($adminPassword) {
-            $params = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        if ($sqlCredential) {
+            $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         Write-Host "Importing Objects from $objectsFile"
         Import-NAVApplicationObject @params -Path $objectsFile `
@@ -67,7 +60,7 @@ function Import-ObjectsToNavContainer {
             Remove-Item -Path $objectsFile -Force
         }
     
-    } -ArgumentList $containerObjectsFile, $vmadminUsername, $adminPassword, $copied
+    } -ArgumentList $containerObjectsFile, $sqlCredential, $copied
     Write-Host -ForegroundColor Green "Objects successfully imported"
 }
 Export-ModuleMember -Function Import-ObjectsToNavContainer

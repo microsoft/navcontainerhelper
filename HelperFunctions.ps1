@@ -2,6 +2,41 @@
     Write-Host -ForegroundColor $color $line
 }
 
+function Get-DefaultCredential {
+    Param(
+        [string]$Message,
+        [string]$DefaultUserName
+    )
+
+    if (Test-Path "$demoFolder\settings.ps1") {
+        . "$demoFolder\settings.ps1"
+        if (Test-Path "$demoFolder\aes.key") {
+            $key = Get-Content -Path "$demoFolder\aes.key"
+            New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword -Key $key))
+        } else {
+            New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword))
+        }
+    } else {
+        Get-Credential -username $DefaultUserName -Message $Message
+    }
+}
+
+function Get-DefaultSqlCredential {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [string]$containerName,
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
+    )
+
+    $containerAuth = Get-NavContainerAuth -containerName $containerName
+    if ($containerAuth -eq "NavUserPassword") {
+        if (($sqlCredential -eq $null) -or ($sqlCredential -eq [System.Management.Automation.PSCredential]::Empty)) {
+            $sqlCredential = Get-DefaultCredential -DefaultUserName "sa" -Message "Please enter the SQL Server System Admin credentials for container $containerName"
+        }
+    }
+    $sqlCredential
+}
+
 function Get-DefaultAdminPassword {
     if (Test-Path "$demoFolder\settings.ps1") {
         . "$demoFolder\settings.ps1"

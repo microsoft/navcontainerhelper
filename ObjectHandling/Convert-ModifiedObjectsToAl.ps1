@@ -11,10 +11,8 @@
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects
- .Parameter vmadminUsername
-  Username of the administrator user in the container (defaults to sa)
- .Parameter adminPassword
-  The admin password for the container (if using NavUserPassword authentication)
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
  .Parameter openFolder
@@ -22,25 +20,25 @@
  .Example
   Convert-ModifiedObjectsToAl -containerName test
  .Example
-  Convert-ModifiedObjectsToAl -containerName test -adminPassword <adminPassword> -startId 881200
+  Convert-ModifiedObjectsToAl -containerName test -sqlCredential (get-credential -credential 'sa') -startId 881200
 #>
 function Convert-ModifiedObjectsToAl {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [string]$vmadminUsername = 'sa',
-        [SecureString]$adminPassword = $null, 
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [int]$startId = 50100,
-        [switch]$openFolder = $true
+        [switch]$openFolder
     )
 
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $session = Get-NavContainerSession -containerName $containerName
     $txt2al = Invoke-Command -Session $session -ScriptBlock { $txt2al }
     if (!($txt2al)) {
         throw "You cannot run Convert-ModifiedObjectsToAl on this Nav Container, the txt2al tool is not present."
     }
 
-    Export-ModifiedObjectsAsDeltas -containerName $containerName -vmadminUsername $vmadminUsername -adminPassword $adminPassword -openFolder:$false -useNewSyntax
+    Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax
 
     $suffix = "-newsyntax"
 

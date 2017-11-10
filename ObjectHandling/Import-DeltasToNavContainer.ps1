@@ -9,10 +9,8 @@
   Name of the container for which you want to enter a session
  .Parameter deltaFolder
   Path of the folder containing the delta files you want to import
- .Parameter vmadminUsername
-  Username of the administrator user in the container (defaults to sa)
- .Parameter adminPassword
-  The admin password for the container (if using NavUserPassword authentication)
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Example
   Import-DeltasToNavContainer -containerName test2 -deltaFolder c:\temp\mydeltas
 #>
@@ -22,15 +20,10 @@ function Import-DeltasToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$deltaFolder,
-        [string]$vmadminUsername = 'sa',
-        [SecureString]$adminPassword = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
 
-    $containerAuth = Get-NavContainerAuth -containerName $containerName
-    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
-        $adminPassword = Get-DefaultAdminPassword
-    }
-
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $containerDeltaFolder = Get-NavContainerPath -containerName $containerName -path $deltaFolder
     if ("$containerDeltaFolder" -eq "") {
         throw "The deltaFolder ($deltaFolder) is not shared with the container."
@@ -54,7 +47,7 @@ function Import-DeltasToNavContainer {
     $containerMergedObjectsFile = Get-NavContainerPath -containerName $containerName -path $mergedObjectsFile -throw
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($deltaFolder, $originalFolder, $mergedObjectsFile, $mergeResultFile, $vmadminUsername, $adminPassword)
+    Invoke-Command -Session $session -ScriptBlock { Param($deltaFolder, $originalFolder, $mergedObjectsFile, $mergeResultFile)
     
         Write-Host "Merging Deltas from $deltaFolder"
         Update-NAVApplicationObject -TargetPath $originalFolder `
@@ -64,13 +57,12 @@ function Import-DeltasToNavContainer {
                                     -VersionListProperty FromModified `
                                     -DateTimeProperty FromModified | Set-Content $mergeResultFile
 
-    } -ArgumentList $containerDeltaFolder, $containerMyOriginalFolder, $containerMergedObjectsFile, $containerMergeResultFile, $vmadminUsername, $adminPassword
+    } -ArgumentList $containerDeltaFolder, $containerMyOriginalFolder, $containerMergedObjectsFile, $containerMergeResultFile
 
     if (Test-Path $mergedObjectsFile) {
         Import-ObjectsToNavContainer -containerName $containerName `
                                      -objectsFile $mergedObjectsFile `
-                                     -vmadminUsername $vmadminUsername `
-                                     -adminPassword $adminPassword
+                                     -sqlcredential $sqlCredential
     }
 }
 Export-ModuleMember -Function Import-DeltasToNavContainer

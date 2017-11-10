@@ -7,10 +7,8 @@
   Name of the container for which you want to enter a session
  .Parameter objectsFolder
   The folder to which the objects are exported (needs to be shared with the container)
- .Parameter vmadminUsername
-  Username of the administrator user in the container (defaults to sa)
- .Parameter adminPassword
-  The admin password for the container (if using NavUserPassword authentication)
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter filter
   Specifies which objects to export (default is modified=Yes)
  .Parameter exportToNewSyntax
@@ -18,7 +16,7 @@
  .Example
   Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects
  .Example
-  Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects -adminPassword <adminPassword> -filter ""
+  Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects -sqlCredential (get-credential -credential 'sa') -filter ""
 #>
 function Export-NavContainerObjects {
     Param(
@@ -26,21 +24,15 @@ function Export-NavContainerObjects {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFolder, 
-        [string]$vmadminUsername = 'sa',
-        [SecureString]$adminPassword = $null, 
         [string]$filter = "modified=Yes", 
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [switch]$exportToNewSyntax = $true
     )
 
-    $containerAuth = Get-NavContainerAuth -containerName $containerName
-    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
-        $adminPassword = Get-DefaultAdminPassword
-    }
-
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
-
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $vmadminUsername, $adminPassword, $exportToNewSyntax)
+    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportToNewSyntax)
 
         $objectsFile = "$objectsFolder.txt"
         Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
@@ -63,8 +55,8 @@ function Export-NavContainerObjects {
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
         $params = @{}
-        if ($adminPassword) {
-            $params = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        if ($sqlCredential) {
+            $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         if ($exportToNewSyntax) {
             $params += @{ 'ExportToNewSyntax' = $true }
@@ -82,6 +74,6 @@ function Export-NavContainerObjects {
                                        -Destination $objectsFolder
         Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
     
-    }  -ArgumentList $filter, $containerObjectsFolder, $vmadminUsername, $adminPassword, $exportToNewSyntax
+    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportToNewSyntax
 }
 Export-ModuleMember -function Export-NavContainerObjects

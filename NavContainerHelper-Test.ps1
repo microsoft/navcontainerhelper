@@ -4,11 +4,12 @@
 
 # This script performs a simple happy-path test of most navcontainerhelper functions
 
-$imageName = "navdocker.azurecr.io/dynamics-nav:devpreview"
+$imageName = "microsoft/dynamics-nav:devpreview"
+$imageName2 = "microsoft/dynamics-nav:devpreview-finus"
 $containerName = "test"
 
-$username = $env:USERNAME
-$password = Read-Host -AsSecureString -Prompt "Please enter the admin password for Nav Container"
+$credential = Get-Credential -Credential $env:USERNAME
+$sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
 
 # TEMP solution: The following files must exist
 $licenseFile = "c:\demo\license.flf"
@@ -17,21 +18,21 @@ $fobPath = "C:\temp\Test.fob"
 $txtPath = "C:\temp\Test.txt"
 $deltaPath = "C:\demo\Delta"
 
-$v1AppPath = "C:\temp\Search.navx"
+$v1AppPath = "C:\temp\Search2.navx"
 $v1AppName = "Search"
 
-$v2AppPath = "C:\temp\uns\Search.app"
+$v2AppPath = "C:\temp\uns\Search2.app"
 $v2AppName = "Search"
 
 docker pull $imageName
+docker pull $imageName2
 
 # New-CSideDevContainer
 New-CSideDevContainer -accept_eula `
                       -containerName $containerName `
-                      -devImageName $imageName `
+                      -imageName $imageName `
                       -licenseFile $licenseFile `
-                      -vmAdminUsername $username `
-                      -adminPassword $password `
+                      -credential $credential `
                       -UpdateHosts `
                       -Auth Windows
 
@@ -151,10 +152,9 @@ Remove-NavContainer -containerName $containerName -UpdateHosts
 # New-CSideDevContainer
 New-CSideDevContainer -accept_eula `
                       -containerName $containerName `
-                      -devImageName $imageName `
+                      -imageName $imageName2 `
                       -licenseFile $licenseFile `
-                      -vmAdminUsername $username `
-                      -adminPassword $password `
+                      -credential $credential `
                       -UpdateHosts `
                       -Auth NavUserPassword
 
@@ -164,36 +164,36 @@ if (Test-NavContainer -containerName $containerName) {
 }
 
 # Get-NavContainerNavVersion
-$navVersion = Get-NavContainerNavVersion -containerOrImageName $imageName
-Write-Host "Nav Version of $imageName is $navVersion"
+$navVersion = Get-NavContainerNavVersion -containerOrImageName $imageName2
+Write-Host "Nav Version of $imageName2 is $navVersion"
 $navVersion = Get-NavContainerNavVersion -containerOrImageName $containerName
 Write-Host "Nav Version of $containerName is $navVersion"
 
 # Get-NavContainerImageName
-$imageName = Get-NavContainerImageName -containerName $containerName
-Write-Host "ImageName of $containerName is $imageName"
+$imageName2 = Get-NavContainerImageName -containerName $containerName
+Write-Host "ImageName of $containerName is $imageName2"
 
 # Get-NavContainerGenericTag
-$tag = Get-NavContainerGenericTag -containerOrImageName $imageName
-Write-Host "Generic tag of $imageName is $tag"
+$tag = Get-NavContainerGenericTag -containerOrImageName $imageName2
+Write-Host "Generic tag of $imageName2 is $tag"
 $tag = Get-NavContainerGenericTag -containerOrImageName $containerName
 Write-Host "Generic tag of $containerName is $tag"
 
 # Get-NavContainerOsVersion
-$osversion = Get-NavContainerOsVersion -containerOrImageName $imageName
-Write-Host "OS Version of $imageName is $osversion"
+$osversion = Get-NavContainerOsVersion -containerOrImageName $imageName2
+Write-Host "OS Version of $imageName2 is $osversion"
 $osversion = Get-NavContainerOsVersion -containerOrImageName $containerName
 Write-Host "OS Version of $containerName is $osversion"
 
 # Get-NavContainerLegal
-$legal = Get-NavContainerLegal -containerOrImageName $imageName
-Write-Host "Legal link of $imageName is $legal"
+$legal = Get-NavContainerLegal -containerOrImageName $imageName2
+Write-Host "Legal link of $imageName2 is $legal"
 $legal = Get-NavContainerLegal -containerOrImageName $containerName
 Write-Host "Legal link of $containerName is $legal"
 
 # Get-NavContainerCountry
-$country = Get-NavContainerCountry -containerOrImageName $imageName
-Write-Host "Country of $imageName is $country"
+$country = Get-NavContainerCountry -containerOrImageName $imageName2
+Write-Host "Country of $imageName2 is $country"
 $country = Get-NavContainerCountry -containerOrImageName $containerName
 Write-Host "Country of $containerName is $country"
 
@@ -222,24 +222,24 @@ Write-Host "Name of $containerId is $containerName"
 # Import-ObjectsToNavContainer (.fob)
 Import-ObjectsToNavContainer -containerName $containerName `
                              -objectsFile $fobPath `
-                             -adminPassword $password
+                             -sqlCredential $sqlCredential
 
 # Compile-ObjectsToNavContainer
 Compile-ObjectsInNavContainer -containerName $containerName `
-                              -adminPassword $password
+                              -sqlCredential $sqlCredential
 
 # Import-ObjectsToNavContainer (.txt)
 Import-ObjectsToNavContainer -containerName $containerName `
                              -objectsFile $txtPath `
-                             -adminPassword $password
+                             -sqlCredential $sqlCredential
 
 # Compile-ObjectsToNavContainer
 Compile-ObjectsInNavContainer -containerName $containerName `
-                              -adminPassword $password
+                              -sqlCredential $sqlCredential
 
 # Convert-ModifiedObjectsToAl
 Convert-ModifiedObjectsToAl -containerName $containerName `
-                            -adminPassword $password `
+                            -sqlCredential $sqlCredential `
                             -startId 50100
 
 # Remove-NavContainer
@@ -283,4 +283,3 @@ Remove-NavContainer -containerName $containerName -UpdateHosts
 #help Replace-NavServerContainer    -full
 #help Recreate-NavServerContainer   -full
 
-Clear-Variable -Name "password"

@@ -7,29 +7,24 @@
   Name of the container for which you want to enter a session
  .Parameter filter
   filter of the objects you want to compile (default is modified=Yes)
- .Parameter vmadminUsername
-  Username of the administrator user in the container (defaults to sa)
- .Parameter adminPassword
-  Password of the administrator user in the container (if using NavUserPassword authentication)
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Example
-  Compile-ObjectsToNavContainer -containerName test2 -adminPassword <adminpassword>
+  Compile-ObjectsToNavContainer -containerName test2 -sqlCredential (get-credential -credential 'sa')
+ .Example
+  Compile-ObjectsToNavContainer -containerName test2
 #>
 function Compile-ObjectsInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [string]$filter = "modified=Yes", 
-        [string]$vmadminUsername = 'sa',
-        [SecureString]$adminPassword = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null 
     )
 
-    $containerAuth = Get-NavContainerAuth -containerName $containerName
-    if ($containerAuth -eq "NavUserPassword" -and !($adminPassword)) {
-        $adminPassword = Get-DefaultAdminPassword
-    }
-
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, $vmadminUsername, $adminPassword)
+    Invoke-Command -Session $session -ScriptBlock { Param($filter, $sqlCredential)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -39,8 +34,8 @@ function Compile-ObjectsInNavContainer {
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
         $params = @{}
-        if ($adminPassword) {
-            $params = @{ 'Username' = $vmadminUsername; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($adminPassword))) }
+        if ($sqlCredential) {
+            $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         Write-Host "Compiling objects"
         Compile-NAVApplicationObject @params -Filter $filter `
@@ -52,7 +47,7 @@ function Compile-ObjectsInNavContainer {
                                      -NavServerInstance NAV `
                                      -NavServerManagementPort 7045
 
-    } -ArgumentList $filter, $vmadminUsername, $adminPassword
+    } -ArgumentList $filter, $sqlCredential
     Write-Host -ForegroundColor Green "Objects successfully compiled"
 }
 Export-ModuleMember -Function Compile-ObjectsInNavContainer
