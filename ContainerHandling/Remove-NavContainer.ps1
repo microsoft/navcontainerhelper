@@ -21,10 +21,6 @@ function Remove-NavContainer {
     )
 
     Process {
-        if ($containerName -eq "navserver") {
-            throw "You should not remove the navserver container. Use Replace-NavServerContainer to replace the navserver container."
-        }
-
         if (Test-NavContainer -containerName $containerName) {
             Remove-NavContainerSession $containerName
             $containerId = Get-NavContainerId -containerName $containerName

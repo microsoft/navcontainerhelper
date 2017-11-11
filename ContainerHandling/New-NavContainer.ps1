@@ -63,10 +63,6 @@ function New-NavContainer {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
     }
 
-    if ($containerName -eq "navserver") {
-        throw "You cannot create a Nav container called navserver. Use Replace-NavServerContainer to replace the navserver container."
-    }
-
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
         if ($auth -eq "Windows") {
             $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
