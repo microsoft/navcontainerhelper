@@ -17,8 +17,7 @@ function Remove-NavContainer {
     Param
     (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [switch]$UpdateHosts
+        [string]$containerName
     )
 
     Process {
@@ -29,6 +28,7 @@ function Remove-NavContainer {
         if (Test-NavContainer -containerName $containerName) {
             Remove-NavContainerSession $containerName
             $containerId = Get-NavContainerId -containerName $containerName
+            $updateHosts = ((Get-NavContainerSharedFolders -containerName $containerName).GetEnumerator() | Where-Object { $_.value -eq "c:\driversetc" })
             Write-Host "Removing container $containerName"
             docker rm $containerId -f | Out-Null
             $containerFolder = Join-Path $ExtensionsFolder $containerName
@@ -39,9 +39,9 @@ function Remove-NavContainer {
             Remove-DesktopShortcut -Name "$containerName CSIDE"
             Remove-DesktopShortcut -Name "$containerName Command Prompt"
             Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
-            if ($UpdateHosts) {
-                Write-Host "Remove $containerName from hosts"
-                Update-Hosts -hostName $containerName -ip ""
+            if ($updateHosts) {
+                Write-Host "Removing $containerName from hosts"
+                . (Join-Path $pSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -hostname $containerName -ipAddress ""
             }
             Write-Host -ForegroundColor Green "Successfully removed container $containerName"
         }

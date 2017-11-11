@@ -127,7 +127,7 @@ function New-NavContainer {
     $locale = Get-LocaleFromCountry $devCountry
 
     if (Test-NavContainer -containerName $containerName) {
-        Remove-NavContainer $containerName -UpdateHosts:$UpdateHosts
+        Remove-NavContainer $containerName
     }
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
@@ -205,6 +205,14 @@ function New-NavContainer {
         $parameters += "--volume ""${programFilesFolder}:C:\navpfiles"""
     }
 
+    if ($updateHosts) {
+        $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
+        '
+        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname $hostname -ipAddress $ip
+        ' | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+    }
+
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
         $passwordKeyFile = "$myfolder\aes.key"
         $passwordKey = New-Object Byte[] 16
@@ -232,12 +240,6 @@ function New-NavContainer {
         $parameters += $additionalParameters
         $id = DockerRun -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters
         Wait-NavContainerReady $containerName
-    }
-
-    if ($UpdateHosts) {
-        $ip = Get-NavContainerIpAddress -containerName $containerName
-        Write-Host "Add $ip $containerName to hosts"
-        Update-Hosts -hostName $containerName -ip $ip
     }
 
     Write-Host "Create Desktop Shortcuts for $containerName"
