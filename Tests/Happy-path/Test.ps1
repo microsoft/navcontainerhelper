@@ -1,28 +1,30 @@
-﻿$ErrorActionPreference = "Stop"
+﻿# This script performs a simple happy-path test of most navcontainerhelper functions
 
-. (Join-Path $PSScriptRoot "NavContainerHelper.ps1")
+$ErrorActionPreference = "Stop"
 
-# This script performs a simple happy-path test of most navcontainerhelper functions
+. (Join-Path $PSScriptRoot "..\..\NavContainerHelper.ps1")
 
 $imageName = "microsoft/dynamics-nav:devpreview"
 $imageName2 = "microsoft/dynamics-nav:devpreview-finus"
 $containerName = "test"
 
-$credential = Get-Credential -Credential $env:USERNAME
+$licenseFile = "c:\demo\license.flf"
+if (!(Test-Path $licenseFile)) {
+    throw "License file must be in $licenseFile to run test"
+}
+
+if ($credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
+    $credential = Get-Credential -Username $env:USERNAME -Message "Enter a set of credentials to use for containers in the tests"
+}
 $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
 
-# TEMP solution: The following files must exist
-$licenseFile = "c:\demo\license.flf"
-
-$fobPath = "C:\temp\Test.fob"
-$txtPath = "C:\temp\Test.txt"
-$deltaPath = "C:\demo\Delta"
-
-$v1AppPath = "C:\temp\Search2.navx"
-$v1AppName = "Search"
-
-$v2AppPath = "C:\temp\uns\Search2.app"
-$v2AppName = "Search"
+$fobPath = (Join-Path $PSScriptRoot "test.fob")
+$txtPath = (Join-Path $PSScriptRoot "test.txt")
+$deltaPath = (Join-Path $PSScriptRoot "delta")
+$v1AppPath = (Join-Path $PSScriptRoot "test.navx")
+$v1AppName = "Test"
+$v2AppPath = (Join-Path $PSScriptRoot "test.app")
+$v2AppName = "Test"
 
 docker pull $imageName
 docker pull $imageName2
@@ -34,7 +36,8 @@ New-CSideDevContainer -accept_eula `
                       -licenseFile $licenseFile `
                       -credential $credential `
                       -UpdateHosts `
-                      -Auth Windows
+                      -Auth Windows `
+                      -additionalParameters @("--volume ""${deltaPath}:c:\deltas""")
 
 # Test-NavContainer
 if (Test-NavContainer -containerName $containerName) {
@@ -147,7 +150,7 @@ if (Test-Path $v2AppPath) {
 }
 
 # Remove-NavContainer
-Remove-NavContainer -containerName $containerName -UpdateHosts
+Remove-NavContainer -containerName $containerName
 
 # New-CSideDevContainer
 New-CSideDevContainer -accept_eula `
@@ -243,43 +246,4 @@ Convert-ModifiedObjectsToAl -containerName $containerName `
                             -startId 50100
 
 # Remove-NavContainer
-Remove-NavContainer -containerName $containerName -UpdateHosts
-
-
-#help Get-NavContainerNavVersion    -full
-#help Get-NavContainerImageName     -full
-#help Get-NavContainerGenericTag    -full
-#help Get-NavContainerOsVersion     -full
-#help Get-NavContainerLegal         -full
-#help Get-NavContainerCountry       -full
-#help Get-NavContainerIpAddress     -full
-#help Get-NavContainerSharedFolders -full
-#help Get-NavContainerPath          -full
-#help Get-NavContainerName          -full
-#help Get-NavContainerId            -full
-#help Test-NavContainer             -full
-#help New-CSideDevContainer         -full
-#help New-NavContainer              -full
-#help Remove-NavContainer           -full
-#help Get-NavContainerSession       -full
-#help Remove-NavContainerSession    -full
-#help Enter-NavContainer            -full
-#help Open-NavContainer             -full
-#help Wait-NavContainerReady        -full
-#help Import-ObjectsToNavContainer  -full
-#help Compile-ObjectsInNavContainer -full
-#help Export-NavContainerObjects    -full
-#help Create-MyOriginalFolder       -full
-#help Create-MyDeltaFolder          -full
-#help Convert-Txt2Al                -full
-#help Convert-ModifiedObjectsToAl   -full
-#help Publish-NavContainerApp       -full
-#help Sync-NavContainerApp          -full
-#help Install-NavContainerApp       -full
-#help Uninstall-NavContainerApp     -full
-#help Unpublish-NavContainerApp     -full
-#help Get-NavContainerAppInfo       -full
-#help Install-NAVSipCryptoProviderFromNavContainer -full
-#help Replace-NavServerContainer    -full
-#help Recreate-NavServerContainer   -full
-
+Remove-NavContainer -containerName $containerName
