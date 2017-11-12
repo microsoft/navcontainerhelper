@@ -1,3 +1,7 @@
+0.2.0.1
+Remove recreate-navservercontainer
+Simplify replace-navservercontainer and allow empty imagename
+
 0.2.0.0
 Breaking change: Change all username/password parameters to PSCredential
 Change -updatehost to automatically update hosts on container restart

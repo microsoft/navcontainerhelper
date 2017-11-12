@@ -62,7 +62,6 @@ $sessions = @{}
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
-. (Join-Path $PSScriptRoot "AzureVM\Recreate-NavServerContainer.ps1")
 
 # Misc functions
 . (Join-Path $PSScriptRoot "Misc\New-DesktopShortcut.ps1")

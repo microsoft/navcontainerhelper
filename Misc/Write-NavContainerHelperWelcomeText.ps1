@@ -48,8 +48,7 @@
     Write-Host "Install-NAVSipCryptoProviderFromNavContainer Install Nav Sip Crypto Provider locally from container to sign extensions"
     Write-Host
     Write-Host -ForegroundColor Yellow "Azure VM specific functions"
-    Write-Host "Replace-NavServerContainer       Replace navserver (primary) container"
-    Write-Host "Recreate-NavServerContainer      Recreate navserver (primary) container"
+    Write-Host "Replace-NavServerContainer       Replace or recreate navserver (primary) container"
     Write-Host
     Write-Host -ForegroundColor White "Note: The Nav Container Helper is an open source project from http://www.github.com/microsoft/navcontainerhelper."
     Write-Host -ForegroundColor White "The project is released as-is, no warranty! Contributions are welcome, study the github repository for usage."
