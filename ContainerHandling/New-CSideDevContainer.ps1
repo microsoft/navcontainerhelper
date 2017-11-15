@@ -23,6 +23,8 @@
   Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
+ .Parameter alwaysPull
+  Always pull latest version of the docker image
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
  .Parameter additionalParameters
@@ -49,6 +51,7 @@ function New-CSideDevContainer {
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$doNotExportObjectsToText,
+        [switch]$alwaysPull,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
@@ -64,6 +67,7 @@ function New-CSideDevContainer {
                      -memoryLimit $memoryLimit `
                      -includeCSide `
                      -doNotExportObjectsToText:$doNotExportObjectsToText `
+                     -alwaysPull:$alwaysPull `
                      -updateHosts:$updateHosts `
                      -useSSL:$useSSL `
                      -auth $auth `

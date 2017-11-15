@@ -24,6 +24,8 @@
   Include this switch if you want to have Windows Client and CSide development environment available on the host
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
+ .Parameter alwaysPull
+  Always pull latest version of the docker image
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
  .Parameter additionalParameters
@@ -53,6 +55,7 @@ function New-NavContainer {
         [switch]$useSSL,
         [switch]$includeCSide,
         [switch]$doNotExportObjectsToText,
+        [switch]$alwaysPull,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
@@ -98,15 +101,18 @@ function New-NavContainer {
             throw "You need to specify the name of the docker image you want to use for your Nav container."
         }
         $imageName = Get-NavContainerImageName -containerName navserver
-        $devCountry = Get-NavContainerCountry -containerOrImageName navserver
     } else {
         $imageId = docker images -q $imageName
         if (!($imageId)) {
-            Write-Host "Pulling docker Image $imageName"
-            docker pull $imageName
+            $alwaysPull = $true
         }
-        $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
+
+    if ($alwaysPull) {
+        Write-Host "Pulling docker Image $imageName"
+        docker pull $imageName
+    }
+    $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
 
     Write-Host "Creating Nav container $containerName"
     Write-Host "Using image $imageName"
