@@ -178,7 +178,7 @@ function New-NavContainer {
         $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
         $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
         [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$containerName+'"
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
@@ -238,33 +238,35 @@ function New-NavContainer {
         Wait-NavContainerReady $containerName
     }
 
-    Write-Host "Create Desktop Shortcuts for $containerName"
+    Write-Host "Read CustomSettings.config from $containerName"
+    $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
+    [System.IO.File]::ReadAllText($customConfigFile)'
+    [xml]$customConfig = docker exec $containerName powershell $ps
 
-    if ($useSSL) {
-        $protocol = "https://"
-    } else {
-        $protocol = "http://"
-    }
-    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$protocol${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
+    Write-Host "Create Desktop Shortcuts for $containerName"
+    $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
+    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$publicWebBaseUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
     New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd"
     New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1"
 
     if ($includeCSide) {
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
-        $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
-        [System.IO.File]::ReadAllText($customConfigFile)'
-        [xml]$customConfig = docker exec $containerName powershell $ps
+        New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
+
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         $databaseServer = "$containerName"
+
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
+
+        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
             $csideParameters += ", generatesymbolreference=yes"
         }
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
+
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters
 
         if (!$doNotExportObjectsToText) {
