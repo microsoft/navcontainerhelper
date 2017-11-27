@@ -13,7 +13,7 @@
  .Parameter myDeltaFolder
   Folder in which the delta files are created
  .Example
-  Create-MyDeltaFolder -containerName test -modifiedFolder c:\demo\myobjects -myoriginalFolder c:\demo\myoriginalobjects -mydeltaFolder c:\demo\mydeltafiles
+  Create-MyDeltaFolder -containerName test -modifiedFolder c:\programdata\navcontainerhelper\myobjects -myoriginalFolder c:\programdata\navcontainerhelper\myoriginalobjects -mydeltaFolder c:\programdata\navcontainerhelper\mydeltafiles
 #>
 function Create-MyDeltaFolder {
     Param(

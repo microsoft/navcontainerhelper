@@ -8,10 +8,14 @@
   Switch, which you need to specify if you accept the eula for running Nav on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
  .Parameter containerName
   Name of the new Nav container (if the container already exists it will be replaced)
- .Parameter devImageName
+ .Parameter imageName
   Name of the image you want to use for your Nav container (default is to grab the imagename from the navserver container)
+ .Parameter navDvdPath
+  When you are spinning up a Generic image, you need to specify the NAV DVD path
+ .Parameter navDvdCountry
+  When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.)
  .Parameter licenseFile
-  Path or Secure Url of the licenseFile you want to use (default c:\demo\license.flf)
+  Path or Secure Url of the licenseFile you want to use (default c:\programdata\navcontainerhelper\license.flf)
  .Parameter credential
   Username and Password for the NAV Container
  .Parameter memoryLimit
@@ -24,6 +28,8 @@
   Include this switch if you want to have Windows Client and CSide development environment available on the host
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
+ .Parameter alwaysPull
+  Always pull latest version of the docker image
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
  .Parameter additionalParameters
@@ -46,13 +52,20 @@ function New-NavContainer {
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [string]$imageName = "", 
+        [string]$navDvdPath = "", 
+        [string]$navDvdCountry = "w1",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$memoryLimit = "4G",
+        [string]$databaseServer = "",
+        [string]$databaseInstance = "",
+        [string]$databaseName = "",
+        [System.Management.Automation.PSCredential]$databaseCredential = $null,
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$includeCSide,
         [switch]$doNotExportObjectsToText,
+        [switch]$alwaysPull,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
@@ -69,11 +82,14 @@ function New-NavContainer {
         } else {
             $credential = get-credential -Message "Using NavUserPassword Authentication. Please enter username/password for the Containter."
         }
+        if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
+            throw "You have to specify credentials for your Container"
+        }
     }
 
     if ($includeCSide) {
         if ($licenseFile -eq "") {
-            $licenseFile = "C:\DEMO\license.flf"
+            $licenseFile = "c:\programdata\navcontainerhelper\license.flf"
             if (!(Test-Path -Path $licenseFile)) {
                 if ($doNotExportObjectsToText) {
                     $licenseFile = ""
@@ -93,18 +109,32 @@ function New-NavContainer {
         }
     }
 
+    $devCountry = ""
+    $navVersion = ""
     if ($imageName -eq "") {
-        if (!(Test-NavContainer -containerName navserver)) {
+        if ("$navDvdPath" -ne "") {
+            $imageName = "microsoft/dynamics-nav:generic"
+        } elseif (Test-NavContainer -containerName navserver) {
+            $imageName = Get-NavContainerImageName -containerName navserver
+        } else {
             throw "You need to specify the name of the docker image you want to use for your Nav container."
         }
-        $imageName = Get-NavContainerImageName -containerName navserver
-        $devCountry = Get-NavContainerCountry -containerOrImageName navserver
     } else {
         $imageId = docker images -q $imageName
         if (!($imageId)) {
-            Write-Host "Pulling docker Image $imageName"
-            docker pull $imageName
+            $alwaysPull = $true
         }
+    }
+
+    if ($alwaysPull) {
+        Write-Host "Pulling docker Image $imageName"
+        docker pull $imageName
+    }
+
+    if ("$navDvdPath" -ne "") {
+        $navversion = (Get-Item -Path (Join-Path $navDvdPath "setup.exe")).VersionInfo.FileVersion
+        $devCountry = $navDvdCountry
+    } elseif ($devCountry -eq "") {
         $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
 
@@ -115,7 +145,9 @@ function New-NavContainer {
         Write-Host "Using license file $licenseFile"
     }
 
-    $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+    if ($navVersion -eq "") {
+        $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+    }
     Write-Host "NAV Version: $navversion"
     $version = [System.Version]($navversion.split('-')[0])
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
@@ -127,6 +159,7 @@ function New-NavContainer {
     }
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
+    Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -150,11 +183,17 @@ function New-NavContainer {
                     "--env ExitOnError=N",
                     "--env locale=$locale",
                     "--env licenseFile=""$containerLicenseFile""",
+                    "--env databaseServer=""$databaseServer""",
+                    "--env databaseInstance=""$databaseInstance""",
                     "--memory $memoryLimit",
-                    "--volume ""${demoFolder}:$containerDemoFolder""",
+                    "--volume ""${hostHelperFolder}:$containerHelperFolder""",
                     "--volume ""${myFolder}:C:\Run\my""",
                     "--restart always"
                    )
+
+    if ("$databaseName" -ne "") {
+        $parameters += "--env databaseName=""$databaseName"""
+    }
 
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
@@ -178,7 +217,7 @@ function New-NavContainer {
         $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
         $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
         [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$containerName+'"
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
@@ -201,6 +240,10 @@ function New-NavContainer {
         $parameters += "--volume ""${programFilesFolder}:C:\navpfiles"""
     }
 
+    if ("$navDvdPath" -ne "") {
+        $parameters += "--volume ""${navDvdPath}:c:\NAVDVD"""
+    }
+
     if ($updateHosts) {
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
@@ -213,19 +256,30 @@ function New-NavContainer {
         $passwordKeyFile = "$myfolder\aes.key"
         $passwordKey = New-Object Byte[] 16
         [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
+        $containerPasswordKeyFile = "c:\run\my\aes.key"
         try {
             Set-Content -Path $passwordKeyFile -Value $passwordKey
             $encPassword = ConvertFrom-SecureString -SecureString $credential.Password -Key $passwordKey
             
             $parameters += @(
                              "--env securePassword=$encPassword",
-                             "--env passwordKeyFile=""$passwordKeyFile""",
+                             "--env passwordKeyFile=""$containerPasswordKeyFile""",
                              "--env removePasswordKeyFile=Y"
                             )
+
+            if ($databaseCredential -ne $null -and $databaseCredential -ne [System.Management.Automation.PSCredential]::Empty) {
+
+                $encDatabasePassword = ConvertFrom-SecureString -SecureString $databaseCredential.Password -Key $passwordKey
+                $parameters += @(
+                                 "--env databaseUsername=$($databaseCredential.UserName)",
+                                 "--env databaseSecurePassword=$encDatabasePassword"
+                                )
+            }
             
             $parameters += $additionalParameters
         
             $id = DockerRun -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters
+
             Wait-NavContainerReady $containerName
         } finally {
             Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
@@ -238,33 +292,38 @@ function New-NavContainer {
         Wait-NavContainerReady $containerName
     }
 
-    Write-Host "Create Desktop Shortcuts for $containerName"
+    Write-Host "Read CustomSettings.config from $containerName"
+    $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
+    [System.IO.File]::ReadAllText($customConfigFile)'
+    [xml]$customConfig = docker exec $containerName powershell $ps
 
-    if ($useSSL) {
-        $protocol = "https://"
-    } else {
-        $protocol = "http://"
+    Write-Host "Create Desktop Shortcuts for $containerName"
+    $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
+    if ("$publicWebBaseUrl" -ne "") {
+        New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$publicWebBaseUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
     }
-    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$protocol${containerName}/NAV/" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
     New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd"
     New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1"
 
     if ($includeCSide) {
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
-        $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
-        [System.IO.File]::ReadAllText($customConfigFile)'
-        [xml]$customConfig = docker exec $containerName powershell $ps
+        New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
+
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
-        $databaseServer = "$containerName"
+        $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+        if ($databaseServer -eq "localhost") {
+            $databaseServer = "$containerName"
+        }
+
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
+
+        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
             $csideParameters += ", generatesymbolreference=yes"
         }
-        New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
+
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters
 
         if (!$doNotExportObjectsToText) {

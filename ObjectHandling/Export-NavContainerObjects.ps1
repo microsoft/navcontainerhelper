@@ -14,9 +14,9 @@
  .Parameter exportToNewSyntax
   Specifies whether or not to export objects in new syntax (default is true)
  .Example
-  Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects
+  Export-NavContainerObject -containerName test -objectsFolder c:\programdata\navcontainerhelper\objects
  .Example
-  Export-NavContainerObject -containerName test -objectsFolder c:\demo\objects -sqlCredential (get-credential -credential 'sa') -filter ""
+  Export-NavContainerObject -containerName test -objectsFolder c:\programdata\navcontainerhelper\objects -sqlCredential (get-credential -credential 'sa') -filter ""
 #>
 function Export-NavContainerObjects {
     Param(

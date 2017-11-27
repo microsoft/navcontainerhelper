@@ -14,7 +14,7 @@
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
  .Example
-  Convert-Txt2Al -containerName test -mydeltaFolder c:\demo\mydeltafiles -myAlFolder c:\demo\myAlFiles -startId 50100
+  Convert-Txt2Al -containerName test -mydeltaFolder c:\programdata\navcontainerhelper\mydeltafiles -myAlFolder c:\programdata\navcontainerhelper\myAlFiles -startId 50100
 #>
 function Convert-Txt2Al {
     Param(

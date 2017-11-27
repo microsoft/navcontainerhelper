@@ -21,6 +21,16 @@ function Get-NavContainerSession {
     Process {
         $containerId = Get-NavContainerId -containerName $containerName
 
+        if ($sessions.ContainsKey($containerId)) {
+            $session = $sessions[$containerId]
+            try {
+                $ok = Invoke-Command -Session $session -ScriptBlock { $true }
+            }
+            catch {
+                Remove-PSSession -Session $session
+                $sessions.Remove($containerId)
+            }
+        }
         if (!($sessions.ContainsKey($containerId))) {
             $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
             Invoke-Command -Session $session -ScriptBlock {

@@ -1,22 +1,10 @@
 ﻿# This script performs a simple happy-path test of most navcontainerhelper functions
 
 $ErrorActionPreference = "Stop"
-
 . (Join-Path $PSScriptRoot "..\..\NavContainerHelper.ps1")
+. (Join-Path $PSScriptRoot "..\settings.ps1")
 
-$imageName = "microsoft/dynamics-nav:devpreview"
-$imageName2 = "microsoft/dynamics-nav:devpreview-finus"
 $containerName = "test"
-
-$licenseFile = "c:\demo\license.flf"
-if (!(Test-Path $licenseFile)) {
-    throw "License file must be in $licenseFile to run test"
-}
-
-if ($credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
-    $credential = Get-Credential -Username $env:USERNAME -Message "Enter a set of credentials to use for containers in the tests"
-}
-$sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
 
 $fobPath = (Join-Path $PSScriptRoot "test.fob")
 $txtPath = (Join-Path $PSScriptRoot "test.txt")
@@ -25,9 +13,6 @@ $v1AppPath = (Join-Path $PSScriptRoot "test.navx")
 $v1AppName = "Test"
 $v2AppPath = (Join-Path $PSScriptRoot "test.app")
 $v2AppName = "Test"
-
-docker pull $imageName
-docker pull $imageName2
 
 # New-CSideDevContainer
 New-CSideDevContainer -accept_eula `
@@ -88,7 +73,7 @@ Write-Host "Shared Folders with $containerName are:"
 $sharedFolders.GetEnumerator() | % { Write-Host ($_.Name + " -> " + $_.Value) }
 
 # Get-NavContainerPath
-$path = "c:\demo\extensions\$containerName\my\AdditionalSetup.ps1"
+$path = "c:\programdata\navcontainerhelper\extensions\$containerName\my\AdditionalSetup.ps1"
 $containerPath = Get-NavContainerPath -containerName $containerName -path $path
 Write-Host "Container Path of $path in $containerName is $containerPath"
 
@@ -210,7 +195,7 @@ Write-Host "Shared Folders with $containerName are:"
 $sharedFolders.GetEnumerator() | % { Write-Host ($_.Name + " -> " + $_.Value) }
 
 # Get-NavContainerPath
-$path = "c:\demo\extensions\$containerName\my\AdditionalSetup.ps1"
+$path = "c:\programdata\navcontainerhelper\extensions\$containerName\my\AdditionalSetup.ps1"
 $containerPath = Get-NavContainerPath -containerName $containerName -path $path
 Write-Host "Container Path of $path in $containerName is $containerPath"
 

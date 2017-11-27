@@ -8,7 +8,7 @@
  .Parameter path
   Path of a file in the host file system
  .Example
-  $containerPath = Get-NavContainerPath -containerName navserver -path c:\demo\extensions\test2\my
+  $containerPath = Get-NavContainerPath -containerName navserver -path c:\programdata\navcontainerhelper\extensions\test2\my
 #>
 function Get-NavContainerPath {
     [CmdletBinding()]
