@@ -20,6 +20,16 @@
   Username and Password for the NAV Container
  .Parameter memoryLimit
   Memory limit for the container (default 4G)
+ .Parameter databaseServer
+  Name of database server when using external SQL Server (omit if using database inside the container)
+ .Parameter databaseInstance
+  Name of database instance when using external SQL Server (omit if using database inside the container)
+ .Parameter databaseName
+  Name of database to connect to when using external SQL Server (omit if using database inside the container)
+ .Parameter databaseCredential
+  Credentials for the database connection when using external SQL Server (omit if using database inside the container)
+ .Parameter shortcuts
+  Location where the Shortcuts will be placed. Can be either None, Desktop or StartMenu
  .Parameter updateHosts
   Include this switch if you want to update the hosts file with the IP address of the container
  .Parameter useSSL
@@ -61,6 +71,8 @@ function New-NavContainer {
         [string]$databaseInstance = "",
         [string]$databaseName = "",
         [System.Management.Automation.PSCredential]$databaseCredential = $null,
+        [ValidateSet('None','Desktop','StartMenu')]
+        [string]$shortcuts='Desktop',
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$includeCSide,
@@ -300,14 +312,14 @@ function New-NavContainer {
     Write-Host "Create Desktop Shortcuts for $containerName"
     $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
     if ("$publicWebBaseUrl" -ne "") {
-        New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$publicWebBaseUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3"
+        New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$publicWebBaseUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
     }
-    New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd"
-    New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1"
+    New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
+    New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
 
     if ($includeCSide) {
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
-        New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe"
+        New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Shortcuts $shortcuts
 
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
@@ -324,7 +336,7 @@ function New-NavContainer {
             $csideParameters += ", generatesymbolreference=yes"
         }
 
-        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters
+        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters -Shortcuts $shortcuts
 
         if (!$doNotExportObjectsToText) {
             

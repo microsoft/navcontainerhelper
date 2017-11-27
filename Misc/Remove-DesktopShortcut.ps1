@@ -1,10 +1,13 @@
 ﻿function Remove-DesktopShortcut {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$Name,
-        [string]$FolderName = "Desktop"
+        [string]$Name
     )
-    $filename = Join-Path ([Environment]::GetFolderPath($FolderName)) "$Name.lnk"
+    $filename = Join-Path ([Environment]::GetFolderPath("Desktop")) "$Name.lnk"
+    if (Test-Path -Path $filename) {
+        Remove-Item $filename -force
+    }
+    $filename = Join-Path ([Environment]::GetFolderPath("StartMenu")) "NavContainerHelper\$Name.lnk"
     if (Test-Path -Path $filename) {
         Remove-Item $filename -force
     }
