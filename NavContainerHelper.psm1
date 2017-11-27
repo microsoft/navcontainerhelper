@@ -4,12 +4,12 @@ $verbosePreference = "SilentlyContinue"
 $warningPreference = "SilentlyContinue"
 $errorActionPreference = 'Stop'
 
-$demoFolder = "C:\DEMO"
-New-Item -Path $demoFolder -ItemType Container -Force -ErrorAction Ignore
-$extensionsFolder = Join-Path $demoFolder "Extensions"
+$hostHelperFolder = "C:\ProgramData\NavContainerHelper"
+New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore
+$extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
 
-$containerDemoFolder = "C:\DEMO"
+$containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
 $sessions = @{}
 

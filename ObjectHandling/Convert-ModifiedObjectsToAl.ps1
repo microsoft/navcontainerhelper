@@ -7,7 +7,7 @@
   2. Create-MyOriginalFolder
   3. Create-MyDeltaFolder
   4. Convert-Txt2Al
-  A folder with the name of the container is created underneath c:\demo\extensions for holding all the temp and the final output.
+  A folder with the name of the container is created underneath c:\programdata\navcontainerhelper\extensions for holding all the temp and the final output.
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects

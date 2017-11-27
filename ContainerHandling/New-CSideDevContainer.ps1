@@ -12,7 +12,7 @@
  .Parameter imageName
   Name of the image you want to use for your CSide Development container (default is to grab the imagename from the navserver container)
  .Parameter licenseFile
-  Path or Secure Url of the licenseFile you want to use (default c:\demo\license.flf)
+  Path or Secure Url of the licenseFile you want to use (default c:\programdata\navcontainerhelper\license.flf)
  .Parameter credential
   Username and Password for the NAV Container
  .Parameter memoryLimit

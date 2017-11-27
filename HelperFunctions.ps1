@@ -8,10 +8,10 @@ function Get-DefaultCredential {
         [string]$DefaultUserName
     )
 
-    if (Test-Path "$demoFolder\settings.ps1") {
-        . "$demoFolder\settings.ps1"
-        if (Test-Path "$demoFolder\aes.key") {
-            $key = Get-Content -Path "$demoFolder\aes.key"
+    if (Test-Path "$hostHelperFolder\settings.ps1") {
+        . "$hostHelperFolder\settings.ps1"
+        if (Test-Path "$hostHelperFolder\aes.key") {
+            $key = Get-Content -Path "$hostHelperFolder\aes.key"
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword -Key $key))
         } else {
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword))

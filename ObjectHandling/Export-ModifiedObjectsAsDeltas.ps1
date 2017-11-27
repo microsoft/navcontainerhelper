@@ -6,7 +6,7 @@
   1. Export-NavContainerObjects
   2. Create-MyOriginalFolder
   3. Create-MyDeltaFolder
-  A folder with the name of the container is created underneath c:\demo\extensions for holding all the temp and the final output.
+  A folder with the name of the container is created underneath c:\programdata\navcontainerhelper\extensions for holding all the temp and the final output.
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects
@@ -32,8 +32,8 @@ function Export-ModifiedObjectsAsDeltas {
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
-    if ((Get-NavContainerSharedFolders -containerName $containerName)[$demoFolder] -ne $containerDemoFolder) {
-        throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $demoFolder to $containerDemoFolder in the container (docker run ... -v ${demoFolder}:$containerDemoFolder ... <image>)."
+    if ((Get-NavContainerSharedFolders -containerName $containerName)[$hostHelperFolder] -ne $containerHelperFolder) {
+        throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $hostHelperFolder to $containerHelperFolder in the container (docker run ... -v ${hostHelperFolder}:$containerHelperFolder ... <image>)."
     }
 
     $suffix = ""

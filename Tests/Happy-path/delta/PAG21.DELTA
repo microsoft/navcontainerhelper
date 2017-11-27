@@ -17,7 +17,7 @@ OBJECT Modification "Customer Card"(Page 21)
     { Insertion         ;InsertAfter=Action 74;
                          ChangedElements=ActionCollection
                          {
-                           { 159     ;2   ;Action    ;
+                           { 50100 ;2   ;Action    ;
                                            Name=Test;
                                            RunObject=Codeunit 50000 }
                          }
@@ -25,7 +25,7 @@ OBJECT Modification "Customer Card"(Page 21)
     { Insertion         ;InsertAfter=Control 69;
                          ChangedElements=ControlCollection
                          {
-                           { 155 ;2   ;Field     ;
+                           { 50101 ;2  ;Field     ;
                                        SourceExpr=test }
 
                          }
