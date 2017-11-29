@@ -116,8 +116,8 @@ function New-NavContainer {
     }
 
     $myScripts | % {
-        if (!(Test-Path $_ -PathType Leaf)) {
-            throw "Script file $_ does not exist"
+        if (!(Test-Path $_)) {
+            throw "Script directory or file $_ does not exist"
         }
     }
 
@@ -177,7 +177,11 @@ function New-NavContainer {
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
     $myScripts | % {
-        Copy-Item -Path $_ -Destination $myFolder -Force
+        if (Test-Path $_ -PathType Container) {
+            Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
+        } else {
+            Copy-Item -Path $_ -Destination $myFolder -Force
+        }
     }
     
     if ("$licensefile" -eq "" -or $licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -191,7 +195,7 @@ function New-NavContainer {
                     "--name $containerName",
                     "--hostname $containerName",
                     "--env auth=$auth"
-                    "--env username=$($credential.UserName)",
+                    "--env username=""$($credential.UserName)""",
                     "--env ExitOnError=N",
                     "--env locale=$locale",
                     "--env licenseFile=""$containerLicenseFile""",
