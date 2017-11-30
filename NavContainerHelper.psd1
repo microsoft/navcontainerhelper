@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.1.2'
+ModuleVersion = '0.2.1.3'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -129,7 +129,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.1.2
+        ReleaseNotes = '0.2.1.3
+Bugfix: Do not clear modified flag when container is restarting
+
+0.2.1.2
 Bugfix: Azure VM detection looked in wrong folder
 
 0.2.1.1
