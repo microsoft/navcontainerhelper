@@ -16,9 +16,9 @@ function Replace-NavServerContainer {
         [string]$imageName = ""
     )
 
-    $SetupNavContainerScript = "$containerHelperFolder\SetupNavContainer.ps1"
-    $setupDesktopScript = "$containerHelperFolder\SetupDesktop.ps1"
-    $settingsScript = "$containerHelperFolder\settings.ps1"
+    $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
+    $setupDesktopScript = "C:\DEMO\SetupDesktop.ps1"
+    $settingsScript = "C:\DEMO\settings.ps1"
 
     if (!((Test-Path $SetupNavContainerScript) -and (Test-Path $setupDesktopScript) -and (Test-Path $settingsScript))) {
         throw "The Replace-NavServerContainer is designed to work inside the Nav on Azure DEMO VMs"

@@ -129,13 +129,12 @@ function New-NavContainer {
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
         } else {
-            throw "You need to specify the name of the docker image you want to use for your Nav container."
+            $imageName = "microsoft/dynamics-nav:latest"
         }
-    } else {
-        $imageId = docker images -q $imageName
-        if (!($imageId)) {
-            $alwaysPull = $true
-        }
+    }
+    $imageId = docker images -q $imageName
+    if (!($imageId)) {
+        $alwaysPull = $true
     }
 
     if ($alwaysPull) {
