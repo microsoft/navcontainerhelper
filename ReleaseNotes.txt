@@ -1,3 +1,6 @@
+0.2.1.2
+Bugfix: Azure VM detection looked in wrong folder
+
 0.2.1.1
 Bugfix: username can now contain spaces
 -myscripts parameter now supports files or folders - all will be copied into the c:\run\my folder
