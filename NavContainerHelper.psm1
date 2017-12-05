@@ -26,6 +26,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerSharedFolders.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerPath.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerName.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerDebugInfo")
 . (Join-Path $PSScriptRoot "ContainerInfo\Test-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
 
