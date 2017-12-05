@@ -14,14 +14,21 @@ function Test-NavContainer {
         [string]$containerName
     )
     Process {
-        $exist = $false
+        $name = Get-NavContainerName $containerName
+        if ($name) { $containerName = $name }
+        $id = ""
         docker ps --filter name="$containerName" -a -q --no-trunc | % {
             $name = Get-NavContainerName -containerId $_
             if ($name -eq $containerName) {
-                $exist = $true
+                $id = $_
             }
         }
-        $exist
+        if ($id) {
+            $inspect = docker inspect $id | ConvertFrom-Json
+            ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -ne 0)
+        } else {
+            $false
+        }
     }
 }
 Export-ModuleMember -function Test-NavContainer

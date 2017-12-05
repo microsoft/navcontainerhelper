@@ -26,6 +26,9 @@ function Get-NavContainerId {
                 $id = $_
             }
         }
+        if (!($id)) {
+            throw "Container $containerName does not exist"
+        }
         $id
     }
 }

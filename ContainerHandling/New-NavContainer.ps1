@@ -40,6 +40,8 @@
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
  .Parameter alwaysPull
   Always pull latest version of the docker image
+ .Parameter restart
+  Define the restart option for the container
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
  .Parameter additionalParameters
@@ -78,6 +80,8 @@ function New-NavContainer {
         [switch]$includeCSide,
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
+        [ValidateSet('no','on-failure','unless-stopped','always')]
+        [string]$restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
@@ -203,7 +207,7 @@ function New-NavContainer {
                     "--memory $memoryLimit",
                     "--volume ""${hostHelperFolder}:$containerHelperFolder""",
                     "--volume ""${myFolder}:C:\Run\my""",
-                    "--restart always"
+                    "--restart $restart"
                    )
 
     if ("$databaseName" -ne "") {

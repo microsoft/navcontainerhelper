@@ -20,6 +20,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerGenericTag.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerOsVersion.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEula.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerLegal.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerCountry.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerIpAddress.ps1")
