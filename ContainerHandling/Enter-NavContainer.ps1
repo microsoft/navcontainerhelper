@@ -22,6 +22,9 @@ function Enter-NavContainer {
     Process {
         $session = Get-NavContainerSession $containerName
         Enter-PSSession -Session $session
+        Invoke-Command -Session $session -ScriptBlock {
+            function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+        }
     }
 }
 Export-ModuleMember -function Enter-NavContainer
