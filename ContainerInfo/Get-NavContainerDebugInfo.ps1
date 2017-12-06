@@ -5,21 +5,25 @@
   Returns the debugging info for a container when reporting an issue on GitHUb
  .Parameter containerName
   Name of the container for which you want to get the debugging info
- .Parameter IncludeEnvVars
-  Name of the container for which you want to get the debugging info
- .Parameter IncludeDockerInfo
-  Name of the container for which you want to get the debugging info
+ .Parameter ExcludeEnvVars
+  Add this switch if you want to exclude environment variables in the debugging info
+ .Parameter ExcludeDockerInfo
+  Add this switch if you want to exclude docker info in the debugging info
+ .Parameter ExcludeDockerLogs
+  Add this switch if you want to exclude docker logs in the debugging info
+ .Parameter includeSensitiveInformation
+  Add this switch to include sensitive information in the debugging info (passwords and urls)
  .Parameter CopyToClipboard
-  Name of the container for which you want to get the debugging info
+  Add this switch if you want the debugging info to automatically be added to the clipboard
  .Example 
-  Get-NavContainerDebugInfo -containerName navserver
-  Get basic debug information (only container labels will be included).
+  Get-NavContainerDebugInfo -containerName navserver -includeSensitiveInformation
+  Get all debug information including sensitive information
   .Example
-  Get-NavContainerDebugInfo -containerName navserver -IncludeEnvVars -IncludeDockerInfo -IncludeDockerLogs
-  Get complete debug information.
+  Get-NavContainerDebugInfo -containerName navserver -ExcludeDockerInfo
+  Get debug information excluding sensitive information and excluding docker info
   .Example
-  Get-NavContainerDebugInfo -containerName navserver -IncludeEnvVars -IncludeDockerInfo -CopyToClipboard
-  Get complete debug information and copy it into the clipboard.
+  Get-NavContainerDebugInfo -containerName navserver -ExcludeEnvVars -ExcludeDockerInfo -ExcludeDockerLogs -CopyToClipboard
+  Get basic debug information and copy it into the clipboard.
 #>
 function Get-NavContainerDebugInfo {
     [CmdletBinding()]
@@ -50,14 +54,21 @@ function Get-NavContainerDebugInfo {
         $debugInfo.Add('container.labels', $inspect.Config.Labels)
         
         if (!$ExcludeEnvVars) {
-            $envs = $inspect.Config.Env.GetEnumerator() | where-object { $includeSensitiveInformation -or 
-                                                                         (!($_.ToLowerInvariant().Contains("password") -or 
-                                                                            $_.ToLowerInvariant().Startswith("navdvdurl=") -or 
-                                                                            $_.ToLowerInvariant().Startswith("countryurl=") -or 
-                                                                            $_.ToLowerInvariant().Startswith("licensefile=") -or 
-                                                                            $_.ToLowerInvariant().Startswith("bakfile=") -or 
-                                                                            $_.ToLowerInvariant().Startswith("folders=") -or 
-                                                                            $_.ToLowerInvariant().Startswith("vsixurl=")))  }
+            $inspect.Config.Env.GetEnumerator() | % {
+                if ($includeSensitiveInformation) {
+                    $_
+                } elseif ($_.ToLowerInvariant().Contains("password=") -or 
+                          $_.ToLowerInvariant().Startswith("navdvdurl=") -or 
+                          $_.ToLowerInvariant().Startswith("countryurl=") -or 
+                          $_.ToLowerInvariant().Startswith("licensefile=") -or 
+                          $_.ToLowerInvariant().Startswith("bakfile=") -or 
+                          $_.ToLowerInvariant().Startswith("folders=") -or 
+                          $_.ToLowerInvariant().Startswith("vsixurl=")) {
+                    ($_.Split("=")[0] + "=<specified>")
+                } else {
+                    $_
+                }
+            }
             if ($envs) {
                 $debugInfo.Add('container.env', $envs)
             }

@@ -15,7 +15,14 @@
         }
         Log "Copy from container $containerName ($containerPath) to $localPath"
         $id = Get-NavContainerId -containerName $containerName 
-        docker cp ${id}:$containerPath $localPath
+
+        $session = New-PSSession -ContainerId $id -RunAsAdministrator -ErrorAction Ignore
+        if ($session) {
+            Copy-Item -Path $containerPath -Destination $localPath -FromSession $session
+            Remove-PSSession -Session $session
+        } else {
+            docker cp ${id}:$containerPath $localPath
+        }
     }
 }
 Export-ModuleMember Copy-FileFromNavContainer
