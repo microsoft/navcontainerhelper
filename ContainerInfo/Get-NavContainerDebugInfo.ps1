@@ -38,6 +38,8 @@ function Get-NavContainerDebugInfo {
         [Parameter()]
         [switch]$ExcludeDockerLogs,
         [Parameter()]
+        $ExcludePing,
+        [Parameter()]
         [switch]$IncludeSensitiveInformation,
         [Parameter()]
         [switch]$CopyToClipboard
@@ -54,7 +56,7 @@ function Get-NavContainerDebugInfo {
         $debugInfo.Add('container.labels', $inspect.Config.Labels)
         
         if (!$ExcludeEnvVars) {
-            $inspect.Config.Env.GetEnumerator() | % {
+            $envs = $inspect.Config.Env.GetEnumerator() | % {
                 if ($includeSensitiveInformation) {
                     $_
                 } elseif ($_.ToLowerInvariant().Contains("password=") -or 
@@ -85,6 +87,13 @@ function Get-NavContainerDebugInfo {
             $logs = docker logs $containerName
             if ($logs) {
                 $debugInfo.Add('container.logs', $logs)
+            }
+        }
+
+        if (!$ExcludePing) {
+            $ping = ping $containerName
+            if ($ping) {
+                $debugInfo.Add('container.ping', $ping)
             }
         }
 
