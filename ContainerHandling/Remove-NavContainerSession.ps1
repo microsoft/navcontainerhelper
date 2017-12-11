@@ -13,7 +13,7 @@ function Remove-NavContainerSession {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string]$containerName
     )
 

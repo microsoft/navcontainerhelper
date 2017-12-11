@@ -16,7 +16,7 @@ function Remove-NavContainer {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string]$containerName
     )
 
