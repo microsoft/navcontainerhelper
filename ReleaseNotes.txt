@@ -1,3 +1,12 @@
+0.2.2.0
+Bugfix: Copying files to/from containers didn't work on Windows 10
+Bugfix: Export-NavContainerObjects with a strange error if sharing the folder used for export directly
+Export-NavContainerObjects now supports txt files and fob files -exportTo parameter replaces -exportToNewSyntax
+Added Get-NavContainers to get all Nav containers
+Add pipeline support for Remove-NavContainer and Remove-NavContainerSession (to allow Get-NavContainers | Remove-NavContainer)
+Added Get-NavContainerDebugInfo
+Show ContainerName in prompt in Enter-NavContainer
+
 0.2.1.3
 Bugfix: Do not clear modified flag when container is restarting
 
