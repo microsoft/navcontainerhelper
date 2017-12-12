@@ -36,7 +36,7 @@ function Convert-Txt2Al {
         if (!($txt2al)) {
             throw "You cannot run Convert-Txt2Al on this Nav Container"
         }
-        Write-Host "Converting files in $myDeltaFolder to .al files in $myAlFolder with startId $startId"
+        Write-Host "Converting files in $myDeltaFolder to .al files in $myAlFolder with startId $startId (container paths)"
         Remove-Item -Path $myAlFolder -Recurse -Force -ErrorAction Ignore
         New-Item -Path $myAlFolder -ItemType Directory -ErrorAction Ignore | Out-Null
         Start-Process -FilePath $txt2al -ArgumentList "--source=""$myDeltaFolder"" --target=""$myAlFolder"" --rename --extensionStartId=$startId" -Wait -NoNewWindow

@@ -45,7 +45,7 @@ function Import-ObjectsToNavContainer {
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
-        Write-Host "Importing Objects from $objectsFile"
+        Write-Host "Importing Objects from $objectsFile (container path)"
         Import-NAVApplicationObject @params -Path $objectsFile `
                                     -DatabaseName $databaseName `
                                     -DatabaseServer $databaseServer `

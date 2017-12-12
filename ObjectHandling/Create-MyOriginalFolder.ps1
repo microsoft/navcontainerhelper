@@ -23,9 +23,12 @@ function Create-MyOriginalFolder {
         [string]$myoriginalFolder
     )
 
-    Write-Host "Copy original objects to $myoriginalFolder for all objects that are modified"
-    Remove-Item -Path $myoriginalFolder -Recurse -Force -ErrorAction Ignore
-    New-Item -Path $myoriginalFolder -ItemType Directory | Out-Null
+    Write-Host "Copy original objects to $myoriginalFolder for all objects that are modified (container path)"
+    if (Test-Path $myoriginalFolder -PathType Container) {
+        Get-ChildItem -Path $myoriginalFolder -Include * | Remove-Item -Recurse -Force
+    } else {
+        New-Item -Path $myoriginalFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
+    }        
     Get-ChildItem $modifiedFolder | % {
         $Name = ($_.BaseName+".txt")
         $OrgName = Join-Path $myOriginalFolder $Name

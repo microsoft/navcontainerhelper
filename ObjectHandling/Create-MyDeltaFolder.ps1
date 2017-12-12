@@ -34,9 +34,12 @@ function Create-MyDeltaFolder {
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($modifiedFolder, $myOriginalFolder, $myDeltaFolder)
 
-        Write-Host "Compare modified objects with original objects in $myOriginalFolder and create Deltas in $myDeltaFolder"
-        Remove-Item -Path $myDeltaFolder -Recurse -Force -ErrorAction Ignore
-        New-Item -Path $myDeltaFolder -ItemType Directory | Out-Null
+        Write-Host "Compare modified objects with original objects in $myOriginalFolder and create Deltas in $myDeltaFolder (container paths)"
+        if (Test-Path $myDeltaFolder -PathType Container) {
+            Get-ChildItem -Path $myDeltaFolder -Include * | Remove-Item -Recurse -Force
+        } else {
+            New-Item -Path $myDeltaFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
+        }        
         Compare-NAVApplicationObject -OriginalPath $myOriginalFolder -ModifiedPath $modifiedFolder -DeltaPath $myDeltaFolder | Out-Null
 
         Write-Host "Rename new objects to .TXT"
