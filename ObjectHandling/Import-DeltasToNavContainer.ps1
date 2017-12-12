@@ -49,7 +49,7 @@ function Import-DeltasToNavContainer {
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($deltaFolder, $originalFolder, $mergedObjectsFile, $mergeResultFile)
     
-        Write-Host "Merging Deltas from $deltaFolder"
+        Write-Host "Merging Deltas from $deltaFolder (container path)"
         Update-NAVApplicationObject -TargetPath $originalFolder `
                                     -DeltaPath $deltaFolder `
                                     -ResultPath $mergedObjectsFile `

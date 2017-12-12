@@ -30,6 +30,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerDebugInfo")
 . (Join-Path $PSScriptRoot "ContainerInfo\Test-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")

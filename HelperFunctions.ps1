@@ -86,3 +86,4 @@ function Get-NavContainerAuth {
         $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
     }
 }
+

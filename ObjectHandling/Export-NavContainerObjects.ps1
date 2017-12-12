@@ -26,25 +26,41 @@ function Export-NavContainerObjects {
         [string]$objectsFolder, 
         [string]$filter = "modified=Yes", 
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [ValidateSet('txt folder','txt folder (new syntax)','txt file','txt file (new syntax)','fob file')]
+        [string]$exportTo = 'txt folder (new syntax)',
+        [Obsolete("exportToNewSyntax is obsolete, please use exportTo instead")]
         [switch]$exportToNewSyntax = $true
     )
+
+    if (!$exportToNewSyntax) {
+        $exportTo = 'txt folder'
+    }
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportToNewSyntax)
+    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportTo)
 
-        $objectsFile = "$objectsFolder.txt"
-        Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
-        Remove-Item -Path $objectsFolder -Force -Recurse -ErrorAction Ignore
+        if ($exportTo -eq 'fob file') {
+            $objectsFile = "$objectsFolder\objects.fob"
+        } else {
+            $objectsFile = "$objectsFolder\objects.txt"
+        }
+
+        if (Test-Path $objectsFolder -PathType Container) {
+            Get-ChildItem -Path $objectsFolder -Include * | Remove-Item -Recurse -Force
+        } else {
+            New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
+        }        
+
         $filterStr = ""
         if ($filter) {
             $filterStr = " with filter '$filter'"
         }
-        if ($exportToNewSyntax) {
-            Write-Host "Export Objects$filterStr (new syntax) to $objectsFile"
+        if ($exportTo.Contains('(new syntax)')) {
+            Write-Host "Export Objects$filterStr (new syntax) to $objectsFile (container path)"
         } else {
-            Write-Host "Export Objects$filterStr to $objectsFile"
+            Write-Host "Export Objects$filterStr to $objectsFile (container path)"
         }
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -58,7 +74,7 @@ function Export-NavContainerObjects {
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
-        if ($exportToNewSyntax) {
+        if ($exportTo.Contains('(new syntax)')) {
             $params += @{ 'ExportToNewSyntax' = $true }
         }
 
@@ -68,12 +84,13 @@ function Export-NavContainerObjects {
                                     -Force `
                                     -Filter "$filter" | Out-Null
 
-        Write-Host "Split $objectsFile to $objectsFolder"
-        New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
-        Split-NAVApplicationObjectFile -Source $objectsFile `
-                                       -Destination $objectsFolder
-        Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
+        if ($exportTo.Contains("folder")) {
+            Write-Host "Split $objectsFile to $objectsFolder (container paths)"
+            Split-NAVApplicationObjectFile -Source $objectsFile `
+                                           -Destination $objectsFolder
+            Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
+        }
     
-    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportToNewSyntax
+    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo
 }
 Export-ModuleMember -function Export-NavContainerObjects

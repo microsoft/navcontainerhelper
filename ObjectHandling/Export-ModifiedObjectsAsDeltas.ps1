@@ -26,7 +26,7 @@ function Export-ModifiedObjectsAsDeltas {
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [switch]$useNewSyntax = $false,
+        [switch]$useNewSyntax,
         [switch]$openFolder
     )
 
@@ -37,8 +37,10 @@ function Export-ModifiedObjectsAsDeltas {
     }
 
     $suffix = ""
+    $exportTo = "txt folder"
     if ($useNewSyntax) {
         $suffix = "-newsyntax"
+        $exportTo = 'txt folder (new syntax)'
     }
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
@@ -56,7 +58,7 @@ function Export-ModifiedObjectsAsDeltas {
                                -objectsFolder $modifiedFolder `
                                -filter "modified=Yes" `
                                -sqlCredential $sqlCredential `
-                               -exportToNewSyntax:$useNewSyntax
+                               -exportTo $exportTo
 
     Create-MyOriginalFolder -originalFolder $originalFolder `
                             -modifiedFolder $modifiedFolder `
