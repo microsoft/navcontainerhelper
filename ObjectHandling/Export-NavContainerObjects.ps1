@@ -42,22 +42,25 @@ function Export-NavContainerObjects {
     Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportTo)
 
         if ($exportTo -eq 'fob file') {
-            $objectsFile = "$objectsFolder.fob"
+            $objectsFile = "$objectsFolder\objects.fob"
         } else {
-            $objectsFile = "$objectsFolder.txt"
+            $objectsFile = "$objectsFolder\objects.txt"
         }
-        New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
-        Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
-        Remove-Item -Path $objectsFolder -Force -Recurse -ErrorAction Ignore
+
+        if (Test-Path $objectsFolder -PathType Container) {
+            Get-ChildItem -Path $objectsFolder -Include * | Remove-Item -Recurse -Force
+        } else {
+            New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
+        }        
 
         $filterStr = ""
         if ($filter) {
             $filterStr = " with filter '$filter'"
         }
         if ($exportTo.Contains('(new syntax)')) {
-            Write-Host "Export Objects$filterStr (new syntax) to $objectsFile"
+            Write-Host "Export Objects$filterStr (new syntax) to $objectsFile (container path)"
         } else {
-            Write-Host "Export Objects$filterStr to $objectsFile"
+            Write-Host "Export Objects$filterStr to $objectsFile (container path)"
         }
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -82,8 +85,7 @@ function Export-NavContainerObjects {
                                     -Filter "$filter" | Out-Null
 
         if ($exportTo.Contains("folder")) {
-            Write-Host "Split $objectsFile to $objectsFolder"
-            New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
+            Write-Host "Split $objectsFile to $objectsFolder (container paths)"
             Split-NAVApplicationObjectFile -Source $objectsFile `
                                            -Destination $objectsFolder
             Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
