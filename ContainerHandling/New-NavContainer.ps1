@@ -336,11 +336,11 @@ function New-NavContainer {
         }
 
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=yes"
+        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=1"
 
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
-            $csideParameters += ", generatesymbolreference=yes"
+            $csideParameters += ", generatesymbolreference=1"
         }
 
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters -Shortcuts $shortcuts
