@@ -51,6 +51,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ObjectHandling\Convert-ModifiedObjectsToAl.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Import-ObjectsToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Import-DeltasToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Import-TestToolkitToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Compile-ObjectsInNavContainer.ps1")
 
 # App Handling functions

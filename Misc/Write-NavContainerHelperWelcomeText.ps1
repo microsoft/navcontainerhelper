@@ -28,8 +28,9 @@
     Write-Host "Wait-NavContainerReady           Wait for Nav Container to become ready"
     Write-Host
     Write-Host -ForegroundColor Yellow "Object handling functions"
-    Write-Host "Import-ObjectsToNavContainer     Import objects from .txt or .fob file"
-    Write-Host "Import-DeltasToNavContainer      Merge delta files and Import objects"
+    Write-Host "Import-ObjectsToNavContainer     Import objects from .txt or .fob file to Nav Container"
+    Write-Host "Import-DeltasToNavContainer      Merge delta files and Import objects to Nav Container"
+    Write-Host "Import-TestToolkitToNavContainer Import TestToolkit to Nav Container"
     Write-Host "Compile-ObjectsInNavContainer    Compile objects"
     Write-Host "Export-NavContainerObjects       Export objects from Nav container"
     Write-Host "Create-MyOriginalFolder          Create folder with the original objects for modified objects"
