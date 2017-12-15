@@ -37,10 +37,12 @@ function Get-DefaultSqlCredential {
     $sqlCredential
 }
 
-function DockerRun {
+function DockerDo {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$imageName,
+        [ValidateSet('run','start')]
+        [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
         [switch]$wait,
@@ -63,14 +65,19 @@ function DockerRun {
     $pinfo.RedirectStandardError = $true
     $pinfo.RedirectStandardOutput = $true
     $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = ("run "+[string]::Join(" ", $parameters))
+    $pinfo.Arguments = ("$command "+[string]::Join(" ", $parameters))
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
     $p.WaitForExit()
     $output = $p.StandardOutput.ReadToEnd()
     $output += $p.StandardError.ReadToEnd()
-    $output
+    if ($p.ExitCode -eq 0) {
+        return $true
+    } else {
+        Write-Host -ForegroundColor red $output
+        return $false
+    }
 }
 
 function Get-NavContainerAuth {
