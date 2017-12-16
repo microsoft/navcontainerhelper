@@ -15,7 +15,7 @@ function Wait-NavContainerReady {
     (
         [Parameter(Mandatory=$true)]
         [string]$containerName,
-        [int]$timeout = 60
+        [int]$timeout = 300
     )
 
     Process {
