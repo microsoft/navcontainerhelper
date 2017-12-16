@@ -14,26 +14,33 @@ function Wait-NavContainerReady {
     Param
     (
         [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string]$containerName,
+        [int]$timeout = 300
     )
 
     Process {
-        Write-Host "Waiting for container $containerName to be ready, this shouldn't take more than a few minutes"
-        Write-Host "Time:          ½              1              ½              2"
-        $cnt = 150
+        $prevLog = ""
+        Write-Host "Waiting for container $containerName to be ready"
+        $cnt = $timeout
         $log = ""
         do {
-            Write-Host -NoNewline "."
-            Start-Sleep -Seconds 2
+            Start-Sleep -Seconds 1
             $logs = docker logs $containerName
             if ($logs) { $log = [string]::Join("`r`n",$logs) }
+            $newLog = $log.subString($prevLog.Length)
+            $prevLog = $log
+            if ($newLog -ne "") {
+                $cnt = $timeout
+                Write-Host -NoNewline $newLog
+            }
+
             if ($cnt-- -eq 0 -or $log.Contains("<ScriptBlock>")) { 
                 Write-Host "Error"
                 Write-Host $log
                 throw "Initialization of container $containerName failed"
             }
         } while (!($log.Contains("Ready for connections!")))
-        Write-Host "Ready"
+        Write-Host
     }
 }
 Export-ModuleMember -function Wait-NavContainerReady

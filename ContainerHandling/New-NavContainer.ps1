@@ -80,6 +80,7 @@ function New-NavContainer {
         [switch]$includeCSide,
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
+        [switch]$includeTestToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string]$restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword')]
@@ -297,8 +298,9 @@ function New-NavContainer {
             
             $parameters += $additionalParameters
         
-            $id = DockerRun -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters
-
+            if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters)) {
+                return
+            }
             Wait-NavContainerReady $containerName
         } finally {
             Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
@@ -307,7 +309,9 @@ function New-NavContainer {
         $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
         $parameters += "--env password=""$plainPassword"""
         $parameters += $additionalParameters
-        $id = DockerRun -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters
+        if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters)) {
+            return
+        }
         Wait-NavContainerReady $containerName
     }
 
@@ -324,6 +328,19 @@ function New-NavContainer {
     New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
     New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
 
+    if ([System.Version]$genericTag -lt [System.Version]"0.0.4.4") {
+        Copy-FileToNavContainer -containerName $containerName -localPath "C:\windows\System32\t2embed.dll" -containerPath "C:\Windows\System32\t2embed.dll"
+    }
+
+    $sqlCredential = $null
+    if ($auth -eq "NavUserPassword") {
+        $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
+    }
+
+    if ($includeTestToolkit) {
+        Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential
+    }
+
     if ($includeCSide) {
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Shortcuts $shortcuts
@@ -335,8 +352,13 @@ function New-NavContainer {
             $databaseServer = "$containerName"
         }
 
+        if ($auth -eq "Windows") {
+            $ntauth="1"
+        } else {
+            $ntauth="0"
+        }
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=1"
+        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth"
 
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
@@ -354,10 +376,6 @@ function New-NavContainer {
                 if ($newSyntax) { $suffix = "-newsyntax" }
                 $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
                 if (!(Test-Path $originalFolder)) {
-                    $sqlCredential = $null
-                    if ($auth -eq "NavUserPassword") {
-                        $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
-                    }
                     # Export base objects
                     Export-NavContainerObjects -containerName $containerName `
                                                -objectsFolder $originalFolder `

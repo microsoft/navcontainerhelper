@@ -1,3 +1,10 @@
+0.2.2.1
+Added function Import-TestToolkitToNavContainer
+Added parameter -includeTestToolkit to New-NavContainer to automatically include TestToolkit objects
+Include more information during start of new-navcontainer (and output the docker run command if it fails early)
+Fix report preview when running docker images 0.0.4.3 or earlier
+Bugfix CSide desktop shortcut was always set to windows auth
+
 0.2.2.0
 Bugfix: Copying files to/from containers didn't work on Windows 10
 Bugfix: Export-NavContainerObjects with a strange error if sharing the folder used for export directly
