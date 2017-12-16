@@ -352,8 +352,13 @@ function New-NavContainer {
             $databaseServer = "$containerName"
         }
 
+        if ($auth -eq "Windows") {
+            $ntauth="1"
+        } else {
+            $ntauth="0"
+        }
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=1"
+        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth"
 
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
