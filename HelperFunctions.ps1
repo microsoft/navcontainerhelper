@@ -58,14 +58,14 @@ function DockerDo {
     if (!$wait) {
         $parameters += "--detach"
     }
-    $parameters += $imageName
+    $arguments = ("$command "+[string]::Join(" ", $parameters)+" $imageName")
 
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = "docker.exe"
     $pinfo.RedirectStandardError = $true
     $pinfo.RedirectStandardOutput = $true
     $pinfo.UseShellExecute = $false
-    $pinfo.Arguments = ("$command "+[string]::Join(" ", $parameters))
+    $pinfo.Arguments = $arguments
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
@@ -76,6 +76,7 @@ function DockerDo {
         return $true
     } else {
         Write-Host -ForegroundColor red $output
+        Write-Host -ForegroundColor red "Commandline: docker $arguments"
         return $false
     }
 }
