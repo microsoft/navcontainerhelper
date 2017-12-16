@@ -248,6 +248,16 @@ function New-NavContainer {
         ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
+    # Set services to automatic start when using local container server
+    'if ($databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
+        Set-Service ''W3SVC'' -startuptype Automatic
+        Set-Service ''MSSQL$SQLEXPRESS'' -startuptype Automatic
+        Set-Service ''SQLTELEMETRY$SQLEXPRESS'' -startuptype Automatic
+        Set-Service ''SQLWriter'' -startuptype Automatic
+        Set-Service ''SQLBrowser'' -startuptype Automatic
+        Set-Service ''MicrosoftDynamicsNavServer$NAV'' -StartupType Automatic
+    }' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+
     Write-Host "Creating container $containerName from image $imageName"
 
     if ($useSSL) {
