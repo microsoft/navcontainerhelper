@@ -9,7 +9,7 @@
  .Example
   Get-NavContainerEula -containerOrImageName navserver
  .Example
-  Get-NavContainerEula -containerOrImageName navdocker.azurecr.io/dynamics-nav:2017
+  Get-NavContainerEula -containerOrImageName microsoft/dynamics-nav:2017
 #>
 function Get-NavContainerEula {
     [CmdletBinding()]

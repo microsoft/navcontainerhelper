@@ -9,7 +9,7 @@
  .Example
   Get-NavContainerLegal -containerOrImageName navserver
  .Example
-  Get-NavContainerLegal -containerOrImageName navdocker.azurecr.io/dynamics-nav:2017
+  Get-NavContainerLegal -containerOrImageName microsoft/dynamics-nav:2017
 #>
 function Get-NavContainerLegal {
     [CmdletBinding()]

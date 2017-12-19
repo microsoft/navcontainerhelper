@@ -8,7 +8,7 @@
  .Example
   Get-NavContainerNavVersion -containerOrImageName navserver
  .Example
-  Get-NavContainerNavVersion -containerOrImageName navdocker.azurecr.io/dynamics-nav:2017
+  Get-NavContainerNavVersion -containerOrImageName microsoft/dynamics-nav:2017
 #>
 function Get-NavContainerNavVersion {
     [CmdletBinding()]

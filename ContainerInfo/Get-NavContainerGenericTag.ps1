@@ -8,7 +8,7 @@
  .Example
   Get-NavContainerGenericTag -containerOrImageName navserver
  .Example
-  Get-NavContainerGenericTag -containerOrImageName navdocker.azurecr.io/dynamics-nav:2017
+  Get-NavContainerGenericTag -containerOrImageName microsoft/dynamics-nav:2017
 #>
 function Get-NavContainerGenericTag {
     [CmdletBinding()]

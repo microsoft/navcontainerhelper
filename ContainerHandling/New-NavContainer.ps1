@@ -36,6 +36,8 @@
   Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter includeCSide
   Include this switch if you want to have Windows Client and CSide development environment available on the host
+ .Parameter enableSymbolLoading
+  Include this switch if you want to do development in both CSide and VS Code to have symbols automatically generated for your changes in CSide
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
  .Parameter alwaysPull
@@ -51,11 +53,11 @@
  .Example
   New-NavContainer -containerName test
  .Example
-  New-NavContainer -containerName test -memoryLimit 3G -imageName "navdocker.azurecr.io/dynamics-nav:2017" -updateHosts
+  New-NavContainer -containerName test -memoryLimit 3G -imageName "microsoft/dynamics-nav:2017" -updateHosts
  .Example
-  New-NavContainer -containerName test -imageName "navdocker.azurecr.io/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+  New-NavContainer -containerName test -imageName "microsoft/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-NavContainer -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "navdocker.azurecr.io/dynamics-nav:devpreview-finus"
+  New-NavContainer -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "microsoft/dynamics-nav:devpreview-finus"
 #>
 function New-NavContainer {
     Param(
@@ -78,6 +80,7 @@ function New-NavContainer {
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$includeCSide,
+        [switch]$enableSymbolLoading,
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
         [switch]$includeTestToolkit,
@@ -224,7 +227,7 @@ function New-NavContainer {
              sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
          }' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
-        if ($version.Major -gt 10) {
+        if ($enableSymbolLoading -and $version.Major -gt 10) {
             $parameters += "--env enableSymbolLoading=Y"
         }
         
