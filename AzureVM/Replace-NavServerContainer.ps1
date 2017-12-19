@@ -7,7 +7,7 @@
  .Parameter imageName
   imageName you want to use to replace the navserver container (omit to recreate the same container)
  .Example
-  Replace-NavServerContainer -imageName navdocker.azurecr.io/dynamics-nav:devpreview-september-finus
+  Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus
  .Example
   Replace-NavServerContainer
 #>

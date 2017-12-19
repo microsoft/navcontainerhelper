@@ -9,7 +9,7 @@
  .Example
   Get-NavContainerCountry -containerOrImageName navserver
  .Example
-  Get-NavContainerCountry -containerOrImageName navdocker.azurecr.io/dynamics-nav:2017
+  Get-NavContainerCountry -containerOrImageName microsoft/dynamics-nav:2017
 #>
 function Get-NavContainerCountry {
     [CmdletBinding()]
