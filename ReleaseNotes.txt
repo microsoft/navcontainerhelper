@@ -1,3 +1,6 @@
+0.2.2.2
+Added switch for enabling SymbolLoading (dual development), default is off
+
 0.2.2.1
 Added function Import-TestToolkitToNavContainer
 Added parameter -includeTestToolkit to New-NavContainer to automatically include TestToolkit objects
