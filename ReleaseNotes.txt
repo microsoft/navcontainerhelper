@@ -1,3 +1,12 @@
+0.2.2.4
+Updated Readme
+
+0.2.2.3
+Add nav specific tags when running generic image
+Check for tag tag when running fetching the tag (support generic image)
+Check container name validity
+Add test running generic image
+
 0.2.2.2
 Added switch for enabling SymbolLoading (dual development), default is off
 
