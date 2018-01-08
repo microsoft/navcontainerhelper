@@ -96,6 +96,8 @@ function New-NavContainer {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
     }
 
+    Check-NavContainerName -ContainerName $containerName
+
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
         if ($auth -eq "Windows") {
             $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
@@ -129,6 +131,8 @@ function New-NavContainer {
         }
     }
 
+    $parameters = @()
+
     $devCountry = ""
     $navVersion = ""
     if ($imageName -eq "") {
@@ -153,6 +157,15 @@ function New-NavContainer {
     if ("$navDvdPath" -ne "") {
         $navversion = (Get-Item -Path (Join-Path $navDvdPath "setup.exe")).VersionInfo.FileVersion
         $devCountry = $navDvdCountry
+        $navtag = Get-NavVersionFromVersionInfo -VersionInfo $navversion
+
+        $parameters += @(
+                       "--label nav=$navtag",
+                       "--label version=$navversion",
+                       "--label country=$devCountry",
+                       "--label cu="
+                       )
+
     } elseif ($devCountry -eq "") {
         $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
@@ -198,7 +211,7 @@ function New-NavContainer {
         $containerLicenseFile = "c:\run\my\license.flf"
     }
 
-    $parameters = @(
+    $parameters += @(
                     "--name $containerName",
                     "--hostname $containerName",
                     "--env auth=$auth"

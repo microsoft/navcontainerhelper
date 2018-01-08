@@ -73,5 +73,6 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Write-NavContainerHelperWelcomeText.ps1")
 . (Join-Path $PSScriptRoot "Misc\Download-File.ps1")
 . (Join-Path $PSScriptRoot "Misc\Get-LocaleFromCountry.ps1")
+. (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")

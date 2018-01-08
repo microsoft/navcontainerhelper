@@ -95,3 +95,28 @@ function Get-NavContainerAuth {
     }
 }
 
+function Check-NavContainerName {
+    Param
+    (
+        [string]$containerName = ""
+    )
+
+    if ($containerName -eq "") {
+        throw "Container name cannot be empty"
+    }
+
+    if ($containerName.Length -gt 15) {
+        throw "Container name should not exceed 15 characters"
+    }
+
+    $first = $containerName.ToLowerInvariant()[0]
+    if ($first -lt "a" -or $first -gt "z") {
+        throw "Container name should start with a letter (a-z)"
+    }
+
+    $containerName.ToLowerInvariant().ToCharArray() | % {
+        if (($_ -lt "a" -or $_ -gt "z") -and ($_ -lt "0" -or $_ -gt "9") -and ($_ -ne "-")) {
+            throw "Container name contains invalid characters. Allowed characters are letters (a-z), numbers (0-9) and dashes (-)"
+        }
+    }
+}
