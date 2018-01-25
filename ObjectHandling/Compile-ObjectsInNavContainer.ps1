@@ -18,7 +18,7 @@ function Compile-ObjectsInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [string]$filter = "modified=Yes", 
+        [string]$filter = "compiled=No", 
         [System.Management.Automation.PSCredential]$sqlCredential = $null 
     )
 

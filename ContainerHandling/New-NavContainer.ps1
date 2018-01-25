@@ -42,6 +42,8 @@
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
  .Parameter alwaysPull
   Always pull latest version of the docker image
+ .Parameter mulittenant
+  Setup container for multitenancy by adding this switch
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
@@ -52,6 +54,8 @@
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
  .Example
   New-NavContainer -containerName test
+ .Example
+  New-NavContainer -containerName test -multitenant
  .Example
   New-NavContainer -containerName test -memoryLimit 3G -imageName "microsoft/dynamics-nav:2017" -updateHosts
  .Example
@@ -83,6 +87,7 @@ function New-NavContainer {
         [switch]$enableSymbolLoading,
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
+        [switch]$multitenant,
         [switch]$includeTestToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string]$restart='unless-stopped',
@@ -154,6 +159,10 @@ function New-NavContainer {
         docker pull $imageName
     }
 
+    if ($multitenant) {
+        $parameters += "--env multitenant=Y"
+    }
+
     if ("$navDvdPath" -ne "") {
         $navversion = (Get-Item -Path (Join-Path $navDvdPath "setup.exe")).VersionInfo.FileVersion
         $devCountry = $navDvdCountry
@@ -185,6 +194,10 @@ function New-NavContainer {
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
     Write-Host "Generic Tag: $genericTag"
     $locale = Get-LocaleFromCountry $devCountry
+
+    if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
+        throw "Multitenancy is not supported by images with generic tag prior to 0.0.4.5"
+    }
 
     if (Test-NavContainer -containerName $containerName) {
         Remove-NavContainer $containerName
@@ -255,6 +268,9 @@ function New-NavContainer {
         [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
+        if ($multitenant) {
+            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
+        }
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = ""
@@ -331,15 +347,27 @@ function New-NavContainer {
         Wait-NavContainerReady $containerName
     }
 
-    Write-Host "Read CustomSettings.config from $containerName"
+    Write-Host "Reading CustomSettings.config from $containerName"
     $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
     [System.IO.File]::ReadAllText($customConfigFile)'
     [xml]$customConfig = docker exec $containerName powershell $ps
 
-    Write-Host "Create Desktop Shortcuts for $containerName"
+    Write-Host "Creating Desktop Shortcuts for $containerName"
     $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
     if ("$publicWebBaseUrl" -ne "") {
-        New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$publicWebBaseUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+        $webClientUrl = "$publicWebBaseUrl"
+        if ($multitenant) {
+            $webClientUrl += "?tenant=default"
+        }
+        New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+        if ($includeTestToolkit) {
+            if ($multitenant) {
+                $webClientUrl += "&page=130401"
+            } else {
+                $webClientUrl += "?page=130401"
+            }
+            New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+        }
     }
     New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
     New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts

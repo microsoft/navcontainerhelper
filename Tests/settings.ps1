@@ -45,5 +45,5 @@ if ($credential -eq $null -or $credential -eq [System.Management.Automation.PSCr
 }
 $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
 
-docker pull $imageName
-docker pull $imageName2
+#docker pull $imageName
+#docker pull $imageName2

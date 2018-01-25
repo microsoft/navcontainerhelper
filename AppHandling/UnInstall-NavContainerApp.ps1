@@ -8,20 +8,23 @@
  .Parameter appName
   Name of app you want to uninstall in the container
  .Example
-  Uninstall-NavApp -containerName test2 -appName myapp
+  Uninstall-NavContainerApp -containerName test2 -appName myapp
 #>
 function UnInstall-NavContainerApp {
     Param(
+        [Parameter(Mandatory=$false)]
         [string]$containerName = "navserver",
+        [Parameter(Mandatory=$false)]
+        [string]$tenant = "default",
         [Parameter(Mandatory=$true)]
         [string]$appName
     )
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName)
-        Write-Host "Uninstalling app $appName"
-        Uninstall-NavApp -ServerInstance NAV -Name $appName
-    } -ArgumentList $appName
+    Invoke-Command -Session $session -ScriptBlock { Param($appName, $tenant)
+        Write-Host "Uninstalling app $appName from $tenant"
+        Uninstall-NavApp -ServerInstance NAV -Name $appName -tenant $tenant
+    } -ArgumentList $appName, $tenant
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
 Export-ModuleMember -Function UnInstall-NavContainerApp

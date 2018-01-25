@@ -8,20 +8,24 @@
  .Parameter appName
   Name of app you want to install in the container
  .Example
-  Install-NavApp -containerName test2 -appName myapp
+  Install-NavContainerApp -containerName test2 -appName myapp
 #>
 function Install-NavContainerApp {
-    Param(
+    Param
+    (
+        [Parameter(Mandatory=$false)]
+        [string]$containerName = "navserver",
+        [Parameter(Mandatory=$false)]
+        [string]$tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
-        [string]$containerName = "navserver"
+        [string]$appName
     )
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName)
-        Write-Host "Installing app $appName"
-        Install-NavApp -ServerInstance NAV -Name $appName
-    } -ArgumentList $appName
+    Invoke-Command -Session $session -ScriptBlock { Param($appName, $tenant)
+        Write-Host "Installing app $appName on $tenant"
+        Install-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
+    } -ArgumentList $appName, $tenant
     Write-Host -ForegroundColor Green "App successfully installed"
 }
 Export-ModuleMember -Function Install-NavContainerApp

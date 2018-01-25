@@ -4,6 +4,11 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\..\NavContainerHelper.ps1")
 . (Join-Path $PSScriptRoot "..\settings.ps1")
 
+$imageName = "navdocker.azurecr.io/dynamics-nav:mt-11.0.20258.0"
+$imageName2 = "navdocker.azurecr.io/dynamics-nav:mt-11.0.20258.0-finus"
+$imageName = "microsoft/dynamics-nav:2016"
+$imageName2 = "microsoft/dynamics-nav:2016-dk"
+
 $containerName = "test"
 
 $fobPath = (Join-Path $PSScriptRoot "test.fob")
@@ -11,23 +16,31 @@ $txtPath = (Join-Path $PSScriptRoot "test.txt")
 $deltaPath = (Join-Path $PSScriptRoot "delta")
 $v1AppPath = (Join-Path $PSScriptRoot "test.navx")
 $v1AppName = "Test"
-$v2AppPath = (Join-Path $PSScriptRoot "Freddy Kristiansen_mytestapp_1.0.0.0.app")
+$v2AppPath = (Join-Path $PSScriptRoot "xFreddy Kristiansen_mytestapp_1.0.0.0.app")
 $v2AppName = "mytestapp"
 
 # New-CSideDevContainer
-New-CSideDevContainer -accept_eula `
-                      -containerName $containerName `
-                      -imageName $imageName `
-                      -licenseFile $licenseFile `
-                      -credential $credential `
-                      -UpdateHosts `
-                      -Auth Windows `
-                      -additionalParameters @("--volume ""${deltaPath}:c:\deltas""")
+New-NavContainer -accept_eula `
+                 -includeCSide `
+                 -containerName $containerName `
+                 -imageName $imageName `
+                 -licenseFile $licenseFile `
+                 -credential $credential `
+                 -UpdateHosts `
+                 -multitenant `
+                 -Auth Windows `
+                 -additionalParameters @("--volume ""${deltaPath}:c:\deltas""")
 
 # Test-NavContainer
 if (Test-NavContainer -containerName $containerName) {
     Write-Host "$containerName is running!"
 }
+
+# Create Extra tenant
+New-NavContainerTenant -containerName $containerName -tenantId mytenant
+
+# Remove tenant
+Remove-NavContainerTenant -containerName $containerName -tenantId mytenant
 
 # Get-NavContainerNavVersion
 $navVersion = Get-NavContainerNavVersion -containerOrImageName $imageName
@@ -107,11 +120,14 @@ Import-DeltasToNavContainer -containerName $containerName `
 Compile-ObjectsInNavContainer -containerName $containerName
 
 # Convert-ModifiedObjectsToAl
-Convert-ModifiedObjectsToAl -containerName $containerName `
-                            -startId 50100
+#Convert-ModifiedObjectsToAl -containerName $containerName `
+#                            -startId 50100
 
 # Install NavSip
 Install-NAVSipCryptoProviderFromNavContainer -containerName $containerName
+
+# Create Extra tenant
+New-NavContainerTenant -containerName $containerName -tenantId mytenant
 
 # App Handling functions v1 extensions
 if (Test-Path $v1AppPath) {
@@ -123,28 +139,33 @@ if (Test-Path $v1AppPath) {
     Get-NavContainerAppInfo -containerName $containerName
 }
 
-if (Test-Path "$v2AppPath") {
+if (Test-Path $v2AppPath) {
     # App Handling functions v2 extensions
-    Publish-NavContainerApp -containerName $containerName -appFile "$v2AppPath" -skipVerification
+    Publish-NavContainerApp -containerName $containerName -appFile $v2AppPath -skipVerification
     Get-NavContainerAppInfo -containerName $containerName
-    Sync-NavContainerApp -containerName $containerName -appName $v2AppName
-    Install-NavContainerApp -containerName $containerName -appName $v2AppName
-    Uninstall-NavContainerApp -containerName $containerName -appName $v2AppName
+    Sync-NavContainerApp -containerName $containerName -appName $v2AppName -tenant "mytenant"
+    Install-NavContainerApp -containerName $containerName -appName $v2AppName -tenant "mytenant"
+    Uninstall-NavContainerApp -containerName $containerName -appName $v2AppName -tenant "mytenant"
     Unpublish-NavContainerApp -containerName $containerName -appName $v2AppName
     Get-NavContainerAppInfo -containerName $containerName
 }
+
+# Remove tenant
+Remove-NavContainerTenant -containerName $containerName -tenantId mytenant
 
 # Remove-NavContainer
 Remove-NavContainer -containerName $containerName
 
 # New-CSideDevContainer
-New-CSideDevContainer -accept_eula `
-                      -containerName $containerName `
-                      -imageName $imageName2 `
-                      -licenseFile $licenseFile `
-                      -credential $credential `
-                      -UpdateHosts `
-                      -Auth NavUserPassword
+New-NavContainer -accept_eula `
+                 -includeCSide `
+                 -containerName $containerName `
+                 -imageName $imageName2 `
+                 -licenseFile $licenseFile `
+                 -credential $credential `
+                 -UpdateHosts `
+                 -multitenant `
+                 -Auth NavUserPassword
 
 # Test-NavContainer
 if (Test-NavContainer -containerName $containerName) {
@@ -226,9 +247,9 @@ Compile-ObjectsInNavContainer -containerName $containerName `
                               -sqlCredential $sqlCredential
 
 # Convert-ModifiedObjectsToAl
-Convert-ModifiedObjectsToAl -containerName $containerName `
-                            -sqlCredential $sqlCredential `
-                            -startId 50100
+#Convert-ModifiedObjectsToAl -containerName $containerName `
+#                            -sqlCredential $sqlCredential `
+#                            -startId 50100
 
 # Remove-NavContainer
 Remove-NavContainer -containerName $containerName

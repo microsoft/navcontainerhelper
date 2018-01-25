@@ -31,6 +31,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Test-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEventLog.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
@@ -63,6 +64,14 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "AppHandling\UnPublish-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
+
+# Tenant Handling functions
+. (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
+. (Join-Path $PSScriptRoot "TenantHandling\Remove-NavContainerTenant.ps1")
+
+# User Handling functions
+. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")
+. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerWindowsUser.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")

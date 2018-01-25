@@ -1,3 +1,14 @@
+0.2.2.5
+Add support for multitenancy
+Add switch -multitenant to new-navcontainer 
+Add function New-NavContainerTenant
+Add function Remove-NavContainerTenant
+Add function New-NavContainerNavUser
+Add function New-NavContainerWindowsUser
+Add function Get-NavContainerEventLog
+Change default filter in Compile-ObjectsInNavContainer to compiled=No
+Add Shortcut for opening WebClient with Test Tool page if TestToolKit is included
+
 0.2.2.4
 Updated Readme
 

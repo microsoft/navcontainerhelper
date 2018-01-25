@@ -8,7 +8,7 @@
  .Parameter appName
   Name of app you want to unpublish in the container
  .Example
-  Unpublish-NavApp -containerName test2 -appName myapp
+  Unpublish-NavContainerApp -containerName test2 -appName myapp
 #>
 function UnPublish-NavContainerApp {
     Param(
