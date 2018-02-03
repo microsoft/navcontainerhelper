@@ -16,6 +16,9 @@
     Write-Host "Get-NavContainerName             Get the name of a NAV container"
     Write-Host "Get-NavContainerId               Get the Id of a NAV container"
     Write-Host "Test-NavContainer                Test whether a NAV container exists"
+    Write-Host "Get-NavContainerDebugInfo        Get Troubleshooting info for NAV container if you need help with an issue"
+    Write-Host "Get-NavContainers.ps1            Get All Nav Containers"
+    Write-Host "Get-NavContainerEventLog.ps1     Get EventLog from Nav Container"
     Write-Host
     Write-Host -ForegroundColor Yellow "Container handling functions"
     Write-Host "New-NavContainer                 Create new Nav container"
@@ -26,6 +29,9 @@
     Write-Host "Enter-NavContainer               Enter Nav container session"
     Write-Host "Open-NavContainer                Open Nav container in new window"
     Write-Host "Wait-NavContainerReady           Wait for Nav Container to become ready"
+    Write-Host "Copy-FileFromNavContainer        Copy file from Nav Container"
+    Write-Host "Copy-FileToNavContainer          Copy file to Nav Container"
+    Write-Host "Export-NavContainerDatabasesAsBacpac Export database(s) in Nav Container as BacPac"
     Write-Host
     Write-Host -ForegroundColor Yellow "Object handling functions"
     Write-Host "Import-ObjectsToNavContainer     Import objects from .txt or .fob file to Nav Container"
@@ -49,6 +55,14 @@
     Write-Host "Start-NavContainerAppDataUpgrade Start Data Upgrade for an App in a Nav Container"
     Write-Host "Install-NAVSipCryptoProviderFromNavContainer Install Nav Sip Crypto Provider locally from container to sign extensions"
     Write-Host
+    Write-Host -ForegroundColor Yellow "Tenant handling functions"
+    Write-Host "New-NavContainerTenant           Create tenant in multitenant Nav Container"
+    Write-Host "Remove-NavContainerTenant        Remove tenant from multitenant Nav Container"
+    Write-Host 
+    Write-Host -ForegroundColor Yellow "User handling functions"
+    Write-Host "New-NavContainerNavUser          Create new Nav User in Nav Container"
+    Write-Host "New-NavContainerWindowsUser      Create new Windows User in Nav Container"
+    Write-Host 
     Write-Host -ForegroundColor Yellow "Azure VM specific functions"
     Write-Host "Replace-NavServerContainer       Replace or recreate navserver (primary) container"
     Write-Host

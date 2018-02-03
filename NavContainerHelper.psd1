@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.5.0'
+ModuleVersion = '0.2.5.1'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -135,7 +135,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.5.0
+        ReleaseNotes = '0.2.5.1
+Update Welcometext
+
+0.2.5.0
 Add support for multitenancy
 Add switch -multitenant to new-navcontainer 
 Add function New-NavContainerTenant
