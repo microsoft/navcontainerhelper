@@ -1,4 +1,4 @@
-0.2.2.5
+0.2.5.0
 Add support for multitenancy
 Add switch -multitenant to new-navcontainer 
 Add function New-NavContainerTenant
