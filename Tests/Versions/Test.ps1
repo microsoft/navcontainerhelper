@@ -25,25 +25,28 @@ $ErrorActionPreference = "Stop"
     # Add user
     New-NavContainerNavUser -containerName $containerName -Credential $Credential -PermissionSetId SUPER
                         
-#    # New-NavContainer single tenant
-#    New-NavContainer -accept_eula `
-#                     -includeCSide `
-#                     -doNotExportObjectsToText `
-#                     -containerName $containerName `
-#                     -imageName $imageName `
-#                     -credential $credential `
-#                     -UpdateHosts `
-#                     -multitenant `
-#                     -Auth Windows `
-#
-#    # Create Extra tenant
-#    New-NavContainerTenant -containerName $containerName -tenantId mytenant
-#
-#    # Add user
-#    New-NavContainerUser -containerName $containerName -tenant mytenant -Credential $Credential -PermissionSetId SUPER
-#
-#    # Remove tenant
-#    Remove-NavContainerTenant -containerName $containerName -tenantId mytenant
+    $genericTag = Get-NavContainerGenericTag -ContainerOrImageName $imageName
+    if ([System.Version]$genericTag -ge [System.Version]"0.0.4.5") {
+        # New-NavContainer single tenant
+        New-NavContainer -accept_eula `
+                         -includeCSide `
+                         -doNotExportObjectsToText `
+                         -containerName $containerName `
+                         -imageName $imageName `
+                         -credential $credential `
+                         -UpdateHosts `
+                         -multitenant `
+                         -Auth Windows `
+    
+        # Create Extra tenant
+        New-NavContainerTenant -containerName $containerName -tenantId mytenant
+    
+        # Add user
+        New-NavContainerNavUser -containerName $containerName -tenant mytenant -Credential $Credential -PermissionSetId SUPER
+    
+        # Remove tenant
+        Remove-NavContainerTenant -containerName $containerName -tenantId mytenant
+    }
 }
 
 # Remove-NavContainer

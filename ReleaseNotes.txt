@@ -6,6 +6,7 @@ Add function Remove-NavContainerTenant
 Add function New-NavContainerNavUser
 Add function New-NavContainerWindowsUser
 Add function Get-NavContainerEventLog
+Add function Export-NavContainerDatabasesAsBacpac
 Change default filter in Compile-ObjectsInNavContainer to compiled=No
 Add Shortcut for opening WebClient with Test Tool page if TestToolKit is included
 

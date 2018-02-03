@@ -74,7 +74,7 @@ function New-NavContainer {
         [string]$navDvdCountry = "w1",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
-        [string]$memoryLimit = "4G",
+        [string]$memoryLimit = "",
         [string]$databaseServer = "",
         [string]$databaseInstance = "",
         [string]$databaseName = "",
@@ -234,11 +234,18 @@ function New-NavContainer {
                     "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    "--memory $memoryLimit",
                     "--volume ""${hostHelperFolder}:$containerHelperFolder""",
                     "--volume ""${myFolder}:C:\Run\my""",
                     "--restart $restart"
                    )
+    
+    if ("$memoryLimit" -eq "") {
+        if ((Get-ComputerInfo).OsProductType -ne "Server") {
+            $parameters += "--memory 4G"
+        }
+    } else {
+        $parameters += "--memory $memoryLimit"
+    }
 
     if ("$databaseName" -ne "") {
         $parameters += "--env databaseName=""$databaseName"""

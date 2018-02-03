@@ -19,7 +19,7 @@
  .Example
   Export-ModifiedObjectsAsDeltas -containerName test
  .Example
-  Export-ModifiedObjectsAsDeltas -containerName test -adminPassword <adminPassword>
+  Export-ModifiedObjectsAsDeltas -containerName test -sqlCredential <sqlCredential>
 #>
 function Export-ModifiedObjectsAsDeltas {
     Param(

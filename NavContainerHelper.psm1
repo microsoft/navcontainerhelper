@@ -6,6 +6,7 @@ $errorActionPreference = 'Stop'
 
 $hostHelperFolder = "C:\ProgramData\NavContainerHelper"
 New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore
+
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
 
@@ -68,6 +69,9 @@ $sessions = @{}
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
 . (Join-Path $PSScriptRoot "TenantHandling\Remove-NavContainerTenant.ps1")
+
+# Bacpac Handling functions
+. (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
 
 # User Handling functions
 . (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")

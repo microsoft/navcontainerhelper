@@ -4,10 +4,10 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\..\NavContainerHelper.ps1")
 . (Join-Path $PSScriptRoot "..\settings.ps1")
 
-$imageName = "navdocker.azurecr.io/dynamics-nav:mt-11.0.20258.0"
-$imageName2 = "navdocker.azurecr.io/dynamics-nav:mt-11.0.20258.0-finus"
-$imageName = "microsoft/dynamics-nav:2016"
-$imageName2 = "microsoft/dynamics-nav:2016-dk"
+$imageName = "navdocker.azurecr.io/dynamics-nav:11.0.20433.0"
+$imageName2 = "navdocker.azurecr.io/dynamics-nav:11.0.20433.0-finus"
+#$imageName = "microsoft/dynamics-nav:2016"
+#$imageName2 = "microsoft/dynamics-nav:2016-dk"
 
 $containerName = "test"
 
@@ -118,10 +118,6 @@ Import-DeltasToNavContainer -containerName $containerName `
 
 # Compile-ObjectsToNavContainer
 Compile-ObjectsInNavContainer -containerName $containerName
-
-# Convert-ModifiedObjectsToAl
-#Convert-ModifiedObjectsToAl -containerName $containerName `
-#                            -startId 50100
 
 # Install NavSip
 Install-NAVSipCryptoProviderFromNavContainer -containerName $containerName
