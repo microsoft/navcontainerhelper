@@ -1,3 +1,7 @@
+0.2.5.2
+Bugfix: Remove Test Tool shortcut when removing nav containers
+Bugfix: Issue 89 CSide with external SQL and different port
+
 0.2.5.1
 Update Welcometext
 

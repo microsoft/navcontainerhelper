@@ -31,6 +31,7 @@ function Remove-NavContainer {
             Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
             Write-Host "Removing Desktop Shortcuts for container $containerName"
             Remove-DesktopShortcut -Name "$containerName Web Client"
+            Remove-DesktopShortcut -Name "$containerName Test Tool"
             Remove-DesktopShortcut -Name "$containerName Windows Client"
             Remove-DesktopShortcut -Name "$containerName CSIDE"
             Remove-DesktopShortcut -Name "$containerName Command Prompt"
