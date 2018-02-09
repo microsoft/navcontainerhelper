@@ -405,7 +405,9 @@ function New-NavContainer {
             $databaseServer = "$containerName"
         }
 
-        if ($auth -eq "Windows") {
+        if ($databaseCredential -ne $null -and $databaseCredential -ne [System.Management.Automation.PSCredential]::Empty) {
+            $ntauth="0"
+        } elseif ($auth -eq "Windows") {
             $ntauth="1"
         } else {
             $ntauth="0"
@@ -418,7 +420,7 @@ function New-NavContainer {
             $csideParameters += ", generatesymbolreference=1"
         }
 
-        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments $csideParameters -Shortcuts $shortcuts
+        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts
 
         if (!$doNotExportObjectsToText) {
             
