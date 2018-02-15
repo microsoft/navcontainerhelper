@@ -63,6 +63,9 @@
     Write-Host "New-NavContainerNavUser          Create new Nav User in Nav Container"
     Write-Host "New-NavContainerWindowsUser      Create new Windows User in Nav Container"
     Write-Host 
+    Write-Host -ForegroundColor Yellow "Azure AD specific functions"
+    Write-Host "Create-AadAppsForNav             Create Apps in Aad for AAD authentication support"
+    Write-Host
     Write-Host -ForegroundColor Yellow "Azure VM specific functions"
     Write-Host "Replace-NavServerContainer       Replace or recreate navserver (primary) container"
     Write-Host

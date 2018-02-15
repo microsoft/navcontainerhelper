@@ -34,7 +34,7 @@ function New-NavContainerNavUser {
         [System.Management.Automation.PSCredential]$Credential,
         [parameter(Mandatory=$true, ParameterSetName="Windows")]
         [string]$WindowsAccount,
-        [parameter(Mandatory=$false)]        
+        [parameter(Mandatory=$false, ParameterSetName="NavUserPassword")]
         [string]$AuthenticationEmail,
         [parameter(Mandatory=$false, ParameterSetName="NavUserPassword")]
         [bool]$ChangePasswordAtNextLogOn = $true,

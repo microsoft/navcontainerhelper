@@ -20,6 +20,8 @@
   Username and Password for the NAV Container
  .Parameter memoryLimit
   Memory limit for the container (default 4G)
+ .Parameter AuthenticationEmail
+  AuthenticationEmail of the admin user of NAV
  .Parameter databaseServer
   Name of database server when using external SQL Server (omit if using database inside the container)
  .Parameter databaseInstance
@@ -47,7 +49,7 @@
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
-  Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
+  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
  .Parameter additionalParameters
   This allows you to transfer an additional number of parameters to the docker run
  .Parameter myscripts
@@ -74,6 +76,7 @@ function New-NavContainer {
         [string]$navDvdCountry = "w1",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
+        [string]$authenticationEMail = "",
         [string]$memoryLimit = "",
         [string]$databaseServer = "",
         [string]$databaseInstance = "",
@@ -91,7 +94,7 @@ function New-NavContainer {
         [switch]$includeTestToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string]$restart='unless-stopped',
-        [ValidateSet('Windows','NavUserPassword')]
+        [ValidateSet('Windows','NavUserPassword','AAD')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
         [string[]]$myScripts = @()
@@ -199,6 +202,10 @@ function New-NavContainer {
         throw "Multitenancy is not supported by images with generic tag prior to 0.0.4.5"
     }
 
+    if ($auth -eq "AAD" -and [System.Version]$genericTag -lt [System.Version]"0.0.5.0") {
+        throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
+    }
+
     if (Test-NavContainer -containerName $containerName) {
         Remove-NavContainer $containerName
     }
@@ -251,6 +258,10 @@ function New-NavContainer {
         $parameters += "--env databaseName=""$databaseName"""
     }
 
+    if ("$authenticationEMail" -ne "") {
+        $parameters += "--env authenticationEMail=""$authenticationEMail"""
+    }
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -280,7 +291,11 @@ function New-NavContainer {
         }
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = ""
+        $acsUri = $federationLoginEndpoint
+        if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
+            $acsUri += "%26wreply=$publicWebBaseUrl"
+        }
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
         $clientUserSettings.Save("$destFolder\ClientUserSettings.config")

@@ -1,3 +1,11 @@
+0.2.6.1
+Check whether AAD is supported by Docker image
+
+0.2.6.0
+Add function Create-AadAppsForNav
+Add parameter authenticationEmail to New-NavContainer
+Remove default memory limit when running Windows Server as Docker host
+
 0.2.5.2
 Bugfix: Remove Test Tool shortcut when removing nav containers
 Bugfix: Issue 89 CSide with external SQL and different port

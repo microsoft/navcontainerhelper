@@ -77,6 +77,9 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")
 . (Join-Path $PSScriptRoot "UserHandling\New-NavContainerWindowsUser.ps1")
 
+# Azure AD specific functions
+. (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
+
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
 
