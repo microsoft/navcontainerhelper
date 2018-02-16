@@ -291,7 +291,7 @@ function New-NavContainer {
         }
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
-        $acsUri = $federationLoginEndpoint
+        $acsUri = "$federationLoginEndpoint"
         if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
             $acsUri += "%26wreply=$publicWebBaseUrl"
         }

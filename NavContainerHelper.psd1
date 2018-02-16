@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.6.2'
+ModuleVersion = '0.2.6.3'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -135,7 +135,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.6.2
+        ReleaseNotes = '0.2.6.3
+Bugfix: Didn''t work with "old" images
+
+0.2.6.2
 Bugfix: Create-AadAppsForNAV wasn''t exported and was missing help
 
 0.2.6.1

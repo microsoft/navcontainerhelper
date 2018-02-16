@@ -1,3 +1,6 @@
+0.2.6.3
+Bugfix: Didn't work with "old" images
+
 0.2.6.2
 Bugfix: Create-AadAppsForNAV wasn't exported and was missing help
 
