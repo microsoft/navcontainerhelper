@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.6.3'
+ModuleVersion = '0.2.6.4'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -135,7 +135,7 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.6.3
+        ReleaseNotes = '0.2.6.4
 Bugfix: Didn''t work with "old" images
 
 0.2.6.2

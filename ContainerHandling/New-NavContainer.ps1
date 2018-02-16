@@ -292,8 +292,10 @@ function New-NavContainer {
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
         $acsUri = "$federationLoginEndpoint"
-        if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
-            $acsUri += "%26wreply=$publicWebBaseUrl"
+        if ($acsUri -ne "") {
+            if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
+                $acsUri += "%26wreply=$publicWebBaseUrl"
+            }
         }
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
