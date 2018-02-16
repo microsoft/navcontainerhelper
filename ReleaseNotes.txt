@@ -1,3 +1,6 @@
+0.2.6.2
+Bugfix: Create-AadAppsForNAV wasn't exported and was missing help
+
 0.2.6.1
 Check whether AAD is supported by Docker image
 

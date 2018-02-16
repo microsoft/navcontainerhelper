@@ -1,4 +1,25 @@
-﻿function Create-AadAppsForNav
+﻿<# 
+ .Synopsis
+  Create Apps in Azure Active Directory to allow Single Signon with NAV using AAD
+ .Description
+  This function will create an app in AAD, to allow NAV Web and Windows Client to use AAD for authentication
+  Optionally the function can also create apps for the Excel AddIn and/or PowerBI integration
+ .Parameter AadAdminCredential
+  Credentials for your AAD/Office 365 administrator user, who can create apps in the AAD
+ .Parameter appIdUri
+  Unique Uri to identify the AAD App (typically we use the URL for the Web Client)
+ .Parameter publicWebBaseUrl
+  URL for the Web Client (defaults to the value of appIdUri)
+ .Parameter iconPath
+  Path of the image you want to use for the SSO App
+ .Parameter IncludeExcelAadApp
+  Add this switch to request the function to also create an AAD app for the Excel AddIn
+ .Parameter IncludePowerBiAadApp
+  Add this switch to request the function to also create an AAD app for the PowerBI service
+ .Example
+  Create-AadAppsForNAV -AadAdminCredential Get-Credential -appIdUri https://mycontainer/nav/
+#>
+function Create-AadAppsForNav
 {
     Param
     (
@@ -240,3 +261,4 @@
 
     $AdProperties
 }
+Export-ModuleMember -Function Create-AadAppsForNav
