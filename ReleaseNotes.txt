@@ -1,3 +1,7 @@
+0.2.6.5
+AzureSQL support for multitenancy
+Add install parameter on Publish-NavContainerApp
+
 0.2.6.4
 Bugfix: Didn't work with "old" images
 
