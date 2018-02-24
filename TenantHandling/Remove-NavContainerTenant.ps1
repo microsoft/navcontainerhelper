@@ -16,28 +16,35 @@ function Remove-NavContainerTenant {
         [Parameter(Mandatory=$false)]
         [string]$containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$tenantId
+        [string]$tenantId,
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
+
+    Write-Host "Removing Tenant $tenantId from $containerName"
+
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     if ($tenantId -eq "tenant") {
         throw "You cannot remove a tenant called tenant"
     }
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenantId)
+    Invoke-Command -Session $session -ScriptBlock { Param($tenantId, $sqlCredential)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         if ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -ne "true") {
             throw "The NAV Container is not setup for multitenancy"
         }
-
-        Write-Host "Removing Tenant $tenantId"
+        $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+        $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
 
         # Remove tenant
+        Write-Host "Dismounting tenant $tenantId"
         Dismount-NavTenant -ServerInstance NAV -Tenant $TenantId -force | Out-null
+        Remove-NavDatabase -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
-    } -ArgumentList $tenantId
+    } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
 Export-ModuleMember -Function Remove-NavContainerTenant
