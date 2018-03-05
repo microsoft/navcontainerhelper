@@ -434,7 +434,7 @@ function New-NavContainer {
 
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
-            $csideParameters += ", generatesymbolreference=1"
+            $csideParameters += ",generatesymbolreference=1"
         }
 
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts

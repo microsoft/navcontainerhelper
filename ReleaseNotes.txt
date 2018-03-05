@@ -1,3 +1,8 @@
+0.2.6.6
+Add uninstall parameter on UnPublish-NavContainerApp
+Add startup option to New-DesktopShortcut
+Add generatesymbolreference=1 when Compiling objects using Compile-ObjectsInNavContainer
+
 0.2.6.5
 AzureSQL support for multitenancy
 Add install parameter on Publish-NavContainerApp

@@ -59,6 +59,7 @@ function Publish-NavContainerApp {
         Write-Host "Publishing app $appFile"
         Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification
         if ($install) {
+            Write-Host "Installing app to tenant $tenant"
             Install-NavApp -ServerInstance NAV -Path $appFile -Tenant $tenant
         }
         if ($copied) { 

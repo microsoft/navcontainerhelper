@@ -163,10 +163,15 @@ function Export-NavContainerDatabasesAsBacpac {
                 ('/TargetFile:"'+$targetFile+'"'), 
                 ('/SourceDatabaseName:"'+$databaseName+'"'),
                 ('/SourceServerName:"'+$databaseServer+'"'),
-                ('/SourceUser:"'+$sqlCredential.UserName+'"'),
-                ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"'),
                 ('/OverwriteFiles:True')
             )
+
+            if ($sqlCredential) {
+                $arguments += @(
+                    ('/SourceUser:"'+$sqlCredential.UserName+'"'),
+                    ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                )
+            }
 
             $pinfo = New-Object System.Diagnostics.ProcessStartInfo
             $pinfo.FileName = $sqlPackageExe

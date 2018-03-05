@@ -31,7 +31,7 @@ function Get-DefaultSqlCredential {
     if (($sqlCredential -eq $null) -or ($sqlCredential -eq [System.Management.Automation.PSCredential]::Empty)) {
         $containerAuth = Get-NavContainerAuth -containerName $containerName
         if ($containerAuth -ne "Windows") {
-            $sqlCredential = Get-DefaultCredential -DefaultUserName "sa" -Message "Please enter the SQL Server System Admin credentials for container $containerName"
+            $sqlCredential = Get-DefaultCredential -DefaultUserName "" -Message "Please enter the SQL Server System Admin credentials for container $containerName"
         }
     }
     $sqlCredential
