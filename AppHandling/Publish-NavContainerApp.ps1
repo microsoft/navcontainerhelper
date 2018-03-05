@@ -10,6 +10,8 @@
   Path of the app you want to publish  
  .Parameter skipVerification
   Include this parameter if the app you want to publish is not signed
+ .Parameter sync
+  Include this parameter if you want to synchronize the app after publishing
  .Parameter install
   Include this parameter if you want to install the app after publishing
  .Parameter tenant
@@ -29,6 +31,7 @@ function Publish-NavContainerApp {
         [Parameter(Mandatory=$true)]
         [string]$appFile,
         [switch]$skipVerification,
+        [switch]$sync,
         [switch]$install,
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default"
@@ -47,7 +50,7 @@ function Publish-NavContainerApp {
     }
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $skipVerification, $copied, $install, $tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant)
 
         if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
             $appUrl = $appFile
@@ -58,14 +61,18 @@ function Publish-NavContainerApp {
 
         Write-Host "Publishing app $appFile"
         Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification
+        if ($sync) {
+            Write-Host "Synchronizing app on tenant $tenant"
+            Sync-NavApp -ServerInstance NAV -Path $appFile -Tenant $tenant
+        }
         if ($install) {
-            Write-Host "Installing app to tenant $tenant"
+            Write-Host "Installing app on tenant $tenant"
             Install-NavApp -ServerInstance NAV -Path $appFile -Tenant $tenant
         }
         if ($copied) { 
             Remove-Item $appFile -Force
         }
-    } -ArgumentList $containerAppFile, $skipVerification, $copied, $install, $tenant
+    } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant
     Write-Host -ForegroundColor Green "App successfully published"
 }
 Export-ModuleMember -Function Publish-NavContainerApp

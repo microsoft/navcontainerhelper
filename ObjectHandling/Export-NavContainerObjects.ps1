@@ -72,7 +72,7 @@ function Export-NavContainerObjects {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
-        $params = @{}
+        $params = @{ 'ExportTxtSkipUnlicensed' = $true }
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }

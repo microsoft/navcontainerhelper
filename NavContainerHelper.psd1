@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.6.6'
+ModuleVersion = '0.2.6.7'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -135,7 +135,11 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.6.6
+        ReleaseNotes = '0.2.6.7
+Add sync parameter on Publish-NavContainerApp
+Added ExportTxtSkipUnlicensed to Export-NavContainerObjects
+
+0.2.6.6
 Add uninstall parameter on UnPublish-NavContainerApp
 Add startup option to New-DesktopShortcut
 Add generatesymbolreference=1 when Compiling objects using Compile-ObjectsInNavContainer

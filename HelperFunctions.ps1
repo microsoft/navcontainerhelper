@@ -41,12 +41,12 @@ function DockerDo {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$imageName,
-        [ValidateSet('run','start')]
+        [ValidateSet('run','start','pull')]
         [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
-        [switch]$wait,
-        [string[]]$parameters
+        [switch]$detach,
+        [string[]]$parameters = @()
     )
 
     if ($accept_eula) {
@@ -55,7 +55,7 @@ function DockerDo {
     if ($accept_outdated) {
         $parameters += "--env accept_outdated=Y"
     }
-    if (!$wait) {
+    if ($detach) {
         $parameters += "--detach"
     }
     $arguments = ("$command "+[string]::Join(" ", $parameters)+" $imageName")
@@ -71,12 +71,17 @@ function DockerDo {
     $p.Start() | Out-Null
     $p.WaitForExit()
     $output = $p.StandardOutput.ReadToEnd()
-    $output += $p.StandardError.ReadToEnd()
+    $error = $p.StandardError.ReadToEnd()
     if ($p.ExitCode -eq 0) {
         return $true
     } else {
-        Write-Host -ForegroundColor red $output
-        Write-Host -ForegroundColor red "Commandline: docker $arguments"
+        if ("$output".Trim() -ne "") {
+            Log $output
+        }
+        if ("$error".Trim() -ne "") {
+            Log -color red $error
+        }
+        Log -color red "Commandline: docker $arguments"
         return $false
     }
 }
