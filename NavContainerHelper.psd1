@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.6.7'
+ModuleVersion = '0.2.6.8'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -135,7 +135,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.6.7
+        ReleaseNotes = '0.2.6.8
+Bugfix: New-NavContainer seems to hang
+
+0.2.6.7
 Add sync parameter on Publish-NavContainerApp
 Added ExportTxtSkipUnlicensed to Export-NavContainerObjects
 

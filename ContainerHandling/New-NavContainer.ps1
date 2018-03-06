@@ -356,7 +356,7 @@ function New-NavContainer {
             
             $parameters += $additionalParameters
         
-            if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters)) {
+            if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
                 return
             }
             Wait-NavContainerReady $containerName
@@ -367,7 +367,7 @@ function New-NavContainer {
         $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
         $parameters += "--env password=""$plainPassword"""
         $parameters += $additionalParameters
-        if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -imageName $imageName -parameters $parameters)) {
+        if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
         Wait-NavContainerReady $containerName

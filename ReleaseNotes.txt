@@ -1,3 +1,6 @@
+0.2.6.8
+Bugfix: New-NavContainer seems to hang
+
 0.2.6.7
 Add sync parameter on Publish-NavContainerApp
 Added ExportTxtSkipUnlicensed to Export-NavContainerObjects
