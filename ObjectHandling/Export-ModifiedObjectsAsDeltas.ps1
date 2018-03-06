@@ -67,7 +67,8 @@ function Export-ModifiedObjectsAsDeltas {
     Create-MyDeltaFolder -containerName $containerName `
                          -modifiedFolder $modifiedFolder `
                          -myOriginalFolder $myOriginalFolder `
-                         -myDeltaFolder $myDeltaFolder
+                         -myDeltaFolder $myDeltaFolder `
+                         -useNewSyntax:$useNewSyntax
 
     if ($openFolder) {
         Start-Process $myDeltaFolder

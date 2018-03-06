@@ -1,3 +1,6 @@
+0.2.7.0
+Bugfix: Convert-ModifiedObjectsAsAl didn't include page extensions due to new parameter on Compare-NavApplicationObject
+
 0.2.6.9
 Bugfix: Use docker pull in New-NavContainer
 
