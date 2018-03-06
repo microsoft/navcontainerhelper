@@ -1,3 +1,6 @@
+0.2.6.9
+Bugfix: Use docker pull in New-NavContainer
+
 0.2.6.8
 Bugfix: New-NavContainer seems to hang
 

@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.6.8'
+ModuleVersion = '0.2.6.9'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -135,7 +135,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.6.8
+        ReleaseNotes = '0.2.6.9
+Bugfix: Use docker pull in New-NavContainer
+
+0.2.6.8
 Bugfix: New-NavContainer seems to hang
 
 0.2.6.7

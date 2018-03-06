@@ -159,9 +159,7 @@ function New-NavContainer {
 
     if ($alwaysPull) {
         Write-Host "Pulling docker Image $imageName"
-        if (!(DockerDo -imageName $imageName -command pull)) {
-            Write-Error "Error pulling docker image"
-        }
+        docker pull $imageName
     }
 
     if ($multitenant) {
