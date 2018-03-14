@@ -9,7 +9,7 @@
 Function Get-NavContainerServerConfiguration{
     [Cmdletbinding()]
     Param(
-        [parameter(Mandatory=$true,ValueFromPipelineByPropertyName=$true)][String]$ContainerName,
+        [parameter(Mandatory=$true,ValueFromPipeline)][String]$ContainerName,
         [parameter(ValueFromPipelineByPropertyName=$true)][string]$ServerInstance="NAV"
     )
 
