@@ -180,9 +180,9 @@ Example:
 With this pattern, you can specify any version of NAV since NAV 2016 RTM.
 **Note**, image names and tags are case sensitive – everything must be specified in lower case.
 
-# Scenarios using the docker command
+# Scenarios using the NavContainerHelper
 
-In the following, I will go through some scenarios, you might find useful when launching a docker container. Most of the scenarios can be combined, but in some cases, it doesn't make sense to combine them.
+In the following, I will go through some scenarios, you might find useful when running NAV containers. Most of the scenarios can be combined, but in some cases, it doesn't make sense to combine them.
 
 ## Use SSL with a self-signed certificate
 
