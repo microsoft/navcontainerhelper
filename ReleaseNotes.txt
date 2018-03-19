@@ -1,3 +1,14 @@
+0.2.7.1
+Bugfix: Get-LocaleFromCountry returned blank for finnl and a lot of other finxx localizations
+Add -settings on Windows Client shortcut to ensure correct clientsettings.config usage
+Silence output of clearing modified flag
+Add function Import-NavContainerLicense
+Add parameters -sync and -install to Publish-NavContainerApp
+Add filter parameter to Convert-ModifiedObjectsToAl and Export-ModifiedObjectsAsDeltas (default is Modified=1)
+Support for inline scripts, URLs and .zip files in myscripts on New-NavContainer
+Bugfix: Remove-NavContainer doesn't remove entries in hosts file
+Remove-NavContainer to fail if it cannot remove the containerFolder (open files etc.)
+
 0.2.7.0
 Bugfix: Convert-ModifiedObjectsAsAl didn't include page extensions due to new parameter on Compare-NavApplicationObject
 

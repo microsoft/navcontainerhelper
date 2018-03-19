@@ -21,7 +21,7 @@ function Sync-NavContainerApp {
     )
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($appName,$tenant)
-        Write-Host "Synchronizing app $appFile on $tenant"
+        Write-Host "Synchronizing $appFile on $tenant"
         Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
         Sync-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
     } -ArgumentList $appName, $tenant

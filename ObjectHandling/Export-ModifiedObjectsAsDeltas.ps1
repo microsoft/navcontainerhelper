@@ -14,6 +14,8 @@
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
+ .Parameter filter
+  Filter specifying the objects you want to export (default is modified=1)
  .Parameter openFolder
   Switch telling the function to open the result folder in Windows Explorer when done
  .Example
@@ -27,6 +29,7 @@ function Export-ModifiedObjectsAsDeltas {
         [string]$containerName, 
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [switch]$useNewSyntax,
+        [string]$filter = "Modified=1",
         [switch]$openFolder
     )
 
@@ -56,7 +59,7 @@ function Export-ModifiedObjectsAsDeltas {
     # Export my objects
     Export-NavContainerObjects -containerName $containerName `
                                -objectsFolder $modifiedFolder `
-                               -filter "modified=Yes" `
+                               -filter $filter `
                                -sqlCredential $sqlCredential `
                                -exportTo $exportTo
 

@@ -41,6 +41,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-CSideDevContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Import-NavContainerLicense.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
 

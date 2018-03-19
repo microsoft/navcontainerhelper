@@ -24,24 +24,26 @@ function Remove-NavContainer {
         if (Test-NavContainer -containerName $containerName) {
             Remove-NavContainerSession $containerName
             $containerId = Get-NavContainerId -containerName $containerName
-            $updateHosts = ((Get-NavContainerSharedFolders -containerName $containerName).GetEnumerator() | Where-Object { $_.value -eq "c:\driversetc" })
             Write-Host "Removing container $containerName"
             docker rm $containerId -f | Out-Null
-            $containerFolder = Join-Path $ExtensionsFolder $containerName
-            Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
-            Write-Host "Removing Desktop Shortcuts for container $containerName"
-            Remove-DesktopShortcut -Name "$containerName Web Client"
-            Remove-DesktopShortcut -Name "$containerName Test Tool"
-            Remove-DesktopShortcut -Name "$containerName Windows Client"
-            Remove-DesktopShortcut -Name "$containerName CSIDE"
-            Remove-DesktopShortcut -Name "$containerName Command Prompt"
-            Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
-            if ($updateHosts) {
-                Write-Host "Removing $containerName from hosts"
-                . (Join-Path $pSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -hostname $containerName -ipAddress ""
-            }
-            Write-Host -ForegroundColor Green "Successfully removed container $containerName"
         }
+        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        $updateHostsScript = Join-Path $containerFolder "my\updatehosts.ps1"
+        $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
+        if ($updateHosts) {
+            Write-Host "Removing $containerName from hosts"
+            . $updateHostsScript -hostsFile "c:\windows\system32\drivers\etc\hosts" -hostname $containerName -ipAddress ""
+        }
+        if (Test-Path -Path $containerFolder -PathType Container) {
+            Write-Host "Removing $containerFolder"
+            Remove-Item -Path $containerFolder -Force -Recurse
+        }
+        Remove-DesktopShortcut -Name "$containerName Web Client"
+        Remove-DesktopShortcut -Name "$containerName Test Tool"
+        Remove-DesktopShortcut -Name "$containerName Windows Client"
+        Remove-DesktopShortcut -Name "$containerName CSIDE"
+        Remove-DesktopShortcut -Name "$containerName Command Prompt"
+        Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
     }
 }
 Export-ModuleMember -function Remove-NavContainer

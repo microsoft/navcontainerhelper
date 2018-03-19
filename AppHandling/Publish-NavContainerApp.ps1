@@ -59,16 +59,23 @@ function Publish-NavContainerApp {
             $copied = $true
         }
 
-        Write-Host "Publishing app $appFile"
+        Write-Host "Publishing $appFile"
         Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification
-        if ($sync) {
-            Write-Host "Synchronizing app on tenant $tenant"
-            Sync-NavApp -ServerInstance NAV -Path $appFile -Tenant $tenant
+        if ($sync -or $install) {
+            $appName = (Get-NAVAppInfo -Path $appFile).Name
+    
+            if ($sync) {
+                Write-Host "Synchronizing $appName on tenant $tenant"
+                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
+                Sync-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant -WarningAction Ignore
+            }
+    
+            if ($install) {
+                Write-Host "Installing $appName on tenant $tenant"
+                Install-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
+            }
         }
-        if ($install) {
-            Write-Host "Installing app on tenant $tenant"
-            Install-NavApp -ServerInstance NAV -Path $appFile -Tenant $tenant
-        }
+
         if ($copied) { 
             Remove-Item $appFile -Force
         }

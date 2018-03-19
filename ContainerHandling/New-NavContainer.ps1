@@ -15,7 +15,7 @@
  .Parameter navDvdCountry
   When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.)
  .Parameter licenseFile
-  Path or Secure Url of the licenseFile you want to use (default c:\programdata\navcontainerhelper\license.flf)
+  Path or Secure Url of the licenseFile you want to use
  .Parameter credential
   Username and Password for the NAV Container
  .Parameter memoryLimit
@@ -97,7 +97,7 @@ function New-NavContainer {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string]$auth='Windows',
         [string[]]$additionalParameters = @(),
-        [string[]]$myScripts = @()
+        $myScripts = @()
     )
 
     if (!$accept_eula) {
@@ -117,25 +117,14 @@ function New-NavContainer {
         }
     }
 
-    if ($includeCSide) {
-        if ($licenseFile -eq "") {
-            $licenseFile = "c:\programdata\navcontainerhelper\license.flf"
-            if (!(Test-Path -Path $licenseFile)) {
-                if ($doNotExportObjectsToText) {
-                    $licenseFile = ""
-                } else {
-                    throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
-                }
-            }
-        } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-        } elseif (!(Test-Path $licenseFile)) {
-            throw "License file '$licenseFile' must exist in order to create a Developer Server Container."
-        }
-    }
-
     $myScripts | % {
-        if (!(Test-Path $_)) {
-            throw "Script directory or file $_ does not exist"
+        if ($_ -is [string]) {
+            if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
+            } elseif (!(Test-Path $_)) {
+                throw "Script directory or file $_ does not exist"
+            }
+        } elseif ($_ -isnot [Hashtable]) {
+            throw "Illegal value in myScripts"
         }
     }
 
@@ -206,9 +195,8 @@ function New-NavContainer {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
 
-    if (Test-NavContainer -containerName $containerName) {
-        Remove-NavContainer $containerName
-    }
+    # Remove if it already exists
+    Remove-NavContainer $containerName
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
@@ -217,15 +205,50 @@ function New-NavContainer {
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
     $myScripts | % {
-        if (Test-Path $_ -PathType Container) {
-            Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
+        if ($_ -is [string]) {
+            if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
+                $uri = [System.Uri]::new($_)
+                $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
+                $destinationFile = Join-Path $myFolder $filename
+                Download-File -sourceUrl $_ -destinationFile $destinationFile
+                if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                    Write-Host "Extracting .zip file"
+                    Expand-Archive -Path $destinationFile -DestinationPath $myFolder
+                    Remove-Item -Path $destinationFile -Force
+                }
+            } elseif (Test-Path $_ -PathType Container) {
+                Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
+            } else {
+                if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                    Expand-Archive -Path $_ -DestinationPath $myFolder
+                } else {
+                    Copy-Item -Path $_ -Destination $myFolder -Force
+                }
+            }
         } else {
-            Copy-Item -Path $_ -Destination $myFolder -Force
+            $hashtable = $_
+            $hashtable.Keys | % {
+                Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
+            }
         }
     }
     
-    if ("$licensefile" -eq "" -or $licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-        $containerLicenseFile = $licenseFile
+    if ("$licensefile" -eq "") {
+        if ($includeCSide -and (!$doNotExportObjectsToText)) {
+            throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+        }
+        $containerlicenseFile = ""
+    } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+        $licensefileUri = $licensefile
+        $licenseFile = "$myFolder\license.flf"
+        Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
+        $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
+        $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+        if (!($text.StartsWith("Microsoft Software License Information"))) {
+            Remove-Item -Path $licenseFile -Force
+            throw "Specified license file Uri isn't a direct download Uri"
+        }
+        $containerLicenseFile = "c:\run\my\license.flf"
     } else {
         Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
         $containerLicenseFile = "c:\run\my\license.flf"
@@ -268,7 +291,7 @@ function New-NavContainer {
 
         # Clear modified flag on all objects
         'if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-             sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0"
+             sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
          }' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
         if ($enableSymbolLoading -and $version.Major -gt 10) {
@@ -371,30 +394,32 @@ function New-NavContainer {
         Wait-NavContainerReady $containerName
     }
 
-    Write-Host "Reading CustomSettings.config from $containerName"
-    $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
-    [System.IO.File]::ReadAllText($customConfigFile)'
-    [xml]$customConfig = docker exec $containerName powershell $ps
-
-    Write-Host "Creating Desktop Shortcuts for $containerName"
-    $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-    if ("$publicWebBaseUrl" -ne "") {
-        $webClientUrl = "$publicWebBaseUrl"
-        if ($multitenant) {
-            $webClientUrl += "?tenant=default"
-        }
-        New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-        if ($includeTestToolkit) {
+    if ($shortcuts -ne "None") {
+        Write-Host "Reading CustomSettings.config from $containerName"
+        $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
+        [System.IO.File]::ReadAllText($customConfigFile)'
+        [xml]$customConfig = docker exec $containerName powershell $ps
+    
+        Write-Host "Creating Desktop Shortcuts for $containerName"
+        $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
+        if ("$publicWebBaseUrl" -ne "") {
+            $webClientUrl = "$publicWebBaseUrl"
             if ($multitenant) {
-                $webClientUrl += "&page=130401"
-            } else {
-                $webClientUrl += "?page=130401"
+                $webClientUrl += "?tenant=default"
             }
-            New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            if ($includeTestToolkit) {
+                if ($multitenant) {
+                    $webClientUrl += "&page=130401"
+                } else {
+                    $webClientUrl += "?page=130401"
+                }
+                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            }
         }
+        New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
+        New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
     }
-    New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
-    New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
 
     if ([System.Version]$genericTag -lt [System.Version]"0.0.4.4") {
         if (Test-Path -Path "C:\windows\System32\t2embed.dll" -PathType Leaf) {

@@ -6,7 +6,7 @@
  .Parameter containerName
   Name of the container for which you want to enter a session
  .Parameter filter
-  filter of the objects you want to compile (default is modified=Yes)
+  Filter specifying the objects you want to compile (default is Compiled=0)
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Example

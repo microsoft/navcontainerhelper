@@ -23,7 +23,7 @@ function Install-NavContainerApp {
 
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($appName, $tenant)
-        Write-Host "Installing app $appName on $tenant"
+        Write-Host "Installing $appName on $tenant"
         Install-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
     } -ArgumentList $appName, $tenant
     Write-Host -ForegroundColor Green "App successfully installed"

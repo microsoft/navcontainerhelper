@@ -29,10 +29,10 @@ function UnPublish-NavContainerApp {
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($appName, $unInstall, $tenant)
         if ($unInstall) {
-            Write-Host "Uninstalling app $appName from tenant $tenant"
+            Write-Host "Uninstalling $appName from tenant $tenant"
             Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
         }
-        Write-Host "Unpublishing app $appName"
+        Write-Host "Unpublishing $appName"
         Unpublish-NavApp -ServerInstance NAV -Name $appName
     } -ArgumentList $appName, $unInstall, $tenant
     Write-Host -ForegroundColor Green "App successfully unpublished"
