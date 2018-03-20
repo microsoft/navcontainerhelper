@@ -1,6 +1,10 @@
 # NavContainerHelper
 
-# What are Containers? What is Docker?
+# Table of content
+
+- [What are Containers? What is Docker?](#WhatAreContainers)
+
+# <a name="WhatAreContainers" />What are Containers? What is Docker?
 
 If you are new to Docker and Containers, please read [this document](https://docs.microsoft.com/en-us/virtualization/windowscontainers/about/), which describes what Containers are and what Docker is.
 
