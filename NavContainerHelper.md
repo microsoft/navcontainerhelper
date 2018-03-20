@@ -619,7 +619,7 @@ You can also import a folder with .delta files using the *Import-DeltasToNavCont
 
 Example:
 
-    $oldDeltaFolder = "C:\ProgramData\NavContainerHelper\Extensions\old\deltas
+    $oldDeltaFolder = "C:\ProgramData\NavContainerHelper\Extensions\old\deltas"
     Import-DeltasToNavContainer -containerName "test" -deltaFolder $deltaFolder
 
 you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Import-DeltasToNavContainer.ps1).
