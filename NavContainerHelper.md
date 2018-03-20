@@ -1,6 +1,33 @@
 # NavContainerHelper
 
-# What are Containers? What is Docker?
+# <a name="toc" />Table of content
+
+1. [What are Containers? What is Docker?](#WhatAreContainers)
+1. [Get started - Install Docker](#GetStarted)
+1. [Get Started - Install NavContainerHelper](#GetStartedHelper)
+1. [Get started - Run your first NAV container](#GetStartedRun)
+1. [NAV container image tags](#ImageTags)
+1. [Scenarios using the NavContainerHelper](#Scenarios)
+    1. [Use SSL with a self-signed certificate](#SSLSelfSigned)
+    1. [Use SSL with a LetsEncrypt certificate](#SSLLetsEncrypt)
+    1. [Use a certificate, issued by a trusted authority](#SSLTrusted)
+    1. [Specify username and password for your NAV SUPER user](#UserPassword)
+    1. [Setup Windows Authentication with the Windows User on the host computer](#WinAuth)
+    1. [Publishing ports on the host and specifying a hostname using NAT network settings](#PublishPorts)
+    1. [Make CSIDE and Windows Client available on the host computer](#WinClients)
+    1. [Make CSIDE and Windows Client available through ClickOnce](#ClickOnce)
+    1. [Use your own license file in a container](#License)
+    1. [Suppress deployment of the WebClient and/or Http site when running a container](#NoWeb)
+    1. [Publish an extension to a NAV container](#Extension)
+    1. [Specify your own Database backup file to use with a NAV container](#bak)
+    1. [Start a NAV container and place the database files on a file share on the host computer](#DbShare)
+    1. [Create a SQL Server container with the CRONUS database from a NAV container image](#SqlCronus)
+    1. [Create a SQL Server container and restore a .bak file](#SqlBak)
+    1. [Use an external SQL Server as database connection in a NAV container](#ExternalSql)
+    1. [Connect to the NAV container and develop using Visual Studio Code](#VsCode)
+1. [Scripts](#Scripts)
+
+# <a name="WhatAreContainers" />What are Containers? What is Docker?
 
 If you are new to Docker and Containers, please read [this document](https://docs.microsoft.com/en-us/virtualization/windowscontainers/about/), which describes what Containers are and what Docker is.
 
@@ -8,7 +35,9 @@ If you want more info, there are a lot of [Channel9 videos on Containers as well
 
 If you have problems with Docker (not NAV related), the [Windows Containers Docker forum](https://social.msdn.microsoft.com/Forums/en-US/home?forum=windowscontainers) is the place you can ask questions (read the readme first):
 
-# Get started – Install Docker
+[Back to TOC](#toc)
+
+# <a name="GetStarted" />Get started – Install Docker
 
 In order to run a NAV container, you need a computer with Docker installed, this will become your Docker host. Docker runs on Windows Server 2016 (or later) or Windows 10 Pro.
 
@@ -32,7 +61,9 @@ Follow [these steps](https://docs.microsoft.com/en-us/virtualization/windowscont
 
 Follow [these steps](https://docs.microsoft.com/en-us/virtualization/windowscontainers/quick-start/quick-start-windows-10) to install Docker on Windows 10.
 
-# Get Started - Install NavContainerHelper
+[Back to TOC](#toc)
+
+# <a name="GetStartedHelper" />Get Started - Install NavContainerHelper
 
 NavContainerHelper is a PowerShell module from the PowerShell Gallery, you can read more information about it [here](https://www.powershellgallery.com/packages/navcontainerhelper).
 
@@ -52,7 +83,9 @@ to list all functions available in the module. Use
 
 in order to list the functions in the module grouped into areas.
 
-# Get started – run your first NAV container
+[Back to TOC](#toc)
+
+# <a name="GetStartedRun" />Get started – run your first NAV container
 
 Start PowerShell ISE and run this command:
 
@@ -146,7 +179,9 @@ The NAV container images supports a number of parameters and some of them are us
 
 As you might have noticed, the Nav-ContainerHelper transfers the password to the container as an encrypted string and the key to decrypt the password is shared in a file and deleted afterwards. This allows you to use Windows Authentication with your domain credentials in a secure way.
 
-# NAV container image tags
+[Back to TOC](#toc)
+
+# <a name="ImageTags" />NAV container image tags
 
 Public NAV container images resides in the public Docker hub and can be viewed [here](https://hub.docker.com/r/microsoft/dynamics-nav/).
 
@@ -180,11 +215,13 @@ Example:
 With this pattern, you can specify any version of NAV since NAV 2016 RTM.
 **Note**, image names and tags are case sensitive – everything must be specified in lower case.
 
-# Scenarios using the NavContainerHelper
+[Back to TOC](#toc)
+
+# <a name="Scenarios" />Scenarios using the NavContainerHelper
 
 In the following, I will go through some scenarios, you might find useful when running NAV containers. Most of the scenarios can be combined, but in some cases, it doesn't make sense to combine them.
 
-## Use SSL with a self-signed certificate
+## <a name="SSLSelfSigned" />Use SSL with a self-signed certificate
 
 I you want to add a certificate to a container started by New-NavContainer, you ccan use the parameter:
 
@@ -217,7 +254,9 @@ The Web Client and Dev. Server are both secured with a self-signed certificate (
 
 **Note**, if you are planning to expose your container outside the boundaries of your own machine, you should always use SSL.
 
-## Use SSL with a LetsEncrypt certificate
+[Back to TOC](#toc)
+
+## <a name="SSLLetsEncrypt" />Use SSL with a LetsEncrypt certificate
 
 LetsEncrypt is a certificate provider which issues free SSL certificates for services. Furthermore, there is a PowerShell module, which enables you to do this automatically.
 
@@ -225,7 +264,9 @@ This PowerShell module is being used in the NAV ARM Templates (like http://aka.m
 
 The code to import and use the certificate is the same as you use when using a certificate issued by a trusted authority.
 
-## Use a certificate, issued by a trusted authority
+[Back to TOC](#toc)
+
+## <a name="SSLTrusted" />Use a certificate, issued by a trusted authority
 
 There are no parameters in which you can specify a certificate directly. Instead, you will have to override the SetupCertificate script in the Docker image.
 
@@ -269,7 +310,9 @@ Example:
 
 **Note**, New-NavContainer creates a folder for the files specified in -myscripts and shares this folder to the c:\run\my folder in a container using *--volume \<hostfolder\>:c:\run\my*.
 
-## Specify username and password for your NAV SUPER user
+[Back to TOC](#toc)
+
+## <a name="UserPassword" />Specify username and password for your NAV SUPER user
 
 The parameter needed to specify username and password for your NAV Super user is
 
@@ -299,7 +342,9 @@ Example:
 
 **Note**, if you use docker run to run your container, you will transfer credentials in clear text to the container and can be retrieved by a simple docker inspect on the host. If you want to transfer the password securely, you need to encrypt the password and transfer a file containing the encryption key to the container using the two environment variables securepassword, passwordkeyfile and removepasswordkeyfile, this is what the NavContainerHelper is doing.
 
-## Setup Windows Authentication with the Windows User on the host computer
+[Back to TOC](#toc)
+
+## <a name="WinAuth" />Setup Windows Authentication with the Windows User on the host computer
 
 The parameter used to specify that you want to use Windows Authentication is
 
@@ -318,7 +363,9 @@ Example:
 
 **Note**, if the host computer cannot access the domain controller, Windows authentication might not work properly.
 
-## Publishing ports on the host and specifying a hostname using NAT network settings
+[Back to TOC](#toc)
+
+## <a name="PublishPorts" />Publishing ports on the host and specifying a hostname using NAT network settings
 
 Network settings on Docker can be setup in a lot of different ways. Please consult the Docker documentation or [this blog post](https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/container-networking).
 
@@ -364,7 +411,9 @@ In this example, the ports 8080, 443, 7045, 7046, 7047, 7048 and 7049 are all pu
 
 **Note**, you cannot use localhost to connect to your container from the host, you need to use the public/external ip address.
 
-## Make CSIDE and Windows Client available on the host computer
+[Back to TOC](#toc)
+
+## <a name="WinClients" />Make CSIDE and Windows Client available on the host computer
 
 New-NavContainer supports sharing the Classic Development Environment and the Windows Client from the container to the host. The parameter you need to use is:
 
@@ -389,7 +438,9 @@ Example:
 
 **Note**, when using the classic development environment (CSIDE) you won't be able to modify and compile table schemas unless you are using Windows Authentication.
 
-## Make CSIDE and Windows Client available through ClickOnce
+[Back to TOC](#toc)
+
+## <a name="ClickOnce" />Make CSIDE and Windows Client available through ClickOnce
 
 The New-NavContainer doesn't have a parameter to enable clickonce
 
@@ -427,7 +478,9 @@ Open the ClickOnce Manifest in Internet Explorer og Microsoft Edge, download and
 
 **Note**, when using the classic development environment (CSIDE) you won't be able to modify and compile table schemas unless you are using Windows Authentication.
 
-## Use your own license file in a container
+[Back to TOC](#toc)
+
+## <a name="License" />Use your own license file in a container
 
 By default the containers are using the CRONUS demo database and the CRONUS license file is already imported in that. If you want to use you own licensefile, you have a few options on how to do this.
 
@@ -512,7 +565,9 @@ Example:
 
 The license file parameter can be a file on the host or a secure url.
 
-## Suppress deployment of the WebClient and/or Http site when running a container
+[Back to TOC](#toc)
+
+## <a name="NoWeb" />Suppress deployment of the WebClient and/or Http site when running a container
 
 TODO
 
@@ -530,7 +585,9 @@ Example:
 
 docker run -e WebClient=N -e httpsite=N -e ACCEPT_EULA=Y microsoft/dynamics-nav:2017
 
-## Publish an extension to a NAV container
+[Back to TOC](#toc)
+
+## <a name="Extension" />Publish an extension to a NAV container
 
 When you have a running NAV container, you can publish an app using a function in the NavContainerHelper. The below script will publish, sync and install the app in c:\temp\my.app in the NAV container called test.
 
@@ -544,7 +601,9 @@ Subsequently you also have functions to uninstall and unpublish apps from a cont
 
 If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/AppHandling/Publish-NavContainerApp.ps1).
 
-## Import and compile objects in a NAV container
+[Back to TOC](#toc)
+
+## <a name="ImportCompile" />Import and compile objects in a NAV container
 
 When you have a running NAV container, you can import objects using a function in the NavContainerHelper.
 
@@ -568,7 +627,9 @@ Example:
 
 If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Compile-ObjectsInNavContainer.ps1).
 
-## Specify your own Database backup file to use with a NAV container
+[Back to TOC](#toc)
+
+## <a name="bak" />Specify your own Database backup file to use with a NAV container
 
 If you have a database backup file (.bak), you can specify that as parameter to the container. You can specify the bakfile using a secure URL. Read [this](https://blogs.msdn.microsoft.com/freddyk/2017/02/26/create-a-secure-url-to-a-file/) for information about how to create a secure url for a file.
 
@@ -609,7 +670,9 @@ A third optiopn is to specify the .bak file to the myscripts parameter and speci
 
 **Note**, when specifying a .bak file, the normal container initialization is still continuing and the NAV Super user will be created. This is not happening if you manually restore the .bak file to a SQL server and point out an external SQL Server database.
 
-## Start a NAV container and place the database files on a file share on the host computer
+[Back to TOC](#toc)
+
+## <a name="DbShare" />Start a NAV container and place the database files on a file share on the host computer
 
 The database files are placed inside the container by default. If you want to copy the database to a share on the Docker host, you can override the SetupDatabase.ps1 script by creating a file called SetupDatabase.ps1, specify that in myScripts.ps1 to New-NavContainer and share a folder on the host, which can host the DB files.
 
@@ -662,7 +725,9 @@ The SetupDatabase.ps1 script above will check whether the database files already
 
 The additionalParameter sets up a shared folder. The local folder c:\temp\navdbfiles as c:\navdbfiles in the container and shares the SetupDatabase.ps1 script from above.
 
-## Create a SQL Server container with the CRONUS database from a NAV container image
+[Back to TOC](#toc)
+
+## <a name="SqlCronus" />Create a SQL Server container with the CRONUS database from a NAV container image
 
 The NAV container images contains SQL Express with the CRONUS Demo Database. If we want to get a copy of the databases from a NAV container image, we can override the navstart.ps1 script with a script, which basically just starts the SQL Server, takes the database offline and copies the database files to a folder.
 
@@ -730,7 +795,9 @@ In this example, it gets the .mdf and .ldf files from the latest cumulative upda
 After this you have a SQL Server Container with your NAV database.
 Variables $databaseServer, $databaseInstance, $databaseName and $databaseCredential are the parameters used to start up a NAV Container to use this new database server.
 
-## Create a SQL Server container and restore a .bak file
+[Back to TOC](#toc)
+
+## <a name="SqlBak" />Create a SQL Server container and restore a .bak file
 
 The following script sample, will create a new SQL Server container and restore a NAV 2018 database backup file (Demo Database NAV (11-0).bak) placed on the host in a folder called c:\temp\navdbfiles. The folder c:\temp\navdbfiles on the host is shared as c:\temp inside the container.
 
@@ -749,7 +816,9 @@ The following script sample, will create a new SQL Server container and restore 
 
 After this, the SQL Server is ready to use from a NAV container and the variables $databaseServer, $databaseInstance, $databaseName and $databaseCredential are the parameters used to start up a NAV container to use this new database server.
 
-## Use an external SQL Server as database connection in a NAV container
+[Back to TOC](#toc)
+
+## <a name="ExternalSql" />Use an external SQL Server as database connection in a NAV container
 
 If you have a created a SQL Server container using one of the methods described any of the sections:
 
@@ -796,7 +865,9 @@ You can add users to the database using:
 
     New-NavContainerNavUser -containerName test -Credential $navcredential
 
-## Connect to the NAV container and develop using Visual Studio Code
+[Back to TOC](#toc)
+
+## <a name="VsCode" />Connect to the NAV container and develop using Visual Studio Code
 
 Visual Studio Code can NOT connect to NAV 2017 or earlier versions – you need to use a NAV container post NAV 2017, f.ex. NAV 2018 or the NAV Developer Preview.
 
@@ -823,7 +894,9 @@ Select Local Server and modify the Server and the ServerInstance settings in lau
 
 In launch.json, also change the authentication setting to the setting used by the Container: Windows or UserPassword.
 
-# Scripts
+[Back to TOC](#toc)
+
+# <a name="Scripts" />Scripts
 
 When building, running or restarting the NAV container, the c:\run\start.ps1 script is being run. This script will launch navstart.ps1, which will launch a number of other scripts (listed below in the order in which they are called from navstart.ps1). Each of these scripts exists in the c:\run folder. If a folder called c:\run\my exists and a script with the same name is found in that folder, then **that** script will be executed **instead** of the script in c:\run (called overriding scripts).
 
@@ -1242,5 +1315,7 @@ If you override the MainLoop, you would rarely invoke the default behavior.
 
 - Avoid printing out event log entries
 - Override the MainLoop and sleep for a 100 years😊
+
+[Back to TOC](#toc)
 
 
