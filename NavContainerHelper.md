@@ -642,8 +642,6 @@ If you are curious to see what happens inside this function, you can find the so
 
 ## <a name="export"></a>Export objects from a NAV container
 
-ewhjhdjh
-
 With a running NAV container, you can export objects using a function in the NavContainerHelper.
 
 Example:
