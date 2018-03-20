@@ -1,3 +1,5 @@
+BugFix: ExportTxtSkipUnlicensed doesn't get set in Export-NavContainerObject when using NavUserPassword authentication
+
 0.2.7.1
 Bugfix: Get-LocaleFromCountry returned blank for finnl and a lot of other finxx localizations
 Add -settings on Windows Client shortcut to ensure correct clientsettings.config usage

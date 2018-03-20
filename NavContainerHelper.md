@@ -144,7 +144,7 @@ The --name parameter specifies the name of the container and the --hostname spec
 
 The NAV container images supports a number of parameters and some of them are used in the above output. All of these parameters can be omitted and the NAV container image has a default behavior for them.
 
-As you might have noticed, the Nav-ContainerHelper transfers the password to the container as an encrypted string and the key to decrypt the password is shared in a file and deleted afterwards. This allows you to use Windows Authentication with your domain credentials in a secure way.
+As you might have noticed, the New-NavContainer transfers the password to the container as an encrypted string and the key to decrypt the password is shared in a file and deleted afterwards. This allows you to use Windows Authentication with your domain credentials in a secure way.
 
 # NAV container image tags
 
@@ -186,7 +186,7 @@ In the following, I will go through some scenarios, you might find useful when r
 
 ## Use SSL with a self-signed certificate
 
-I you want to add a certificate to a container started by New-NavContainer, you ccan use the parameter:
+I you want to add a certificate to a container started by New-NavContainer, you can use the parameter:
 
     -useSSL
 
@@ -429,7 +429,7 @@ Open the ClickOnce Manifest in Internet Explorer og Microsoft Edge, download and
 
 ## Use your own license file in a container
 
-By default the containers are using the CRONUS demo database and the CRONUS license file is already imported in that. If you want to use you own licensefile, you have a few options on how to do this.
+By default the NAV containers are using the CRONUS demo database and the CRONUS demo license file is already imported in that. If you want to use you own licensefile, you have a few options on how to do this.
 
 ### Specify a database which already contains a license file
 
@@ -514,21 +514,21 @@ The license file parameter can be a file on the host or a secure url.
 
 ## Suppress deployment of the WebClient and/or Http site when running a container
 
-TODO
+If you need to run a container in order to perform a task (like running tests, reports, conversions or other things), there might not be any reason to deploy the Web Client (takes ~10-20 seconds). If you specify the parameter *WebClient=N* to the NAV container image, then the WebClient will not be deployed. When using NavContainerHelper, this parameter goes in additionalParameters.
 
-If you need to run a container in order to perform a task (like running tests, reports or other things), there might not be any reason to deploy the Web Client (takes ~30 seconds). To suppress deployment of the Web Client, specify the parameter:
+    $additionalParameters = @("--env WebClient=N")
 
--e WebClient=N
+If you suppress WebClient, you might also want to suppress the deployment of the http site for file downloads. If both gets suppressed, then the IIS is never started in the container. This saves both memory and time.
 
-If you suppress WebClient, you might also want to suppress the deployment of the http site for file downloads. This can be done with the parameter:
-
--e httpsite=N
-
-Suppressing both these sites, will cause the container to never start the IIS (no reason to do so).
+    $additionalParameters += @("--env httpsite=N")
 
 Example:
 
-docker run -e WebClient=N -e httpsite=N -e ACCEPT_EULA=Y microsoft/dynamics-nav:2017
+    New-NavContainer -accept_eula `
+                     -containerName "test" `
+                     -auth NavUserPassword `
+                     -imageName "microsoft/dynamics-nav" `
+                     -additionalParameters @("--env WebClient=N", "--env httpsite=N")
 
 ## Publish an extension to a NAV container
 
@@ -552,7 +552,16 @@ Example:
 
     Import-ObjectsToNavContainer -containerName "test" -objectsFile "C:\temp\mysolution.fob" -sqlCredential $databaseCredential
 
-You can also import .txt files, which then will leave the objects uncompiled.  If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Import-ObjectsToNavContainer.ps1).
+You can also import a .txt file, simply by specifying a .txt file. This will leave the objects uncompiled. If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Import-ObjectsToNavContainer.ps1).
+
+You can also import a folder with .delta files using the *Import-DeltasToNavContainer* function. 
+
+Example:
+
+    $oldDeltaFolder = "C:\ProgramData\NavContainerHelper\Extensions\old\deltas
+    Import-DeltasToNavContainer -containerName "test" -deltaFolder $deltaFolder
+
+you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Import-DeltasToNavContainer.ps1).
 
 You can use *Compile-ObjectsInNavContainer* to compile objects in the NavContainer.
 
@@ -564,9 +573,15 @@ will compile all uncompiled objects in the NAV container test. You can also add 
 
 Example:
 
-    Compile-ObjectsInNavContainer -containerName "test" -filter "modified=Yes" -sqlCredential $databaseCredential
+    Compile-ObjectsInNavContainer -containerName "test" -filter "modified=1" -sqlCredential $databaseCredential
 
 If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Compile-ObjectsInNavContainer.ps1).
+
+
+
+## Export your modified objects from a NAV container
+
+With a running NAV container, you can export objects using a function in the NavContainerHelper
 
 ## Specify your own Database backup file to use with a NAV container
 
@@ -1039,7 +1054,7 @@ Example:
 
 SetupAddIns must make sure that custom add-ins are available to the Service Tier and in the RoleTailored Client folder.
 
-#### Default Behavior
+### Default Behavior
 
 Copy the content of the C:\Run\Add-ins folder (if it exists) to the Add-ins folder under the Service Tier and the RoleTailored Client folder.
 
