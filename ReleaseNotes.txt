@@ -1,4 +1,8 @@
+0.2.7.3
 BugFix: ExportTxtSkipUnlicensed doesn't get set in Export-NavContainerObject when using NavUserPassword authentication
+Added -compile switch to Import-DeltasToNavContainer
+Added -deltaFolder to Export-ModifiedObjectsAsDeltas
+Increased timeout in Wait-NavContainerReady
 
 0.2.7.1
 Bugfix: Get-LocaleFromCountry returned blank for finnl and a lot of other finxx localizations
