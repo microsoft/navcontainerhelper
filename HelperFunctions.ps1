@@ -28,10 +28,10 @@ function Get-DefaultSqlCredential {
         [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
 
-    $containerAuth = Get-NavContainerAuth -containerName $containerName
-    if ($containerAuth -eq "NavUserPassword") {
-        if (($sqlCredential -eq $null) -or ($sqlCredential -eq [System.Management.Automation.PSCredential]::Empty)) {
-            $sqlCredential = Get-DefaultCredential -DefaultUserName "sa" -Message "Please enter the SQL Server System Admin credentials for container $containerName"
+    if (($sqlCredential -eq $null) -or ($sqlCredential -eq [System.Management.Automation.PSCredential]::Empty)) {
+        $containerAuth = Get-NavContainerAuth -containerName $containerName
+        if ($containerAuth -ne "Windows") {
+            $sqlCredential = Get-DefaultCredential -DefaultUserName "" -Message "Please enter the SQL Server System Admin credentials for container $containerName"
         }
     }
     $sqlCredential
@@ -41,12 +41,12 @@ function DockerDo {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$imageName,
-        [ValidateSet('run','start')]
+        [ValidateSet('run','start','pull')]
         [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
-        [switch]$wait,
-        [string[]]$parameters
+        [switch]$detach,
+        [string[]]$parameters = @()
     )
 
     if ($accept_eula) {
@@ -55,7 +55,7 @@ function DockerDo {
     if ($accept_outdated) {
         $parameters += "--env accept_outdated=Y"
     }
-    if (!$wait) {
+    if ($detach) {
         $parameters += "--detach"
     }
     $arguments = ("$command "+[string]::Join(" ", $parameters)+" $imageName")
@@ -71,12 +71,17 @@ function DockerDo {
     $p.Start() | Out-Null
     $p.WaitForExit()
     $output = $p.StandardOutput.ReadToEnd()
-    $output += $p.StandardError.ReadToEnd()
+    $error = $p.StandardError.ReadToEnd()
     if ($p.ExitCode -eq 0) {
         return $true
     } else {
-        Write-Host -ForegroundColor red $output
-        Write-Host -ForegroundColor red "Commandline: docker $arguments"
+        if ("$output".Trim() -ne "") {
+            Log $output
+        }
+        if ("$error".Trim() -ne "") {
+            Log -color red $error
+        }
+        Log -color red "Commandline: docker $arguments"
         return $false
     }
 }
@@ -87,7 +92,7 @@ function Get-NavContainerAuth {
         [string]$containerName
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -95,3 +100,28 @@ function Get-NavContainerAuth {
     }
 }
 
+function Check-NavContainerName {
+    Param
+    (
+        [string]$containerName = ""
+    )
+
+    if ($containerName -eq "") {
+        throw "Container name cannot be empty"
+    }
+
+    if ($containerName.Length -gt 15) {
+        throw "Container name should not exceed 15 characters"
+    }
+
+    $first = $containerName.ToLowerInvariant()[0]
+    if ($first -lt "a" -or $first -gt "z") {
+        throw "Container name should start with a letter (a-z)"
+    }
+
+    $containerName.ToLowerInvariant().ToCharArray() | % {
+        if (($_ -lt "a" -or $_ -gt "z") -and ($_ -lt "0" -or $_ -gt "9") -and ($_ -ne "-")) {
+            throw "Container name contains invalid characters. Allowed characters are letters (a-z), numbers (0-9) and dashes (-)"
+        }
+    }
+}

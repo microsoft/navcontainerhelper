@@ -6,7 +6,7 @@
  .Parameter containerName
   Name of the container for which you want to enter a session
  .Parameter filter
-  filter of the objects you want to compile (default is modified=Yes)
+  Filter specifying the objects you want to compile (default is Compiled=0)
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Example
@@ -18,7 +18,7 @@ function Compile-ObjectsInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [string]$filter = "modified=Yes", 
+        [string]$filter = "compiled=0", 
         [System.Management.Automation.PSCredential]$sqlCredential = $null 
     )
 
@@ -32,6 +32,14 @@ function Compile-ObjectsInNavContainer {
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
+
+        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
+        if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+            # HACK: Parameter insertion...
+            # generatesymbolreference is not supported by Compile-NAVApplicationObject yet
+            # insert an extra parameter for the finsql command by splitting the filter property
+            $filter = '",generatesymbolreference=1,filter="'+$filter
+        }
 
         $params = @{}
         if ($sqlCredential) {

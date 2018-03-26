@@ -15,6 +15,8 @@
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
+ .Parameter filter
+  Filter specifying the objects you want to convert (default is modified=1)
  .Parameter openFolder
   Switch telling the function to open the result folder in Windows Explorer when done
  .Example
@@ -28,6 +30,7 @@ function Convert-ModifiedObjectsToAl {
         [string]$containerName, 
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [int]$startId = 50100,
+        [string]$filter = "Modified=1",
         [switch]$openFolder
     )
 
@@ -38,7 +41,7 @@ function Convert-ModifiedObjectsToAl {
         throw "You cannot run Convert-ModifiedObjectsToAl on this Nav Container, the txt2al tool is not present."
     }
 
-    Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax
+    Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter
 
     $suffix = "-newsyntax"
 

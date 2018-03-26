@@ -24,7 +24,9 @@ function Export-NavContainerObjects {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFolder, 
+        [Parameter(Mandatory=$false)]
         [string]$filter = "modified=Yes", 
+        [Parameter(Mandatory=$false)]
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [ValidateSet('txt folder','txt folder (new syntax)','txt file','txt file (new syntax)','fob file')]
         [string]$exportTo = 'txt folder (new syntax)',
@@ -38,7 +40,7 @@ function Export-NavContainerObjects {
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportTo)
 
         if ($exportTo -eq 'fob file') {
@@ -70,9 +72,9 @@ function Export-NavContainerObjects {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
-        $params = @{}
+        $params = @{ 'ExportTxtSkipUnlicensed' = $true }
         if ($sqlCredential) {
-            $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         if ($exportTo.Contains('(new syntax)')) {
             $params += @{ 'ExportToNewSyntax' = $true }

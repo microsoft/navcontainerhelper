@@ -20,7 +20,7 @@ function Import-TestToolkitToNavContainer {
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($sqlCredential)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"

@@ -4,11 +4,10 @@
         [string]$country
     )
 
+    $country = $country.ToLowerInvariant()
+    if ($country.StartsWith("fin")) { $country = $country.Substring(3) }
+
     $locales = @{
-        "finus" = "en-US"
-        "finca" = "en-CA"
-        "fingb" = "en-GB"
-        "findk" = "da-DK"
         "at"    = "de-AT"
         "au"    = "en-AU" 
         "be"    = "nl-BE"

@@ -20,7 +20,7 @@ function Get-NavContainerGenericTag {
 
     Process {
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        if ($inspect.Config.Labels.psobject.Properties.Match('tag').Count -eq 0) {
             throw "Container $containerOrImageName is not a NAV container"
         }
         return "$($inspect.Config.Labels.tag)"
