@@ -14,12 +14,16 @@
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
+ .Parameter filter
+  Filter specifying the objects you want to export (default is modified=1)
+ .Parameter deltaFolder
+  Path of the folder containing the delta files you want to import
  .Parameter openFolder
   Switch telling the function to open the result folder in Windows Explorer when done
  .Example
   Export-ModifiedObjectsAsDeltas -containerName test
  .Example
-  Export-ModifiedObjectsAsDeltas -containerName test -adminPassword <adminPassword>
+  Export-ModifiedObjectsAsDeltas -containerName test -sqlCredential <sqlCredential>
 #>
 function Export-ModifiedObjectsAsDeltas {
     Param(
@@ -27,6 +31,8 @@ function Export-ModifiedObjectsAsDeltas {
         [string]$containerName, 
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [switch]$useNewSyntax,
+        [string]$filter = "Modified=1",
+        [string]$deltaFolder = "",
         [switch]$openFolder
     )
 
@@ -34,6 +40,13 @@ function Export-ModifiedObjectsAsDeltas {
 
     if ((Get-NavContainerSharedFolders -containerName $containerName)[$hostHelperFolder] -ne $containerHelperFolder) {
         throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $hostHelperFolder to $containerHelperFolder in the container (docker run ... -v ${hostHelperFolder}:$containerHelperFolder ... <image>)."
+    }
+
+    if ($deltaFolder) {
+        $containerDeltaFolder = Get-NavContainerPath -containerName $containerName -path $deltaFolder
+        if ("$containerDeltaFolder" -eq "") {
+            throw "The deltaFolder ($deltaFolder) is not shared with the container."
+        }
     }
 
     $suffix = ""
@@ -56,7 +69,7 @@ function Export-ModifiedObjectsAsDeltas {
     # Export my objects
     Export-NavContainerObjects -containerName $containerName `
                                -objectsFolder $modifiedFolder `
-                               -filter "modified=Yes" `
+                               -filter $filter `
                                -sqlCredential $sqlCredential `
                                -exportTo $exportTo
 
@@ -67,11 +80,19 @@ function Export-ModifiedObjectsAsDeltas {
     Create-MyDeltaFolder -containerName $containerName `
                          -modifiedFolder $modifiedFolder `
                          -myOriginalFolder $myOriginalFolder `
-                         -myDeltaFolder $myDeltaFolder
+                         -myDeltaFolder $myDeltaFolder `
+                         -useNewSyntax:$useNewSyntax
 
     if ($openFolder) {
         Start-Process $myDeltaFolder
         Write-Host "delta files created in $myDeltaFolder"
+    }
+
+    if ($deltaFolder) {
+        Remove-Item -Path "$deltaFolder\*.txt" -Force
+        Remove-Item -Path "$deltaFolder\*.delta" -Force
+        Copy-Item -Path "$myDeltaFolder\*.txt" -Destination $deltaFolder
+        Copy-Item -Path "$myDeltaFolder\*.delta" -Destination $deltaFolder
     }
 }
 Export-ModuleMember -Function Export-ModifiedObjectsAsDeltas

@@ -11,6 +11,8 @@
   Path of the folder containing the delta files you want to import
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter compile
+  Include this switch to compile uncompiled objects after the import
  .Example
   Import-DeltasToNavContainer -containerName test2 -deltaFolder c:\temp\mydeltas
 #>
@@ -20,7 +22,8 @@ function Import-DeltasToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$deltaFolder,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [switch]$compile
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
@@ -46,7 +49,7 @@ function Import-DeltasToNavContainer {
     $containerMergeResultFile = Get-NavContainerPath -containerName $containerName -path $mergeResultFile -throw
     $containerMergedObjectsFile = Get-NavContainerPath -containerName $containerName -path $mergedObjectsFile -throw
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($deltaFolder, $originalFolder, $mergedObjectsFile, $mergeResultFile)
     
         Write-Host "Merging Deltas from $deltaFolder (container path)"
@@ -63,6 +66,9 @@ function Import-DeltasToNavContainer {
         Import-ObjectsToNavContainer -containerName $containerName `
                                      -objectsFile $mergedObjectsFile `
                                      -sqlcredential $sqlCredential
+        if ($compile) {
+            Compile-ObjectsInNavContainer -containerName $containerName
+        }
     }
 }
 Export-ModuleMember -Function Import-DeltasToNavContainer

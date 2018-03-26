@@ -6,6 +6,7 @@ $errorActionPreference = 'Stop'
 
 $hostHelperFolder = "C:\ProgramData\NavContainerHelper"
 New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore
+
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
 
@@ -32,6 +33,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEventLog.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
@@ -40,6 +42,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-CSideDevContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Import-NavContainerLicense.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
 
@@ -65,6 +68,20 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 
+# Tenant Handling functions
+. (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
+. (Join-Path $PSScriptRoot "TenantHandling\Remove-NavContainerTenant.ps1")
+
+# Bacpac Handling functions
+. (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
+
+# User Handling functions
+. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")
+. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerWindowsUser.ps1")
+
+# Azure AD specific functions
+. (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
+
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
 
@@ -74,5 +91,6 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Write-NavContainerHelperWelcomeText.ps1")
 . (Join-Path $PSScriptRoot "Misc\Download-File.ps1")
 . (Join-Path $PSScriptRoot "Misc\Get-LocaleFromCountry.ps1")
+. (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")

@@ -6,14 +6,19 @@
   Running this command will replace the container with a new container with a different (or the same) image.
  .Parameter imageName
   imageName you want to use to replace the navserver container (omit to recreate the same container)
+ .Parameter alwaysPull
+  Include this switch if you want to make sure that you pull latest version of the docker image
  .Example
   Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus
+ .Example
+  Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus -alwaysPull
  .Example
   Replace-NavServerContainer
 #>
 function Replace-NavServerContainer {
     Param(
-        [string]$imageName = ""
+        [string]$imageName = "",
+        [switch]$alwaysPull
     )
 
     $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
@@ -24,8 +29,17 @@ function Replace-NavServerContainer {
         throw "The Replace-NavServerContainer is designed to work inside the Nav on Azure DEMO VMs"
     }
 
-    if ("$imageName" -ne "") {
+    . $settingsScript
+
+    if ("$imageName" -eq "") {
+        $imageName = $navDockerImage
+    }
+    if ("$imageName" -ne "$navDockerImage") {
         ('$navDockerImage = "'+$imageName + '"') | Add-Content $settingsScript
+    }
+    if ($alwaysPull) {
+        Write-Host "Pulling docker Image $imageName"
+        docker pull $imageName
     }
 
     Write-Host -ForegroundColor Green "Setup new Nav container"

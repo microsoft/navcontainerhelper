@@ -8,6 +8,7 @@ New-NavContainer -accept_eula `
                  -containerName server1 `
                  -imageName $imageName `
                  -Credential $credential `
+                 -licenseFile $licenseFile `
                  -updateHosts `
                  -useSSL:$false `
                  -includeCSide `
