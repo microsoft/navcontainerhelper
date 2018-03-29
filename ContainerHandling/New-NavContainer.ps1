@@ -394,12 +394,12 @@ function New-NavContainer {
         Wait-NavContainerReady $containerName
     }
 
+    Write-Host "Reading CustomSettings.config from $containerName"
+    $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
+    [System.IO.File]::ReadAllText($customConfigFile)'
+    [xml]$customConfig = docker exec $containerName powershell $ps
+
     if ($shortcuts -ne "None") {
-        Write-Host "Reading CustomSettings.config from $containerName"
-        $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
-        [System.IO.File]::ReadAllText($customConfigFile)'
-        [xml]$customConfig = docker exec $containerName powershell $ps
-    
         Write-Host "Creating Desktop Shortcuts for $containerName"
         $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
         if ("$publicWebBaseUrl" -ne "") {
