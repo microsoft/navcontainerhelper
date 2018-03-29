@@ -17,7 +17,9 @@
  .Parameter filter
   Filter specifying the objects you want to export (default is modified=1)
  .Parameter deltaFolder
-  Path of the folder containing the delta files you want to import
+  Path of a folder in which you want to receive the delta files (optional)
+ .Parameter fullObjectsFolder
+  Path of a folder in which you want to receive the object files (optional)
  .Parameter openFolder
   Switch telling the function to open the result folder in Windows Explorer when done
  .Example
@@ -33,6 +35,7 @@ function Export-ModifiedObjectsAsDeltas {
         [switch]$useNewSyntax,
         [string]$filter = "Modified=1",
         [string]$deltaFolder = "",
+        [string]$fullObjectsFolder = "",
         [switch]$openFolder
     )
 
@@ -40,13 +43,6 @@ function Export-ModifiedObjectsAsDeltas {
 
     if ((Get-NavContainerSharedFolders -containerName $containerName)[$hostHelperFolder] -ne $containerHelperFolder) {
         throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $hostHelperFolder to $containerHelperFolder in the container (docker run ... -v ${hostHelperFolder}:$containerHelperFolder ... <image>)."
-    }
-
-    if ($deltaFolder) {
-        $containerDeltaFolder = Get-NavContainerPath -containerName $containerName -path $deltaFolder
-        if ("$containerDeltaFolder" -eq "") {
-            throw "The deltaFolder ($deltaFolder) is not shared with the container."
-        }
     }
 
     $suffix = ""
@@ -93,6 +89,11 @@ function Export-ModifiedObjectsAsDeltas {
         Remove-Item -Path "$deltaFolder\*.delta" -Force
         Copy-Item -Path "$myDeltaFolder\*.txt" -Destination $deltaFolder
         Copy-Item -Path "$myDeltaFolder\*.delta" -Destination $deltaFolder
+    }
+
+    if ($fullObjectsFolder) {
+        Remove-Item -Path "$fullObjectsFolder\*.txt" -Force
+        Copy-Item -Path "$modifiedFolder\*.txt" -Destination $fullObjectsFolder
     }
 }
 Export-ModuleMember -Function Export-ModifiedObjectsAsDeltas
