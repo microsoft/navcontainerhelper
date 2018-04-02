@@ -4,9 +4,11 @@
  .Description
   Unmounts and removes a tenant database in the Nav container
  .Parameter containerName
-  Name of the container in which you want to install the app (default navserver)
+  Name of the container in which you want remove a tenant
  .Parameter tenantId
   Name of tenant you want to remove in the container
+ .Parameter sqlCredential
+  Credentials for the SQL server of the tenant database
  .Example
   Remove-NavContainerTenant -containerName test2 -tenantId mytenant
 #>

@@ -70,6 +70,7 @@ $sessions = @{}
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
 . (Join-Path $PSScriptRoot "TenantHandling\Remove-NavContainerTenant.ps1")
+. (Join-Path $PSScriptRoot "TenantHandling\Get-NavContainerTenants.ps1")
 
 # Bacpac Handling functions
 . (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")

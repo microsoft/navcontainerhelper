@@ -1,3 +1,10 @@
+0.2.7.4
+BugFix: -includeCSide and -shortcuts None caused an error that $customconfig didn't exist
+Added -fullObjectsFolder to export-ModifiedObjectsAsDeltas to receive full objects
+Added TLS1.2 support to Download-File
+New-NavContainer now supports specifying a .zip file (UNC or URL) as NavDvdPath
+Add function Get-NavContainerTenants to list all tenants from a multitenant container
+
 0.2.7.3
 BugFix: ExportTxtSkipUnlicensed doesn't get set in Export-NavContainerObject when using NavUserPassword authentication
 Added -compile switch to Import-DeltasToNavContainer

@@ -4,9 +4,11 @@
  .Description
   Creates a tenant database in the Nav container and mounts it as a new tenant
  .Parameter containerName
-  Name of the container in which you want to install the app (default navserver)
+  Name of the container in which you want create a tenant
  .Parameter tenantId
   Name of tenant you want to create in the container
+ .Parameter sqlCredential
+  Credentials for the SQL server of the tenant database
  .Example
   New-NavContainerTenant -containerName test2 -tenantId mytenant
 #>

@@ -141,6 +141,9 @@ function New-NavContainer {
             $imageName = "microsoft/dynamics-nav:latest"
         }
     }
+    if (!$imageName.Contains(':')) {
+        $imageName += ":latest"
+    }
     $imageId = docker images -q $imageName
     if (!($imageId)) {
         $alwaysPull = $true
@@ -153,6 +156,26 @@ function New-NavContainer {
 
     if ($multitenant) {
         $parameters += "--env multitenant=Y"
+    }
+
+    $navDvdPath = $navDvdPath.ToLowerInvariant()
+    $navDvdPathIsTemp = $false
+    if ($navDvdPath.EndsWith(".zip")) {
+        $navDvdPathIsTemp = $true
+
+        $temp = Join-Path $ENV:TEMP ([System.Guid]::NewGuid().ToString())
+        new-item -type directory -Path $temp | Out-Null
+        if ($navDvdPath.StartsWith("http://") -or $navDvdPath.StartsWith("https://")) {
+            Write-Host "Downloading DVD .zip file"
+            Download-File -sourceUrl $navDvdPath -destinationFile "$temp.zip"
+            Write-Host "Extracting DVD .zip file"
+            Expand-Archive -Path "$temp.zip" -DestinationPath $temp
+            Remove-Item -Path "$temp.zip"
+        } else {
+            Write-Host "Extracting DVD .zip file"
+            Expand-Archive -Path $navDvdPath -DestinationPath $temp
+        }
+        $navDvdPath = $temp
     }
 
     if ("$navDvdPath" -ne "") {
@@ -372,6 +395,7 @@ function New-NavContainer {
                 $parameters += @(
                                  "--env databaseUsername=$($databaseCredential.UserName)",
                                  "--env databaseSecurePassword=$encDatabasePassword"
+                                 "--env encryptionSecurePassword=$encDatabasePassword"
                                 )
             }
             
@@ -392,6 +416,10 @@ function New-NavContainer {
             return
         }
         Wait-NavContainerReady $containerName
+    }
+
+    if ($navDvdPathIsTemp) {
+        Remove-Item -Path $navDvdPath -Recurse -Force
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
