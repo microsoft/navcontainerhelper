@@ -8,7 +8,7 @@
  .Parameter tenantId
   Name of tenant you want to create in the container
  .Parameter sqlCredential
-  Credentials for the SQL server of the tenant database
+  Credentials for the SQL server of the tenant database (if using an external SQL Server)
  .Example
   New-NavContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -23,8 +23,6 @@ function New-NavContainerTenant {
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
-
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     if ($tenantId -eq "tenant") {
         throw "You cannot add a tenant called tenant"
