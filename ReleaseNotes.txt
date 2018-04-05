@@ -1,3 +1,6 @@
+0.2.7.5
+BugFix: New-NavContainerTenant and Remove-NavContainerTenant falsely asks for SQL credentials if not specified
+
 0.2.7.4
 BugFix: -includeCSide and -shortcuts None caused an error that $customconfig didn't exist
 Added -fullObjectsFolder to export-ModifiedObjectsAsDeltas to receive full objects
