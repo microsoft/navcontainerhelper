@@ -128,7 +128,8 @@ function Create-AadAppsForNav
     # Add a key to the app
     $startDate = Get-Date
     New-AzureRmADAppCredential -ApplicationId $SsoAdAppId `
-                               -Password (ConvertTo-SecureString -string $SsoAdAppKeyValue -AsPlainText -Force) `                               -StartDate $startDate `
+                               -Password (ConvertTo-SecureString -string $SsoAdAppKeyValue -AsPlainText -Force) `
+                               -StartDate $startDate `
                                -EndDate $startDate.AddYears(10) | Out-Null
 
     # Get oauth2 permission id for sso app
@@ -202,13 +203,19 @@ function Create-AadAppsForNav
 
         (Invoke-WebRequest -UseBasicParsing -Method PATCH -ContentType 'application/json' -Headers $headers -Uri $excelUrl   -Body $excelPostData).Content | Out-Null
 
-        # Add owner to Azure Ad Application
-        $excelOwnerUrl = "$graphUrl/$AadTenant/applications/$($excelAdApp.ObjectID)/`$links/owners?api-version=$apiversion"
-        $excelOwnerPostData  = @{
-          "url" = "$graphUrl/$AadTenant/directoryObjects/$adUserObjectId/Microsoft.DirectoryServices.User?api-version=$apiversion"
-        } | ConvertTo-Json -Depth 99
-   
-        (Invoke-WebRequest -UseBasicParsing -Method POST -ContentType 'application/json' -Headers $headers -Uri $excelOwnerUrl -Body $excelOwnerPostData -ErrorAction Ignore).Content | Out-Null
+        # Check if owner already exists
+        $excelLinkedOwnerUrl = "$graphUrl/$AadTenant/applications/$($excelAdApp.ObjectID)/owners?api-version=$apiversion"
+        $JsonResponse = ((Invoke-WebRequest -UseBasicParsing -Method Get -ContentType 'application/json' -Headers $headers -Uri $excelLinkedOwnerUrl).Content | ConvertFrom-Json).value
+        if(($JsonResponse | Where-Object {$_.objectId -eq $adUserObjectId}) -eq $null){
+
+            # Add owner to Azure Ad Application
+            $excelOwnerUrl = "$graphUrl/$AadTenant/applications/$($excelAdApp.ObjectID)/`$links/owners?api-version=$apiversion"
+            $excelOwnerPostData  = @{
+            "url" = "$graphUrl/$AadTenant/directoryObjects/$adUserObjectId/Microsoft.DirectoryServices.User?api-version=$apiversion"
+            } | ConvertTo-Json -Depth 99
+    
+            (Invoke-WebRequest -UseBasicParsing -Method POST -ContentType 'application/json' -Headers $headers -Uri $excelOwnerUrl -Body $excelOwnerPostData -ErrorAction Ignore).Content | Out-Null            
+        }
     }
 
     # PowerBI Ad App
@@ -234,7 +241,8 @@ function Create-AadAppsForNav
         # Add a key to the app
         $startDate = Get-Date
         New-AzureRmADAppCredential -ApplicationId $PowerBIAdAppId `
-                                   -Password (ConvertTo-SecureString -string $PowerBiAdAppKeyValue -AsPlainText -Force) `                                   -StartDate $startDate `
+                                   -Password (ConvertTo-SecureString -string $PowerBiAdAppKeyValue -AsPlainText -Force) `
+                                   -StartDate $startDate `
                                    -EndDate $startDate.AddYears(10) | Out-Null
         
         # Add Required Resource Access
