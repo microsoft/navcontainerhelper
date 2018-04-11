@@ -128,7 +128,8 @@ function Create-AadAppsForNav
     # Add a key to the app
     $startDate = Get-Date
     New-AzureRmADAppCredential -ApplicationId $SsoAdAppId `
-                               -Password (ConvertTo-SecureString -string $SsoAdAppKeyValue -AsPlainText -Force) `                               -StartDate $startDate `
+                               -Password (ConvertTo-SecureString -string $SsoAdAppKeyValue -AsPlainText -Force) `
+                               -StartDate $startDate `
                                -EndDate $startDate.AddYears(10) | Out-Null
 
     # Get oauth2 permission id for sso app
@@ -240,7 +241,8 @@ function Create-AadAppsForNav
         # Add a key to the app
         $startDate = Get-Date
         New-AzureRmADAppCredential -ApplicationId $PowerBIAdAppId `
-                                   -Password (ConvertTo-SecureString -string $PowerBiAdAppKeyValue -AsPlainText -Force) `                                   -StartDate $startDate `
+                                   -Password (ConvertTo-SecureString -string $PowerBiAdAppKeyValue -AsPlainText -Force) `
+                                   -StartDate $startDate `
                                    -EndDate $startDate.AddYears(10) | Out-Null
         
         # Add Required Resource Access
