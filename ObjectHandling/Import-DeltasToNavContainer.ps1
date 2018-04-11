@@ -6,7 +6,7 @@
   merginge deltas with original objects from that container and create object file
   Import object file using Import-NavApplicationObject
  .Parameter containerName
-  Name of the container for which you want to enter a session
+  Name of the container in which you want to import deltas
  .Parameter deltaFolder
   Path of the folder containing the delta files you want to import
  .Parameter sqlCredential

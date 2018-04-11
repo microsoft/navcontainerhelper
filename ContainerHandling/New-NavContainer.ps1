@@ -42,9 +42,11 @@
   Include this switch if you want to do development in both CSide and VS Code to have symbols automatically generated for your changes in CSide
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
+ .Parameter assignPremiumPlan
+  Assign Premium plan to admin user
  .Parameter alwaysPull
   Always pull latest version of the docker image
- .Parameter mulittenant
+ .Parameter multitenant
   Setup container for multitenancy by adding this switch
  .Parameter restart
   Define the restart option for the container
@@ -90,6 +92,7 @@ function New-NavContainer {
         [switch]$enableSymbolLoading,
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
+        [switch]$assignPremiumPlan,
         [switch]$multitenant,
         [switch]$includeTestToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
@@ -350,6 +353,21 @@ function New-NavContainer {
         ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
+    if ($assignPremiumPlan) {
+        if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
+            ('# Invoke default behavior
+              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+            ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
+        }
+     
+        ('Get-NavServerUser -serverInstance NAV |? LicenseType -eq "FullUser" | % {
+            $UserId = $_.UserSecurityId
+            Write-Host "Assign Premium plan for $($_.Username)"
+            sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
+          }
+        ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
+    }
+
     Write-Host "Creating container $containerName from image $imageName"
 
     if ($useSSL) {
@@ -511,6 +529,7 @@ function New-NavContainer {
             }
         }
     }
+
     Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
 }
 Export-ModuleMember -function New-NavContainer

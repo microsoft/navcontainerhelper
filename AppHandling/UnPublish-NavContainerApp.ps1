@@ -9,6 +9,10 @@
   Name of app you want to unpublish in the container
  .Parameter uninstall
   Include this parameter if you want to uninstall the app before unpublishing
+ .Parameter publisher
+  Publisher of the app you want to unpublish
+ .Parameter version
+  Version of the app you want to unpublish
  .Parameter tenant
   If you specify the uninstall switch, then you can specify the tenant from which you want to uninstall the app
  .Example
@@ -23,18 +27,30 @@ function UnPublish-NavContainerApp {
         [string]$appName,
         [switch]$unInstall,
         [Parameter(Mandatory=$false)]
+        [string]$publisher,
+        [Parameter(Mandatory=$false)]
+        [Version]$version,
+        [Parameter(Mandatory=$false)]
         [string]$tenant = "default"
     )
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $unInstall, $tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
             Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
         }
+        $params = @{}
+        if ($publisher) {
+            $params += @{ 'Publisher' = $publisher }
+        }
+        if ($version) {
+            $params += @{ 'Version' = $version }
+        }
         Write-Host "Unpublishing $appName"
-        Unpublish-NavApp -ServerInstance NAV -Name $appName
-    } -ArgumentList $appName, $unInstall, $tenant
+        Write-Host $params
+        Unpublish-NavApp -ServerInstance NAV -Name $appName @params
+    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
 Export-ModuleMember -Function UnPublish-NavContainerApp

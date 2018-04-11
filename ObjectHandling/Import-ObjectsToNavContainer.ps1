@@ -5,7 +5,7 @@
   Copy the object file to the Nav container if necessary.
   Create a session to a Nav container and run Import-NavApplicationObject
  .Parameter containerName
-  Name of the container for which you want to enter a session
+  Name of the container in which you want to import objects
  .Parameter objectsFile
   Path of the objects file you want to import
  .Parameter sqlCredential
@@ -19,10 +19,11 @@ function Import-ObjectsToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFile,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [switch]$doNotAskForCredential
     )
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential:$doNotAskForCredential
     $containerObjectsFile = Get-NavContainerPath -containerName $containerName -path $objectsFile
     $copied = $false
     if ("$containerObjectsFile" -eq "") {
@@ -31,7 +32,7 @@ function Import-ObjectsToNavContainer {
         $copied = $true
     }
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, $sqlCredential, $copied)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"

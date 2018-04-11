@@ -5,7 +5,8 @@
 function Get-DefaultCredential {
     Param(
         [string]$Message,
-        [string]$DefaultUserName
+        [string]$DefaultUserName,
+        [switch]$doNotAskForCredential
     )
 
     if (Test-Path "$hostHelperFolder\settings.ps1") {
@@ -17,7 +18,9 @@ function Get-DefaultCredential {
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword))
         }
     } else {
-        Get-Credential -username $DefaultUserName -Message $Message
+        if (!$doNotAskForCredential) {
+            Get-Credential -username $DefaultUserName -Message $Message
+        }
     }
 }
 
@@ -25,13 +28,14 @@ function Get-DefaultSqlCredential {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [switch]$doNotAskForCredential
     )
 
-    if (($sqlCredential -eq $null) -or ($sqlCredential -eq [System.Management.Automation.PSCredential]::Empty)) {
+    if ($sqlCredential -eq $null) {
         $containerAuth = Get-NavContainerAuth -containerName $containerName
         if ($containerAuth -ne "Windows") {
-            $sqlCredential = Get-DefaultCredential -DefaultUserName "" -Message "Please enter the SQL Server System Admin credentials for container $containerName"
+            $sqlCredential = Get-DefaultCredential -DefaultUserName "" -Message "Please enter the SQL Server System Admin credentials for container $containerName" -doNotAskForCredential:$doNotAskForCredential
         }
     }
     $sqlCredential

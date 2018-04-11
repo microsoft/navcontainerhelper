@@ -4,7 +4,7 @@
  .Description
   Create a session to a Nav container and run Compile-NavApplicationObject
  .Parameter containerName
-  Name of the container for which you want to enter a session
+  Name of the container in which you want to compile objects
  .Parameter filter
   Filter specifying the objects you want to compile (default is Compiled=0)
  .Parameter sqlCredential

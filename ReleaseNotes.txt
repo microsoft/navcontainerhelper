@@ -1,3 +1,10 @@
+0.2.7.6
+BugFix: Create-AadAppsForNav throws an error when the owner of the Excel App Registration already exists
+Add function Get-NavContainerNavUser to return users from the container
+Add function Invoke-NavContainerCodeunit to invoke a codeunit in a container
+Add function Compile-AppInNavContainer to compile an extension v2 app in a container (preview)
+Added publisher and version to unpublish-navcontainerapp
+
 0.2.7.5
 BugFix: New-NavContainerTenant and Remove-NavContainerTenant falsely asks for SQL credentials if not specified
 

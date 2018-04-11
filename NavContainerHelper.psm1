@@ -56,6 +56,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ObjectHandling\Import-DeltasToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Import-TestToolkitToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Compile-ObjectsInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Invoke-NavContainerCodeunit.ps1")
 
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")
@@ -65,6 +66,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "AppHandling\UnInstall-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\UnPublish-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Compile-AppInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 
 # Tenant Handling functions
@@ -76,8 +78,10 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
 
 # User Handling functions
+. (Join-Path $PSScriptRoot "UserHandling\Get-NavContainerNavUser.ps1")
 . (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")
 . (Join-Path $PSScriptRoot "UserHandling\New-NavContainerWindowsUser.ps1")
+. (Join-Path $PSScriptRoot "UserHandling\Setup-NavContainerTestUsers.ps1")
 
 # Azure AD specific functions
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
