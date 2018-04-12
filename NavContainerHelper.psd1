@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.8.3'
+ModuleVersion = '0.2.8.4'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -139,7 +139,8 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.8.3
+        ReleaseNotes = '0.2.8.4
+Bugfix: Invoke-NavContainerCodeunit didn''t work with multitenancy
 Bugfix: Premium user didn''t work with multitenancy
 Bugfix: Hardcoded containername in Setup-NavContainerTestUsers
 

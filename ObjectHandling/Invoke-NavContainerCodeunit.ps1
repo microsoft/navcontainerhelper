@@ -61,7 +61,7 @@ function Invoke-NavContainerCodeunit {
         Invoke-NAVCodeunit -ServerInstance NAV -Tenant $tenant @Params -CodeunitId $CodeUnitId
     
         if (!($userexist)) {
-            Remove-NAVServerUser -ServerInstance NAV -WindowsAccount $me -Force
+            Remove-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -Force
         }
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument

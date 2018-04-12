@@ -1,4 +1,5 @@
-0.2.8.3
+0.2.8.4
+Bugfix: Invoke-NavContainerCodeunit didn't work with multitenancy
 Bugfix: Premium user didn't work with multitenancy
 Bugfix: Hardcoded containername in Setup-NavContainerTestUsers
 
