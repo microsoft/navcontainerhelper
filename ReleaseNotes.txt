@@ -1,3 +1,6 @@
+0.2.8.1
+Bugfix: Hardcoded containername in Setup-NavContainerTestUsers
+
 0.2.8.0
 BugFix: Create-AadAppsForNav throws an error when the owner of the Excel App Registration already exists
 Add function Get-NavContainerNavUser to return users from the container
