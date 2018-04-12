@@ -1,4 +1,5 @@
-0.2.8.1
+0.2.8.2
+Bugfix: Premium user didn't work with multitenancy
 Bugfix: Hardcoded containername in Setup-NavContainerTestUsers
 
 0.2.8.0
