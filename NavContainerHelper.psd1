@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.8.4'
+ModuleVersion = '0.2.8.5'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
