@@ -10,9 +10,9 @@
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter bacpacFolder
   The folder to which the bacpac files are exported (needs to be shared with the container)
- .Parameter tenantDatabaseToExport
-  The tenant database to export, only applies to multi-tenant containers.
-  Default is the mounted tenant, tenant is the template tenant.
+ .Parameter tenant
+  The tenant database to export, only applies to multi-tenant containers
+  Omit to export tenant template, specify default to export the default tenant.
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test
  .Example
@@ -20,7 +20,7 @@
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\demo" -sqlCredential <sqlCredential>
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -tenantDatabaseToExport Default
+  Export-NavContainerDatabasesAsBacpac -containerName test -tenant default
 #>
 function Export-NavContainerDatabasesAsBacpac {
     Param(
@@ -31,8 +31,7 @@ function Export-NavContainerDatabasesAsBacpac {
         [Parameter(Mandatory=$false)]
         [string]$bacpacFolder = "",
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Tenant","Default")]
-        [string]$tenantDatabaseToExport="Tenant"
+        [string]$tenant = "tenant"
     )
     
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $containerName
@@ -49,7 +48,7 @@ function Export-NavContainerDatabasesAsBacpac {
     $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($sqlCredential, $bacpacFolder, $tenantDatabaseToExport)
+    Invoke-Command -Session $session -ScriptBlock { Param($sqlCredential, $bacpacFolder, $tenant)
     
         function Install-DACFx
         {
@@ -225,7 +224,7 @@ function Export-NavContainerDatabasesAsBacpac {
             
             $tempTenantDatabaseName = "tempTenant"
             $tenantBacpacFileName = Join-Path $bacpacFolder "tenant.bacpac"
-            Copy-NavDatabase -SourceDatabaseName $tenantDatabaseToExport -DestinationDatabaseName $tempTenantDatabaseName
+            Copy-NavDatabase -SourceDatabaseName $tenant -DestinationDatabaseName $tempTenantDatabaseName
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName
         } else {
@@ -236,7 +235,7 @@ function Export-NavContainerDatabasesAsBacpac {
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName
         }
-    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenantDatabaseToExport
+    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant
 }
 Export-ModuleMember Export-NavContainerDatabasesAsBacpac
 
