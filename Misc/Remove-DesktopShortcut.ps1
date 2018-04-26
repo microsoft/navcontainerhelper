@@ -11,5 +11,9 @@
     if (Test-Path -Path $filename) {
         Remove-Item $filename -force
     }
+    $filename = Join-Path ([Environment]::GetFolderPath("CommonStartMenu")) "NavContainerHelper\$Name.lnk"
+    if (Test-Path -Path $filename) {
+        Remove-Item $filename -force
+    }
 }
 Export-ModuleMember Remove-DesktopShortcut

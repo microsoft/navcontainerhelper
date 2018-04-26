@@ -34,7 +34,7 @@ function Convert-ModifiedObjectsToAl {
         [switch]$openFolder
     )
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $session = Get-NavContainerSession -containerName $containerName
     $txt2al = Invoke-Command -Session $session -ScriptBlock { $txt2al }
     if (!($txt2al)) {

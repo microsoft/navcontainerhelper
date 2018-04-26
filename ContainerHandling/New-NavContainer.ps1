@@ -52,6 +52,8 @@
   Define the restart option for the container
  .Parameter auth
   Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
+ .Parameter timeout
+  Specify the number of seconds to wait for activity. Default is 1800 (30 min.). -1 means wait forever.
  .Parameter additionalParameters
   This allows you to transfer an additional number of parameters to the docker run
  .Parameter myscripts
@@ -84,7 +86,7 @@ function New-NavContainer {
         [string]$databaseInstance = "",
         [string]$databaseName = "",
         [System.Management.Automation.PSCredential]$databaseCredential = $null,
-        [ValidateSet('None','Desktop','StartMenu')]
+        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
         [string]$shortcuts='Desktop',
         [switch]$updateHosts,
         [switch]$useSSL,
@@ -99,6 +101,7 @@ function New-NavContainer {
         [string]$restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string]$auth='Windows',
+        [int]$timeout = 1800,
         [string[]]$additionalParameters = @(),
         $myScripts = @()
     )
@@ -422,7 +425,7 @@ function New-NavContainer {
             if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
                 return
             }
-            Wait-NavContainerReady $containerName
+            Wait-NavContainerReady $containerName -timeout $timeout
         } finally {
             Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
         }
@@ -433,7 +436,7 @@ function New-NavContainer {
         if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
-        Wait-NavContainerReady $containerName
+        Wait-NavContainerReady $containerName -timeout $timeout
     }
 
     if ($navDvdPathIsTemp) {

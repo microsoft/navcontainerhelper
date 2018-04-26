@@ -9,6 +9,7 @@
   Filter specifying the objects you want to compile (default is Compiled=0)
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter doNotAskForCredential
  .Example
   Compile-ObjectsToNavContainer -containerName test2 -sqlCredential (get-credential -credential 'sa')
  .Example
@@ -19,10 +20,10 @@ function Compile-ObjectsInNavContainer {
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [string]$filter = "compiled=0", 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null 
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $session = Get-NavContainerSession -containerName $containerName
     Invoke-Command -Session $session -ScriptBlock { Param($filter, $sqlCredential)
 

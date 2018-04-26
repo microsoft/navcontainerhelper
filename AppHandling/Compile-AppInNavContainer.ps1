@@ -85,8 +85,15 @@ function Compile-AppInNavContainer {
                 [System.IO.File]::ReadAllText($customConfigFile)
             }
             $serverInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='ServerInstance']").Value
-            $webClientUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-            $devServerUrl = $webClientUrl.Substring(0,$webClientUrl.Length - $serverInstance.Length - 2) + ":7049/$serverInstance"
+
+            $DeveloperServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='DeveloperServicesPort']").Value
+            $DeveloperServicesSSLEnabled = $customConfig.SelectSingleNode("//appSettings/add[@key='DeveloperServicesSSLEnabled']").Value
+            if ($DeveloperServicesSSLEnabled -eq "true") {
+                $protocol = "https://"
+            } else {
+                $protocol = "http://"
+            }
+            $devServerUrl = "${protocol}${containerName}:${DeveloperServicesPort}/${serverInstance}"
             $auth = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
 
             $authParam = @{}

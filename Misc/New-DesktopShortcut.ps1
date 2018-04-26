@@ -7,7 +7,7 @@
         [string]$WorkingDirectory = "", 
         [string]$IconLocation = "", 
         [string]$Arguments = "",
-        [ValidateSet('None','Desktop','StartMenu','Startup')]
+        [ValidateSet('None','Desktop','StartMenu','Startup','CommonStartMenu')]
         [string]$shortcuts = "Desktop",
         [switch]$RunAsAdministrator = $true
     )

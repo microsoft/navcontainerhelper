@@ -38,7 +38,7 @@ function Export-NavContainerObjects {
         $exportTo = 'txt folder'
     }
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
     $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportTo)

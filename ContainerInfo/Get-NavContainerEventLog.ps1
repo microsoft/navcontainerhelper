@@ -22,8 +22,7 @@ function Get-NavContainerEventLog {
         [string]$containerName,
         [Parameter(Mandatory=$false)]
         [string]$logname = "Application",
-        [Parameter(Mandatory=$false)]
-        [string]$doNotOpen
+        [switch]$doNotOpen
     )
 
     Process {

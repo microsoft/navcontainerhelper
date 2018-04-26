@@ -19,11 +19,10 @@ function Import-ObjectsToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFile,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [switch]$doNotAskForCredential
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential:$doNotAskForCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFile = Get-NavContainerPath -containerName $containerName -path $objectsFile
     $copied = $false
     if ("$containerObjectsFile" -eq "") {

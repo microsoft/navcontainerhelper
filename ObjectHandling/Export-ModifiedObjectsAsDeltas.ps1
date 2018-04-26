@@ -39,7 +39,7 @@ function Export-ModifiedObjectsAsDeltas {
         [switch]$openFolder
     )
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
 
     if ((Get-NavContainerSharedFolders -containerName $containerName)[$hostHelperFolder] -ne $containerHelperFolder) {
         throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $hostHelperFolder to $containerHelperFolder in the container (docker run ... -v ${hostHelperFolder}:$containerHelperFolder ... <image>)."
