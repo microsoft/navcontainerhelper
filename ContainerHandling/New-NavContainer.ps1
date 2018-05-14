@@ -366,7 +366,11 @@ function New-NavContainer {
         ('Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | % {
             $UserId = $_.UserSecurityId
             Write-Host "Assign Premium plan for $($_.Username)"
-            sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
+            $dbName = $DatabaseName
+            if ($multitenant) {
+                $dbName = $TenantId
+            }
+            sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
           }
         ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
     }
