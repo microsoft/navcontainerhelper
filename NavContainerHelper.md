@@ -690,7 +690,8 @@ A third optiopn is to specify the .bak file to the myscripts parameter and speci
                      -myScripts @("c:\temp\navdbfiles\Demo Database NAV (11-0).bak") `
                      -additionalParameters @('--env bakfile="c:\run\my\Demo Database NAV (11-0).bak"')
 
-**Note**, when specifying a .bak file, the normal container initialization is still continuing and the NAV Super user will be created. This is not happening if you manually restore the .bak file to a SQL server and point out an external SQL Server database.
+**Note**, when specifying a .bak file, the normal container initialization is still continuing and the NAV Super user will be created if it doesn't already exist. This is not happening if you manually restore the .bak file to a SQL server and point out an external SQL Server database.
+**Note also**, if using Windows Authentication it only compares the user name - it does not take the domain name into account.
 
 [Back to TOC](#toc)
 
