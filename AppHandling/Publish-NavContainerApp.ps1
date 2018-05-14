@@ -16,6 +16,8 @@
   Include this parameter if you want to install the app after publishing
  .Parameter tenant
   If you specify the install switch, then you can specify the tenant in which you want to install the app
+ .Parameter packageType
+  Specify Extension or SymbolsOnly based on which package yu 
  .Example
   Publish-NavContainerApp -appFile c:\temp\myapp.app
  .Example
@@ -34,7 +36,9 @@ function Publish-NavContainerApp {
         [switch]$sync,
         [switch]$install,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default"
+        [string]$tenant = "default",
+        [ValidateSet('Extension','SymbolsOnly')]
+        [string]$packageType = 'Extension'
     )
 
     $copied = $false
@@ -50,7 +54,7 @@ function Publish-NavContainerApp {
     }
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType)
 
         if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
             $appUrl = $appFile
@@ -60,7 +64,7 @@ function Publish-NavContainerApp {
         }
 
         Write-Host "Publishing $appFile"
-        Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification
+        Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification -packageType $packageType
         if ($sync -or $install) {
             $appName = (Get-NAVAppInfo -Path $appFile).Name
     
@@ -79,7 +83,7 @@ function Publish-NavContainerApp {
         if ($copied) { 
             Remove-Item $appFile -Force
         }
-    } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant
+    } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType
     Write-Host -ForegroundColor Green "App successfully published"
 }
 Export-ModuleMember -Function Publish-NavContainerApp
