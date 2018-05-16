@@ -11,7 +11,7 @@
  .Parameter bacpacFolder
   The folder to which the bacpac files are exported (needs to be shared with the container)
  .Parameter tenant
-  The tenant database to export, only applies to multi-tenant containers
+  The tenant database(s) to export, only applies to multi-tenant containers
   Omit to export tenant template, specify default to export the default tenant.
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test
@@ -21,6 +21,8 @@
   Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\demo" -sqlCredential <sqlCredential>
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test -tenant default
+ .Example
+  Export-NavContainerDatabasesAsBacpac -containerName test -tenant @("default","tenant")
 #>
 function Export-NavContainerDatabasesAsBacpac {
     Param(
@@ -31,7 +33,7 @@ function Export-NavContainerDatabasesAsBacpac {
         [Parameter(Mandatory=$false)]
         [string]$bacpacFolder = "",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "tenant"
+        [string[]]$tenant = @("tenant")
     )
     
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $containerName
@@ -222,11 +224,13 @@ function Export-NavContainerDatabasesAsBacpac {
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServer -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServer -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName
             
-            $tempTenantDatabaseName = "tempTenant"
-            $tenantBacpacFileName = Join-Path $bacpacFolder "tenant.bacpac"
-            Copy-NavDatabase -SourceDatabaseName $tenant -DestinationDatabaseName $tempTenantDatabaseName
-            Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName
+            $tenant | % {
+                $tempTenantDatabaseName = "tempTenant"
+                $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
+                Copy-NavDatabase -SourceDatabaseName $_ -DestinationDatabaseName $tempTenantDatabaseName
+                Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
+                Do-Export -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName
+            }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
             $bacpacFileName = Join-Path $bacpacFolder "database.bacpac"

@@ -3,6 +3,7 @@ Added tenant parameter to Export-NavContainerDatabasesAsBacpac
 Object handling functions will not ask for credentials if not specified
 BugFix: doNotOpen in Get-NavContainerEventLog was string - should be switch
 Compile-AppInNavContainer had a dependency on the WebClient, this dependency is removed
+Support for 0..many tenants in Export-NavContainerDatabasesAsBacpac
 
 0.2.8.4
 Bugfix: Invoke-NavContainerCodeunit didn't work with multitenancy
