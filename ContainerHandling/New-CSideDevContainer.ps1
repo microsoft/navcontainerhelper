@@ -25,6 +25,8 @@
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
  .Parameter alwaysPull
   Always pull latest version of the docker image
+ .Parameter enableSymbolLoading
+  Include this switch if you want to do development in both CSide and VS Code to have symbols automatically generated for your changes in CSide
  .Parameter auth
   Set auth to Windows or NavUserPassword depending on which authentication mechanism your container should use
  .Parameter additionalParameters
@@ -51,6 +53,7 @@ function New-CSideDevContainer {
         [switch]$updateHosts,
         [switch]$useSSL,
         [switch]$doNotExportObjectsToText,
+        [switch]$enableSymbolLoading,
         [switch]$alwaysPull,
         [ValidateSet('Windows','NavUserPassword')]
         [string]$auth='Windows',
@@ -68,6 +71,7 @@ function New-CSideDevContainer {
                      -includeCSide `
                      -doNotExportObjectsToText:$doNotExportObjectsToText `
                      -alwaysPull:$alwaysPull `
+                     -enableSymbolLoading:$enableSymbolLoading `
                      -updateHosts:$updateHosts `
                      -useSSL:$useSSL `
                      -auth $auth `
