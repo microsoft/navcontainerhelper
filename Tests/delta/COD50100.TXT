@@ -1,0 +1,21 @@
+OBJECT Codeunit 50100 DeltaTest
+{
+  OBJECT-PROPERTIES
+  {
+    Modified=Yes;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+            MESSAGE('Hello world');
+          END;
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
