@@ -216,6 +216,14 @@ function New-NavContainer {
     Write-Host "Generic Tag: $genericTag"
     $locale = Get-LocaleFromCountry $devCountry
 
+    if ((!$doNotExportObjectsToText) -and ($version -lt [System.Version]"8.0.0.0")) {
+        throw "PowerShell Cmdlets to export objects as text are not included before NAV 2015, please specify -doNotExportObjectsToText."
+    }
+
+    if ($multitenant -and ($version -lt [System.Version]"7.1.0.0")) {
+        throw "Multitenancy is not supported in NAV 2013"
+    }
+
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
         throw "Multitenancy is not supported by images with generic tag prior to 0.0.4.5"
     }
@@ -341,7 +349,12 @@ function New-NavContainer {
         if ($multitenant) {
             $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
         }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
+        if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ServicesCertificateValidationEnabled""]") -ne $null) {
+            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
+        }
+        if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]") -ne $null) {
+            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]").value="false"
+        }
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
         $acsUri = "$federationLoginEndpoint"
         if ($acsUri -ne "") {
@@ -454,20 +467,22 @@ function New-NavContainer {
 
     if ($shortcuts -ne "None") {
         Write-Host "Creating Desktop Shortcuts for $containerName"
-        $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-        if ("$publicWebBaseUrl" -ne "") {
-            $webClientUrl = "$publicWebBaseUrl"
-            if ($multitenant) {
-                $webClientUrl += "?tenant=default"
-            }
-            New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-            if ($includeTestToolkit) {
+        if ($customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']") -ne $null) {
+            $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
+            if ("$publicWebBaseUrl" -ne "") {
+                $webClientUrl = "$publicWebBaseUrl"
                 if ($multitenant) {
-                    $webClientUrl += "&page=130401"
-                } else {
-                    $webClientUrl += "?page=130401"
+                    $webClientUrl += "?tenant=default"
                 }
-                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                if ($includeTestToolkit) {
+                    if ($multitenant) {
+                        $webClientUrl += "&page=130401"
+                    } else {
+                        $webClientUrl += "?page=130401"
+                    }
+                    New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                }
             }
         }
         New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
