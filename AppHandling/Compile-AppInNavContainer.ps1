@@ -4,6 +4,8 @@
  .Description
  .Parameter containerName
   Name of the container which you want to use to compile the app
+ .Parameter tenant
+  tenant to use if container is multitenant
  .Parameter credential
   Credentials of the NAV SUPER user if using NavUserPassword authentication
  .Parameter appProjectFolder
@@ -24,6 +26,8 @@ function Compile-AppInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName,
+        [Parameter(Mandatory=$false)]
+        [string]$tenant = "default",
         [Parameter(Mandatory=$false)]
         [System.Management.Automation.PSCredential]$credential,
         [Parameter(Mandatory=$true)]
@@ -114,7 +118,7 @@ function Compile-AppInNavContainer {
                 $authParam += @{"usedefaultcredential" = $true}
             }
 
-            $url = "$devServerUrl/dev/packages?publisher=$($_.publisher)&appName=$($_.name)&versionText=$($_.Version)"
+            $url = "$devServerUrl/dev/packages?publisher=$($_.publisher)&appName=$($_.name)&versionText=$($_.Version)&tenant=$tenant"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
     }
