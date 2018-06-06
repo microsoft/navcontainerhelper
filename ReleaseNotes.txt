@@ -1,10 +1,12 @@
-vnext
+0.2.9.0
 Added tenant parameter (0..many tenants) to Export-NavContainerDatabasesAsBacpac
 Object handling functions will not ask for credentials if not specified
 BugFix: doNotOpen in Get-NavContainerEventLog was string - should be switch
 Compile-AppInNavContainer had a dependency on the WebClient, this dependency is removed
+Compile-AppInNavContainer did not work on multitenant containers
 New-NavContainer will not crash when running the generic image with a NAV 2013 DVD
-
+Fix timing issue in Create-AadAppsForNAV
+Updated tests
 
 0.2.8.4
 Bugfix: Invoke-NavContainerCodeunit didn't work with multitenancy
