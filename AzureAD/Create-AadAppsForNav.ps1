@@ -63,6 +63,9 @@ function Create-AadAppsForNav
     if (!(Get-Package -Name AzureRM.Resources -ErrorAction Ignore)) {
         Write-Host "Installing AzureRM.Resources PowerShell package (if this fails, you probably need to update the PowerShellGet module)"
         Install-Package AzureRM.Resources -Force -WarningAction Ignore | Out-Null
+
+        # Wait 30 seconds after installing packages before continuing
+        Start-Sleep -Seconds 30
     }
 
     # Login to AzureRm
