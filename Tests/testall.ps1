@@ -3,7 +3,7 @@
 clear
 $global:testErrors = @()
 $global:currentTest = ""
-Clear-Content -Path "c:\temp\errors.txt"
+Clear-Content -Path "c:\temp\errors.txt" -ErrorAction Ignore
 
 function randomchar([string]$str)
 {
@@ -69,7 +69,8 @@ function IsUrl($expr) {
 }
 
 $genericImage = "microsoft/dynamics-nav:generic"
-#docker pull $genericImage
+docker pull $genericImage
+$genericTag = Get-NavContainerGenericTag -containerOrImageName $genericImage
 
 $windowsCredential = get-credential -UserName $env:USERNAME -Message "Please enter your Windows credentials if you want to include Windows Auth testing"
 $aadAdminCredential = get-credential -Message "Please enter your AAD Admin credentials if you want to include AAD auth testing"
@@ -92,7 +93,7 @@ $testParams = @(
 )
 
 $testContainerInfo = $true
-$testBacpac = $false
+$testBacpac = $true
 $testAppHandling = $true
 $testObjectHandling = $true
 $testContainerHandling = $true
@@ -186,7 +187,6 @@ $testParams | % {
                         IsUrl -expr "Get-NavContainerLegal -containerOrImageName $name"
         
                         Test "Get-NavContainerGenericTag"
-                        $genericTag = Get-NavContainerGenericTag -containerOrImageName $genericImage
                         AreEqual -expr "Get-NavContainerGenericTag -containerOrImageName $image" -expected $genericTag
                         AreEqual -expr "Get-NavContainerGenericTag -containerOrImageName $name" -expected $genericTag
         
