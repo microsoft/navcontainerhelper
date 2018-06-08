@@ -17,8 +17,9 @@
     Write-Host "Get-NavContainerId               Get the Id of a NAV container"
     Write-Host "Test-NavContainer                Test whether a NAV container exists"
     Write-Host "Get-NavContainerDebugInfo        Get Troubleshooting info for NAV container if you need help with an issue"
-    Write-Host "Get-NavContainers.ps1            Get All Nav Containers"
-    Write-Host "Get-NavContainerEventLog.ps1     Get EventLog from Nav Container"
+    Write-Host "Get-NavContainers                Get All Nav Containers"
+    Write-Host "Get-NavContainerEventLog         Get EventLog from Nav Container"
+    Write-Host "Get-NavContainerServerConfiguration Get Server Configuration from Nav Container"
     Write-Host
     Write-Host -ForegroundColor Yellow "Container handling functions"
     Write-Host "New-NavContainer                 Create new Nav container"
@@ -32,6 +33,7 @@
     Write-Host "Copy-FileFromNavContainer        Copy file from Nav Container"
     Write-Host "Copy-FileToNavContainer          Copy file to Nav Container"
     Write-Host "Export-NavContainerDatabasesAsBacpac Export database(s) in Nav Container as BacPac"
+    Write-Host "Backup-NavContainerDatabases     Backup database(s) in Nav Container as bak"
     Write-Host
     Write-Host -ForegroundColor Yellow "Object handling functions"
     Write-Host "Import-ObjectsToNavContainer     Import objects from .txt or .fob file to Nav Container"
@@ -46,6 +48,7 @@
     Write-Host "Convert-ModifiedObjectsToAl      Export objects, create baseline, create deltas and convert to .al files"
     Write-Host
     Write-Host -ForegroundColor Yellow "App handling functions"
+    Write-Host "Compile-AppInNavContainer        Use Container to compile App"
     Write-Host "Publish-NavContainerApp          Publish App to Nav container"
     Write-Host "Sync-NavContainerApp             Sync App in Nav container"
     Write-Host "Install-NavContainerApp          Install App in Nav container"
@@ -62,6 +65,14 @@
     Write-Host -ForegroundColor Yellow "User handling functions"
     Write-Host "New-NavContainerNavUser          Create new Nav User in Nav Container"
     Write-Host "New-NavContainerWindowsUser      Create new Windows User in Nav Container"
+    Write-Host 
+    Write-Host -ForegroundColor Yellow "Company handling functions"
+    Write-Host "New-CompanyInNavContainer        Create new Company in Nav Container"
+    Write-Host "Remove-CompanyInNavContainer     Remove Company from Nav Container"
+    Write-Host 
+    Write-Host -ForegroundColor Yellow "Configuration package handling functions"
+    Write-Host "Import-ConfigPackageInNavContainer Import Configuration package in Nav Container"
+    Write-Host "Remove-ConfigPackageInNavContainer Remove Configuratioin package from Nav container"
     Write-Host 
     Write-Host -ForegroundColor Yellow "Azure AD specific functions"
     Write-Host "Create-AadAppsForNav             Create Apps in Aad for AAD authentication support"

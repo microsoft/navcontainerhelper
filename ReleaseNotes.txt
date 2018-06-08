@@ -1,11 +1,19 @@
+0.3.0.0
+Added function Backup-NavContainerDatabases
+Added function New-CompanyInNavContainer (thanks Mike Glue)
+Added function Remove-CompanyInNavContainer (thanks Mike Glue)
+Added function Import-ConfigPackageInNavContainer.ps1 (thanks Mike Glue)
+Added function Remove-ConfigPackageInNavContainer.ps1 (thanks Mike Glue)
+Added function Get-NavContainerServerConfiguration (thanks Richard Robberse)
+In Get-NavContainerPath - if you start the path with a colon (:), then the path refers to a path inside the container and not a shared folder
+
 0.2.9.0
 Added tenant parameter (0..many tenants) to Export-NavContainerDatabasesAsBacpac
 Object handling functions will not ask for credentials if not specified
 BugFix: doNotOpen in Get-NavContainerEventLog was string - should be switch
 Compile-AppInNavContainer had a dependency on the WebClient, this dependency is removed
-Compile-AppInNavContainer did not work on multitenant containers
-New-NavContainer will not crash when running the generic image with a NAV 2013 DVD
-Fix timing issue in Create-AadAppsForNAV
+BufFix: Compile-AppInNavContainer did not work on multitenant containers
+BugFix: New-NavContainer will not crash when running the generic image with a NAV 2013 DVD
 Updated tests
 
 0.2.8.4
