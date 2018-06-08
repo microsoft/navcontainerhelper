@@ -98,3 +98,11 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
+
+# Company Handling functions
+. (Join-Path $PSScriptRoot "CompanyHandling\New-CompanyInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "CompanyHandling\Remove-CompanyInNavContainer.ps1")
+
+# Configuration Package Handling
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\Import-ConfigPackageInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\Remove-ConfigPackageInNavContainer.ps1")
