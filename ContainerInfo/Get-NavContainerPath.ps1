@@ -23,14 +23,28 @@ function Get-NavContainerPath {
 
     Process {
         $containerPath = ""
-        $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
-        $sharedFolders.GetEnumerator() | % {
-            if ($containerPath -eq "" -and ($path -eq $_.Name -or $path.StartsWith($_.Name+"\", "OrdinalIgnoreCase"))) {
-                $containerPath = ($_.Value + $path.Substring($_.Name.Length))
+        if ($path.StartsWith(":")) {
+            $path =$path.Substring(1)
+            $session = Get-NavContainerSession -containerName $containerName -silent
+            $exist = Invoke-Command -Session $session -ScriptBlock { Param($path)
+                Test-Path $path
+            } -ArgumentList $path
+            if ($exist) {
+                $containerPath = $path
             }
-        }
-        if ($throw -and "$containerPath" -eq "") {
-            throw "The folder $path is not shared with the container $containerName (nor is any of it's parent folders)"
+            if ($throw -and "$containerPath" -eq "") {
+                throw "The path $path does not exist in the container $containerName"
+            }
+        } else {
+            $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
+            $sharedFolders.GetEnumerator() | % {
+                if ($containerPath -eq "" -and ($path -eq $_.Name -or $path.StartsWith($_.Name+"\", "OrdinalIgnoreCase"))) {
+                    $containerPath = ($_.Value + $path.Substring($_.Name.Length))
+                }
+            }
+            if ($throw -and "$containerPath" -eq "") {
+                throw "The path $path is not shared with the container $containerName (nor is any of it's parent folders)"
+            }
         }
         return $containerPath
     }
