@@ -211,8 +211,9 @@ function Export-NavContainerDatabasesAsBacpac {
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
 
+        $databaseServerInstance = $databaseServer
         if ("$databaseInstance" -ne "") {
-            $databaseServer = "$databaseServer\$databaseInstance"
+            $databaseServerInstance = "$databaseServer\$databaseInstance"
         }
 
         $sqlPackageExe = Install-DACFx
@@ -220,24 +221,24 @@ function Export-NavContainerDatabasesAsBacpac {
         if ($multitenant) {
             $tempAppDatabaseName = "temp$DatabaseName"
             $appBacpacFileName = Join-Path $bacpacFolder "app.bacpac"
-            Copy-NavDatabase -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempAppDatabaseName
-            Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServer -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName
+            Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempAppDatabaseName
+            Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName
             
             $tenant | % {
                 $tempTenantDatabaseName = "tempTenant"
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
-                Copy-NavDatabase -SourceDatabaseName $_ -DestinationDatabaseName $tempTenantDatabaseName
-                Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-                Do-Export -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName
+                Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $_ -DestinationDatabaseName $tempTenantDatabaseName
+                Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
+                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName
             }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
             $bacpacFileName = Join-Path $bacpacFolder "database.bacpac"
-            Copy-NavDatabase -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempDatabaseName
-            Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName
+            Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempDatabaseName
+            Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+            Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant
 }

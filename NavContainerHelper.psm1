@@ -33,6 +33,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEventLog.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
@@ -76,6 +77,7 @@ $sessions = @{}
 
 # Bacpac Handling functions
 . (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
+. (Join-Path $PSScriptRoot "Bacpac\Backup-NavContainerDatabases.ps1")
 
 # User Handling functions
 . (Join-Path $PSScriptRoot "UserHandling\Get-NavContainerNavUser.ps1")
