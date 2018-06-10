@@ -63,30 +63,35 @@ function Create-AadAppsForNav
     if (!(Get-Package -Name AzureRM.Resources -ErrorAction Ignore)) {
         Write-Host "Installing AzureRM.Resources PowerShell package (if this fails, you probably need to update the PowerShellGet module)"
         Install-Package AzureRM.Resources -Force -WarningAction Ignore | Out-Null
-
-        # Wait 30 seconds after installing packages before continuing
-        Start-Sleep -Seconds 30
     }
 
     # Login to AzureRm
     $account = Add-AzureRmAccount -Credential $AadAdminCredential
-
     $AdProperties = @{}
-
     $adUserObjectId = 0
-    Write-Host "Identifying AAD Tenant ID"
-    foreach($tenant in $account.Context.Account.Tenants) {
-        try {
-            Write-Host -NoNewline "Trying $tenant"
-            $AadTenant = $tenant
-            $AdProperties["AadTenant"] = $AadTenant
-            Set-AzureRmContext -Tenant $AadTenant | Out-Null
-            $adUser = Get-AzureRmADUser -UserPrincipalName $account.Context.Account.Id
-            $adUserObjectId = $adUser.Id
-            Write-Host " - Success"
-            break
-        } catch {
-            Write-Host " - Failure"
+
+    try {
+        $aadDomain = $AadAdminCredential.UserName.Split("@")[1]
+        $aadTenant = (Invoke-WebRequest https://login.windows.net/$aadDomain/.well-known/openid-configuration | ConvertFrom-Json).token_endpoint.Split('/')[3]
+        $AdProperties["AadTenant"] = $AadTenant
+        Set-AzureRmContext -Tenant $AadTenant | Out-Null
+        $adUser = Get-AzureRmADUser -UserPrincipalName $account.Context.Account.Id
+        $adUserObjectId = $adUser.Id
+    } catch {
+        Write-Host "Identifying AAD Tenant ID"
+        foreach($tenant in $account.Context.Account.Tenants) {
+            try {
+                Write-Host -NoNewline "Trying $tenant"
+                $AadTenant = $tenant
+                $AdProperties["AadTenant"] = $AadTenant
+                Set-AzureRmContext -Tenant $AadTenant | Out-Null
+                $adUser = Get-AzureRmADUser -UserPrincipalName $account.Context.Account.Id
+                $adUserObjectId = $adUser.Id
+                Write-Host " - Success"
+                break
+            } catch {
+                Write-Host " - Failure"
+            }
         }
     }
 

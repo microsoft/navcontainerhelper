@@ -1,4 +1,4 @@
-0.3.0.0
+0.2.9.1
 Added function Backup-NavContainerDatabases
 Added function New-CompanyInNavContainer (thanks Mike Glue)
 Added function Remove-CompanyInNavContainer (thanks Mike Glue)
@@ -6,6 +6,7 @@ Added function Import-ConfigPackageInNavContainer.ps1 (thanks Mike Glue)
 Added function Remove-ConfigPackageInNavContainer.ps1 (thanks Mike Glue)
 Added function Get-NavContainerServerConfiguration (thanks Richard Robberse)
 In Get-NavContainerPath - if you start the path with a colon (:), then the path refers to a path inside the container and not a shared folder
+Bugfix: Create-AadAppsForNav required reboot after setup
 
 0.2.9.0
 Added tenant parameter (0..many tenants) to Export-NavContainerDatabasesAsBacpac
