@@ -72,7 +72,7 @@ function Create-AadAppsForNav
 
     try {
         $aadDomain = $AadAdminCredential.UserName.Split("@")[1]
-        $aadTenant = (Invoke-WebRequest https://login.windows.net/$aadDomain/.well-known/openid-configuration | ConvertFrom-Json).token_endpoint.Split('/')[3]
+        $aadTenant = ((New-Object System.Net.WebClient).DownloadString("https://login.windows.net/$aadDomain/.well-known/openid-configuration") | ConvertFrom-Json).token_endpoint.Split('/')[3]
         $AdProperties["AadTenant"] = $AadTenant
         Set-AzureRmContext -Tenant $AadTenant | Out-Null
         $adUser = Get-AzureRmADUser -UserPrincipalName $AadAdminCredential.UserName
