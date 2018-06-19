@@ -407,9 +407,9 @@ function New-NavContainer {
     if ($updateHosts) {
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
-        '
-        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname $hostname -ipAddress $ip
-        ' | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+        ('
+        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
+        ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
