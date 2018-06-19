@@ -106,6 +106,7 @@ function Export-NavContainerDatabasesAsBacpac {
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Server Instance]" 
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$("$")ndo$("$")cachesync]"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$("$")ndo$("$")tenants]"
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")dbproperty] SET [license] = NULL"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Object Tracking]" 
         
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
@@ -145,6 +146,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User Default Style Sheet]" 
                 Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User]" 
             }
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")tenantproperty] SET [license] = NULL"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Tenant License State]" 
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Active Session]" 
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Session Event]" 

@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.9.3'
+ModuleVersion = '0.2.9.4'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -141,7 +141,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.2.9.3
+        ReleaseNotes = '0.2.9.4
+Set license to NULL from dbo.[dbproperty] and dbo.[tenantproperty] tables when exporting databases to bacpac
+
+0.2.9.3
 Use containername for hosts file when using -updatehosts (like remove-navcontainer)
 Added parameter isolation to new-navcontainer to allow Windows Server to use hyperv isolation
 Fixed a number of ScriptAnalyzer errors/warnings in NavContainerHelper
