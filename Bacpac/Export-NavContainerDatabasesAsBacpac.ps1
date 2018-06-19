@@ -50,7 +50,7 @@ function Export-NavContainerDatabasesAsBacpac {
     $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($sqlCredential, $bacpacFolder, $tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant)
     
         function Install-DACFx
         {
@@ -145,6 +145,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User Default Style Sheet]" 
                 Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User]" 
             }
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Tenant License State]" 
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Active Session]" 
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Session Event]" 
         
@@ -225,7 +226,7 @@ function Export-NavContainerDatabasesAsBacpac {
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName
             
-            $tenant | % {
+            $tenant | ForEach-Object {
                 $tempTenantDatabaseName = "tempTenant"
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
                 Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $_ -DestinationDatabaseName $tempTenantDatabaseName

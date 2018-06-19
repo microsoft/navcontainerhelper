@@ -123,7 +123,7 @@ function Check-NavContainerName {
         throw "Container name should start with a letter (a-z)"
     }
 
-    $containerName.ToLowerInvariant().ToCharArray() | % {
+    $containerName.ToLowerInvariant().ToCharArray() | ForEach-Object {
         if (($_ -lt "a" -or $_ -gt "z") -and ($_ -lt "0" -or $_ -gt "9") -and ($_ -ne "-")) {
             throw "Container name contains invalid characters. Allowed characters are letters (a-z), numbers (0-9) and dashes (-)"
         }

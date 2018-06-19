@@ -1,3 +1,9 @@
+0.2.9.3
+Use containername for hosts file when using -updatehosts (like remove-navcontainer)
+Added parameter isolation to new-navcontainer to allow Windows Server to use hyperv isolation
+Fixed a number of ScriptAnalyzer errors/warnings in NavContainerHelper
+Empty the dbo.[Tenant License State] table when exporting databases to bacpac
+
 0.2.9.1
 Added function Backup-NavContainerDatabases
 Added function New-CompanyInNavContainer (thanks Mike Glue)

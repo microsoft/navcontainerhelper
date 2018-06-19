@@ -56,7 +56,7 @@ function Get-NavContainerDebugInfo {
         $debugInfo.Add('container.labels', $inspect.Config.Labels)
         
         if (!$ExcludeEnvVars) {
-            $envs = $inspect.Config.Env.GetEnumerator() | % {
+            $envs = $inspect.Config.Env.GetEnumerator() | ForEach-Object {
                 if ($includeSensitiveInformation) {
                     $_
                 } elseif ($_.ToLowerInvariant().Contains("password=") -or 

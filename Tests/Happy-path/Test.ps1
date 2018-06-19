@@ -70,7 +70,7 @@ Write-Host "IP Address of $containerName is $ipAddress"
 # Get-NavContainerSharedFolders
 $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
 Write-Host "Shared Folders with $containerName are:"
-$sharedFolders.GetEnumerator() | % { Write-Host ($_.Name + " -> " + $_.Value) }
+$sharedFolders.GetEnumerator() | ForEach-Object { Write-Host ($_.Name + " -> " + $_.Value) }
 
 # Get-NavContainerPath
 $path = "c:\programdata\navcontainerhelper\extensions\$containerName\my\AdditionalSetup.ps1"
@@ -192,7 +192,7 @@ Write-Host "IP Address of $containerName is $ipAddress"
 # Get-NavContainerSharedFolders
 $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
 Write-Host "Shared Folders with $containerName are:"
-$sharedFolders.GetEnumerator() | % { Write-Host ($_.Name + " -> " + $_.Value) }
+$sharedFolders.GetEnumerator() | ForEach-Object { Write-Host ($_.Name + " -> " + $_.Value) }
 
 # Get-NavContainerPath
 $path = "c:\programdata\navcontainerhelper\extensions\$containerName\my\AdditionalSetup.ps1"

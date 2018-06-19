@@ -1,6 +1,6 @@
 ﻿# Run all tests
 
-clear
+Clear-Host
 $global:testErrors = @()
 $global:currentTest = ""
 Clear-Content -Path "c:\temp\errors.txt" -ErrorAction Ignore
@@ -29,6 +29,13 @@ function Get-RandomPassword {
                 (randomchar $special)
     Write-Host "Use password $password"
     $password
+}
+
+function Get-RandomPasswordAsSecureString {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "", Justification="Get Random password as secure string.")]
+    Param()
+
+    ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
 }
 
 function Head($text) {
@@ -101,14 +108,14 @@ $testTenantHandling = $true
 $testUserHandling = $true
 $useSSL = $false
 
-$testParams | % {
+$testParams | ForEach-Object {
     $name = $_.name
     $image = $_.image
     $country = $_.country
     $containerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $name
     $myPath = Join-Path $containerPath "my"
 
-    $false, $true | % {
+    $false, $true | ForEach-Object {
         $multitenant = $_
 
         $testAuths = @("NavUserPassword")
@@ -119,7 +126,7 @@ $testParams | % {
             $testAuths += @("AAD")
         }
 
-        $testAuths | % {
+        $testAuths | ForEach-Object {
             $auth = $_
 
             $addParams = @{}
@@ -127,7 +134,7 @@ $testParams | % {
             if ($auth -eq "Windows") {
                 $credential = $windowsCredential
             } else {
-                $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force))
+                $credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
                 if ($auth -eq "AAD") {
                     $protocol = "http://"
                     if ($useSSL) {
@@ -414,13 +421,13 @@ $testParams | % {
     
                         AreEqual -expr "@(Get-NavContainerTenants -containerName $name).Count" -expected 1
         
-                        1..3 | % { 
+                        1..3 | ForEach-Object { 
                             New-NavContainerTenant -containerName $name -tenantId "test$_"
                         }
         
                         AreEqual -expr "@(Get-NavContainerTenants -containerName $name).Count" -expected 4
         
-                        1..3 | % { 
+                        1..3 | ForEach-Object { 
                             Remove-NavContainerTenant -containerName $name -tenantId "test$_"
                         }
         
@@ -438,7 +445,7 @@ $testParams | % {
                     try {
     
                         $windowsusername = "user manager\containeradministrator"
-                        $credential2 = [PSCredential]::new("extra", (ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force))
+                        $credential2 = [PSCredential]::new("extra", (Get-RandomPasswordAsSecureString))
         
                         if ($multitenant) {
                             Test "New-NavContainerTenant"
@@ -469,7 +476,6 @@ $testParams | % {
 
                             Test "New-NavContainerNavUser"
                             if ($auth -eq "Windows") {
-                                $me = whoami
                                 New-NavContainerNavUser -containerName $name -WindowsAccount $windowsusername -PermissionSetId SUPER
                             } else {
                                 New-NavContainerNavUser -containerName $name -Credential $credential2 -PermissionSetId SUPER

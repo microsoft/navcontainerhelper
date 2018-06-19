@@ -41,7 +41,7 @@ function Invoke-NavContainerCodeunit {
     Invoke-Command -Session $session -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument)
     
         $me = whoami
-        $userexist = Get-NAVServerUser -ServerInstance NAV -Tenant $tenant |? username -eq $me
+        $userexist = Get-NAVServerUser -ServerInstance NAV -Tenant $tenant | Where-Object username -eq $me
         if (!($userexist)) {
             New-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me
             New-NAVServerUserPermissionSet -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER

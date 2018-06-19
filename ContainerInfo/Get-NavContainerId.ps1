@@ -19,7 +19,7 @@ function Get-NavContainerId {
 
     Process {
         $id = ""
-        docker ps --filter name="$containerName" -a -q --no-trunc | % {
+        docker ps --filter name="$containerName" -a -q --no-trunc | ForEach-Object {
             # filter only filters on the start of the name
             $name = Get-NavContainerName -containerId $_
             if ($name -eq $containerName) {

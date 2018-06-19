@@ -21,6 +21,7 @@
 #>
 function Create-AadAppsForNav
 {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidUsingConvertToSecureStringWithPlainText", "", Justification="Key returned in clear text needed as Secure string.")]
     Param
     (
         [Parameter(Mandatory=$true)]

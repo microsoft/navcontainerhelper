@@ -48,7 +48,7 @@ function Create-MyDeltaFolder {
         Compare-NAVApplicationObject @params -OriginalPath $myOriginalFolder -ModifiedPath $modifiedFolder -DeltaPath $myDeltaFolder | Out-Null
 
         Write-Host "Rename new objects to .TXT"
-        Get-ChildItem $myDeltaFolder | % {
+        Get-ChildItem $myDeltaFolder | ForEach-Object {
             $Name = $_.Name
             if ($Name.ToLowerInvariant().EndsWith(".delta")) {
                 $BaseName = $_.BaseName

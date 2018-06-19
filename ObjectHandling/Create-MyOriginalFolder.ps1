@@ -29,7 +29,7 @@ function Create-MyOriginalFolder {
     } else {
         New-Item -Path $myoriginalFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
     }        
-    Get-ChildItem $modifiedFolder | % {
+    Get-ChildItem $modifiedFolder | ForEach-Object {
         $Name = ($_.BaseName+".txt")
         $OrgName = Join-Path $myOriginalFolder $Name
         $TxtFile = Join-Path $originalFolder $Name

@@ -53,7 +53,7 @@ function Get-NavContainerSession {
                 . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
 
                 $txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
-                cd $runPath
+                Set-Location $runPath
             } -ArgumentList $silent
             $sessions.Add($containerId, $session)
         }

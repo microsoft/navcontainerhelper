@@ -19,7 +19,7 @@ function Get-NavContainerIpAddress {
     Process {
         $inspect = docker inspect $containerName | ConvertFrom-Json
         $networks = $inspect.NetworkSettings.Networks
-        $network = ($networks | get-member -MemberType NoteProperty | select Name).Name
+        $network = ($networks | get-member -MemberType NoteProperty | Select-Object Name).Name
         return ($networks | Select-Object -ExpandProperty $network).IPAddress
     }
 }

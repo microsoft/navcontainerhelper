@@ -37,7 +37,7 @@ function Get-NavContainerPath {
             }
         } else {
             $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
-            $sharedFolders.GetEnumerator() | % {
+            $sharedFolders.GetEnumerator() | ForEach-Object {
                 if ($containerPath -eq "" -and ($path -eq $_.Name -or $path.StartsWith($_.Name+"\", "OrdinalIgnoreCase"))) {
                     $containerPath = ($_.Value + $path.Substring($_.Name.Length))
                 }

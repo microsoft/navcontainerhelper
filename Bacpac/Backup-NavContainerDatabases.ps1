@@ -45,7 +45,7 @@ function Backup-NavContainerDatabases {
     $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($sqlCredential, $bakFolder, $tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bakFolder, $tenant)
        
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -61,7 +61,7 @@ function Backup-NavContainerDatabases {
 
         if ($multitenant) {
             Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $DatabaseName -BackupFile Join-Path $bacpacFolder "app.bak"
-            $tenant | % {
+            $tenant | ForEach-Object {
                 Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $_ -BackupFile (Join-Path $bakFolder "$_.bak")
             }
         } else {

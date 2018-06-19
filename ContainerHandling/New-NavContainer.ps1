@@ -19,7 +19,9 @@
  .Parameter credential
   Username and Password for the NAV Container
  .Parameter memoryLimit
-  Memory limit for the container (default 4G)
+  Memory limit for the container (default is unlimited for Windows Server host else 4G)
+ .Parameter isolation
+  Isolation mode for the container (default is process for Windows Server host else hyperv)
  .Parameter AuthenticationEmail
   AuthenticationEmail of the admin user of NAV
  .Parameter databaseServer
@@ -82,6 +84,8 @@ function New-NavContainer {
         [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$authenticationEMail = "",
         [string]$memoryLimit = "",
+        [ValidateSet('','process','hyperv')]
+        [string]$isolation = "",
         [string]$databaseServer = "",
         [string]$databaseInstance = "",
         [string]$databaseName = "",
@@ -123,7 +127,7 @@ function New-NavContainer {
         }
     }
 
-    $myScripts | % {
+    $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
             } elseif (!(Test-Path $_)) {
@@ -133,6 +137,9 @@ function New-NavContainer {
             throw "Illegal value in myScripts"
         }
     }
+
+    $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
+
 
     $parameters = @()
 
@@ -232,6 +239,10 @@ function New-NavContainer {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
 
+    if (!$isServerHost -and "$isolation" -eq "process") {
+        throw "Process isolation mode is only supported on Windows Server hosts"
+    }
+
     # Remove if it already exists
     Remove-NavContainer $containerName
 
@@ -241,7 +252,7 @@ function New-NavContainer {
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-    $myScripts | % {
+    $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
                 $uri = [System.Uri]::new($_)
@@ -264,7 +275,7 @@ function New-NavContainer {
             }
         } else {
             $hashtable = $_
-            $hashtable.Keys | % {
+            $hashtable.Keys | ForEach-Object {
                 Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
             }
         }
@@ -305,13 +316,17 @@ function New-NavContainer {
                     "--volume ""${myFolder}:C:\Run\my""",
                     "--restart $restart"
                    )
-    
+
     if ("$memoryLimit" -eq "") {
-        if ((Get-ComputerInfo).OsProductType -ne "Server") {
+        if (!$isServerHost) {
             $parameters += "--memory 4G"
         }
     } else {
         $parameters += "--memory $memoryLimit"
+    }
+
+    if ("$isolation" -ne "") {
+        $parameters += "--isolation $isolation"
     }
 
     if ("$databaseName" -ne "") {
@@ -376,7 +391,7 @@ function New-NavContainer {
             ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
-        ('Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | % {
+        ('Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
             $UserId = $_.UserSecurityId
             Write-Host "Assign Premium plan for $($_.Username)"
             $dbName = $DatabaseName
@@ -535,7 +550,7 @@ function New-NavContainer {
         if (!$doNotExportObjectsToText) {
             
             # Include newsyntax if NAV Version is greater than NAV 2017
-            0..($version.Major -gt 10) | % {
+            0..($version.Major -gt 10) | ForEach-Object {
                 $newSyntax = ($_ -eq 1)
                 $suffix = ""
                 if ($newSyntax) { $suffix = "-newsyntax" }

@@ -21,7 +21,7 @@ function Import-TestToolkitToNavContainer {
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($sqlCredential)
+    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -34,7 +34,7 @@ function Import-TestToolkitToNavContainer {
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
-        Get-ChildItem -Path "C:\TestToolKit\*.fob" | % { 
+        Get-ChildItem -Path "C:\TestToolKit\*.fob" | ForEach-Object { 
             $objectsFile = $_.FullName
             Write-Host "Importing Objects from $objectsFile (container path)"
             Import-NAVApplicationObject @params -Path $objectsFile `

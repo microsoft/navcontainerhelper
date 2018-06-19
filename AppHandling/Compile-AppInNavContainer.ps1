@@ -74,11 +74,11 @@ function Compile-AppInNavContainer {
         @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     )
 
-    $appJsonObject.dependencies | % {
+    $appJsonObject.dependencies | ForEach-Object {
         $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
     }
     
-    $dependencies | % {
+    $dependencies | ForEach-Object {
         $symbolsFile = Join-Path $appSymbolsFolder "$($_.name).app"
         if ($updateSymbols -or !(Test-Path -Path $symbolsFile -PathType Leaf)) {
             Write-Host "Downloading symbols: $($_.name).app"

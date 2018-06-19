@@ -25,7 +25,7 @@ function Get-NavContainerSharedFolders {
         $inspect = docker inspect $containerName | ConvertFrom-Json
         $sharedFolders = @{}
         if ($inspect.HostConfig.Binds) {
-            $inspect.HostConfig.Binds | % {
+            $inspect.HostConfig.Binds | ForEach-Object {
                 $idx = $_.IndexOf(':', $_.IndexOf(':') + 1)
                 $sharedFolders += @{$_.Substring(0, $idx) = $_.SubString($idx+1) }
             }

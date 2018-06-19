@@ -41,7 +41,7 @@ function Export-NavContainerObjects {
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, $sqlCredential, $exportTo)
+    Invoke-Command -Session $session -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo)
 
         if ($exportTo -eq 'fob file') {
             $objectsFile = "$objectsFolder\objects.fob"

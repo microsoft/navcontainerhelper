@@ -4,7 +4,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "..\..\NavContainerHelper.ps1")
 . (Join-Path $PSScriptRoot "..\settings.ps1")
 
-"2016", "2017", "2018", "devpreview" | % {
+"2016", "2017", "2018", "devpreview" | ForEach-Object {
 
     $imageName = "microsoft/dynamics-nav:$_"
 
