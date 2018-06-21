@@ -29,6 +29,7 @@ function Import-TestToolkitToNavContainer {
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
+        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
     
         $params = @{}
         if ($sqlCredential) {
@@ -37,9 +38,17 @@ function Import-TestToolkitToNavContainer {
         Get-ChildItem -Path "C:\TestToolKit\*.fob" | ForEach-Object { 
             $objectsFile = $_.FullName
             Write-Host "Importing Objects from $objectsFile (container path)"
+            $databaseServerParameter = $databaseServer
+            if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+                # HACK: Parameter insertion...
+                # generatesymbolreference is not supported by Import-NAVApplicationObject yet
+                # insert an extra parameter for the finsql command by splitting the filter property
+                $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
+            }
+
             Import-NAVApplicationObject @params -Path $objectsFile `
                                         -DatabaseName $databaseName `
-                                        -DatabaseServer $databaseServer `
+                                        -DatabaseServer $databaseServerParameter `
                                         -ImportAction Overwrite `
                                         -SynchronizeSchemaChanges Force `
                                         -NavServerName localhost `
