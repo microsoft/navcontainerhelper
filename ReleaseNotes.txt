@@ -1,3 +1,6 @@
+0.2.9.5
+Add generatesymbolreference=1 when Importing objects using Import-ObjectsToNavContainer or ImportTestToolkitToNavContainer
+
 0.2.9.4
 Set license to NULL from dbo.[dbproperty] and dbo.[tenantproperty] tables when exporting databases to bacpac
 
