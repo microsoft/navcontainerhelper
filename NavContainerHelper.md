@@ -69,7 +69,7 @@ Follow [these steps](https://docs.microsoft.com/en-us/virtualization/windowscont
 
 NavContainerHelper is a PowerShell module from the PowerShell Gallery, you can read more information about it [here](https://www.powershellgallery.com/packages/navcontainerhelper).
 
-The module contains a number of PowerShell functions, which helps running and interactig with NAV containers.
+The module contains a number of PowerShell functions, which helps running and interacting with NAV containers.
 
 On your Docker host, start PowerShell ISE and run:
 
