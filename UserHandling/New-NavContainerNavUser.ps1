@@ -5,7 +5,7 @@
   Creates a new NAV user in a Nav container.
   If the Nav Container is multitenant, the NAV user will be added to a specified tenant
  .Parameter containerName
-  Name of the container in which you want to install the app (default navserver)
+  Name of the container in which you want to create the user (default navserver)
  .Parameter tenant
   Name of tenant in which you want to create a user
  .Parameter Credential

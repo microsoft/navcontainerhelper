@@ -1,3 +1,7 @@
+0.2.9.6
+Rewrote Create-AadAppsForNAV to use AzureAD powershell package instead or AzureRM
+Added function Create-AadUsersInNavContainer
+
 0.2.9.5
 Add generatesymbolreference=1 when Importing objects using Import-ObjectsToNavContainer or ImportTestToolkitToNavContainer
 
