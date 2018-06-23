@@ -23,8 +23,8 @@
     Write-Host
     Write-Host -ForegroundColor Yellow "Container handling functions"
     Write-Host "New-NavContainer                 Create new Nav container"
-    Write-Host "New-CSideDevContainer            Create new C/SIDE development container"
     Write-Host "Remove-NavContainer              Remove Nav container"
+    Write-Host "Import-NavContainerLicense       Import License to a NAV Container"
     Write-Host "Get-NavContainerSession          Create new session to a Nav container"
     Write-Host "Remove-NavContainerSession       Remove Nav container session"
     Write-Host "Enter-NavContainer               Enter Nav container session"
@@ -46,6 +46,7 @@
     Write-Host "Convert-Txt2Al                   Convert deltas folder to al folder"
     Write-Host "Export-ModifiedObjectsAsDeltas   Export objects, create baseline and create deltas"
     Write-Host "Convert-ModifiedObjectsToAl      Export objects, create baseline, create deltas and convert to .al files"
+    Write-Host "Invoke-NavContainerCodeunit      Invoke Codeunit in Nav Container"
     Write-Host
     Write-Host -ForegroundColor Yellow "App handling functions"
     Write-Host "Compile-AppInNavContainer        Use Container to compile App"
@@ -59,12 +60,15 @@
     Write-Host "Install-NAVSipCryptoProviderFromNavContainer Install Nav Sip Crypto Provider locally from container to sign extensions"
     Write-Host
     Write-Host -ForegroundColor Yellow "Tenant handling functions"
+    Write-Host "Get-NavContainerTenants          Get all tenants in Nav Container"
     Write-Host "New-NavContainerTenant           Create tenant in multitenant Nav Container"
     Write-Host "Remove-NavContainerTenant        Remove tenant from multitenant Nav Container"
     Write-Host 
     Write-Host -ForegroundColor Yellow "User handling functions"
+    Write-Host "Get-NavContainerNavUser          Get all users in Nav Container"
     Write-Host "New-NavContainerNavUser          Create new Nav User in Nav Container"
     Write-Host "New-NavContainerWindowsUser      Create new Windows User in Nav Container"
+    Write-Host "Setup-NavContainerTestUsers      Create a set of users for test purposes"
     Write-Host 
     Write-Host -ForegroundColor Yellow "Company handling functions"
     Write-Host "New-CompanyInNavContainer        Create new Company in Nav Container"
@@ -76,6 +80,7 @@
     Write-Host 
     Write-Host -ForegroundColor Yellow "Azure AD specific functions"
     Write-Host "Create-AadAppsForNav             Create Apps in Aad for AAD authentication support"
+    Write-Host "Create-AadUsersInNavContainer    Create all active users in the Aad in the Nav Container"
     Write-Host
     Write-Host -ForegroundColor Yellow "Azure VM specific functions"
     Write-Host "Replace-NavServerContainer       Replace or recreate navserver (primary) container"
