@@ -1,3 +1,6 @@
+0.2.9.7
+Bugfix: docker restart caused Windows Client deployed by -includeCSide to loose ACSUri setting
+
 0.2.9.6
 Rewrote Create-AadAppsForNAV to use AzureAD powershell package instead or AzureRM
 Added function Create-AadUsersInNavContainer

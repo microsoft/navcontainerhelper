@@ -355,7 +355,8 @@ function New-NavContainer {
         }
         New-Item $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
         
-        ('Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
+        ('if ($restartingInstance -eq $false) {
+        Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
         $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
         $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
         [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
@@ -381,7 +382,7 @@ function New-NavContainer {
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
         $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
-        ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+        }') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
     if ($assignPremiumPlan) {
