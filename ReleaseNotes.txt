@@ -1,3 +1,6 @@
+vnext
+Update navcontainerhelper welcome text with some missing functions
+
 0.2.9.7
 Bugfix: docker restart caused Windows Client deployed by -includeCSide to loose ACSUri setting
 
