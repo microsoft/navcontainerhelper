@@ -15,7 +15,6 @@
 #>
 function Renew-LetsEncryptCertificate {
 
-
     Param (
         [Parameter(Mandatory=$true)]
         [string]$publicDnsName,
@@ -26,6 +25,8 @@ function Renew-LetsEncryptCertificate {
         [Parameter(Mandatory=$false)]
         [string]$dnsAlias = "dnsAlias"
     )
+
+    Import-Module ACMESharp
 
     Write-Host "Requesting certificate"
     $certAlias = "$publicDnsName-$(get-date -format yyyy-MM-dd--HH-mm)"
