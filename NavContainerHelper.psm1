@@ -42,6 +42,9 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-CSideDevContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Restart-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Stop-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Start-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Import-NavContainerLicense.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
@@ -91,6 +94,8 @@ $sessions = @{}
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
+. (Join-Path $PSScriptRoot "AzureVM\New-LetsEncryptCertificate.ps1")
+. (Join-Path $PSScriptRoot "AzureVM\Renew-LetsEncryptCertificate.ps1")
 
 # Misc functions
 . (Join-Path $PSScriptRoot "Misc\New-DesktopShortcut.ps1")

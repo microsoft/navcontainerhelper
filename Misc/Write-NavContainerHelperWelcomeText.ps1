@@ -24,6 +24,9 @@
     Write-Host -ForegroundColor Yellow "Container handling functions"
     Write-Host "New-NavContainer                 Create new Nav container"
     Write-Host "Remove-NavContainer              Remove Nav container"
+    Write-Host "Stop-NavContainer                Stop Nav container"
+    Write-Host "Start-NavContainer               Start Nav container"
+    Write-Host "Restart-NavContainer             Restart Nav container"
     Write-Host "Import-NavContainerLicense       Import License to a NAV Container"
     Write-Host "Get-NavContainerSession          Create new session to a Nav container"
     Write-Host "Remove-NavContainerSession       Remove Nav container session"
@@ -84,6 +87,8 @@
     Write-Host
     Write-Host -ForegroundColor Yellow "Azure VM specific functions"
     Write-Host "Replace-NavServerContainer       Replace or recreate navserver (primary) container"
+    Write-Host "New-LetsEncryptCertificate       Create Lets Encrypt Certificate for secure communication"
+    Write-Host "Renew-LetsEncryptCertificate     Renew Lets Encrypt Certificate for secure communication"
     Write-Host
     Write-Host -ForegroundColor White "Note: The Nav Container Helper is an open source project from http://www.github.com/microsoft/navcontainerhelper."
     Write-Host -ForegroundColor White "The project is released as-is, no warranty! Contributions are welcome, study the github repository for usage."

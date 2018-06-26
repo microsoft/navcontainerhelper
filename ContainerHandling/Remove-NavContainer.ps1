@@ -4,7 +4,7 @@
  .Description
   Remove container, Session, Shortcuts, temp. files and entries in the hosts file,
  .Parameter containerName
-  Name of the container for which you want to enter a session
+  Name of the container you want to remove
  .Parameter updateHosts
   Include this switch if you want to update the hosts file and remove the container entry
  .Example

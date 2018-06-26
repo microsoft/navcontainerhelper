@@ -45,6 +45,8 @@ function Invoke-NavContainerCodeunit {
         if (!($userexist)) {
             New-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me
             New-NAVServerUserPermissionSet -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+        } elseif ($userexist.state -eq "Disabled") {
+            Set-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -state Enabled
         }
 
         $Params = @{}
@@ -62,6 +64,8 @@ function Invoke-NavContainerCodeunit {
     
         if (!($userexist)) {
             Remove-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -Force
+        } elseif ($userexist.state -eq "Disabled") {
+            Set-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -state Disabled
         }
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument
