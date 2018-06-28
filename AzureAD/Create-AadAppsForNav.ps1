@@ -82,7 +82,7 @@ function Create-AadAppsForNav
     $ssoAdApp = New-AzureADApplication -DisplayName "NAV WebClient for $appIdUri" `
                                        -Homepage $publicWebBaseUrl `
                                        -IdentifierUris $appIdUri `
-                                       -ReplyUrls $publicWebBaseUrl
+                                       -ReplyUrls @($publicWebBaseUrl, ($publicWebBaseUrl.ToLowerInvariant()+"SignIn"))
 
     $SsoAdAppId = $ssoAdApp.AppId.ToString()
     $AdProperties["SsoAdAppId"] = $SsoAdAppId
