@@ -55,7 +55,7 @@ function New-LetsEncryptCertificate {
     sleep -s 60
     Update-ACMEIdentifier -IdentifierRef $dnsAlias
     
-    Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfx7Password -dnsAlias $dnsAlias
+    Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfxPassword -dnsAlias $dnsAlias
 }
 Export-ModuleMember -Function New-LetsEncryptCertificate
 
