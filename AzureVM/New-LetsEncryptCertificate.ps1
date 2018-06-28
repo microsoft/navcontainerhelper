@@ -27,7 +27,7 @@ function New-LetsEncryptCertificate {
         [Parameter(Mandatory=$true)]
         [string]$certificatePfxFilename,
         [Parameter(Mandatory=$true)]
-        [securestring]$certificatePfxPassword,
+        [SecureString]$certificatePfxPassword,
         [Parameter(Mandatory=$false)]
         [string]$WebSiteRef = "Default Web Site",
         [Parameter(Mandatory=$false)]
