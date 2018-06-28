@@ -147,7 +147,7 @@ function Create-AadAppsForNav
     
         # Create AesKey
         $PowerBiAdAppKeyValue = Create-AesKey
-        $AdProperties["PowerBiAdAppKeyValue "] = $PowerBiAdAppKeyValue 
+        $AdProperties["PowerBiAdAppKeyValue"] = $PowerBiAdAppKeyValue 
     
         # Create AD Application
         Write-Host "Creating AAD App for PowerBI Service"
