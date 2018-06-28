@@ -8,14 +8,14 @@
   Specify an email address of the person accepting subscriber agreement for LetsEncrypt (https://letsencrypt.org/repository/) in order to use Lets Encrypt to generate a secure SSL certificate, which is valid for 3 months.
  .Parameter publicDnsName
   Public DNS Name (URL/CNAME record pointing to your VM).
- .Parameter CertPfxFilename
+ .Parameter certificatePfxFilename
   Filename for certificate .pfx file
- .Parameter CertPfxPassword
+ .Parameter certificatePfxPassword
   Password for certificate .pfx file
  .Parameter WebSiteRef
   Local web site to use for ACME Challenge (default is Default Web Site) 
  .Example
-  New-LetsEncryptCertificate -ContactEMailForLetsEncrypt "me@my.com" -publicDnsName "host.westeurope.cloudapp.azure.com" -CertPfxFilename "c:\temp\cert.pfx" -CertPfxPassword "S0mep@ssw0rd!"
+  New-LetsEncryptCertificate -ContactEMailForLetsEncrypt "me@my.com" -publicDnsName "host.westeurope.cloudapp.azure.com" -certificatePfxFilename "c:\temp\cert.pfx" -certificatePfxPassword $securePassword
 #>
 function New-LetsEncryptCertificate {
 
@@ -25,9 +25,9 @@ function New-LetsEncryptCertificate {
         [Parameter(Mandatory=$true)]
         [string]$publicDnsName,
         [Parameter(Mandatory=$true)]
-        [string]$CertPfxFilename,
+        [string]$certificatePfxFilename,
         [Parameter(Mandatory=$true)]
-        [string]$CertPfxPassword,
+        [securestring]$certificatePfxPassword,
         [Parameter(Mandatory=$false)]
         [string]$WebSiteRef = "Default Web Site",
         [Parameter(Mandatory=$false)]
@@ -55,7 +55,7 @@ function New-LetsEncryptCertificate {
     sleep -s 60
     Update-ACMEIdentifier -IdentifierRef $dnsAlias
     
-    Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -CertPfxFilename $CertPfxFilename -CertPfxPassword $CertPfxPassword -dnsAlias $dnsAlias
+    Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfx7Password -dnsAlias $dnsAlias
 }
 Export-ModuleMember -Function New-LetsEncryptCertificate
 
