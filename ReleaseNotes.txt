@@ -1,4 +1,4 @@
-vnext
+0.3.0.0
 Update navcontainerhelper welcome text with some missing functions
 Added function Stop-NavContainer
 Added function Start-NavContainer
@@ -6,6 +6,7 @@ Added function Restart-NavContainer
 Added function New-LetsEncryptCertificate
 Added function Renew-LetsEncryptCertificate
 Bugfix: Invoke-NavContainerCodeunit fails if the user already exists
+Added ReplyTo address to Aad App, which matches Business Central Sandbox Containers
 
 0.2.9.7
 Bugfix: docker restart caused Windows Client deployed by -includeCSide to loose ACSUri setting
