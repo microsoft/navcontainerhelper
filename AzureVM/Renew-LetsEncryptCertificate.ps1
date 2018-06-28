@@ -21,7 +21,7 @@ function Renew-LetsEncryptCertificate {
         [Parameter(Mandatory=$true)]
         [string]$certificatePfxFilename,
         [Parameter(Mandatory=$true)]
-        [Security.SecureString]$certificatePfxPassword,
+        [SecureString]$certificatePfxPassword,
         [Parameter(Mandatory=$false)]
         [string]$dnsAlias = "dnsAlias"
     )
