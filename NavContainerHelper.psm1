@@ -108,6 +108,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
 
 # Company Handling functions
+. (Join-Path $PSScriptRoot "CompanyHandling\Get-CompanyInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "CompanyHandling\New-CompanyInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "CompanyHandling\Remove-CompanyInNavContainer.ps1")
 

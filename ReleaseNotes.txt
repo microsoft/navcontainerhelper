@@ -1,3 +1,6 @@
+vNext
+Added function Get-NavCompanyInNavContainer
+
 0.3.0.0
 Update navcontainerhelper welcome text with some missing functions
 Added function Stop-NavContainer

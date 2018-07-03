@@ -74,6 +74,7 @@
     Write-Host "Setup-NavContainerTestUsers      Create a set of users for test purposes"
     Write-Host 
     Write-Host -ForegroundColor Yellow "Company handling functions"
+    Write-Host "Get-CompanyInNavContainer        Get a list of Companies in Nav Container"
     Write-Host "New-CompanyInNavContainer        Create new Company in Nav Container"
     Write-Host "Remove-CompanyInNavContainer     Remove Company from Nav Container"
     Write-Host 

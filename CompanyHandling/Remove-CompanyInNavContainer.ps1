@@ -22,7 +22,7 @@ function Remove-CompanyInNavContainer {
         [string]$companyName
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($companyName, $tenant)
         Write-Host "Removing company $companyName from $tenant"
         Remove-NavCompany -ServerInstance NAV -Tenant $tenant -CompanyName $companyName -ForceImmediateDataDeletion -Force

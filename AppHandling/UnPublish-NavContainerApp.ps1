@@ -48,7 +48,6 @@ function UnPublish-NavContainerApp {
             $params += @{ 'Version' = $version }
         }
         Write-Host "Unpublishing $appName"
-        Write-Host $params
         Unpublish-NavApp -ServerInstance NAV -Name $appName @params
     } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version
     Write-Host -ForegroundColor Green "App successfully unpublished"
