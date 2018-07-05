@@ -312,7 +312,6 @@ function New-NavContainer {
                     "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    "--env enableApiServices=Y",
                     "--volume ""${hostHelperFolder}:$containerHelperFolder""",
                     "--volume ""${myFolder}:C:\Run\my""",
                     "--restart $restart"
@@ -328,6 +327,10 @@ function New-NavContainer {
 
     if ("$isolation" -ne "") {
         $parameters += "--isolation $isolation"
+    }
+
+    if ($version.Major -gt 11) {
+        $parameters += "--env enableApiServices=Y"
     }
 
     if ("$databaseName" -ne "") {
