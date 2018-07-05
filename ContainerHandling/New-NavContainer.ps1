@@ -312,6 +312,7 @@ function New-NavContainer {
                     "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
+                    "--env enableApiServices=Y",
                     "--volume ""${hostHelperFolder}:$containerHelperFolder""",
                     "--volume ""${myFolder}:C:\Run\my""",
                     "--restart $restart"

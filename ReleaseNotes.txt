@@ -1,5 +1,6 @@
 vNext
 Added function Get-NavCompanyInNavContainer
+Always enable API Services in container
 
 0.3.0.0
 Update navcontainerhelper welcome text with some missing functions
