@@ -329,6 +329,10 @@ function New-NavContainer {
         $parameters += "--isolation $isolation"
     }
 
+    if ($version.Major -gt 11) {
+        $parameters += "--env enableApiServices=Y"
+    }
+
     if ("$databaseName" -ne "") {
         $parameters += "--env databaseName=""$databaseName"""
     }

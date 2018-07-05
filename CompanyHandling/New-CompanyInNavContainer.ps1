@@ -25,7 +25,7 @@ function New-CompanyInNavContainer {
         [switch]$evaluationCompany
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($companyName, $evaluationCompany, $tenant)
         Write-Host "Creating company $companyName in $tenant"
         New-NavCompany -ServerInstance NAV -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
