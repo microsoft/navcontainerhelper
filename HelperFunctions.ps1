@@ -82,10 +82,12 @@ function DockerDo {
         if ("$output".Trim() -ne "") {
             Log $output
         }
+        $errorMessage = ""
         if ("$error".Trim() -ne "") {
-            Log -color red $error
+            $errorMessage += $error + "`r`n"
         }
-        Log -color red "Commandline: docker $arguments"
+        $errorMessage += "Commandline: docker $arguments"
+        Write-Error -Message $errorMessage
         return $false
     }
 }
