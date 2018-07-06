@@ -1,6 +1,7 @@
-vNext
+0.3.0.1
 Added function Get-NavCompanyInNavContainer
 Always enable API Services in container
+Throw error if new-navcontainer fails (instead of just displaying error)
 
 0.3.0.0
 Update navcontainerhelper welcome text with some missing functions
@@ -209,29 +210,3 @@ Refactored all functions into different script files
 Only clear object modified flag if using localhost\SQLExpress
 Specify server in sqlcmd
 Export-NavContainerObjects doesn't fail on NAV2016 and NAV2017 due to missing ExportToNewSyntax parameter
-
-0.1.1.9
-Added Start-NavContainerAppDataUpgrade function
-
-0.1.1.8
-Added ReleaseNotes a few versions back
-
-0.1.1.7
-Added ReleaseNotes to PowerShell Gallery
-
-0.1.1.6
-Added default values for additionalParameters and myScripts
-
-0.1.1.5
-Added -additionalParameters and -myScripts to New-CsideDevContainer and New-NavContainer
-Added -useSSL switch to New-CsideDevContainer and New-NavContainer
-
-0.1.1.4
-Fixed a bug in Convert-ModifiedObjectsToAl, where conversion would end up with an empty AL folder
-
-0.1.1.3
-Secure passwords for creating containers
-
-0.1.1.2 and earlier
-Initial releases
-use help on the individual functions to get info.
