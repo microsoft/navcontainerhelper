@@ -64,7 +64,7 @@ function Create-AadAppsForNav
     $aadTenant = $account.TenantId
     $AdProperties["AadTenant"] = $AadTenant
 
-    $adUser = get-azureaduser | Where-Object { $_.UserPrincipalName -eq $aadadmincredential.UserName }
+    $adUser = Get-AzureADUser -ObjectId $aadadmincredential.UserName
     if (!$adUser) {
         throw "Could not identify Aad Tenant"
     }
