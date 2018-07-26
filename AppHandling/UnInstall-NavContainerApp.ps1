@@ -17,14 +17,16 @@ function UnInstall-NavContainerApp {
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName
+        [string]$appName,
+        [Parameter]
+        [string]$appVersion
     )
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Uninstalling $appName from $tenant"
-        Uninstall-NavApp -ServerInstance NAV -Name $appName -tenant $tenant
-    } -ArgumentList $appName, $tenant
+        Uninstall-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -tenant $tenant
+    } -ArgumentList $appName, $appVersion, $tenant
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
 Export-ModuleMember -Function UnInstall-NavContainerApp
