@@ -827,7 +827,7 @@ The following script sample, will create a new SQL Server container and restore 
     $hostFolder = "c:\temp\navdbfiles"
     $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
     $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
-    $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp"
+    $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp" microsoft/mssql-server-windows-express
     $databaseServer = $dbserverid.SubString(0,12)
     $databaseInstance = ""
 
