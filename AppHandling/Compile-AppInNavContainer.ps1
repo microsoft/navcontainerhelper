@@ -74,6 +74,11 @@ function Compile-AppInNavContainer {
         @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     )
 
+    if ($appJsonObject.test)
+    {
+        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+    }
+    
     $appJsonObject.dependencies | ForEach-Object {
         $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
     }
