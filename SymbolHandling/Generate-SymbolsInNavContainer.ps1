@@ -6,9 +6,9 @@
  .Parameter containerName
   Name of the container in which you want to generate application symbols
  .Example
-  Create-ApplicationSymbolsInNavContainer -containerName test2
+  Generate-SymbolsInNavContainer -containerName test2
 #>
-function Create-ApplicationSymbolsInNavContainer {
+function Generate-SymbolsInNavContainer {
     Param(
         [Parameter(Mandatory = $true)]
         [string]$containerName
@@ -45,6 +45,6 @@ function Create-ApplicationSymbolsInNavContainer {
         }
     } -ArgumentList $containerName
     
-    Write-Host -ForegroundColor Green "Application symbols successfully created"
+    Write-Host -ForegroundColor Green "Symbols successfully generated"
 }
-Export-ModuleMember -Function Create-ApplicationSymbolsInNavContainer
+Export-ModuleMember -Function Generate-SymbolsInNavContainer

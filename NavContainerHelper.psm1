@@ -117,4 +117,4 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ConfigPackageHandling\Remove-ConfigPackageInNavContainer.ps1")
 
 # Symbol Handling
-. (Join-Path $PSScriptRoot "SymbolHandling\Create-ApplicationSymbolsInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "SymbolHandling\Generate-SymbolsInNavContainer.ps1")
