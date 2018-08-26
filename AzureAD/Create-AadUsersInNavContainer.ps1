@@ -49,7 +49,7 @@ function Create-AadUsersInNavContainer
 
     # Login to AzureRm
     $account = Connect-AzureAD -Credential $AadAdminCredential
-    Get-AzureADUser | Where-Object { $_.AccountEnabled } | ForEach-Object {
+    Get-AzureADUser -All $true | Where-Object { $_.AccountEnabled } | ForEach-Object {
         $userName = $_.MailNickName
         if (Get-NavContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName }) {
             Write-Host "User $userName already exists"
