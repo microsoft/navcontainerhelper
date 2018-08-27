@@ -39,6 +39,7 @@ function Import-ObjectsToNavContainer {
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+        $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
     
@@ -61,7 +62,7 @@ function Import-ObjectsToNavContainer {
                                     -SynchronizeSchemaChanges Force `
                                     -NavServerName localhost `
                                     -NavServerInstance NAV `
-                                    -NavServerManagementPort 7045 `
+                                    -NavServerManagementPort "$managementServicesPort" `
                                     -Confirm:$false
 
         if ($copied) {
