@@ -12,6 +12,11 @@ New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+if (!($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
+    Write-Error "NavContainerHelper needs to run with administrator privileges"
+}
+
 $sessions = @{}
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
