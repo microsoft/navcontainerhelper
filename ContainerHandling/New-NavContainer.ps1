@@ -107,7 +107,8 @@ function New-NavContainer {
         [string]$auth='Windows',
         [int]$timeout = 1800,
         [string[]]$additionalParameters = @(),
-        $myScripts = @()
+        $myScripts = @(),
+        [string]$TimeZoneId = (Get-TimeZone).Id
     )
 
     if (!$accept_eula) {
@@ -474,6 +475,11 @@ function New-NavContainer {
             return
         }
         Wait-NavContainerReady $containerName -timeout $timeout
+    }
+
+    if ("$TimeZoneId" -ne "") {
+        Write-Host "Set TimeZone in Container to $TimeZoneId"
+        docker exec $containerName powershell "Set-TimeZone '$TimeZoneId'"
     }
 
     if ($navDvdPathIsTemp) {
