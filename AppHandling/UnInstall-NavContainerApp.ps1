@@ -18,7 +18,7 @@ function UnInstall-NavContainerApp {
         [string]$tenant = "default",
         [Parameter(Mandatory=$true)]
         [string]$appName,
-        [Parameter]
+        [Parameter()]
         [string]$appVersion
     )
 
