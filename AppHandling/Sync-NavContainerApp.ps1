@@ -21,7 +21,7 @@ function Sync-NavContainerApp {
         [Parameter()]
         [string]$appVersion,
         [Parameter()]
-        [ValidateSet('Add,Clean')]
+        [ValidateSet('Add','Clean')]
         $Mode
     )
     $session = Get-NavContainerSession -containerName $containerName
