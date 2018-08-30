@@ -67,16 +67,17 @@ function Publish-NavContainerApp {
         Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification -packageType $packageType
         if ($sync -or $install) {
             $appName = (Get-NAVAppInfo -Path $appFile).Name
+            $appVersion = (Get-NAVAppInfo -Path $appFile).Version
     
             if ($sync) {
                 Write-Host "Synchronizing $appName on tenant $tenant"
                 Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
-                Sync-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant -WarningAction Ignore
+                Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant -WarningAction Ignore
             }
     
             if ($install) {
                 Write-Host "Installing $appName on tenant $tenant"
-                Install-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
+                Install-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant
             }
         }
 

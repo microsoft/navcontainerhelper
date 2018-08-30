@@ -12,16 +12,30 @@
 #>
 function  Start-NavContainerAppDataUpgrade {
     Param(
+        [Parameter(Mandatory=$false)]
+        [string]$containerName = "navserver",
+        [Parameter(Mandatory=$false)]
+        [string]$tenant = "default",
         [Parameter(Mandatory=$true)]
         [string]$appName,
-        [string]$containerName = "navserver"
+        [Parameter()]
+        [string]$appVersion
     )
 
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName)
+    Invoke-Command -Session $session -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Upgrading app $appName"
-        Start-NAVAppDataUpgrade -ServerInstance NAV -Name $appName
-    } -ArgumentList $appName
+        $parameters = @{
+            "ServerInstance" = "NAV";
+            "Name" = $appName;
+            "Tenant" = $tenant
+        }
+        if ($appVersion)
+        {
+            $parameters += @{ "Version" = $appVersion }
+        }
+        Start-NAVAppDataUpgrade @parameters
+    } -ArgumentList $appName, $appVersion, $tenant
     Write-Host -ForegroundColor Green "App successfully upgraded"
 }
 Export-ModuleMember -Function Start-NavContainerAppDataUpgrade
