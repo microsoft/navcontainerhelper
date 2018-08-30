@@ -74,7 +74,7 @@ function Compile-AppInNavContainer {
         @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     )
 
-    if ($appJsonObject.test)
+    if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
     {
         $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
     }
