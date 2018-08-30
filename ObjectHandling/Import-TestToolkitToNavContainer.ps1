@@ -51,11 +51,14 @@ function Import-TestToolkitToNavContainer {
                                         -DatabaseName $databaseName `
                                         -DatabaseServer $databaseServerParameter `
                                         -ImportAction Overwrite `
-                                        -SynchronizeSchemaChanges Force `
+                                        -SynchronizeSchemaChanges No `
                                         -NavServerName localhost `
                                         -NavServerInstance NAV `
                                         -NavServerManagementPort "$managementServicesPort" `
                                         -Confirm:$false
+
+            # Sync after all objects hav been imported
+            Sync-NavTenant NAV -Mode ForceSync -Force
         }
     } -ArgumentList $sqlCredential
     Write-Host -ForegroundColor Green "TestToolkit successfully imported"
