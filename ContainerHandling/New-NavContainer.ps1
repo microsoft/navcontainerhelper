@@ -547,9 +547,7 @@ function New-NavContainer {
             $databaseServer = "$containerName"
         }
 
-        if ($databaseCredential -ne $null -and $databaseCredential -ne [System.Management.Automation.PSCredential]::Empty) {
-            $ntauth="0"
-        } elseif ($auth -eq "Windows") {
+        if ($auth -eq "Windows") {
             $ntauth="1"
         } else {
             $ntauth="0"
