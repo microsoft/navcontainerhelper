@@ -128,6 +128,12 @@ function New-NavContainer {
         }
     }
 
+    if ($auth -eq "Windows") {
+        if ($credential.Username.Contains("@")) {
+            throw "You cannot use a Microsoft account, you need to use a local Windows user account (like $env:USERNAME)"
+        }
+    }
+
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -319,7 +325,7 @@ function New-NavContainer {
                    )
 
     if ("$memoryLimit" -eq "") {
-        if (!$isServerHost) {
+        if ($isolation -eq "hyperv" -or !$isServerHost) {
             $parameters += "--memory 4G"
         }
     } else {
