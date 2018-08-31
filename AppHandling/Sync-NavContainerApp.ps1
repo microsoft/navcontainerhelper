@@ -19,10 +19,13 @@ function Sync-NavContainerApp {
         [Parameter(Mandatory=$true)]
         [string]$appName,
         [Parameter()]
-        [string]$appVersion
+        [string]$appVersion,
+        [Parameter(Mandatory = $false)]
+        [ValidateSet('Add','Clean')]
+        $Mode
     )
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName,$appVersion,$tenant)
+    Invoke-Command -Session $session -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
         Write-Host "Synchronizing $appFile on $tenant"
         Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
         $parameters = @{
@@ -34,8 +37,12 @@ function Sync-NavContainerApp {
         {
             $parameters += @{ "Version" = $appVersion }
         }
+        if ($mode)
+        {
+            $parameters += @{ "Mode" = $mode }
+        }
         Sync-NavApp @parameters
-    } -ArgumentList $appName, $appVersion, $tenant
+    } -ArgumentList $appName, $appVersion, $tenant, $Mode
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
 Export-ModuleMember -Function Sync-NavContainerApp
