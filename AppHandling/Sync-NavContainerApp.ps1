@@ -31,12 +31,15 @@ function Sync-NavContainerApp {
         $parameters = @{
             "ServerInstance" = "NAV";
             "Name" = $appName;
-            "Tenant" = $tenant;
-            "Mode" = $mode
+            "Tenant" = $tenant
         }
         if ($appVersion)
         {
             $parameters += @{ "Version" = $appVersion }
+        }
+        if ($mode)
+        {
+            $parameters += @{ "Mode" = $mode }
         }
         Sync-NavApp @parameters
     } -ArgumentList $appName, $appVersion, $tenant, $Mode
