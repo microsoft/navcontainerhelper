@@ -20,7 +20,7 @@ function Sync-NavContainerApp {
         [string]$appName,
         [Parameter()]
         [string]$appVersion,
-        [Parameter()]
+        [Parameter(Mandatory = $false)]
         [ValidateSet('Add','Clean')]
         $Mode
     )
