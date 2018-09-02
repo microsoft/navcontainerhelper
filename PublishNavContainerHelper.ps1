@@ -4,7 +4,7 @@
 . (Join-Path $PSScriptRoot "settings.ps1")
 
 Clear-Host
-Invoke-ScriptAnalyzer -Path $PSScriptRoot -Recurse -Settings PSGallery -Severity Warning
+#Invoke-ScriptAnalyzer -Path $PSScriptRoot -Recurse -Settings PSGallery -Severity Warning
 
 . (Join-Path $PSScriptRoot "NavContainerHelper.ps1")
 $functionsToExport = (get-module -Name NavContainerHelper).ExportedFunctions.Keys | Sort-Object
