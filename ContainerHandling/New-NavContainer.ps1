@@ -100,6 +100,7 @@ function New-NavContainer {
         [switch]$alwaysPull,
         [switch]$assignPremiumPlan,
         [switch]$multitenant,
+        [switch]$clickonce,
         [switch]$includeTestToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string]$restart='unless-stopped',
@@ -108,7 +109,14 @@ function New-NavContainer {
         [int]$timeout = 1800,
         [string[]]$additionalParameters = @(),
         $myScripts = @(),
-        [string]$TimeZoneId = (Get-TimeZone).Id
+        [string]$TimeZoneId = (Get-TimeZone).Id,
+        [int]$WebClientPort,
+        [int]$FileSharePort,
+        [int]$ManagementServicesPort,
+        [int]$ClientServicesPort,
+        [int]$SoapServicesPort,
+        [int]$ODataServicesPort,
+        [int]$DeveloperServicesPort
     )
 
     if (!$accept_eula) {
@@ -176,6 +184,38 @@ function New-NavContainer {
 
     if ($multitenant) {
         $parameters += "--env multitenant=Y"
+    }
+
+    if ($clickonce) {
+        $parameters += "--env clickonce=Y"
+    }
+
+    if ($WebClientPort) {
+        $parameters += "--env WebClientPort=$WebClientPort"
+    }
+
+    if ($FileSharePort) {
+        $parameters += "--env FileSharePort=$FileSharePort"
+    }
+
+    if ($ManagementServicesPort) {
+        $parameters += "--env ManagementServicesPort=$ManagementServicesPort"
+    }
+
+    if ($ClientServicesPort) {
+        $parameters += "--env ClientServicesPort=$ClientServicesPort"
+    }
+
+    if ($SoapServicesPort) {
+        $parameters += "--env SoapServicesPort=$SoapServicesPort"
+    }
+
+    if ($ODataServicesPort) {
+        $parameters += "--env ODataServicesPort=$ODataServicesPort"
+    }
+
+    if ($DeveloperServicesPort) {
+        $parameters += "--env DeveloperServicesPort=$DeveloperServicesPort"
     }
 
     $navDvdPath = $navDvdPath.ToLowerInvariant()
