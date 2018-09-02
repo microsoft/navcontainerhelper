@@ -282,6 +282,10 @@ function New-NavContainer {
         throw "Multitenancy is not supported by images with generic tag prior to 0.0.4.5"
     }
 
+    if (($WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort) -and [System.Version]$genericTag -lt [System.Version]"0.0.6.5") {
+        throw "Changing endpoint ports is not supported by images with generic tag prior to 0.0.6.5"
+    }
+
     if ($auth -eq "AAD" -and [System.Version]$genericTag -lt [System.Version]"0.0.5.0") {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
