@@ -112,6 +112,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Add-FontsToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Convert-ALCOutputToAzureDevOps.ps1")
 
 # Company Handling functions
 . (Join-Path $PSScriptRoot "CompanyHandling\Get-CompanyInNavContainer.ps1")
