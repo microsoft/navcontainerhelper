@@ -1,3 +1,7 @@
+0.3.1.1
+New flag on Compile-AppInNavContainer -AzureDevOps to output the result in AzureDevOps/VSTS compatible format
+New function Convert-ALCOutputToAzureDevOps
+
 0.3.1.0
 New function Add-FontsToNavContainer
 Added ClickOnce switch to New-NavContainer
