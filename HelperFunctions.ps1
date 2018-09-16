@@ -73,17 +73,22 @@ function DockerDo {
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
-    $p.WaitForExit()
-    $output = $p.StandardOutput.ReadToEnd()
+    Start-Sleep -Seconds 1
     $error = $p.StandardError.ReadToEnd()
+    $output = $p.StandardOutput.ReadToEnd()
+    $p.WaitForExit()
+    $error += $p.StandardError.ReadToEnd()
+    $output += $p.StandardOutput.ReadToEnd()
     if ($p.ExitCode -eq 0) {
         return $true
     } else {
-        if ("$output".Trim() -ne "") {
-            Log $output
+        $output = $output.Trim()
+        if ("$output" -ne "") {
+            Docker rm $output -f
         }
+        $error = $error.Trim()
         $errorMessage = ""
-        if ("$error".Trim() -ne "") {
+        if ("$error" -ne "") {
             $errorMessage += $error + "`r`n"
         }
         $errorMessage += "Commandline: docker $arguments"
