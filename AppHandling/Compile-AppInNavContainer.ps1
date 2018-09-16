@@ -36,7 +36,8 @@ function Compile-AppInNavContainer {
         [string]$appOutputFolder = (Join-Path $appProjectFolder "output"),
         [Parameter(Mandatory=$false)]
         [string]$appSymbolsFolder = (Join-Path $appProjectFolder "symbols"),
-        [switch]$UpdateSymbols
+        [switch]$UpdateSymbols,
+        [switch]$AzureDevOps
     )
 
     $startTime = [DateTime]::Now
@@ -64,7 +65,7 @@ function Compile-AppInNavContainer {
     $appJsonObject = Get-Content -Raw -Path $appJsonFile | ConvertFrom-Json
     $appName = $appJsonObject.Publisher + '_' + $appJsonObject.Name + '_' + $appJsonObject.Version + '.app'
 
-    Write-Host "Using Symbols Folder: " $appSymbolsFolder
+    Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
     }
@@ -129,10 +130,9 @@ function Compile-AppInNavContainer {
     }
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile )
+    $result = Invoke-Command -Session $session -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
-            Write-Host "Unpacking .vsix file"
             $tempZip = Join-Path $env:TEMP "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
@@ -145,17 +145,24 @@ function Compile-AppInNavContainer {
 
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
-        & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile | Out-Host
-
-        if (!(Test-Path -Path $appOutputFile)) {
-            throw "App generation failed"
-        }
+        & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
 
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName)
     
+    if ($AzureDevOps) {
+        $result | Convert-ALCOutputToAzureDevOps
+    } else {
+        $result | Write-Host
+    }
+
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName
-    Write-Host "$appFile successfully created in $timespend seconds"
+
+    if (Test-Path -Path $appFile) {
+        Write-Host "$appFile successfully created in $timespend seconds"
+    } else {
+        Write-Error "App generation failed"
+    }
     $appFile
 }
 Export-ModuleMember -Function Compile-AppInNavContainer

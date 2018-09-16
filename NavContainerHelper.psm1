@@ -76,6 +76,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "AppHandling\UnPublish-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Compile-AppInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Convert-ALCOutputToAzureDevOps.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 
 # Tenant Handling functions
@@ -112,7 +113,6 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Add-FontsToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Misc\Convert-ALCOutputToAzureDevOps.ps1")
 
 # Company Handling functions
 . (Join-Path $PSScriptRoot "CompanyHandling\Get-CompanyInNavContainer.ps1")
