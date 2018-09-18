@@ -268,6 +268,23 @@ function New-NavContainer {
     $version = [System.Version]($navversion.split('-')[0])
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
     Write-Host "Generic Tag: $genericTag"
+
+    $osVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+    $hostOsVersion = [System.Environment]::OSVersion.Version
+    Write-Host "Container OS Version: $osVersion"
+    Write-Host "Host OS Version: $hostOsVersion"
+
+    if (($hostOsVersion.Major -lt $osversion.Major) -or 
+        ($hostOsVersion.Major -eq $osversion.Major -and $hostOsVersion.Minor -lt $osversion.Minor) -or 
+        ($hostOsVersion.Major -eq $osversion.Major -and $hostOsVersion.Minor -eq $osversion.Minor -and $hostOsVersion.Build -lt $osversion.Build)) {
+        throw "The container operating system is newer than the host operating system."
+    } elseif ($hostOsVersion.Major -ne $osversion.Major -or $hostOsVersion.Minor -ne $osversion.Minor -or $hostOsVersion.Build -ne $osversion.Build) {
+        if ($isolation -ne "hyperv") {
+            Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
+            $isolation = "hyperv"
+        }
+    }
+
     $locale = Get-LocaleFromCountry $devCountry
 
     if ((!$doNotExportObjectsToText) -and ($version -lt [System.Version]"8.0.0.0")) {
@@ -529,7 +546,7 @@ function New-NavContainer {
 
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
-        docker exec $containerName powershell "Set-TimeZone '$TimeZoneId'"
+        docker exec $containerName powershell "Set-TimeZone -ID '$TimeZoneId'"
     }
 
     if ($navDvdPathIsTemp) {

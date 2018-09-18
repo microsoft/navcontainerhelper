@@ -62,8 +62,9 @@ function DockerDo {
     if ($detach) {
         $parameters += "--detach"
     }
-    $arguments = ("$command "+[string]::Join(" ", $parameters)+" $imageName")
 
+    $result = $true
+    $arguments = ("$command "+[string]::Join(" ", $parameters)+" $imageName")
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = "docker.exe"
     $pinfo.RedirectStandardError = $true
@@ -79,9 +80,7 @@ function DockerDo {
     $p.WaitForExit()
     $error += $p.StandardError.ReadToEnd()
     $output += $p.StandardOutput.ReadToEnd()
-    if ($p.ExitCode -eq 0) {
-        return $true
-    } else {
+    if ($p.ExitCode -ne 0) {
         $output = $output.Trim()
         if ("$output" -ne "") {
             Docker rm $output -f
@@ -91,10 +90,10 @@ function DockerDo {
         if ("$error" -ne "") {
             $errorMessage += $error + "`r`n"
         }
-        $errorMessage += "Commandline: docker $arguments"
+        $errorMessage += "ExitCode: "+$p.ExitCode + "`r`nCommandline: docker $arguments"
         Write-Error -Message $errorMessage
-        return $false
     }
+    $result
 }
 
 function Get-NavContainerAuth {
