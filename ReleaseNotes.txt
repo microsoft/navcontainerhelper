@@ -1,3 +1,7 @@
+0.3.1.2
+Bugfix - Setting timezone didn't work with all timezones
+Automatically use hyperv isolation if host operating system doesn't match container os
+
 0.3.1.1
 New flag on Compile-AppInNavContainer -AzureDevOps to output the result in AzureDevOps/VSTS compatible format
 New function Convert-ALCOutputToAzureDevOps
@@ -193,29 +197,3 @@ Added Get-NavContainers to get all Nav containers
 Add pipeline support for Remove-NavContainer and Remove-NavContainerSession (to allow Get-NavContainers | Remove-NavContainer)
 Added Get-NavContainerDebugInfo
 Show ContainerName in prompt in Enter-NavContainer
-
-0.2.1.3
-Bugfix: Do not clear modified flag when container is restarting
-
-0.2.1.2
-Bugfix: Azure VM detection looked in wrong folder
-
-0.2.1.1
-Bugfix: username can now contain spaces
--myscripts parameter now supports files or folders - all will be copied into the c:\run\my folder
-
-0.2.1.0
-Added -databaseServer, -databaseInstance, -databaseName, -databaseCredential to new-navcontainer (Support for External SQL Server - generic tag 0.0.4.0 or later)
-Added -shortcuts to new-navcontainer (support for placing shortcuts on startmenu or avoid them)
-Added -navDvdPath and -navDvdCountry (support for running microsoft/dynamics-nav:generic with a DVD mounted)
-Moved the working folder from c:\demo to c:\programdata\navcontainerhelper
-Added -alwaysPull to new-navcontainerhelper to always pull newer image if exists
-
-0.2.0.1
-Remove recreate-navservercontainer
-Simplify replace-navservercontainer and allow empty imagename
-
-0.2.0.0
-Breaking change: Change all username/password parameters to PSCredential
-Change -updatehost to automatically update hosts on container restart
-Breaking change: Remove -updatehost from Remove-NavContainer (automatically handled)
