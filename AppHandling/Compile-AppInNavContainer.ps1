@@ -80,8 +80,11 @@ function Compile-AppInNavContainer {
         $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
     }
     
-    $appJsonObject.dependencies | ForEach-Object {
-        $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
+    if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
+    {
+        $appJsonObject.dependencies | ForEach-Object {
+            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
+        }
     }
     
     $dependencies | ForEach-Object {
