@@ -8,6 +8,8 @@
   Name of the container for which you want to enter a session
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter includeTestLibrariesOnly
+  Only import TestLibraries (do not import Test Codeunits)
  .Example
   Import-TestToolkitToNavContainer -containerName test2
 #>
@@ -15,13 +17,14 @@ function Import-TestToolkitToNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [switch]$includeTestLibrariesOnly
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential)
+    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -37,32 +40,34 @@ function Import-TestToolkitToNavContainer {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         Get-ChildItem -Path "C:\TestToolKit\*.fob" | ForEach-Object { 
-            $objectsFile = $_.FullName
-            Write-Host "Importing Objects from $objectsFile (container path)"
-            $databaseServerParameter = $databaseServer
-            if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
-                # HACK: Parameter insertion...
-                # generatesymbolreference is not supported by Import-NAVApplicationObject yet
-                # insert an extra parameter for the finsql command by splitting the filter property
-                $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
+            if (!$includeTestLibrariesOnly -or $_.Name.StartsWith("CALTestLibraries")) {
+                $objectsFile = $_.FullName
+                Write-Host "Importing Objects from $objectsFile (container path)"
+                $databaseServerParameter = $databaseServer
+                if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+                    # HACK: Parameter insertion...
+                    # generatesymbolreference is not supported by Import-NAVApplicationObject yet
+                    # insert an extra parameter for the finsql command by splitting the filter property
+                    $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
+                }
+    
+                Import-NAVApplicationObject @params -Path $objectsFile `
+                                            -DatabaseName $databaseName `
+                                            -DatabaseServer $databaseServerParameter `
+                                            -ImportAction Overwrite `
+                                            -SynchronizeSchemaChanges No `
+                                            -NavServerName localhost `
+                                            -NavServerInstance NAV `
+                                            -NavServerManagementPort "$managementServicesPort" `
+                                            -Confirm:$false
+    
             }
-
-            Import-NAVApplicationObject @params -Path $objectsFile `
-                                        -DatabaseName $databaseName `
-                                        -DatabaseServer $databaseServerParameter `
-                                        -ImportAction Overwrite `
-                                        -SynchronizeSchemaChanges No `
-                                        -NavServerName localhost `
-                                        -NavServerInstance NAV `
-                                        -NavServerManagementPort "$managementServicesPort" `
-                                        -Confirm:$false
-
         }
 
         # Sync after all objects hav been imported
         Sync-NavTenant NAV -Mode ForceSync -Force
 
-    } -ArgumentList $sqlCredential
+    } -ArgumentList $sqlCredential, $includeTestLibrariesOnly
     Write-Host -ForegroundColor Green "TestToolkit successfully imported"
 }
 Export-ModuleMember -Function Import-TestToolkitToNavContainer

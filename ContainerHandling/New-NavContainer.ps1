@@ -102,6 +102,7 @@ function New-NavContainer {
         [switch]$multitenant,
         [switch]$clickonce,
         [switch]$includeTestToolkit,
+        [switch]$includeTestLibrariesOnly,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string]$restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword','AAD')]
@@ -218,12 +219,17 @@ function New-NavContainer {
         $parameters += "--env DeveloperServicesPort=$DeveloperServicesPort"
     }
 
-    $navDvdPath = $navDvdPath.ToLowerInvariant()
-    $navDvdPathIsTemp = $false
-    if ($navDvdPath.EndsWith(".zip")) {
-        $navDvdPathIsTemp = $true
+    # Remove if it already exists
+    Remove-NavContainer $containerName
 
-        $temp = Join-Path $ENV:TEMP ([System.Guid]::NewGuid().ToString())
+    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
+    New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+    $navDvdPath = $navDvdPath.ToLowerInvariant()
+    if ($navDvdPath.EndsWith(".zip")) {
+
+        $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
         if ($navDvdPath.StartsWith("http://") -or $navDvdPath.StartsWith("https://")) {
             Write-Host "Downloading DVD .zip file"
@@ -311,12 +317,6 @@ function New-NavContainer {
         throw "Process isolation mode is only supported on Windows Server hosts"
     }
 
-    # Remove if it already exists
-    Remove-NavContainer $containerName
-
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
-    Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
-    New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
@@ -549,10 +549,6 @@ function New-NavContainer {
         docker exec $containerName powershell "Set-TimeZone -ID '$TimeZoneId'"
     }
 
-    if ($navDvdPathIsTemp) {
-        Remove-Item -Path $navDvdPath -Recurse -Force
-    }
-
     Write-Host "Reading CustomSettings.config from $containerName"
     $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
     [System.IO.File]::ReadAllText($customConfigFile)'
@@ -594,7 +590,7 @@ function New-NavContainer {
     }
 
     if ($includeTestToolkit) {
-        Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential
+        Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly
     }
 
     if ($includeCSide) {

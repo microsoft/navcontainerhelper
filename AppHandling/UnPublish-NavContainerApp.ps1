@@ -9,6 +9,8 @@
   Name of app you want to unpublish in the container
  .Parameter uninstall
   Include this parameter if you want to uninstall the app before unpublishing
+ .Parameter doNotSaveData
+  Include this flag to indicate that you do not wish to save data when uninstalling the app
  .Parameter publisher
   Publisher of the app you want to unpublish
  .Parameter version
@@ -26,6 +28,7 @@ function UnPublish-NavContainerApp {
         [Parameter(Mandatory=$true)]
         [string]$appName,
         [switch]$unInstall,
+        [switch]$doNotSaveData,
         [Parameter(Mandatory=$false)]
         [string]$publisher,
         [Parameter(Mandatory=$false)]
@@ -34,11 +37,16 @@ function UnPublish-NavContainerApp {
         [string]$tenant = "default"
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
+    $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
-            Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant
+            $params = @{}
+            if ($doNotSaveData)
+            {
+                $params += @{ "DoNotSaveData" = $true }
+            }
+            Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant @params
         }
         $params = @{}
         if ($publisher) {
