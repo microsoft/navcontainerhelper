@@ -84,9 +84,14 @@ function Compile-AppInNavContainer {
         $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
     }
     
+    if (!$updateSymbols) {
+        $existingApps = Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {Get-NavAppInfo -Path $_.FullName}
+    }
+
     $dependencies | ForEach-Object {
+        $dependency = $_
         $symbolsFile = Join-Path $appSymbolsFolder "$($_.name).app"
-        if ($updateSymbols -or !(Test-Path -Path $symbolsFile -PathType Leaf)) {
+        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
             Write-Host "Downloading symbols: $($_.name).app"
 
             $session = Get-NavContainerSession -containerName $containerName -silent
