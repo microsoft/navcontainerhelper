@@ -34,7 +34,9 @@ function Invoke-NavContainerCodeunit {
         [Parameter(Mandatory=$false)]
         [string]$MethodName,
         [Parameter(Mandatory=$false)]
-        [string]$Argument
+        [string]$Argument,
+        [Parameter(Mandatory=$false)]
+        [string]$TimeZone
     )
 
     $session = Get-NavContainerSession -containerName $containerName -silent
@@ -59,7 +61,10 @@ function Invoke-NavContainerCodeunit {
         if ($Argument) {
             $Params += @{ "Argument" = $Argument }
         }
-    
+        if ($Argument) {
+            $Params += @{ "TimeZone" = $TimeZone }
+        }
+
         Invoke-NAVCodeunit -ServerInstance NAV -Tenant $tenant @Params -CodeunitId $CodeUnitId
     
         if (!($userexist)) {
