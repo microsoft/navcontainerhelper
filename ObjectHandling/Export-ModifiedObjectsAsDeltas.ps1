@@ -69,6 +69,11 @@ function Export-ModifiedObjectsAsDeltas {
                                -sqlCredential $sqlCredential `
                                -exportTo $exportTo
 
+    # Remove [LineStart()] Properties
+    Get-ChildItem -path $modifiedFolder -filter "*.txt" -recurse | % {
+        Set-Content -Path $_.FullName -Value (Get-Content -Path $_.FullName | Where-Object { !($_.Trim().Startswith('[LineStart(') -and $_.Trim().Endswith(')]')) })
+    }
+
     Create-MyOriginalFolder -originalFolder $originalFolder `
                             -modifiedFolder $modifiedFolder `
                             -myOriginalFolder $myOriginalFolder

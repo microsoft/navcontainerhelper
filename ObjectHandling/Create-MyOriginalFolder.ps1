@@ -34,7 +34,9 @@ function Create-MyOriginalFolder {
         $OrgName = Join-Path $myOriginalFolder $Name
         $TxtFile = Join-Path $originalFolder $Name
         if (Test-Path -Path $TxtFile) {
-            Copy-Item -Path $TxtFile -Destination $OrgName
+            # Copy-Item -Path $TxtFile -Destination $OrgName
+            # Remove [LineStart()] Properties
+            Set-Content -Path $OrgName -Value (Get-Content -Path $TxtFile | Where-Object { !($_.Trim().Startswith('[LineStart(') -and $_.Trim().Endswith(')]')) })
         }
     }
 }
