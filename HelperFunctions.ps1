@@ -50,6 +50,7 @@ function DockerDo {
         [switch]$accept_eula,
         [switch]$accept_outdated,
         [switch]$detach,
+        [switch]$silent,
         [string[]]$parameters = @()
     )
 
@@ -74,24 +75,61 @@ function DockerDo {
     $p = New-Object System.Diagnostics.Process
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
-    Start-Sleep -Seconds 1
-    $error = $p.StandardError.ReadToEnd()
-    $output = $p.StandardOutput.ReadToEnd()
-    $p.WaitForExit()
-    $error += $p.StandardError.ReadToEnd()
-    $output += $p.StandardOutput.ReadToEnd()
+
+
+    $outtask = $null
+    $errtask = $p.StandardError.ReadToEndAsync()
+    $out = ""
+    $err = ""
+    
+    do {
+        if ($outtask -eq $null) {
+            $outtask = $p.StandardOutput.ReadLineAsync()
+        }
+        $outtask.Wait(100) | Out-Null
+        if ($outtask.IsCompleted) {
+            $outStr = $outtask.Result
+            if ($outStr -eq $null) {
+                break
+            }
+            if (!$silent) {
+                Write-Host $outStr
+            }
+            $out += $outStr
+            $outtask = $null
+            if ($outStr.StartsWith("Please login")) {
+                $registry = $imageName.Split("/")[0]
+                if ($registry -eq "bcinsider.azurecr.io") {
+                    throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
+                } else {
+                    throw "You need to login to $registry prior to pulling images."
+                }
+            }
+        } elseif ($outtask.IsCanceled) {
+            break
+        } elseif ($outtask.IsFaulted) {
+            break
+        }
+    } while(!($p.HasExited))
+    
+    $err = $errtask.Result
+    $p.WaitForExit();
+
     if ($p.ExitCode -ne 0) {
-        $output = $output.Trim()
-        if ("$output" -ne "") {
-            Docker rm $output -f
+        $result = $false
+        if (!$silent) {
+            $out = $out.Trim()
+            $err = $err.Trim()
+            if ($command -eq "run" -and "$out" -ne "") {
+                Docker rm $out -f
+            }
+            $errorMessage = ""
+            if ("$error" -ne "") {
+                $errorMessage += $error + "`r`n"
+            }
+            $errorMessage += "ExitCode: "+$p.ExitCode + "`r`nCommandline: docker $arguments"
+            Write-Error -Message $errorMessage
         }
-        $error = $error.Trim()
-        $errorMessage = ""
-        if ("$error" -ne "") {
-            $errorMessage += $error + "`r`n"
-        }
-        $errorMessage += "ExitCode: "+$p.ExitCode + "`r`nCommandline: docker $arguments"
-        Write-Error -Message $errorMessage
     }
     $result
 }

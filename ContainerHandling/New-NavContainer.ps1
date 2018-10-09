@@ -154,8 +154,27 @@ function New-NavContainer {
         }
     }
 
-    $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
+    $hostOsVersion = [System.Environment]::OSVersion.Version
+    if ("$hostOsVersion".StartsWith('10.0.14393.')) {
+        $osSuffix = "ltsc2016"
+    } elseif ("$hostOsVersion".StartsWith('10.0.16299.')) {
+        $osSuffix = "1703"
+    } elseif ("$hostOsVersion".StartsWith('10.0.15063.')) {
+        $osSuffix = "1709"
+    } elseif ("$hostOsVersion".StartsWith('10.0.17134.')) {
+        $osSuffix = "1803"
+    } elseif ("$hostOsVersion".StartsWith('10.0.17763.')) {
+        $osSuffix = "ltsc2019"
+    } else {
+        $osSuffix = "unknown"
+    }
 
+    $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
+    if ($isServerHost) {
+        Write-Host "Host is Windows Server $hostOsVersion - $osSuffix"
+    } else {
+        Write-Host "Host is Windows 10 $hostOsVersion - $osSuffix"
+    }
 
     $parameters = @()
 
@@ -173,15 +192,35 @@ function New-NavContainer {
     if (!$imageName.Contains(':')) {
         $imageName += ":latest"
     }
-    $imageId = docker images -q $imageName
-    if (!($imageId)) {
-        $alwaysPull = $true
+
+    $specificExists = $false
+    if (!($imageName.EndsWith('-ltsc2016') -or $imageName.EndsWith('-1709') -or $imageName.EndsWith('-1803') -or $imageName.EndsWith('-ltsc2019'))) {
+        $specificImageName = "${imageName}-${osSuffix}"
+        Write-Host "Checking image $specificImageName"
+        $imageId = docker images -q $specificImageName
+        if ($imageId) {
+            $specificExists = $true
+        }
+        if ($alwaysPull -or !$specificExists) {
+            $specificExists = DockerDo -command pull -imageName $specificImageName -silent
+        }
     }
 
-    if ($alwaysPull) {
-        Write-Host "Pulling docker Image $imageName"
-        docker pull $imageName
+    if ($specificExists) {
+        $imageName = $specificImageName
+    } else {
+        $imageId = docker images -q $imageName
+        if (!($imageId)) {
+            $alwaysPull = $true
+        }
+
+        if ($alwaysPull) {
+            Write-Host "Pulling image $imageName"
+            DockerDo -command pull -imageName $imageName | Out-Null
+        }
     }
+
+    Write-Host "Using image $imageName"
 
     if ($multitenant) {
         $parameters += "--env multitenant=Y"
@@ -261,7 +300,6 @@ function New-NavContainer {
     }
 
     Write-Host "Creating Nav container $containerName"
-    Write-Host "Using image $imageName"
     
     if ("$licenseFile" -ne "") {
         Write-Host "Using license file $licenseFile"
@@ -276,7 +314,6 @@ function New-NavContainer {
     Write-Host "Generic Tag: $genericTag"
 
     $osVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
-    $hostOsVersion = [System.Environment]::OSVersion.Version
     Write-Host "Container OS Version: $osVersion"
     Write-Host "Host OS Version: $hostOsVersion"
 
@@ -409,6 +446,10 @@ function New-NavContainer {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
     }
 
+    if ($enableSymbolLoading -and $version.Major -gt 10) {
+        $parameters += "--env enableSymbolLoading=Y"
+    }
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -418,10 +459,6 @@ function New-NavContainer {
              sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
          }' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
-        if ($enableSymbolLoading -and $version.Major -gt 10) {
-            $parameters += "--env enableSymbolLoading=Y"
-        }
-        
         if (Test-Path $programFilesFolder) {
             Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore
         }
@@ -546,7 +583,7 @@ function New-NavContainer {
 
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
-        docker exec $containerName powershell "Set-TimeZone -ID '$TimeZoneId'"
+        docker exec $containerName powershell "if ((Get-TimeZone).Id -ne '$TimeZoneId') { Set-TimeZone -ID '$TimeZoneId' }"
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
