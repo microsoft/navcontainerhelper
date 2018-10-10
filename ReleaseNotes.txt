@@ -1,3 +1,13 @@
+0.3.1.5
+BugFix #207: Compile-AppInNavContainer is downloading symbols for app which is in the AppSymbolFolder
+Include timezone parameter on Invoke-NavContainerCodeunit
+Compile-AppInNavContainer checks existance of dependencies in app.json
+Use .alpackages as default symbols folder
+BugFix #216: enableSymbolLoading only works with includeCSide
+BugFix #215: Naming symbol-files when compiling with Compile-AppInNavContainer
+Display progress when pulling and avoid deadlocks when running using New-NavContainer
+Bugfix Get-AzureADUser didn''t always retrieve the user needed
+
 0.3.1.4
 BugFix Convert-ModifiedObjectsToAl failed after the newly introduced [LineStart()] property in newsyntax export
 

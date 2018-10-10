@@ -51,11 +51,12 @@ function Create-AadUsersInNavContainer
     $account = Connect-AzureAD -Credential $AadAdminCredential
     Get-AzureADUser -All $true | Where-Object { $_.AccountEnabled } | ForEach-Object {
         $userName = $_.MailNickName
-        if (Get-NavContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName }) {
+        $authenticationEMail = $_.UserPrincipalName
+        if (Get-NavContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName -or $_.AuthenticationEmail -eq $authenticationEMail }) {
             Write-Host "User $userName already exists"
         } else {
             $Credential = [System.Management.Automation.PSCredential]::new($userName, $securePassword)
-            New-NavContainerNavUser -containerName $containerName -tenant $tenant -AuthenticationEmail $_.UserPrincipalName -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
+            New-NavContainerNavUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
         }
     }
 }

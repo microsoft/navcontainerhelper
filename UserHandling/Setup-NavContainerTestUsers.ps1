@@ -57,6 +57,7 @@ Param
     $fobfile = Join-Path $env:TEMP "CreateTestUsers.fob"
     Download-File -sourceUrl "http://aka.ms/createtestusersfob" -destinationFile $fobfile
     Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $sqlCredential
+    Start-Sleep -Seconds 5
     Invoke-NavContainerCodeunit -containerName $containerName -tenant $tenant -CodeunitId 50000 -MethodName CreateTestUsers -Argument ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
 }
 Export-ModuleMember -Function Setup-NavContainerTestUsers
