@@ -17,11 +17,11 @@ function Get-NavContainerAppInfo {
         
         [Parameter(Mandatory = $false)]
         [switch]
-        $TenantSpecificProperties,
+        $tenantSpecificProperties,
         
         [Parameter(Mandatory = $false)]
         [String]
-        $Tenant
+        $tenant
     )
 
     $args = @{
@@ -30,12 +30,12 @@ function Get-NavContainerAppInfo {
     if ($symbolsOnly) {
         $args += @{ SymbolsOnly = $true }
     }
-    if ($TenantSpecificProperties) {
-        if ("$Tenant" -eq "") {
-            $Tenant = "default"
+    if ($tenantSpecificProperties) {
+        if ("$tenant" -eq "") {
+            $tenant = "default"
         }
          
-        $args += @{ Tenant = $Tenant }
+        $args += @{ Tenant = $tenant }
         $args += @{ TenantSpecificProperties = $true }
     }
 
