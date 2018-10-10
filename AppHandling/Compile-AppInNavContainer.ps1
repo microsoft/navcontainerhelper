@@ -15,7 +15,9 @@
  .Parameter appSymbolsFolder
   Folder in which the symbols of dependent apps will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\symbols.
  .Parameter UpdateSymbols
-  Add this switch to indicate that you want to download symbols for all dependent apps.
+  Add this switch to indicate that you want to force the download of symbols for all dependent apps.
+ .Parameter AzureDevOps
+  Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
@@ -35,7 +37,7 @@ function Compile-AppInNavContainer {
         [Parameter(Mandatory=$false)]
         [string]$appOutputFolder = (Join-Path $appProjectFolder "output"),
         [Parameter(Mandatory=$false)]
-        [string]$appSymbolsFolder = (Join-Path $appProjectFolder "symbols"),
+        [string]$appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
         [switch]$UpdateSymbols,
         [switch]$AzureDevOps
     )
@@ -63,7 +65,7 @@ function Compile-AppInNavContainer {
 
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = Get-Content -Raw -Path $appJsonFile | ConvertFrom-Json
-    $appName = $appJsonObject.Publisher + '_' + $appJsonObject.Name + '_' + $appJsonObject.Version + '.app'
+    $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app"
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
@@ -86,16 +88,31 @@ function Compile-AppInNavContainer {
             $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
         }
     }
-    
+
+    $session = Get-NavContainerSession -containerName $containerName -silent
     if (!$updateSymbols) {
-        $existingApps = Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {Get-NavAppInfo -Path $_.FullName}
+        $existingApps = Invoke-Command -Session $session -ScriptBlock { Param($appSymbolsFolder)
+            Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object { Get-NavAppInfo -Path $_.FullName }
+        } -ArgumentList $containerSymbolsFolder
     }
+    $publishedApps = Invoke-Command -Session $session -ScriptBlock { Param($tenant)
+        Get-NavAppInfo -ServerInstance NAV -tenant $tenant
+        Get-NavAppInfo -ServerInstance NAV -tenant $tenant -symbolsOnly
+    } -ArgumentList $tenant
 
     $dependencies | ForEach-Object {
         $dependency = $_
-        $symbolsFile = Join-Path $appSymbolsFolder "$($_.name).app"
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
-            Write-Host "Downloading symbols: $($_.name).app"
+            $publisher = $_.publisher
+            $name = $_.name
+            $version = $_.version
+            $app = $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name }
+            if ($app) {
+                $version = $app.version
+            }
+            $symbolsName = "${publisher}_${name}_${version}.app"
+            $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
+            Write-Host "Downloading symbols: $symbolsName"
 
             $session = Get-NavContainerSession -containerName $containerName -silent
             [xml]$customConfig = Invoke-Command -Session $session -ScriptBlock { 
@@ -132,12 +149,11 @@ function Compile-AppInNavContainer {
                 $authParam += @{"usedefaultcredential" = $true}
             }
 
-            $url = "$devServerUrl/dev/packages?publisher=$($_.publisher)&appName=$($_.name)&versionText=$($_.Version)&tenant=$tenant"
+            $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
     $result = Invoke-Command -Session $session -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
