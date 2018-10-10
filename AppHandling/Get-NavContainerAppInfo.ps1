@@ -13,12 +13,38 @@
 function Get-NavContainerAppInfo {
     Param(
         [string]$containerName = "navserver",
-        [switch]$symbolsOnly
+        [switch]$symbolsOnly,
+        
+        [Parameter(Mandatory = $false)]
+        [switch]
+        $TenantSpecificProperties,
+        
+        [Parameter(Mandatory = $false)]
+        [String]
+        $Tenant
     )
 
+    $args = @{
+        ServerInstance = "NAV"
+    }
+    if ($symbolsOnly) {
+        $args += @{ SymbolsOnly = $true }
+    }
+    if ($TenantSpecificProperties) {
+        if ("$Tenant" -eq "") {
+            $Tenant = "default"
+        }
+         
+        $args += @{ Tenant = $Tenant }
+        $args += @{ TenantSpecificProperties = $true }
+    }
+
     $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($symbolsOnly)
-        Get-NavAppInfo -ServerInstance NAV -SymbolsOnly:$symbolsOnly
-    } -ArgumentList $symbolsOnly
+    Invoke-Command -Session $session -ScriptBlock { 
+        param(
+            $inArgs
+        )
+        Get-NavAppInfo @inArgs
+    } -ArgumentList $args
 }
 Export-ModuleMember -Function Get-NavContainerAppInfo
