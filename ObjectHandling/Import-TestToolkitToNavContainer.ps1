@@ -13,7 +13,7 @@
  .Parameter testToolkitCountry
   Only import TestToolkit objects for a specific country.
   You must specify the country code that is used in the TestToolkit object name (e.g. CA, US, MX, etc.).
-  This parameter only needs to be used in the event there are multiple country-specific sets of objects in the TestToolkit folder (e.g. North America images)
+  This parameter only needs to be used in the event there are multiple country-specific sets of objects in the TestToolkit folder.
  .Example
   Import-TestToolkitToNavContainer -containerName test2
   .Example
