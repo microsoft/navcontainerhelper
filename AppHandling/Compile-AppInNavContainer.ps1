@@ -39,7 +39,10 @@ function Compile-AppInNavContainer {
         [Parameter(Mandatory=$false)]
         [string]$appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
         [switch]$UpdateSymbols,
-        [switch]$AzureDevOps
+        [switch]$AzureDevOps,
+        [switch]$EnableCodeCop,
+        [ValidateSet('none','error','warning')]
+        [System.String]$FailOn = 'none'
     )
 
     $startTime = [DateTime]::Now
@@ -154,7 +157,7 @@ function Compile-AppInNavContainer {
         }
     }
 
-    $result = Invoke-Command -Session $session -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile )
+    $result = Invoke-Command -Session $session -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
@@ -162,6 +165,7 @@ function Compile-AppInNavContainer {
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }
         $alcPath = 'C:\build\vsix\extension\bin'
+        $analyzerPath = 'C:\build\vsix\extension\bin\Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll'
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
             Remove-Item -Path $appOutputFile -Force
@@ -169,12 +173,16 @@ function Compile-AppInNavContainer {
 
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
-        & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
+        if ($EnableCodeCop) {
+            & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile /analyzer:$analyzerPath
+        } else {
+            & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
+        }
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName)
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName, $EnableCodeCop)
     
     if ($AzureDevOps) {
-        $result | Convert-ALCOutputToAzureDevOps
+        $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
     } else {
         $result | Write-Host
     }
