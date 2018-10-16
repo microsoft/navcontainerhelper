@@ -265,13 +265,12 @@ function New-NavContainer {
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-    $navDvdPath = $navDvdPath.ToLowerInvariant()
-    if ($navDvdPath.EndsWith(".zip")) {
+    if ($navDvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
 
         $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
-        if ($navDvdPath.StartsWith("http://") -or $navDvdPath.StartsWith("https://")) {
-            Write-Host "Downloading DVD .zip file"
+        if ($navDvdPath.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $navDvdPath.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
+            Write-Host "Downloading DVD .zip file from $navdvdpath"
             Download-File -sourceUrl $navDvdPath -destinationFile "$temp.zip"
             Write-Host "Extracting DVD .zip file"
             Expand-Archive -Path "$temp.zip" -DestinationPath $temp
