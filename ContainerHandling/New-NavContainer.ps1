@@ -157,16 +157,22 @@ function New-NavContainer {
     $hostOsVersion = [System.Environment]::OSVersion.Version
     if ("$hostOsVersion".StartsWith('10.0.14393.')) {
         $osSuffix = "ltsc2016"
+        $compatibleContainerSuffixes = @("-ltsc2016")
     } elseif ("$hostOsVersion".StartsWith('10.0.16299.')) {
         $osSuffix = "1703"
+        $compatibleContainerSuffixes = @("-ltsc2016")
     } elseif ("$hostOsVersion".StartsWith('10.0.15063.')) {
         $osSuffix = "1709"
+        $compatibleContainerSuffixes = @("-ltsc2016")
     } elseif ("$hostOsVersion".StartsWith('10.0.17134.')) {
         $osSuffix = "1803"
+        $compatibleContainerSuffixes = @("-1803","-ltsc2016")
     } elseif ("$hostOsVersion".StartsWith('10.0.17763.')) {
         $osSuffix = "ltsc2019"
+        $compatibleContainerSuffixes = @("-ltsc2019","-1803","-ltsc2016")
     } else {
         $osSuffix = "unknown"
+        $compatibleContainerSuffixes = @()
     }
 
     $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
@@ -181,6 +187,7 @@ function New-NavContainer {
     $devCountry = ""
     $navVersion = ""
     if ($imageName -eq "") {
+        $alwaysPull = $true
         if ("$navDvdPath" -ne "") {
             $imageName = "microsoft/dynamics-nav:generic"
         } elseif (Test-NavContainer -containerName navserver) {
@@ -193,16 +200,34 @@ function New-NavContainer {
         $imageName += ":latest"
     }
 
+    # If the image requested exists and -alwaysPull is not specified - use the image
     $specificExists = $false
-    if (!($imageName.EndsWith('-ltsc2016') -or $imageName.EndsWith('-1709') -or $imageName.EndsWith('-1803') -or $imageName.EndsWith('-ltsc2019'))) {
-        $specificImageName = "${imageName}-${osSuffix}"
-        Write-Host "Checking image $specificImageName"
-        $imageId = docker images -q $specificImageName
+    if (!($alwaysPull)) {
+        $imageId = docker images -q $imageName
         if ($imageId) {
+            $specificImageName = $imageName
             $specificExists = $true
         }
-        if ($alwaysPull -or !$specificExists) {
-            $specificExists = DockerDo -command pull -imageName $specificImageName -silent
+    }
+
+    # If the image doesn't exist or -alwaysPuyll is specified - find the best compatible image
+    if (!$specificExists) {
+        if (!($imageName.EndsWith('-ltsc2016') -or $imageName.EndsWith('-1803') -or $imageName.EndsWith('-ltsc2019'))) {
+            
+            # Check the best compatible containers - download the best
+            $compatibleContainerSuffixes | ForEach-Object {
+                if (!$specificExists) {
+                    $specificImageName = "$imageName$_"
+                    Write-Host "Checking image $specificImageName"
+                    $imageId = docker images -q $specificImageName
+                    if ($imageId) {
+                        $specificExists = $true
+                    }
+                    if ($alwaysPull -or !$specificExists) {
+                        $specificExists = DockerDo -command pull -imageName $specificImageName -silent
+                    }
+                }
+            }
         }
     }
 
@@ -582,7 +607,7 @@ function New-NavContainer {
 
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
-        docker exec $containerName powershell "if ((Get-TimeZone).Id -ne '$TimeZoneId') { Set-TimeZone -ID '$TimeZoneId' }"
+        docker exec $containerName powershell "try { if ((Get-TimeZone).Id -ne '$TimeZoneId') { Set-TimeZone -ID '$TimeZoneId' } } catch { Write-Host ""Unable to set TimeZone to '$TimeZoneId', TimeZone is "" (Get-TimeZone).Id }"
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
