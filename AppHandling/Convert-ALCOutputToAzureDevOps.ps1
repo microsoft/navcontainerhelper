@@ -6,6 +6,8 @@
   https://dynamicsuser.net/nav/b/kine/posts/alc-exe-output-formatting-for-tfs-vsts
  .Parameter AlcOutput
   One or more lines of outout from the AL Compiler
+ .Parameter Failon
+  Specify if you want the AzureDevOps output to fail on Error or Warning
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -AzureDevOps
  .Example
@@ -17,7 +19,7 @@ Function Convert-AlcOutputToAzureDevOps {
         $AlcOutput,
         [Parameter(Position=1)]
         [ValidateSet('none','error','warning')]
-        [System.String]$FailOn
+        [string]$FailOn
     )
 
     Process {

@@ -7,8 +7,8 @@ BugFix #216: enableSymbolLoading only works with includeCSide
 BugFix #215: Naming symbol-files when compiling with Compile-AppInNavContainer
 Display progress when pulling and avoid deadlocks when running using New-NavContainer
 Bugfix Get-AzureADUser didn't always retrieve the user needed
-New-NavContainer automatically detects best os version of image
-navdvdpath didn't work when pointing to a url which was case sensitive
+New-NavContainer automatically detects best os version of generic image
+Bugfix: navdvdpath didn't work when pointing to a url which was case sensitive
 
 0.3.1.4
 BugFix Convert-ModifiedObjectsToAl failed after the newly introduced [LineStart()] property in newsyntax export

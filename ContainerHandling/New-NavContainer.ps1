@@ -202,32 +202,27 @@ function New-NavContainer {
 
     # If the image requested exists and -alwaysPull is not specified - use the image
     $specificExists = $false
-    if (!($alwaysPull)) {
+    # If we are using the generic image, use the best compatible generic image
+    if ($imageName.EndsWith(":generic", [StringComparison]::OrdinalIgnoreCase)) {
+        # Check the best compatible containers - download the best
+        $compatibleContainerSuffixes | ForEach-Object {
+            if (!$specificExists) {
+                $specificImageName = "$imageName$_"
+                Write-Host "Checking image $specificImageName"
+                $imageId = docker images -q $specificImageName
+                if ($imageId) {
+                    $specificExists = $true
+                }
+                if ($alwaysPull -or !$specificExists) {
+                    $specificExists = DockerDo -command pull -imageName $specificImageName -silent
+                }
+            }
+        }
+    } elseif (!($alwaysPull)) {
         $imageId = docker images -q $imageName
         if ($imageId) {
             $specificImageName = $imageName
             $specificExists = $true
-        }
-    }
-
-    # If the image doesn't exist or -alwaysPuyll is specified - find the best compatible image
-    if (!$specificExists) {
-        if (!($imageName.EndsWith('-ltsc2016') -or $imageName.EndsWith('-1803') -or $imageName.EndsWith('-ltsc2019'))) {
-            
-            # Check the best compatible containers - download the best
-            $compatibleContainerSuffixes | ForEach-Object {
-                if (!$specificExists) {
-                    $specificImageName = "$imageName$_"
-                    Write-Host "Checking image $specificImageName"
-                    $imageId = docker images -q $specificImageName
-                    if ($imageId) {
-                        $specificExists = $true
-                    }
-                    if ($alwaysPull -or !$specificExists) {
-                        $specificExists = DockerDo -command pull -imageName $specificImageName -silent
-                    }
-                }
-            }
         }
     }
 
