@@ -14,10 +14,16 @@
 Function Convert-AlcOutputToAzureDevOps {
     Param(
         [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
-        $AlcOutput
+        $AlcOutput,
+        [Parameter(Position=1)]
+        [ValidateSet('none','error','warning')]
+        [System.String]$FailOn
     )
 
     Process {
+        $hasError = $false
+        $hasWarning = $false
+
         foreach($line in $AlcOutput) {
             switch -regex ($line) {
                 "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
@@ -27,22 +33,29 @@ Function Convert-AlcOutputToAzureDevOps {
                         Write-Host "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
                     }
             
+                    $hasWarning = $true
                 }
                 "^(.*)\((\d+),(\d+)\): error (\w{2}\d{4}): (.*)$"
                 #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
                 {
                     Write-Host "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $hasError = $true
                 }
                 "^(.*)\((\d+),(\d+)\): warning (\w{2}\d{4}): (.*)$"
                 #Prepared for unified warning format
                 #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
                 {
                     Write-Host "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $hasWarning = $true
                 }
                 default {
                     Write-Host $line
                 }
             }
+        }
+
+        if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
+            Write-Host "##vso[task.complete result=Failed;]Failed."
         }
     }
 }
