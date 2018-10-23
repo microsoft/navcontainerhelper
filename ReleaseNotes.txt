@@ -194,31 +194,3 @@ Add function Get-NavContainerEventLog
 Add function Export-NavContainerDatabasesAsBacpac
 Change default filter in Compile-ObjectsInNavContainer to compiled=No
 Add Shortcut for opening WebClient with Test Tool page if TestToolKit is included
-
-0.2.2.4
-Updated Readme
-
-0.2.2.3
-Add nav specific tags when running generic image
-Check for tag tag when running fetching the tag (support generic image)
-Check container name validity
-Add test running generic image
-
-0.2.2.2
-Added switch for enabling SymbolLoading (dual development), default is off
-
-0.2.2.1
-Added function Import-TestToolkitToNavContainer
-Added parameter -includeTestToolkit to New-NavContainer to automatically include TestToolkit objects
-Include more information during start of new-navcontainer (and output the docker run command if it fails early)
-Fix report preview when running docker images 0.0.4.3 or earlier
-Bugfix CSide desktop shortcut was always set to windows auth
-
-0.2.2.0
-Bugfix: Copying files to/from containers didn't work on Windows 10
-Bugfix: Export-NavContainerObjects with a strange error if sharing the folder used for export directly
-Export-NavContainerObjects now supports txt files and fob files -exportTo parameter replaces -exportToNewSyntax
-Added Get-NavContainers to get all Nav containers
-Add pipeline support for Remove-NavContainer and Remove-NavContainerSession (to allow Get-NavContainers | Remove-NavContainer)
-Added Get-NavContainerDebugInfo
-Show ContainerName in prompt in Enter-NavContainer
