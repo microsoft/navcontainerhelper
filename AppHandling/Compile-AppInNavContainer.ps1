@@ -18,6 +18,10 @@
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
  .Parameter AzureDevOps
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
+ .Parameter EnableCodeCop
+  Add this switch to Enable CodeCop to run
+ .Parameter Failon
+  Specify if you want Compilation to fail on Error or Warning (Works only if you specify -AzureDevOps)
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
@@ -42,7 +46,7 @@ function Compile-AppInNavContainer {
         [switch]$AzureDevOps,
         [switch]$EnableCodeCop,
         [ValidateSet('none','error','warning')]
-        [System.String]$FailOn = 'none'
+        [string]$FailOn = 'none'
     )
 
     $startTime = [DateTime]::Now
@@ -100,7 +104,7 @@ function Compile-AppInNavContainer {
     }
     $publishedApps = Invoke-Command -Session $session -ScriptBlock { Param($tenant)
         Get-NavAppInfo -ServerInstance NAV -tenant $tenant
-        Get-NavAppInfo -ServerInstance NAV -tenant $tenant -symbolsOnly
+        Get-NavAppInfo -ServerInstance NAV -symbolsOnly
     } -ArgumentList $tenant
 
     $dependencies | ForEach-Object {
@@ -179,7 +183,7 @@ function Compile-AppInNavContainer {
             & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
         }
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName, $EnableCodeCop)
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn

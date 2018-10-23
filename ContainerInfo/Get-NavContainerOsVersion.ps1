@@ -21,10 +21,7 @@ function Get-NavContainerOsVersion {
     Process {
         # returns empty with generic tag 0.0.2.3 or earlier
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('osversion').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV container"
-        }
-        return "$($inspect.Config.Labels.osversion)"
+        return "$($inspect.OsVersion)"
     }
 }
 Export-ModuleMember -function Get-NavContainerOsVersion
