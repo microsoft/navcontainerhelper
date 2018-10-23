@@ -104,7 +104,7 @@ function Compile-AppInNavContainer {
     }
     $publishedApps = Invoke-Command -Session $session -ScriptBlock { Param($tenant)
         Get-NavAppInfo -ServerInstance NAV -tenant $tenant
-        Get-NavAppInfo -ServerInstance NAV -tenant $tenant -symbolsOnly
+        Get-NavAppInfo -ServerInstance NAV -symbolsOnly
     } -ArgumentList $tenant
 
     $dependencies | ForEach-Object {
@@ -183,7 +183,7 @@ function Compile-AppInNavContainer {
             & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
         }
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName, $EnableCodeCop)
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
