@@ -40,7 +40,7 @@ function Invoke-NavContainerCodeunit {
     )
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument)
+    Invoke-Command -Session $session -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance NAV -Tenant $tenant | Where-Object username -eq $me
@@ -61,7 +61,7 @@ function Invoke-NavContainerCodeunit {
         if ($Argument) {
             $Params += @{ "Argument" = $Argument }
         }
-        if ($Argument) {
+        if ($Timezone) {
             $Params += @{ "TimeZone" = $TimeZone }
         }
 
@@ -73,6 +73,6 @@ function Invoke-NavContainerCodeunit {
             Set-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -state Disabled
         }
 
-    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument
+    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
 }
 Export-ModuleMember -Function Invoke-NavContainerCodeunit
