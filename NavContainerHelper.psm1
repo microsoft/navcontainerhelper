@@ -53,6 +53,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Import-NavContainerLicense.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromNavContainerImage.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
