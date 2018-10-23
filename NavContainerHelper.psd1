@@ -161,7 +161,7 @@ Bugfix Get-AzureADUser didn''t always retrieve the user needed
 New-NavContainer automatically detects best os version of generic image
 Bugfix: navdvdpath didn''t work when pointing to a url which was case sensitive
 Feature #232: added tenant parameter to Get-NavContainerAppInfo
-Added function Extract-FilesFromNavContainerImage to extract the files need to spin up a generic image
+Added function Extract-FilesFromNavContainerImage to extract the files from a Nav Container image
 Added parameter UseBestContainerOS to tell New-NavContainer to spin up a container based on the best compatible generic image.
 Added parameter TestToolkitCountry to import-TestToolkitToNavContainer
 
@@ -346,17 +346,11 @@ Add function Export-NavContainerDatabasesAsBacpac
 Change default filter in Compile-ObjectsInNavContainer to compiled=No
 Add Shortcut for opening WebClient with Test Tool page if TestToolKit is included'
 
-        # Prerelease string of this module
-        # Prerelease = ''
-
-        # Flag to indicate whether the module requires explicit user acceptance for install/update
-        # RequireLicenseAcceptance = $false
-
         # External dependent modules of this module
-        # ExternalModuleDependencies = @()
+        # ExternalModuleDependencies = ''
 
     } # End of PSData hashtable
-
+    
  } # End of PrivateData hashtable
 
 # HelpInfo URI of this module
