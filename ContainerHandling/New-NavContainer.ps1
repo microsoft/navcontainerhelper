@@ -671,8 +671,8 @@ function New-NavContainer {
         }
     }
 
-    $sqlCredential = $null
-    if ($auth -eq "NavUserPassword") {
+    $sqlCredential = $databaseCredential
+    if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
         $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
     }
 
