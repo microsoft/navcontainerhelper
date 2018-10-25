@@ -63,15 +63,15 @@
  .Parameter myscripts
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
  .Example
-  New-NavContainer -containerName test
+  New-NavContainer -accept_eula -containerName test
  .Example
-  New-NavContainer -containerName test -multitenant
+  New-NavContainer -accept_eula -containerName test -multitenant
  .Example
-  New-NavContainer -containerName test -memoryLimit 3G -imageName "microsoft/dynamics-nav:2017" -updateHosts -useBestContainerOS
+  New-NavContainer -accept_eula -containerName test -memoryLimit 3G -imageName "microsoft/dynamics-nav:2017" -updateHosts -useBestContainerOS
  .Example
-  New-NavContainer -containerName test -imageName "microsoft/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+  New-NavContainer -accept_eula -containerName test -imageName "microsoft/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-NavContainer -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "microsoft/dynamics-nav:devpreview-finus"
+  New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "microsoft/dynamics-nav:devpreview-finus"
 #>
 function New-NavContainer {
     Param(
@@ -353,8 +353,12 @@ function New-NavContainer {
             
             # There is a generic image, which is better than the selected image
             Write-Host "A better Container OS exists for your host ($bestContainerOS)"
-            $NavDvdPath = Join-Path $containerFolder "NAVDVD"
-            Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
+
+            # Extract files from image if not already done
+            $NavDvdPath = Join-Path $containerHelperFolder "${NavVersion}-Files"
+            if (!(Test-Path $NavDvdPath)) {
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
+            }
             $inspect = docker inspect $imageName | ConvertFrom-Json
 
             $parameters += @(
@@ -671,8 +675,8 @@ function New-NavContainer {
         }
     }
 
-    $sqlCredential = $null
-    if ($auth -eq "NavUserPassword") {
+    $sqlCredential = $databaseCredential
+    if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
         $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
     }
 

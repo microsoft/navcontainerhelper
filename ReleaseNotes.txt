@@ -1,3 +1,9 @@
+0.4.0.1
+Bugfix: If you specify -includeTestToolkit to New-NavContainer and use a foreign database, the import would fail
+New-NavContainer will cache the files from Extract-FilesFromNavContainer for future usage instead of deleting them
+New-CSideDevContainer has been removed - use New-NavContainer with -includeCSide instead
+Added function Import-PfxCertificateToNavContainer
+
 0.4.0.0
 BugFix #207: Compile-AppInNavContainer is downloading symbols for app which is in the AppSymbolFolder
 Include timezone parameter on Invoke-NavContainerCodeunit
