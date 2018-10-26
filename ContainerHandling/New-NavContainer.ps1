@@ -293,10 +293,12 @@ function New-NavContainer {
     }
 
     $publishPorts | ForEach-Object {
-        $parameters += "--publish $_"
+        Write-Host "Publishing port $_"
+        $parameters += "--publish $($_):$($_)"
     }
 
     if ($publicDnsName) {
+        Write-Host "PublicDnsName is $publicDnsName"
         $parameters += "--env PublicDnsName=$PublicDnsName"
     }
 
