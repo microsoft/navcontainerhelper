@@ -10,6 +10,8 @@
   Path of the objects file you want to import
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter SynchronizeSchemaChanges
+  Specify whether you want to Synchronize Schema Changes. Values are Yes, No or Force. Default is Force.
  .Example
   Import-ObjectsToNavContainer -containerName test2 -objectsFile c:\temp\objects.txt -sqlCredential (get-credential -credential 'sa')
 #>
@@ -19,7 +21,9 @@ function Import-ObjectsToNavContainer {
         [string]$containerName, 
         [Parameter(Mandatory=$true)]
         [string]$objectsFile,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [ValidateSet("Force","Yes","No")]
+        [string]$SynchronizeSchemaChanges = "Force"
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -32,7 +36,7 @@ function Import-ObjectsToNavContainer {
     }
 
     $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, [System.Management.Automation.PSCredential]$sqlCredential, $copied)
+    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, [System.Management.Automation.PSCredential]$sqlCredential, $SynchronizeSchemaChanges, $copied)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -59,7 +63,7 @@ function Import-ObjectsToNavContainer {
                                     -DatabaseName $databaseName `
                                     -DatabaseServer $databaseServerParameter `
                                     -ImportAction Overwrite `
-                                    -SynchronizeSchemaChanges Force `
+                                    -SynchronizeSchemaChanges $SynchronizeSchemaChanges `
                                     -NavServerName localhost `
                                     -NavServerInstance NAV `
                                     -NavServerManagementPort "$managementServicesPort" `
@@ -69,7 +73,7 @@ function Import-ObjectsToNavContainer {
             Remove-Item -Path $objectsFile -Force
         }
     
-    } -ArgumentList $containerObjectsFile, $sqlCredential, $copied
+    } -ArgumentList $containerObjectsFile, $sqlCredential, $SynchronizeSchemaChanges, $copied
     Write-Host -ForegroundColor Green "Objects successfully imported"
 }
 Export-ModuleMember -Function Import-ObjectsToNavContainer
