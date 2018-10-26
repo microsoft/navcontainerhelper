@@ -4,6 +4,7 @@ New-NavContainer will cache the files from Extract-FilesFromNavContainer for fut
 New-CSideDevContainer has been removed - use New-NavContainer with -includeCSide instead
 Added function Import-PfxCertificateToNavContainer
 Feature request #238: Adding SynchronizeSchemaChanges parametar to Import-ObjectsToNavContainer
+Added parameters -publishPorts and -publicDnsName in order to be able to create publicly available containers easier
 
 0.4.0.0
 BugFix #207: Compile-AppInNavContainer is downloading symbols for app which is in the AppSymbolFolder
