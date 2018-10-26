@@ -3,6 +3,7 @@ Bugfix: If you specify -includeTestToolkit to New-NavContainer and use a foreign
 New-NavContainer will cache the files from Extract-FilesFromNavContainer for future usage instead of deleting them
 New-CSideDevContainer has been removed - use New-NavContainer with -includeCSide instead
 Added function Import-PfxCertificateToNavContainer
+Feature request #238: Adding SynchronizeSchemaChanges parametar to Import-ObjectsToNavContainer
 
 0.4.0.0
 BugFix #207: Compile-AppInNavContainer is downloading symbols for app which is in the AppSymbolFolder
