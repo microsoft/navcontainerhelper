@@ -22,7 +22,10 @@ function Extract-FilesFromNavContainerImage {
 
     New-Item -Path $path -ItemType Directory -Force -ErrorAction Ignore | Out-Null
 
+    $ErrorActionPreference = 'Continue'
+
     Write-Host "Creating temp container from $imagename and extract necessary files"
+    docker rm navcontainerhelper-temp 2>$null | Out-null
     docker create --name navcontainerhelper-temp $imagename | Out-Null
 
     if ($extract -eq "all") {
@@ -111,6 +114,8 @@ function Extract-FilesFromNavContainerImage {
     }
     
     Write-Host "Removing temp container"
-    docker rm navcontainerhelper-temp | Out-null
+    docker rm navcontainerhelper-temp 2>$null | Out-null
+
+    $ErrorActionPreference = 'Stop'
 }
 Export-ModuleMember -function Extract-FilesFromNavContainerImage

@@ -62,6 +62,28 @@
   This allows you to transfer an additional number of parameters to the docker run
  .Parameter myscripts
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
+ .Parameter $TimeZoneId,
+  This parameter specifies the timezone in which you want to start the Container.
+ .Parameter $WebClientPort,
+  Use this parameter to specify which port to use for the WebClient. Default is 80 if http and 443 if https.
+ .Parameter $FileSharePort,
+  Use this parameter to specify which port to use for the File Share. Default is 8080.
+ .Parameter $ManagementServicesPort,
+  Use this parameter to specify which port to use for Management Services. Default is 7045.
+ .Parameter $ClientServicesPort,
+  Use this parameter to specify which port to use for Client Services. Default is 7046.
+ .Parameter $SoapServicesPort,
+  Use this parameter to specify which port to use for Soap Web Services. Default is 7047.
+ .Parameter $ODataServicesPort,
+  Use this parameter to specify which port to use for OData Web Services. Default is 7048.
+ .Parameter $DeveloperServicesPort,
+  Use this parameter to specify which port to use for Developer Services. Default is 7049.
+ .Parameter $PublishPorts,
+  Use this parameter to specify the ports you want to publish on the host. Default is to NOT publish any ports.
+  This parameter is necessary if you want to be able to connect to the container from outside the host.
+ .Parameter $PublicDnsName
+  Use this parameter to specify which public dns name is pointing to this container.
+  This parameter is necessary if you want to be able to connect to the container from outside the host.
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -120,7 +142,9 @@ function New-NavContainer {
         [int]$ClientServicesPort,
         [int]$SoapServicesPort,
         [int]$ODataServicesPort,
-        [int]$DeveloperServicesPort
+        [int]$DeveloperServicesPort,
+        [int[]]$PublishPorts = @(),
+        [string]$PublicDnsName
     )
 
     if (!$accept_eula) {
@@ -266,6 +290,16 @@ function New-NavContainer {
 
     if ($DeveloperServicesPort) {
         $parameters += "--env DeveloperServicesPort=$DeveloperServicesPort"
+    }
+
+    $publishPorts | ForEach-Object {
+        Write-Host "Publishing port $_"
+        $parameters += "--publish $($_):$($_)"
+    }
+
+    if ($publicDnsName) {
+        Write-Host "PublicDnsName is $publicDnsName"
+        $parameters += "--env PublicDnsName=$PublicDnsName"
     }
 
     # Remove if it already exists
