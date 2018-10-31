@@ -338,6 +338,8 @@ function New-NavContainer {
                        "--label cu="
                        )
 
+        $navVersion += "-$devCountry"
+
     } elseif ($devCountry -eq "") {
         $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
