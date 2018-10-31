@@ -88,8 +88,10 @@ function Export-NavContainerObjects {
 
         if ($exportTo.Contains("folder")) {
             Write-Host "Split $objectsFile to $objectsFolder (container paths)"
-            Split-NAVApplicationObjectFile -Source $objectsFile `
-                                           -Destination $objectsFolder
+            if ((Test-Path $objectsFile) -and ((Get-Item -Path $objectsFile).Length -gt 0)) {
+                Split-NAVApplicationObjectFile -Source $objectsFile `
+                                               -Destination $objectsFolder
+            }
             Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
         }
     
