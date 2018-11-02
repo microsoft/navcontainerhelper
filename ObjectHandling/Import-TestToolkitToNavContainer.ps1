@@ -52,7 +52,6 @@ function Import-TestToolkitToNavContainer {
         else {
             $fileFilter = "*.fob"
         }
-        Write-Host "Result = $fileFilter"
         Get-ChildItem -Path "C:\TestToolKit" -Filter $fileFilter | ForEach-Object { 
             if (!$includeTestLibrariesOnly -or $_.Name.StartsWith("CALTestLibraries")) {
                 $objectsFile = $_.FullName

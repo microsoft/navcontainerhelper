@@ -199,7 +199,7 @@ function New-NavContainer {
         $compatibleContainerSuffixes = @("-1803","-1709","-ltsc2016")
     } else {
         $hostOsSuffix = "unknown"
-        $compatibleContainerSuffixes = @()
+        $compatibleContainerSuffixes = @("-1803","-1709","-ltsc2016")
     }
 
     $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
