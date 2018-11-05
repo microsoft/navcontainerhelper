@@ -1,3 +1,9 @@
+0.4.0.2
+BugFix #246: Windows Server insider builds couldn't use navcontainerhelper
+Added function Sign-NavContainerApp to use a container to Sign an app file with a code signing certificate
+When running generic image, .txt files were exported to a wrong folder (country not included)
+Division by zero when exporting objects from a container and no objects matched the filter
+
 0.4.0.1
 Bugfix: If you specify -includeTestToolkit to New-NavContainer and use a foreign database, the import would fail
 New-NavContainer will cache the files from Extract-FilesFromNavContainer for future usage instead of deleting them
