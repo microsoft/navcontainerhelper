@@ -64,7 +64,6 @@ function Invoke-NavContainerCodeunit {
         if ($Timezone) {
             $Params += @{ "TimeZone" = $TimeZone }
         }
-
         Invoke-NAVCodeunit -ServerInstance NAV -Tenant $tenant @Params -CodeunitId $CodeUnitId
     
         if (!($userexist)) {

@@ -62,6 +62,7 @@
     Write-Host "Get-NavContainerAppInfo          Get info about installed apps from Nav Container"
     Write-Host "Start-NavContainerAppDataUpgrade Start Data Upgrade for an App in a Nav Container"
     Write-Host "Install-NAVSipCryptoProviderFromNavContainer Install Nav Sip Crypto Provider locally from container to sign extensions"
+    Write-Host "Sign-NavContainerApp             Uses a Nav container to sign an App"
     Write-Host
     Write-Host -ForegroundColor Yellow "Tenant handling functions"
     Write-Host "Get-NavContainerTenants          Get all tenants in Nav Container"
