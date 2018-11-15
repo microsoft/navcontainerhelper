@@ -54,16 +54,12 @@ function Export-NavContainerDatabasesAsBacpac {
     
         function Install-DACFx
         {
-            $DacFxMsi = Join-Path $env:TEMP "DacFramework.msi"
-            $sqlpakcageExe = "C:\Program Files\Microsoft SQL Server\140\DAC\bin\sqlpackage.exe"
-            if (!(Test-Path $sqlpakcageExe -PathType Leaf)) {
-                Write-Host "Downloading DacFx 17.3 GA"
-                (New-Object System.Net.WebClient).DownloadFile("https://download.microsoft.com/download/3/7/F/37F3C5CE-E96B-41AC-B361-27735365AA16/EN/x64/DacFramework.msi",$DacFxMsi)
-                Write-Host "Installing DacFx 17.3 GA"
-                Start-process -FilePath $DacFxMsi -argumentList "/qn" -Wait
-                Remove-Item -Path $DacFxMsi
+            $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
+            if (!($sqlpakcageExe)) {
+                InstallPrerequisite -Name "Dac Framework 18.0" -MsiPath "c:\download\DacFramework.msi" -MsiUrl "https://download.microsoft.com/download/9/9/5/995E5614-49F9-48F0-85A5-2215518B85BD/EN/x64/DacFramework.msi" | Out-Null
+                $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
             }
-            $sqlpakcageExe 
+            $sqlpakcageExe.FullName
         }
         
         function Remove-NetworkServiceUser
@@ -84,7 +80,9 @@ function Export-NavContainerDatabasesAsBacpac {
             Write-Host "Remove Network Service User from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\NETWORK SERVICE' and isntuser = 1)
-              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END"
+              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END
+            IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\SYSTEM' and isntuser = 1)
+              BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
         }
         
         function Remove-NavDatabaseSystemTableData
