@@ -196,10 +196,10 @@ function New-NavContainer {
         $compatibleContainerSuffixes = @("-1803","-1709","-ltsc2016")
     } elseif ("$hostOsVersion".StartsWith('10.0.17763.')) {
         $hostOsSuffix = "ltsc2019"
-        $compatibleContainerSuffixes = @("-1803","-1709","-ltsc2016")
+        $compatibleContainerSuffixes = @("-ltsc2019","-1803","-1709","-ltsc2016")
     } else {
         $hostOsSuffix = "unknown"
-        $compatibleContainerSuffixes = @("-1803","-1709","-ltsc2016")
+        $compatibleContainerSuffixes = @("-ltsc2019","-1803","-1709","-ltsc2016")
     }
 
     $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
