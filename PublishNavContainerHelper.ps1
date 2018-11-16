@@ -10,6 +10,7 @@ Clear-Host
 $functionsToExport = (get-module -Name NavContainerHelper).ExportedFunctions.Keys | Sort-Object
 Update-ModuleManifest -Path (Join-Path $PSScriptRoot "NavContainerHelper.psd1") `
                       -RootModule "NavContainerHelper.psm1" `
+                      -FileList @("ContainerHandling\docker.ico") `
                       -ModuleVersion $version `
                       -Author $author `
                       -FunctionsToExport $functionsToExport `

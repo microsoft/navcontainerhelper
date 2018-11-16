@@ -701,8 +701,10 @@ function New-NavContainer {
                 }
             }
         }
-        New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
-        New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation "C:\Program Files\Docker\docker.exe, 0" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
+        
+        $dockerIco = Join-Path $PSScriptRoot "docker.ico"
+        New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation $dockerIco -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
+        New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation $dockerIco -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
     }
 
     if ([System.Version]$genericTag -lt [System.Version]"0.0.4.4") {

@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.4.1.1'
+ModuleVersion = '0.4.1.2'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -130,7 +130,7 @@ AliasesToExport = @()
 # ModuleList = @()
 
 # List of all files packaged with this module
-# FileList = @()
+FileList = 'ContainerHandling\docker.ico'
 
 # Private data to pass to the module specified in RootModule/ModuleToProcess. This may also contain a PSData hashtable with additional module metadata used by PowerShell.
 PrivateData = @{
@@ -150,7 +150,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.4.1.1
+        ReleaseNotes = '0.4.1.2
+Include docker icon
+
+0.4.1.1
 Better error message in New-NavContainer
 Bugfix: 1703 and 1709 build numbers was switched
 
