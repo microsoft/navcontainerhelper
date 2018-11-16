@@ -124,8 +124,16 @@ function DockerDo {
                 Docker rm $out -f
             }
             $errorMessage = ""
-            if ("$error" -ne "") {
-                $errorMessage += $error + "`r`n"
+            if ("$err" -ne "") {
+                $errorMessage += "$err`r`n"
+                if ($err.Contains("authentication required")) {
+                    $registry = $imageName.Split("/")[0]
+                    if ($registry -eq "bcinsider.azurecr.io") {
+                        $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
+                    } else {
+                        $errorMessage += "You need to login to $registry prior to pulling images.`r`n"
+                    }
+                }
             }
             $errorMessage += "ExitCode: "+$p.ExitCode + "`r`nCommandline: docker $arguments"
             Write-Error -Message $errorMessage
