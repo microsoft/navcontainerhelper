@@ -124,8 +124,8 @@ function DockerDo {
                 Docker rm $out -f
             }
             $errorMessage = ""
-            if ("$error" -ne "") {
-                $errorMessage += $error + "`r`n"
+            if ("$err" -ne "") {
+                $errorMessage += $err + "`r`n"
             }
             $errorMessage += "ExitCode: "+$p.ExitCode + "`r`nCommandline: docker $arguments"
             Write-Error -Message $errorMessage
