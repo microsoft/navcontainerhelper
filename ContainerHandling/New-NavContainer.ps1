@@ -185,10 +185,10 @@ function New-NavContainer {
     if ("$hostOsVersion".StartsWith('10.0.14393.')) {
         $hostOsSuffix = "ltsc2016"
         $compatibleContainerSuffixes = @("-ltsc2016")
-    } elseif ("$hostOsVersion".StartsWith('10.0.16299.')) {
+    } elseif ("$hostOsVersion".StartsWith('10.0.15063.')) {
         $hostOsSuffix = "1703"
         $compatibleContainerSuffixes = @("-ltsc2016")
-    } elseif ("$hostOsVersion".StartsWith('10.0.15063.')) {
+    } elseif ("$hostOsVersion".StartsWith('10.0.16299.')) {
         $hostOsSuffix = "1709"
         $compatibleContainerSuffixes = @("-1709","-ltsc2016")
     } elseif ("$hostOsVersion".StartsWith('10.0.17134.')) {
@@ -364,9 +364,9 @@ function New-NavContainer {
         if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
             $timeZoneId = (Get-TimeZone).Id
         }
-    } elseif ("$osVersion".StartsWith('10.0.16299.')) {
-        $osSuffix = "1703"
     } elseif ("$osVersion".StartsWith('10.0.15063.')) {
+        $osSuffix = "1703"
+    } elseif ("$osVersion".StartsWith('10.0.16299.')) {
         $osSuffix = "1709"
     } elseif ("$osVersion".StartsWith('10.0.17134.')) {
         $osSuffix = "1803"
