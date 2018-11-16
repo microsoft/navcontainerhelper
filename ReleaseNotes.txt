@@ -1,3 +1,6 @@
+0.4.1.2
+Include docker icon
+
 0.4.1.1
 Better error message in New-NavContainer
 Bugfix: 1703 and 1709 build numbers was switched
