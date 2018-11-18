@@ -182,31 +182,37 @@ function New-NavContainer {
     }
 
     $hostOsVersion = [System.Environment]::OSVersion.Version
-    if ("$hostOsVersion".StartsWith('10.0.14393.')) {
-        $hostOsSuffix = "ltsc2016"
-        $compatibleContainerSuffixes = @("-ltsc2016")
-    } elseif ("$hostOsVersion".StartsWith('10.0.15063.')) {
-        $hostOsSuffix = "1703"
-        $compatibleContainerSuffixes = @("-ltsc2016")
-    } elseif ("$hostOsVersion".StartsWith('10.0.16299.')) {
-        $hostOsSuffix = "1709"
-        $compatibleContainerSuffixes = @("-1709","-ltsc2016")
-    } elseif ("$hostOsVersion".StartsWith('10.0.17134.')) {
-        $hostOsSuffix = "1803"
-        $compatibleContainerSuffixes = @("-1803","-1709","-ltsc2016")
-    } elseif ("$hostOsVersion".StartsWith('10.0.17763.')) {
-        $hostOsSuffix = "ltsc2019"
-        $compatibleContainerSuffixes = @("-ltsc2019","-1803","-1709","-ltsc2016")
-    } else {
-        $hostOsSuffix = "unknown"
-        $compatibleContainerSuffixes = @("-ltsc2019","-1803","-1709","-ltsc2016")
+    $hostOs = "Unknown/Insider build"
+    $bestContainerOs = "ltsc2016"
+
+    if ($hostOsVersion.Major -eq 10 -and $hostOsVersion.Minor -eq 0) {
+        if ($hostOsVersion.Build -ge 17763) { 
+            if ($hostOsVersion.Build -eq 17763) { 
+                $hostOs = "ltsc2019"
+            }
+            $bestContainerOs = "ltsc2019"
+        } elseif ($hostOsVersion.Build -ge 17134) { 
+            if ($hostOsVersion.Build -eq 17134) { 
+                $hostOs = "1803"
+            }
+            $bestContainerOs = "1803" 
+        } elseif ($hostOsVersion.Build -ge 16299) {
+            if ($hostOsVersion.Build -eq 16299) { 
+                $hostOs = "1709"
+            }
+            $bestContainerOs = "1709"
+        } elseif ($hostOsVersion.Build -eq 15063) {
+            $hostOs = "1703"
+        } elseif ($hostOsVersion.Build -ge 14393) {
+            $hostOs = "ltsc2016"
+        }
     }
 
     $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
     if ($isServerHost) {
-        Write-Host "Host is Windows Server $hostOsVersion - $hostOsSuffix"
+        Write-Host "Host is Windows Server $hostOsVersion - $hostOs"
     } else {
-        Write-Host "Host is Windows 10 $hostOsVersion - $hostOsSuffix"
+        Write-Host "Host is Windows 10 $hostOsVersion - $hostOs"
     }
 
     $parameters = @()
@@ -231,7 +237,7 @@ function New-NavContainer {
     $specificExists = $false
     # If we are using the generic image, use the best compatible generic image
     if ($imageName.EndsWith(":generic", [StringComparison]::OrdinalIgnoreCase)) {
-        $imageName += $compatibleContainerSuffixes[0]
+        $imageName += "-$bestContainerOs"
     } elseif (!($alwaysPull)) {
         $imageId = docker images -q $imageName
         if ($imageId) {
@@ -358,43 +364,43 @@ function New-NavContainer {
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
     Write-Host "Generic Tag: $genericTag"
 
-    $osVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
-    if ("$osVersion".StartsWith('10.0.14393.')) {
-        $osSuffix = "ltsc2016"
+    $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+    if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+        $containerOs = "ltsc2016"
         if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
             $timeZoneId = (Get-TimeZone).Id
         }
-    } elseif ("$osVersion".StartsWith('10.0.15063.')) {
-        $osSuffix = "1703"
-    } elseif ("$osVersion".StartsWith('10.0.16299.')) {
-        $osSuffix = "1709"
-    } elseif ("$osVersion".StartsWith('10.0.17134.')) {
-        $osSuffix = "1803"
-    } elseif ("$osVersion".StartsWith('10.0.17763.')) {
-        $osSuffix = "ltsc2019"
+    } elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+        $containerOs = "1703"
+    } elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+        $containerOs = "1709"
+    } elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+        $containerOs = "1803"
+    } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+        $containerOs = "ltsc2019"
     } else {
-        $osSuffix = "unknown"
+        $containerOs = "unknown"
     }
-    Write-Host "Container OS Version: $osVersion ($osSuffix)"
-    Write-Host "Host OS Version: $hostOsVersion ($hostOsSuffix)"
+    Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
+    Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
 
-    if (($hostOsVersion.Major -lt $osversion.Major) -or 
-        ($hostOsVersion.Major -eq $osversion.Major -and $hostOsVersion.Minor -lt $osversion.Minor) -or 
-        ($hostOsVersion.Major -eq $osversion.Major -and $hostOsVersion.Minor -eq $osversion.Minor -and $hostOsVersion.Build -lt $osversion.Build)) {
+    if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
+        ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
+        ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
         throw "The container operating system is newer than the host operating system."
-    } elseif ($hostOsVersion.Major -ne $osversion.Major -or $hostOsVersion.Minor -ne $osversion.Minor -or $hostOsVersion.Build -ne $osversion.Build) {
+    } elseif ($hostOsVersion.Major -ne $containerOsversion.Major -or $hostOsVersion.Minor -ne $containerOsversion.Minor -or $hostOsVersion.Build -ne $containerOsversion.Build) {
 
-        $bestContainerOS = $compatibleContainerSuffixes[0].SubString(1)
-        if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$osSuffix" -ne $bestContainerOS) {
+        if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestContainerOs") {
             
             # There is a generic image, which is better than the selected image
-            Write-Host "A better Container OS exists for your host ($bestContainerOS)"
+            Write-Host "A better Container OS exists for your host ($bestContainerOs)"
 
             # Extract files from image if not already done
             $NavDvdPath = Join-Path $containerHelperFolder "${NavVersion}-Files"
             if (!(Test-Path $NavDvdPath)) {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
             }
+
             $inspect = docker inspect $imageName | ConvertFrom-Json
 
             $parameters += @(
@@ -404,10 +410,10 @@ function New-NavContainer {
                            "--label cu=$($inspect.Config.Labels.cu)"
                            )
 
-            $imageName = "microsoft/dynamics-nav:generic-$bestContainerOS"
+            $imageName = "microsoft/dynamics-nav:generic-$bestContainerOs"
             DockerDo -command pull -imageName $imageName | Out-Null
 
-            if ("$hostOsSuffix" -ne $bestContainerOS) {
+            if ("$hostOs" -ne "$bestContainerOs") {
                 Write-Host "The best container operating system does not match the host operating system, forcing hyperv isolation."
                 $isolation = "hyperv"
             }
