@@ -7,13 +7,16 @@
         [string]$WorkingDirectory = "", 
         [string]$IconLocation = "", 
         [string]$Arguments = "",
-        [ValidateSet('None','Desktop','StartMenu','Startup','CommonStartMenu')]
+        [ValidateSet('None','Desktop','StartMenu','Startup','CommonDesktop','CommonStartMenu','CommonStartup')]
         [string]$shortcuts = "Desktop",
         [switch]$RunAsAdministrator = $true
     )
     if ($shortcuts -ne "None") {
         
-        if ($shortcuts -eq "Desktop" -or $shortcuts -eq "Startup") {
+        if ($shortcuts -eq "Desktop" -or 
+            $shortcuts -eq "CommonDesktop" -or 
+            $shortcuts -eq "Startup" -or 
+            $shortcuts -eq "CommonStartup") {
             $folder = [Environment]::GetFolderPath($shortcuts)
         } else {
             $folder = Join-Path ([Environment]::GetFolderPath($shortcuts)) "NavContainerHelper"
