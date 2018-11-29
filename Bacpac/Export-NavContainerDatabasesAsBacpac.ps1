@@ -52,6 +52,29 @@ function Export-NavContainerDatabasesAsBacpac {
     $session = Get-NavContainerSession -containerName $containerName -silent
     Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant)
     
+        function InstallPrerequisite {
+            Param(
+                [Parameter(Mandatory=$true)]
+                [string]$Name,
+                [Parameter(Mandatory=$true)]
+                [string]$MsiPath,
+                [Parameter(Mandatory=$true)]
+                [string]$MsiUrl
+            )
+        
+            if (!(Test-Path $MsiPath)) {
+                Write-Host "Downloading $Name"
+                $MsiFolder = [System.IO.Path]::GetDirectoryName($MsiPath)
+                if (!(Test-Path $MsiFolder)) {
+                    New-Item -Path $MsiFolder -ItemType Directory | Out-Null
+                }
+                [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+                (New-Object System.Net.WebClient).DownloadFile($MsiUrl, $MsiPath)
+            }
+            Write-Host "Installing $Name"
+            start-process $MsiPath -ArgumentList "/quiet /qn /passive" -Wait
+        }
+
         function Install-DACFx
         {
             $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
@@ -80,7 +103,10 @@ function Export-NavContainerDatabasesAsBacpac {
             Write-Host "Remove Network Service User from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\NETWORK SERVICE' and isntuser = 1)
-              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END
+              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END"
+
+            Write-Host "Remove System User from $DatabaseName"
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\SYSTEM' and isntuser = 1)
               BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
         }
@@ -168,6 +194,7 @@ function Export-NavContainerDatabasesAsBacpac {
             [string]$targetFile
         )
         {
+            Write-Host "Exporting..."
             $arguments = @(
                 ('/Action:Export'), 
                 ('/TargetFile:"'+$targetFile+'"'), 
@@ -183,26 +210,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 )
             }
 
-            $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-            $pinfo.FileName = $sqlPackageExe
-            $pinfo.RedirectStandardError = $true
-            $pinfo.RedirectStandardOutput = $true
-            $pinfo.UseShellExecute = $false
-            $pinfo.Arguments = $arguments
-            $p = New-Object System.Diagnostics.Process
-            $p.StartInfo = $pinfo
-            $p.Start() | Out-Null
-
-            while (!$p.HasExited){
-                $line = $p.StandardOutput.ReadLine()
-                Write-Host $line
-            }
-            $line = $p.StandardOutput.ReadToEnd()
-            Write-Host $line
-            $err = $p.StandardError.ReadToEnd()
-            if ($err) {
-                Write-Error $err
-            }
+            & $sqlPackageExe $arguments
         }
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
