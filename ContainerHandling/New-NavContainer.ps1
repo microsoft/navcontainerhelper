@@ -359,8 +359,12 @@ function New-NavContainer {
     if ($navVersion -eq "") {
         $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
     }
-    Write-Host "NAV Version: $navversion"
+    Write-Host "Version: $navversion"
     $version = [System.Version]($navversion.split('-')[0])
+    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName
+    if ($platformversion) {
+        Write-Host "Platform: $platformversion"
+    }
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
     Write-Host "Generic Tag: $genericTag"
 

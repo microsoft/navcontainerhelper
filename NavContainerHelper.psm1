@@ -23,6 +23,7 @@ $sessions = @{}
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerPlatformVersion.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerGenericTag.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerOsVersion.ps1")
