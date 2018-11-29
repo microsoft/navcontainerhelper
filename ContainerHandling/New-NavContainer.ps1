@@ -184,6 +184,7 @@ function New-NavContainer {
     $hostOsVersion = [System.Environment]::OSVersion.Version
     $hostOs = "Unknown/Insider build"
     $bestContainerOs = "ltsc2016"
+    $bestGenericContainerOs = "ltsc2016"
 
     if ($hostOsVersion.Major -eq 10 -and $hostOsVersion.Minor -eq 0) {
         if ($hostOsVersion.Build -ge 17763) { 
@@ -191,16 +192,17 @@ function New-NavContainer {
                 $hostOs = "ltsc2019"
             }
             $bestContainerOs = "ltsc2019"
+            $bestGenericContainerOs = "ltsc2019"
         } elseif ($hostOsVersion.Build -ge 17134) { 
             if ($hostOsVersion.Build -eq 17134) { 
                 $hostOs = "1803"
             }
-            $bestContainerOs = "1803" 
+            $bestGenericContainerOs = "1803"
         } elseif ($hostOsVersion.Build -ge 16299) {
             if ($hostOsVersion.Build -eq 16299) { 
                 $hostOs = "1709"
             }
-            $bestContainerOs = "1709"
+            $bestGenericContainerOs = "1709"
         } elseif ($hostOsVersion.Build -eq 15063) {
             $hostOs = "1703"
         } elseif ($hostOsVersion.Build -ge 14393) {
@@ -235,29 +237,27 @@ function New-NavContainer {
 
     # If the image requested exists and -alwaysPull is not specified - use the image
     $specificExists = $false
-    # If we are using the generic image, use the best compatible generic image
+    
     if ($imageName.EndsWith(":generic", [StringComparison]::OrdinalIgnoreCase)) {
+        # If we are using the generic image, use the best compatible generic image
+        $imageName += "-$bestGenericContainerOs"
+    } elseif (($imagename.StartsWith('microsoft/') -or 
+               $imagename.StartsWith('bcinsider.azurecr.io/') -or 
+               $imagename.StartsWith('mcr.microsoft.com/') -or 
+               $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) -and 
+              ($imagename.Substring($imagename.Length-8,4) -ne "ltsc")) {
+        # If we are using a Microsoft image without specific containeros - add best container tag
         $imageName += "-$bestContainerOs"
-    } elseif (!($alwaysPull)) {
-        $imageId = docker images -q $imageName
-        if ($imageId) {
-            $specificImageName = $imageName
-            $specificExists = $true
-        }
     }
 
-    if ($specificExists) {
-        $imageName = $specificImageName
-    } else {
-        $imageId = docker images -q $imageName
-        if (!($imageId)) {
-            $alwaysPull = $true
-        }
+    $imageId = docker images -q $imageName
+    if (!($imageId)) {
+        $alwaysPull = $true
+    }
 
-        if ($alwaysPull) {
-            Write-Host "Pulling image $imageName"
-            DockerDo -command pull -imageName $imageName | Out-Null
-        }
+    if ($alwaysPull) {
+        Write-Host "Pulling image $imageName"
+        DockerDo -command pull -imageName $imageName | Out-Null
     }
 
     Write-Host "Using image $imageName"
@@ -394,10 +394,10 @@ function New-NavContainer {
         throw "The container operating system is newer than the host operating system."
     } elseif ($hostOsVersion.Major -ne $containerOsversion.Major -or $hostOsVersion.Minor -ne $containerOsversion.Minor -or $hostOsVersion.Build -ne $containerOsversion.Build) {
 
-        if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestContainerOs") {
+        if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
             
             # There is a generic image, which is better than the selected image
-            Write-Host "A better Container OS exists for your host ($bestContainerOs)"
+            Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
 
             # Extract files from image if not already done
             $NavDvdPath = Join-Path $containerHelperFolder "${NavVersion}-Files"
@@ -414,11 +414,11 @@ function New-NavContainer {
                            "--label cu=$($inspect.Config.Labels.cu)"
                            )
 
-            $imageName = "microsoft/dynamics-nav:generic-$bestContainerOs"
+            $imageName = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
             DockerDo -command pull -imageName $imageName | Out-Null
 
-            if ("$hostOs" -ne "$bestContainerOs") {
-                Write-Host "The best container operating system does not match the host operating system, forcing hyperv isolation."
+            if ("$hostOs" -ne "$bestGenericContainerOs") {
+                Write-Host "The best generic container operating system does not match the host operating system, forcing hyperv isolation."
                 $isolation = "hyperv"
             }
 
