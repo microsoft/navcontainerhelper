@@ -231,24 +231,8 @@ function New-NavContainer {
             $imageName = "microsoft/dynamics-nav:latest"
         }
     }
-    if (!$imageName.Contains(':')) {
-        $imageName += ":latest"
-    }
 
-    # If the image requested exists and -alwaysPull is not specified - use the image
-    $specificExists = $false
-    
-    if ($imageName.EndsWith(":generic", [StringComparison]::OrdinalIgnoreCase)) {
-        # If we are using the generic image, use the best compatible generic image
-        $imageName += "-$bestGenericContainerOs"
-    } elseif (($imagename.StartsWith('microsoft/') -or 
-               $imagename.StartsWith('bcinsider.azurecr.io/') -or 
-               $imagename.StartsWith('mcr.microsoft.com/') -or 
-               $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) -and 
-              ($imagename.Substring($imagename.Length-8,4) -ne "ltsc")) {
-        # If we are using a Microsoft image without specific containeros - add best container tag
-        $imageName += "-$bestContainerOs"
-    }
+    $imageName = Get-BestNavContainerImageName -imageName $imageName
 
     $imageId = docker images -q $imageName
     if (!($imageId)) {
