@@ -232,6 +232,7 @@ function New-NavContainer {
         }
     }
 
+    $orgImageName = $imageName
     $imageName = Get-BestNavContainerImageName -imageName $imageName
 
     $imageId = docker images -q $imageName
@@ -240,8 +241,17 @@ function New-NavContainer {
     }
 
     if ($alwaysPull) {
-        Write-Host "Pulling image $imageName"
-        DockerDo -command pull -imageName $imageName | Out-Null
+        try {
+            Write-Host "Pulling image $imageName"
+            DockerDo -command pull -imageName $imageName | Out-Null
+        } catch {
+            if ($imageName -eq $orgImageName) {
+                throw
+            }
+            $imageName = $orgImageName
+            Write-Host "Pulling image $imageName"
+            DockerDo -command pull -imageName $imageName | Out-Null
+        }
     }
 
     Write-Host "Using image $imageName"
