@@ -38,6 +38,7 @@
     Write-Host "Export-NavContainerDatabasesAsBacpac Export database(s) in Nav Container as BacPac"
     Write-Host "Backup-NavContainerDatabases     Backup database(s) in Nav Container as bak"
     Write-Host "Extract-FilesFromNavContainerImage Extract files from Nav Container Image"
+    Write-Host "Get-BestNavContainerImageName    Get best specific Nav Container Image for your host OS"
     Write-Host
     Write-Host -ForegroundColor Yellow "Object handling functions"
     Write-Host "Import-ObjectsToNavContainer     Import objects from .txt or .fob file to Nav Container"

@@ -1,3 +1,8 @@
+0.4.2.0
+Automatically detect host OS and use best pre-built container (ltsc2016 or ltsc2019) unless specified
+Added function Get-BestNavContainerImageName
+BugFix Export-NavContainerDatabasesAsBacpac didn't work with containers with generic version pre 0.0.8.0
+
 0.4.1.2
 Include docker icon
 

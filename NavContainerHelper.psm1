@@ -23,6 +23,7 @@ $sessions = @{}
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerPlatformVersion.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerGenericTag.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerOsVersion.ps1")
@@ -53,6 +54,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromNavContainerImage.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Get-BestNavContainerImageName.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")

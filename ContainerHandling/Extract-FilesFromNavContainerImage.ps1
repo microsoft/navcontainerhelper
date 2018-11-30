@@ -73,7 +73,24 @@ function Extract-FilesFromNavContainerImage {
         Write-Host "Extracting Database Files"
         docker cp navcontainerhelper-temp:"\databases" "$path" 2>$null
     }
-    
+
+    if ($extract -eq "all") {
+        Write-Host "Downloading prerequisites"
+        $ver = [int]((get-childitem "$path\ServiceTier\Program Files\Microsoft Dynamics NAV").Name)
+        Download-File -dontOverwrite -sourceUrl "https://download.microsoft.com/download/C/9/E/C9E8180D-4E51-40A6-A9BF-776990D8BCA9/rewrite_amd64.msi" -destinationFile "$path\Prerequisite Components\IIS URL Rewrite Module\rewrite_2.0_rtw_x64.msi"
+        Download-File -dontOverwrite -sourceUrl "https://download.microsoft.com/download/5/5/3/553C731E-9333-40FB-ADE3-E02DC9643B31/OpenXMLSDKV25.msi" -destinationFile "$path\Prerequisite Components\Open XML SDK 2.5 for Microsoft Office\OpenXMLSDKv25.msi" 
+        if ($ver -eq 90) {
+            Download-File -dontOverwrite -sourceUrl "https://download.microsoft.com/download/1/3/0/13089488-91FC-4E22-AD68-5BE58BD5C014/ENU/x86/SQLSysClrTypes.msi" -destinationFile "$path\Prerequisite Components\Microsoft Report Viewer 2015\SQLSysClrTypes.msi"
+            Download-File -dontOverwrite -sourceUrl "https://download.microsoft.com/download/A/1/2/A129F694-233C-4C7C-860F-F73139CF2E01/ENU/x86/ReportViewer.msi" -destinationFile "$path\Prerequisite Components\Microsoft Report Viewer 2015\ReportViewer.msi"
+        } elseif ($ver -eq 100) {
+            Download-File -dontOverwrite -sourceUrl "https://download.microsoft.com/download/1/3/0/13089488-91FC-4E22-AD68-5BE58BD5C014/ENU/x86/SQLSysClrTypes.msi" -destinationFile "$path\Prerequisite Components\Microsoft Report Viewer\SQLSysClrTypes.msi"
+            Download-File -dontOverwrite -sourceUrl "https://download.microsoft.com/download/A/1/2/A129F694-233C-4C7C-860F-F73139CF2E01/ENU/x86/ReportViewer.msi" -destinationFile "$path\Prerequisite Components\Microsoft Report Viewer\ReportViewer.msi" 
+        } elseif ($ver -ge 110) {
+            Download-File -dontOverwrite -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile "$path\Prerequisite Components\DotNetCore\DotNetCore.1.0.4_1.1.1-WindowsHosting.exe"
+        }
+
+    }
+   
     Write-Host "Performing cleanup"
     if ($extract -eq "all" -or $extract -eq "database") {
         if (Test-Path "$path\databases\*.mdf") {

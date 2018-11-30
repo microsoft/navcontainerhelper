@@ -2,9 +2,9 @@
  .Synopsis
   Get the version of NAV in a Nav container or a Nav container image
  .Description
-  Returns the version of NAV in the format major.minor.build.release
+  Returns the version of NAV in the format major.minor.build.release-country
  .Parameter containerOrImageName
-  Name of the container or container image for which you want to enter a session
+  Name of the container or container image for which you want to get the version
  .Example
   Get-NavContainerNavVersion -containerOrImageName navserver
  .Example
