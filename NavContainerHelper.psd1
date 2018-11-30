@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.4.2.0'
+ModuleVersion = '0.4.2.1'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -151,7 +151,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.4.2.0
+        ReleaseNotes = '0.4.2.1
+BugFix #268 Revert back to original image name if best container os doesn''t exist
+
+0.4.2.0
 Automatically detect host OS and use best pre-built container (ltsc2016 or ltsc2019) unless specified
 Added function Get-BestNavContainerImageName
 BugFix Export-NavContainerDatabasesAsBacpac didn''t work with containers with generic version pre 0.0.8.0
