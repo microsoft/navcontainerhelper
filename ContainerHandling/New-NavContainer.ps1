@@ -355,7 +355,7 @@ function New-NavContainer {
     }
     Write-Host "Version: $navversion"
     $version = [System.Version]($navversion.split('-')[0])
-    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName
+    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
     }
