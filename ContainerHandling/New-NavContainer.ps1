@@ -232,23 +232,36 @@ function New-NavContainer {
         }
     }
 
-    $orgImageName = $imageName
-    $imageName = Get-BestNavContainerImageName -imageName $imageName
+    # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
+    $bestImageName = Get-BestNavContainerImageName -imageName $imageName
 
-    $imageId = docker images -q $imageName
-    if (!($imageId)) {
-        $alwaysPull = $true
+    $imageExists = $false
+    $bestImageExists = $false
+    docker images -q --no-trunc | ForEach-Object {
+        $inspect = docker inspect $_ | ConvertFrom-Json
+        if ($inspect | % { $_.RepoTags | Where-Object { "$_" -eq "$imageName" -or "$_" -eq "${imageName}:latest"} } ) { $imageExists = $true }
+        if ($inspect | % { $_.RepoTags | Where-Object { "$_" -eq "$bestImageName" } } ) { $bestImageExists = $true }
+    }
+
+    if (!($alwaysPull)) {
+        if ($bestImageExists) {
+            $imageName = $bestImageName
+        } elseif ($imageExists) {
+            # use image
+        } else {
+            $alwaysPull = $true
+        }
     }
 
     if ($alwaysPull) {
         try {
-            Write-Host "Pulling image $imageName"
-            DockerDo -command pull -imageName $imageName | Out-Null
+            Write-Host "Pulling image $bestImageName"
+            DockerDo -command pull -imageName $bestImageName | Out-Null
+            $imageName = $bestImageName
         } catch {
-            if ($imageName -eq $orgImageName) {
+            if ($imageName -eq $bestImageName) {
                 throw
             }
-            $imageName = $orgImageName
             Write-Host "Pulling image $imageName"
             DockerDo -command pull -imageName $imageName | Out-Null
         }
@@ -355,7 +368,7 @@ function New-NavContainer {
     }
     Write-Host "Version: $navversion"
     $version = [System.Version]($navversion.split('-')[0])
-    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName
+    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
     }

@@ -14,13 +14,21 @@ function Extract-FilesFromNavContainerImage {
     [CmdletBinding()]
     Param
     (
-        [string]$imageName,
-        [string]$path,
+        [string] $imageName,
+        [string] $path,
         [ValidateSet('all','vsix','database')]
-        [string]$extract = "all"
+        [string] $extract = "all",
+        [switch] $force
     )
 
-    New-Item -Path $path -ItemType Directory -Force -ErrorAction Ignore | Out-Null
+    if (Test-Path -Path $path) {
+        if (!$force) { 
+            throw "Destination folder '$path' already exists"
+        }
+        Remove-Item -Path $path -Recurse -Force
+
+    }
+    New-Item -Path $path -ItemType Directory -Force | Out-Null
 
     $ErrorActionPreference = 'Continue'
 
@@ -104,7 +112,8 @@ function Extract-FilesFromNavContainerImage {
                 Move-Item -Path (Get-Item "$path\databases\$Name\*.ldf").FullName -Destination "$path\databases\$name.ldf"
                 Remove-Item $folder.FullName -Recurse -Force
             } else {
-                docker cp navcontainerhelper-temp:"\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA" "$path"
+                docker cp navcontainerhelper-temp:"\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA" "$path" 2>null
+                docker cp navcontainerhelper-temp:"\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA" "$path" 2>null
                 $mdffile = Get-Item "$path\DATA\Financials*.mdf"
                 if ($mdffile) {
                     $name = $mdffile.Name.SubString(0,$mdffile.Name.IndexOf('_'))
