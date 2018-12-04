@@ -210,6 +210,7 @@ function New-NavContainer {
         }
     }
 
+    Write-Host "Getting Computer Info (get-ComputerInfo)"
     $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
     if ($isServerHost) {
         Write-Host "Host is Windows Server $hostOsVersion - $hostOs"
