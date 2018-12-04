@@ -20,11 +20,16 @@ function Get-BestNavContainerImageName {
         $imageName += ":latest"
     }
 
-    if (($imagename.StartsWith('microsoft/') -or 
-         $imagename.StartsWith('bcinsider.azurecr.io/') -or 
-         $imagename.StartsWith('mcr.microsoft.com/') -or 
-         $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) -and 
-        ($imagename.Substring($imagename.Length-8,4) -ne "ltsc")) {
+    if (!($imagename.EndsWith('-ltsc2016') -or
+          $imagename.EndsWith('-1709') -or
+          $imagename.EndsWith('-1803') -or
+          $imagename.EndsWith('-ltsc2019'))) {
+
+        if ($imagename.StartsWith('microsoft/') -or 
+            $imagename.StartsWith('bcinsider.azurecr.io/') -or 
+            $imagename.StartsWith('mcr.microsoft.com/') -or 
+            $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) {
+           
             # If we are using a Microsoft image without specific containeros - add best container tag
 
             $hostOsVersion = [System.Environment]::OSVersion.Version
@@ -34,6 +39,7 @@ function Get-BestNavContainerImageName {
             }
         
             $imageName += "-$bestContainerOs"
+        }
     }
 
     $imageName
