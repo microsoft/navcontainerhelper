@@ -1,3 +1,6 @@
+0.4.2.2
+Better algorithm for finding which image to use
+
 0.4.2.1
 BugFix #268 Revert back to original image name if best container os doesn't exist
 
