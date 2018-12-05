@@ -181,41 +181,42 @@ function New-NavContainer {
         }
     }
 
-    $hostOsVersion = [System.Environment]::OSVersion.Version
+    $os = (Get-CimInstance Win32_OperatingSystem)
+    if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
+        throw "Unknown Host Operating System"
+    }
+
+    $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
+    
+    $hostOsVersion = [System.Version]::Parse("$($os.BuildNumber).$UBR")
     $hostOs = "Unknown/Insider build"
     $bestContainerOs = "ltsc2016"
     $bestGenericContainerOs = "ltsc2016"
 
-    if ($hostOsVersion.Major -eq 10 -and $hostOsVersion.Minor -eq 0) {
-        if ($hostOsVersion.Build -ge 17763) { 
-            if ($hostOsVersion.Build -eq 17763) { 
-                $hostOs = "ltsc2019"
-            }
-            $bestContainerOs = "ltsc2019"
-            $bestGenericContainerOs = "ltsc2019"
-        } elseif ($hostOsVersion.Build -ge 17134) { 
-            if ($hostOsVersion.Build -eq 17134) { 
-                $hostOs = "1803"
-            }
-            $bestGenericContainerOs = "1803"
-        } elseif ($hostOsVersion.Build -ge 16299) {
-            if ($hostOsVersion.Build -eq 16299) { 
-                $hostOs = "1709"
-            }
-            $bestGenericContainerOs = "1709"
-        } elseif ($hostOsVersion.Build -eq 15063) {
-            $hostOs = "1703"
-        } elseif ($hostOsVersion.Build -ge 14393) {
-            $hostOs = "ltsc2016"
+    if ($os.BuildNumber -ge 17763) { 
+        if ($os.BuildNumber -eq 17763) { 
+            $hostOs = "ltsc2019"
         }
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
+    } elseif ($os.BuildNumber -ge 17134) { 
+        if ($os.BuildNumber -eq 17134) { 
+            $hostOs = "1803"
+        }
+        $bestGenericContainerOs = "1803"
+    } elseif ($os.BuildNumber -ge 16299) {
+        if ($os.BuildNumber -eq 16299) { 
+            $hostOs = "1709"
+        }
+        $bestGenericContainerOs = "1709"
+    } elseif ($os.BuildNumber -eq 15063) {
+        $hostOs = "1703"
+    } elseif ($os.BuildNumber -ge 14393) {
+        $hostOs = "ltsc2016"
     }
-
-    $isServerHost = ((Get-ComputerInfo).OsProductType -eq "Server")
-    if ($isServerHost) {
-        Write-Host "Host is Windows Server $hostOsVersion - $hostOs"
-    } else {
-        Write-Host "Host is Windows 10 $hostOsVersion - $hostOs"
-    }
+    
+    $isServerHost = $os.ProductType -eq 3
+    Write-Host "Host is $($os.Caption) - $hostOs"
 
     $parameters = @()
 
