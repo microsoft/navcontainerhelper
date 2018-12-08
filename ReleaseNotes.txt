@@ -1,3 +1,8 @@
+0.4.2.4
+Added Scopy and SyncMode parameters to Publish-NavContainerApp
+Change mechanism to identify host OS
+Do NOT throw exception when running process isolation on Windows 10
+
 0.4.2.3
 BugFix: New-NavContainer cannot use images without a platform tag
 BugFix: Get-BestNavContainerImageName should not append OS if already appended
