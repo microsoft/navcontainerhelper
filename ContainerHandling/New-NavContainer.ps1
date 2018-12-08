@@ -188,7 +188,7 @@ function New-NavContainer {
 
     $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
     
-    $hostOsVersion = [System.Version]::Parse("$($os.BuildNumber).$UBR")
+    $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
     $bestContainerOs = "ltsc2016"
     $bestGenericContainerOs = "ltsc2016"
@@ -458,9 +458,9 @@ function New-NavContainer {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
 
-    if (!$isServerHost -and "$isolation" -eq "process") {
-        throw "Process isolation mode is only supported on Windows Server hosts"
-    }
+#    if (!$isServerHost -and "$isolation" -eq "process") {
+#        throw "Process isolation mode is only supported on Windows Server hosts"
+#    }
 
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
