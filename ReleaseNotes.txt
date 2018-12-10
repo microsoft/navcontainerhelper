@@ -1,7 +1,9 @@
 0.4.2.4
-Added Scopy and SyncMode parameters to Publish-NavContainerApp
+Added Scope and SyncMode parameters to Publish-NavContainerApp
 Change mechanism to identify host OS
-Do NOT throw exception when running process isolation on Windows 10
+Display Docker version during New-NavContainer
+Removed exception when trying to run Process isolation on Windows 10
+Added defaulting mechanism for isolation (Server=process, non-server=hyperv)
 
 0.4.2.3
 BugFix: New-NavContainer cannot use images without a platform tag

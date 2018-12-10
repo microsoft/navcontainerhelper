@@ -218,6 +218,21 @@ function New-NavContainer {
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
+    $dockerService = (Get-Service docker -ErrorAction Ignore)
+    if (!($dockerService)) {
+        throw "Docker Service not found / Docker is not installed"
+    }
+
+    if ($dockerService.Status -ne "Running") {
+        throw "Docker Service is $($dockerService.Status) (Needs to be running)"
+    }
+
+    $dockerClientVersion = (docker version -f "{{.Client.Version}}")
+    Write-Host "Docker Client Version is $dockerClientVersion"
+
+    $dockerServerVersion = (docker version -f "{{.Server.Version}}")
+    Write-Host "Docker Server Version is $dockerClientVersion"
+
     $parameters = @()
 
     $devCountry = ""
@@ -458,9 +473,15 @@ function New-NavContainer {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
 
-#    if (!$isServerHost -and "$isolation" -eq "process") {
-#        throw "Process isolation mode is only supported on Windows Server hosts"
-#    }
+    if ("$isolation" -eq "") {
+        # TODO insert chcek here for version of docker when process isolation for Windows 10 ships to default to process isolation
+        if ($isServerHost) {
+            $isolation = "hyperv"
+        } else {
+            $isolation = "process"
+        }
+    }
+    Write-Host "Using $isolation isolation"
 
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -527,19 +548,16 @@ function New-NavContainer {
                     "--env databaseInstance=""$databaseInstance""",
                     "--volume ""${hostHelperFolder}:$containerHelperFolder""",
                     "--volume ""${myFolder}:C:\Run\my""",
+                    "--isolation $isolation",
                     "--restart $restart"
                    )
 
     if ("$memoryLimit" -eq "") {
-        if ($isolation -eq "hyperv" -or !$isServerHost) {
+        if ($isolation -eq "hyperv") {
             $parameters += "--memory 4G"
         }
     } else {
         $parameters += "--memory $memoryLimit"
-    }
-
-    if ("$isolation" -ne "") {
-        $parameters += "--isolation $isolation"
     }
 
     if ($version.Major -gt 11) {
