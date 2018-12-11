@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Publish Nav App to a Nav container
  .Description
@@ -83,8 +83,8 @@ function Publish-NavContainerApp {
     
             if ($sync) {
                 Write-Host "Synchronizing $appName on tenant $tenant"
-                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Mode $syncMode -Force
-                Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant -WarningAction Ignore
+                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
+                Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant -Mode $syncMode -WarningAction Ignore
             }
     
             if ($install) {
