@@ -78,7 +78,7 @@ function Import-TestToolkitToNavContainer {
         }
 
         # Sync after all objects hav been imported
-        Sync-NavTenant NAV -Mode ForceSync -Force
+         Get-NAVTenant NAV | Sync-NavTenant -Mode ForceSync -Force
 
     } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry
     Write-Host -ForegroundColor Green "TestToolkit successfully imported"
