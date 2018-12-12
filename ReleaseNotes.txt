@@ -1,3 +1,9 @@
+0.4.2.6
+BugFix: Publish-NavContainerApp fails in 0.4.2.4 and 0.4.2.5 due to new parameters added
+
+0.4.2.5
+BugFix: Wrong defaulting of isolation mode
+
 0.4.2.4
 Added Scope and SyncMode parameters to Publish-NavContainerApp
 Change mechanism to identify host OS

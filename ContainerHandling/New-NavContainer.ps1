@@ -476,9 +476,9 @@ function New-NavContainer {
     if ("$isolation" -eq "") {
         # TODO insert chcek here for version of docker when process isolation for Windows 10 ships to default to process isolation
         if ($isServerHost) {
-            $isolation = "hyperv"
-        } else {
             $isolation = "process"
+        } else {
+            $isolation = "hyperv"
         }
     }
     Write-Host "Using $isolation isolation"

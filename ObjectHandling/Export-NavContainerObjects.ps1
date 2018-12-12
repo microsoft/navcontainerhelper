@@ -7,6 +7,7 @@
   Name of the container for which you want to enter a session
  .Parameter objectsFolder
   The folder to which the objects are exported (needs to be shared with the container)
+  NOTE: The content of this folder will be deleted.
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter filter

@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Publish Nav App to a Nav container
  .Description
@@ -38,15 +38,17 @@ function Publish-NavContainerApp {
         [string]$appFile,
         [switch]$skipVerification,
         [switch]$sync,
+        [Parameter(Mandatory=$false)]
         [ValidateSet('Add','Clean','Development')]
-        [string]$syncMode = 'Add',
+        [string]$syncMode,
         [switch]$install,
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default",
         [ValidateSet('Extension','SymbolsOnly')]
         [string]$packageType = 'Extension',
+        [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
-        [string]$scope = 'Global'
+        [string]$scope
     )
 
     $copied = $false
@@ -71,20 +73,30 @@ function Publish-NavContainerApp {
             $copied = $true
         }
 
-        Write-Host "Publishing $appFile"
-        if ($scope -eq 'Tenant') {
-          Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification -packageType $packageType -Scope $scope -Tenant $tenant
-        } else {
-            Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification -packageType $packageType -Scope $scope
+        $publishArgs = @{ "packageType" = $packageType }
+        if ($scope) {
+            $publishArgs += @{ "Scope" = $scope }
+            if ($scope -eq "Tenant") {
+                $publishArgs += @{ "Tenant" = $tenant }
+            }
         }
+
+        Write-Host "Publishing $appFile"
+        Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification @publishArgs
+
         if ($sync -or $install) {
             $appName = (Get-NAVAppInfo -Path $appFile).Name
             $appVersion = (Get-NAVAppInfo -Path $appFile).Version
     
+            $syncArgs = @{}
+            if ($syncMode) {
+                $syncArgs += @{ "Mode" = $syncMode }
+            }
+
             if ($sync) {
                 Write-Host "Synchronizing $appName on tenant $tenant"
-                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Mode $syncMode -Force
-                Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant -WarningAction Ignore
+                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
+                Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
             }
     
             if ($install) {
