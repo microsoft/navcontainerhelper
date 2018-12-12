@@ -12,8 +12,10 @@
   Include this parameter if the app you want to publish is not signed
  .Parameter sync
   Include this parameter if you want to synchronize the app after publishing
-  .Parameter syncMode
-   Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
+ .Parameter syncTenantMode
+  Include this parameter if you want to synchronize tenant database schema with application database
+ .Parameter syncMode
+  Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
  .Parameter install
   Include this parameter if you want to install the app after publishing
  .Parameter tenant
@@ -38,6 +40,8 @@ function Publish-NavContainerApp {
         [string]$appFile,
         [switch]$skipVerification,
         [switch]$sync,
+        [ValidateSet('ForceSync', 'Sync', 'CheckOnly')]
+        [string]$syncTenantMode,
         [Parameter(Mandatory=$false)]
         [ValidateSet('Add','Clean','Development')]
         [string]$syncMode,
@@ -95,7 +99,7 @@ function Publish-NavContainerApp {
 
             if ($sync) {
                 Write-Host "Synchronizing $appName on tenant $tenant"
-                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
+                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Mode $syncTenantMode -Force
                 Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
             }
     
