@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.4.2.5'
+ModuleVersion = '0.4.2.6'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -151,7 +151,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.4.2.5
+        ReleaseNotes = '0.4.2.6
+BugFix: Publish-NavContainerApp fails in 0.4.2.4 and 0.4.2.5 due to new parameters added
+
+0.4.2.5
 BugFix: Wrong defaulting of isolation mode
 
 0.4.2.4
