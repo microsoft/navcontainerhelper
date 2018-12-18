@@ -1,4 +1,4 @@
-﻿Set-StrictMode -Version 2.0
+Set-StrictMode -Version 2.0
 
 $verbosePreference = "SilentlyContinue"
 $warningPreference = "SilentlyContinue"
@@ -14,7 +14,32 @@ $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 if (!($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
-    Write-Error "NavContainerHelper needs to run with administrator privileges"
+
+    $npipe = "\\.\pipe\docker_engine"
+    $osname = (Get-CimInstance win32_operatingsystem).caption
+    if ($osname -like "* Windows 10 *") {
+        $npipe = "\\.\pipe\docker_engine_windows"
+    }
+
+    $dInfo = New-Object "System.IO.DirectoryInfo" -ArgumentList $npipe
+    $hasAccess = $false
+    try {
+        $dSec = $dInfo.GetAccessControl()
+        
+        $rules = $dSec.GetAccessRules($true, $true, [System.Security.Principal.NTAccount]) 
+        foreach ($rule in $rules) {
+            if ($rule.IdentityReference.Value -eq $currentPrincipal.Identity.Name -and $rule.FileSystemRights -eq [System.Security.AccessControl.FileSystemRights]::FullControl -and $rule.AccessControlType -eq [System.Security.AccessControl.AccessControlType]::Allow) {
+                $hasAccess = $true
+            }
+        }
+    } catch {
+        # no access
+    }
+
+    if (-not $hasAccess) {
+        Write-Error "NavContainerHelper needs to run with administrator privileges or user needs to have access to the Docker Engine named pipe"
+    }
+   
 }
 
 $sessions = @{}
