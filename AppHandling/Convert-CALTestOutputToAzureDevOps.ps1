@@ -41,7 +41,7 @@ function Convert-CALTestOutputToAzureDevOps {
             $test.SetAttribute("name", $_.FName)
             $test.SetAttribute("method", $_.FName)
             $time = Convert-CALExecutionTimeToTimeSpan -CALExecutionTime $_.ExecutionTime
-            $test.SetAttribute("time", $time.TotalSeconds.ToString())
+            $test.SetAttribute("time", $time.TotalSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture))
             if ($_.Result -eq "Passed") {
                 $test.SetAttribute("result", "Pass")
                 $pass++
@@ -66,14 +66,14 @@ function Convert-CALTestOutputToAzureDevOps {
             $collection.AppendChild($test) | Out-Null
             $total += $time
         }
-        $collection.SetAttribute("time", $total.TotalSeconds.ToString())
+        $collection.SetAttribute("time", $total.TotalSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture))
         $collection.SetAttribute("total",($pass+$fail))
         $collection.SetAttribute("passed",$pass)
         $collection.SetAttribute("failed",$fail)
         $assembly.SetAttribute("total",($pass+$fail))
         $assembly.SetAttribute("passed",$pass)
         $assembly.SetAttribute("failed",$fail)
-        $assembly.SetAttribute("time", $total.TotalSeconds.ToString())
+        $assembly.SetAttribute("time", $total.TotalSeconds.ToString([System.Globalization.CultureInfo]::InvariantCulture))
         $assembly.AppendChild($collection) | Out-Null
     }
     $doc
