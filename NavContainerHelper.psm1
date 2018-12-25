@@ -1,7 +1,7 @@
 ﻿Set-StrictMode -Version 2.0
 
 $verbosePreference = "SilentlyContinue"
-$warningPreference = "SilentlyContinue"
+$warningPreference = 'Continue'
 $errorActionPreference = 'Stop'
 
 $hostHelperFolder = "C:\ProgramData\NavContainerHelper"
@@ -12,9 +12,17 @@ New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
-$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-if (!($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator))) {
-    Write-Error "NavContainerHelper needs to run with administrator privileges"
+$dockerOk = $true
+try {
+    $ps = (docker ps)
+    if ($LASTEXITCODE -ne 0) {
+        $dockerOk = $false
+    }
+} catch{
+    $dockerOk = $false
+}
+if (!$dockerOk) {
+    Write-Warning "NavContainerHelper might not work. Current user might not have permissions or docker engine might not be running."
 }
 
 $sessions = @{}
