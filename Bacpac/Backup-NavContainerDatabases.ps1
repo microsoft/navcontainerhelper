@@ -60,7 +60,7 @@ function Backup-NavContainerDatabases {
         }
 
         if ($multitenant) {
-            Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $DatabaseName -BackupFile Join-Path $bacpacFolder "app.bak"
+            Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $DatabaseName -BackupFile (Join-Path $bakFolder "app.bak")
             $tenant | ForEach-Object {
                 Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $_ -BackupFile (Join-Path $bakFolder "$_.bak")
             }
