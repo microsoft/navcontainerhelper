@@ -215,6 +215,9 @@ function New-NavContainer {
         $hostOs = "ltsc2016"
     }
     
+    $navContainerHelperVersion = $MyInvocation.MyCommand.Module.Version
+    Write-Host "NavContainerHelper is version $navContainerHelperVersion"
+
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
@@ -474,11 +477,21 @@ function New-NavContainer {
     }
 
     if ("$isolation" -eq "") {
-        # TODO insert chcek here for version of docker when process isolation for Windows 10 ships to default to process isolation
+
         if ($isServerHost) {
             $isolation = "process"
         } else {
             $isolation = "hyperv"
+            if ($dockerClientVersion.StartsWith("master-dockerproject-") -and ($dockerClientVersion -gt "master-dockerproject-2018-12-01")) {
+                $isolation = "process"
+            } else {
+                [System.Version]$ver = $null
+                if ([System.Version]::TryParse($dockerClientVersion.Split('-')[0],[ref]$ver)) {
+                    if ($ver -gt [System.Version]::new(18,9,0)) {
+                        $isolation = "process"
+                    }
+                }
+            }
         }
     }
     Write-Host "Using $isolation isolation"
