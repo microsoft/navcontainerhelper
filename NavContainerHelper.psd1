@@ -157,6 +157,7 @@ Include Collation when using UseBestContainerOS
 Fix Convert-CALTestOutputToAzureDevOps to support non-us cultures
 Display NavContainerHelper version in New-NavContainer output
 Check whether current user has access to run docker.exe instead of checking for admin privileges
+BugFix: Backup-NavContainerDatabases did not work with multitenant containers
 
 0.4.2.6
 BugFix: Publish-NavContainerApp fails in 0.4.2.4 and 0.4.2.5 due to new parameters added
