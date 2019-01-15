@@ -31,7 +31,7 @@ function Get-NavContainerEventLog {
         $containerFolder = Join-Path $ExtensionsFolder $containerName
         $myFolder = Join-Path $containerFolder "my"
         $folder = Get-NavContainerPath -containerName $containerName -Path $myFolder
-        $name = $containerName + ' ' + [DateTime]::Now.ToString("yyyy-mm-dd hh.mm.ss") + ".evtx"
+        $name = $containerName + ' ' + [DateTime]::Now.ToString("yyyy-MM-dd hh.mm.ss tt") + ".evtx"
         $session = Get-NavContainerSession -containerName $containerName -silent
         Invoke-Command -Session $session -ScriptBlock { Param([string]$path, [string]$logname) 
             wevtutil epl $logname "$path"
