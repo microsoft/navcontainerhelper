@@ -762,6 +762,15 @@ function New-NavContainer {
         }
     }
 
+    if ($auth -eq "AAD" -and [System.Version]$genericTag -le [System.Version]"0.0.9.0") {
+        Write-Host "Using AAD authentication, Microsoft.IdentityModel.dll is missing, download and copy"
+        $wifdll = Join-Path $containerFolder "Microsoft.IdentityModel.dll"
+        Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/Microsoft.IdentityModel.dll' -destinationFile $wifdll
+        $ps = 'Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "Microsoft.IdentityModel.dll"'
+        $containerWifDll = docker exec $containerName powershell $ps
+        Copy-FileToNavContainer -containerName $containerName -localPath $wifdll -containerPath $containerWifDll
+    }
+
     $sqlCredential = $databaseCredential
     if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
         $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
