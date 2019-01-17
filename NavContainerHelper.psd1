@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.4.3.1'
+ModuleVersion = '0.4.3.2'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -151,7 +151,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.4.3.1
+        ReleaseNotes = '0.4.3.2
+BugFix: Replace-NavServerContainer doesn''t resolve the best containername and pulls the wrong container
+
+0.4.3.1
 Idea #308: Add ID to finsql shortcut to get individual .zup files
 Idea #305: Include #Requires -PSEdition Desktop
 Issue #204,#279: Business Inbox fails when running Business Central on Docker
