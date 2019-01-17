@@ -34,16 +34,29 @@ function Remove-NavContainer {
             Write-Host "Removing $containerName from hosts"
             . $updateHostsScript -hostsFile "c:\windows\system32\drivers\etc\hosts" -hostname $containerName -ipAddress ""
         }
-        if (Test-Path -Path $containerFolder -PathType Container) {
-            Write-Host "Removing $containerFolder"
-            Remove-Item -Path $containerFolder -Force -Recurse
-        }
+
         Remove-DesktopShortcut -Name "$containerName Web Client"
         Remove-DesktopShortcut -Name "$containerName Test Tool"
         Remove-DesktopShortcut -Name "$containerName Windows Client"
         Remove-DesktopShortcut -Name "$containerName CSIDE"
         Remove-DesktopShortcut -Name "$containerName Command Prompt"
         Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
+
+        $wait = 10
+        $attempts = 0
+        while (Test-Path -Path $containerFolder -PathType Container) {
+            Write-Host "Removing $containerFolder"
+            try {
+                Remove-Item -Path $containerFolder -Force -Recurse
+            } catch {
+                $attempts++
+                if ($attempts -gt 10) {
+                    throw "Could not remove $containerFolder"
+                }
+                Write-Host "Error removing $containerFolder (attempts: $attempts), retrying in $wait seconds"
+                Start-Sleep -Seconds $wait
+            }
+        }
     }
 }
 Export-ModuleMember -function Remove-NavContainer

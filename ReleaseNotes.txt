@@ -1,3 +1,9 @@
+0.4.3.1
+Idea #308: Add ID to finsql shortcut to get individual .zup files
+Idea #305: Include #Requires -PSEdition Desktop
+Issue #204,#279: Business Inbox fails when running Business Central on Docker
+Issue #290: Remove-NavContainer fails sometimes with shar
+
 0.4.3.0
 Default to process isolation when running Windows 10 18.09.1 or newer
 Include Collation when using UseBestContainerOS
