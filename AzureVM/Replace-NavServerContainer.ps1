@@ -37,6 +37,8 @@ function Replace-NavServerContainer {
     if ("$imageName" -ne "$navDockerImage") {
         ('$navDockerImage = "'+$imageName + '"') | Add-Content $settingsScript
     }
+
+    $imageName = Get-BestNavContainerImageName -imageName $imageName
     if ($alwaysPull) {
         Write-Host "Pulling docker Image $imageName"
         docker pull $imageName
