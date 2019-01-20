@@ -18,7 +18,6 @@
         try {
             if ($argumentList) {
                 $encryptionKey = $null
-                # Encrypt Secure Strings (if any)
                 $xml = [xml]([System.Management.Automation.PSSerializer]::Serialize($argumentList))
                 $nsmgr = New-Object System.Xml.XmlNamespaceManager -ArgumentList $xml.NameTable
                 $nsmgr.AddNamespace("ns", "http://schemas.microsoft.com/powershell/2004/04");  
@@ -55,6 +54,22 @@
 }
 
 $credential = New-Object PSCredential -ArgumentList "freddy", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
+
+
+$result = Invoke-Command -scriptblock {
+    Param(
+        [PSCredential]$cred
+    )
+
+    $cred.UserName
+    ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($cred.Password)))
+
+} -argumentList $credential
+
+Write-Host ("UserName is "+$result[0])
+Write-Host ("Password is "+$result[1])
+
+
 
 $result = Invoke-ScriptInNavContainer -containerName dev -scriptblock {
     Param(
