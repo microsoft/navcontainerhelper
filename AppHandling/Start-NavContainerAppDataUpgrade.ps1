@@ -22,8 +22,7 @@ function  Start-NavContainerAppDataUpgrade {
         [string]$appVersion
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Upgrading app $appName"
         $parameters = @{
             "ServerInstance" = "NAV";

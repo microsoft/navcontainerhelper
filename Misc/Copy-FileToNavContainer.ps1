@@ -16,12 +16,22 @@
         Log "Copy $localPath to container ${containerName} ($containerPath)"
         $id = Get-NavContainerId -containerName $containerName 
 
-        $session = New-PSSession -ContainerId $id -RunAsAdministrator -ErrorAction Ignore
-        if ($session) {
-            Copy-Item -Path $localPath -Destination $containerPath -ToSession $session
-            Remove-PSSession -Session $session
-        } else {
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if (!$inspect.State.Running -or $inspect.hostConfig.Isolation -eq "process") {
             docker cp $localPath ${id}:$containerPath
+        } else {
+            # running hyperv containers doesn't support docker cp
+            $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
+            try {
+                Copy-Item -Path $localPath -Destination $tempFile
+                Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($tempFile, $containerPath)
+                    Move-Item -Path $tempFile -Destination $containerPath -Force
+                } -argumentList $tempFile, $containerPath
+            } finally {
+                if (Test-Path $tempFile) {
+                    Remove-Item $tempFile -ErrorAction Ignore
+                }
+            }
         }
     }
 }

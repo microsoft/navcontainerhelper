@@ -25,8 +25,7 @@ function New-NavContainerWindowsUser {
 
     PROCESS
     {
-        $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$group)
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$group)
 
             Write-Host "Creating Windows user $($Credential.username)"
             New-LocalUser -AccountNeverExpires -FullName $Credential.username -Name $Credential.username -Password $Credential.Password | Out-Null

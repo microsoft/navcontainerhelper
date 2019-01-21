@@ -37,8 +37,7 @@ function UnPublish-NavContainerApp {
         [string]$tenant = "default"
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
             $params = @{}

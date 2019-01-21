@@ -33,8 +33,7 @@ function Import-PfxCertificateToNavContainer {
         $copied = $true
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($pfxCertificatePath, [SecureString]$pfxPassword, $CertificateStoreLocation, $copied)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($pfxCertificatePath, [SecureString]$pfxPassword, $CertificateStoreLocation, $copied)
 
         Import-PfxCertificate -FilePath $pfxCertificatePath -CertStoreLocation $CertificateStoreLocation -Password $pfxPassword | Out-Null
         if ($copied) {

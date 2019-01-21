@@ -39,8 +39,7 @@ function Invoke-NavContainerCodeunit {
         [string]$TimeZone
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance NAV -Tenant $tenant | Where-Object username -eq $me

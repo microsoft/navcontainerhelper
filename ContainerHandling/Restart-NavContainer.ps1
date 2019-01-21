@@ -25,8 +25,7 @@ function Restart-NavContainer {
     )
 
     if ($renewBindings) {
-        $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock { 
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
             Set-Content -Path "c:\run\PublicDnsName.txt" -Value ""
         }
     }

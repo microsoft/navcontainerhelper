@@ -20,8 +20,7 @@ function Import-ConfigPackageInNavContainer {
 
     $containerConfigPackageFile = Get-NavContainerPath -containerName $containerName -path $configPackageFile -throw
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($configPackageFile)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageFile)
         Write-Host "Importing configuration package from $configPackageFile (container path)"
         Import-NAVConfigurationPackageFile -ServerInstance NAV -Path $configPackageFile
     } -ArgumentList $containerConfigPackageFile

@@ -30,8 +30,7 @@ function Convert-Txt2Al {
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
     $containerMyAlFolder = Get-NavContainerPath -containerName $containerName -path $myAlFolder -throw
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId)
+    $dummy = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId)
 
         if (!($txt2al)) {
             throw "You cannot run Convert-Txt2Al on this Nav Container"
@@ -39,8 +38,8 @@ function Convert-Txt2Al {
         Write-Host "Converting files in $myDeltaFolder to .al files in $myAlFolder with startId $startId (container paths)"
         Remove-Item -Path $myAlFolder -Recurse -Force -ErrorAction Ignore
         New-Item -Path $myAlFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-        Start-Process -FilePath $txt2al -ArgumentList "--source=""$myDeltaFolder"" --target=""$myAlFolder"" --rename --extensionStartId=$startId" -Wait -NoNewWindow
-    
+        & $txt2al --source=""$myDeltaFolder"" --target=""$myAlFolder"" --rename --extensionStartId=$startId 2> $null
+
     } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId
 }
 Export-ModuleMember -function Convert-Txt2Al

@@ -13,9 +13,7 @@ Function Get-NavContainerServerConfiguration{
     )
 
     $ResultObjectArray = @()
-    $Session = Get-NavContainerSession -containerName $ContainerName -silent
-
-    $Config = Invoke-Command -Session $Session -ScriptBlock{
+    $config = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock{
         Get-NAVServerInstance -ServerInstance NAV | Get-NAVServerConfiguration -AsXml
     }
     

@@ -25,8 +25,7 @@ function Get-NavContainerPath {
         $containerPath = ""
         if ($path.StartsWith(":")) {
             $path =$path.Substring(1)
-            $session = Get-NavContainerSession -containerName $containerName -silent
-            $exist = Invoke-Command -Session $session -ScriptBlock { Param($path)
+            $exist = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($path)
                 Test-Path $path
             } -ArgumentList $path
             if ($exist) {

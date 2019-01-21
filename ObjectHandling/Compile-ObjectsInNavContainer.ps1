@@ -24,8 +24,7 @@ function Compile-ObjectsInNavContainer {
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, [System.Management.Automation.PSCredential]$sqlCredential)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, [System.Management.Automation.PSCredential]$sqlCredential)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)

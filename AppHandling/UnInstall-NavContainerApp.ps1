@@ -29,8 +29,7 @@ function UnInstall-NavContainerApp {
         [switch]$doNotSaveData
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Uninstalling $appName from $tenant"
         $parameters = @{
             "ServerInstance" = "NAV";

@@ -35,8 +35,7 @@ function Import-ObjectsToNavContainer {
         $copied = $true
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($objectsFile, [System.Management.Automation.PSCredential]$sqlCredential, $SynchronizeSchemaChanges, $copied)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($objectsFile, [System.Management.Automation.PSCredential]$sqlCredential, $SynchronizeSchemaChanges, $copied)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)

@@ -1,4 +1,21 @@
-﻿function Invoke-ScriptInNavContainer {
+﻿<# 
+ .Synopsis
+  Invoke a PowerShell scriptblock in a Nav container
+ .Description
+  If you are running as administrator, this function will create a session to a Nav Container and invoke a scriptblock in this session.
+  If you are not an administrator, this function will create a PowerShell script in the container and use docker exec to launch the PowerShell script in the container.
+ .Parameter containerName
+  Name of the container in which you want to invoke a PowerShell scriptblock
+ .Parameter scriptblock
+  A pre-compiled PowerShell scriptblock to invoke
+ .Parameter argumentList
+  Arguments to transfer to the scriptblock in form of an object[]
+ .Example
+  Invoke-ScriptInNavContainer -containerName dev -scriptblock { $env:UserName } -doNotUseSessions
+ .Example
+  [xml](Invoke-ScriptInNavContainer -containerName dev -scriptblock { Get-Content -Path (Get-item 'c:\Program Files\Microsoft Dynamics NAV\*\Service\CustomSettings.config').FullName })
+#>
+function Invoke-ScriptInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
@@ -8,12 +25,11 @@
         [Object[]] $argumentList
     )
 
-    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    if ($currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    if ($usePsSession) {
         $session = Get-NavContainerSession -containerName $containerName -silent
         Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
     } else {
-        $file = 'c:\ProgramData\NavContainerHelper\'+[GUID]::NewGuid().Tostring()+'.ps1'
+        $file = Join-Path $containerHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
         $outputFile = "$file.output"
         try {
             if ($argumentList) {
@@ -40,7 +56,26 @@
                 '$argumentList = [System.Management.Automation.PSSerializer]::Deserialize($xml.OuterXml)' | Add-Content $file
             }
 
-            '$result = Invoke-Command -ScriptBlock {'+$scriptblock.ToString()+'} -ArgumentList $argumentList' | Add-Content $file
+'$runPath = "c:\Run"
+$myPath = Join-Path $runPath "my"
+
+function Get-MyFilePath([string]$FileName)
+{
+    if ((Test-Path $myPath -PathType Container) -and (Test-Path (Join-Path $myPath $FileName) -PathType Leaf)) {
+        (Join-Path $myPath $FileName)
+    } else {
+        (Join-Path $runPath $FileName)
+    }
+}
+
+. (Get-MyFilePath "prompt.ps1") -silent | Out-Null
+. (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
+
+$txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
+Set-Location $runPath
+' | Add-Content $file
+
+            '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
             'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
             docker exec $containerName powershell $file
             if (Test-Path -Path $outputFile -PathType Leaf) {
@@ -52,34 +87,4 @@
         }
     }
 }
-
-$credential = New-Object PSCredential -ArgumentList "freddy", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
-
-
-$result = Invoke-Command -scriptblock {
-    Param(
-        [PSCredential]$cred
-    )
-
-    $cred.UserName
-    ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($cred.Password)))
-
-} -argumentList $credential
-
-Write-Host ("UserName is "+$result[0])
-Write-Host ("Password is "+$result[1])
-
-
-
-$result = Invoke-ScriptInNavContainer -containerName dev -scriptblock {
-    Param(
-        [PSCredential]$cred
-    )
-
-    $cred.UserName
-    ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($cred.Password)))
-
-} -argumentList $credential
-
-Write-Host ("UserName is "+$result[0])
-Write-Host ("Password is "+$result[1])
+Export-ModuleMember -function Invoke-ScriptInNavContainer

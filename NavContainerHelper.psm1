@@ -29,6 +29,9 @@ if (!$dockerOk) {
 
 $sessions = @{}
 
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+$usePsSession = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
 # Container Info functions
@@ -65,6 +68,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromNavContainerImage.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-BestNavContainerImageName.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Invoke-ScriptInNavContainer.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")

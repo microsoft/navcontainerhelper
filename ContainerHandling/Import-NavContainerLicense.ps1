@@ -32,8 +32,7 @@ function Import-NavContainerLicense {
         }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($licensefile)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($licensefile)
 
         if ($licensefile.StartsWith("https://") -or $licensefile.StartsWith("http://"))
         {

@@ -45,8 +45,7 @@ function Sign-NavContainerApp {
     }
 
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
