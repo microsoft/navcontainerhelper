@@ -14,25 +14,15 @@ New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
-$dockerOk = $true
-try {
-    $ps = (docker ps)
-    if ($LASTEXITCODE -ne 0) {
-        $dockerOk = $false
-    }
-} catch{
-    $dockerOk = $false
-}
-if (!$dockerOk) {
-    Write-Warning "NavContainerHelper might not work. Current user might not have permissions or docker engine might not be running."
-}
-
 $sessions = @{}
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $usePsSession = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "Check-Permissions.ps1")
+
+Check-Permissions
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
