@@ -20,10 +20,15 @@ function Enter-NavContainer {
     )
 
     Process {
-        $session = Get-NavContainerSession $containerName
-        Enter-PSSession -Session $session
-        Invoke-Command -Session $session -ScriptBlock {
-            function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+        if ($isAdministrator) {
+            $session = Get-NavContainerSession $containerName
+            Enter-PSSession -Session $session
+            Invoke-Command -Session $session -ScriptBlock {
+                function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+            }
+        } else {
+            Write-Host "Enter-NavContainer needs administrator privileges, running Open-NavContainer instead"
+            Open-NavContainer $containerName
         }
     }
 }
