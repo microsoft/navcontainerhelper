@@ -101,7 +101,10 @@ function Check-Permissions {
             }
         }
 
-        # Check Access to Docker Engine Pipes
+        # Check Access to Docker Deamon Socket
+        # Thanks to Tobias Fenster, Axians Infoma for this blog post:
+        #     https://www.axians-infoma.com/techblog/allow-access-to-the-docker-engine-without-admin-rights-on-windows/
+        # Pointing me in the right directions wrt. running docker commands without admin rights
         Write-Host "Checking permissions to docker commands"
         $npipe = ""
         $dockerOk = $true
