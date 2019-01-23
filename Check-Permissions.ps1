@@ -21,31 +21,27 @@ function Check-Permissions {
         [switch] $IgnoreHosts
     )
 
-    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-    $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    $user = (whoami)
-
     if (!$isAdministrator -or $Fix) {
-        Write-Host "Running as $user"
+        Write-Host "Running as $myUsername"
 
         # Check access to C:\ProgramData\NavContainerHelper
         Write-Host "Checking permissions to $hostHelperFolder"
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user,'FullControl', 3, 'InheritOnly', 'Allow')
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
         $access = [System.IO.Directory]::GetAccessControl($hostHelperFolder).Access | 
                     Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags -and $_.PropagationFlags -eq $rule.PropagationFlags }
         
         if ($access) {
-            Write-Host -ForegroundColor Green "$user has the right permissions to $hostHelperFolder"
+            Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostHelperFolder"
         } else {
-            Write-Host -ForegroundColor Red "$user does NOT have Full Control to $hostHelperFolder and all subfolders"
+            Write-Host -ForegroundColor Red "$myUsername does NOT have Full Control to $hostHelperFolder and all subfolders"
             if (!$Fix) {
                 Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-Permissions -Fix to fix permissions"
             } else {
                 Write-Host -ForegroundColor Yellow "Trying to add permissions"
                 $scriptblock = {
-                    Param($user, $hostHelperFolder)
+                    Param($myUsername, $hostHelperFolder)
                     try {
-                        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user,'FullControl', 3, 'InheritOnly', 'Allow')
+                        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
                         $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
                         $acl.AddAccessRule($rule)
                         [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl) 
@@ -54,7 +50,7 @@ function Check-Permissions {
                         EXIT 1
                     }
                 }
-                $exitCode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -user '$user' -hostHelperFolder '$hostHelperFolder'" -Verb RunAs -wait -WindowStyle Hidden -PassThru).ExitCode
+                $exitCode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostHelperFolder '$hostHelperFolder'" -Verb RunAs -wait -WindowStyle Hidden -PassThru).ExitCode
                 if ($exitcode -eq 0) {
                     Write-Host -ForegroundColor Green "Permissions successfully added"
                 } else {
@@ -67,22 +63,22 @@ function Check-Permissions {
             # check access to c:\windows\system32\drivers\etc\hosts
             $hostsFile = Join-Path $env:SystemRoot "System32\drivers\etc\hosts"
             Write-Host "Checking permissions to $hostsFile"
-            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user,'Modify', 'Allow')
+            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
             $access = [System.IO.Directory]::GetAccessControl($hostsFile).Access | 
                         Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType }
     
             if ($access) {
-                Write-Host -ForegroundColor Green "$user has the right permissions to $hostsFile"
+                Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostsFile"
             } else {
-                Write-Host -ForegroundColor Red "$user does NOT have modify permissions to $hostsFile"
+                Write-Host -ForegroundColor Red "$myUsername does NOT have modify permissions to $hostsFile"
                 if (!$Fix) {
                     Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-Permissions -Fix to fix permissions"
                 } else {
                     Write-Host -ForegroundColor Yellow "Trying to add permissions"
                     $scriptblock = {
-                        Param($user, $hostsFile)
+                        Param($myUsername, $hostsFile)
                         try {
-                            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user,'Modify', 'Allow')
+                            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
                             $acl = [System.IO.Directory]::GetAccessControl($hostsFile)
                             $acl.AddAccessRule($rule)
                             [System.IO.Directory]::SetAccessControl($hostsFile,$acl) 
@@ -91,7 +87,7 @@ function Check-Permissions {
                             EXIT 1
                         }
                     }
-                    $exitcode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -user '$user' -hostsFile '$hostsFile'" -Verb RunAs -wait -PassThru -WindowStyle Hidden).ExitCode
+                    $exitcode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostsFile '$hostsFile'" -Verb RunAs -wait -PassThru -WindowStyle Hidden).ExitCode
                     if ($exitcode -eq 0) {
                         Write-Host -ForegroundColor Green "Permissions successfully added"
                     } else {
@@ -123,9 +119,9 @@ function Check-Permissions {
         }
 
         if ($dockerOk) {
-            Write-Host -ForegroundColor Green "$user has the right permissions to run docker commands"
+            Write-Host -ForegroundColor Green "$myUsername has the right permissions to run docker commands"
         } else {
-            Write-Host -ForegroundColor Red "$user does NOT have permissions to run docker commands"
+            Write-Host -ForegroundColor Red "$myUsername does NOT have permissions to run docker commands"
             if (!$Fix) {
                 Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-Permissions -Fix to fix permissions"
             } else {
@@ -134,9 +130,9 @@ function Check-Permissions {
                 } else {
                     Write-Host -ForegroundColor Yellow "Trying to add permissions"
                     $scriptblock = {
-                        Param($user, $npipe)
+                        Param($myUsername, $npipe)
                         try {
-                            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($user,'FullControl', 'Allow')
+                            $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 'Allow')
                             $acl = [System.IO.Directory]::GetAccessControl($npipe)
                             $acl.AddAccessRule($rule)
                             [System.IO.Directory]::SetAccessControl($npipe,$acl) 
@@ -146,7 +142,7 @@ function Check-Permissions {
                         }
                     }
             
-                    $exitcode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -user '$user' -npipe '$npipe'" -Verb RunAs -wait -PassThru).ExitCode
+                    $exitcode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -npipe '$npipe'" -Verb RunAs -wait -PassThru).ExitCode
                     if ($exitcode -eq 0) {
                         Write-Host -ForegroundColor Green "Permissions successfully added"
                     } else {

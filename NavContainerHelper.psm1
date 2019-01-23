@@ -6,18 +6,33 @@ $verbosePreference = "SilentlyContinue"
 $warningPreference = 'Continue'
 $errorActionPreference = 'Stop'
 
-$hostHelperFolder = "C:\ProgramData\NavContainerHelper"
-New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+$isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+try {
+    $myUsername = $currentPrincipal.Identity.Name
+} catch {
+    $myUsername = (whoami)
+}
 
+$hostHelperFolder = "C:\ProgramData\NavContainerHelper"
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
-New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
+if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
+    New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+    New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+
+    if (!$isAdministrator) {
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+        $acl.AddAccessRule($rule)
+        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
+    }
+}
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
 $sessions = @{}
 
-$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-$usePsSession = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$usePsSession = $isAdministrator
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-Permissions.ps1")
