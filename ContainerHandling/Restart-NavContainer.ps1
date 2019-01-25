@@ -10,9 +10,9 @@
  .Parameter timeout
   Specify the number of seconds to wait for activity. Default is 1800 (30 min.), -1 means wait forever, 0 means don't wait.
  .Example
-  Remove-NavContainer -containerName devServer
+  Restart-NavContainer -containerName test
  .Example
-  Remove-NavContainer -containerName test -updateHosts
+  Restart-NavContainer -containerName test -renewBindings
 #>
 function Restart-NavContainer {
     [CmdletBinding()]
