@@ -35,9 +35,9 @@ $sessions = @{}
 $usePsSession = $isAdministrator
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "Check-Permissions.ps1")
+. (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")
 
-Check-Permissions
+Check-NavContainerHelperPermissions
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")

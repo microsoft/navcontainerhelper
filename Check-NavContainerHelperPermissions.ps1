@@ -13,9 +13,9 @@
  .Parameter ignoreHosts
   Specify -ignoreHosts to ignore checking the permissions for the hosts file
  .Example
-  Check-Permissions -fix
+  Check-NavContainerHelperPermissions -fix
 #>
-function Check-Permissions {
+function Check-NavContainerHelperPermissions {
     Param(
         [switch] $Fix,
         [switch] $IgnoreHosts
@@ -35,7 +35,7 @@ function Check-Permissions {
         } else {
             Write-Host -ForegroundColor Red "$myUsername does NOT have Full Control to $hostHelperFolder and all subfolders"
             if (!$Fix) {
-                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-Permissions -Fix to fix permissions"
+                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-NavContainerHelperPermissions -Fix to fix permissions"
             } else {
                 Write-Host -ForegroundColor Yellow "Trying to add permissions"
                 $scriptblock = {
@@ -72,7 +72,7 @@ function Check-Permissions {
             } else {
                 Write-Host -ForegroundColor Red "$myUsername does NOT have modify permissions to $hostsFile"
                 if (!$Fix) {
-                    Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-Permissions -Fix to fix permissions"
+                    Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-NavContainerHelperPermissions -Fix to fix permissions"
                 } else {
                     Write-Host -ForegroundColor Yellow "Trying to add permissions"
                     $scriptblock = {
@@ -104,26 +104,34 @@ function Check-Permissions {
         Write-Host "Checking permissions to docker commands"
         $npipe = ""
         $dockerOk = $true
-        try {
+        $pre = $errorActionPreference
+        $errorActionPreference = 'Continue'
+        try{
             $tempFile = [System.IO.Path]::GetTempFileName()
             $ps = docker ps 2> $tempFile
             if ($LASTEXITCODE -ne 0) {
                 $dockerOk = $false
                 $err = [System.IO.File]::ReadAllText($tempFile)
+                Write-Host $err
                 Remove-Item -Path $tempFile -ErrorAction Ignore
                 $npipeStart = $err.IndexOf('\\.\pipe')
+                if ($npipeStart -lt 0) {
+                    $npipeStart = $err.IndexOf('//./pipe')
+                }
                 $npipeEnd = $err.IndexOf(': Access is denied')
                 $npipe = $err.SubString($npipeStart, $npipeEnd-$npipeStart)
             }
         } catch {
+            $dockerOk = $false
         }
+        $errorActionPreference = $pre
 
         if ($dockerOk) {
             Write-Host -ForegroundColor Green "$myUsername has the right permissions to run docker commands"
         } else {
             Write-Host -ForegroundColor Red "$myUsername does NOT have permissions to run docker commands"
             if (!$Fix) {
-                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-Permissions -Fix to fix permissions"
+                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-NavContainerHelperPermissions -Fix to fix permissions"
             } else {
                 if ($npipe -eq "") {
                     Write-Host -ForegroundColor Red "Unable to determine docker deamon socket. Are you sure Docker is running and reachable?"
@@ -153,5 +161,5 @@ function Check-Permissions {
         }
     }
 }
-Export-ModuleMember -Function Check-Permissions
+Export-ModuleMember -Function Check-NavContainerHelperPermissions
 
