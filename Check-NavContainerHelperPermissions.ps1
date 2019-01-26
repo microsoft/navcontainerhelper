@@ -28,7 +28,7 @@ function Check-NavContainerHelperPermissions {
         Write-Host "Checking permissions to $hostHelperFolder"
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
         $access = [System.IO.Directory]::GetAccessControl($hostHelperFolder).Access | 
-                    Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags -and $_.PropagationFlags -eq $rule.PropagationFlags }
+                    Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
         
         if ($access) {
             Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostHelperFolder"
