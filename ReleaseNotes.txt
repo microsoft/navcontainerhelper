@@ -1,3 +1,19 @@
+0.5.0.0
+Support for running NavContainerHelper without elevated permissions
+Added function Check-NavContainerHelperPermissions to test whether you have the needed permissions to run NavContainerHelper
+Added function Repair-NavContainerApp
+Added function Invoke-ScriptInNavContainer to invoke a PowerShell script in a Nav Container
+Added function Get-NavContainerAppRuntimePackage to download a runtime package for an app from a container
+Added function Get-NavContainerImageLabels to get the labels for an image directly from the registry
+Added function Get-NavContainerImageTags to get the available tags a repository directly from the registry
+Added parameter doNotUpdateSymbols to Import-TestToolkitToNavContainer to avoid symbol generation
+Check Docker OS in New-NavContainer for better error messages
+Fix timestamp in file name for Get-NavContainerEventLog
+
+Getruntimepackage
+Getimage labels
+get image list
+
 0.4.3.2
 BugFix: Replace-NavServerContainer doesn't resolve the best containername and pulls the wrong container
 

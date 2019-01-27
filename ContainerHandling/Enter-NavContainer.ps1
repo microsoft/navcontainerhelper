@@ -20,7 +20,7 @@ function Enter-NavContainer {
     )
 
     Process {
-        if ($isAdministrator) {
+        if ($usePsSession) {
             $session = Get-NavContainerSession $containerName
             Enter-PSSession -Session $session
             Invoke-Command -Session $session -ScriptBlock {
