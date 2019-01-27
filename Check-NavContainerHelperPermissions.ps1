@@ -10,28 +10,45 @@
   This script checks these permissions and allows you to fix the permissions by specifying -fix
  .Parameter fix
   Specify fix in order for this script to attempt to fix permissions
+ .Parameter silent
+  Specify -silent to stay silent on successfull permission checks
  .Parameter ignoreHosts
   Specify -ignoreHosts to ignore checking the permissions for the hosts file
  .Example
   Check-NavContainerHelperPermissions -fix
+ .Example
+  Check-NavContainerHelperPermissions -fix -ignoreHosts
+ .Example
+  Check-NavContainerHelperPermissions -silent
 #>
 function Check-NavContainerHelperPermissions {
     Param(
         [switch] $Fix,
+        [switch] $Silent,
         [switch] $IgnoreHosts
     )
 
     if (!$isAdministrator -or $Fix) {
-        Write-Host "Running as $myUsername"
+        if (!$silent) {
+            if ($isAdministrator) {
+                Write-Host "Running as administrator"
+            } else {
+                Write-Host "Running as $myUsername"
+            }
+        }
 
         # Check access to C:\ProgramData\NavContainerHelper
-        Write-Host "Checking permissions to $hostHelperFolder"
+        if (!$silent) {
+            Write-Host "Checking permissions to $hostHelperFolder"
+        }
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
         $access = [System.IO.Directory]::GetAccessControl($hostHelperFolder).Access | 
                     Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
         
         if ($access) {
-            Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostHelperFolder"
+            if (!$silent) {
+                Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostHelperFolder"
+            }
         } else {
             Write-Host -ForegroundColor Red "$myUsername does NOT have Full Control to $hostHelperFolder and all subfolders"
             if (!$Fix) {
@@ -62,13 +79,17 @@ function Check-NavContainerHelperPermissions {
         if (!$IgnoreHosts) {
             # check access to c:\windows\system32\drivers\etc\hosts
             $hostsFile = Join-Path $env:SystemRoot "System32\drivers\etc\hosts"
-            Write-Host "Checking permissions to $hostsFile"
+            if (!$silent) {
+                Write-Host "Checking permissions to $hostsFile"
+            }
             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
             $access = [System.IO.Directory]::GetAccessControl($hostsFile).Access | 
                         Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType }
     
             if ($access) {
-                Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostsFile"
+                if (!$silent) {
+                    Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostsFile"
+                }
             } else {
                 Write-Host -ForegroundColor Red "$myUsername does NOT have modify permissions to $hostsFile"
                 if (!$Fix) {
@@ -101,7 +122,9 @@ function Check-NavContainerHelperPermissions {
         # Thanks to Tobias Fenster, Axians Infoma for this blog post:
         #     https://www.axians-infoma.com/techblog/allow-access-to-the-docker-engine-without-admin-rights-on-windows/
         # Pointing me in the right directions wrt. running docker commands without admin rights
-        Write-Host "Checking permissions to docker commands"
+        if (!$silent) {
+            Write-Host "Checking permissions to docker commands"
+        }
         $npipe = ""
         $dockerOk = $true
         $pre = $errorActionPreference
@@ -127,7 +150,9 @@ function Check-NavContainerHelperPermissions {
         $errorActionPreference = $pre
 
         if ($dockerOk) {
-            Write-Host -ForegroundColor Green "$myUsername has the right permissions to run docker commands"
+            if (!$silent) {
+                Write-Host -ForegroundColor Green "$myUsername has the right permissions to run docker commands"
+            }
         } else {
             Write-Host -ForegroundColor Red "$myUsername does NOT have permissions to run docker commands"
             if (!$Fix) {
