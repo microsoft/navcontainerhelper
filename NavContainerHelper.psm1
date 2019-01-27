@@ -37,7 +37,7 @@ $usePsSession = $isAdministrator
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")
 
-Check-NavContainerHelperPermissions
+Check-NavContainerHelperPermissions -Silent
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
@@ -90,6 +90,7 @@ Check-NavContainerHelperPermissions
 
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Repair-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sync-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Start-NavContainerAppDataUpgrade.ps1")
