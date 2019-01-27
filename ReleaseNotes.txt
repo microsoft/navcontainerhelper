@@ -10,10 +10,6 @@ Added parameter doNotUpdateSymbols to Import-TestToolkitToNavContainer to avoid 
 Check Docker OS in New-NavContainer for better error messages
 Fix timestamp in file name for Get-NavContainerEventLog
 
-Getruntimepackage
-Getimage labels
-get image list
-
 0.4.3.2
 BugFix: Replace-NavServerContainer doesn't resolve the best containername and pulls the wrong container
 
