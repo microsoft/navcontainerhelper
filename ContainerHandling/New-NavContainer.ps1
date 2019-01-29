@@ -256,8 +256,16 @@ function New-NavContainer {
         }
     }
 
+
     # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
     $bestImageName = Get-BestNavContainerImageName -imageName $imageName
+    if (!$imageName.Contains(':')) {
+        $imageName += ":latest"
+    }
+
+    if ($useBestContainerOS) {
+        $imageName = $bestImageName
+    }
 
     $imageExists = $false
     $bestImageExists = $false
@@ -271,7 +279,7 @@ function New-NavContainer {
         if ($bestImageExists) {
             $imageName = $bestImageName
         } elseif ($imageExists) {
-            # use image
+            Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
             $alwaysPull = $true
         }
