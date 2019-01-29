@@ -103,7 +103,7 @@ FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases',
                'New-DesktopShortcut', 'New-LetsEncryptCertificate', 
                'New-NavContainer', 'New-NavContainerNavUser', 
                'New-NavContainerTenant', 'New-NavContainerWindowsUser', 
-               'Open-NavContainer', 'Publish-NavContainerApp', 
+               'Open-NavContainer', 'Publish-NavContainerApp', 'Repair-NavContainerApp', 
                'Remove-CompanyInNavContainer', 
                'Remove-ConfigPackageInNavContainer', 'Remove-DesktopShortcut', 
                'Remove-NavContainer', 'Remove-NavContainerSession', 
@@ -113,7 +113,7 @@ FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases',
                'Start-NavContainer', 'Start-NavContainerAppDataUpgrade', 
                'Stop-NavContainer', 'Sync-NavContainerApp', 'Test-NavContainer', 
                'UnInstall-NavContainerApp', 'UnPublish-NavContainerApp', 
-               'Wait-NavContainerReady', 'Write-NavContainerHelperWelcomeText'
+               'Wait-NavContainerReady', 'Write-NavContainerHelperWelcomeText', 'Invoke-ScriptInNavContainer', 'Check-NavContainerHelperPermissions', 'Get-NavContainerAppRuntimePackage', 'Get-NavContainerImageLabels', 'Get-NavContainerImageTags'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()

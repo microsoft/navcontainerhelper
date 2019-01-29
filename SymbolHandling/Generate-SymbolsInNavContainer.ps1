@@ -14,9 +14,7 @@ function Generate-SymbolsInNavContainer {
         [string]$containerName
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    
-    Invoke-Command -Session $session -ScriptBlock { Param($containerName)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($containerName)
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value

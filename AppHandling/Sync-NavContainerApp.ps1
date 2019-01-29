@@ -24,8 +24,7 @@ function Sync-NavContainerApp {
         [ValidateSet('Add','Clean')]
         $Mode
     )
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
         Write-Host "Synchronizing $appFile on $tenant"
         Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
         $parameters = @{

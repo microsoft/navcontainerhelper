@@ -18,8 +18,7 @@ function Remove-ConfigPackageInNavContainer {
         [string]$configPackageCode
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($configPackageCode)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageCode)
         Write-Host "Removing configuration package $configPackageCode"
         Remove-NAVConfigurationPackageFile -ServerInstance NAV -Code $configPackageCode -Force
     } -ArgumentList $configPackageCode

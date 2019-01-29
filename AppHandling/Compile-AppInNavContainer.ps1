@@ -96,13 +96,12 @@ function Compile-AppInNavContainer {
         }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
     if (!$updateSymbols) {
-        $existingApps = Invoke-Command -Session $session -ScriptBlock { Param($appSymbolsFolder)
+        $existingApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object { Get-NavAppInfo -Path $_.FullName }
         } -ArgumentList $containerSymbolsFolder
     }
-    $publishedApps = Invoke-Command -Session $session -ScriptBlock { Param($tenant)
+    $publishedApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavAppInfo -ServerInstance NAV -tenant $tenant
         Get-NavAppInfo -ServerInstance NAV -symbolsOnly
     } -ArgumentList $tenant
@@ -121,8 +120,7 @@ function Compile-AppInNavContainer {
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
             Write-Host "Downloading symbols: $symbolsName"
 
-            $session = Get-NavContainerSession -containerName $containerName -silent
-            [xml]$customConfig = Invoke-Command -Session $session -ScriptBlock { 
+            [xml]$customConfig = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
                 $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
                 [System.IO.File]::ReadAllText($customConfigFile)
             }
@@ -161,7 +159,7 @@ function Compile-AppInNavContainer {
         }
     }
 
-    $result = Invoke-Command -Session $session -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop )
+    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"

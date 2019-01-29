@@ -223,11 +223,16 @@ function New-NavContainer {
 
     $dockerService = (Get-Service docker -ErrorAction Ignore)
     if (!($dockerService)) {
-        throw "Docker Service not found / Docker is not installed"
+        throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
     }
 
     if ($dockerService.Status -ne "Running") {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
+    }
+
+    $dockerOS = docker version -f "{{.Server.Os}}"
+    if ($dockerOS -ne "Windows") {
+        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
     }
 
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
@@ -251,8 +256,16 @@ function New-NavContainer {
         }
     }
 
+
     # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
     $bestImageName = Get-BestNavContainerImageName -imageName $imageName
+    if (!$imageName.Contains(':')) {
+        $imageName += ":latest"
+    }
+
+    if ($useBestContainerOS) {
+        $imageName = $bestImageName
+    }
 
     $imageExists = $false
     $bestImageExists = $false
@@ -266,7 +279,7 @@ function New-NavContainer {
         if ($bestImageExists) {
             $imageName = $bestImageName
         } elseif ($imageExists) {
-            # use image
+            Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
             $alwaysPull = $true
         }
@@ -812,7 +825,11 @@ function New-NavContainer {
             0..($version.Major -gt 10) | ForEach-Object {
                 $newSyntax = ($_ -eq 1)
                 $suffix = ""
-                if ($newSyntax) { $suffix = "-newsyntax" }
+                $exportTo = 'txt folder'
+                if ($newSyntax) { 
+                    $suffix = "-newsyntax"
+                    $exportTo = 'txt folder (new syntax)'
+                }
                 $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
                 if (!(Test-Path $originalFolder)) {
                     # Export base objects
@@ -820,7 +837,7 @@ function New-NavContainer {
                                                -objectsFolder $originalFolder `
                                                -filter "" `
                                                -sqlCredential $sqlCredential `
-                                               -ExportToNewSyntax:$newSyntax
+                                               -ExportTo $exportTo
                 }
             }
         }

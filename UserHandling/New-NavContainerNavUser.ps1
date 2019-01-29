@@ -44,8 +44,7 @@ function New-NavContainerNavUser {
 
     PROCESS
     {
-        $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId)
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId)
                         
             $TenantParam = @{}
             if ($Tenant) {

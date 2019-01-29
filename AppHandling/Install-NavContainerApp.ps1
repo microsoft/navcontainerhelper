@@ -23,8 +23,7 @@ function Install-NavContainerApp {
         [string]$appVersion
     )
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Installing $appName on $tenant"
         $parameters = @{ 
             "ServerInstance" = "NAV";

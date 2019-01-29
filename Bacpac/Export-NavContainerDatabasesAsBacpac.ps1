@@ -54,8 +54,7 @@ function Export-NavContainerDatabasesAsBacpac {
     }
     $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments)
     
         function InstallPrerequisite {
             Param(
