@@ -1,3 +1,6 @@
+0.5.0.1
+Fix bug where Get-BestNavContainerImageName returns an illegal image name
+
 0.5.0.0
 Support for running NavContainerHelper without elevated permissions
 Added function Check-NavContainerHelperPermissions to test whether you have the needed permissions to run NavContainerHelper
