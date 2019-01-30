@@ -16,10 +16,6 @@ function Get-BestNavContainerImageName {
         [string]$imageName
     )
 
-    if (!$imageName.Contains(':')) {
-        $imageName += ":latest"
-    }
-
     if (!(
           $imagename.EndsWith('-ltsc2016') -or
           $imagename.EndsWith('-1709') -or
@@ -36,7 +32,7 @@ function Get-BestNavContainerImageName {
             $imagename.StartsWith('mcr.microsoft.com/') -or 
             $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) {
 
-                # If we are using a Microsoft image without specific containeros - add best container tag
+            # If we are using a Microsoft image without specific containeros - add best container tag
 
             $hostOsVersion = [System.Environment]::OSVersion.Version
             $bestContainerOs = "ltsc2016"
@@ -44,10 +40,14 @@ function Get-BestNavContainerImageName {
                 $bestContainerOs = "ltsc2019"
             }
 
-            $imageName += "-$bestContainerOs"
+            if (!$imageName.Contains(':')) {
+                $imageName += ":$bestContainerOs"
+            } else {
+                $imageName += "-$bestContainerOs"
+            }
         }
     }
-
+    
     $imageName
 }
 Export-ModuleMember -function Get-BestNavContainerImageName
