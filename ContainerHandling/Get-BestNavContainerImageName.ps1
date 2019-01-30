@@ -16,10 +16,20 @@ function Get-BestNavContainerImageName {
         [string]$imageName
     )
 
-    if (!($imagename.EndsWith('-ltsc2016') -or
+    if (!$imageName.Contains(':')) {
+        $imageName += ":latest"
+    }
+
+    if (!(
+          $imagename.EndsWith('-ltsc2016') -or
           $imagename.EndsWith('-1709') -or
           $imagename.EndsWith('-1803') -or
-          $imagename.EndsWith('-ltsc2019'))) {
+          $imagename.EndsWith('-ltsc2019') -or
+          $imagename.EndsWith(':ltsc2016') -or
+          $imagename.EndsWith(':1709') -or
+          $imagename.EndsWith(':1803') -or
+          $imagename.EndsWith(':ltsc2019')
+       )) {
 
         if ($imagename.StartsWith('microsoft/') -or 
             $imagename.StartsWith('bcinsider.azurecr.io/') -or 
@@ -34,16 +44,8 @@ function Get-BestNavContainerImageName {
                 $bestContainerOs = "ltsc2019"
             }
 
-            if (!$imageName.Contains(':')) {
-                $imageName += ":$bestContainerOs"
-            } else {
-                $imageName += "-$bestContainerOs"
-            }
+            $imageName += "-$bestContainerOs"
         }
-    }
-    
-    if (!$imageName.Contains(':')) {
-        $imageName += ":latest"
     }
 
     $imageName
