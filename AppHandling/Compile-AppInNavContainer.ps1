@@ -154,6 +154,7 @@ function Compile-AppInNavContainer {
                 $authParam += @{"usedefaultcredential" = $true}
             }
 
+            $publisher = [uri]::EscapeDataString($publisher)
             $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
