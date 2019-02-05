@@ -256,12 +256,12 @@ function New-NavContainer {
         }
     }
 
-
-    # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
-    $bestImageName = Get-BestNavContainerImageName -imageName $imageName
     if (!$imageName.Contains(':')) {
         $imageName += ":latest"
     }
+
+    # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
+    $bestImageName = Get-BestNavContainerImageName -imageName $imageName
 
     if ($useBestContainerOS) {
         $imageName = $bestImageName
