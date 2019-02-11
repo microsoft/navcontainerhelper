@@ -13,6 +13,11 @@
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers
   Omit to export tenant template, specify default to export the default tenant.
+ .Parameter commandTimeout
+  Timeout in seconds for the export command for every database. Default is 1 hour (3600).
+ .Parameter diagnostics
+  Include this switch to enable diagnostics from the database export command
+  Timeout in seconds for the export command for every database. Default is 1 hour (3600).
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test
  .Example
@@ -131,11 +136,10 @@ function Export-NavContainerDatabasesAsBacpac {
             }
         
             Write-Host "Remove data from System Tables database $DatabaseName"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Server Instance]" 
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$("$")ndo$("$")cachesync]"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$("$")ndo$("$")tenants]"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")dbproperty] SET [license] = NULL"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Object Tracking]" 
+            'Server Instance','$ndo$cachesync','$ndo$tenants','Object Tracking' | % {
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
+            }
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[`$ndo`$dbproperty] SET [license] = NULL"
         
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
               IF EXISTS ( SELECT 'X' FROM [sys].[tables] WHERE name = 'Active Session' AND type = 'U' )
@@ -156,7 +160,6 @@ function Export-NavContainerDatabasesAsBacpac {
             [string]$DatabaseServer,
             [Parameter(Mandatory=$false)]
             [System.Management.Automation.PSCredential]$sqlCredential = $null,
-            [Parameter(Mandatory=$false)]
             [switch]$KeepUserData
         )
         {
@@ -165,19 +168,33 @@ function Export-NavContainerDatabasesAsBacpac {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
-            Write-Host "Remove data from User table and related tables in $DatabaseName database."
             if (!($KeepUserData)) {
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Access Control]" 
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User Property]" 
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User Personalization]" 
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User Metadata]" 
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User Default Style Sheet]" 
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[User]" 
+                Write-Host "Remove data from User table and related tables in $DatabaseName database."
+                'Access Control',
+                'User Property',
+                'User Personalization',
+                'User Metadata',
+                'User Default Style Sheet',
+                'User',
+                'User Group Member',
+                'User Group Access Control',
+                'User Plan' | % {
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
+                }
+
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM SYSOBJECTS WHERE (xtype = 'U' ) AND (name LIKE '%User Login')" | % {
+                    Write-Host "DELETE FROM dbo.[$($_.Name)]"
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]" 
+                }
             }
+
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")tenantproperty] SET [license] = NULL"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Tenant License State]" 
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Active Session]" 
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[Session Event]" 
+
+            'Tenant License State',
+            'Active Session',
+            'Session Event' | % {
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
+            }
         
             Write-Host "Drop triggers from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[RemoveOnLogoutActiveSession]" 
@@ -227,6 +244,8 @@ function Export-NavContainerDatabasesAsBacpac {
             if ($additionalArguments) {
                 $arguments += $additionalArguments
             }
+
+            $arguments
 
             & $sqlPackageExe $arguments
         }
