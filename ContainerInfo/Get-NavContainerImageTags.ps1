@@ -7,13 +7,16 @@
   Name of the image for which you want to get the available tags
  .Parameter registryCredential
   Credentials for the registry if you are using a private registry (incl. bcinsider)
+ .Parameter pageSize
+  The function will always retrieve all tags, this parameter just specifies the page size used when querying tags. 0 means don't use paging. If registryCredential is set, the default pagesize is 1000 else the default is to not use paging.
  .Example
  (Get-NavContainerImageTags -imageName "mcr.microsoft.com/businesscentral/onprem").tags
 #>
 function Get-NavContainerImageTags {
     Param(
         [string] $imageName,
-        [PSCredential] $registryCredential
+        [PSCredential] $registryCredential,
+        [int] $pageSize = -1
     )
 
     $webclient = New-Object System.Net.WebClient
@@ -31,6 +34,9 @@ function Get-NavContainerImageTags {
 
         $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
         $authorization = "Basic $credentials"
+        if ($pageSize -eq -1) {
+            $pageSize = 1000
+        }
 
     } elseif ("$registry" -eq "bcinsider.azurecr.io") {
 
@@ -51,7 +57,18 @@ function Get-NavContainerImageTags {
     }
 
     try {
-        ($webclient.DownloadString("https://$registry/v2/$repository/tags/list") | ConvertFrom-Json)
+        $url = "https://$registry/v2/$repository/tags/list"
+        if ($pageSize -gt 0) {
+            $sometags = ($webclient.DownloadString("${url}?n=$pageSize") | ConvertFrom-Json)
+            $tags = $sometags
+            while ($sometags.tags.Count -gt 0) {
+                $sometags = ($webclient.DownloadString("${url}?n=$pageSize&last=$($sometags.tags[$sometags.tags.Count-1])") | ConvertFrom-Json)
+                $tags.tags += $sometags.tags
+            }
+        } else {
+            $tags = ($webclient.DownloadString("$url") | ConvertFrom-Json)
+        }
+        $tags
     }
     catch {
     }
