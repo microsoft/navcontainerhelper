@@ -11,7 +11,7 @@
  .Parameter argumentList
   Arguments to transfer to the scriptblock in form of an object[]
  .Example
-  Invoke-ScriptInNavContainer -containerName dev -scriptblock { $env:UserName } -doNotUseSessions
+  Invoke-ScriptInNavContainer -containerName dev -scriptblock { $env:UserName }
  .Example
   [xml](Invoke-ScriptInNavContainer -containerName dev -scriptblock { Get-Content -Path (Get-item 'c:\Program Files\Microsoft Dynamics NAV\*\Service\CustomSettings.config').FullName })
 #>
