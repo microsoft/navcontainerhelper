@@ -30,22 +30,22 @@
 #>
 function Compile-AppInNavContainer {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$containerName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Management.Automation.PSCredential]$credential,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$appProjectFolder,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$appOutputFolder = (Join-Path $appProjectFolder "output"),
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
         [switch]$UpdateSymbols,
         [switch]$AzureDevOps,
         [switch]$EnableCodeCop,
-        [ValidateSet('none','error','warning')]
+        [ValidateSet('none', 'error', 'warning')]
         [string]$FailOn = 'none'
     )
 
@@ -84,13 +84,11 @@ function Compile-AppInNavContainer {
         @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     )
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
-    {
-        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+    if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test) {
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
     }
     
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies) {
         $appJsonObject.dependencies | ForEach-Object {
             $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
         }
@@ -118,7 +116,6 @@ function Compile-AppInNavContainer {
             }
             $symbolsName = "${publisher}_${name}_${version}.app"
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
-            Write-Host "Downloading symbols: $symbolsName"
 
             [xml]$customConfig = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
                 $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -130,7 +127,8 @@ function Compile-AppInNavContainer {
             $DeveloperServicesSSLEnabled = $customConfig.SelectSingleNode("//appSettings/add[@key='DeveloperServicesSSLEnabled']").Value
             if ($DeveloperServicesSSLEnabled -eq "true") {
                 $protocol = "https://"
-            } else {
+            }
+            else {
                 $protocol = "http://"
             }
             $devServerUrl = "${protocol}${containerName}:${DeveloperServicesPort}/${serverInstance}"
@@ -141,13 +139,14 @@ function Compile-AppInNavContainer {
                 if ($auth -eq "Windows") {
                     Throw "You should not specify credentials when using Windows Authentication"
                 }
-                $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+                $pair = ("$($Credential.UserName):" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
                 $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
                 $base64 = [System.Convert]::ToBase64String($bytes)
                 $basicAuthValue = "Basic $base64"
                 $headers = @{ Authorization = $basicAuthValue }
                 $authParam += @{"headers" = $headers}
-            } else {
+            }
+            else {
                 if ($auth -ne "Windows") {
                     Throw "You need to specify credentials when you are not using Windows Authentication"
                 }
@@ -155,7 +154,28 @@ function Compile-AppInNavContainer {
             }
 
             $publisher = [uri]::EscapeDataString($publisher)
-            $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
+            
+            $appSettingsPath = (Join-Path $appProjectFolder "app.json")
+            $Appsettings = (Get-Content $appSettingsPath | ConvertFrom-Json)
+            $AppVersion = $Appsettings.application
+            $PlatformVersion = $appsettings.platform
+                                    
+            $publisher = [uri]::EscapeDataString($publisher)
+            Write-Host "Publisher: $publisher, Name: $name,  $version = $AppVersion" -ForegroundColor Yellow
+                        
+            if (($publisher -eq "Microsoft") -and ($name -eq "Application") -and ($version -ne $AppVersion)) {
+                $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${AppVersion}&tenant=$tenant"    
+                $symbolsName = "${publisher}_${name}_${Appversion}.app" #Should really be the returned version not what says in the app file
+            }
+            elseif ((($publisher -eq "Microsoft") -and ($name -eq "System") -and ($version -ne $platformVersion))) {
+                $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${PlatformVersion}&tenant=$tenant"    
+                $symbolsName = "${publisher}_${name}_${Platformversion}.app" #Should really be the returned version not what says in the app file
+            }
+                        
+            else {
+                $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
+            }
+            Write-Host "Downloading symbols: $symbolsName"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
     }
@@ -178,7 +198,8 @@ function Compile-AppInNavContainer {
         Set-Location -Path $alcPath
         if ($EnableCodeCop) {
             & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile /analyzer:$analyzerPath
-        } else {
+        }
+        else {
             & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
         }
 
@@ -186,7 +207,8 @@ function Compile-AppInNavContainer {
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
-    } else {
+    }
+    else {
         $result | Write-Host
     }
 
@@ -195,7 +217,8 @@ function Compile-AppInNavContainer {
 
     if (Test-Path -Path $appFile) {
         Write-Host "$appFile successfully created in $timespend seconds"
-    } else {
+    }
+    else {
         Write-Error "App generation failed"
     }
     $appFile
