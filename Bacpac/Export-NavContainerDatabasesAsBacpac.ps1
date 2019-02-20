@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Export databases in a Nav container as .bacpac files
  .Description
@@ -20,7 +20,7 @@
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\demo" -sqlCredential <sqlCredential>
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -tenant default
+  Export-NavContainerDatabasesAsBacpac -containerName test -tenant default -KeepUserData
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test -tenant @("default","tenant")
 #>
@@ -38,7 +38,9 @@ function Export-NavContainerDatabasesAsBacpac {
         [int]$commandTimeout = 3600,
         [switch]$diagnostics,
         [Parameter(Mandatory=$false)]
-        [string[]]$additionalArguments = @()
+        [string[]]$additionalArguments = @(),
+        [Parameter(Mandatory=$false)]
+        [switch]$KeepUserData
     )
     
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $containerName
@@ -54,7 +56,7 @@ function Export-NavContainerDatabasesAsBacpac {
     }
     $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $KeepUserData)
     
         function InstallPrerequisite {
             Param(
@@ -81,7 +83,7 @@ function Export-NavContainerDatabasesAsBacpac {
 
         function Install-DACFx
         {
-            $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
+            $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe" | Sort-Object -Property FullName -Descending | Select-Object -First 1
             if (!($sqlpakcageExe)) {
                 InstallPrerequisite -Name "Dac Framework 18.0" -MsiPath "c:\download\DacFramework.msi" -MsiUrl "https://download.microsoft.com/download/9/9/5/995E5614-49F9-48F0-85A5-2215518B85BD/EN/x64/DacFramework.msi" | Out-Null
                 $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
@@ -256,7 +258,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 $tempTenantDatabaseName = "tempTenant"
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
                 Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $_ -DestinationDatabaseName $tempTenantDatabaseName
-                Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
+                Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -KeepUserData:$KeepUserData
                 Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
         } else {
@@ -264,10 +266,10 @@ function Export-NavContainerDatabasesAsBacpac {
             $bacpacFileName = Join-Path $bacpacFolder "database.bacpac"
             Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempDatabaseName
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+            Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -KeepUserData:$KeepUserData
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
-    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments
+    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $KeepUserData
 }
 Export-ModuleMember Export-NavContainerDatabasesAsBacpac
 
