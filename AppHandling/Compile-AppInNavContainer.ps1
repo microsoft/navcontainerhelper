@@ -156,6 +156,7 @@ function Compile-AppInNavContainer {
 
             $publisher = [uri]::EscapeDataString($publisher)
             $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
+            Write-Host "Url : $Url"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
     }

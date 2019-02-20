@@ -35,7 +35,9 @@ function Replace-NavServerContainer {
         $imageName = $navDockerImage
     }
     if ("$imageName" -ne "$navDockerImage") {
-        ('$navDockerImage = "'+$imageName + '"') | Add-Content $settingsScript
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
+        $settings += '$navDockerImage = "'+$imageName + '"'
+        Set-Content -Path $settingsScript -Value $settings
     }
 
     $imageName = Get-BestNavContainerImageName -imageName $imageName
