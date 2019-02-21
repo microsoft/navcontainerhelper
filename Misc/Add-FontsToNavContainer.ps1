@@ -102,7 +102,7 @@ namespace FontResource
                         Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
                         Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
                     }
-                } -ArgumentList $fullName
+                } -ArgumentList $WindowsFontPath
             }
             catch
             {
