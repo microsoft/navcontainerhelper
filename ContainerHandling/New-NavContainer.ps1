@@ -165,8 +165,11 @@ function New-NavContainer {
     }
 
     if ($auth -eq "Windows") {
-        if ($credential.Username.Contains("@")) {
+        if ($credential.Username.Contains('@')) {
             throw "You cannot use a Microsoft account, you need to use a local Windows user account (like $env:USERNAME)"
+        }
+        if ($credential.Username.Contains('\')) {
+            throw "The username cannot contain domain information, you need to use a local Windows user account (like $env:USERNAME)"
         }
     }
 
