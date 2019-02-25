@@ -44,21 +44,23 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $TestRunnerFolder = "C:\ProgramData\NavContainerHelper\PsTestTool"
-    If (!(Test-Path -Path $TestRunnerFolder -PathType Container)) { New-Item -Path $TestRunnerFolder -ItemType Directory | Out-Null }
-    
+    $TestRunnerFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool"
     $PsTestRunnerPath = Join-Path $TestRunnerFolder "PsTestRunner.ps1"
     $ClientContextPath = Join-Path $TestRunnerFolder "ClientContext.ps1"
     $fobfile = Join-Path $TestRunnerFolder "PSTestTool.fob"
-    
-    Download-File -sourceUrl "https://aka.ms/pstestrunnerps1" -destinationFile $PsTestRunnerPath
-    Download-File -sourceUrl "https://aka.ms/clientcontextps1" -destinationFile $ClientContextPath
-    Download-File -sourceUrl "https://aka.ms/pstesttoolfob" -destinationFile $fobfile
 
-    if ((Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType -eq "Windows") {
-        Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
-    } else {
-        Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+    If (!(Test-Path -Path $TestRunnerFolder -PathType Container)) {
+        New-Item -Path $TestRunnerFolder -ItemType Directory | Out-Null
+
+        Download-File -sourceUrl "https://aka.ms/pstestrunnerps1" -destinationFile $PsTestRunnerPath
+        Download-File -sourceUrl "https://aka.ms/clientcontextps1" -destinationFile $ClientContextPath
+        Download-File -sourceUrl "https://aka.ms/pstesttoolfob" -destinationFile $fobfile
+
+        if ((Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType -eq "Windows") {
+            Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
+        } else {
+            Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+        }
     }
 
     Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $PsTestRunnerPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $detailed)
