@@ -51,15 +51,9 @@ function Run-TestsInNavContainer {
     $ClientContextPath = Join-Path $TestRunnerFolder "ClientContext.ps1"
     $fobfile = Join-Path $TestRunnerFolder "PSTestTool.fob"
     
-    if (!(Test-Path $PsTestRunnerPath)) {
-        Download-File -sourceUrl "https://aka.ms/pstestrunnerps1" -destinationFile $PsTestRunnerPath
-    }
-    if (!(Test-Path $ClientContextPath)) {
-        Download-File -sourceUrl "https://aka.ms/clientcontextps1" -destinationFile $ClientContextPath
-    }
-    if (!(Test-Path $fobfile)) {
-        Download-File -sourceUrl "https://aka.ms/pstesttoolfob" -destinationFile $fobfile
-    }
+    Download-File -sourceUrl "https://aka.ms/pstestrunnerps1" -destinationFile $PsTestRunnerPath
+    Download-File -sourceUrl "https://aka.ms/clientcontextps1" -destinationFile $ClientContextPath
+    Download-File -sourceUrl "https://aka.ms/pstesttoolfob" -destinationFile $fobfile
 
     if ((Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType -eq "Windows") {
         Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
