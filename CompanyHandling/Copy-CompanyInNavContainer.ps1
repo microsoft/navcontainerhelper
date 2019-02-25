@@ -2,7 +2,7 @@
  .Synopsis
   Copy company in the database
  .Description
-  Create a session to a Nav container and run New-NavCompany
+  Create a session to a Nav container and run Copy-NavCompany
  .Parameter containerName
   Name of the container in which you want to create the company
   .Parameter tenant
@@ -12,9 +12,9 @@
  .Parameter destinationCompanyName
   Name of the destination company
  .Example
-  Copy-NavCompanyInNavContainer -containerName test2 -sourceCompanyName 'Cronus International Ltd.' -destinationCompanyName 'Cronus Subsidiary' -tenant mytenant
+  Copy-CompanyInNavContainer -containerName test2 -sourceCompanyName 'Cronus International Ltd.' -destinationCompanyName 'Cronus Subsidiary' -tenant mytenant
 #>
-function Copy-NavCompanyInNavContainer {
+function Copy-CompanyInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName,
@@ -31,4 +31,4 @@ function Copy-NavCompanyInNavContainer {
     } -ArgumentList $sourceCompanyName, $destinationCompanyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully copied"
 }
-Export-ModuleMember -Function Copy-NavCompanyInNavContainer
+Export-ModuleMember -Function Copy-CompanyInNavContainer

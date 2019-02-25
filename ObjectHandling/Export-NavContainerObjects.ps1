@@ -39,6 +39,10 @@ function Export-NavContainerObjects {
         $exportTo = 'txt folder'
     }
 
+    if ("$objectsFolder" -eq "$hostHelperFolder" -or "$objectsFolder" -eq "$hostHelperFolder\") {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    }
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo)
