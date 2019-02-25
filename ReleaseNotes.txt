@@ -1,6 +1,9 @@
 0.5.0.3
 Add paging to Get-NavContainerImageTags (needed for Azure Container Registries)
 Do not allow c:\programdata\navcontainerhelper as the folder in Export-NavContainerObjects
+BugFix #355 - Add-FontsToNavContainer fails if the folders doesn't have the same path
+Added function Run-TestsInNavContainer (preview)
+Update help text for Copy-FileToNavContainer and Copy-FileFromNavContiner and throw an error if the destination filename specifies a folder
 
 0.5.0.2
 Added function Copy-CompanyInNavContainer (Thanks Dmitry K.)

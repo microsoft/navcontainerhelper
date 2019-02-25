@@ -105,7 +105,8 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Convert-CALExecutionTimeToTimeSpan.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sign-NavContainerApp.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage")
+. (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
