@@ -63,7 +63,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $PsTestRunnerPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $detailed)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $PsTestRunnerPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -91,11 +91,12 @@ function Run-TestsInNavContainer {
                             -TestSuite $testSuite `
                             -auth $clientServicesCredentialType `
                             -XUnitResultFileName $XUnitResultFileName `
+                            -AzureDevOps $AzureDevOps `
                             -serviceUrl $serviceUrl `
                             -credential $credential `
                             -disableSslVerification:$disableSslVerification `
                             -detailed:$detailed
 
-    } -argumentList $tenant, $credential, $testSuite, $PsTestRunnerPath, $ClientContextPath, $containerXUnitResultFileName, $detailed
+    } -argumentList $tenant, $credential, $testSuite, $PsTestRunnerPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
 }
 Export-ModuleMember -Function Run-TestsInNavContainer
