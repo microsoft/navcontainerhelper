@@ -762,7 +762,7 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
-    if ($enableSymbolLoading -and $version.Major -ge 13) {
+    if ($enableSymbolLoading) {
         # Unpublish symbols when running hybrid development
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
             Unpublish-NavApp -ServerInstance NAV -Name "Application" -Publisher "Microsoft"
