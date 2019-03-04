@@ -35,7 +35,7 @@ function Compile-AppInNavContainer {
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential,
+        [System.Management.Automation.PSCredential]$credential = $null,
         [Parameter(Mandatory=$true)]
         [string]$appProjectFolder,
         [Parameter(Mandatory=$false)]
@@ -46,7 +46,9 @@ function Compile-AppInNavContainer {
         [switch]$AzureDevOps,
         [switch]$EnableCodeCop,
         [ValidateSet('none','error','warning')]
-        [string]$FailOn = 'none'
+        [string]$FailOn = 'none',
+        [Parameter(Mandatory=$false)]
+        [System.Management.Automation.PSCredential]$dbcredential = $null
     )
 
     $startTime = [DateTime]::Now
@@ -79,6 +81,8 @@ function Compile-AppInNavContainer {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
     }
 
+    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+
     $dependencies = @(
         @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
         @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
@@ -87,8 +91,11 @@ function Compile-AppInNavContainer {
     if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
     {
         $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+        if (([bool]($customConfig.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
+            throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
+        }
     }
-    
+
     if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
     {
         $appJsonObject.dependencies | ForEach-Object {
@@ -106,58 +113,67 @@ function Compile-AppInNavContainer {
         Get-NavAppInfo -ServerInstance NAV -symbolsOnly
     } -ArgumentList $tenant
 
+    $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
+    if (-not $applicationApp) {
+        # locate application version number in database if using SQLEXPRESS
+        try {
+            if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
+                $appVersion = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($databaseName)
+                    (invoke-sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -ErrorAction Stop -Query "SELECT [applicationversion] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]").applicationVersion
+                } -argumentList $customConfig.DatabaseName
+                $publishedApps += @{ "Name" = "Application"; "Publisher" = "Microsoft"; "Version" = $appversion }
+            }
+        }
+        catch {
+            # ignore errors - use version number in app.json
+        }
+    }
+
+    $serverInstance = $customConfig.ServerInstance
+    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
+        $protocol = "https://"
+    } else {
+        $protocol = "http://"
+    }
+    $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+
+    $authParam = @{}
+    if ($credential) {
+        if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+            Throw "You should not specify credentials when using Windows Authentication"
+        }
+        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+        $base64 = [System.Convert]::ToBase64String($bytes)
+        $basicAuthValue = "Basic $base64"
+        $headers = @{ Authorization = $basicAuthValue }
+        $authParam += @{"headers" = $headers}
+    } else {
+        if ($customConfig.ClientServicesCredentialType -ne "Windows") {
+            Throw "You need to specify credentials when you are not using Windows Authentication"
+        }
+        $authParam += @{"usedefaultcredential" = $true}
+    }
+
     $dependencies | ForEach-Object {
         $dependency = $_
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
             $publisher = $_.publisher
             $name = $_.name
             $version = $_.version
-            $app = $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name }
-            if ($app) {
-                $version = $app.version
-            }
             $symbolsName = "${publisher}_${name}_${version}.app"
+            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
+                $symbolsName = "${publisher}_${name}_$($_.version).app"
+            }
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
             Write-Host "Downloading symbols: $symbolsName"
-
-            [xml]$customConfig = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
-                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-                [System.IO.File]::ReadAllText($customConfigFile)
-            }
-            $serverInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='ServerInstance']").Value
-
-            $DeveloperServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='DeveloperServicesPort']").Value
-            $DeveloperServicesSSLEnabled = $customConfig.SelectSingleNode("//appSettings/add[@key='DeveloperServicesSSLEnabled']").Value
-            if ($DeveloperServicesSSLEnabled -eq "true") {
-                $protocol = "https://"
-            } else {
-                $protocol = "http://"
-            }
-            $devServerUrl = "${protocol}${containerName}:${DeveloperServicesPort}/${serverInstance}"
-            $auth = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
-
-            $authParam = @{}
-            if ($credential) {
-                if ($auth -eq "Windows") {
-                    Throw "You should not specify credentials when using Windows Authentication"
-                }
-                $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-                $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-                $base64 = [System.Convert]::ToBase64String($bytes)
-                $basicAuthValue = "Basic $base64"
-                $headers = @{ Authorization = $basicAuthValue }
-                $authParam += @{"headers" = $headers}
-            } else {
-                if ($auth -ne "Windows") {
-                    Throw "You need to specify credentials when you are not using Windows Authentication"
-                }
-                $authParam += @{"usedefaultcredential" = $true}
-            }
 
             $publisher = [uri]::EscapeDataString($publisher)
             $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
             Write-Host "Url : $Url"
+            if ($name -ne "test") {
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
+            }
         }
     }
 

@@ -601,8 +601,11 @@ function New-NavContainer {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
     }
 
-    if ($enableSymbolLoading -and $version.Major -gt 10) {
+    if ($enableSymbolLoading -and $version.Major -ge 11) {
         $parameters += "--env enableSymbolLoading=Y"
+    }
+    else {
+        $enableSymbolLoading = $false
     }
 
     if ($includeCSide) {
@@ -743,33 +746,47 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
 
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
-        docker exec $containerName powershell "try { if ((Get-TimeZone).Id -ne '$TimeZoneId') { Set-TimeZone -ID '$TimeZoneId' } } catch { Write-Host ""Unable to set TimeZone to '$TimeZoneId', TimeZone is "" (Get-TimeZone).Id }"
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
+            $OldTimeZoneId = (Get-TimeZone).Id
+            try { 
+                if ($OldTimeZoneId -ne $TimeZoneId) { 
+                    Set-TimeZone -ID $TimeZoneId
+                }
+            }
+            catch {
+                Write-Host "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
+            }
+        } -argumentList $TimeZoneId
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
-    $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
-    [System.IO.File]::ReadAllText($customConfigFile)'
-    [xml]$customConfig = docker exec $containerName powershell $ps
+    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+
+    if ($enableSymbolLoading -and $version.Major -ge 13) {
+        # Unpublish symbols when running hybrid development
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            Unpublish-NavApp -ServerInstance NAV -Name "Application" -Publisher "Microsoft"
+            Unpublish-NavApp -ServerInstance NAV -Name "Test" -Publisher "Microsoft"
+        }
+    }
 
     if ($shortcuts -ne "None") {
         Write-Host "Creating Desktop Shortcuts for $containerName"
-        if ($customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']") -ne $null) {
-            $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-            if ("$publicWebBaseUrl" -ne "") {
-                $webClientUrl = "$publicWebBaseUrl"
-                if ($multitenant) {
-                    $webClientUrl += "?tenant=default"
-                }
-                New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                if ($includeTestToolkit) {
-                    if ($multitenant) {
-                        $webClientUrl += "&page=130401"
-                    } else {
-                        $webClientUrl += "?page=130401"
-                    }
-                    New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                }
+        if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
+            $webClientUrl = $customConfig.PublicWebBaseUrl
+            if ($multitenant) {
+                $webClientUrl += "?tenant=default"
             }
+            New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            if ($includeTestToolkit) {
+                if ($multitenant) {
+                    $webClientUrl += "&page=130401"
+                } else {
+                    $webClientUrl += "?page=130401"
+                }
+                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            }
+            
         }
         
         $dockerIco = Join-Path $PSScriptRoot "docker.ico"
@@ -806,9 +823,9 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
         New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
 
-        $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-        $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+        $databaseInstance = $customConfig.DatabaseInstance
+        $databaseName = $customConfig.DatabaseName
+        $databaseServer = $customConfig.DatabaseServer
         if ($databaseServer -eq "localhost") {
             $databaseServer = "$containerName"
         }
@@ -821,8 +838,7 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
 
-        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
-        if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+        if ($enableSymbolLoading) {
             $csideParameters += ",generatesymbolreference=1"
         }
 
