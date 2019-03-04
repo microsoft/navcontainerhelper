@@ -1,29 +1,23 @@
 ﻿<# 
  .Synopsis
-  Run a test suite in a container
+  Get test information from a container
  .Description
  .Parameter containerName
-  Name of the container in which you want to run a test suite
+  Name of the container from which you want to get test information
  .Parameter tenant
   tenant to use if container is multitenant
  .Parameter credential
   Credentials of the NAV SUPER user if using NavUserPassword authentication
  .Parameter testSuite
-  Name of test suite to run. Default is DEFAULT.
+  Name of test suite to get. Default is DEFAULT.
  .Parameter testCodeunit
-  Name or ID of test codeunit to run. Wildcards (? and *) are supported. Default is *.
- .Parameter testFunction
-  Name of test function to run. Wildcards (? and *) are supported. Default is *.
- .Parameter XUnitResultFileName
-  Credentials of the NAV SUPER user if using NavUserPassword authentication
- .Parameter AzureDevOps
-  Generate Azure DevOps Pipeline compatible output. This setting determines the severity of errors.
+  Name or ID of test codeunit to get. Wildcards (? and *) are supported. Default is *.
  .Example
-  Run-TestsInNavContainer -contatinerName test -credential $credential
+  Get-TestsFromNavContainer -contatinerName test -credential $credential
  .Example
-  Run-TestsInNavContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\NavContainerHelper\$containername.results.xml" -AzureDevOps "warning"
+  Get-TestsFromNavContainer -contatinerName $containername -credential $credential -TestSuite "MYTESTS" -TestCodeunit "134001"
 #>
-function Run-TestsInNavContainer {
+function Get-TestsFromNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName,
@@ -34,24 +28,9 @@ function Run-TestsInNavContainer {
         [Parameter(Mandatory=$false)]
         [string] $testSuite = "DEFAULT",
         [Parameter(Mandatory=$false)]
-        [string] $testCodeunit = "*",
-        [Parameter(Mandatory=$false)]
-        [string] $testFunction = "*",
-        [Parameter(Mandatory=$false)]
-        [string] $XUnitResultFileName,
-        [ValidateSet('no','error','warning')]
-        [string] $AzureDevOps = 'no',
-        [switch] $detailed
+        [string] $testCodeunit = "*"
     )
     
-    $containerXUnitResultFileName = ""
-    if ($XUnitResultFileName) {
-        $containerXUnitResultFileName = Get-NavContainerPath -containerName $containerName -path $XUnitResultFileName
-        if ("$containerXUnitResultFileName" -eq "") {
-            throw "The path for XUnitResultFileName ($XUnitResultFileName) is not shared with the container."
-        }
-    }
-
     $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
@@ -76,7 +55,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -99,19 +78,14 @@ function Run-TestsInNavContainer {
             }
         }
 
-        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath        try {            if ($disableSslVerification) {                Disable-SslVerification            }                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential    
-            Run-Tests -clientContext $clientContext `
-                      -TestSuite $testSuite `
-                      -TestCodeunit $testCodeunit `
-                      -TestFunction $testFunction `
-                      -XUnitResultFileName $XUnitResultFileName `
-                      -AzureDevOps $AzureDevOps `
-                      -detailed:$detailed
+        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath        try {            if ($disableSslVerification) {                Disable-SslVerification            }                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+            Get-Tests -clientContext $clientContext -TestSuite $testSuite -TestCodeunit $testCodeunit
+
         }
         finally {
             if ($disableSslVerification) {                Enable-SslVerification            }            Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
+    } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath | ConvertFrom-Json
 }
-Export-ModuleMember -Function Run-TestsInNavContainer
+Export-ModuleMember -Function Get-TestsFromNavContainer
