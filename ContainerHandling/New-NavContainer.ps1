@@ -610,43 +610,47 @@ function New-NavContainer {
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Clear modified flag on all objects
-        'if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-             sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
-         }' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+        ('
+if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
+    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
         if (Test-Path $programFilesFolder) {
             Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore
         }
         New-Item $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
         
-        ('if ($restartingInstance -eq $false) {
-        Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
-        $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
-        $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
-        [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
-        if ($multitenant) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
+        ('
+if ($restartingInstance -eq $false) {
+    Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
+    $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
+    $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
+    [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
+    if ($multitenant) {
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
+    }
+    if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ServicesCertificateValidationEnabled""]") -ne $null) {
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
+    }
+    if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]") -ne $null) {
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]").value="false"
+    }
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
+    $acsUri = "$federationLoginEndpoint"
+    if ($acsUri -ne "") {
+        if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
+            $acsUri += "%26wreply=$publicWebBaseUrl"
         }
-        if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ServicesCertificateValidationEnabled""]") -ne $null) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
-        }
-        if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]") -ne $null) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]").value="false"
-        }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
-        $acsUri = "$federationLoginEndpoint"
-        if ($acsUri -ne "") {
-            if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
-                $acsUri += "%26wreply=$publicWebBaseUrl"
-            }
-        }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
-        $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
-        }') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
+    $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
     if ($assignPremiumPlan) {
@@ -656,16 +660,17 @@ function New-NavContainer {
             ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
-        ('Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
-            $UserId = $_.UserSecurityId
-            Write-Host "Assign Premium plan for $($_.Username)"
-            $dbName = $DatabaseName
-            if ($multitenant) {
-                $dbName = $TenantId
-            }
-            sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
-          }
-        ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
+        ('
+Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
+    $UserId = $_.UserSecurityId
+    Write-Host "Assign Premium plan for $($_.Username)"
+    $dbName = $DatabaseName
+    if ($multitenant) {
+        $dbName = $TenantId
+    }
+    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
+}
+') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
     }
 
     Write-Host "Creating container $containerName from image $imageName"
@@ -688,8 +693,8 @@ function New-NavContainer {
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
         ('
-        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
-        ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
+') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
@@ -799,6 +804,7 @@ function New-NavContainer {
     if ($includeCSide) {
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
+        New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
 
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
