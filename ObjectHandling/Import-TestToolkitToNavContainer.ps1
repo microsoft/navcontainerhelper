@@ -16,6 +16,8 @@
   This parameter only needs to be used in the event there are multiple country-specific sets of objects in the TestToolkit folder.
  .Parameter doNotUpdateSymbols
   Add this switch to avoid updating symbols when importing the test toolkit
+ .Parameter ImportAction
+  Specifies the import action. Default is Overwrite.
  .Example
   Import-TestToolkitToNavContainer -containerName test2
   .Example
@@ -28,12 +30,14 @@ function Import-TestToolkitToNavContainer {
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [switch]$includeTestLibrariesOnly,
         [string]$testToolkitCountry,
-        [switch]$doNotUpdateSymbols
+        [switch]$doNotUpdateSymbols,
+        [ValidateSet("Overwrite","Skip")]
+        [string]$ImportAction = "Overwrite"
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -70,7 +74,7 @@ function Import-TestToolkitToNavContainer {
                 Import-NAVApplicationObject @params -Path $objectsFile `
                                             -DatabaseName $databaseName `
                                             -DatabaseServer $databaseServerParameter `
-                                            -ImportAction Overwrite `
+                                            -ImportAction $ImportAction `
                                             -SynchronizeSchemaChanges No `
                                             -NavServerName localhost `
                                             -NavServerInstance NAV `
@@ -83,7 +87,7 @@ function Import-TestToolkitToNavContainer {
         # Sync after all objects hav been imported
          Get-NAVTenant NAV | Sync-NavTenant -Mode ForceSync -Force
 
-    } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols
+    } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
     Write-Host -ForegroundColor Green "TestToolkit successfully imported"
 }
 Export-ModuleMember -Function Import-TestToolkitToNavContainer
