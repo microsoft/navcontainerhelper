@@ -1,3 +1,12 @@
+0.5.0.5
+Added parameters testCodeunit and testFunction to Run-TestsInNavContainer to run individual tests
+Added function Get-TestsFromNavContainer to get a list of available tests
+Added a shortcut for the WinClient Debugger when using includecside
+Include ImportAction to Import-TestToolKitToNavContainer and Import-ObjectsToNavContainer
+
+0.5.0.4
+BugFix: Transfer AzureDevOps parameter to PsTestRunner
+
 0.5.0.3
 Add paging to Get-NavContainerImageTags (needed for Azure Container Registries)
 Do not allow c:\programdata\navcontainerhelper as the folder in Export-NavContainerObjects
