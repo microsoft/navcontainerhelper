@@ -6,6 +6,10 @@ $verbosePreference = "SilentlyContinue"
 $warningPreference = 'Continue'
 $errorActionPreference = 'Stop'
 
+if ([intptr]::Size -eq 4) {
+    throw "NavContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
+}
+
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 try {
@@ -107,6 +111,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Sign-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Get-TestsFromNavContainer.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
