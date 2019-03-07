@@ -765,9 +765,15 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
     if ($enableSymbolLoading) {
         # Unpublish symbols when running hybrid development
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
-            Unpublish-NavApp -ServerInstance NAV -Name "Application" -Publisher "Microsoft"
-            Unpublish-NavApp -ServerInstance NAV -Name "Test" -Publisher "Microsoft"
-        }
+            # Unpublish only, when App is present
+            if ((Get-NavAppInfo -ServerInstance NAV -Name "Application" -Publisher "Microsoft") -ne $null) {
+                Unpublish-NavApp -ServerInstance NAV -Name "Application" -Publisher "Microsoft"
+            }
+            # Unpublish only, when App is present
+            if ((Get-NavAppInfo -ServerInstance NAV -Name "Test" -Publisher "Microsoft") -ne $null) {
+                Unpublish-NavApp -ServerInstance NAV -Name "Test" -Publisher "Microsoft" 
+            }
+        } 
     }
 
     if ($shortcuts -ne "None") {
