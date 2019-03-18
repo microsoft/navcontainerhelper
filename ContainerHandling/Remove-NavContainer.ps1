@@ -38,6 +38,7 @@ function Remove-NavContainer {
         Remove-DesktopShortcut -Name "$containerName Web Client"
         Remove-DesktopShortcut -Name "$containerName Test Tool"
         Remove-DesktopShortcut -Name "$containerName Windows Client"
+        Remove-DesktopShortcut -Name "$containerName WinClient Debugger"
         Remove-DesktopShortcut -Name "$containerName CSIDE"
         Remove-DesktopShortcut -Name "$containerName Command Prompt"
         Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"

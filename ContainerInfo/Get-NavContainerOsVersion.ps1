@@ -19,9 +19,8 @@ function Get-NavContainerOsVersion {
     )
 
     Process {
-        # returns empty with generic tag 0.0.2.3 or earlier
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        return "$($inspect.OsVersion)"
+        return "$($inspect.Config.Labels.osversion)"
     }
 }
 Export-ModuleMember -function Get-NavContainerOsVersion
