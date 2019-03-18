@@ -864,6 +864,10 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
                                                -filter "" `
                                                -sqlCredential $sqlCredential `
                                                -ExportTo $exportTo
+                    if ($newSyntax -and $version.Major -gt 13) {
+                        $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                        Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100
+                    }
                 }
             }
         }

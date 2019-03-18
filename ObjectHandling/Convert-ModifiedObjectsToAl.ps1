@@ -27,11 +27,12 @@
 function Convert-ModifiedObjectsToAl {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [int]$startId = 50100,
-        [string]$filter = "Modified=1",
-        [switch]$openFolder
+        [int]    $startId = 50100,
+        [string] $filter = "None",
+        [switch] $openFolder,
+        [switch] $doNotUseDeltas
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -40,11 +41,22 @@ function Convert-ModifiedObjectsToAl {
         throw "You cannot run Convert-ModifiedObjectsToAl on this Nav Container, the txt2al tool is not present."
     }
 
-    Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter
-
     $suffix = "-newsyntax"
 
-    $myDeltaFolder    = Join-Path $ExtensionsFolder "$containerName\delta$suffix"
+    if ($doNotUseDeltas) {
+        if ($filter -ne "None") {
+            throw "You cannot set the filter if you are using doNotUseDeltas - you need to convert the full app"
+        }
+        $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\objects$suffix"
+        Export-NavContainerObjects -containerName $containerName -sqlCredential $sqlCredential -objectsFolder $myDeltaFolder -exportTo 'txt folder (new syntax)' -filter ""
+    }
+    else {
+        if ($filter -eq "None") {
+            $filter = "Modified=1"
+        }
+        Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter
+    }
+
     $myAlFolder       = Join-Path $ExtensionsFolder "$containerName\al$suffix"
 
     Convert-Txt2Al -containerName $containerName `
@@ -56,5 +68,6 @@ function Convert-ModifiedObjectsToAl {
         Start-Process $myAlFolder
         Write-Host "al files created in $myAlFolder"
     }
+    $myAlFolder
 }
 Export-ModuleMember -Function Convert-ModifiedObjectsToAl
