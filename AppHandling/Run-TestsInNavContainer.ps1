@@ -34,6 +34,8 @@ function Run-TestsInNavContainer {
         [Parameter(Mandatory=$false)]
         [string] $testSuite = "DEFAULT",
         [Parameter(Mandatory=$false)]
+        [string] $testGroup = "*",
+        [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
         [Parameter(Mandatory=$false)]
         [string] $testFunction = "*",
@@ -76,7 +78,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -102,6 +104,7 @@ function Run-TestsInNavContainer {
         . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath        try {            if ($disableSslVerification) {                Disable-SslVerification            }                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential    
             Run-Tests -clientContext $clientContext `
                       -TestSuite $testSuite `
+                      -TestGroup $testGroup `
                       -TestCodeunit $testCodeunit `
                       -TestFunction $testFunction `
                       -XUnitResultFileName $XUnitResultFileName `
@@ -112,6 +115,6 @@ function Run-TestsInNavContainer {
             if ($disableSslVerification) {                Enable-SslVerification            }            Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
+    } -argumentList $tenant, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
 }
 Export-ModuleMember -Function Run-TestsInNavContainer
