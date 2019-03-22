@@ -46,9 +46,7 @@ function Compile-AppInNavContainer {
         [switch]$AzureDevOps,
         [switch]$EnableCodeCop,
         [ValidateSet('none','error','warning')]
-        [string]$FailOn = 'none',
-        [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$dbcredential = $null
+        [string]$FailOn = 'none'
     )
 
     $startTime = [DateTime]::Now
@@ -75,119 +73,138 @@ function Compile-AppInNavContainer {
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = Get-Content -Raw -Path $appJsonFile | ConvertFrom-Json
     $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app"
-
-    Write-Host "Using Symbols Folder: $appSymbolsFolder"
-    if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
-        New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
+    $appFile = Join-Path $appOutputFolder $appName
+    if (Test-Path -Path $appFile -PathType Leaf) {
+        Remove-Item -Path $appFile -Force
     }
 
-    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param($tenant, $credential, $appProjectFolder, $appOutputFolder, $appOutputFile, $appSymbolsFolder, $UpdateSymbols, $AzureDevOps, $EnableCodeCop, $FailOn)
 
-    $dependencies = @(
-        @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
-        @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
-    )
+        $ErrorActionPreference = "Stop"
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
-    {
-        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
-        if (([bool]($customConfig.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
-            throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
+        $appJsonFile = Join-Path $appProjectFolder 'app.json'
+        $appJsonObject = Get-Content -Raw -Path $appJsonFile | ConvertFrom-Json
+
+        Write-Host "Using Symbols Folder: $appSymbolsFolder"
+        if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
+            New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
         }
-    }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
-    {
-        $appJsonObject.dependencies | ForEach-Object {
-            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
+        $customConfig = @{}
+        (Get-NAVServerInstance -ServerInstance NAV | Get-NAVServerConfiguration -AsXml).configuration.appSettings.add | ForEach-Object{
+            $customConfig | Add-Member -MemberType NoteProperty -Name $_.Key -Value $_.Value
         }
-    }
 
-    if (!$updateSymbols) {
-        $existingApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
-            Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object { Get-NavAppInfo -Path $_.FullName }
-        } -ArgumentList $containerSymbolsFolder
-    }
-    $publishedApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
-        Get-NavAppInfo -ServerInstance NAV -tenant $tenant
-        Get-NavAppInfo -ServerInstance NAV -symbolsOnly
-    } -ArgumentList $tenant
+        $dependencies = @(
+            @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
+            @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
+        )
 
-    $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
-    if (-not $applicationApp) {
-        # locate application version number in database if using SQLEXPRESS
-        try {
-            if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
-                $appVersion = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($databaseName)
-                    (invoke-sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -ErrorAction Stop -Query "SELECT [applicationversion] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]").applicationVersion
-                } -argumentList $customConfig.DatabaseName
-                $publishedApps += @{ "Name" = "Application"; "Publisher" = "Microsoft"; "Version" = $appversion }
+        if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
+        {
+            $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+            if (([bool]($customConfig.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
+                throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
             }
         }
-        catch {
-            # ignore errors - use version number in app.json
-        }
-    }
 
-    $serverInstance = $customConfig.ServerInstance
-    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
-        $protocol = "https://"
-    } else {
-        $protocol = "http://"
-    }
-    $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
-
-    $authParam = @{}
-    if ($credential) {
-        if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-            Throw "You should not specify credentials when using Windows Authentication"
-        }
-        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $basicAuthValue = "Basic $base64"
-        $headers = @{ Authorization = $basicAuthValue }
-        $authParam += @{"headers" = $headers}
-    } else {
-        if ($customConfig.ClientServicesCredentialType -ne "Windows") {
-            Throw "You need to specify credentials when you are not using Windows Authentication"
-        }
-        $authParam += @{"usedefaultcredential" = $true}
-    }
-
-    $dependencies | ForEach-Object {
-        $dependency = $_
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
-            $publisher = $_.publisher
-            $name = $_.name
-            $version = $_.version
-            $symbolsName = "${publisher}_${name}_${version}.app"
-            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
-                $symbolsName = "${publisher}_${name}_$($_.version).app"
+        if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
+        {
+            $appJsonObject.dependencies | ForEach-Object {
+                $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
             }
-            $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
-            Write-Host "Downloading symbols: $symbolsName"
-
-            $publisher = [uri]::EscapeDataString($publisher)
-            $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
-            Write-Host "Url : $Url"
-            Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
-    }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop )
+        if (!$updateSymbols) {
+            $existingApps = Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object { Get-NavAppInfo -Path $_.FullName }
+        }
+        $publishedApps = Get-NavAppInfo -ServerInstance NAV -tenant $tenant
+        $publishedApps += Get-NavAppInfo -ServerInstance NAV -symbolsOnly
+
+        $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
+        if (-not $applicationApp) {
+            # locate application version number in database if using SQLEXPRESS
+            try {
+                if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
+                    $appVersion = (invoke-sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -ErrorAction Stop -Query "SELECT [applicationversion] FROM [$($customConfig.DatabaseName)].[dbo].[`$ndo`$dbproperty]").applicationVersion
+                    $publishedApps += @{ "Name" = "Application"; "Publisher" = "Microsoft"; "Version" = $appversion }
+                }
+            }
+            catch {
+                # ignore errors - use version number in app.json
+            }
+        }
+
+        $serverInstance = $customConfig.ServerInstance
+        if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
+            $protocol = "https://"
+
+            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+            {
+                Add-Type -TypeDefinition "
+                    using System.Net.Security;
+                    using System.Security.Cryptography.X509Certificates;
+                    public static class SslVerification
+                    {
+                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                    }"
+                [SslVerification]::Disable()
+            }
+
+        }
+        else {
+            $protocol = "http://"
+        }
+        $devServerUrl = "$($protocol)localhost:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+
+        $authParam = @{}
+        if ($credential) {
+            if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+                Throw "You should not specify credentials when using Windows Authentication"
+            }
+            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+            $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+            $base64 = [System.Convert]::ToBase64String($bytes)
+            $basicAuthValue = "Basic $base64"
+            $headers = @{ Authorization = $basicAuthValue }
+            $authParam += @{"headers" = $headers}
+        } else {
+            if ($customConfig.ClientServicesCredentialType -ne "Windows") {
+                Throw "You need to specify credentials when you are not using Windows Authentication"
+            }
+            $authParam += @{"usedefaultcredential" = $true}
+        }
+
+        $dependencies | ForEach-Object {
+            $dependency = $_
+            if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
+                $publisher = $_.publisher
+                $name = $_.name
+                $version = $_.version
+                $symbolsName = "${publisher}_${name}_${version}.app"
+                $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
+                    $symbolsName = "${publisher}_${name}_$($_.version).app"
+                }
+                $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
+                Write-Host "Downloading symbols: $symbolsName"
+
+                $publisher = [uri]::EscapeDataString($publisher)
+                $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
+                Write-Host "Url : $Url"
+                Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
+            }
+        }
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }
+
         $alcPath = 'C:\build\vsix\extension\bin'
         $analyzerPath = 'C:\build\vsix\extension\bin\Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll'
-
-        if (Test-Path -Path $appOutputFile -PathType Leaf) {
-            Remove-Item -Path $appOutputFile -Force
-        }
 
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
@@ -197,8 +214,8 @@ function Compile-AppInNavContainer {
             & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
         }
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop
-    
+    } -argumentList $tenant, $credential, $containerProjectFolder, $containerOutputFolder, (Get-NavContainerPath -containerName $containerName -path $appFile), $containerSymbolsFolder, $UpdateSymbols, $AzureDevOps, $EnableCodeCop, $FailOn
+
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
     } else {
@@ -206,7 +223,6 @@ function Compile-AppInNavContainer {
     }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
-    $appFile = Join-Path $appOutputFolder $appName
 
     if (Test-Path -Path $appFile) {
         Write-Host "$appFile successfully created in $timespend seconds"
