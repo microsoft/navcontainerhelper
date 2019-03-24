@@ -55,6 +55,7 @@ function Convert-ModifiedObjectsToAl {
             $filter = "Modified=1"
         }
         Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter
+        $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\delta$suffix"
     }
 
     $myAlFolder       = Join-Path $ExtensionsFolder "$containerName\al$suffix"

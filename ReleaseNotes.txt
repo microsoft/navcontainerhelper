@@ -1,3 +1,6 @@
+0.5.0.9
+Bugfix: Regression in Convert-ModifiedObjectsToAl
+
 0.5.0.7
 BugFix #380: Remove WinClient Debugger shortcut
 Publish and install an app instead of a codeunit when adding test users to Business Central
