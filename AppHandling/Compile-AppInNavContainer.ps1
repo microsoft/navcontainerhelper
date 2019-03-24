@@ -90,9 +90,10 @@ function Compile-AppInNavContainer {
             New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
         }
 
-        $customConfig = @{}
-        (Get-NAVServerInstance -ServerInstance NAV | Get-NAVServerConfiguration -AsXml).configuration.appSettings.add | ForEach-Object{
-            $customConfig | Add-Member -MemberType NoteProperty -Name $_.Key -Value $_.Value
+        $CustomConfig = New-Object -TypeName PSObject
+        $Config = Get-NAVServerInstance -ServerInstance NAV | Get-NAVServerConfiguration -AsXml
+        $Config.configuration.appSettings.add | ForEach-Object{
+            $CustomConfig | Add-Member -MemberType NoteProperty -Name $_.Key -Value $_.Value
         }
 
         $dependencies = @(
