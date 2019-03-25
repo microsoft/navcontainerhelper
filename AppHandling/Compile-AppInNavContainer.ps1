@@ -111,7 +111,7 @@ function Compile-AppInNavContainer {
     $publishedApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavAppInfo -ServerInstance NAV -tenant $tenant
         Get-NavAppInfo -ServerInstance NAV -symbolsOnly
-    } -ArgumentList $tenant
+    } -ArgumentList $tenant | Where-Object { $_ -isnot [System.String] }
 
     $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
     if (-not $applicationApp) {
