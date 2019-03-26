@@ -27,7 +27,14 @@ function Invoke-ScriptInNavContainer {
 
     if ($usePsSession) {
         $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
+        try {
+            Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
+        }
+        catch {
+            Write-Host -ForegroundColor Red $_.Exception.Message
+            Write-Host -ForegroundColor Red $_.ScriptStackTrace
+            throw
+        }
     } else {
         $file = Join-Path $containerHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
         $outputFile = "$file.output"

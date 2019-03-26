@@ -20,6 +20,8 @@
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
  .Parameter EnableCodeCop
   Add this switch to Enable CodeCop to run
+ .Parameter RulesetFile
+  Specify a ruleset file for the compiler.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning (Works only if you specify -AzureDevOps)
  .Example
@@ -48,7 +50,7 @@ function Compile-AppInNavContainer {
         [ValidateSet('none','error','warning')]
         [string]$FailOn = 'none',
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$dbcredential = $null
+        [string]$rulesetFile
     )
 
     $startTime = [DateTime]::Now
@@ -66,6 +68,14 @@ function Compile-AppInNavContainer {
     $containerSymbolsFolder = Get-NavContainerPath -containerName $containerName -path $appSymbolsFolder
     if ("$containerSymbolsFolder" -eq "") {
         throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
+    }
+
+    $containerRulesetFile = ""
+    if ($rulesetFile) {
+        $containerRulesetFile = Get-NavContainerPath -containerName $containerName -path $rulesetFile
+        if ("$containerRulesetFile" -eq "") {
+            throw "The rulesetFile ($rulesetFile) is not shared with the container."
+        }
     }
 
     if (!(Test-Path $appOutputFolder -PathType Container)) {
@@ -135,7 +145,33 @@ function Compile-AppInNavContainer {
     } else {
         $protocol = "http://"
     }
-    $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    $sslverificationdisabled = $false
+    if (Resolve-DnsName -Name $containerName -ErrorAction Ignore) {
+        $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    }
+    else {
+        Write-Host "Cannot resolve DNS Name: $containerName"
+        $ip = Get-NavContainerIpAddress -containerName $containerName
+        Write-Host "Using IP Address $ip"
+        $devServerUrl = "${protocol}${ip}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+        if ($protocol -eq "https://") {
+            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+            {
+                Add-Type -TypeDefinition "
+                    using System.Net.Security;
+                    using System.Security.Cryptography.X509Certificates;
+                    public static class SslVerification
+                    {
+                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                    }"
+            }
+            Write-Host "Disabling SSL Verification"
+            [SslVerification]::Disable()
+            $sslverificationdisabled = $true
+        }
+    }
 
     $authParam = @{}
     if ($credential) {
@@ -175,7 +211,12 @@ function Compile-AppInNavContainer {
         }
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop )
+    if ($sslverificationdisabled) {
+        Write-Host "Re-enabling SSL Verification"
+        [SslVerification]::Enable()
+    }
+
+    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $rulesetFile )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
@@ -183,7 +224,6 @@ function Compile-AppInNavContainer {
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }
         $alcPath = 'C:\build\vsix\extension\bin'
-        $analyzerPath = 'C:\build\vsix\extension\bin\Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll'
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
             Remove-Item -Path $appOutputFile -Force
@@ -191,13 +231,22 @@ function Compile-AppInNavContainer {
 
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
+
+        $alcParameters = @("/project:$appProjectFolder", "/packagecachepath:$appSymbolsFolder", "/out:$appOutputFile")
+        
         if ($EnableCodeCop) {
-            & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile /analyzer:$analyzerPath
-        } else {
-            & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile
+            $analyzerPath = Join-Path $alcPath "Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll"
+            $alcParameters += @("/analyzer:$analyzerPath")
+        }
+        if ($rulesetFile) {
+            $alcParameters += @("/ruleset:$rulesetfile")
         }
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop
+        #Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
+
+        & .\alc.exe $alcParameters
+
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $containerRulesetFile
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
