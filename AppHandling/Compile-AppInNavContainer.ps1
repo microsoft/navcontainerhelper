@@ -235,14 +235,15 @@ function Compile-AppInNavContainer {
         $alcParameters = @("/project:$appProjectFolder", "/packagecachepath:$appSymbolsFolder", "/out:$appOutputFile")
         
         if ($EnableCodeCop) {
-            $analyzerPath = 'C:\build\vsix\extension\bin\Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll'
+            $analyzerPath = Join-Path $alcPath "Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll"
             $alcParameters += @("/analyzer:$analyzerPath")
         }
         if ($rulesetFile) {
             $alcParameters += @("/ruleset:$rulesetfile")
         }
 
-        Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
+        #Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
+
         & .\alc.exe $alcParameters
 
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $containerRulesetFile
