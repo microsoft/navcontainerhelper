@@ -53,7 +53,11 @@ function Invoke-ScriptInNavContainer {
                 foreach($node in $nodes) {
                     $node.InnerText = ConvertFrom-SecureString -SecureString ($node.InnerText | ConvertTo-SecureString) -Key $encryptionkey
                 }
-                '$xml = [xml](''' + $xml.OuterXml + ''')' | Add-Content $file
+                
+                $xmlbytes =[System.Text.Encoding]::UTF8.GetBytes($xml.OuterXml)
+                '$xmlbytes = [Convert]::FromBase64String('''+[Convert]::ToBase64String($xmlbytes)+''')' | Add-Content $file
+                '$xml = [xml]([System.Text.Encoding]::UTF8.GetString($xmlbytes))' | Add-Content $file
+
                 if ($encryptionKey) {
                     '$nsmgr = New-Object System.Xml.XmlNamespaceManager -ArgumentList $xml.NameTable' | Add-Content $file
                     '$nsmgr.AddNamespace("ns", "http://schemas.microsoft.com/powershell/2004/04")' | Add-Content $file
