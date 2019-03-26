@@ -135,7 +135,33 @@ function Compile-AppInNavContainer {
     } else {
         $protocol = "http://"
     }
-    $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    $sslverificationdisabled = $false
+    if (Resolve-DnsName -Name $containerName -ErrorAction Ignore) {
+        $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    }
+    else {
+        Write-Host "Cannot resolve DNS Name: $containerName"
+        $ip = Get-NavContainerIpAddress -containerName $containerName
+        Write-Host "Using IP Address $ip"
+        $devServerUrl = "${protocol}${ip}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
+        if ($protocol -eq "https://") {
+            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+            {
+                Add-Type -TypeDefinition "
+                    using System.Net.Security;
+                    using System.Security.Cryptography.X509Certificates;
+                    public static class SslVerification
+                    {
+                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                    }"
+            }
+            Write-Host "Disabling SSL Verification"
+            [SslVerification]::Disable()
+            $sslverificationdisabled = $true
+        }
+    }
 
     $authParam = @{}
     if ($credential) {
@@ -173,6 +199,11 @@ function Compile-AppInNavContainer {
             Write-Host "Url : $Url"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
+    }
+
+    if ($sslverificationdisabled) {
+        Write-Host "Re-enabling SSL Verification"
+        [SslVerification]::Enable()
     }
 
     $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop )
