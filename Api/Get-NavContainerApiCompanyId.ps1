@@ -48,9 +48,10 @@ function Get-NavContainerApiCompanyId {
             $CompanyName = $customConfig.ServicesDefaultCompany
         }
         if (!($CompanyName)) {
-            $CompanyName = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
-                Get-NavCompany -ServerInstance NAV -tenant default | Select-Object -First 1 -ExpandProperty CompanyName
-            }
+            $Company = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($tenant)
+                Get-NavCompany -ServerInstance NAV -tenant default
+            } -argumentList $tenant | Where-Object { $_ -isnot [System.String] }
+            $CompanyName = $Company | Select-Object -First 1 -ExpandProperty CompanyName
         }
     }
 
