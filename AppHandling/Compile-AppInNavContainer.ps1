@@ -142,53 +142,42 @@ function Compile-AppInNavContainer {
     $serverInstance = $customConfig.ServerInstance
     if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
         $protocol = "https://"
-    } else {
-        $protocol = "http://"
-    }
-    $sslverificationdisabled = $false
-    if (Resolve-DnsName -Name $containerName -ErrorAction Ignore) {
-        $devServerUrl = "${protocol}${containerName}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
     }
     else {
-        Write-Host "Cannot resolve DNS Name: $containerName"
-        $ip = Get-NavContainerIpAddress -containerName $containerName
-        Write-Host "Using IP Address $ip"
-        $devServerUrl = "${protocol}${ip}:$($customConfig.DeveloperServicesPort)/$ServerInstance"
-        if ($protocol -eq "https://") {
-            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-            {
-                Add-Type -TypeDefinition "
-                    using System.Net.Security;
-                    using System.Security.Cryptography.X509Certificates;
-                    public static class SslVerification
-                    {
-                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                    }"
-            }
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
-            $sslverificationdisabled = $true
-        }
+        $protocol = "http://"
     }
 
+    $ip = Get-NavContainerIpAddress -containerName $containerName
+    $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$ServerInstance"
+
+    $sslVerificationDisabled = ($protocol -eq "https://")
+    if ($sslVerificationDisabled) {
+        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+        {
+            Add-Type -TypeDefinition "
+                using System.Net.Security;
+                using System.Security.Cryptography.X509Certificates;
+                public static class SslVerification
+                {
+                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                }"
+        }
+        Write-Host "Disabling SSL Verification"
+        [SslVerification]::Disable()
+    }
+    
+
     $authParam = @{}
-    if ($credential) {
-        if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-            Throw "You should not specify credentials when using Windows Authentication"
+    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+        $authParam += @{ "usedefaultcredential" = $true }
+    }
+    else {
+        if (!($credential)) {
+            throw "You need to specify credentials when you are not using Windows Authentication"
         }
-        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $basicAuthValue = "Basic $base64"
-        $headers = @{ Authorization = $basicAuthValue }
-        $authParam += @{"headers" = $headers}
-    } else {
-        if ($customConfig.ClientServicesCredentialType -ne "Windows") {
-            Throw "You need to specify credentials when you are not using Windows Authentication"
-        }
-        $authParam += @{"usedefaultcredential" = $true}
+        $authParam += @{ "credential" = $credential }
     }
 
     $dependencies | ForEach-Object {
@@ -197,15 +186,15 @@ function Compile-AppInNavContainer {
             $publisher = $_.publisher
             $name = $_.name
             $version = $_.version
-            $symbolsName = "${publisher}_${name}_${version}.app"
+            $symbolsName = "$($publisher)_$($name)_$($version).app"
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
-                $symbolsName = "${publisher}_${name}_$($_.version).app"
+                $symbolsName = "$($publisher)_$($name)_$($_.version).app"
             }
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
             Write-Host "Downloading symbols: $symbolsName"
 
             $publisher = [uri]::EscapeDataString($publisher)
-            $url = "$devServerUrl/dev/packages?publisher=${publisher}&appName=${name}&versionText=${version}&tenant=$tenant"
+            $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
             Write-Host "Url : $Url"
             Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
         }
@@ -250,7 +239,8 @@ function Compile-AppInNavContainer {
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
-    } else {
+    }
+    else {
         $result | Write-Host
     }
 
@@ -259,7 +249,8 @@ function Compile-AppInNavContainer {
 
     if (Test-Path -Path $appFile) {
         Write-Host "$appFile successfully created in $timespend seconds"
-    } else {
+    }
+    else {
         Write-Error "App generation failed"
     }
     $appFile

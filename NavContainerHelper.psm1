@@ -65,6 +65,10 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags")
 
+# Api Functions
+. (Join-Path $PSScriptRoot "Api\Get-NavContainerApiCompanyId.ps1")
+. (Join-Path $PSScriptRoot "Api\Invoke-NavContainerApi.ps1")
+
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainerSession.ps1")
