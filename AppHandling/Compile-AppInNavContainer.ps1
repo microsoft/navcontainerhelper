@@ -177,7 +177,13 @@ function Compile-AppInNavContainer {
         if (!($credential)) {
             throw "You need to specify credentials when you are not using Windows Authentication"
         }
-        $authParam += @{ "credential" = $credential }
+        
+        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+        $base64 = [System.Convert]::ToBase64String($bytes)
+        $basicAuthValue = "Basic $base64"
+        $headers = @{ Authorization = $basicAuthValue }
+        $authParam += @{ "headers" = $headers }
     }
 
     $dependencies | ForEach-Object {

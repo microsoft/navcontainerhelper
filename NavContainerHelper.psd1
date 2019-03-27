@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.5.0.10'
+ModuleVersion = '0.5.0.11'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -157,7 +157,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.5.0.10
+        ReleaseNotes = '0.5.0.11
+BugFix: Regression in Compile-AppInNavContainer when using NavUserPassword
+
+0.5.0.10
 BugFix #391 [Devops Pipeline].[Compile-App] publisher property not found
 Added parameter rulesetFile to Compile-AppInNavContainer
 BugFix #382 Compile-AppInNavContainer cannot download symbols on containers without updated hosts
