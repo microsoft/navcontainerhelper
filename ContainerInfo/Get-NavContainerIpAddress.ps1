@@ -20,7 +20,7 @@ function Get-NavContainerIpAddress {
         $inspect = docker inspect $containerName | ConvertFrom-Json
         $networks = $inspect.NetworkSettings.Networks
         $network = ($networks | get-member -MemberType NoteProperty | Select-Object Name).Name
-        return ($networks | Select-Object -ExpandProperty $network).IPAddress
+        return ($networks | Select-Object -First 1 -ExpandProperty $network).IPAddress
     }
 }
 Export-ModuleMember -function Get-NavContainerIpAddress

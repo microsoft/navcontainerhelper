@@ -35,12 +35,12 @@
   Name of the container in which you want to add test users (default navserver)
  .Parameter tenant
   Name of tenant in which you want to add test users (default defeault)
- .Parameter sqlCredential
-  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter Credential
+  Credentials for the admin user if using NavUserPassword authentication
  .Example
   Setup-NavContainerTestUsers -password $securePassword
  .Example
-  Setup-NavContainerTestUsers containerName test -tenant default -password $securePassword -sqlcredential $databaseCredential
+  Setup-NavContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
 #>
 function Setup-NavContainerTestUsers {
 Param
@@ -50,31 +50,30 @@ Param
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default",
         [Parameter(Mandatory=$true)]
-        [SecureString]$password,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [securestring] $Password,
+        [Parameter(Mandatory=$false)]
+        [System.Management.Automation.PSCredential]$credential
     )
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
     $version = [Version]$($inspect.Config.Labels.version)
 
     if ($version.Major -ge 13) {
-        # Use app
-        $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
-        Download-File -sourceUrl "http://aka.ms/createtestusersapp" -destinationFile $appfile
 
-        $passwordfile = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\Password.txt"
-        $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
-        [System.IO.File]::WriteAllText($passwordfile,([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password))),$Utf8NoBomEncoding)
+        $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
+        Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app" -destinationFile $appfile
+
         Publish-NavContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync
+
+        $companyId = Get-NavContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
+
+        $parameters = @{ 
+            "name" = "CreateTestUsers"
+            "value" = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
+        }
+        Invoke-NavContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
+
         UnPublish-NavContainerApp -containerName $containerName -appName CreateTestUsers -unInstall
-        Remove-Item -Path $passwordfile -Force
-    }
-    else {
-        $fobfile = Join-Path $env:TEMP "CreateTestUsers.fob"
-        Download-File -sourceUrl "http://aka.ms/createtestusersfob" -destinationFile $fobfile
-        Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $sqlCredential
-        Start-Sleep -Seconds 5
-        Invoke-NavContainerCodeunit -containerName $containerName -tenant $tenant -CodeunitId 50000 -MethodName CreateTestUsers -Argument ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
     }
 }
 Export-ModuleMember -Function Setup-NavContainerTestUsers

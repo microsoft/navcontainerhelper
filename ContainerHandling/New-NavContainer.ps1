@@ -780,7 +780,7 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
             }
             New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
             if ($includeTestToolkit) {
-                if ($multitenant) {
+                if ($webClientUrl.Contains('?')) {
                     $webClientUrl += "&page=130401"
                 } else {
                     $webClientUrl += "?page=130401"
@@ -801,7 +801,7 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         }
     }
 
-    if ($auth -eq "AAD" -and [System.Version]$genericTag -le [System.Version]"0.0.9.0") {
+    if ($auth -eq "AAD" -and [System.Version]$genericTag -le [System.Version]"0.0.9.2") {
         Write-Host "Using AAD authentication, Microsoft.IdentityModel.dll is missing, download and copy"
         $wifdll = Join-Path $containerFolder "Microsoft.IdentityModel.dll"
         Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/Microsoft.IdentityModel.dll' -destinationFile $wifdll
