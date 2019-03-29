@@ -32,7 +32,7 @@ function Replace-NavServerContainer {
     . $settingsScript
 
     if ("$imageName" -eq "") {
-        $imageName = $navDockerImage
+        $imageName = $navDockerImage.Split(',')[0]
     }
     if ("$imageName" -ne "$navDockerImage") {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
