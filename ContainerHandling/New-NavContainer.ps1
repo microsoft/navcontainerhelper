@@ -269,16 +269,16 @@ function New-NavContainer {
     if ($useBestContainerOS) {
         $imageName = $bestImageName
     }
-
-    $imageExists = $false
-    $bestImageExists = $false
-    docker images -q --no-trunc | ForEach-Object {
-        $inspect = docker inspect $_ | ConvertFrom-Json
-        if ($inspect | % { $_.RepoTags | Where-Object { "$_" -eq "$imageName" -or "$_" -eq "${imageName}:latest"} } ) { $imageExists = $true }
-        if ($inspect | % { $_.RepoTags | Where-Object { "$_" -eq "$bestImageName" } } ) { $bestImageExists = $true }
-    }
-
+    
     if (!($alwaysPull)) {
+
+        $imageExists = $false
+        $bestImageExists = $false
+        docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+            if ("$_" -eq "$imageName" -or "$_" -eq "${imageName}:latest") { $imageExists = $true }
+            if ("$_" -eq "$bestImageName") { $bestImageExists = $true }
+        }
+
         if ($bestImageExists) {
             $imageName = $bestImageName
         } elseif ($imageExists) {
