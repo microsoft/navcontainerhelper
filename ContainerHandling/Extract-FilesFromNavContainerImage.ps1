@@ -101,15 +101,11 @@ function Extract-FilesFromNavContainerImage {
    
     Write-Host "Performing cleanup"
     if ($extract -eq "all" -or $extract -eq "database") {
-        if (Test-Path "$path\Run\Collation.txt") {
-            Move-Item -Path "$path\Run\Collation.txt" -Destination "$path\databases\Collation.txt"
-        }
-
         if (Test-Path "$path\databases\*.mdf") {
             Move-Item -Path (Get-Item "$path\databases\*.mdf").FullName -Destination "$path\databases\Cronus.mdf"
             Move-Item -Path (Get-Item "$path\databases\*.ldf").FullName -Destination "$path\databases\Cronus.ldf"
         } else {
-            $folder = Get-ChildItem -Path "$path\databases"
+            $folder = Get-ChildItem -Path "$path\databases" -Directory
             if ($folder) {
                 $name = $folder.Name
                 Move-Item -Path (Get-Item "$path\databases\$Name\*.mdf").FullName -Destination "$path\databases\$name.mdf"
@@ -128,6 +124,9 @@ function Extract-FilesFromNavContainerImage {
                     throw "Cannot locate database"
                 }
             }
+        }
+        if (Test-Path "$path\Run\Collation.txt") {
+            Move-Item -Path "$path\Run\Collation.txt" -Destination "$path\databases\Collation.txt"
         }
     }
     
