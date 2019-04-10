@@ -19,10 +19,17 @@
   Filter specifying the objects you want to convert (default is modified=1)
  .Parameter openFolder
   Switch telling the function to open the result folder in Windows Explorer when done
+ .Parameter doNotUseDeltas
+  Switch telling the function to convert to full (code customized) AL objects instead of extension objects
+ .Parameter alProjectFolder
+  Specify the path of a location, where you want to receive the resulting AL objects.
+  If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\NavContainerHelper
  .Example
   Convert-ModifiedObjectsToAl -containerName test
  .Example
   Convert-ModifiedObjectsToAl -containerName test -sqlCredential (get-credential -credential 'sa') -startId 881200
+ .Example
+  Convert-ModifiedObjectsToAl -containerName test -alProjectFolder $alProjectFolder -doNotUseDeltas
 #>
 function Convert-ModifiedObjectsToAl {
     Param(
@@ -32,7 +39,9 @@ function Convert-ModifiedObjectsToAl {
         [int]    $startId = 50100,
         [string] $filter = "None",
         [switch] $openFolder,
-        [switch] $doNotUseDeltas
+        [switch] $doNotUseDeltas,
+        [string] $alProjectFolder,
+        [string] $dotNetAddInsPackage 
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -49,6 +58,11 @@ function Convert-ModifiedObjectsToAl {
         }
         $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\objects$suffix"
         Export-NavContainerObjects -containerName $containerName -sqlCredential $sqlCredential -objectsFolder $myDeltaFolder -exportTo 'txt folder (new syntax)' -filter ""
+
+        if ("$dotNetAddInsPackage" -eq "") {
+            $dotNetAddInsPackage = Join-Path $ExtensionsFolder $containerName
+            Copy-Item -Path (Join-Path $PSScriptRoot "coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+        }
     }
     else {
         if ($filter -eq "None") {
@@ -58,16 +72,24 @@ function Convert-ModifiedObjectsToAl {
         $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\delta$suffix"
     }
 
-    $myAlFolder       = Join-Path $ExtensionsFolder "$containerName\al$suffix"
+    $myAlFolder = Join-Path $ExtensionsFolder "$containerName\al$suffix"
 
     Convert-Txt2Al -containerName $containerName `
                    -myDeltaFolder $myDeltaFolder `
                    -myAlFolder $myAlFolder `
-                   -startId $startId
+                   -startId $startId `
+                   -dotNetAddInsPackage $dotNetAddInsPackage
 
-    if ($openFolder) {
+    Write-Host "al files created in $myAlFolder"
+
+    if ($alProjectFolder) {
+        Copy-Item -Path (Join-Path $myAlFolder "*") -Destination $alProjectFolder -Recurse -Force
+        if ($openFolder) {
+            Start-Process $alProjectFolder
+        }
+    }
+    elseif ($openFolder) {
         Start-Process $myAlFolder
-        Write-Host "al files created in $myAlFolder"
     }
     $myAlFolder
 }

@@ -50,7 +50,11 @@ function Compile-AppInNavContainer {
         [ValidateSet('none','error','warning')]
         [string]$FailOn = 'none',
         [Parameter(Mandatory=$false)]
-        [string]$rulesetFile
+        [string]$rulesetFile,
+        [Parameter(Mandatory=$false)]
+        [string]$nowarn,
+        [Parameter(Mandatory=$false)]
+        [string]$assemblyProbingPaths
     )
 
     $startTime = [DateTime]::Now
@@ -58,6 +62,10 @@ function Compile-AppInNavContainer {
     $containerProjectFolder = Get-NavContainerPath -containerName $containerName -path $appProjectFolder
     if ("$containerProjectFolder" -eq "") {
         throw "The appProjectFolder ($appProjectFolder) is not shared with the container."
+    }
+
+    if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
+        $assemblyProbingPaths = """$(Join-Path $containerProjectFolder ".netpackages")"",""C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client"",""C:\Program Files\Microsoft Dynamics NAV\140\Service"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
     }
 
     $containerOutputFolder = Get-NavContainerPath -containerName $containerName -path $appOutputFolder
@@ -155,7 +163,12 @@ function Compile-AppInNavContainer {
     }
 
     $ip = Get-NavContainerIpAddress -containerName $containerName
-    $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    if ($ip) {
+        $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    }
+    else {
+        $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$ServerInstance"
+    }
 
     $sslVerificationDisabled = ($protocol -eq "https://")
     if ($sslVerificationDisabled) {
@@ -218,7 +231,7 @@ function Compile-AppInNavContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $rulesetFile )
+    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $rulesetFile, $assemblyProbingPaths, $nowarn )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
@@ -240,15 +253,24 @@ function Compile-AppInNavContainer {
             $analyzerPath = Join-Path $alcPath "Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll"
             $alcParameters += @("/analyzer:$analyzerPath")
         }
+
         if ($rulesetFile) {
             $alcParameters += @("/ruleset:$rulesetfile")
+        }
+
+        if ($nowarn) {
+            $alcParameters += @("/nowarn:$nowarn")
+        }
+
+        if ($assemblyProbingPaths) {
+            $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
 
         Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $containerRulesetFile
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $containerRulesetFile, $assemblyProbingPaths, $nowarn
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn

@@ -1,5 +1,19 @@
-0.5.0.12
+0.6.0.0
 BugFix #403: Extract-FilesFromNavContainer didn't work with all local containers
+Include ClientContext.ps1, PsTestFunctions.ps1 and pstesttoolpage.fob in NavContainerHelper instead of downloading on demand
+Add enableSymbolLoading option to Replace-NavServerContainer
+Compile-AppInNavContainer should only include dependencies in app.json
+Drop View deadlock_report_ring_buffer_view when creating bacpac using Export-NavContainerDatabasesAsBacpac
+UpdateHosts will update hosts file in the container with all entries ending with .docker.internal from the host
+Enable paging in Get-NavContainerImageTags
+Add parameter networkName to Get-NavContainerIpAddress or get IP address from first network with IP Address
+Add IncludeSystemObjects parameter to Export-NavContainerObjects
+Add parameters doNotUseDeltas and alProjectFolder to Convert-ModifiedObjectsToAl
+Add parameter -includeAL to New-NavContainer to create AL source folder and .netpackages folder with reference assemblies for VS Code
+Add parameters nowarn and assemblyProbingPaths to Compile-AppInNavContainer. Default assemblyProbingPaths is .netpackages in the project folder and all dll locations in the container
+Add parameter dotNetAddInsPackage to Convert-ModifiedObjectsToAl and Convert-Txt2Al
+New function Publish-NewApplicationToNavContainer to publish an app including base app to a container
+New function Create-AlProjectFolderFromNavContainer to create a VS Code AL Project Folder based on a Container
 
 0.5.0.11
 BugFix: Regression in Compile-AppInNavContainer when using NavUserPassword

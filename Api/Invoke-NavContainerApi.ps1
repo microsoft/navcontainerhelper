@@ -84,7 +84,12 @@ function Invoke-NavContainerApi {
     }
     
     $ip = Get-NavContainerIpAddress -containerName $containerName
-    $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
+    if ($ip) {
+        $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
+    }
+    else {
+        $url = $customconfig.PublicODataBaseUrl.Replace("/OData","/api")
+    }
 
     $sslVerificationDisabled = ($protocol -eq "https://")
     if ($sslVerificationDisabled) {
