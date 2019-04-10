@@ -17,12 +17,13 @@
 function Copy-CompanyInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$sourceCompanyName,
-        [switch]$destinationCompanyName
+        [string] $sourceCompanyName,
+        [Parameter(Mandatory=$true)]
+        [string] $destinationCompanyName
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($sourceCompanyName, $destinationCompanyName, $tenant)
