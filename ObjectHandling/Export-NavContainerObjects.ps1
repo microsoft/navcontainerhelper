@@ -32,7 +32,8 @@ function Export-NavContainerObjects {
         [ValidateSet('txt folder','txt folder (new syntax)','txt file','txt file (new syntax)','fob file')]
         [string]$exportTo = 'txt folder (new syntax)',
         [Obsolete("exportToNewSyntax is obsolete, please use exportTo instead")]
-        [switch]$exportToNewSyntax = $true
+        [switch]$exportToNewSyntax = $true,
+        [switch]$includeSystemObjects
     )
 
     if (!$exportToNewSyntax) {
@@ -45,7 +46,12 @@ function Export-NavContainerObjects {
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo)
+
+    $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+    $version = [System.Version]($navversion.split('-')[0])
+    $ignoreSystemObjects = ($version.Major -ge 14)
+
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo, $ignoreSystemObjects)
 
         if ($exportTo -eq 'fob file') {
             $objectsFile = "$objectsFolder\objects.fob"
@@ -57,7 +63,16 @@ function Export-NavContainerObjects {
             Get-ChildItem -Path $objectsFolder -Include * | Remove-Item -Recurse -Force
         } else {
             New-Item -Path $objectsFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
-        }        
+        }
+
+        if ($ignoreSystemObjects) {
+            if ($filter) {
+                $filter += ";Id=1..1999999999"
+            }
+            else {
+                $filter = "Id=1..1999999999"
+            }
+        }
 
         $filterStr = ""
         if ($filter) {
@@ -99,6 +114,6 @@ function Export-NavContainerObjects {
             Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
         }
     
-    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo
+    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo, $ignoreSystemObjects
 }
 Export-ModuleMember -function Export-NavContainerObjects

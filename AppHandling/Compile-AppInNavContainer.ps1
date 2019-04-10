@@ -93,10 +93,17 @@ function Compile-AppInNavContainer {
 
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
-    $dependencies = @(
-        @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
-        @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
-    )
+    $dependencies = @()
+
+    if (([bool]($appJsonObject.PSobject.Properties.name -match "application")) -and $appJsonObject.application)
+    {
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
+    }
+
+    if (([bool]($appJsonObject.PSobject.Properties.name -match "platform")) -and $appJsonObject.platform)
+    {
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
+    }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
     {
@@ -237,7 +244,7 @@ function Compile-AppInNavContainer {
             $alcParameters += @("/ruleset:$rulesetfile")
         }
 
-        #Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
+        Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
 

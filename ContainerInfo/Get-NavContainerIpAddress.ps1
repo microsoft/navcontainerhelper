@@ -13,14 +13,23 @@ function Get-NavContainerIpAddress {
     Param
     (
         [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string]$containerName,
+        [Parameter(Mandatory=$false)]
+        [string]$networkName = ""
     )
 
     Process {
         $inspect = docker inspect $containerName | ConvertFrom-Json
         $networks = $inspect.NetworkSettings.Networks
-        $network = ($networks | get-member -MemberType NoteProperty | Select-Object Name).Name
-        return ($networks | Select-Object -First 1 -ExpandProperty $network).IPAddress
+        $ip = ""
+        $networks | get-member -MemberType NoteProperty | Select-Object Name | % {
+            $name = $_.Name
+            if (("$ip" -eq "") -and ("$networkName" -eq "" -or "$networkName" -eq "$name")) {
+                $network = $networks | Select-Object -ExpandProperty $name
+                $ip = $network.IPAddress
+            }
+        }
+        return $ip
     }
 }
 Export-ModuleMember -function Get-NavContainerIpAddress

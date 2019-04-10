@@ -17,8 +17,9 @@
 #>
 function Replace-NavServerContainer {
     Param(
-        [string]$imageName = "",
-        [switch]$alwaysPull
+        [string] $imageName = "",
+        [switch] $alwaysPull,
+        [bool] $enableSymbolLoading
     )
 
     $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
@@ -32,11 +33,16 @@ function Replace-NavServerContainer {
     . $settingsScript
 
     if ("$imageName" -eq "") {
-        $imageName = $navDockerImage
+        $imageName = $navDockerImage.Split(',')[0]
     }
     if ("$imageName" -ne "$navDockerImage") {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
         $settings += '$navDockerImage = "'+$imageName + '"'
+        Set-Content -Path $settingsScript -Value $settings
+    }
+    if ($PSBoundParameters.ContainsKey("enableSymbolLoading")) {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
+        $settings += '$enableSymbolLoading = $'+$enableSymbolLoading
         Set-Content -Path $settingsScript -Value $settings
     }
 

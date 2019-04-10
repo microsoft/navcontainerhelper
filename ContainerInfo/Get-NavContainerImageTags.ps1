@@ -29,6 +29,9 @@ function Get-NavContainerImageTags {
     if ("$registry" -eq "mcr.microsoft.com") {
 
         # public repository - no authorization needed
+        if ($pageSize -eq -1) {
+            $pageSize = 1000
+        }
 
     } elseif ($registryCredential) {
 
