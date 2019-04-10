@@ -118,6 +118,7 @@ function New-NavContainer {
         [string]$shortcuts='Desktop',
         [switch]$updateHosts,
         [switch]$useSSL,
+        [switch]$includeAL,
         [switch]$includeCSide,
         [switch]$enableSymbolLoading,
         [switch]$doNotExportObjectsToText,
@@ -275,7 +276,7 @@ function New-NavContainer {
         $imageExists = $false
         $bestImageExists = $false
         docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
-            if ("$_" -eq "$imageName" -or "$_" -eq "${imageName}:latest") { $imageExists = $true }
+            if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $imageExists = $true }
             if ("$_" -eq "$bestImageName") { $bestImageExists = $true }
         }
 
@@ -442,7 +443,7 @@ function New-NavContainer {
             Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
 
             # Extract files from image if not already done
-            $NavDvdPath = Join-Path $containerHelperFolder "${NavVersion}-Files"
+            $NavDvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
             if (!(Test-Path $NavDvdPath)) {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
             }
@@ -478,6 +479,10 @@ function New-NavContainer {
 
     if ($multitenant -and ($version -lt [System.Version]"7.1.0.0")) {
         throw "Multitenancy is not supported in NAV 2013"
+    }
+
+    if ($includeAL -and ($version.Major -lt 14)) {
+        throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
@@ -545,8 +550,11 @@ function New-NavContainer {
     }
     
     if ("$licensefile" -eq "") {
-        if ($includeCSide -and (!$doNotExportObjectsToText)) {
+        if ($includeCSide -and !$doNotExportObjectsToText) {
             throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+        }
+        if ($includeAL) {
+            throw "You must specify a license file when creating a AL Development container."
         }
         $containerlicenseFile = ""
     } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -575,8 +583,8 @@ function New-NavContainer {
                     "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    "--volume ""${hostHelperFolder}:$containerHelperFolder""",
-                    "--volume ""${myFolder}:C:\Run\my""",
+                    "--volume ""$($hostHelperFolder):$containerHelperFolder""",
+                    "--volume ""$($myFolder):C:\Run\my""",
                     "--isolation $isolation",
                     "--restart $restart"
                    )
@@ -685,11 +693,11 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
     }
 
     if ($includeCSide) {
-        $parameters += "--volume ""${programFilesFolder}:C:\navpfiles"""
+        $parameters += "--volume ""$($programFilesFolder):C:\navpfiles"""
     }
 
     if ("$navDvdPath" -ne "") {
-        $parameters += "--volume ""${navDvdPath}:c:\NAVDVD"""
+        $parameters += "--volume ""$($navDvdPath):c:\NAVDVD"""
     }
 
     if ($updateHosts) {
@@ -844,33 +852,57 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         }
 
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts
+    }
 
-        if (!$doNotExportObjectsToText) {
-            
-            # Include newsyntax if NAV Version is greater than NAV 2017
-            0..($version.Major -gt 10) | ForEach-Object {
-                $newSyntax = ($_ -eq 1)
-                $suffix = ""
-                $exportTo = 'txt folder'
-                if ($newSyntax) { 
-                    $suffix = "-newsyntax"
-                    $exportTo = 'txt folder (new syntax)'
-                }
-                $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
-                if (!(Test-Path $originalFolder)) {
-                    # Export base objects
-                    Export-NavContainerObjects -containerName $containerName `
-                                               -objectsFolder $originalFolder `
-                                               -filter "" `
-                                               -sqlCredential $sqlCredential `
-                                               -ExportTo $exportTo
-                    if ($newSyntax -and $version.Major -gt 13) {
-                        $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
-                        Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100
-                    }
-                }
+    if (($includeCSide -and !$doNotExportObjectsToText) -or $includeAL) {
+
+        # Include oldsyntax only if IncludeCSide is specified
+        # Include newsyntax if NAV Version is greater than NAV 2017
+
+        if ($includeCSide) {
+            $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
+            if (!(Test-Path $originalFolder)) {
+                # Export base objects
+                Export-NavContainerObjects -containerName $containerName `
+                                           -objectsFolder $originalFolder `
+                                           -filter "" `
+                                           -sqlCredential $sqlCredential `
+                                           -ExportTo 'txt folder'
             }
         }
+
+        if ($version.Major -gt 10) {
+            $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
+            if (!(Test-Path $originalFolder)) {
+                # Export base objects as new syntax
+                Export-NavContainerObjects -containerName $containerName `
+                                           -objectsFolder $originalFolder `
+                                           -filter "" `
+                                           -sqlCredential $sqlCredential `
+                                           -ExportTo 'txt folder (new syntax)'
+            }
+            if ($version.Major -ge 14 -and $includeAL) {
+                $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100
+            }
+        }
+    }
+
+    if ($includeAL) {
+        $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
+        New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+
+            "C:\Windows\assembly",
+            (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName,
+            (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName,
+            "C:\Program Files (x86)\Open XML SDK" | % {
+                Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"
+            }
+
+        } -argumentList $dotnetAssembliesFolder
     }
 
     Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
