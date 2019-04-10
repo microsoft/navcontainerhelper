@@ -37,6 +37,7 @@ function Get-NavContainerSession {
             $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
             Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
+                $ErrorActionPreference = 'Stop'
                 $runPath = "c:\Run"
                 $myPath = Join-Path $runPath "my"
 
