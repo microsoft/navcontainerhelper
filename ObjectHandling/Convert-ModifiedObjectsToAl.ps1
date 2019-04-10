@@ -40,7 +40,8 @@ function Convert-ModifiedObjectsToAl {
         [string] $filter = "None",
         [switch] $openFolder,
         [switch] $doNotUseDeltas,
-        [string] $alProjectFolder
+        [string] $alProjectFolder,
+        [string] $dotNetAddInsPackage 
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -57,6 +58,11 @@ function Convert-ModifiedObjectsToAl {
         }
         $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\objects$suffix"
         Export-NavContainerObjects -containerName $containerName -sqlCredential $sqlCredential -objectsFolder $myDeltaFolder -exportTo 'txt folder (new syntax)' -filter ""
+
+        if ("$dotNetAddInsPackage" -eq "") {
+            $dotNetAddInsPackage = Join-Path $ExtensionsFolder $containerName
+            Copy-Item -Path (Join-Path $PSScriptRoot "coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+        }
     }
     else {
         if ($filter -eq "None") {
@@ -71,7 +77,8 @@ function Convert-ModifiedObjectsToAl {
     Convert-Txt2Al -containerName $containerName `
                    -myDeltaFolder $myDeltaFolder `
                    -myAlFolder $myAlFolder `
-                   -startId $startId
+                   -startId $startId `
+                   -dotNetAddInsPackage $dotNetAddInsPackage
 
     Write-Host "al files created in $myAlFolder"
 
