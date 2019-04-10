@@ -40,9 +40,9 @@ function Get-TestsFromNavContainer {
         try {
             New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
     
-            Download-File -sourceUrl "https://aka.ms/pstestfunctionsps1" -destinationFile $PsTestFunctionsPath
-            Download-File -sourceUrl "https://aka.ms/clientcontextps1" -destinationFile $ClientContextPath
-            Download-File -sourceUrl "https://aka.ms/pstesttoolpagefob" -destinationFile $fobfile
+            Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestFunctionsPath -Force
+            Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
+            Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
 
             if ((Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType -eq "Windows") {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
