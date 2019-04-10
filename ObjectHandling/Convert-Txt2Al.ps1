@@ -40,6 +40,8 @@ function Convert-Txt2Al {
     $ignoreSystemObjects = ($version.Major -ge 14)
 
     $dummy = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId, $dotNetAddInsPackage)
+        
+        $erroractionpreference = 'Continue'
 
         if (!($txt2al)) {
             throw "You cannot run Convert-Txt2Al on this Nav Container"
@@ -55,6 +57,8 @@ function Convert-Txt2Al {
 
         Write-Host "txt2al.exe $([string]::Join(' ', $txt2alParameters))"
         & $txt2al $txt2alParameters 2> $null
+
+        $erroractionpreference = 'Stop'
 
     } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage
 }

@@ -883,7 +883,11 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
             }
             if ($version.Major -ge 14 -and $includeAL) {
                 $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
-                Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100
+                if (!(Test-Path $alFolder)) {
+                    $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
+                    Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+                    Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
+                }
             }
         }
     }

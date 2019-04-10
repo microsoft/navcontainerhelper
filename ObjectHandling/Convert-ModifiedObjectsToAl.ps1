@@ -60,7 +60,7 @@ function Convert-ModifiedObjectsToAl {
         Export-NavContainerObjects -containerName $containerName -sqlCredential $sqlCredential -objectsFolder $myDeltaFolder -exportTo 'txt folder (new syntax)' -filter ""
 
         if ("$dotNetAddInsPackage" -eq "") {
-            $dotNetAddInsPackage = Join-Path $ExtensionsFolder $containerName
+            $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
             Copy-Item -Path (Join-Path $PSScriptRoot "coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
         }
     }
