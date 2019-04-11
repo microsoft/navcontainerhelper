@@ -1,3 +1,6 @@
+0.6.0.1
+Compile-AppInNavContainer broke on "old" containers
+
 0.6.0.0
 BugFix #403: Extract-FilesFromNavContainer didn't work with all local containers
 Include ClientContext.ps1, PsTestFunctions.ps1 and pstesttoolpage.fob in NavContainerHelper instead of downloading on demand
