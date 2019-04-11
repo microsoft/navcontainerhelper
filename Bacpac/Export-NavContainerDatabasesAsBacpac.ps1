@@ -182,9 +182,10 @@ function Export-NavContainerDatabasesAsBacpac {
                     Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
                 }
 
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM SYSOBJECTS WHERE (xtype = 'U' ) AND (name LIKE '%User Login')" | % {
+                $tables = Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM sysobjects WHERE (xtype = 'U' ) AND (name LIKE '%User Login')"
+                $tables | % {
                     Write-Host "DELETE FROM dbo.[$($_.Name)]"
-                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]" 
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]"
                 }
             }
 
