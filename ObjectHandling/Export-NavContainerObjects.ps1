@@ -47,7 +47,7 @@ function Export-NavContainerObjects {
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFolder = Get-NavContainerPath -containerName $containerName -path $objectsFolder -throw
 
-    $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
     $ignoreSystemObjects = ($version.Major -ge 14)
 

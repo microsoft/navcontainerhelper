@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.6.0.2'
+ModuleVersion = '0.6.0.4'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -82,6 +82,7 @@ FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases',
                'Enter-NavContainer', 'Export-ModifiedObjectsAsDeltas', 
                'Export-NavContainerDatabasesAsBacpac', 
                'Export-NavContainerObjects', 'Extract-FilesFromNavContainerImage', 
+               'Extract-FilesFromStoppedNavContainer', 
                'Generate-SymbolsInNavContainer', 'Get-BestNavContainerImageName', 
                'Get-CompanyInNavContainer', 'Get-LocaleFromCountry', 
                'Get-NavContainerApiCompanyId', 'Get-NavContainerAppInfo', 
@@ -158,8 +159,15 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.6.0.1
-Compile-AppInNavContainer broke on "old" containers
+        ReleaseNotes = '0.6.0.4
+Added parameter enableSymbolLoading to Replace-NavServerContainer
+
+0.6.0.3
+Regression in Export-NavContainerObjects fixed - $imagename unknown
+New function Extract-FilesFromStoppedNavContainer to extract (copy) files from a stopped container
+
+0.6.0.1
+Regression in Compile-AppInNavContainer when running container prior to 14.x
 
 0.6.0.0
 BugFix #403: Extract-FilesFromNavContainer didn''t work with all local containers
