@@ -1,3 +1,6 @@
+0.6.0.1
+Compile-AppInNavContainer broke on "old" containers
+
 0.6.0.0
 BugFix #403: Extract-FilesFromNavContainer didn't work with all local containers
 Include ClientContext.ps1, PsTestFunctions.ps1 and pstesttoolpage.fob in NavContainerHelper instead of downloading on demand
@@ -14,6 +17,7 @@ Add parameters nowarn and assemblyProbingPaths to Compile-AppInNavContainer. Def
 Add parameter dotNetAddInsPackage to Convert-ModifiedObjectsToAl and Convert-Txt2Al
 New function Publish-NewApplicationToNavContainer to publish an app including base app to a container
 New function Create-AlProjectFolderFromNavContainer to create a VS Code AL Project Folder based on a Container
+Bugfix #413: Copy-CompanyInNavContainer throws strange exception
 
 0.5.0.11
 BugFix: Regression in Compile-AppInNavContainer when using NavUserPassword

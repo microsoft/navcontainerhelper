@@ -65,7 +65,17 @@ function Compile-AppInNavContainer {
     }
 
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
-        $assemblyProbingPaths = """$(Join-Path $containerProjectFolder ".netpackages")"",""C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client"",""C:\Program Files\Microsoft Dynamics NAV\140\Service"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
+        $assemblyProbingPaths = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
+            $assemblyProbingPaths = ""
+            $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
+            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+            $roleTailoredClientFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName
+            if (Test-Path $netpackagesPath) {
+                $assemblyProbingPaths += """$netpackagesPath"","
+            }
+            $assemblyProbingPaths += """$roleTailoredClientFolder"",""$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
+            $assemblyProbingPaths
+        } -ArgumentList $containerProjectFolder
     }
 
     $containerOutputFolder = Get-NavContainerPath -containerName $containerName -path $appOutputFolder
