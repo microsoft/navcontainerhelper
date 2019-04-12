@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.6.0.5'
+ModuleVersion = '0.6.0.6'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -159,7 +159,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.6.0.5
+        ReleaseNotes = '0.6.0.6
+Bugfix #423 Regression in Convert-Txt2Al $imageName is unknown
+
+0.6.0.5
 Bugfix #421 Export-NavContainerDatabasesAsBacpac error deleting [user login] data
 
 0.6.0.4

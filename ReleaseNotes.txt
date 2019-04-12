@@ -1,3 +1,6 @@
+0.6.0.6
+Bugfix #423 Regression in Convert-Txt2Al $imageName is unknown
+
 0.6.0.5
 Bugfix #421 Export-NavContainerDatabasesAsBacpac error deleting [user login] data
 
