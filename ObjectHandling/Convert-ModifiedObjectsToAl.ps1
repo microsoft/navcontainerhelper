@@ -23,6 +23,8 @@
   Switch telling the function to convert to full (code customized) AL objects instead of extension objects
  .Parameter alProjectFolder
   Specify the path of a location, where you want to receive the resulting AL objects.
+ .Parameter alFilePattern
+  Specify the file pattern (or multiple seperated by comma) of the files you want to copy to the alProjectFolder. Default is *.
   If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\NavContainerHelper
  .Example
   Convert-ModifiedObjectsToAl -containerName test
@@ -41,6 +43,7 @@ function Convert-ModifiedObjectsToAl {
         [switch] $openFolder,
         [switch] $doNotUseDeltas,
         [string] $alProjectFolder,
+        [string] $alFilePattern = "*",
         [string] $dotNetAddInsPackage 
     )
 
@@ -83,7 +86,9 @@ function Convert-ModifiedObjectsToAl {
     Write-Host "al files created in $myAlFolder"
 
     if ($alProjectFolder) {
-        Copy-Item -Path (Join-Path $myAlFolder "*") -Destination $alProjectFolder -Recurse -Force
+        $alFilePattern.Split(',') | % {
+            Copy-Item -Path (Join-Path $myAlFolder "$_") -Destination $alProjectFolder -Recurse -Force
+        }
         if ($openFolder) {
             Start-Process $alProjectFolder
         }
