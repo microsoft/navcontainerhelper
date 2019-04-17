@@ -35,7 +35,7 @@ function Convert-Txt2Al {
         $containerDotNetAddInsPackage = Get-NavContainerPath -containerName $containerName -path $dotNetAddInsPackage -throw
     }
 
-    $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
     $ignoreSystemObjects = ($version.Major -ge 14)
 

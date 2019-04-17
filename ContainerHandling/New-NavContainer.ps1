@@ -774,7 +774,8 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         # Unpublish symbols when running hybrid development
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
             # Unpublish only, when Apps when present
-            Get-NavAppInfo -ServerInstance NAV -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
+            #Get-NavAppInfo -ServerInstance NAV -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
             Get-NavAppInfo -ServerInstance NAV -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
         }
     }
