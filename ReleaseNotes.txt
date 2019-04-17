@@ -1,3 +1,7 @@
+0.6.0.8
+Use DacFramework 18.2
+BugFix: Create-AlProjectFromNavContainer used a global imageName, should be containerName
+
 0.6.0.7
 BugFix: Regression - 14.x images has hidden dependency to app symbols
 Add parameter for file pattern to Convert-ModifiedObjectsToAl in order to allow for app movement
