@@ -47,7 +47,7 @@ function Create-AlProjectFolderFromNavContainer {
         [switch] $useBaseLine
     )
 
-    $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
     $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
 
