@@ -6,6 +6,8 @@
   Name of the container in which you want to run a test suite
  .Parameter tenant
   tenant to use if container is multitenant
+ .Parameter company
+  company to use if container
  .Parameter credential
   Credentials of the NAV SUPER user if using NavUserPassword authentication
  .Parameter testSuite
@@ -29,6 +31,8 @@ function Run-TestsInNavContainer {
         [string]$containerName,
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default",
+        [Parameter(Mandatory=$false)]
+        [string]$company = "",
         [Parameter(Mandatory=$false)]
         [System.Management.Automation.PSCredential]$credential = $null,
         [Parameter(Mandatory=$false)]
@@ -78,7 +82,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $company, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -91,6 +95,9 @@ function Run-TestsInNavContainer {
         $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
         $disableSslVerification = ($protocol -eq "https://")
         $serviceUrl = "${protocol}localhost/NAV/cs?tenant=$tenant"
+        if ($company) {
+            $serviceUrl += "&company=$([Uri]::EscapeDataString($company))"
+        }
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami
@@ -115,6 +122,6 @@ function Run-TestsInNavContainer {
             if ($disableSslVerification) {                Enable-SslVerification            }            Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
+    } -argumentList $tenant, $company, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
 }
 Export-ModuleMember -Function Run-TestsInNavContainer
