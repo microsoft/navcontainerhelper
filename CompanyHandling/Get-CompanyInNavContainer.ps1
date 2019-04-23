@@ -20,6 +20,6 @@ function Get-CompanyInNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavCompany -ServerInstance NAV -Tenant $tenant
-    } -ArgumentList $tenant
+    } -ArgumentList $tenant | Where-Object {$_ -notlike 'WARNING*'}
 }
 Export-ModuleMember -Function Get-CompanyInNavContainer
