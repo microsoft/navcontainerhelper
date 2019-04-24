@@ -141,6 +141,9 @@ function Extract-FilesFromStoppedNavContainer {
     
     if ($extract -eq "all") {
         Copy-Item -Path "$path\Run\NAVAdministration" -Destination "$path\WindowsPowerShellScripts\Cloud" -Force -Recurse
+        if (Test-Path "$path\Run\WebSearch") {
+            Copy-Item -Path "$path\Run\WebSearch" -Destination "$path\WindowsPowerShellScripts\Cloud" -Force -Recurse
+        }
         Copy-Item -Path "$path\Run\ClientUserSettings.config" -Destination "$path\RoleTailoredClient\CommonAppData\Microsoft\Microsoft Dynamics NAV\VER" -Force
         If (Test-Path "$path\Run\inetpub") {
             Copy-Item -Path "$path\Run\inetpub" -Destination "$path\WebClient" -Force -Recurse

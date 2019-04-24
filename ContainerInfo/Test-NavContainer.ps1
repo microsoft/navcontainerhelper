@@ -17,7 +17,7 @@ function Test-NavContainer {
         $name = Get-NavContainerName $containerName
         if ($name) { $containerName = $name }
         $id = ""
-        docker ps --filter name="$containerName" -a -q --no-trunc | ForEach-Object {
+        docker ps -a -q --no-trunc | ForEach-Object {
             $name = Get-NavContainerName -containerId $_
             if ($name -eq $containerName) {
                 $id = $_

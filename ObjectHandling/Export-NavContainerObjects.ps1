@@ -67,7 +67,9 @@ function Export-NavContainerObjects {
 
         if ($ignoreSystemObjects) {
             if ($filter) {
-                $filter += ";Id=1..1999999999"
+                if (!($filter.StartsWith('Id=', 'CurrentCultureIgnoreCase') -or $filter.ToLowerInvariant().Contains(';id='))) {
+                    $filter += ";Id=1..1999999999"
+                }
             }
             else {
                 $filter = "Id=1..1999999999"

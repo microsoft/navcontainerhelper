@@ -59,23 +59,27 @@ function Compile-AppInNavContainer {
 
     $startTime = [DateTime]::Now
 
+    [System.Version]$platformversion = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    
     $containerProjectFolder = Get-NavContainerPath -containerName $containerName -path $appProjectFolder
     if ("$containerProjectFolder" -eq "") {
         throw "The appProjectFolder ($appProjectFolder) is not shared with the container."
     }
 
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
-        $assemblyProbingPaths = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
-            $assemblyProbingPaths = ""
-            $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
-            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-            $roleTailoredClientFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName
-            if (Test-Path $netpackagesPath) {
-                $assemblyProbingPaths += """$netpackagesPath"","
-            }
-            $assemblyProbingPaths += """$roleTailoredClientFolder"",""$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
-            $assemblyProbingPaths
-        } -ArgumentList $containerProjectFolder
+        if ($platformversion.Major -ge 13) {
+            $assemblyProbingPaths = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
+                $assemblyProbingPaths = ""
+                $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
+                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+                $roleTailoredClientFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName
+                if (Test-Path $netpackagesPath) {
+                    $assemblyProbingPaths += """$netpackagesPath"","
+                }
+                $assemblyProbingPaths += """$roleTailoredClientFolder"",""$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
+                $assemblyProbingPaths
+            } -ArgumentList $containerProjectFolder
+        }
     }
 
     $containerOutputFolder = Get-NavContainerPath -containerName $containerName -path $appOutputFolder

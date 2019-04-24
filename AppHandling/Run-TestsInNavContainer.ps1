@@ -6,6 +6,8 @@
   Name of the container in which you want to run a test suite
  .Parameter tenant
   tenant to use if container is multitenant
+ .Parameter companyName
+  company to use if container
  .Parameter credential
   Credentials of the NAV SUPER user if using NavUserPassword authentication
  .Parameter testSuite
@@ -29,6 +31,8 @@ function Run-TestsInNavContainer {
         [string]$containerName,
         [Parameter(Mandatory=$false)]
         [string]$tenant = "default",
+        [Parameter(Mandatory=$false)]
+        [string]$companyName = "",
         [Parameter(Mandatory=$false)]
         [System.Management.Automation.PSCredential]$credential = $null,
         [Parameter(Mandatory=$false)]
@@ -58,6 +62,7 @@ function Run-TestsInNavContainer {
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
+    $clientServicesCredentialType = (Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType
 
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         try {
@@ -67,7 +72,7 @@ function Run-TestsInNavContainer {
             Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
             Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
 
-            if ((Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType -eq "Windows") {
+            if ($clientServicesCredentialType -eq "Windows") {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
             } else {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
@@ -78,7 +83,14 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
+    if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
+        $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
+        Get-NavContainerNavUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
+            $companyName = $_.Company
+        }
+    }
+
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -94,11 +106,16 @@ function Run-TestsInNavContainer {
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami
-            if (!(Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore | Where-Object { $_.UserName -eq $windowsusername })) {
+            $NavServerUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore | Where-Object { $_.UserName -eq $windowsusername }
+            if (!($NavServerUser)) {
                 Write-Host "Creating $windowsusername as user"
                 New-NavServerUser -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername
                 New-NavServerUserPermissionSet -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername -PermissionSetId SUPER
             }
+        }
+
+        if ($companyName) {
+            $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
         }
 
         . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath        try {            if ($disableSslVerification) {                Disable-SslVerification            }                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential    
@@ -115,6 +132,6 @@ function Run-TestsInNavContainer {
             if ($disableSslVerification) {                Enable-SslVerification            }            Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
+    } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
 }
 Export-ModuleMember -Function Run-TestsInNavContainer
