@@ -59,7 +59,11 @@ function Compile-AppInNavContainer {
 
     $startTime = [DateTime]::Now
 
-    [System.Version]$platformversion = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    if ("$platform" -eq "") {
+        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+    }
+    [System.Version]$platformversion = $platform
     
     $containerProjectFolder = Get-NavContainerPath -containerName $containerName -path $appProjectFolder
     if ("$containerProjectFolder" -eq "") {

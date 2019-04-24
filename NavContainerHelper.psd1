@@ -12,7 +12,7 @@
 RootModule = 'NavContainerHelper.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.6.0.10'
+ModuleVersion = '0.6.0.11'
 
 # Supported PSEditions
 # CompatiblePSEditions = @()
@@ -159,8 +159,10 @@ PrivateData = @{
         # IconUri = ''
 
         # ReleaseNotes of this module
-        ReleaseNotes = '0.6.0.10
+        ReleaseNotes = '0.6.0.11
 Regression: Compile-AppInNavContainer should not add defaulting for AssemblyProbingPaths for versions prior to 13.x
+
+0.6.0.10
 Test-NavContainer and Get-NavContainerId should now be case insensitive
 Get-NavContainers now use a single docker statement instead of multiple calls
 Include WindowsPowerShellScripts\WebSearch\TransitionMenuSuiteObjectsForSearch.psm1 if it exists when extracting files from container
