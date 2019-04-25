@@ -664,6 +664,18 @@ if ($restartingInstance -eq $false) {
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
+    if ([System.Version]$genericTag -le [System.Version]"0.0.9.5") {
+        ('
+Write-Host "Registering event sources"
+"MicrosoftDynamicsNAVClientWebClient","MicrosoftDynamicsNAVClientClientService" | % {
+    if (-not [System.Diagnostics.EventLog]::SourceExists($_)) {
+        $frameworkDir =  (Get-Item "HKLM:\SOFTWARE\Microsoft\.NETFramework").GetValue("InstallRoot")
+        New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
+    }
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+
     if ($assignPremiumPlan) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
