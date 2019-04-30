@@ -1,4 +1,6 @@
-﻿# Run all tests
+﻿. "C:\Users\freddyk\Documents\GitHub\Microsoft\navcontainerhelper\NavContainerHelper.ps1"
+
+# Run all tests
 
 Clear-Host
 $global:testErrors = @()
@@ -75,7 +77,9 @@ function IsUrl($expr) {
     Download-File -sourceUrl $result -destinationFile (Join-Path $env:TEMP "Test.htm")
 }
 
-$genericImage = "microsoft/dynamics-nav:generic"
+$platform = "ltsc2019"
+
+$genericImage = "microsoft/dynamics-nav:generic-$platform"
 docker pull $genericImage
 $genericTag = Get-NavContainerGenericTag -containerOrImageName $genericImage
 
@@ -83,20 +87,20 @@ $windowsCredential = get-credential -UserName $env:USERNAME -Message "Please ent
 $aadAdminCredential = get-credential -Message "Please enter your AAD Admin credentials if you want to include AAD auth testing"
 
 $testParams = @(
-    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav"                   ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de"                ; "country" = "de" },
-    @{ "name" = "bcshw1";  "image" = "microsoft/bcsandbox"                      ; "country" = "w1" },
-    @{ "name" = "bcshnl";  "image" = "microsoft/bcsandbox:nl"                   ; "country" = "nl" },
-    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016"              ; "country" = "w1" },
-    @{ "name" = "n2016dk"; "image" = "microsoft/dynamics-nav:2016-dk"           ; "country" = "dk" },
-    @{ "name" = "n2017w1"; "image" = "microsoft/dynamics-nav:2017"              ; "country" = "w1" },
-    @{ "name" = "n2017na"; "image" = "microsoft/dynamics-nav:2017-na"           ; "country" = "na" },
-    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav"                   ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de"                ; "country" = "de" },
-    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox"           ; "country" = "w1" },
-    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:be"        ; "country" = "be" },
-    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master"    ; "country" = "w1" },
-    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master:es" ; "country" = "es" }
+    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav:$platform"                   ; "country" = "w1" },
+    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de-$platform"                ; "country" = "de" },
+    @{ "name" = "bcshw1";  "image" = "microsoft/bcsandbox:$platform"                      ; "country" = "w1" },
+    @{ "name" = "bcshnl";  "image" = "microsoft/bcsandbox:nl-$platform"                   ; "country" = "nl" },
+    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016-$platform"              ; "country" = "w1" },
+    @{ "name" = "n2016dk"; "image" = "microsoft/dynamics-nav:2016-dk-$platform"           ; "country" = "dk" },
+    @{ "name" = "n2017w1"; "image" = "microsoft/dynamics-nav:2017-$platform"              ; "country" = "w1" },
+    @{ "name" = "n2017na"; "image" = "microsoft/dynamics-nav:2017-na-$platform"           ; "country" = "na" },
+    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav:$platform"                   ; "country" = "w1" },
+    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de-$platform"                ; "country" = "de" },
+    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:$platform"           ; "country" = "w1" },
+    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:be-$platform"        ; "country" = "be" },
+    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master-$platform"    ; "country" = "w1" },
+    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master:es-$platform" ; "country" = "es" }
 )
 
 $testContainerInfo = $true
@@ -233,7 +237,7 @@ $testParams | ForEach-Object {
                         Test "Get-NavContainerNavVersion"
                         $version = Get-NavContainerNavVersion -containerOrImageName $name
                         $temp = $image+':'
-                        $image2 = $temp.subString(0,$temp.indexOf(':')+1)+$version.ToLowerInvariant()
+                        $image2 = $temp.subString(0,$temp.indexOf(':')+1)+$version.ToLowerInvariant()+"-$platform"
                         docker pull $image2
                         AreEqual -expr "Get-NavContainerNavVersion -containerOrImageName $image2" -expected $version
                         AreEqual -expr "Get-NavContainerNavVersion -containerOrImageName $image" -expected $version

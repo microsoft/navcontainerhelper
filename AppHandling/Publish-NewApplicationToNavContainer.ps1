@@ -86,7 +86,7 @@ function Publish-NewApplicationToNavContainer {
             }
 
             Write-Host "Removing C/AL Application Objects"
-            Delete-NAVApplicationObject -DatabaseName CRONUS -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
+            Delete-NAVApplicationObject -DatabaseName $customConfig.databaseName -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
 
         } -argumentList $customConfig
     }

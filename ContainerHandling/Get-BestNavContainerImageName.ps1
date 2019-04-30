@@ -21,10 +21,12 @@ function Get-BestNavContainerImageName {
           $imagename.EndsWith('-1709') -or
           $imagename.EndsWith('-1803') -or
           $imagename.EndsWith('-ltsc2019') -or
+          $imagename.EndsWith('-1903') -or
           $imagename.EndsWith(':ltsc2016') -or
           $imagename.EndsWith(':1709') -or
           $imagename.EndsWith(':1803') -or
-          $imagename.EndsWith(':ltsc2019')
+          $imagename.EndsWith(':ltsc2019') -or
+          $imagename.EndsWith(':1903')
        )) {
 
         if ($imagename.StartsWith('microsoft/') -or 

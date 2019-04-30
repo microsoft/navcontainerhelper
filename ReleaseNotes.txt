@@ -1,3 +1,9 @@
+0.6.0.14
+Support for Windows 10 1903 preview
+
+0.6.0.13
+Bugfix: Publish-NewApplicationToNavContainer was hardcoded to use CRONUS as database - must take databasename from customsettings
+
 0.6.0.12
 Fix: Event Sources is missing for WebClient in Nav 2018 and Business Central Containers (prior to generic tag 0.0.9.6), causing the WebClient to crash if an entry is added to the event log.
 
