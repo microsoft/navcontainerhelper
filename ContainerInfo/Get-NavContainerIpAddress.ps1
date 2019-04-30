@@ -19,14 +19,29 @@ function Get-NavContainerIpAddress {
     )
 
     Process {
-        $inspect = docker inspect $containerName | ConvertFrom-Json
-        $networks = $inspect.NetworkSettings.Networks
-        $ip = ""
-        $networks | get-member -MemberType NoteProperty | Select-Object Name | % {
-            $name = $_.Name
-            if (("$ip" -eq "") -and ("$networkName" -eq "" -or "$networkName" -eq "$name")) {
-                $network = $networks | Select-Object -ExpandProperty $name
-                $ip = $network.IPAddress
+
+        $ip = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            $ip = ""
+            $ips = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.IPAddress -ne "127.0.0.1" }
+            if ($ips) {
+                $ips | ForEach-Object {
+                    if ("$ip" -eq "") {
+                        $ip = $_.IPAddress
+                    }
+                }
+            }
+            $ip
+        }
+
+        if ("$ip" -eq "") {
+            $inspect = docker inspect $containerName | ConvertFrom-Json
+            $networks = $inspect.NetworkSettings.Networks
+            $networks | get-member -MemberType NoteProperty | Select-Object Name | % {
+                $name = $_.Name
+                if (("$ip" -eq "") -and ("$networkName" -eq "" -or "$networkName" -eq "$name")) {
+                    $network = $networks | Select-Object -ExpandProperty $name
+                    $ip = $network.IPAddress
+                }
             }
         }
         return $ip

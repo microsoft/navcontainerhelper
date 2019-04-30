@@ -197,7 +197,13 @@ function New-NavContainer {
     $bestContainerOs = "ltsc2016"
     $bestGenericContainerOs = "ltsc2016"
 
-    if ($os.BuildNumber -ge 17763) { 
+    if ($os.BuildNumber -ge 18362) { 
+        if ($os.BuildNumber -eq 18362) { 
+            $hostOs = "1903"
+        }
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
+    } elseif ($os.BuildNumber -ge 17763) { 
         if ($os.BuildNumber -eq 17763) { 
             $hostOs = "ltsc2019"
         }
@@ -425,6 +431,8 @@ function New-NavContainer {
         $containerOs = "1803"
     } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
         $containerOs = "ltsc2019"
+    } elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+        $containerOs = "1903"
     } else {
         $containerOs = "unknown"
     }
@@ -435,6 +443,7 @@ function New-NavContainer {
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
         throw "The container operating system is newer than the host operating system."
+    
     } elseif ($hostOsVersion.Major -ne $containerOsversion.Major -or $hostOsVersion.Minor -ne $containerOsversion.Minor -or $hostOsVersion.Build -ne $containerOsversion.Build) {
 
         if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
@@ -460,12 +469,12 @@ function New-NavContainer {
             $imageName = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
             DockerDo -command pull -imageName $imageName | Out-Null
 
-            if ("$hostOs" -ne "$bestGenericContainerOs") {
+            if ("$hostOs" -ne "$bestGenericContainerOs" -and "$isolation" -eq "") {
                 Write-Host "The best generic container operating system does not match the host operating system, forcing hyperv isolation."
                 $isolation = "hyperv"
             }
 
-        } elseif ($isolation -ne "hyperv") {
+        } elseif ($isolation -ne "hyperv" -and "$isolation" -eq "") {
             Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
             $isolation = "hyperv"
         }
@@ -669,7 +678,7 @@ if ($restartingInstance -eq $false) {
 Write-Host "Registering event sources"
 "MicrosoftDynamicsNAVClientWebClient","MicrosoftDynamicsNAVClientClientService" | % {
     if (-not [System.Diagnostics.EventLog]::SourceExists($_)) {
-        $frameworkDir =  (Get-Item "HKLM:\SOFTWARE\Microsoft\.NETFramework").GetValue("InstallRoot")
+        $frameworkDir = (Get-Item "HKLM:\SOFTWARE\Microsoft\.NETFramework").GetValue("InstallRoot")
         New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
     }
 }
