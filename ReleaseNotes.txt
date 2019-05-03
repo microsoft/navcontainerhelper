@@ -1,3 +1,7 @@
+0.6.0.15
+Move the git piece of Create-AlProjectFromNavContainer to the end. If this fails, then everything is still created correctly.
+Create txt files for platform, version and country when extracting files from a container and use those (if existing) when spinning up a generic image.
+
 0.6.0.14
 Support for Windows 10 1903 preview
 
