@@ -93,21 +93,6 @@ function Create-AlProjectFolderFromNavContainer {
         "target" = "Internal"
     }
     Set-Content -Path $appJsonFile -Value ($appJson | ConvertTo-Json)
-    $gitIgnoreFile = Join-Path $AlProjectFolder ".gitignore"
-    Set-Content -Path $gitIgnoreFile -Value ".vscode`n*.app"
-
-    if ($addGit) {
-        Write-Host "Initializing Git repository"
-        $oldLocation = Get-Location
-        Set-Location $AlProjectFolder
-        & git init
-        Write-Host "Adding files"
-        & git add .
-        & git gc --auto --quiet
-        Write-Host "Committing files"
-        & git commit -m "$containerName" | Out-Null
-        Set-Location $oldLocation
-    }
 
     $dotnetPackagesFolder = Join-Path $AlProjectFolder ".netpackages"
     New-Item -Path $dotnetPackagesFolder -ItemType Directory -Force | Out-Null
@@ -122,6 +107,7 @@ function Create-AlProjectFolderFromNavContainer {
     $settingsJson = @{
         "al.enableCodeAnalysis" = $false
         "al.enableCodeActions" = $false
+        "al.incrementalBuild" = $true
         "al.packageCachePath" = ".alpackages"
         "al.assemblyProbingPaths" = @(".netpackages", $dotnetAssembliesFolder)
         "editor.codeLens" = $false
@@ -157,6 +143,23 @@ function Create-AlProjectFolderFromNavContainer {
         } )
     }
     Set-Content -Path $launchJsonFile -Value ($launchJson | ConvertTo-Json)
+
+    if ($addGit) {
+        Write-Host "Initializing Git repository"
+
+        $gitIgnoreFile = Join-Path $AlProjectFolder ".gitignore"
+        Set-Content -Path $gitIgnoreFile -Value ".vscode`r`n*.app"
+
+        $oldLocation = Get-Location
+        Set-Location $AlProjectFolder
+        & git init
+        Write-Host "Adding files"
+        & git add .
+        & git gc --auto --quiet
+        Write-Host "Committing files"
+        & git commit -m "$containerName" | Out-Null
+        Set-Location $oldLocation
+    }
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"
 }
