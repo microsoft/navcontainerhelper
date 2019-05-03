@@ -103,7 +103,9 @@ function New-NavContainer {
         [string]$containerName, 
         [string]$imageName = "", 
         [string]$navDvdPath = "", 
-        [string]$navDvdCountry = "w1",
+        [string]$navDvdCountry = "",
+        [string]$navDvdVersion = "",
+        [string]$navDvdPlatform = "",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$authenticationEMail = "",
@@ -382,9 +384,31 @@ function New-NavContainer {
     }
 
     if ("$navDvdPath" -ne "") {
-        $navversion = (Get-Item -Path "$navDvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-        $devCountry = $navDvdCountry
+        if ("$navDvdVersion" -eq "" -and (Test-Path "$navDvdPath\version.txt")) {
+            $navDvdVersion = Get-Content "$navDvdPath\version.txt"
+        }
+        if ("$navDvdPlatform" -eq "" -and (Test-Path "$navDvdPath\platform.txt")) {
+            $navDvdPlatform = Get-Content "$navDvdPath\platform.txt"
+        }
+        if ("$navDvdCountry" -eq "" -and (Test-Path "$navDvdPath\country.txt")) {
+            $navDvdCountry = Get-Content "$navDvdPath\country.txt"
+        }
+        if ($navDvdVersion) {
+            $navVersion = $navDvdVersion
+        }
+        else {
+            $navversion = (Get-Item -Path "$navDvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+        }
         $navtag = Get-NavVersionFromVersionInfo -VersionInfo $navversion
+        if ("$navtag" -eq "" -and "$navDvdPlatform" -eq "") {
+            $navDvdPlatform = $navversion
+        }
+        if ($navDvdCountry) {
+            $devCountry = $navDvdCountry
+        }
+        else {
+            $devCountry = "w1"
+        }
 
         $parameters += @(
                        "--label nav=$navtag",
@@ -392,6 +416,10 @@ function New-NavContainer {
                        "--label country=$devCountry",
                        "--label cu="
                        )
+
+        if ($navDvdPlatform) {
+            $parameters += @( "--label platform=$navDvdPlatform" )
+        }
 
         $navVersion += "-$devCountry"
 
@@ -465,6 +493,10 @@ function New-NavContainer {
                            "--label country=$($inspect.Config.Labels.country)",
                            "--label cu=$($inspect.Config.Labels.cu)"
                            )
+
+            if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
+                $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
+            }
 
             $imageName = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
             DockerDo -command pull -imageName $imageName | Out-Null

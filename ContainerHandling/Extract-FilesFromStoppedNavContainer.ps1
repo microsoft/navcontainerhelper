@@ -33,7 +33,7 @@ function Extract-FilesFromStoppedNavContainer {
         $startContainer = $true
         Stop-NavContainer $containerName | Out-Null
     }
-    
+
     if (Test-Path -Path $path) {
         if (!$force) { 
             throw "Destination folder '$path' already exists"
@@ -47,6 +47,14 @@ function Extract-FilesFromStoppedNavContainer {
     $ErrorActionPreference = 'Continue'
 
     if ($extract -eq "all") {
+
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
+            Set-Content -Path "$path\platform.txt" -value "$($inspect.Config.Labels.platform)"
+        }
+        Set-Content -Path "$path\country.txt" -value "$($inspect.Config.Labels.Country)"
+        Set-Content -Path "$path\version.txt" -value "$($inspect.Config.Labels.Version)"
+
         New-Item "$path\ServiceTier\System64Folder" -ItemType Directory | Out-Null
         New-Item "$path\ServiceTier\Program Files" -ItemType Directory | Out-Null
         New-Item "$path\WebClient\Microsoft Dynamics NAV" -ItemType Directory | Out-Null
