@@ -23,11 +23,9 @@ Param
 
     PROCESS
     {
-        $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock { param($tenant)
-
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param($tenant)
             Get-NavServerUser -ServerInstance NAV -tenant $tenant
-        } -ArgumentList $tenant
+        } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
     }
 }
 Export-ModuleMember -Function Get-NavContainerNavUser

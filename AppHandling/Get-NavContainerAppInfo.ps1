@@ -40,8 +40,7 @@ function Get-NavContainerAppInfo {
         $args += @{ "Tenant" = $tenant }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($inArgs)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($inArgs)
         Get-NavAppInfo @inArgs
     } -ArgumentList $args
 }

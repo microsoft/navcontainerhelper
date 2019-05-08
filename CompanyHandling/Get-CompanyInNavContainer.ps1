@@ -18,9 +18,8 @@ function Get-CompanyInNavContainer {
         [string]$tenant = "default"
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavCompany -ServerInstance NAV -Tenant $tenant
-    } -ArgumentList $tenant
+    } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
 }
 Export-ModuleMember -Function Get-CompanyInNavContainer

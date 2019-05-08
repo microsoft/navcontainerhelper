@@ -19,19 +19,29 @@
 function Convert-Txt2Al {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$true)]
-        [string]$myDeltaFolder, 
+        [string] $myDeltaFolder, 
         [Parameter(Mandatory=$true)]
-        [string]$myAlFolder, 
-        [int]$startId=50100
+        [string] $myAlFolder, 
+        [int] $startId=50100,
+        [string] $dotNetAddInsPackage
     )
 
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
     $containerMyAlFolder = Get-NavContainerPath -containerName $containerName -path $myAlFolder -throw
+    $containerDotNetAddInsPackage = ""
+    if ($dotNetAddInsPackage) {
+        $containerDotNetAddInsPackage = Get-NavContainerPath -containerName $containerName -path $dotNetAddInsPackage -throw
+    }
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId)
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+    $ignoreSystemObjects = ($version.Major -ge 14)
+
+    $dummy = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId, $dotNetAddInsPackage)
+        
+        $erroractionpreference = 'Continue'
 
         if (!($txt2al)) {
             throw "You cannot run Convert-Txt2Al on this Nav Container"
@@ -39,8 +49,17 @@ function Convert-Txt2Al {
         Write-Host "Converting files in $myDeltaFolder to .al files in $myAlFolder with startId $startId (container paths)"
         Remove-Item -Path $myAlFolder -Recurse -Force -ErrorAction Ignore
         New-Item -Path $myAlFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-        Start-Process -FilePath $txt2al -ArgumentList "--source=""$myDeltaFolder"" --target=""$myAlFolder"" --rename --extensionStartId=$startId" -Wait -NoNewWindow
-    
-    } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId
+
+        $txt2alParameters = @("--source=""$myDeltaFolder""", "--target=""$myAlFolder""", "--rename", "--extensionStartId=$startId")
+        if ($dotNetAddInsPackage) {
+            $txt2alParameters += @("--dotNetAddInsPackage=""$dotNetAddInsPackage""")
+        }
+
+        Write-Host "txt2al.exe $([string]::Join(' ', $txt2alParameters))"
+        & $txt2al $txt2alParameters 2> $null
+
+        $erroractionpreference = 'Stop'
+
+    } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage
 }
 Export-ModuleMember -function Convert-Txt2Al

@@ -97,11 +97,17 @@ function Create-AadAppsForNav
     # Get oauth2 permission id for sso app
     $oauth2permissionid = $ssoAdApp.Oauth2Permissions.id
 
+    # Windows Azure Active Directory -> Delegated permissions for Sign in and read user profile (User.Read)
     $req1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
     $req1.ResourceAppId = "00000002-0000-0000-c000-000000000000"
     $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
 
-    Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1)
+    # Dynamics 365 Business Central -> Delegated permissions for Access as the signed-in user (Financials.ReadWrite.All)
+    $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+    $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"
+    $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+
+    Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1, $req2)
 
     # Set Logo Image for App
     if ($iconPath) {

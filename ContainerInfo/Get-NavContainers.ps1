@@ -8,17 +8,7 @@
 #>
 function Get-NavContainers {
     Process {
-        docker ps -a -q --no-trunc | ForEach-Object {
-            $inspect = docker inspect $_ | ConvertFrom-Json
-            if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -ne 0) {
-                $name = $inspect.Name
-                if ($name.startsWith('/')) {
-                    $name.subString(1)
-                } else {
-                    $name
-                }
-            }
-        }
+        docker ps --filter "label=nav" -a --format "{{.Names}}"
     }
 }
 Export-ModuleMember -function Get-NavContainers

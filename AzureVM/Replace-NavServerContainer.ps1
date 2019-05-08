@@ -17,8 +17,10 @@
 #>
 function Replace-NavServerContainer {
     Param(
-        [string]$imageName = "",
-        [switch]$alwaysPull
+        [string] $imageName = "",
+        [switch] $alwaysPull,
+        [ValidateSet('Yes','No','Default')]
+        [string] $enableSymbolLoading = 'Default'
     )
 
     $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
@@ -29,13 +31,21 @@ function Replace-NavServerContainer {
         throw "The Replace-NavServerContainer is designed to work inside the Nav on Azure DEMO VMs"
     }
 
+    if ($enableSymbolLoading -ne "Default") {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
+        $settings += ('$enableSymbolLoading = "'+$enableSymbolLoading+'"')
+        Set-Content -Path $settingsScript -Value $settings
+    }
+
     . $settingsScript
 
     if ("$imageName" -eq "") {
-        $imageName = $navDockerImage
+        $imageName = $navDockerImage.Split(',')[0]
     }
     if ("$imageName" -ne "$navDockerImage") {
-        ('$navDockerImage = "'+$imageName + '"') | Add-Content $settingsScript
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
+        $settings += '$navDockerImage = "'+$imageName + '"'
+        Set-Content -Path $settingsScript -Value $settings
     }
 
     $imageName = Get-BestNavContainerImageName -imageName $imageName

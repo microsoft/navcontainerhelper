@@ -38,6 +38,7 @@ function Remove-NavContainer {
         Remove-DesktopShortcut -Name "$containerName Web Client"
         Remove-DesktopShortcut -Name "$containerName Test Tool"
         Remove-DesktopShortcut -Name "$containerName Windows Client"
+        Remove-DesktopShortcut -Name "$containerName WinClient Debugger"
         Remove-DesktopShortcut -Name "$containerName CSIDE"
         Remove-DesktopShortcut -Name "$containerName Command Prompt"
         Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
@@ -53,7 +54,9 @@ function Remove-NavContainer {
                 if ($attempts -gt 10) {
                     throw "Could not remove $containerFolder"
                 }
-                Write-Host "Error removing $containerFolder (attempts: $attempts), retrying in $wait seconds"
+                Write-Host "Error removing $containerFolder (attempts: $attempts)"
+                Write-Host "Please close any apps, prompts or files using this folder"
+                Write-Host "Retrying in $wait seconds"
                 Start-Sleep -Seconds $wait
             }
         }

@@ -15,8 +15,7 @@ function Get-NavContainerTenants {
         [string]$containerName = "navserver"
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock {
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)

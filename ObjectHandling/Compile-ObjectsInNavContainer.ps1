@@ -9,6 +9,8 @@
   Filter specifying the objects you want to compile (default is Compiled=0)
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter SynchronizeSchemaChanges
+  Specify Force, Yes or No on whether you want to synchronize schema changes to the database
  .Parameter doNotAskForCredential
  .Example
   Compile-ObjectsToNavContainer -containerName test2 -sqlCredential (get-credential -credential 'sa')
@@ -20,12 +22,13 @@ function Compile-ObjectsInNavContainer {
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [string]$filter = "compiled=0", 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [ValidateSet('Force','Yes','No')]
+        [string]$SynchronizeSchemaChanges = 'Force'
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($filter, [System.Management.Automation.PSCredential]$sqlCredential)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, [System.Management.Automation.PSCredential]$sqlCredential, $SynchronizeSchemaChanges)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -52,12 +55,12 @@ function Compile-ObjectsInNavContainer {
                                      -DatabaseName $databaseName `
                                      -DatabaseServer $databaseServer `
                                      -Recompile `
-                                     -SynchronizeSchemaChanges Force `
+                                     -SynchronizeSchemaChanges $SynchronizeSchemaChanges `
                                      -NavServerName localhost `
                                      -NavServerInstance NAV `
                                      -NavServerManagementPort "$managementServicesPort"
 
-    } -ArgumentList $filter, $sqlCredential
+    } -ArgumentList $filter, $sqlCredential, $SynchronizeSchemaChanges
     Write-Host -ForegroundColor Green "Objects successfully compiled"
 }
 Export-ModuleMember -Function Compile-ObjectsInNavContainer

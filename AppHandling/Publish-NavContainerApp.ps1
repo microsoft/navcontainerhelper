@@ -63,8 +63,7 @@ function Publish-NavContainerApp {
         }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode)
 
         if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
             $appUrl = $appFile
