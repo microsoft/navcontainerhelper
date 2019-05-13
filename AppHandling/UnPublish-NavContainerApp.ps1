@@ -29,6 +29,7 @@ function UnPublish-NavContainerApp {
         [string]$appName,
         [switch]$unInstall,
         [switch]$doNotSaveData,
+        [switch]$force,
         [Parameter(Mandatory=$false)]
         [string]$publisher,
         [Parameter(Mandatory=$false)]
@@ -37,13 +38,15 @@ function UnPublish-NavContainerApp {
         [string]$tenant = "default"
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
             $params = @{}
-            if ($doNotSaveData)
-            {
+            if ($doNotSaveData) {
                 $params += @{ "DoNotSaveData" = $true }
+            }
+            if ($force) {
+                $params += @{ "force" = $true }
             }
             Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant @params
         }
@@ -56,7 +59,7 @@ function UnPublish-NavContainerApp {
         }
         Write-Host "Unpublishing $appName"
         Unpublish-NavApp -ServerInstance NAV -Name $appName @params
-    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version
+    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
 Export-ModuleMember -Function UnPublish-NavContainerApp

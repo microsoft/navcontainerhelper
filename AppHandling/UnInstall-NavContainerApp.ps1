@@ -26,26 +26,28 @@ function UnInstall-NavContainerApp {
         [string]$appName,
         [Parameter()]
         [string]$appVersion,
-        [switch]$doNotSaveData
+        [switch]$doNotSaveData,
+        [switch]$Force
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $Force)
         Write-Host "Uninstalling $appName from $tenant"
         $parameters = @{
             "ServerInstance" = "NAV";
             "Name" = $appName;
             "Tenant" = $tenant
         }
-        if ($appVersion)
-        {
+        if ($appVersion) {
             $parameters += @{ "Version" = $appVersion }
         }
-        if ($doNotSaveData)
-        {
+        if ($doNotSaveData) {
             $parameters += @{ "DoNotSaveData" = $true }
         }
+        if ($Force) {
+            $parameters += @{ "Force" = $true }
+        }
         Uninstall-NavApp @parameters
-    } -ArgumentList $appName, $appVersion, $tenant
+    } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
 Export-ModuleMember -Function UnInstall-NavContainerApp
