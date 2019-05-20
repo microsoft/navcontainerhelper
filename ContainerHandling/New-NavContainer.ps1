@@ -799,6 +799,8 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         $restUrl = $baseUrl + $restPart
         $soapUrl = $baseUrl + $soapPart
         $webclientUrl = $baseUrl + $webclientPart
+        $devUrl = $baseUrl + $devPart
+        $dlUrl = $baseUrl + $dlPart
 
         $customNavSettings = "PublicODataBaseUrl=$restUrl,PublicSOAPBaseUrl=$soapUrl,PublicWebBaseUrl=$webclientUrl"
         $webclientRule="PathPrefix:$webclientPart"
@@ -1032,5 +1034,14 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
     }
 
     Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
+
+    if ($useTraefik) {
+        Write-Host -ForegroundColor Yellow "Because of Traefik, the following URLs need to be used when accessing the container from outside your Docker host:"
+        Write-Host "Web Client:        $webclientUrl"
+        Write-Host "SOAP WebServices:  $soapUrl"
+        Write-Host "OData WebServices: $restUrl"
+        Write-Host "Dev Service:       $devUrl"
+        Write-Host "File downloads:    $dlUrl"
+    }
 }
 Export-ModuleMember -function New-NavContainer
