@@ -269,6 +269,9 @@ function New-NavContainer {
         $useSSL = $false
     }
 
+    if (Test-Path "C:\inetpub\wwwroot\hostname.txt") {
+        $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
+    }
     if (-not $PublicDnsName -and $useTraefik) {
         throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
     }
