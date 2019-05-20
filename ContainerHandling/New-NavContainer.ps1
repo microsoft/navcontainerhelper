@@ -84,6 +84,8 @@
  .Parameter $PublicDnsName
   Use this parameter to specify which public dns name is pointing to this container.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
+ .Parameter $useTraefik
+  Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -147,7 +149,8 @@ function New-NavContainer {
         [int]$ODataServicesPort,
         [int]$DeveloperServicesPort,
         [int[]]$PublishPorts = @(),
-        [string]$PublicDnsName
+        [string]$PublicDnsName,
+        [switch]$useTraefik
     )
 
     if (!$accept_eula) {
@@ -252,6 +255,23 @@ function New-NavContainer {
 
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerClientVersion"
+
+    if ($useTraefik -and (
+        $PublishPorts.Count -gt 0 -or
+        $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
+        $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort
+        )) {
+        throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
+    }
+
+    if ($useSSL -and $useTraefik) {
+        Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+        $useSSL = $false
+    }
+
+    if (-not $PublicDnsName -and $useTraefik) {
+        throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
+    }
 
     $parameters = @()
 
@@ -561,6 +581,11 @@ function New-NavContainer {
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
+    if ($useTraefik) {
+        Write-Host "Add specific CheckHealth.ps1 to enable Traefik support"
+        $myscripts += "c:\traefikforbc\my\CheckHealth.ps1"
+    }
+
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -759,6 +784,46 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+    }
+
+    if ($useTraefik) {
+        $restPart = "/${containerName}rest" 
+        $soapPart = "/${containerName}soap"
+        $devPart = "/${containerName}dev"
+        $dlPart = "/${containerName}dl"
+        $webclientPart = "/$containerName/"
+        $baseUrl = "https://$publicDnsName"
+        $restUrl = $baseUrl + $restPart
+        $soapUrl = $baseUrl + $soapPart
+        $webclientUrl = $baseUrl + $webclientPart
+
+        $customNavSettings = "PublicODataBaseUrl=$restUrl,PublicSOAPBaseUrl=$soapUrl,PublicWebBaseUrl=$webclientUrl"
+        $webclientRule="PathPrefix:$webclientPart"
+        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /NAV/WS/`$1"
+        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /NAV/OData/`$1"
+        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /NAV/`$1"
+        $dlRule="PathPrefixStrip:${dlPart}"
+        $traefikHostname = $publicDnsName.Substring(0, $publicDnsName.IndexOf("."))
+
+        $additionalTraefikParameters = @("--hostname $traefikHostname",
+                    "-e webserverinstance=$containerName",
+                    "-e publicdnsname=$publicDnsName", 
+                    "-e customNavSettings=$customNavSettings",
+                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
+                    "-l `"traefik.web.port=80`"",
+                    "-l `"traefik.soap.frontend.rule=$soapRule`"", 
+                    "-l `"traefik.soap.port=7047`"",
+                    "-l `"traefik.rest.frontend.rule=$restRule`"", 
+                    "-l `"traefik.rest.port=7048`"",
+                    "-l `"traefik.dev.frontend.rule=$devRule`"", 
+                    "-l `"traefik.dev.port=7049`"",
+                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
+                    "-l `"traefik.dl.port=8080`"",
+                    "-l `"traefik.enable=true`"",
+                    "-l `"traefik.frontend.entryPoints=https`""
+        )
+
+        $additionalTraefikParameters | ForEach-Object { $additionalParameters += $_ }
     }
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
