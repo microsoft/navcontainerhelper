@@ -256,6 +256,11 @@ function New-NavContainer {
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerClientVersion"
 
+    $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+    if ($useTraefik -and -not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
+        throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
+    }
+
     if ($useTraefik -and (
         $PublishPorts.Count -gt 0 -or
         $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
@@ -586,7 +591,7 @@ function New-NavContainer {
 
     if ($useTraefik) {
         Write-Host "Add specific CheckHealth.ps1 to enable Traefik support"
-        $myscripts += "c:\traefikforbc\my\CheckHealth.ps1"
+        $myscripts += (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
     }
 
     $myScripts | ForEach-Object {
