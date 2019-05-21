@@ -274,7 +274,7 @@ function New-NavContainer {
         $useSSL = $false
     }
 
-    if (Test-Path "C:\inetpub\wwwroot\hostname.txt" -and -not $PublicDnsName) {
+    if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
         $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
     }
     if (-not $PublicDnsName -and $useTraefik) {
