@@ -3,6 +3,10 @@
   Set up a traefik container to manage traffic for Business Central containers
  .Description
   Set up a traefik container to manage traffic for Business Central containers
+ .Parameter PublicDnsName
+  The externally reachable FQDN of your Docker host
+ .Parameter ContactEMailForLetsEncrypt
+  The eMail address to use when requesting an SSL cert from Let's encrypt
  .Parameter overrideDefaultBinding
   Include this switch if you already have an IIS listening on port 80 on your Docker host. This will move the binding on port 80 to port 8180
  .Example
@@ -12,6 +16,10 @@ function Setup-TraefikContainerForNavContainers {
     [CmdletBinding()]
     Param
     (
+        [Parameter(Mandatory=$true)]
+        [string]$PublicDnsName,
+        [Parameter(Mandatory=$true)]
+        [string]$ContactEMailForLetsEncrypt,
         [switch]$overrideDefaultBinding
     )
 
@@ -46,7 +54,7 @@ function Setup-TraefikContainerForNavContainers {
 
         Log "Pulling and running traefik"
         docker pull stefanscherer/traefik-windows
-        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v (Join-Path $traefikForBcBasePath "config"):c:/etc/traefik -v \\.\pipe\docker_engine:\\.\pipe\docker_engine stefanscherer/traefik-windows --docker.endpoint=npipe:////./pipe/docker_engine
+        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine stefanscherer/traefik-windows --docker.endpoint=npipe:////./pipe/docker_engine
     }
 }
 Export-ModuleMember -function Setup-TraefikContainerForNavContainers
