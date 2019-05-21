@@ -251,7 +251,7 @@ function New-NavContainer {
     Write-Host "Docker Client Version is $dockerClientVersion"
 
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
-    Write-Host "Docker Server Version is $dockerClientVersion"
+    Write-Host "Docker Server Version is $dockerServerVersion"
 
     $parameters = @()
 
