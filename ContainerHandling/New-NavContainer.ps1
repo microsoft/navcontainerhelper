@@ -783,13 +783,19 @@ if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $da
         }
         New-Item $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
         
+        if ($useTraefik) {
+            $winclientServer = $containerName
+        }
+        else {
+            $winclientServer = $PublicDnsName
+        }
         ('
 if ($restartingInstance -eq $false) {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
     $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
     $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
     [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$winclientServer+'"
     $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
     if ($multitenant) {
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
