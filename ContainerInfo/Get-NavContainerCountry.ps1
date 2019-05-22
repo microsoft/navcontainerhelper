@@ -27,4 +27,4 @@ function Get-NavContainerCountry {
         return "$($inspect.Config.Labels.country)"
     }
 }
-Export-ModuleMember -function Get-NavContainerCountry
+Export-ModuleMember -Function * -Alias *

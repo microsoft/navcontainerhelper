@@ -27,8 +27,8 @@ function New-CompanyInNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($companyName, $evaluationCompany, $tenant)
         Write-Host "Creating company $companyName in $tenant"
-        New-NavCompany -ServerInstance NAV -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
+        New-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
     } -ArgumentList $companyName, $evaluationCompany, $tenant
     Write-Host -ForegroundColor Green "Company successfully created"
 }
-Export-ModuleMember -Function New-CompanyInNavContainer
+Export-ModuleMember -Function * -Alias *

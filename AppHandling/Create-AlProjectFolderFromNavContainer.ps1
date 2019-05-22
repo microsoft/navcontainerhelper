@@ -163,4 +163,4 @@ function Create-AlProjectFolderFromNavContainer {
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"
 }
-Export-ModuleMember Create-AlProjectFolderFromNavContainer
+Export-ModuleMember -Function * -Alias *

@@ -30,6 +30,8 @@ function Import-ObjectsToNavContainer {
         [string]$SynchronizeSchemaChanges = "Force"
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerObjectsFile = Get-NavContainerPath -containerName $containerName -path $objectsFile
     $copied = $false
@@ -68,7 +70,7 @@ function Import-ObjectsToNavContainer {
                                     -ImportAction $ImportAction `
                                     -SynchronizeSchemaChanges $SynchronizeSchemaChanges `
                                     -NavServerName localhost `
-                                    -NavServerInstance NAV `
+                                    -NavServerInstance $ServerInstance `
                                     -NavServerManagementPort "$managementServicesPort" `
                                     -Confirm:$false
 
@@ -79,4 +81,4 @@ function Import-ObjectsToNavContainer {
     } -ArgumentList $containerObjectsFile, $sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied
     Write-Host -ForegroundColor Green "Objects successfully imported"
 }
-Export-ModuleMember -Function Import-ObjectsToNavContainer
+Export-ModuleMember -Function * -Alias *

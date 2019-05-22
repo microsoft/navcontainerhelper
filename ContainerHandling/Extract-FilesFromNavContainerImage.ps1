@@ -43,4 +43,4 @@ function Extract-FilesFromNavContainerImage {
 
     $ErrorActionPreference = 'Stop'
 }
-Export-ModuleMember -function Extract-FilesFromNavContainerImage
+Export-ModuleMember -Function * -Alias *

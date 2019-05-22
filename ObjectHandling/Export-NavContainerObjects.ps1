@@ -36,6 +36,8 @@ function Export-NavContainerObjects {
         [switch]$includeSystemObjects
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     if (!$exportToNewSyntax) {
         $exportTo = 'txt folder'
     }
@@ -118,4 +120,4 @@ function Export-NavContainerObjects {
     
     }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo, $ignoreSystemObjects
 }
-Export-ModuleMember -function Export-NavContainerObjects
+Export-ModuleMember -Function * -Alias *

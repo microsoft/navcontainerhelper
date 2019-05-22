@@ -27,4 +27,4 @@ function Get-NavContainerLegal {
         return "$($inspect.Config.Labels.legal)"
     }
 }
-Export-ModuleMember -function Get-NavContainerLegal
+Export-ModuleMember -Function * -Alias *

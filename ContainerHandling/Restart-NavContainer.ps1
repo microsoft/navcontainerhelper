@@ -37,4 +37,4 @@ function Restart-NavContainer {
         Wait-NavContainerReady -containerName $containerName -timeout $timeout
     }
 }
-Export-ModuleMember -function Restart-NavContainer
+Export-ModuleMember -Function * -Alias *

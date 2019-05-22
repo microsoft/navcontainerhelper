@@ -36,4 +36,4 @@ function New-NavContainerWindowsUser {
         -ArgumentList $Credential, $group
     }
 }
-Export-ModuleMember -Function New-NavContainerWindowsUser
+Export-ModuleMember -Function * -Alias *

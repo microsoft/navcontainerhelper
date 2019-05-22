@@ -78,4 +78,4 @@ function Sign-NavContainerApp {
         }
     } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword
 }
-Export-ModuleMember -Function Sign-NavContainerApp
+Export-ModuleMember -Function * -Alias *

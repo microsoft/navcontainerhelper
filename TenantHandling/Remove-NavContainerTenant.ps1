@@ -40,10 +40,10 @@ function Remove-NavContainerTenant {
 
         # Remove tenant
         Write-Host "Dismounting tenant $tenantId"
-        Dismount-NavTenant -ServerInstance NAV -Tenant $TenantId -force | Out-null
+        Dismount-NavTenant -ServerInstance $ServerInstance -Tenant $TenantId -force | Out-null
         Remove-NavDatabase -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
     } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
-Export-ModuleMember -Function Remove-NavContainerTenant
+Export-ModuleMember -Function * -Alias *

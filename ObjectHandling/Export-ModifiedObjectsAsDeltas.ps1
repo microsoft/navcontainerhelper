@@ -39,6 +39,8 @@ function Export-ModifiedObjectsAsDeltas {
         [switch]$openFolder
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
 
     if ((Get-NavContainerSharedFolders -containerName $containerName)[$hostHelperFolder] -ne $containerHelperFolder) {
@@ -101,4 +103,4 @@ function Export-ModifiedObjectsAsDeltas {
         Copy-Item -Path "$modifiedFolder\*.txt" -Destination $fullObjectsFolder
     }
 }
-Export-ModuleMember -Function Export-ModifiedObjectsAsDeltas
+Export-ModuleMember -Function * -Alias *

@@ -11,4 +11,4 @@ function Get-NavContainers {
         docker ps --filter "label=nav" -a --format "{{.Names}}"
     }
 }
-Export-ModuleMember -function Get-NavContainers
+Export-ModuleMember -Function * -Alias *

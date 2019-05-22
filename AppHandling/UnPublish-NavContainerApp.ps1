@@ -48,7 +48,7 @@ function UnPublish-NavContainerApp {
             if ($force) {
                 $params += @{ "force" = $true }
             }
-            Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant @params
+            Uninstall-NavApp -ServerInstance $ServerInstance -Name $appName -Tenant $tenant @params
         }
         $params = @{}
         if ($publisher) {
@@ -58,8 +58,8 @@ function UnPublish-NavContainerApp {
             $params += @{ 'Version' = $version }
         }
         Write-Host "Unpublishing $appName"
-        Unpublish-NavApp -ServerInstance NAV -Name $appName @params
+        Unpublish-NavApp -ServerInstance $ServerInstance -Name $appName @params
     } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
-Export-ModuleMember -Function UnPublish-NavContainerApp
+Export-ModuleMember -Function * -Alias *

@@ -79,7 +79,7 @@ function IsUrl($expr) {
 
 $platform = "ltsc2019"
 
-$genericImage = "microsoft/dynamics-nav:generic-$platform"
+$genericImage = "mcr.microsoft.com/dynamicsnav:generic-$platform"
 docker pull $genericImage
 $genericTag = Get-NavContainerGenericTag -containerOrImageName $genericImage
 
@@ -87,21 +87,23 @@ $windowsCredential = get-credential -UserName $env:USERNAME -Message "Please ent
 $aadAdminCredential = get-credential -Message "Please enter your AAD Admin credentials if you want to include AAD auth testing"
 
 $testParams = @(
-    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav:$platform"                   ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de-$platform"                ; "country" = "de" },
-    @{ "name" = "bcshw1";  "image" = "microsoft/bcsandbox:$platform"                      ; "country" = "w1" },
-    @{ "name" = "bcshnl";  "image" = "microsoft/bcsandbox:nl-$platform"                   ; "country" = "nl" },
-    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016-$platform"              ; "country" = "w1" },
-    @{ "name" = "n2016dk"; "image" = "microsoft/dynamics-nav:2016-dk-$platform"           ; "country" = "dk" },
-    @{ "name" = "n2017w1"; "image" = "microsoft/dynamics-nav:2017-$platform"              ; "country" = "w1" },
-    @{ "name" = "n2017na"; "image" = "microsoft/dynamics-nav:2017-na-$platform"           ; "country" = "na" },
-    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav:$platform"                   ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de-$platform"                ; "country" = "de" },
-    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:$platform"           ; "country" = "w1" },
-    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:be-$platform"        ; "country" = "be" },
-    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master-$platform"    ; "country" = "w1" },
-    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master:es-$platform" ; "country" = "es" }
+    @{ "name" = "n2018w1"; "image" = "mcr.microsoft.com/dynamicsnav:$platform"               ; "country" = "w1" },
+    @{ "name" = "n2018de"; "image" = "mcr.microsoft.com/dynamicsnav:de-$platform"            ; "country" = "de" },
+    @{ "name" = "bcopw1";  "image" = "mcr.microsoft.com/businesscentral/onprem:$platform"    ; "country" = "w1" },
+    @{ "name" = "bcopnl";  "image" = "mcr.microsoft.com/businesscentral/onprem:nl-$platform" ; "country" = "nl" }
 )
+
+#    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016-$platform"                 ; "country" = "w1" },
+#    @{ "name" = "n2016dk"; "image" = "microsoft/dynamics-nav:2016-dk-$platform"              ; "country" = "dk" },
+#    @{ "name" = "n2017w1"; "image" = "microsoft/dynamics-nav:2017-$platform"                 ; "country" = "w1" },
+#    @{ "name" = "n2017na"; "image" = "microsoft/dynamics-nav:2017-na-$platform"              ; "country" = "na" },
+#    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav:$platform"                      ; "country" = "w1" },
+#    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de-$platform"                   ; "country" = "de" },
+#    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:$platform"              ; "country" = "w1" },
+#    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:be-$platform"           ; "country" = "be" },
+#    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master-$platform"       ; "country" = "w1" },
+#    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master:es-$platform"    ; "country" = "es" }
+
 
 $testContainerInfo = $true
 $testBacpac = $true
@@ -470,7 +472,12 @@ $testParams | ForEach-Object {
         
                             if ($navVersion.Major -ge 12) {
                                 Test "Setup-NavContainerTestUsers"
-                                Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password
+                                if ($auth -eq "Windows") {
+                                    Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password
+                                }
+                                else {
+                                    Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password -credential $credential
+                                }
                                 AreEqual -expr "@(Get-NavContainerNavUser -containerName $name -tenant UserTest).Count" -expected ($count+7)
                             }
         

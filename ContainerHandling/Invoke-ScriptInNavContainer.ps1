@@ -80,6 +80,7 @@ function Get-MyFilePath([string]$FileName)
 }
 
 . (Get-MyFilePath "prompt.ps1") -silent | Out-Null
+. (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
 . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
 
 $txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
@@ -98,4 +99,4 @@ Set-Location $runPath
         }
     }
 }
-Export-ModuleMember -function Invoke-ScriptInNavContainer
+Export-ModuleMember -Function * -Alias *

@@ -106,4 +106,4 @@ function Get-NavContainerDebugInfo {
         return $debugInfoJson
     }
 }
-Export-ModuleMember -function Get-NavContainerDebugInfo
+Export-ModuleMember -Function * -Alias *

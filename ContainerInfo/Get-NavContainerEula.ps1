@@ -27,4 +27,4 @@ function Get-NavContainerEula {
         return "$($inspect.Config.Labels.Eula)"
     }
 }
-Export-ModuleMember -function Get-NavContainerEula
+Export-ModuleMember -Function * -Alias *

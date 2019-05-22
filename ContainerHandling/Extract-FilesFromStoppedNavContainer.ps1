@@ -168,4 +168,4 @@ function Extract-FilesFromStoppedNavContainer {
         Start-NavContainer -containerName $containerName
     }
 }
-Export-ModuleMember -function Extract-FilesFromStoppedNavContainer
+Export-ModuleMember -Function * -Alias *

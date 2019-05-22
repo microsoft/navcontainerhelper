@@ -112,5 +112,4 @@ namespace FontResource
         }
     }
 }
-
-Export-ModuleMember -Function Add-FontsToNavContainer
+Export-ModuleMember -Function * -Alias *

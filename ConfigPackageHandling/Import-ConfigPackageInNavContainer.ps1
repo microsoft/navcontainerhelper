@@ -22,8 +22,8 @@ function Import-ConfigPackageInNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageFile)
         Write-Host "Importing configuration package from $configPackageFile (container path)"
-        Import-NAVConfigurationPackageFile -ServerInstance NAV -Path $configPackageFile
+        Import-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Path $configPackageFile
     } -ArgumentList $containerConfigPackageFile
     Write-Host -ForegroundColor Green "Configuration package imported"
 }
-Export-ModuleMember -Function Import-ConfigPackageInNavContainer
+Export-ModuleMember -Function * -Alias *

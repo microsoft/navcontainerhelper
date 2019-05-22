@@ -180,3 +180,24 @@ function Check-NavContainerName {
         }
     }
 }
+
+function AssumeNavContainer {
+    Param
+    (
+        [string]$containerOrImageName = "",
+        [string]$functionName = ""
+    )
+
+    $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        throw "Container $containerOrImageName is not a NAV container"
+    }
+    [System.Version]$version = $inspect.Config.Labels.version
+
+    if ("$functionName" -eq "") {
+        $functionName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name
+    }
+    if ($version.Major -ge 15) {
+        throw "Container $containerOrImageName does not support the function $functionName"
+    }
+}

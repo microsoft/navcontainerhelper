@@ -58,4 +58,4 @@ function Replace-NavServerContainer {
     . $SetupNavContainerScript
     . $setupDesktopScript
 }
-Export-ModuleMember -Function Replace-NavServerContainer
+Export-ModuleMember -Function * -Alias *

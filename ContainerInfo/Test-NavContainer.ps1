@@ -31,4 +31,4 @@ function Test-NavContainer {
         }
     }
 }
-Export-ModuleMember -function Test-NavContainer
+Export-ModuleMember -Function * -Alias *

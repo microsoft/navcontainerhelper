@@ -27,4 +27,4 @@ function Remove-NavContainerSession {
         }
     }
 }
-Export-ModuleMember -function Remove-NavContainerSession
+Export-ModuleMember -Function * -Alias *

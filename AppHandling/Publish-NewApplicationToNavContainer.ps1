@@ -168,4 +168,4 @@ function Publish-NewApplicationToNavContainer {
         [SslVerification]::Enable()
     }
 }
-Export-ModuleMember Publish-NewApplicationToNavContainer
+Export-ModuleMember -Function * -Alias *

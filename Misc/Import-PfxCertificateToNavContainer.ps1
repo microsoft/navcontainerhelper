@@ -41,5 +41,4 @@ function Import-PfxCertificateToNavContainer {
         }
     } -ArgumentList $containerPfxCertificatePath, $pfxPassword, $CertificateStoreLocation, $copied
 }
-
-Export-ModuleMember -Function Import-PfxCertificateToNavContainer
+Export-ModuleMember -Function * -Alias *

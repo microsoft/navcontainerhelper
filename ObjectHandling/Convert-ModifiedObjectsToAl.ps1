@@ -47,6 +47,8 @@ function Convert-ModifiedObjectsToAl {
         [string] $dotNetAddInsPackage 
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $txt2al = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { $txt2al }
     if (!($txt2al)) {
@@ -98,4 +100,4 @@ function Convert-ModifiedObjectsToAl {
     }
     $myAlFolder
 }
-Export-ModuleMember -Function Convert-ModifiedObjectsToAl
+Export-ModuleMember -Function * -Alias *

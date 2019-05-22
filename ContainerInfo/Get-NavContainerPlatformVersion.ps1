@@ -31,4 +31,4 @@ function Get-NavContainerPlatformVersion {
         }
     }
 }
-Export-ModuleMember -function Get-NavContainerPlatformVersion
+Export-ModuleMember -Function * -Alias *

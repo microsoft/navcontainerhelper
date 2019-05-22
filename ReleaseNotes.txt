@@ -1,3 +1,8 @@
+0.7.0.0
+Following functions will NOT work with containers version 15.0 or higher: Compile-ObjectsInNavContainer
+Remove functions Convert-CALExecutionTimeToTimeSpan and Convert-CALTestOutputToAzureDevOps
+
+
 0.6.0.16
 Fix: UnInstall and UnPublishNavContainerApp didn't transfer the value of doNotSaveData to the underlying cmdlet
 Added parameter Force to UnInstall and UnPublishNavContainerApp

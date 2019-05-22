@@ -20,4 +20,4 @@ function Stop-NavContainer {
         return
     }
 }
-Export-ModuleMember -function Stop-NavContainer
+Export-ModuleMember -Function * -Alias *

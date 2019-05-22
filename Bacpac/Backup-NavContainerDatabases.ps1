@@ -86,5 +86,4 @@ function Backup-NavContainerDatabases {
         }
     } -ArgumentList $sqlCredential, $containerbakFolder, $tenant
 }
-Export-ModuleMember Backup-NavContainerDatabases
-
+Export-ModuleMember -Function * -Alias *

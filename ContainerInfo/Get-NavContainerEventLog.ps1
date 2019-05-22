@@ -41,4 +41,4 @@ function Get-NavContainerEventLog {
         }
     }
 }
-Export-ModuleMember -function Get-NavContainerEventLog
+Export-ModuleMember -Function * -Alias *

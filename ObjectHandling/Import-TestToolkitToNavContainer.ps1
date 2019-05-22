@@ -35,6 +35,8 @@ function Import-TestToolkitToNavContainer {
         [string]$ImportAction = "Overwrite"
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
@@ -77,7 +79,7 @@ function Import-TestToolkitToNavContainer {
                                             -ImportAction $ImportAction `
                                             -SynchronizeSchemaChanges No `
                                             -NavServerName localhost `
-                                            -NavServerInstance NAV `
+                                            -NavServerInstance $ServerInstance `
                                             -NavServerManagementPort "$managementServicesPort" `
                                             -Confirm:$false
     
@@ -85,9 +87,9 @@ function Import-TestToolkitToNavContainer {
         }
 
         # Sync after all objects hav been imported
-         Get-NAVTenant NAV | Sync-NavTenant -Mode ForceSync -Force
+         Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
 
     } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
     Write-Host -ForegroundColor Green "TestToolkit successfully imported"
 }
-Export-ModuleMember -Function Import-TestToolkitToNavContainer
+Export-ModuleMember -Function * -Alias *

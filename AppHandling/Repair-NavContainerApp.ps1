@@ -35,4 +35,4 @@ function Repair-NavContainerApp {
         Repair-NavApp @parameters
     } -ArgumentList $appName, $appVersion
 }
-Export-ModuleMember -Function Repair-NavContainerApp
+Export-ModuleMember -Function * -Alias *

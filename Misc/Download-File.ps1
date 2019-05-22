@@ -21,4 +21,4 @@
     Write-Host "Downloading $destinationFile"
     (New-Object System.Net.WebClient).DownloadFile($sourceUrl, $destinationFile)
 }
-Export-ModuleMember Download-File
+Export-ModuleMember -Function * -Alias *

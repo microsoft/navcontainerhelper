@@ -48,4 +48,4 @@ function Get-NavContainerPath {
         return $containerPath
     }
 }
-Export-ModuleMember -function Get-NavContainerPath
+Export-ModuleMember -Function * -Alias *

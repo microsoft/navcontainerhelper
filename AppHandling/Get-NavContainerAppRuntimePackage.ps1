@@ -55,4 +55,4 @@ function Get-NavContainerAppRuntimePackage {
 
     } -ArgumentList $appName, $appVersion, $tenant, $appFile
 }
-Export-ModuleMember -Function Get-NavContainerAppRuntimePackage
+Export-ModuleMember -Function * -Alias *

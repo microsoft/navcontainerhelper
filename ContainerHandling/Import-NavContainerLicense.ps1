@@ -54,4 +54,4 @@ function Import-NavContainerLicense {
     
     }  -ArgumentList $containerLicenseFile
 }
-Export-ModuleMember -function Import-NavContainerLicense
+Export-ModuleMember -Function * -Alias *

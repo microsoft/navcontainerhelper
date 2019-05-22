@@ -251,6 +251,11 @@ function New-NavContainer {
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
+    $dockerOS = docker version -f "{{.Server.Os}}"
+    if ($dockerOS -ne "Windows") {
+        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
+    }
+
     $dockerService = (Get-Service docker -ErrorAction Ignore)
     if (!($dockerService)) {
         throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
@@ -258,11 +263,6 @@ function New-NavContainer {
 
     if ($dockerService.Status -ne "Running") {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
-    }
-
-    $dockerOS = docker version -f "{{.Server.Os}}"
-    if ($dockerOS -ne "Windows") {
-        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
     }
 
     if ($bakFile -and !(Test-Path $bakFile)) {
@@ -522,23 +522,25 @@ function New-NavContainer {
 
     if ($useGenericImage) {
 
-        # Extract files from image if not already done
-        $NavDvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
-        if (!(Test-Path $NavDvdPath)) {
-            Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
-        }
+        if ("$NavDvdPath" -eq "") {
+            # Extract files from image if not already done
+            $NavDvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
+            if (!(Test-Path $NavDvdPath)) {
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
+            }
 
-        $inspect = docker inspect $imageName | ConvertFrom-Json
+            $inspect = docker inspect $imageName | ConvertFrom-Json
 
-        $parameters += @(
-                       "--label nav=$($inspect.Config.Labels.nav)",
-                       "--label version=$($inspect.Config.Labels.version)",
-                       "--label country=$($inspect.Config.Labels.country)",
-                       "--label cu=$($inspect.Config.Labels.cu)"
-                       )
+            $parameters += @(
+                           "--label nav=$($inspect.Config.Labels.nav)",
+                           "--label version=$($inspect.Config.Labels.version)",
+                           "--label country=$($inspect.Config.Labels.country)",
+                           "--label cu=$($inspect.Config.Labels.cu)"
+                           )
 
-        if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
-            $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
+            if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
+                $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
+            }
         }
 
         $imageName = $useGenericImage
@@ -800,7 +802,7 @@ Write-Host "Registering event sources"
         }
      
         ('
-Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
+Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
     $UserId = $_.UserSecurityId
     Write-Host "Assign Premium plan for $($_.Username)"
     $dbName = $DatabaseName
@@ -903,8 +905,8 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
             # Unpublish only, when Apps when present
             # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
-            #Get-NavAppInfo -ServerInstance NAV -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
-            Get-NavAppInfo -ServerInstance NAV -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
         }
     }
 
@@ -1040,4 +1042,4 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
 
     Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
 }
-Export-ModuleMember -function New-NavContainer
+Export-ModuleMember -Function * -Alias *

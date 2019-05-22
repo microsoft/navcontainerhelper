@@ -152,8 +152,8 @@ function Compile-AppInNavContainer {
         } -ArgumentList $containerSymbolsFolder
     }
     $publishedApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
-        Get-NavAppInfo -ServerInstance NAV -tenant $tenant
-        Get-NavAppInfo -ServerInstance NAV -symbolsOnly
+        Get-NavAppInfo -ServerInstance $ServerInstance -tenant $tenant
+        Get-NavAppInfo -ServerInstance $ServerInstance -symbolsOnly
     } -ArgumentList $tenant | Where-Object { $_ -isnot [System.String] }
 
     $applicationApp = $publishedApps | Where-Object { $_.publisher -eq "Microsoft" -and $_.name -eq "Application" }
@@ -308,4 +308,4 @@ function Compile-AppInNavContainer {
     }
     $appFile
 }
-Export-ModuleMember -Function Compile-AppInNavContainer
+Export-ModuleMember -Function * -Alias *

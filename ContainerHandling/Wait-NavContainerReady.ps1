@@ -48,4 +48,4 @@ function Wait-NavContainerReady {
         Write-Host
     }
 }
-Export-ModuleMember -function Wait-NavContainerReady
+Export-ModuleMember -Function * -Alias *

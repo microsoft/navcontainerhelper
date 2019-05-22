@@ -14,7 +14,7 @@ Function Get-NavContainerServerConfiguration{
 
     $ResultObjectArray = @()
     $config = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock{
-        Get-NAVServerInstance -ServerInstance NAV | Get-NAVServerConfiguration -AsXml
+        Get-NAVServerInstance -ServerInstance $ServerInstance | Get-NAVServerConfiguration -AsXml
     }
     
     $Object = New-Object -TypeName PSObject -Property @{
@@ -29,5 +29,4 @@ Function Get-NavContainerServerConfiguration{
     
     Write-Output $ResultObjectArray
 }
-
-Export-ModuleMember -function Get-NavContainerServerConfiguration
+Export-ModuleMember -Function * -Alias *

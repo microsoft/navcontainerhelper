@@ -32,4 +32,4 @@ function Enter-NavContainer {
         }
     }
 }
-Export-ModuleMember -function Enter-NavContainer
+Export-ModuleMember -Function * -Alias *

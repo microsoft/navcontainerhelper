@@ -37,4 +37,4 @@ function  Start-NavContainerAppDataUpgrade {
     } -ArgumentList $appName, $appVersion, $tenant
     Write-Host -ForegroundColor Green "App successfully upgraded"
 }
-Export-ModuleMember -Function Start-NavContainerAppDataUpgrade
+Export-ModuleMember -Function * -Alias *

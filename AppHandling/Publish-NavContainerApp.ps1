@@ -81,7 +81,7 @@ function Publish-NavContainerApp {
         }
 
         Write-Host "Publishing $appFile"
-        Publish-NavApp -ServerInstance NAV -Path $appFile -SkipVerification:$SkipVerification @publishArgs
+        Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
 
         if ($sync -or $install) {
             $appName = (Get-NAVAppInfo -Path $appFile).Name
@@ -94,13 +94,13 @@ function Publish-NavContainerApp {
 
             if ($sync) {
                 Write-Host "Synchronizing $appName on tenant $tenant"
-                Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
-                Sync-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+                Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
+                Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
             }
     
             if ($install) {
                 Write-Host "Installing $appName on tenant $tenant"
-                Install-NavApp -ServerInstance NAV -Name $appName -Version $appVersion -Tenant $tenant
+                Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant
             }
         }
 
@@ -110,4 +110,4 @@ function Publish-NavContainerApp {
     } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode
     Write-Host -ForegroundColor Green "App successfully published"
 }
-Export-ModuleMember -Function Publish-NavContainerApp
+Export-ModuleMember -Function * -Alias *

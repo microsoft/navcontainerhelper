@@ -52,4 +52,4 @@ function Get-BestNavContainerImageName {
     
     $imageName
 }
-Export-ModuleMember -function Get-BestNavContainerImageName
+Export-ModuleMember -Function * -Alias *

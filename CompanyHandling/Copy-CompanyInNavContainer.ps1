@@ -28,8 +28,8 @@ function Copy-CompanyInNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($sourceCompanyName, $destinationCompanyName, $tenant)
         Write-Host "Copying company from $sourceCompanyName to $destinationCompanyName in $tenant"
-        Copy-NAVCompany -ServerInstance NAV -Tenant $tenant -SourceCompanyName $sourceCompanyName -DestinationCompanyName $destinationCompanyName
+        Copy-NAVCompany -ServerInstance $ServerInstance -Tenant $tenant -SourceCompanyName $sourceCompanyName -DestinationCompanyName $destinationCompanyName
     } -ArgumentList $sourceCompanyName, $destinationCompanyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully copied"
 }
-Export-ModuleMember -Function Copy-CompanyInNavContainer
+Export-ModuleMember -Function * -Alias *

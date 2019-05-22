@@ -62,4 +62,4 @@ function Remove-NavContainer {
         }
     }
 }
-Export-ModuleMember -function Remove-NavContainer
+Export-ModuleMember -Function * -Alias *

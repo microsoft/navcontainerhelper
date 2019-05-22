@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Invoke Api in Nav Container
+  Invoke Api in Container
  .Description
-  Invoke an Api in a NAV Container.
+  Invoke an Api in a Container.
  .Parameter containerName
   Name of the container in which you want to invoke an api
  .Parameter tenant
@@ -145,4 +145,4 @@ function Invoke-NavContainerApi {
     }
 
 }
-Export-ModuleMember -Function Invoke-NavContainerApi
+Export-ModuleMember -Function * -Alias *

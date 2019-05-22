@@ -52,4 +52,4 @@ function Copy-FileFromNavContainer {
         }
     }
 }
-Export-ModuleMember Copy-FileFromNavContainer
+Export-ModuleMember -Function * -Alias *

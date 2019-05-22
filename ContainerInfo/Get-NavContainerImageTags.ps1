@@ -74,4 +74,4 @@ function Get-NavContainerImageTags {
     }
 
 }
-Export-ModuleMember -Function Get-NavContainerImageTags
+Export-ModuleMember -Function * -Alias *

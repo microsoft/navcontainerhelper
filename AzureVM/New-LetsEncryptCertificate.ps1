@@ -57,5 +57,4 @@ function New-LetsEncryptCertificate {
     
     Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfxPassword -dnsAlias $dnsAlias
 }
-Export-ModuleMember -Function New-LetsEncryptCertificate
-
+Export-ModuleMember -Function * -Alias *

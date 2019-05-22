@@ -17,8 +17,8 @@
  
 Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
 
-$imageName = "microsoft/dynamics-nav:2018"
-$imageName2 = "microsoft/dynamics-nav:2018-dk"
+$imageName = "microsoft/dynamics-nav:2018-ltsc2019"
+$imageName2 = "microsoft/dynamics-nav:2018-dk-ltsc2019"
 
 $licenseFile = "c:\programdata\navcontainerhelper\license.flf"
 if (!(Test-Path $licenseFile)) {

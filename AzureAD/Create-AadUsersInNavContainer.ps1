@@ -60,4 +60,4 @@ function Create-AadUsersInNavContainer
         }
     }
 }
-Export-ModuleMember -Function Create-AadUsersInNavContainer
+Export-ModuleMember -Function * -Alias *
