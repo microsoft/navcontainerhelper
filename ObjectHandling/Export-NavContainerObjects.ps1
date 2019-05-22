@@ -120,4 +120,4 @@ function Export-NavContainerObjects {
     
     }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo, $ignoreSystemObjects
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Export-NavContainerObjects

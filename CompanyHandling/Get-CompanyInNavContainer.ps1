@@ -22,4 +22,5 @@ function Get-CompanyInNavContainer {
         Get-NavCompany -ServerInstance $ServerInstance -Tenant $tenant
     } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-CompanyInBCContainer -Value Get-CompanyInNavContainer
+Export-ModuleMember -Function Get-CompanyInNavContainer -Alias Get-CompanyInBCContainer

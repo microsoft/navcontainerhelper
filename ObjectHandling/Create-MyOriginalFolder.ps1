@@ -42,4 +42,4 @@ function Create-MyOriginalFolder {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Create-MyOriginalFolder

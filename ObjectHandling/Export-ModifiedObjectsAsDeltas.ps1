@@ -103,4 +103,4 @@ function Export-ModifiedObjectsAsDeltas {
         Copy-Item -Path "$modifiedFolder\*.txt" -Destination $fullObjectsFolder
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Export-ModifiedObjectsAsDeltas

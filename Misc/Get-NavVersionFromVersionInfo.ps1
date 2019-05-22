@@ -18,4 +18,4 @@
 
     return $versions[$verno]
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Get-NavVersionFromVersionInfo

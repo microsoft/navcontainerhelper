@@ -27,4 +27,5 @@ function Get-NavContainerCountry {
         return "$($inspect.Config.Labels.country)"
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerCountry -Value Get-NavContainerCountry
+Export-ModuleMember -Function Get-NavContainerCountry -Alias Get-BCContainerCountry

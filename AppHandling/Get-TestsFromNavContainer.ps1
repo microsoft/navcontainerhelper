@@ -99,4 +99,5 @@ function Get-TestsFromNavContainer {
 
     } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath | ConvertFrom-Json
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
+Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer

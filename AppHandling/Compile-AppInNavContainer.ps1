@@ -308,4 +308,5 @@ function Compile-AppInNavContainer {
     }
     $appFile
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Compile-AppInBCContainer -Value Compile-AppInNavContainer
+Export-ModuleMember -Function Compile-AppInNavContainer -Alias Compile-AppInBCContainer

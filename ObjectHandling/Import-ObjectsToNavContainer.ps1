@@ -81,4 +81,4 @@ function Import-ObjectsToNavContainer {
     } -ArgumentList $containerObjectsFile, $sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied
     Write-Host -ForegroundColor Green "Objects successfully imported"
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Import-ObjectsToNavContainer

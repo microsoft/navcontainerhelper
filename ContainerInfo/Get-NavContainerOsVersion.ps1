@@ -23,4 +23,5 @@ function Get-NavContainerOsVersion {
         return "$($inspect.Config.Labels.osversion)"
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerOsVersion -Value Get-NavContainerOsVersion
+Export-ModuleMember -Function Get-NavContainerOsVersion -Alias Get-BCContainerOsVersion

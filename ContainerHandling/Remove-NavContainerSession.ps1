@@ -27,4 +27,5 @@ function Remove-NavContainerSession {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Remove-BCContainerSession -Value Remove-NavContainerSession
+Export-ModuleMember -Function Remove-NavContainerSession -Alias Remove-BCContainerSession

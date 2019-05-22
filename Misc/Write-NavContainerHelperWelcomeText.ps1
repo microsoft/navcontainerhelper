@@ -99,4 +99,4 @@
     Write-Host -ForegroundColor White "Report issues on http://www.github.com/microsoft/navcontainerhelper/issues."
     Write-Host
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Write-NavContainerHelperWelcomeText

@@ -112,4 +112,5 @@ namespace FontResource
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Add-FontsToBCContainer -Value Add-FontsToNavContainer
+Export-ModuleMember -Function Add-FontsToNavContainer -Alias Add-FontsToBCContainer

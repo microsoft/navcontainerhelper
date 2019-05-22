@@ -26,4 +26,5 @@ function Get-NavContainerNavVersion {
         return "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerNavVersion -Value Get-NavContainerNavVersion
+Export-ModuleMember -Function Get-NavContainerNavVersion -Alias Get-BCContainerNavVersion

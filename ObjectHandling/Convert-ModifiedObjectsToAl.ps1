@@ -100,4 +100,4 @@ function Convert-ModifiedObjectsToAl {
     }
     $myAlFolder
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Convert-ModifiedObjectsToAl

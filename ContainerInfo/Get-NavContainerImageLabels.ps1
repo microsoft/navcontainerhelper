@@ -61,4 +61,5 @@ function Get-NavContainerImageLabels {
     catch {
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerImageLabels -Value Get-NavContainerImageLabels
+Export-ModuleMember -Function Get-NavContainerImageLabels -Alias Get-BCContainerImageLabels

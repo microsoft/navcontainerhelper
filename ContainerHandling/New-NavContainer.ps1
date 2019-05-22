@@ -1126,4 +1126,5 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         Write-Host "File downloads:    $dlUrl"
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name New-BCContainer -Value New-NavContainer
+Export-ModuleMember -Function New-NavContainer -Alias New-BCContainer

@@ -33,4 +33,5 @@ function Get-NavContainerSharedFolders {
         return $sharedFolders
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerSharedFolders -Value Get-NavContainerSharedFolders
+Export-ModuleMember -Function Get-NavContainerSharedFolders -Alias Get-BCContainerSharedFolders

@@ -48,4 +48,5 @@ function Get-NavContainerPath {
         return $containerPath
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerPath -Value Get-NavContainerPath
+Export-ModuleMember -Function Get-NavContainerPath -Alias Get-BCContainerPath

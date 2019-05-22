@@ -186,4 +186,4 @@ function Check-NavContainerHelperPermissions {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Check-NavContainerHelperPermissions

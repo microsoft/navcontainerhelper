@@ -33,4 +33,5 @@ function Install-NAVSipCryptoProviderFromNavContainer {
     RegSvr32 /s $navSip32Path
     RegSvr32 /s $navSip64Path
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Install-NAVSipCryptoProviderFromBCContainer -Value Install-NAVSipCryptoProviderFromNavContainer
+Export-ModuleMember -Function Install-NAVSipCryptoProviderFromNavContainer -Alias Install-NAVSipCryptoProviderFromBCContainer

@@ -50,4 +50,5 @@ function UnInstall-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name UnInstall-BCContainerApp -Value UnInstall-NavContainerApp
+Export-ModuleMember -Function UnInstall-NavContainerApp -Alias UnInstall-BCContainerApp

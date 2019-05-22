@@ -145,4 +145,5 @@ function Run-TestsInNavContainer {
 
     } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Run-TestsInBCContainer -Value Run-TestsInNavContainer
+Export-ModuleMember -Function Run-TestsInNavContainer -Alias Run-TestsInBCContainer

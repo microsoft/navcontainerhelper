@@ -31,4 +31,5 @@ function Get-NavContainerPlatformVersion {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerPlatformVersion -Value Get-NavContainerPlatformVersion
+Export-ModuleMember -Function Get-NavContainerPlatformVersion -Alias Get-BCContainerPlatformVersion

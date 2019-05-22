@@ -31,4 +31,5 @@ function Test-NavContainer {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Test-BCContainer -Value Test-NavContainer
+Export-ModuleMember -Function Test-NavContainer -Alias Test-BCContainer

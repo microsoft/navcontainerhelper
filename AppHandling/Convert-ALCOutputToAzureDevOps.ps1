@@ -67,4 +67,4 @@ Function Convert-AlcOutputToAzureDevOps {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Convert-AlcOutputToAzureDevOps

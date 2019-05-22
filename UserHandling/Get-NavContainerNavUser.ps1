@@ -28,4 +28,5 @@ Param
         } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerBCUser -Value Get-NavContainerNavUser
+Export-ModuleMember -Function Get-NavContainerNavUser -Alias Get-BCContainerBCUser

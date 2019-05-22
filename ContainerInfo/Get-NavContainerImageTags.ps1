@@ -72,6 +72,6 @@ function Get-NavContainerImageTags {
     }
     catch {
     }
-
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerImageTags -Value Get-NavContainerImageTags
+Export-ModuleMember -Function Get-NavContainerImageTags -Alias Get-BCContainerImageTags

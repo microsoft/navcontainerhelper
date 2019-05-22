@@ -31,4 +31,5 @@ function New-CompanyInNavContainer {
     } -ArgumentList $companyName, $evaluationCompany, $tenant
     Write-Host -ForegroundColor Green "Company successfully created"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name New-CompanyInBCContainer -Value New-CompanyInNavContainer
+Export-ModuleMember -Function New-CompanyInNavContainer -Alias New-CompanyInBCContainer

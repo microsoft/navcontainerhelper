@@ -294,4 +294,5 @@ function Export-NavContainerDatabasesAsBacpac {
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Export-BCContainerDatabasesAsBacpac -Value Export-NavContainerDatabasesAsBacpac
+Export-ModuleMember -Function Export-NavContainerDatabasesAsBacpac -Alias Export-BCContainerDatabasesAsBacpac

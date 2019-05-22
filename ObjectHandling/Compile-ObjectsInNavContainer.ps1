@@ -65,4 +65,4 @@ function Compile-ObjectsInNavContainer {
     } -ArgumentList $filter, $sqlCredential, $SynchronizeSchemaChanges
     Write-Host -ForegroundColor Green "Objects successfully compiled"
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Compile-ObjectsInNavContainer

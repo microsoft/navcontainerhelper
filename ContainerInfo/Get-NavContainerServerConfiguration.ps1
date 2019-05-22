@@ -6,7 +6,7 @@
  .Example
   Get-NavContainerServerConfiguration -ContainerName "MyContainer"
 #>
-Function Get-NavContainerServerConfiguration{
+Function Get-NavContainerServerConfiguration {
     Param(
         [Parameter(Mandatory=$true)]
         [String]$ContainerName
@@ -29,4 +29,5 @@ Function Get-NavContainerServerConfiguration{
     
     Write-Output $ResultObjectArray
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerServerConfiguration -Value Get-NavContainerServerConfiguration
+Export-ModuleMember -Function Get-NavContainerServerConfiguration -Alias Get-BCContainerServerConfiguration

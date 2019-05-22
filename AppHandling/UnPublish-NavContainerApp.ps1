@@ -62,4 +62,5 @@ function UnPublish-NavContainerApp {
     } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name UnPublish-BCContainerApp -Value UnPublish-NavContainerApp
+Export-ModuleMember -Function UnPublish-NavContainerApp -Alias UnPublish-BCContainerApp

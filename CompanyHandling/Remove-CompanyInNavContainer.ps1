@@ -28,4 +28,5 @@ function Remove-CompanyInNavContainer {
     } -ArgumentList $companyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully removed"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Remove-CompanyInBCContainer -Value Remove-CompanyInNavContainer
+Export-ModuleMember -Function Remove-CompanyInNavContainer -Alias Remove-CompanyInBCContainer

@@ -52,4 +52,5 @@ function Get-BestNavContainerImageName {
     
     $imageName
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BestBCContainerImageName -Value Get-BestNavContainerImageName
+Export-ModuleMember -Function Get-BestNavContainerImageName -Alias Get-BestBCContainerImageName

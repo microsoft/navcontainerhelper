@@ -44,4 +44,5 @@ function Sync-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant, $Mode
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Sync-BCContainerApp -Value Sync-NavContainerApp
+Export-ModuleMember -Function Sync-NavContainerApp -Alias Sync-BCContainerApp

@@ -35,4 +35,5 @@ function Repair-NavContainerApp {
         Repair-NavApp @parameters
     } -ArgumentList $appName, $appVersion
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Repair-BCContainerApp -Value Repair-NavContainerApp
+Export-ModuleMember -Function Repair-NavContainerApp -Alias Repair-BCContainerApp

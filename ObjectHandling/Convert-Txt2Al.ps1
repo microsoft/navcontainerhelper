@@ -64,4 +64,4 @@ function Convert-Txt2Al {
 
     } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Convert-Txt2Al

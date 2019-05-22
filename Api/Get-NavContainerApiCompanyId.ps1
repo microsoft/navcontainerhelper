@@ -60,4 +60,5 @@ function Get-NavContainerApiCompanyId {
     $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
     $result.value | Select-Object -First 1 -ExpandProperty id
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerApiCompanyId -Value Get-NavContainerApiCompanyId
+Export-ModuleMember -Function Get-NavContainerApiCompanyId -Alias Get-BCContainerApiCompanyId

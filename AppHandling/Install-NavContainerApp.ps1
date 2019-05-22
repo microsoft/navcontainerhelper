@@ -38,4 +38,5 @@ function Install-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant
     Write-Host -ForegroundColor Green "App successfully installed"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Install-BCContainerApp -Value Install-BCContainerApp
+Export-ModuleMember -Function Install-NavContainerApp -Alias Install-BCContainerApp

@@ -73,4 +73,5 @@ function New-NavContainerNavUser {
         -ArgumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name New-BCContainerBCUser -Value New-NavContainerNavUser
+Export-ModuleMember -Function New-NavContainerNavUser -Alias New-BCContainerBCUser

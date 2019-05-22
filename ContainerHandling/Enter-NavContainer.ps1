@@ -32,4 +32,5 @@ function Enter-NavContainer {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Enter-BCContainer -Value Enter-NavContainer
+Export-ModuleMember -Function Enter-NavContainer -Alias Enter-BCContainer

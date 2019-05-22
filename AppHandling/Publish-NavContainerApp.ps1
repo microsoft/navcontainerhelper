@@ -110,4 +110,5 @@ function Publish-NavContainerApp {
     } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode
     Write-Host -ForegroundColor Green "App successfully published"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Publish-BCContainerApp -Value Publish-NavContainerApp
+Export-ModuleMember -Function Publish-NavContainerApp -Alias Publish-BCContainerApp

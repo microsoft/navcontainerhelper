@@ -26,4 +26,5 @@ function Start-NavContainer {
         Wait-NavContainerReady -containerName $containerName -timeout $timeout
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Start-BCContainer -Value Start-NavContainer
+Export-ModuleMember -Function Start-NavContainer -Alias Start-BCContainer

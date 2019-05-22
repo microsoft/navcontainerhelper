@@ -53,4 +53,4 @@
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function New-DesktopShortcut

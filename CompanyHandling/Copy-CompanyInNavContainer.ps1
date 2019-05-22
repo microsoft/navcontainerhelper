@@ -32,4 +32,5 @@ function Copy-CompanyInNavContainer {
     } -ArgumentList $sourceCompanyName, $destinationCompanyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully copied"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Copy-CompanyInBCContainer -Value Copy-CompanyInNavContainer
+Export-ModuleMember -Function Copy-CompanyInNavContainer -Alias Copy-CompanyInBCContainer

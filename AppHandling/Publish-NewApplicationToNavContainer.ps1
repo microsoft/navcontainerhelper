@@ -35,6 +35,8 @@ function Publish-NewApplicationToNavContainer {
         [switch] $useCleanDatabase
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     Add-Type -AssemblyName System.Net.Http
 
     $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
@@ -168,4 +170,4 @@ function Publish-NewApplicationToNavContainer {
         [SslVerification]::Enable()
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Publish-NewApplicationToNavContainer

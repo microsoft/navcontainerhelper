@@ -38,4 +38,4 @@ function Renew-LetsEncryptCertificate {
     Write-Host "Downloading $certificatePfxFilename"
     Get-ACMECertificate -CertificateRef $certAlias -ExportPkcs12 $certificatePfxFilename -CertificatePassword ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($certificatePfxPassword)))
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Renew-LetsEncryptCertificate

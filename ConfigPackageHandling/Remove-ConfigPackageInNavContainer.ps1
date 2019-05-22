@@ -24,4 +24,5 @@ function Remove-ConfigPackageInNavContainer {
     } -ArgumentList $configPackageCode
     Write-Host -ForegroundColor Green "Configuration package removed"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Remove-ConfigPackageInBCContainer -Value Remove-ConfigPackageInNavContainer
+Export-ModuleMember -Function Remove-ConfigPackageInNavContainer -Alias Remove-ConfigPackageInBCContainer

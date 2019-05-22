@@ -20,4 +20,5 @@ function Stop-NavContainer {
         return
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Stop-BCContainer -Value Stop-NavContainer
+Export-ModuleMember -Function Stop-NavContainer -Alias Stop-BCContainer

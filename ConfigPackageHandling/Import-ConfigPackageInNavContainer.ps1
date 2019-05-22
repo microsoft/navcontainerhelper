@@ -26,4 +26,5 @@ function Import-ConfigPackageInNavContainer {
     } -ArgumentList $containerConfigPackageFile
     Write-Host -ForegroundColor Green "Configuration package imported"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Import-ConfigPackageInBCContainer -Value Import-ConfigPackageInNavContainer
+Export-ModuleMember -Function Import-ConfigPackageInNavContainer -Alias Import-ConfigPackageInBCContainer

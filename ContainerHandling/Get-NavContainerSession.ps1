@@ -62,4 +62,5 @@ function Get-NavContainerSession {
         $sessions[$containerId]
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerSession -Value Get-NavContainerSession
+Export-ModuleMember -Function Get-NavContainerSession -Alias Get-BCContainerSession

@@ -44,4 +44,5 @@ function Get-NavContainerAppInfo {
         Get-NavAppInfo @inArgs
     } -ArgumentList $args
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Get-BCContainerAppInfo -Value Get-NavContainerAppInfo
+Export-ModuleMember -Function Get-NavContainerAppInfo -Alias Get-BCContainerAppInfo

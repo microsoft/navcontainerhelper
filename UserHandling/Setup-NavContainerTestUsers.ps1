@@ -76,4 +76,5 @@ Param
         UnPublish-NavContainerApp -containerName $containerName -appName CreateTestUsers -unInstall
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Setup-BCContainerTestUsers -Value Setup-NavContainerTestUsers
+Export-ModuleMember -Function Setup-NavContainerTestUsers -Alias Setup-BCContainerTestUsers

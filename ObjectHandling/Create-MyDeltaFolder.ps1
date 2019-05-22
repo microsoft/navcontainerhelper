@@ -61,4 +61,4 @@ function Create-MyDeltaFolder {
         }
     } -ArgumentList $containerModifiedFolder, $containerMyOriginalFolder, $containerMyDeltaFolder, $useNewSyntax
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Create-MyDeltaFolder

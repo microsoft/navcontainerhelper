@@ -39,6 +39,8 @@ function Invoke-NavContainerCodeunit {
         [string]$TimeZone
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
@@ -73,4 +75,4 @@ function Invoke-NavContainerCodeunit {
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Invoke-NavContainerCodeunit

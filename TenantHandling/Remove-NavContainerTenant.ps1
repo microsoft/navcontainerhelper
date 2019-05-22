@@ -46,4 +46,5 @@ function Remove-NavContainerTenant {
     } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Remove-BCContainerTenant -Value Remove-NavContainerTenant
+Export-ModuleMember -Function Remove-NavContainerTenant -Alias Remove-BCContainerTenant

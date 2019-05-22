@@ -25,4 +25,4 @@
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Remove-DesktopShortcut

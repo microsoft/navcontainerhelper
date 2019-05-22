@@ -99,4 +99,5 @@ Set-Location $runPath
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Invoke-ScriptInBCContainer -Value Invoke-ScriptInNavContainer
+Export-ModuleMember -Function Invoke-ScriptInNavContainer -Alias Invoke-ScriptInBCContainer

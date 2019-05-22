@@ -145,4 +145,5 @@ function Invoke-NavContainerApi {
     }
 
 }
-Export-ModuleMember -Function * -Alias *
+Set-Alias -Name Invoke-BCContainerApi -Value Invoke-NavContainerApi
+Export-ModuleMember -Function Invoke-NavContainerApi -Alias Invoke-BCContainerApi

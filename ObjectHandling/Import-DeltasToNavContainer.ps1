@@ -72,4 +72,4 @@ function Import-DeltasToNavContainer {
         }
     }
 }
-Export-ModuleMember -Function * -Alias *
+Export-ModuleMember -Function Import-DeltasToNavContainer
