@@ -100,7 +100,7 @@
  .Parameter PublicDnsName
   Use this parameter to specify which public dns name is pointing to this container.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
- .Parameter $useTraefik
+ .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Example
   New-NavContainer -accept_eula -containerName test
@@ -278,29 +278,29 @@ function New-NavContainer {
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerClientVersion"
 
-    $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
-    if ($useTraefik -and -not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
-        throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
-    }
+    if ($useTraefik) {
+        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
+            throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
+        }
 
-    if ($useTraefik -and (
-        $PublishPorts.Count -gt 0 -or
-        $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
-        $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort
-        )) {
-        throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
-    }
+        if ($PublishPorts.Count -gt 0 -or
+            $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
+            $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort) {
+            throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
+        }
 
-    if ($useSSL -and $useTraefik) {
-        Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
-        $useSSL = $false
-    }
+        if ($useSSL) {
+            Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+            $useSSL = $false
+        }
 
-    if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
-        $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
-    }
-    if (-not $PublicDnsName -and $useTraefik) {
-        throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
+        if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
+            $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
+        }
+        if (-not $PublicDnsName) {
+            throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
+        }
     }
 
     $parameters = @()
@@ -667,7 +667,7 @@ function New-NavContainer {
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
     if ($useTraefik) {
-        Write-Host "Add specific CheckHealth.ps1 to enable Traefik support"
+        Write-Host "Adding special CheckHealth.ps1 to enable Traefik support"
         $myscripts += (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
     }
 
