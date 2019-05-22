@@ -876,7 +876,8 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $soapPart = "/${containerName}soap"
         $devPart = "/${containerName}dev"
         $dlPart = "/${containerName}dl"
-        $webclientPart = "/$containerName/"
+        $webclientPart = "/$containerName"
+
         $baseUrl = "https://$publicDnsName"
         $restUrl = $baseUrl + $restPart
         $soapUrl = $baseUrl + $soapPart
@@ -884,33 +885,47 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $devUrl = $baseUrl + $devPart
         $dlUrl = $baseUrl + $dlPart
 
-        $customNavSettings = "PublicODataBaseUrl=$restUrl,PublicSOAPBaseUrl=$soapUrl,PublicWebBaseUrl=$webclientUrl"
+        $customNavSettings = "PublicODataBaseUrl=$restUrl/odata,PublicSOAPBaseUrl=$soapUrl/ws,PublicWebBaseUrl=$webclientUrl"
+
         $webclientRule="PathPrefix:$webclientPart"
-        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /NAV/WS/`$1"
-        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /NAV/OData/`$1"
-        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /NAV/`$1"
+        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /NAV`$1"
+        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /NAV`$1"
+        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /NAV`$1"
         $dlRule="PathPrefixStrip:${dlPart}"
+
         $traefikHostname = $publicDnsName.Substring(0, $publicDnsName.IndexOf("."))
 
-        $additionalTraefikParameters = @("--hostname $traefikHostname",
-                    "-e webserverinstance=$containerName",
-                    "-e publicdnsname=$publicDnsName", 
-                    "-e customNavSettings=$customNavSettings",
-                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                    "-l `"traefik.web.port=80`"",
-                    "-l `"traefik.soap.frontend.rule=$soapRule`"", 
-                    "-l `"traefik.soap.port=7047`"",
-                    "-l `"traefik.rest.frontend.rule=$restRule`"", 
-                    "-l `"traefik.rest.port=7048`"",
-                    "-l `"traefik.dev.frontend.rule=$devRule`"", 
-                    "-l `"traefik.dev.port=7049`"",
-                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
-                    "-l `"traefik.dl.port=8080`"",
-                    "-l `"traefik.enable=true`"",
-                    "-l `"traefik.frontend.entryPoints=https`""
-        )
+        $added = $false
+        $cnt = $additionalParameters.Count-1
+        if ($cnt -ge 0) {
+            0..$cnt | % {
+                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
+                if ($idx -gt 0) {
+                    $additionalParameters[$_] = "$($additionalParameters[$_]),$customNavSettings"
+                    $added = $true
+                }
+            }
+        }
+        if (-not $added) {
+            $additionalParameters += @("-e customNavSettings=$customNavSettings")
+        }
 
-        $additionalTraefikParameters | ForEach-Object { $additionalParameters += $_ }
+        $additionalParameters += @("--hostname $traefikHostname",
+                                   "-e webserverinstance=$containerName",
+                                   "-e publicdnsname=$publicDnsName", 
+                                   "-l `"traefik.web.frontend.rule=$webclientRule`"", 
+                                   "-l `"traefik.web.port=80`"",
+                                   "-l `"traefik.soap.frontend.rule=$soapRule`"", 
+                                   "-l `"traefik.soap.port=7047`"",
+                                   "-l `"traefik.rest.frontend.rule=$restRule`"", 
+                                   "-l `"traefik.rest.port=7048`"",
+                                   "-l `"traefik.dev.frontend.rule=$devRule`"", 
+                                   "-l `"traefik.dev.port=7049`"",
+                                   "-l `"traefik.dl.frontend.rule=$dlRule`"", 
+                                   "-l `"traefik.dl.port=8080`"",
+                                   "-l `"traefik.enable=true`"",
+                                   "-l `"traefik.frontend.entryPoints=https`""
+        )
     }
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
