@@ -32,6 +32,14 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     }
 }
 
+if ($isAdministrator) {
+    $RegPath = 'HKLM:\SYSTEM\CurrentControlSet\Services\EventLog\Application\MicrosoftDynamicsNavServer$NAV'
+    if (-not(Test-Path -Path $RegPath)){
+        New-Item -Path $RegPath -Force | Out-Null
+        New-ItemProperty -Path $RegPath -Name 'EventMessageFile' -Value "$env:windir\Microsoft.NET\Framework64\v4.0.30319\EventLogMessages.dll" -PropertyType ExpandString -Force
+    }
+}
+
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
 $sessions = @{}
