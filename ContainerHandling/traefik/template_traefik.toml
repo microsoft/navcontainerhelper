@@ -1,0 +1,28 @@
+debug = false
+defaultEntryPoints = ["https","http"]
+
+[web]
+address = ":8080"
+
+[docker]
+domain = "$PublicDnsName"
+watch = true
+endpoint = "npipe:////./pipe/docker_engine"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+
+[acme]
+email = "$ContactEMailForLetsEncrypt"
+storage = "c:/etc/traefik/acme.json"
+entryPoint = "https"
+[acme.httpChallenge]
+entryPoint = "http"
+[[acme.domains]]
+   main = "$PublicDnsName"
