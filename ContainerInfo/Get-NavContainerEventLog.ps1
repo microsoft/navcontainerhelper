@@ -41,4 +41,5 @@ function Get-NavContainerEventLog {
         }
     }
 }
-Export-ModuleMember -function Get-NavContainerEventLog
+Set-Alias -Name Get-BCContainerEventLog -Value Get-NavContainerEventLog
+Export-ModuleMember -Function Get-NavContainerEventLog -Alias Get-BCContainerEventLog

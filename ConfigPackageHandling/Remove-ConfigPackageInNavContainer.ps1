@@ -20,8 +20,9 @@ function Remove-ConfigPackageInNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageCode)
         Write-Host "Removing configuration package $configPackageCode"
-        Remove-NAVConfigurationPackageFile -ServerInstance NAV -Code $configPackageCode -Force
+        Remove-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Code $configPackageCode -Force
     } -ArgumentList $configPackageCode
     Write-Host -ForegroundColor Green "Configuration package removed"
 }
-Export-ModuleMember -Function Remove-ConfigPackageInNavContainer
+Set-Alias -Name Remove-ConfigPackageInBCContainer -Value Remove-ConfigPackageInNavContainer
+Export-ModuleMember -Function Remove-ConfigPackageInNavContainer -Alias Remove-ConfigPackageInBCContainer

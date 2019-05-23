@@ -78,14 +78,26 @@ function Get-TestsFromNavContainer {
             }
         }
 
-        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath        try {            if ($disableSslVerification) {                Disable-SslVerification            }                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
+
+        try {
+            if ($disableSslVerification) {
+                Disable-SslVerification
+            }
+            
+            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+
             Get-Tests -clientContext $clientContext -TestSuite $testSuite -TestCodeunit $testCodeunit
 
         }
         finally {
-            if ($disableSslVerification) {                Enable-SslVerification            }            Remove-ClientContext -clientContext $clientContext
+            if ($disableSslVerification) {
+                Enable-SslVerification
+            }
+            Remove-ClientContext -clientContext $clientContext
         }
 
     } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath | ConvertFrom-Json
 }
-Export-ModuleMember -Function Get-TestsFromNavContainer
+Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
+Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer

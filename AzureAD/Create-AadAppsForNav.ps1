@@ -185,4 +185,5 @@ function Create-AadAppsForNav
 
     $AdProperties
 }
-Export-ModuleMember -Function Create-AadAppsForNav
+Set-Alias -Name Create-AadAppsForBC -Value Create-AadAppsForNav
+Export-ModuleMember -Function Create-AadAppsForNav -Alias Create-AadAppsForBC

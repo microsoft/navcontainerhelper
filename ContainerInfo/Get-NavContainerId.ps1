@@ -34,4 +34,5 @@ function Get-NavContainerId {
         $id
     }
 }
-Export-ModuleMember -function Get-NavContainerId
+Set-Alias -Name Get-BCContainerId -Value Get-NavContainerId
+Export-ModuleMember -Function Get-NavContainerId -Alias Get-BCContainerId

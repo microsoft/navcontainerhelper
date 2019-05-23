@@ -17,4 +17,5 @@ function Get-NavContainerName {
 
     docker ps --format='{{.Names}}' -a --filter "id=$containerId"
 }
-Export-ModuleMember -function Get-NavContainerName
+Set-Alias -Name Get-BCContainerName -Value Get-NavContainerName
+Export-ModuleMember -Function Get-NavContainerName -Alias Get-BCContainerName

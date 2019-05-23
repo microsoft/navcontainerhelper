@@ -23,4 +23,5 @@ function Get-NavContainerImageName {
         return "$($inspect.Config.Image)"
     }
 }
-Export-ModuleMember -function Get-NavContainerImageName
+Set-Alias -Name Get-BCContainerImageName -Value Get-NavContainerImageName
+Export-ModuleMember -Function Get-NavContainerImageName -Alias Get-BCContainerImageName

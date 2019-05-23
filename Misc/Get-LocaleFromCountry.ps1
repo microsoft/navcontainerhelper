@@ -42,4 +42,4 @@
 
     return $locales[$country]
 }
-Export-ModuleMember Get-LocaleFromCountry
+Export-ModuleMember -Function Get-LocaleFromCountry

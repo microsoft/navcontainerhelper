@@ -24,8 +24,9 @@ function Remove-CompanyInNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($companyName, $tenant)
         Write-Host "Removing company $companyName from $tenant"
-        Remove-NavCompany -ServerInstance NAV -Tenant $tenant -CompanyName $companyName -ForceImmediateDataDeletion -Force
+        Remove-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -ForceImmediateDataDeletion -Force
     } -ArgumentList $companyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully removed"
 }
-Export-ModuleMember -Function Remove-CompanyInNavContainer
+Set-Alias -Name Remove-CompanyInBCContainer -Value Remove-CompanyInNavContainer
+Export-ModuleMember -Function Remove-CompanyInNavContainer -Alias Remove-CompanyInBCContainer

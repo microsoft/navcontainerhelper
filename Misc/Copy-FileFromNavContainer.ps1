@@ -52,4 +52,5 @@ function Copy-FileFromNavContainer {
         }
     }
 }
-Export-ModuleMember Copy-FileFromNavContainer
+Set-Alias -Name Copy-FileFromBCContainer -Value Copy-FileFromNavContainer
+Export-ModuleMember -Function Copy-FileFromNavContainer -Alias Copy-FileFromBCContainer

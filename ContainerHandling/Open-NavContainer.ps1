@@ -21,4 +21,5 @@ function Open-NavContainer {
         Start-Process "cmd.exe" @("/C";"docker exec -it $containerName powershell -noexit C:\Run\prompt.ps1")
     }
 }
-Export-ModuleMember -function Open-NavContainer
+Set-Alias -Name Open-BCContainer -Value Open-NavContainer
+Export-ModuleMember -Function Open-NavContainer -Alias Open-BCContainer

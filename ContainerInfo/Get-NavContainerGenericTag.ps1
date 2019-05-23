@@ -26,4 +26,5 @@ function Get-NavContainerGenericTag {
         return "$($inspect.Config.Labels.tag)"
     }
 }
-Export-ModuleMember -function Get-NavContainerGenericTag
+Set-Alias -Name Get-BCContainerGenericTag -Value Get-NavContainerGenericTag
+Export-ModuleMember -Function Get-NavContainerGenericTag -Alias Get-BCContainerGenericTag

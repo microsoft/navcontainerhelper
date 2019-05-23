@@ -14,6 +14,8 @@ function Generate-SymbolsInNavContainer {
         [string]$containerName
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($containerName)
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)

@@ -28,6 +28,8 @@ function Create-MyDeltaFolder {
         [switch]$useNewSyntax
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $containerModifiedFolder = Get-NavContainerPath -containerName $containerName -path $modifiedFolder -throw
     $containerMyOriginalFolder = Get-NavContainerPath -containerName $containerName -path $myOriginalFolder -throw
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
@@ -59,4 +61,4 @@ function Create-MyDeltaFolder {
         }
     } -ArgumentList $containerModifiedFolder, $containerMyOriginalFolder, $containerMyDeltaFolder, $useNewSyntax
 }
-Export-ModuleMember -function Create-MyDeltaFolder
+Export-ModuleMember -Function Create-MyDeltaFolder

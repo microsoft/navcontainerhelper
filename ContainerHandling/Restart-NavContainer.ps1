@@ -37,4 +37,5 @@ function Restart-NavContainer {
         Wait-NavContainerReady -containerName $containerName -timeout $timeout
     }
 }
-Export-ModuleMember -function Restart-NavContainer
+Set-Alias -Name Restart-BCContainer -Value Restart-NavContainer
+Export-ModuleMember -Function Restart-NavContainer -Alias Restart-BCContainer

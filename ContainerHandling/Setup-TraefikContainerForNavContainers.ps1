@@ -57,4 +57,5 @@ function Setup-TraefikContainerForNavContainers {
         docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine stefanscherer/traefik-windows --docker.endpoint=npipe:////./pipe/docker_engine
     }
 }
-Export-ModuleMember -function Setup-TraefikContainerForNavContainers
+Set-Alias -Name Setup-TraefikContainerForBCContainers -Value Setup-TraefikContainerForNavContainers
+Export-ModuleMember -Function Setup-TraefikContainerForNavContainers -Alias Setup-TraefikContainerForBCContainers

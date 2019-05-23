@@ -6,6 +6,8 @@
   Adds shortcut on the desktop for Web Client and Container PowerShell prompt
  .Parameter accept_eula
   Switch, which you need to specify if you accept the eula for running Nav on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
+ .Parameter accept_outdated
+  Specify accept_outdated to ignore error when running containers which are older than 90 days
  .Parameter containerName
   Name of the new Nav container (if the container already exists it will be replaced)
  .Parameter imageName
@@ -13,23 +15,29 @@
  .Parameter navDvdPath
   When you are spinning up a Generic image, you need to specify the NAV DVD path
  .Parameter navDvdCountry
-  When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.)
+  When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.) (default is w1)
+ .Parameter navDvdVersion
+  When you are spinning up a Generic image, you can specify the version (default is the version of the executables)
+ .Parameter navDvdPlatform
+  When you are spinning up a Generic image, you can specify the platform version (default is the version of the executables)
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
  .Parameter credential
   Username and Password for the NAV Container
+ .Parameter AuthenticationEmail
+  AuthenticationEmail of the admin user of NAV
  .Parameter memoryLimit
   Memory limit for the container (default is unlimited for Windows Server host else 4G)
  .Parameter isolation
   Isolation mode for the container (default is process for Windows Server host else hyperv)
- .Parameter AuthenticationEmail
-  AuthenticationEmail of the admin user of NAV
  .Parameter databaseServer
   Name of database server when using external SQL Server (omit if using database inside the container)
  .Parameter databaseInstance
   Name of database instance when using external SQL Server (omit if using database inside the container)
  .Parameter databaseName
   Name of database to connect to when using external SQL Server (omit if using database inside the container)
+ .Parameter bakFile
+  Path or Secure Url of a bakFile if you want to restore a database in the container
  .Parameter databaseCredential
   Credentials for the database connection when using external SQL Server (omit if using database inside the container)
  .Parameter shortcuts
@@ -39,19 +47,27 @@
  .Parameter useSSL
   Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter includeCSide
-  Include this switch if you want to have Windows Client and CSide development environment available on the host
+  Include this switch if you want to have Windows Client and CSide development environment available on the host. This switch will also export all objects as txt for object handling functions unless doNotExportObjectsAsText is set.
+ .Parameter includeAL
+  Include this switch if you want to have all objects exported as al for code merging and comparing functions unless doNotExportObjectsAsText is set.
  .Parameter enableSymbolLoading
   Include this switch if you want to do development in both CSide and VS Code to have symbols automatically generated for your changes in CSide
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
- .Parameter assignPremiumPlan
-  Assign Premium plan to admin user
  .Parameter alwaysPull
   Always pull latest version of the docker image
  .Parameter useBestContainerOS
   Use the best Container OS based on the Host OS
+ .Parameter assignPremiumPlan
+  Assign Premium plan to admin user
  .Parameter multitenant
   Setup container for multitenancy by adding this switch
+ .Parameter clickonce
+  Specify the clickonce switch if you want to have a clickonce version of the Windows Client created
+ .Parameter includeTestToolkit
+  Specify this parameter to add the test toolkit and the standard tests to the container
+ .Parameter includeTestLibrariesOnly
+  Specify this parameter to avoid including the standard tests when adding includeTestToolkit
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
@@ -62,29 +78,29 @@
   This allows you to transfer an additional number of parameters to the docker run
  .Parameter myscripts
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
- .Parameter $TimeZoneId,
+ .Parameter TimeZoneId,
   This parameter specifies the timezone in which you want to start the Container.
- .Parameter $WebClientPort,
+ .Parameter WebClientPort,
   Use this parameter to specify which port to use for the WebClient. Default is 80 if http and 443 if https.
- .Parameter $FileSharePort,
+ .Parameter FileSharePort,
   Use this parameter to specify which port to use for the File Share. Default is 8080.
- .Parameter $ManagementServicesPort,
+ .Parameter ManagementServicesPort,
   Use this parameter to specify which port to use for Management Services. Default is 7045.
- .Parameter $ClientServicesPort,
+ .Parameter ClientServicesPort,
   Use this parameter to specify which port to use for Client Services. Default is 7046.
- .Parameter $SoapServicesPort,
+ .Parameter SoapServicesPort,
   Use this parameter to specify which port to use for Soap Web Services. Default is 7047.
- .Parameter $ODataServicesPort,
+ .Parameter ODataServicesPort,
   Use this parameter to specify which port to use for OData Web Services. Default is 7048.
- .Parameter $DeveloperServicesPort,
+ .Parameter DeveloperServicesPort,
   Use this parameter to specify which port to use for Developer Services. Default is 7049.
- .Parameter $PublishPorts,
+ .Parameter PublishPorts,
   Use this parameter to specify the ports you want to publish on the host. Default is to NOT publish any ports.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
- .Parameter $PublicDnsName
+ .Parameter PublicDnsName
   Use this parameter to specify which public dns name is pointing to this container.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
- .Parameter $useTraefik
+ .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Example
   New-NavContainer -accept_eula -containerName test
@@ -117,6 +133,7 @@ function New-NavContainer {
         [string]$databaseServer = "",
         [string]$databaseInstance = "",
         [string]$databaseName = "",
+        [string]$bakFile = "",
         [System.Management.Automation.PSCredential]$databaseCredential = $null,
         [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
         [string]$shortcuts='Desktop',
@@ -128,6 +145,7 @@ function New-NavContainer {
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
         [switch]$useBestContainerOS,
+        [string]$useGenericImage,
         [switch]$assignPremiumPlan,
         [switch]$multitenant,
         [switch]$clickonce,
@@ -236,6 +254,11 @@ function New-NavContainer {
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
+    $dockerOS = docker version -f "{{.Server.Os}}"
+    if ($dockerOS -ne "Windows") {
+        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
+    }
+
     $dockerService = (Get-Service docker -ErrorAction Ignore)
     if (!($dockerService)) {
         throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
@@ -245,9 +268,8 @@ function New-NavContainer {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
     }
 
-    $dockerOS = docker version -f "{{.Server.Os}}"
-    if ($dockerOS -ne "Windows") {
-        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
+    if ($bakFile -and !(Test-Path $bakFile)) {
+        throw "Database backup $bakFile doesn't exist"
     }
 
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
@@ -256,29 +278,29 @@ function New-NavContainer {
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerClientVersion"
 
-    $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
-    if ($useTraefik -and -not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
-        throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
-    }
+    if ($useTraefik) {
+        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
+            throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
+        }
 
-    if ($useTraefik -and (
-        $PublishPorts.Count -gt 0 -or
-        $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
-        $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort
-        )) {
-        throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
-    }
+        if ($PublishPorts.Count -gt 0 -or
+            $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
+            $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort) {
+            throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
+        }
 
-    if ($useSSL -and $useTraefik) {
-        Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
-        $useSSL = $false
-    }
+        if ($useSSL) {
+            Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+            $useSSL = $false
+        }
 
-    if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
-        $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
-    }
-    if (-not $PublicDnsName -and $useTraefik) {
-        throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
+        if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
+            $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
+        }
+        if (-not $PublicDnsName) {
+            throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
+        }
     }
 
     $parameters = @()
@@ -286,13 +308,18 @@ function New-NavContainer {
     $devCountry = ""
     $navVersion = ""
     if ($imageName -eq "") {
-        $alwaysPull = $true
         if ("$navDvdPath" -ne "") {
-            $imageName = "microsoft/dynamics-nav:generic"
+            if ($useGenericImage) {
+                $imageName = $useGenericImage
+            }
+            else {
+                $imageName = "microsoft/dynamics-nav:generic"
+            }
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
         } else {
-            $imageName = "microsoft/dynamics-nav:latest"
+            $imageName = "mcr.microsoft.com/businesscentral/onprem"
+            $alwaysPull = $true
         }
     }
 
@@ -307,7 +334,7 @@ function New-NavContainer {
         $imageName = $bestImageName
     }
     
-    if (!($alwaysPull)) {
+    if (!$alwaysPull) {
 
         $imageExists = $false
         $bestImageExists = $false
@@ -393,6 +420,12 @@ function New-NavContainer {
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+    if ($bakFile) {
+        $containerBakFile = Join-Path $containerFolder "database.bak"
+        $parameters += "--env bakfile=$containerBakFile"
+        Copy-Item -Path $bakFile -Destination $containerBakFile
+    }
 
     if ($navDvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
 
@@ -498,15 +531,26 @@ function New-NavContainer {
     if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
-        throw "The container operating system is newer than the host operating system."
+
+        throw "The container operating system is newer than the host operating system, cannot use image"
     
-    } elseif ($hostOsVersion.Major -ne $containerOsversion.Major -or $hostOsVersion.Minor -ne $containerOsversion.Minor -or $hostOsVersion.Build -ne $containerOsversion.Build) {
+    } elseif ("$useGenericImage" -eq "" -and
+              ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+               $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+               $hostOsVersion.Build -ne $containerOsversion.Build)) {
 
         if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
             
             # There is a generic image, which is better than the selected image
             Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
+            $useGenericImage = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
 
+        }
+    }
+
+    if ($useGenericImage) {
+
+        if ("$NavDvdPath" -eq "") {
             # Extract files from image if not already done
             $NavDvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
             if (!(Test-Path $NavDvdPath)) {
@@ -525,19 +569,52 @@ function New-NavContainer {
             if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
                 $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
             }
-
-            $imageName = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
-            DockerDo -command pull -imageName $imageName | Out-Null
-
-            if ("$hostOs" -ne "$bestGenericContainerOs" -and "$isolation" -eq "") {
-                Write-Host "The best generic container operating system does not match the host operating system, forcing hyperv isolation."
-                $isolation = "hyperv"
-            }
-
-        } elseif ($isolation -ne "hyperv" -and "$isolation" -eq "") {
-            Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
-            $isolation = "hyperv"
         }
+
+        $imageName = $useGenericImage
+        Write-Host "Using generic image $imageName"
+
+        if (!$alwaysPull) {
+            $alwaysPull = $true
+            docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+                if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $alwaysPull = $false }
+            }
+        }
+
+        if ($alwaysPull) {
+            Write-Host "Pulling image $imageName"
+            DockerDo -command pull -imageName $imageName | Out-Null
+        }
+
+        $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+    
+        if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+            $containerOs = "ltsc2016"
+        } elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+            $containerOs = "1703"
+        } elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+            $containerOs = "1709"
+        } elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+            $containerOs = "1803"
+        } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+            $containerOs = "ltsc2019"
+        } elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+            $containerOs = "1903"
+        } else {
+            $containerOs = "unknown"
+        }
+    
+        Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
+    }
+
+    if ("$isolation" -eq "" -and ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+                                  $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+                                  $hostOsVersion.Build -ne $containerOsversion.Build -or 
+                                  $hostOsVersion.Revision -ne $containerOsversion.Revision)) {
+        
+        Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
+        $isolation = "hyperv"
+
     }
 
     $locale = Get-LocaleFromCountry $devCountry
@@ -590,7 +667,7 @@ function New-NavContainer {
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
     if ($useTraefik) {
-        Write-Host "Add specific CheckHealth.ps1 to enable Traefik support"
+        Write-Host "Adding special CheckHealth.ps1 to enable Traefik support"
         $myscripts += (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
     }
 
@@ -706,13 +783,19 @@ if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $da
         }
         New-Item $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
         
+        if ($useTraefik) {
+            $winclientServer = $containerName
+        }
+        else {
+            $winclientServer = $PublicDnsName
+        }
         ('
 if ($restartingInstance -eq $false) {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
     $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
     $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
     [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$winclientServer+'"
     $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
     if ($multitenant) {
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
@@ -758,7 +841,7 @@ Write-Host "Registering event sources"
         }
      
         ('
-Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
+Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
     $UserId = $_.UserSecurityId
     Write-Host "Assign Premium plan for $($_.Username)"
     $dbName = $DatabaseName
@@ -799,7 +882,8 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         $soapPart = "/${containerName}soap"
         $devPart = "/${containerName}dev"
         $dlPart = "/${containerName}dl"
-        $webclientPart = "/$containerName/"
+        $webclientPart = "/$containerName"
+
         $baseUrl = "https://$publicDnsName"
         $restUrl = $baseUrl + $restPart
         $soapUrl = $baseUrl + $soapPart
@@ -807,33 +891,47 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         $devUrl = $baseUrl + $devPart
         $dlUrl = $baseUrl + $dlPart
 
-        $customNavSettings = "PublicODataBaseUrl=$restUrl,PublicSOAPBaseUrl=$soapUrl,PublicWebBaseUrl=$webclientUrl"
+        $customNavSettings = "PublicODataBaseUrl=$restUrl/odata,PublicSOAPBaseUrl=$soapUrl/ws,PublicWebBaseUrl=$webclientUrl"
+
         $webclientRule="PathPrefix:$webclientPart"
-        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /NAV/WS/`$1"
-        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /NAV/OData/`$1"
-        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /NAV/`$1"
+        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /NAV`$1"
+        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /NAV`$1"
+        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /NAV`$1"
         $dlRule="PathPrefixStrip:${dlPart}"
+
         $traefikHostname = $publicDnsName.Substring(0, $publicDnsName.IndexOf("."))
 
-        $additionalTraefikParameters = @("--hostname $traefikHostname",
-                    "-e webserverinstance=$containerName",
-                    "-e publicdnsname=$publicDnsName", 
-                    "-e customNavSettings=$customNavSettings",
-                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                    "-l `"traefik.web.port=80`"",
-                    "-l `"traefik.soap.frontend.rule=$soapRule`"", 
-                    "-l `"traefik.soap.port=7047`"",
-                    "-l `"traefik.rest.frontend.rule=$restRule`"", 
-                    "-l `"traefik.rest.port=7048`"",
-                    "-l `"traefik.dev.frontend.rule=$devRule`"", 
-                    "-l `"traefik.dev.port=7049`"",
-                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
-                    "-l `"traefik.dl.port=8080`"",
-                    "-l `"traefik.enable=true`"",
-                    "-l `"traefik.frontend.entryPoints=https`""
-        )
+        $added = $false
+        $cnt = $additionalParameters.Count-1
+        if ($cnt -ge 0) {
+            0..$cnt | % {
+                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
+                if ($idx -gt 0) {
+                    $additionalParameters[$_] = "$($additionalParameters[$_]),$customNavSettings"
+                    $added = $true
+                }
+            }
+        }
+        if (-not $added) {
+            $additionalParameters += @("-e customNavSettings=$customNavSettings")
+        }
 
-        $additionalTraefikParameters | ForEach-Object { $additionalParameters += $_ }
+        $additionalParameters += @("--hostname $traefikHostname",
+                                   "-e webserverinstance=$containerName",
+                                   "-e publicdnsname=$publicDnsName", 
+                                   "-l `"traefik.web.frontend.rule=$webclientRule`"", 
+                                   "-l `"traefik.web.port=80`"",
+                                   "-l `"traefik.soap.frontend.rule=$soapRule`"", 
+                                   "-l `"traefik.soap.port=7047`"",
+                                   "-l `"traefik.rest.frontend.rule=$restRule`"", 
+                                   "-l `"traefik.rest.port=7048`"",
+                                   "-l `"traefik.dev.frontend.rule=$devRule`"", 
+                                   "-l `"traefik.dev.port=7049`"",
+                                   "-l `"traefik.dl.frontend.rule=$dlRule`"", 
+                                   "-l `"traefik.dl.port=8080`"",
+                                   "-l `"traefik.enable=true`"",
+                                   "-l `"traefik.frontend.entryPoints=https`""
+        )
     }
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
@@ -903,8 +1001,8 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
             # Unpublish only, when Apps when present
             # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
-            #Get-NavAppInfo -ServerInstance NAV -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
-            Get-NavAppInfo -ServerInstance NAV -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
         }
     }
 
@@ -1049,4 +1147,5 @@ Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUs
         Write-Host "File downloads:    $dlUrl"
     }
 }
-Export-ModuleMember -function New-NavContainer
+Set-Alias -Name New-BCContainer -Value New-NavContainer
+Export-ModuleMember -Function New-NavContainer -Alias New-BCContainer

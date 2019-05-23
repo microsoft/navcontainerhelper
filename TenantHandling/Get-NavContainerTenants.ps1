@@ -26,4 +26,5 @@ function Get-NavContainerTenants {
         Get-NavTenant -ServerInstance NAV
     }
 }
-Export-ModuleMember -Function Get-NavContainerTenants
+Set-Alias -Name Get-BCContainerTenants -Value Get-NavContainerTenants
+Export-ModuleMember -Function Get-NavContainerTenants -Alias Get-BCContainerTenants
