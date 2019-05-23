@@ -45,4 +45,5 @@ function New-NavContainerTenant {
     } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
-Export-ModuleMember -Function New-NavContainerTenant
+Set-Alias -Name New-BCContainerTenant -Value New-NavContainerTenant
+Export-ModuleMember -Function New-NavContainerTenant -Alias New-BCContainerTenant

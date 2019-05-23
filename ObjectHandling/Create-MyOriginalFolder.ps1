@@ -23,6 +23,8 @@ function Create-MyOriginalFolder {
         [string]$myoriginalFolder
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     Write-Host "Copy original objects to $myoriginalFolder for all objects that are modified (container path)"
     if (Test-Path $myoriginalFolder -PathType Container) {
         Get-ChildItem -Path $myoriginalFolder -Include * | Remove-Item -Recurse -Force
@@ -40,4 +42,4 @@ function Create-MyOriginalFolder {
         }
     }
 }
-Export-ModuleMember -function Create-MyOriginalFolder
+Export-ModuleMember -Function Create-MyOriginalFolder

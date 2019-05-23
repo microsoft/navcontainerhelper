@@ -27,6 +27,8 @@ function Compile-ObjectsInNavContainer {
         [string]$SynchronizeSchemaChanges = 'Force'
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, [System.Management.Automation.PSCredential]$sqlCredential, $SynchronizeSchemaChanges)
 
@@ -57,7 +59,7 @@ function Compile-ObjectsInNavContainer {
                                      -Recompile `
                                      -SynchronizeSchemaChanges $SynchronizeSchemaChanges `
                                      -NavServerName localhost `
-                                     -NavServerInstance NAV `
+                                     -NavServerInstance $ServerInstance `
                                      -NavServerManagementPort "$managementServicesPort"
 
     } -ArgumentList $filter, $sqlCredential, $SynchronizeSchemaChanges

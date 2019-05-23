@@ -26,6 +26,8 @@ function Import-DeltasToNavContainer {
         [switch]$compile
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $containerDeltaFolder = Get-NavContainerPath -containerName $containerName -path $deltaFolder
     if ("$containerDeltaFolder" -eq "") {

@@ -544,7 +544,7 @@ Example:
     if ($restartingInstance) {
         # Nothing to do
     } else {
-        Import-NAVServerLicense -ServerInstance NAV -LicenseFile "c:\run\my\my.flf" -Database NavDatabase -WarningAction SilentlyContinue
+        Import-NAVServerLicense -ServerInstance $ServerInstance -LicenseFile "c:\run\my\my.flf" -Database NavDatabase -WarningAction SilentlyContinue
     }
     '@
 

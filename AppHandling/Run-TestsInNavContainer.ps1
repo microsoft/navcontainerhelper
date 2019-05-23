@@ -118,7 +118,15 @@ function Run-TestsInNavContainer {
             $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
         }
 
-        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath        try {            if ($disableSslVerification) {                Disable-SslVerification            }                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential    
+        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
+
+        try {
+            if ($disableSslVerification) {
+                Disable-SslVerification
+            }
+            
+            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+    
             Run-Tests -clientContext $clientContext `
                       -TestSuite $testSuite `
                       -TestGroup $testGroup `
@@ -129,9 +137,13 @@ function Run-TestsInNavContainer {
                       -detailed:$detailed
         }
         finally {
-            if ($disableSslVerification) {                Enable-SslVerification            }            Remove-ClientContext -clientContext $clientContext
+            if ($disableSslVerification) {
+                Enable-SslVerification
+            }
+            Remove-ClientContext -clientContext $clientContext
         }
 
     } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
 }
-Export-ModuleMember -Function Run-TestsInNavContainer
+Set-Alias -Name Run-TestsInBCContainer -Value Run-TestsInNavContainer
+Export-ModuleMember -Function Run-TestsInNavContainer -Alias Run-TestsInBCContainer

@@ -56,21 +56,22 @@ function New-NavContainerNavUser {
             }
             if($WindowsAccount) {
                 Write-Host "Creating NAV User for WindowsAccount $WindowsAccount"
-      			New-NAVServerUser -ServerInstance NAV @TenantParam -WindowsAccount $WindowsAccount @Parameters
+      			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount @Parameters
                 Write-Host "Assigning Permission Set $PermissionSetId to $WindowsAccount"
-                New-NavServerUserPermissionSet -ServerInstance NAV @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId
+                New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId
             } else {
                 Write-Host "Creating NAV User $($Credential.UserName)"
                 if ($ChangePasswordAtNextLogOn) {
-      			    New-NAVServerUser -ServerInstance NAV @TenantParam -Username $Credential.UserName -Password $Credential.Password -ChangePasswordAtNextLogon @Parameters
+      			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -ChangePasswordAtNextLogon @Parameters
                 } else {
-      			    New-NAVServerUser -ServerInstance NAV @TenantParam -Username $Credential.UserName -Password $Credential.Password @Parameters
+      			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password @Parameters
                 }
                 Write-Host "Assigning Permission Set $PermissionSetId to $($Credential.Username)"
-                New-NavServerUserPermissionSet -ServerInstance NAV @tenantParam -username $Credential.username -PermissionSetId $PermissionSetId
+                New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -username $Credential.username -PermissionSetId $PermissionSetId
             }
         } `
         -ArgumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId
     }
 }
-Export-ModuleMember -Function New-NavContainerNavUser
+Set-Alias -Name New-BCContainerBCUser -Value New-NavContainerNavUser
+Export-ModuleMember -Function New-NavContainerNavUser -Alias New-BCContainerBCUser

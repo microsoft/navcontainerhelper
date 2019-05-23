@@ -1,14 +1,14 @@
 ﻿<# 
  .Synopsis
-  Sync Nav App in Nav container
+  Sync App in container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Sync-NavApp in the container
+  Creates a session to the container and runs the CmdLet Sync-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to install the app (default navserver)
  .Parameter appName
-  Name of app you want to install in the container
+  Name of app you want to sync in the container
  .Example
-  Install-NavApp -containerName test2 -appName myapp
+  Sync-NavContainerApp -containerName test2 -appName myapp
 #>
 function Sync-NavContainerApp {
     Param(
@@ -26,9 +26,9 @@ function Sync-NavContainerApp {
     )
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
         Write-Host "Synchronizing $appFile on $tenant"
-        Sync-NavTenant -ServerInstance NAV -Tenant $tenant -Force
+        Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
         $parameters = @{
-            "ServerInstance" = "NAV";
+            "ServerInstance" = $ServerInstance;
             "Name" = $appName;
             "Tenant" = $tenant
         }
@@ -44,4 +44,5 @@ function Sync-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant, $Mode
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
-Export-ModuleMember -Function Sync-NavContainerApp
+Set-Alias -Name Sync-BCContainerApp -Value Sync-NavContainerApp
+Export-ModuleMember -Function Sync-NavContainerApp -Alias Sync-BCContainerApp

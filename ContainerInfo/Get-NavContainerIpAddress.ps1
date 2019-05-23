@@ -47,4 +47,5 @@ function Get-NavContainerIpAddress {
         return $ip
     }
 }
-Export-ModuleMember -function Get-NavContainerIpAddress
+Set-Alias -Name Get-BCContainerIpAddress -Value Get-NavContainerIpAddress
+Export-ModuleMember -Function Get-NavContainerIpAddress -Alias Get-BCContainerIpAddress

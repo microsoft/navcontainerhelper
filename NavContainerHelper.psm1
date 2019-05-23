@@ -85,6 +85,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromStoppedNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-BestNavContainerImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Invoke-ScriptInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Setup-TraefikContainerForNavContainers.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
@@ -110,8 +111,6 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Compile-AppInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Convert-ALCOutputToAzureDevOps.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Convert-CALTestOutputToAzureDevOps.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Convert-CALExecutionTimeToTimeSpan.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sign-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage.ps1")

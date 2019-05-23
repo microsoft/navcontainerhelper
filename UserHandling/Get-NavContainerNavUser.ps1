@@ -24,8 +24,9 @@ Param
     PROCESS
     {
         Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param($tenant)
-            Get-NavServerUser -ServerInstance NAV -tenant $tenant
+            Get-NavServerUser -ServerInstance $ServerInstance -tenant $tenant
         } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
     }
 }
-Export-ModuleMember -Function Get-NavContainerNavUser
+Set-Alias -Name Get-BCContainerBCUser -Value Get-NavContainerNavUser
+Export-ModuleMember -Function Get-NavContainerNavUser -Alias Get-BCContainerBCUser

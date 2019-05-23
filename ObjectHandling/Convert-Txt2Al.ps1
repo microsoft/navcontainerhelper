@@ -28,6 +28,8 @@ function Convert-Txt2Al {
         [string] $dotNetAddInsPackage
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
     $containerMyAlFolder = Get-NavContainerPath -containerName $containerName -path $myAlFolder -throw
     $containerDotNetAddInsPackage = ""
@@ -62,4 +64,4 @@ function Convert-Txt2Al {
 
     } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage
 }
-Export-ModuleMember -function Convert-Txt2Al
+Export-ModuleMember -Function Convert-Txt2Al

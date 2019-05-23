@@ -6,7 +6,7 @@
  .Example
   Get-NavContainerServerConfiguration -ContainerName "MyContainer"
 #>
-Function Get-NavContainerServerConfiguration{
+Function Get-NavContainerServerConfiguration {
     Param(
         [Parameter(Mandatory=$true)]
         [String]$ContainerName
@@ -14,7 +14,7 @@ Function Get-NavContainerServerConfiguration{
 
     $ResultObjectArray = @()
     $config = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock{
-        Get-NAVServerInstance -ServerInstance NAV | Get-NAVServerConfiguration -AsXml
+        Get-NAVServerInstance -ServerInstance $ServerInstance | Get-NAVServerConfiguration -AsXml
     }
     
     $Object = New-Object -TypeName PSObject -Property @{
@@ -29,5 +29,5 @@ Function Get-NavContainerServerConfiguration{
     
     Write-Output $ResultObjectArray
 }
-
-Export-ModuleMember -function Get-NavContainerServerConfiguration
+Set-Alias -Name Get-BCContainerServerConfiguration -Value Get-NavContainerServerConfiguration
+Export-ModuleMember -Function Get-NavContainerServerConfiguration -Alias Get-BCContainerServerConfiguration

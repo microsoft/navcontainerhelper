@@ -249,8 +249,6 @@ function Export-NavContainerDatabasesAsBacpac {
                 $arguments += $additionalArguments
             }
 
-            $arguments
-
             & $sqlPackageExe $arguments
         }
 
@@ -267,6 +265,10 @@ function Export-NavContainerDatabasesAsBacpac {
         }
 
         $sqlPackageExe = Install-DACFx
+
+        if (!(Test-Path $bacpacFolder)) {
+            New-Item $bacpacFolder -ItemType Directory | Out-Null
+        }
        
         if ($multitenant) {
             $tempAppDatabaseName = "temp$DatabaseName"
@@ -292,5 +294,5 @@ function Export-NavContainerDatabasesAsBacpac {
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments
 }
-Export-ModuleMember Export-NavContainerDatabasesAsBacpac
-
+Set-Alias -Name Export-BCContainerDatabasesAsBacpac -Value Export-NavContainerDatabasesAsBacpac
+Export-ModuleMember -Function Export-NavContainerDatabasesAsBacpac -Alias Export-BCContainerDatabasesAsBacpac

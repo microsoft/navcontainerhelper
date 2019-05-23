@@ -15,14 +15,15 @@ $v2AppPath = (Join-Path $PSScriptRoot "Freddy Kristiansen_mytestapp_1.0.0.0.app"
 $v2AppName = "mytestapp"
 
 # New-CSideDevContainer
-New-CSideDevContainer -accept_eula `
-                      -containerName $containerName `
-                      -imageName $imageName `
-                      -licenseFile $licenseFile `
-                      -credential $credential `
-                      -UpdateHosts `
-                      -Auth Windows `
-                      -additionalParameters @("--volume ""${deltaPath}:c:\deltas""")
+New-NavContainer -accept_eula `
+                 -containerName $containerName `
+                 -imageName $imageName `
+                 -licenseFile $licenseFile `
+                 -credential $credential `
+                 -includeCSide `
+                 -UpdateHosts `
+                 -Auth Windows `
+                 -additionalParameters @("--volume ""${deltaPath}:c:\deltas""")
 
 # Test-NavContainer
 if (Test-NavContainer -containerName $containerName) {
@@ -138,13 +139,14 @@ if (Test-Path "$v2AppPath") {
 Remove-NavContainer -containerName $containerName
 
 # New-CSideDevContainer
-New-CSideDevContainer -accept_eula `
-                      -containerName $containerName `
-                      -imageName $imageName2 `
-                      -licenseFile $licenseFile `
-                      -credential $credential `
-                      -UpdateHosts `
-                      -Auth NavUserPassword
+New-NavContainer -accept_eula `
+                 -containerName $containerName `
+                 -imageName $imageName2 `
+                 -licenseFile $licenseFile `
+                 -credential $credential `
+                 -includeCSide `
+                 -UpdateHosts `
+                 -Auth NavUserPassword
 
 # Test-NavContainer
 if (Test-NavContainer -containerName $containerName) {

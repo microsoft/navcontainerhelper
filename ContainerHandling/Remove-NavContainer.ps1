@@ -62,4 +62,5 @@ function Remove-NavContainer {
         }
     }
 }
-Export-ModuleMember -function Remove-NavContainer
+Set-Alias -Name Remove-BCContainer -Value Remove-NavContainer
+Export-ModuleMember -Function Remove-NavContainer -Alias Remove-BCContainer

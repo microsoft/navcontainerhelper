@@ -8,7 +8,7 @@
   Name of the container for which you want to create a session
  .Example
   $session = Get-NavContainerSession -containerName navserver
-  PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance NAV -restart }
+  PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance $ServerInstance -restart }
 #>
 function Get-NavContainerSession {
     [CmdletBinding()]
@@ -51,6 +51,7 @@ function Get-NavContainerSession {
                 }
 
                 . (Get-MyFilePath "prompt.ps1") -silent:$silent | Out-Null
+                . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
                 . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
 
                 $txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
@@ -61,4 +62,5 @@ function Get-NavContainerSession {
         $sessions[$containerId]
     }
 }
-Export-ModuleMember -function Get-NavContainerSession
+Set-Alias -Name Get-BCContainerSession -Value Get-NavContainerSession
+Export-ModuleMember -Function Get-NavContainerSession -Alias Get-BCContainerSession

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Invoke Api in Nav Container
+  Invoke Api in Container
  .Description
-  Invoke an Api in a NAV Container.
+  Invoke an Api in a Container.
  .Parameter containerName
   Name of the container in which you want to invoke an api
  .Parameter tenant
@@ -12,9 +12,9 @@
  .Parameter CompanyName
   CompanyName for which you want to get the Company Id (leave empty to get company Id for the default company)
  .Example
-  $companyId = Get-NavContainerNavUserCompanyId -containerName $containerName -credential $credential
+  $companyId = Get-NavContainerApiCompanyId -containerName $containerName -credential $credential
  .Example
-  $companyId = Get-NavContainerNavUserCompanyId -containerName $containerName -credential $credential -CompanyName 'CRONUS International Ltd.'
+  $companyId = Get-NavContainerApiCompanyId -containerName $containerName -credential $credential -CompanyName 'CRONUS International Ltd.'
 #>
 function Get-NavContainerApiCompanyId {
     Param(
@@ -49,7 +49,7 @@ function Get-NavContainerApiCompanyId {
         }
         if (!($CompanyName)) {
             $Company = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($tenant)
-                Get-NavCompany -ServerInstance NAV -tenant default
+                Get-NavCompany -ServerInstance $serverInstance -tenant default
             } -argumentList $tenant | Where-Object { $_ -isnot [System.String] }
             $CompanyName = $Company | Select-Object -First 1 -ExpandProperty CompanyName
         }
@@ -60,4 +60,5 @@ function Get-NavContainerApiCompanyId {
     $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
     $result.value | Select-Object -First 1 -ExpandProperty id
 }
-Export-ModuleMember -Function Get-NavContainerApiCompanyId
+Set-Alias -Name Get-BCContainerApiCompanyId -Value Get-NavContainerApiCompanyId
+Export-ModuleMember -Function Get-NavContainerApiCompanyId -Alias Get-BCContainerApiCompanyId
