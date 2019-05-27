@@ -607,14 +607,21 @@ function New-NavContainer {
         Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
     }
 
-    if ("$isolation" -eq "" -and ($hostOsVersion.Major -ne $containerOsversion.Major -or 
-                                  $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
-                                  $hostOsVersion.Build -ne $containerOsversion.Build -or 
-                                  $hostOsVersion.Revision -ne $containerOsversion.Revision)) {
+    if ("$isolation" -eq "") {
+        if ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+            $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+            $hostOsVersion.Build -ne $containerOsversion.Build) {
         
-        Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
-        $isolation = "hyperv"
+            Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
+            $isolation = "hyperv"
 
+        }
+        elseif ($hostOsVersion.Revision -ne $containerOsversion.Revision) {
+
+            Write-Host "WARNING: The container operating system matches the host operating system, but the revision is different."
+            Write-Host "If you encounter issues, you might want to specify -isolation hyperv"
+
+        }
     }
 
     $locale = Get-LocaleFromCountry $devCountry

@@ -1,3 +1,6 @@
+0.6.1.1
+Reverted the change to default to hyperv isolation if the revision number is different. Instead, just write a warning to maybe specify -isolation hyperv.
+
 0.6.1.0
 Added support for traefik (Thanks Tobias Fenster)
 Added BCContainer aliases for all functions with NavContainer in the name (which are not C/AL functions)
