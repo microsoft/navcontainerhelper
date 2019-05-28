@@ -22,6 +22,8 @@
   Specify Extension or SymbolsOnly based on which package you want to publish
  .Parameter scope
   Specify Global or Tenant based on how you want to publish the package. Default is Global
+ .Parameter language
+  Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Example
   Publish-NavContainerApp -appFile c:\temp\myapp.app
  .Example
@@ -48,7 +50,9 @@ function Publish-NavContainerApp {
         [string]$packageType = 'Extension',
         [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
-        [string]$scope
+        [string]$scope,
+        [Parameter(Mandatory=$false)]
+        [string]$language
     )
 
     $copied = $false
@@ -63,7 +67,7 @@ function Publish-NavContainerApp {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode, $language)
 
         if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
             $appUrl = $appFile
@@ -100,14 +104,14 @@ function Publish-NavContainerApp {
     
             if ($install) {
                 Write-Host "Installing $appName on tenant $tenant"
-                Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant
+                Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant -Language $language
             }
         }
 
         if ($copied) { 
             Remove-Item $appFile -Force
         }
-    } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode
+    } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode, $language
     Write-Host -ForegroundColor Green "App successfully published"
 }
 Set-Alias -Name Publish-BCContainerApp -Value Publish-NavContainerApp
