@@ -39,7 +39,7 @@ function Publish-NavContainerApp {
         [switch]$skipVerification,
         [switch]$sync,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Add','Clean','Development')]
+        [ValidateSet('Add','Clean','Development','ForceSync')]
         [string]$syncMode,
         [switch]$install,
         [Parameter(Mandatory=$false)]
