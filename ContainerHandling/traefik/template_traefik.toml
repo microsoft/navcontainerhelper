@@ -2,6 +2,8 @@ debug = false
 defaultEntryPoints = ["https","http"]
 
 [api]
+# Check https://docs.traefik.io/v1.7/configuration/api/#security
+# to enable authentication on the dashboard for extra security
 
 [docker]
 domain = "$PublicDnsName"
