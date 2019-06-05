@@ -25,6 +25,7 @@ function Setup-TraefikContainerForNavContainers {
 
     Process {
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        $traefikDockerImage = "stefanscherer/traefik-windows:v1.7.12"
 
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
             Write-Host "Traefik container already initialized."
@@ -53,8 +54,8 @@ function Setup-TraefikContainerForNavContainers {
         }
 
         Log "Pulling and running traefik"
-        docker pull stefanscherer/traefik-windows
-        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine stefanscherer/traefik-windows --docker.endpoint=npipe:////./pipe/docker_engine
+        docker pull $traefikDockerImage
+        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
     }
 }
 Set-Alias -Name Setup-TraefikContainerForBCContainers -Value Setup-TraefikContainerForNavContainers
