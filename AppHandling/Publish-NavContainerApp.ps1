@@ -22,6 +22,10 @@
   Specify Extension or SymbolsOnly based on which package you want to publish
  .Parameter scope
   Specify Global or Tenant based on how you want to publish the package. Default is Global
+ .Parameter useDevEndpoint
+  Specify the useDevEndpoint switch if you want to publish using the Dev Endpoint (like VS Code). This allows VS Code to re-publish.
+ .Parameter language
+  Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Example
   Publish-NavContainerApp -appFile c:\temp\myapp.app
  .Example
@@ -39,7 +43,7 @@ function Publish-NavContainerApp {
         [switch] $skipVerification,
         [switch] $sync,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Add','Clean','Development')]
+        [ValidateSet('Add','Clean','Development','ForceSync')]
         [string] $syncMode,
         [switch] $install,
         [Parameter(Mandatory=$false)]
@@ -49,7 +53,8 @@ function Publish-NavContainerApp {
         [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
         [string] $scope,
-        [switch] $useDevEndpoint
+        [switch] $useDevEndpoint,
+        [string] $language = ""
     )
 
     Add-Type -AssemblyName System.Net.Http
@@ -121,7 +126,7 @@ function Publish-NavContainerApp {
         }
     
         $url = "$devServerUrl/dev/apps?SchemaUpdateMode=synchronize"
-        if ($Scope -eq "tenant") {
+        if ($Scope -eq "Tenant") {
             $url += "&tenant=$tenant"
         }
         
@@ -156,7 +161,7 @@ function Publish-NavContainerApp {
     }
     else {
 
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope)
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language)
     
     
             $publishArgs = @{ "packageType" = $packageType }
@@ -186,11 +191,16 @@ function Publish-NavContainerApp {
                 }
         
                 if ($install) {
+
+                    $languageArgs = @{}
+                    if ($language) {
+                        $languageArgs += @{ "Language" = $language }
+                    }
                     Write-Host "Installing $appName on tenant $tenant"
-                    Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant
+                    Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
                 }
             }
-        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope
+        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language
     }
 
     if ($copied) { 
