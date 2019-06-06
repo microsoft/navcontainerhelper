@@ -44,6 +44,7 @@ function Setup-TraefikContainerForNavContainers {
 
         Write-Host "Create traefik config file"
         $template = Get-Content (Join-Path $traefikForBcBasePath "config\template_traefik.toml") -Raw
+        $IP = (Get-NetIPAddress -AddressFamily IPv4)[0].IPAddress
         $expanded = Invoke-Expression "@`"`r`n$template`r`n`"@"
         $expanded | Out-File (Join-Path $traefikForBcBasePath "config\traefik.toml") -Encoding ASCII
 

@@ -27,3 +27,15 @@ entryPoint = "https"
 entryPoint = "http"
 [[acme.domains]]
    main = "$PublicDnsName"
+
+[file]
+[backends]
+  [backends.host]
+    [backends.host.servers.server1]
+       url = "http://$IP:8180"
+
+[frontends]
+  [frontends.host]
+    backend = "host"
+    [frontends.host.routes.route1]
+      rule = "PathPrefixStrip:/landing"
