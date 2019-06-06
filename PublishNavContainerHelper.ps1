@@ -36,6 +36,7 @@ Update-ModuleManifest -Path (Join-Path $path "NavContainerHelper.psd1") `
                       -CompanyName $CompanyName `
                       -ReleaseNotes (get-content (Join-Path $path "ReleaseNotes.txt")) 
 
-#Publish-Module -Path $path -NuGetApiKey $nugetkey
+Copy-Item -Path (Join-Path $path "NavContainerHelper.psd1") -Destination $PSScriptRoot -Force
+Publish-Module -Path $path -NuGetApiKey $nugetkey
 
 Remove-Item -Path $path -Force -Recurse
