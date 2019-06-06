@@ -42,7 +42,7 @@ function Publish-NewApplicationToNavContainer {
     $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
     if ($customConfig.Multitenant -eq "True") {
-        throw "This script doesn't support multitenancy yet"
+        throw "This script doesn't support multitenancy"
     }
 
     $containerAppDotNetPackagesFolder = ""
@@ -93,81 +93,6 @@ function Publish-NewApplicationToNavContainer {
         } -argumentList $customConfig
     }
 
-    $handler = New-Object  System.Net.Http.HttpClientHandler
-    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-        $handler.UseDefaultCredentials = $true
-    }
-    $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-    if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
-        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
-    }
-    $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-    $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-    
-    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
-        $protocol = "https://"
-    }
-    else {
-        $protocol = "http://"
-    }
-
-    $ip = Get-NavContainerIpAddress -containerName $containerName
-    if ($ip) {
-        $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-    }
-    else {
-        $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-    }
-
-    $sslVerificationDisabled = ($protocol -eq "https://")
-    if ($sslVerificationDisabled) {
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-        {
-            Add-Type -TypeDefinition "
-                using System.Net.Security;
-                using System.Security.Cryptography.X509Certificates;
-                public static class SslVerification
-                {
-                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                }"
-        }
-        Write-Host "Disabling SSL Verification"
-        [SslVerification]::Disable()
-    }
-
-    $url = "$devServerUrl/dev/apps?SchemaUpdateMode=synchronize"
-    
-    $appName = [System.IO.Path]::GetFileName($appFile)
-    
-    $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
-    $FileStream = [System.IO.FileStream]::new($appFile, [System.IO.FileMode]::Open)
-    try {
-        $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
-        $fileHeader.Name = "$AppName"
-        $fileHeader.FileName = "$appName"
-        $fileHeader.FileNameStar = "$appName"
-        $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
-        $fileContent.Headers.ContentDisposition = $fileHeader
-        $multipartContent.Add($fileContent)
-        Write-Host "Publishing $appName to $url"
-        $result = $HttpClient.PostAsync($url, $multipartContent).GetAwaiter().GetResult()
-        if (!$result.IsSuccessStatusCode) {
-            throw "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
-        }
-        Write-Host -ForegroundColor Green "New Application successfully published to $containerName"
-    }
-    finally {
-        $FileStream.Close()
-    }
-
-    if ($sslverificationdisabled) {
-        Write-Host "Re-enablssing SSL Verification"
-        [SslVerification]::Enable()
-    }
+    Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global
 }
 Export-ModuleMember -Function Publish-NewApplicationToNavContainer
