@@ -101,10 +101,15 @@ function Publish-NavContainerApp {
                 Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
                 Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
             }
+
+            $languageArgs = @{}
+            if ($language) {
+                $languageArgs += @{ "Language" = $language }
+            }
     
             if ($install) {
                 Write-Host "Installing $appName on tenant $tenant"
-                Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant -Language $language
+                Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
             }
         }
 
