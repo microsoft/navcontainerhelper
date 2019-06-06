@@ -46,7 +46,7 @@ function Convert-Txt2Al {
         $erroractionpreference = 'Continue'
 
         if (!($txt2al)) {
-            throw "You cannot run Convert-Txt2Al on this Nav Container"
+            throw "You cannot run Convert-Txt2Al on this Container"
         }
         Write-Host "Converting files in $myDeltaFolder to .al files in $myAlFolder with startId $startId (container paths)"
         Remove-Item -Path $myAlFolder -Recurse -Force -ErrorAction Ignore

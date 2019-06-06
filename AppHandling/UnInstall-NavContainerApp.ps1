@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Uninstall Nav App in Nav container
+  Uninstall App in NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Uninstall-NavApp in the container
+  Creates a session to the container and runs the CmdLet Uninstall-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to uninstall the app (default navserver)
  .Parameter appName
@@ -18,23 +18,22 @@
 #>
 function UnInstall-NavContainerApp {
     Param(
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
-        [Parameter()]
-        [string]$appVersion,
-        [switch]$doNotSaveData,
-        [switch]$Force
+        [string] $appName,
+        [Parameter(Mandatory=$false)]
+        [string] $appVersion,
+        [switch] $doNotSaveData,
+        [switch] $Force
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $Force)
         Write-Host "Uninstalling $appName from $tenant"
         $parameters = @{
-            "ServerInstance" = "NAV";
-            "Name" = $appName;
+            "ServerInstance" = $ServerInstance
+            "Name" = $appName
             "Tenant" = $tenant
         }
         if ($appVersion) {

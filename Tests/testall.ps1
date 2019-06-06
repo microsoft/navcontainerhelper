@@ -7,6 +7,8 @@ $global:testErrors = @()
 $global:currentTest = ""
 Clear-Content -Path "c:\temp\errors.txt" -ErrorAction Ignore
 
+$ErrorActionPreference = "Stop"
+
 function randomchar([string]$str)
 {
     $rnd = Get-Random -Maximum $str.length
@@ -87,10 +89,10 @@ $windowsCredential = get-credential -UserName $env:USERNAME -Message "Please ent
 $aadAdminCredential = get-credential -Message "Please enter your AAD Admin credentials if you want to include AAD auth testing"
 
 $testParams = @(
-    @{ "name" = "n2018w1"; "image" = "mcr.microsoft.com/dynamicsnav:$platform"               ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "mcr.microsoft.com/dynamicsnav:de-$platform"            ; "country" = "de" },
-    @{ "name" = "bcopw1";  "image" = "mcr.microsoft.com/businesscentral/onprem:$platform"    ; "country" = "w1" },
-    @{ "name" = "bcopnl";  "image" = "mcr.microsoft.com/businesscentral/onprem:nl-$platform" ; "country" = "nl" }
+#    @{ "name" = "n2018w1"; "image" = "mcr.microsoft.com/dynamicsnav:$platform"               ; "country" = "w1" }
+#    @{ "name" = "n2018de"; "image" = "mcr.microsoft.com/dynamicsnav:de-$platform"            ; "country" = "de" }
+    @{ "name" = "bcopw1";  "image" = "mcr.microsoft.com/businesscentral/onprem:$platform"    ; "country" = "w1" }
+#    @{ "name" = "bcopnl";  "image" = "mcr.microsoft.com/businesscentral/onprem:nl-$platform" ; "country" = "nl" }
 )
 
 #    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016-$platform"                 ; "country" = "w1" },
@@ -307,8 +309,12 @@ $testParams | ForEach-Object {
                         $count = @(Get-NavContainerAppInfo -containerName $name).Count
 
                         Test "Publish-NavContainerApp"
+                        $scopeArgs = @{}
+                        if ($multitenant) {
+                            $scopeArgs = @{ "Scope" = "Tenant" }
+                        }
                         $appFile = (Get-item "$appoutputfolder\*.app").FullName
-                        Publish-NavContainerApp -containerName $name -appFile $appFile -skipVerification -sync -install
+                        Publish-NavContainerApp -containerName $name -appFile $appFile -skipVerification -sync -install -useDevEndpoint @scopeArgs
 
                         Test "Get-NavContainerAppInfo"
                         AreEqual -expr "@(Get-NavContainerAppInfo -containerName $name).Count" -expected ($count+1)
@@ -399,7 +405,7 @@ $testParams | ForEach-Object {
 
                             Test "Publish-NavContainerApp"
                             $appFile = (Get-item "$appoutputfolder\*.app").FullName
-                            Publish-NavContainerApp -containerName compiler -appFile $appFile -skipVerification -sync -install
+                            Publish-NavContainerApp -containerName compiler -appFile $appFile -skipVerification -sync -install -useDevEndpoint
 
                             Test "Unpublish-NavContainerApp"
                             UnPublish-NavContainerApp -containerName compiler -appName TestApp -publisher TestApp -version "1.0.0.0" -unInstall
@@ -497,7 +503,12 @@ $testParams | ForEach-Object {
         
                             if ($navVersion.Major -ge 12) {
                                 Test "Setup-NavContainerTestUsers"
-                                Setup-NavContainerTestUsers -containerName $name -password $credential2.Password
+                                if ($auth -eq "Windows") {
+                                    Setup-NavContainerTestUsers -containerName $name -password $credential2.Password
+                                }
+                                else {
+                                    Setup-NavContainerTestUsers -containerName $name -password $credential2.Password -credential $credential
+                                }
                                 AreEqual -expr "@(Get-NavContainerNavUser -containerName $name).Count" -expected ($count+7)
                             }
                         }

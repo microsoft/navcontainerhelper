@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Imports a configuration package into the application database
+  Imports a configuration package into the application database in a NAV/BC Container
  .Description
-  Create a session to a Nav container and run Import-NAVConfigurationPackageFile
+  Create a session to a container and run Import-NAVConfigurationPackageFile
  .Parameter containerName
   Name of the container in which you want to import the configuration package to
  .Parameter configPackageFile
@@ -12,10 +12,9 @@
 #>
 function Import-ConfigPackageInNavContainer {
     Param(
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$true)]
-        [string]$configPackageFile
+        [string] $configPackageFile
     )
 
     $containerConfigPackageFile = Get-NavContainerPath -containerName $containerName -path $configPackageFile -throw

@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Get Best Nav Container Image Name
+  Get Best NAV/BC Container Image Name
  .Description
   If a Container Os platform name is not specified in the imageName, find the best container os and add it (if his is a microsoft image)
  .Parameter imageName
@@ -13,7 +13,7 @@ function Get-BestNavContainerImageName {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$imageName
+        [string] $imageName
     )
 
     if (!(

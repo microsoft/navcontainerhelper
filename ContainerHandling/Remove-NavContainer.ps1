@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Remove Nav container
+  Remove a NAV/BC Container
  .Description
   Remove container, Session, Shortcuts, temp. files and entries in the hosts file,
  .Parameter containerName
@@ -17,7 +17,7 @@ function Remove-NavContainer {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$containerName
+        [string] $containerName
     )
 
     Process {

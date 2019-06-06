@@ -1,13 +1,13 @@
 ﻿<# 
  .Synopsis
-  Get test information from a container
+  Get test information from a NAV/BC Container
  .Description
  .Parameter containerName
   Name of the container from which you want to get test information
  .Parameter tenant
   tenant to use if container is multitenant
  .Parameter credential
-  Credentials of the NAV SUPER user if using NavUserPassword authentication
+  Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter testSuite
   Name of test suite to get. Default is DEFAULT.
  .Parameter testCodeunit
@@ -19,12 +19,11 @@
 #>
 function Get-TestsFromNavContainer {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
         [string] $testSuite = "DEFAULT",
         [Parameter(Mandatory=$false)]
@@ -62,12 +61,11 @@ function Get-TestsFromNavContainer {
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-        $ServerInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='ServerInstance']").Value
         $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
         $idx = $publicWebBaseUrl.IndexOf('//')
         $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
         $disableSslVerification = ($protocol -eq "https://")
-        $serviceUrl = "${protocol}localhost/NAV/cs?tenant=$tenant"
+        $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the Id of a Nav container
+  Get the Id of a NAV/BC Container
  .Description
-  Returns the Id of a Nav container based on the container name
+  Returns the Id of a Container based on the container name
   The Id returned is the full 64 digit container Id and the name must match
  .Parameter containerName
   Name of the container for which you want the Id

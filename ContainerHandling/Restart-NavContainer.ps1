@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Restart Nav container
+  Restart a NAV/BC Container
  .Description
-  Restart a Nav Container
+  Restart a Container
  .Parameter containerName
   Name of the container you want to restart
  .Parameter renewBindings
@@ -19,9 +19,9 @@ function Restart-NavContainer {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$containerName,
-        [switch]$renewBindings,
-        [int]$timeout = 1800
+        [string] $containerName,
+        [switch] $renewBindings,
+        [int] $timeout = 1800
     )
 
     if ($renewBindings) {

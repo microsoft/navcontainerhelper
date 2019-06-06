@@ -1,3 +1,10 @@
+0.6.1.2
+Remove .git folder and other files, which should not be published
+Added function Get-NavContainerApp to download an app or symbols from a container
+Added function Extract-AppFileToFolder to extract the content of an App Package to a Folder
+Prepare NavContainerHelper for BC containers (without C/AL and without Windows Client)
+Support for 1903 generic image (mcr.microsoft.com/dynamicsnav:generic-1903)
+
 0.6.1.1
 Reverted the change to default to hyperv isolation if the revision number is different. Instead, just write a warning to maybe specify -isolation hyperv.
 

@@ -1,9 +1,9 @@
 <# 
  .Synopsis
-  Publish Nav App to a Nav container
+  Publish App to a NAV/BC Container
  .Description
   Copies the appFile to the container if necessary
-  Creates a session to the Nav container and runs the Nav CmdLet Publish-NavApp in the container
+  Creates a session to the container and runs the CmdLet Publish-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to publish an app (default is navserver)
  .Parameter appFile
@@ -33,81 +33,169 @@
 #>
 function Publish-NavContainerApp {
     Param(
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$appFile,
-        [switch]$skipVerification,
-        [switch]$sync,
+        [string] $appFile,
+        [switch] $skipVerification,
+        [switch] $sync,
         [Parameter(Mandatory=$false)]
         [ValidateSet('Add','Clean','Development')]
-        [string]$syncMode,
-        [switch]$install,
+        [string] $syncMode,
+        [switch] $install,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [ValidateSet('Extension','SymbolsOnly')]
-        [string]$packageType = 'Extension',
+        [string] $packageType = 'Extension',
         [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
-        [string]$scope
+        [string] $scope,
+        [switch] $useDevEndpoint
     )
+
+    Add-Type -AssemblyName System.Net.Http
+    $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
     $copied = $false
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
-        $containerAppFile = $appFile
-    } else {
-        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-        if ("$containerAppFile" -eq "") {
-            $containerAppFile = Join-Path "c:\run" ([System.IO.Path]::GetFileName($appFile))
-            Copy-FileToNavContainer -containerName $containerName -localPath $appFile -containerPath $containerAppFile
-            $copied = $true
-        }
+        $appUrl = $appFile
+        $appFile = Join-Path $extensionsFolder "$containerName\my\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
+        (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
+        $copied = $true
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode)
+    $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+    if ("$containerAppFile" -eq "") {
+        $containerAppFile = Join-Path "c:\run\my" ([System.IO.Path]::GetFileName($appFile))
+        Copy-FileToNavContainer -containerName $containerName -localPath $appFile -containerPath $containerAppFile
+        $copied = $true
+    }
 
-        if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
-            $appUrl = $appFile
-            $appFile = Join-Path "c:\run" ([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))
-            (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
-            $copied = $true
+
+    if ($useDevEndpoint) {
+
+        $handler = New-Object  System.Net.Http.HttpClientHandler
+        if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+            $handler.UseDefaultCredentials = $true
         }
-
-        $publishArgs = @{ "packageType" = $packageType }
-        if ($scope) {
-            $publishArgs += @{ "Scope" = $scope }
-            if ($scope -eq "Tenant") {
-                $publishArgs += @{ "Tenant" = $tenant }
-            }
+        $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+        if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
+            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+            $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+            $base64 = [System.Convert]::ToBase64String($bytes)
+            $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
         }
-
-        Write-Host "Publishing $appFile"
-        Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
-
-        if ($sync -or $install) {
-            $appName = (Get-NAVAppInfo -Path $appFile).Name
-            $appVersion = (Get-NAVAppInfo -Path $appFile).Version
+        $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+        $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+        
+        if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
+            $protocol = "https://"
+        }
+        else {
+            $protocol = "http://"
+        }
     
-            $syncArgs = @{}
-            if ($syncMode) {
-                $syncArgs += @{ "Mode" = $syncMode }
+        $ip = Get-NavContainerIpAddress -containerName $containerName
+        if ($ip) {
+            $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
+        }
+        else {
+            $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
+        }
+    
+        $sslVerificationDisabled = ($protocol -eq "https://")
+        if ($sslVerificationDisabled) {
+            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+            {
+                Add-Type -TypeDefinition "
+                    using System.Net.Security;
+                    using System.Security.Cryptography.X509Certificates;
+                    public static class SslVerification
+                    {
+                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                    }"
             }
+            Write-Host "Disabling SSL Verification"
+            [SslVerification]::Disable()
+        }
+    
+        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=synchronize"
+        if ($Scope -eq "tenant") {
+            $url += "&tenant=$tenant"
+        }
+        
+        $appName = [System.IO.Path]::GetFileName($appFile)
+        
+        $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
+        $FileStream = [System.IO.FileStream]::new($appFile, [System.IO.FileMode]::Open)
+        try {
+            $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+            $fileHeader.Name = "$AppName"
+            $fileHeader.FileName = "$appName"
+            $fileHeader.FileNameStar = "$appName"
+            $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
+            $fileContent.Headers.ContentDisposition = $fileHeader
+            $multipartContent.Add($fileContent)
+            Write-Host "Publishing $appName to $url"
+            $result = $HttpClient.PostAsync($url, $multipartContent).GetAwaiter().GetResult()
+            if (!$result.IsSuccessStatusCode) {
+                throw "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
+            }
+            Write-Host -ForegroundColor Green "New Application successfully published to $containerName"
+        }
+        finally {
+            $FileStream.Close()
+        }
+    
+        if ($sslverificationdisabled) {
+            Write-Host "Re-enablssing SSL Verification"
+            [SslVerification]::Enable()
+        }
 
-            if ($sync) {
-                Write-Host "Synchronizing $appName on tenant $tenant"
-                Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
-                Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+    }
+    else {
+
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope)
+    
+    
+            $publishArgs = @{ "packageType" = $packageType }
+            if ($scope) {
+                $publishArgs += @{ "Scope" = $scope }
+                if ($scope -eq "Tenant") {
+                    $publishArgs += @{ "Tenant" = $tenant }
+                }
             }
     
-            if ($install) {
-                Write-Host "Installing $appName on tenant $tenant"
-                Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant
-            }
-        }
+            Write-Host "Publishing $appFile"
+            Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
 
-        if ($copied) { 
-            Remove-Item $appFile -Force
-        }
-    } -ArgumentList $containerAppFile, $skipVerification, $copied, $sync, $install, $tenant, $packageType, $scope, $syncMode
+            if ($sync -or $install) {
+                $appName = (Get-NAVAppInfo -Path $appFile).Name
+                $appVersion = (Get-NAVAppInfo -Path $appFile).Version
+        
+                $syncArgs = @{}
+                if ($syncMode) {
+                    $syncArgs += @{ "Mode" = $syncMode }
+                }
+    
+                if ($sync) {
+                    Write-Host "Synchronizing $appName on tenant $tenant"
+                    Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
+                    Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+                }
+        
+                if ($install) {
+                    Write-Host "Installing $appName on tenant $tenant"
+                    Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant
+                }
+            }
+        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope
+    }
+
+    if ($copied) { 
+        Remove-Item $appFile -Force
+    }
     Write-Host -ForegroundColor Green "App successfully published"
 }
 Set-Alias -Name Publish-BCContainerApp -Value Publish-NavContainerApp

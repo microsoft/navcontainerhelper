@@ -1,8 +1,8 @@
 <# 
  .Synopsis
-  Copy company in the database
+  Copy company in a NAV/BC Container
  .Description
-  Create a session to a Nav container and run Copy-NavCompany
+  Create a session to a container and run Copy-NavCompany
  .Parameter containerName
   Name of the container in which you want to create the company
   .Parameter tenant
@@ -16,9 +16,7 @@
 #>
 function Copy-CompanyInNavContainer {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
-        [Parameter(Mandatory=$false)]
+        [string] $containerName = "navserver",
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $sourceCompanyName,

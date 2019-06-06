@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Upgrade Nav App in Nav container
+  Upgrade App in NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Start-NAVAppDataUpgrade in the container
+  Creates a session to the container and runs the CmdLet Start-NAVAppDataUpgrade in the container
  .Parameter containerName
   Name of the container in which you want to upgrade the app (default navserver)
  .Parameter appName
@@ -12,20 +12,19 @@
 #>
 function  Start-NavContainerAppDataUpgrade {
     Param(
-        [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $containerName = "navserver",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
-        [Parameter()]
-        [string]$appVersion
+        [string] $appName,
+        [Parameter(Mandatory=$false)]
+
+        [string] $appVersion
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Upgrading app $appName"
         $parameters = @{
-            "ServerInstance" = "NAV";
+            "ServerInstance" = $ServerInstance;
             "Name" = $appName;
             "Tenant" = $tenant
         }

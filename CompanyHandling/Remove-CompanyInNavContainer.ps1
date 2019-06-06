@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Remove a company from the database
+  Remove a company from the NAV/BC Container
  .Description
-  Create a session to a Nav container and run Remove-NavCompany
+  Create a session to a container and run Remove-NavCompany
  .Parameter containerName
   Name of the container from which you want to remove the company
   .Parameter tenant
@@ -14,12 +14,10 @@
 #>
 function Remove-CompanyInNavContainer {
     Param(
+        [string] $containerName = "navserver",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
-        [Parameter(Mandatory=$true)]
-        [string]$companyName
+        [string] $companyName
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($companyName, $tenant)

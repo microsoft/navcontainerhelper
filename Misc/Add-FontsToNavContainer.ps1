@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Copy Font(s) to a Nav container
+  Copy Font(s) to a NAV/BC container
  .Description
   Copies and registers missing fonts in a container to use in report printing or preview
  .Parameter containerName

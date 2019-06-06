@@ -1,9 +1,9 @@
 ﻿<# 
  .Synopsis
-  Backup databases in a Nav container as .bak files
+  Backup databases in a NAV/BC Container as .bak files
  .Description
-  If the Nav Container is multi-tenant, this command will create an app.bak and a tenant.bak (or multiple tenant.bak files)
-  If the Nav Container is single-tenant, this command will create one .bak file called database.bak.
+  If the Container is multi-tenant, this command will create an app.bak and a tenant.bak (or multiple tenant.bak files)
+  If the Container is single-tenant, this command will create one .bak file called database.bak.
  .Parameter containerName
   Name of the container for which you want to export and convert objects
  .Parameter sqlCredential
@@ -26,14 +26,10 @@
 #>
 function Backup-NavContainerDatabases {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [Parameter(Mandatory=$false)]
-        [string]$bakFolder = "",
-        [Parameter(Mandatory=$false)]
-        [string[]]$tenant = @("tenant")
+        [string] $containerName = "navserver", 
+        [PSCredential] $sqlCredential = $null,
+        [string] $bakFolder = "",
+        [string[]] $tenant = @("tenant")
     )
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential

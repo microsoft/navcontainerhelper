@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get a list of all NAV Containers
+  Get a list of all NAV/BC Containers
  .Description
-  Returns the names of all NAV Containers
+  Returns the names of all NAV/BC Containers
  .Example
   Get-NavContainers | Remove-NavContainer
 #>

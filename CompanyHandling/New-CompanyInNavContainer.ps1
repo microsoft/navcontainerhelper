@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Create a new company in the database
+  Create a new company in the NAV/BC Container
  .Description
-  Create a session to a Nav container and run New-NavCompany
+  Create a session to a container and run New-NavCompany
  .Parameter containerName
   Name of the container in which you want to create the company
   .Parameter tenant
@@ -16,13 +16,11 @@
 #>
 function New-CompanyInNavContainer {
     Param(
+        [string] $containerName = "navserver",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
-        [Parameter(Mandatory=$true)]
-        [string]$companyName,
-        [switch]$evaluationCompany
+        [string] $companyName,
+        [switch] $evaluationCompany
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($companyName, $evaluationCompany, $tenant)

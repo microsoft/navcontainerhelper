@@ -50,7 +50,7 @@ function Get-NavContainerDebugInfo {
         $inspect = docker inspect $containerName | ConvertFrom-Json
 
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
-            throw "Container $containerName is not a NAV container"
+            throw "Container $containerName is not a NAV/BC container"
         }
         
         $debugInfo.Add('container.labels', $inspect.Config.Labels)

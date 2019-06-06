@@ -1,9 +1,9 @@
 ﻿<# 
  .Synopsis
-  Export databases in a Nav container as .bacpac files
+  Export databases in a NAV/BC Container as .bacpac files
  .Description
-  If the Nav Container is multi-tenant, this command will create an app.bacpac and a tenant.bacpac.
-  If the Nav Container is single-tenant, this command will create one bacpac file called database.bacpac.
+  If the Container is multi-tenant, this command will create an app.bacpac and a tenant.bacpac.
+  If the Container is single-tenant, this command will create one bacpac file called database.bacpac.
  .Parameter containerName
   Name of the container for which you want to export and convert objects
  .Parameter sqlCredential
@@ -31,19 +31,13 @@
 #>
 function Export-NavContainerDatabasesAsBacpac {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [Parameter(Mandatory=$false)]
-        [string]$bacpacFolder = "",
-        [Parameter(Mandatory=$false)]
-        [string[]]$tenant = @("tenant"),
-        [Parameter(Mandatory=$false)]
-        [int]$commandTimeout = 3600,
-        [switch]$diagnostics,
-        [Parameter(Mandatory=$false)]
-        [string[]]$additionalArguments = @()
+        [string] $containerName = "navserver", 
+        [PSCredential] $sqlCredential = $null,
+        [string] $bacpacFolder = "",
+        [string[]] $tenant = @("tenant"),
+        [int] $commandTimeout = 3600,
+        [switch] $diagnostics,
+        [string[]] $additionalArguments = @()
     )
     
     $genericTag = Get-NavContainerGenericTag -containerOrImageName $containerName
@@ -86,7 +80,7 @@ function Export-NavContainerDatabasesAsBacpac {
 
         function Install-DACFx
         {
-            $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
+            $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe" | Sort-Object -Property FullName -Descending | Select-Object -First 1
             if (!($sqlpakcageExe)) {
                 InstallPrerequisite -Name "Dac Framework 18.2" -MsiPath "c:\download\DacFramework.msi" -MsiUrl "https://download.microsoft.com/download/9/2/2/9228AAC2-90D1-4F48-B423-AF345296C7DD/EN/x64/DacFramework.msi" | Out-Null
                 $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"

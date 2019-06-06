@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Retrieve the NAV server configuration as a powershell object.
+  Retrieve the Server configuration from a NAV/BC Container as a powershell object
  .Description
   Returns all the settings of the middletier from a container.
  .Example

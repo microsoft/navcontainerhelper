@@ -1,13 +1,13 @@
 ﻿<# 
  .Synopsis
-  Use Nav Container to Compile App
+  Use NAV/BC Container to Compile App
  .Description
  .Parameter containerName
   Name of the container which you want to use to compile the app
  .Parameter tenant
   tenant to use if container is multitenant
  .Parameter credential
-  Credentials of the NAV SUPER user if using NavUserPassword authentication
+  Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter appProjectFolder
   Location of the project. This folder (or any of its parents) needs to be shared with the container.
  .Parameter appOutputFolder

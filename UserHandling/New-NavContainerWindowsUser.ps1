@@ -1,10 +1,10 @@
 ﻿<# 
  .Synopsis
-  Creates a new Winodws User in a Nav container
+  Creates a new Winodws User in a NAV/BC Container
  .Description
-  Creates a new Windows user in a Nav container.
+  Creates a new Windows user in a NAV/BC Container.
  .Parameter containerName
-  Name of the container in which you want to install the app (default navserver)
+  Name of the container in which you want to create a windows user
  .Parameter Credential
   Credentials of the new Winodws user
  .Parameter group
@@ -16,11 +16,11 @@ function New-NavContainerWindowsUser {
     Param
     (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [System.Management.Automation.PSCredential]$Credential,
+        [PSCredential] $Credential,
         [parameter(Mandatory=$false)]        
-        [string]$group = "administrators"
+        [string] $group = "administrators"
     )
 
     PROCESS

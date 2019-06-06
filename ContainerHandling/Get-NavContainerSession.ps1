@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Get (or create) a PSSession for a Nav Container
+  Get (or create) a PSSession for a NAV/BC Container
  .Description
   Checks the session cache for an existing session. If a session exists, it will be reused.
   If no session exists, a new session will be created.
@@ -14,10 +14,8 @@ function Get-NavContainerSession {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$false)]
-        [switch]$silent
+        [string] $containerName = "navserver",
+        [switch] $silent
     )
 
     Process {

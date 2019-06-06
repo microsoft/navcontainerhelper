@@ -1,15 +1,15 @@
 ﻿<# 
  .Synopsis
-  Creates a new NAV User in a Nav container
+  Creates a new User in a NAV/BC Container
  .Description
-  Creates a new NAV user in a Nav container.
-  If the Nav Container is multitenant, the NAV user will be added to a specified tenant
+  Creates a new user in a NAV/BC container.
+  If the Container is multitenant, the user will be added to a specified tenant
  .Parameter containerName
   Name of the container in which you want to create the user (default navserver)
  .Parameter tenant
   Name of tenant in which you want to create a user
  .Parameter Credential
-  Credentials of the new NAV user (if using NavUserPassword authentication)
+  Credentials of the new user (if using NavUserPassword authentication)
  .Parameter WindowsAccount
   WindowsAccount of the new user (if using Windows authentication)
  .Parameter AuthenticationEmail
@@ -55,12 +55,12 @@ function New-NavContainerNavUser {
                 $Parameters.Add('AuthenticationEmail',$AuthenticationEmail)
             }
             if($WindowsAccount) {
-                Write-Host "Creating NAV User for WindowsAccount $WindowsAccount"
+                Write-Host "Creating User for WindowsAccount $WindowsAccount"
       			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount @Parameters
                 Write-Host "Assigning Permission Set $PermissionSetId to $WindowsAccount"
                 New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId
             } else {
-                Write-Host "Creating NAV User $($Credential.UserName)"
+                Write-Host "Creating User $($Credential.UserName)"
                 if ($ChangePasswordAtNextLogOn) {
       			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -ChangePasswordAtNextLogon @Parameters
                 } else {

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get a list of companies in the database
+  Get a list of companies in the NAV/BC Container
  .Description
-  Create a session to a Nav container and run Get-NavCompany
+  Create a session to a container and run Get-NavCompany
  .Parameter containerName
   Name of the container in which you want to get the companies
   .Parameter tenant
@@ -12,10 +12,8 @@
 #>
 function Get-CompanyInNavContainer {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default"
+        [string] $containerName = "navserver",
+        [string] $tenant = "default"
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the OS Version for a Nav container or a Nav container image
+  Get the OS Version for a NAV/BC Container or a NAV/BC Container image
  .Description
-  Returns the version of the WindowsServerCore image used to build the Nav container or Nav containerImage
+  Returns the version of the WindowsServerCore image used to build the Container or ContainerImage
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the OS Version
  .Example

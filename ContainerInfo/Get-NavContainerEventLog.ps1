@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Get the Event log from a Nav container as an .evtx file
+  Get the Event log from a NAV/BC Container as an .evtx file
  .Description
   Get a copy of the current Event Log from a continer and open it in the local event viewer
  .Parameter containerName

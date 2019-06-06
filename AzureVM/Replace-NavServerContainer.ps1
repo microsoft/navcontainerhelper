@@ -9,9 +9,9 @@
  .Parameter alwaysPull
   Include this switch if you want to make sure that you pull latest version of the docker image
  .Example
-  Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus
+  Replace-NavServerContainer -imageName mcr.microsoft.com/dynamicsnav:2018
  .Example
-  Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus -alwaysPull
+  Replace-NavServerContainer -imageName mcr.microsoft.com/businesscentral/onprem:w1 -alwaysPull
  .Example
   Replace-NavServerContainer
 #>
@@ -28,7 +28,7 @@ function Replace-NavServerContainer {
     $settingsScript = "C:\DEMO\settings.ps1"
 
     if (!((Test-Path $SetupNavContainerScript) -and (Test-Path $setupDesktopScript) -and (Test-Path $settingsScript))) {
-        throw "The Replace-NavServerContainer is designed to work inside the Nav on Azure DEMO VMs"
+        throw "The Replace-NavServerContainer is designed to work inside the ARM template VMs created by (ex. http://aka.ms/getbc)"
     }
 
     if ($enableSymbolLoading -ne "Default") {
@@ -54,7 +54,7 @@ function Replace-NavServerContainer {
         docker pull $imageName
     }
 
-    Write-Host -ForegroundColor Green "Setup new Nav container"
+    Write-Host -ForegroundColor Green "Setup new Container"
     . $SetupNavContainerScript
     . $setupDesktopScript
 }

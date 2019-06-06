@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Run a test suite in a container
+  Run a test suite in a NAV/BC Container
  .Description
  .Parameter containerName
   Name of the container in which you want to run a test suite
@@ -9,7 +9,7 @@
  .Parameter companyName
   company to use if container
  .Parameter credential
-  Credentials of the NAV SUPER user if using NavUserPassword authentication
+  Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter testSuite
   Name of test suite to run. Default is DEFAULT.
  .Parameter testCodeunit
@@ -17,7 +17,7 @@
  .Parameter testFunction
   Name of test function to run. Wildcards (? and *) are supported. Default is *.
  .Parameter XUnitResultFileName
-  Credentials of the NAV SUPER user if using NavUserPassword authentication
+  Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter AzureDevOps
   Generate Azure DevOps Pipeline compatible output. This setting determines the severity of errors.
  .Example
@@ -27,14 +27,13 @@
 #>
 function Run-TestsInNavContainer {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [string]$companyName = "",
+        [string] $companyName = "",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
         [string] $testSuite = "DEFAULT",
         [Parameter(Mandatory=$false)]
@@ -97,12 +96,11 @@ function Run-TestsInNavContainer {
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-        $ServerInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='ServerInstance']").Value
         $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
         $idx = $publicWebBaseUrl.IndexOf('//')
         $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
         $disableSslVerification = ($protocol -eq "https://")
-        $serviceUrl = "${protocol}localhost/NAV/cs?tenant=$tenant"
+        $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami

@@ -1,10 +1,10 @@
 ﻿<# 
  .Synopsis
-  Extract Files From NAV Container
+  Extract Files From stopped NAV/BC Container
  .Description
-  Extract all files from a NAV Container Image necessary to start a generic container with these files
+  Extract all files from a Container Image necessary to start a generic container with these files
  .Parameter containerName
-  Name of the NAV Container from which you want to extract the files
+  Name of the Container from which you want to extract the files
  .Parameter path
   Location where you want the files to be placed
  .Parameter extract
