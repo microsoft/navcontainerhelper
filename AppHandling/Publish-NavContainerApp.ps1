@@ -124,8 +124,15 @@ function Publish-NavContainerApp {
             Write-Host "Disabling SSL Verification"
             [SslVerification]::Disable()
         }
-    
-        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=synchronize"
+        
+        $schemaUpdateMode = "synchronize"
+        if ($syncMode -eq "Clean") {
+            $schemaUpdateMode = "recreate";
+        }
+        elseif ($syncMode -eq "ForceSync") {
+            $schemaUpdateMode = "forcesync"
+        }
+        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
         if ($Scope -eq "Tenant") {
             $url += "&tenant=$tenant"
         }
