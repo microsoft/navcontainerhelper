@@ -63,15 +63,15 @@ function Publish-NavContainerApp {
     $copied = $false
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
         $appUrl = $appFile
-        $appFile = Join-Path $extensionsFolder "$containerName\my\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
+        $appFile = Join-Path $extensionsFolder "$containerName\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
         $copied = $true
     }
 
     $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
     if ("$containerAppFile" -eq "") {
-        $containerAppFile = Join-Path "c:\run\my" ([System.IO.Path]::GetFileName($appFile))
-        Copy-FileToNavContainer -containerName $containerName -localPath $appFile -containerPath $containerAppFile
+        $containerAppFile = Join-Path $extensionsFolder "$containerName\$([System.IO.Path]::GetFileName($appFile))"
+        Copy-Item -Path $appFile -Destination $containerAppFile
         $copied = $true
     }
 
