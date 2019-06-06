@@ -1,7 +1,7 @@
 ﻿<# 
  .Synopsis
-  Get the platform version of Business Central in a Nav container or a Nav container image
-  The function will return blank for Dynamics-Nav Containers
+  Get the Platform Version from a BC Container or BC Container image
+  The function will return blank for NAV Containers
  .Description
   Returns the platform version of Business Central in the format major.minor.build.release
  .Parameter containerOrImageName
@@ -22,7 +22,7 @@ function Get-NavContainerPlatformVersion {
     Process {
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV container"
+            throw "Container $containerOrImageName is not a NAV/BC container"
         }
         if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -eq 0) {
             return ""

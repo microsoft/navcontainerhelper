@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Invoke a PowerShell scriptblock in a Nav container
+  Invoke a PowerShell scriptblock in a NAV/BC Container
  .Description
-  If you are running as administrator, this function will create a session to a Nav Container and invoke a scriptblock in this session.
+  If you are running as administrator, this function will create a session to a Container and invoke a scriptblock in this session.
   If you are not an administrator, this function will create a PowerShell script in the container and use docker exec to launch the PowerShell script in the container.
  .Parameter containerName
   Name of the container in which you want to invoke a PowerShell scriptblock
@@ -17,8 +17,7 @@
 #>
 function Invoke-ScriptInNavContainer {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]

@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Publish an AL Application (including Base App) to a Container
+  Publish an AL Application (including Base App) to a NAV/BC Container
  .Description
   This function will replace the existing application (including base app) with a new application
   The application will be deployed using developer mode (same as used by VS Code)
@@ -76,7 +76,7 @@ function Publish-NewApplicationToNavContainer {
             }
 
             Write-Host "Uninstalling apps"
-            Get-NAVAppInfo $customConfig.ServerInstance | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
+            Get-NAVAppInfo $serverInstance | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
 
             $tenant = "default"
         

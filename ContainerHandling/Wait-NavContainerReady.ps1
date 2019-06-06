@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Wait for Nav container to become ready
+  Wait for NAV/BC Container to become ready
  .Description
-  Wait for Nav container to log "Ready for connections!"
+  Wait for container to log "Ready for connections!"
   If the container experiences an error, the function will throw an exception
  .Parameter containerName
   Name of the container for which you want to wait

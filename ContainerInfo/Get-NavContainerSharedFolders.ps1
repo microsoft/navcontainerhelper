@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Get a list of folders shared with a Nav container
+  Get a list of folders shared with a NAV/BC Container
  .Description
   Returns a hastable of folders shared with the container.
   The name in the hashtable is the local folder, the value is the folder inside the container

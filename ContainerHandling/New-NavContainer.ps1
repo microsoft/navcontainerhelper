@@ -1,19 +1,19 @@
 ﻿<# 
  .Synopsis
-  Create or refresh a Nav container
+  Create or refresh a NAV/BC Container
  .Description
-  Creates a new Nav container based on a Nav Docker Image
+  Creates a new Container based on a Docker Image
   Adds shortcut on the desktop for Web Client and Container PowerShell prompt
  .Parameter accept_eula
-  Switch, which you need to specify if you accept the eula for running Nav on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
+  Switch, which you need to specify if you accept the eula for running NAV or Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
  .Parameter accept_outdated
   Specify accept_outdated to ignore error when running containers which are older than 90 days
  .Parameter containerName
-  Name of the new Nav container (if the container already exists it will be replaced)
+  Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
-  Name of the image you want to use for your Nav container (default is to grab the imagename from the navserver container)
+  Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
  .Parameter navDvdPath
-  When you are spinning up a Generic image, you need to specify the NAV DVD path
+  When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter navDvdCountry
   When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.) (default is w1)
  .Parameter navDvdVersion
@@ -23,9 +23,9 @@
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
  .Parameter credential
-  Username and Password for the NAV Container
+  Username and Password for the Container
  .Parameter AuthenticationEmail
-  AuthenticationEmail of the admin user of NAV
+  AuthenticationEmail of the admin user
  .Parameter memoryLimit
   Memory limit for the container (default is unlimited for Windows Server host else 4G)
  .Parameter isolation
@@ -107,11 +107,11 @@
  .Example
   New-NavContainer -accept_eula -containerName test -multitenant
  .Example
-  New-NavContainer -accept_eula -containerName test -memoryLimit 3G -imageName "microsoft/dynamics-nav:2017" -updateHosts -useBestContainerOS
+  New-NavContainer -accept_eula -containerName test -memoryLimit 3G -imageName "mcr.microsoft.com/dynamicsnav:2017" -updateHosts -useBestContainerOS
  .Example
-  New-NavContainer -accept_eula -containerName test -imageName "microsoft/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+  New-NavContainer -accept_eula -containerName test -imageName "mcr.microsoft.com/businesscentral/onprem:dk" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "microsoft/dynamics-nav:devpreview-finus"
+  New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "mcr.microsoft.com/businesscentral/onprem:de"
 #>
 function New-NavContainer {
     Param(
@@ -225,7 +225,7 @@ function New-NavContainer {
             $hostOs = "1903"
         }
         $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "1903"
     } elseif ($os.BuildNumber -ge 17763) { 
         if ($os.BuildNumber -eq 17763) { 
             $hostOs = "ltsc2019"
@@ -313,7 +313,7 @@ function New-NavContainer {
                 $imageName = $useGenericImage
             }
             else {
-                $imageName = "microsoft/dynamics-nav:generic"
+                $imageName = "mcr.microsoft.com/dynamicsnav:generic"
             }
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
@@ -488,7 +488,7 @@ function New-NavContainer {
         $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
 
-    Write-Host "Creating Nav container $containerName"
+    Write-Host "Creating Container $containerName"
     
     if ("$licenseFile" -ne "") {
         Write-Host "Using license file $licenseFile"
@@ -543,7 +543,7 @@ function New-NavContainer {
             
             # There is a generic image, which is better than the selected image
             Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
-            $useGenericImage = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
+            $useGenericImage = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
 
         }
     }
@@ -607,14 +607,21 @@ function New-NavContainer {
         Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
     }
 
-    if ("$isolation" -eq "" -and ($hostOsVersion.Major -ne $containerOsversion.Major -or 
-                                  $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
-                                  $hostOsVersion.Build -ne $containerOsversion.Build -or 
-                                  $hostOsVersion.Revision -ne $containerOsversion.Revision)) {
+    if ("$isolation" -eq "") {
+        if ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+            $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+            $hostOsVersion.Build -ne $containerOsversion.Build) {
         
-        Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
-        $isolation = "hyperv"
+            Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
+            $isolation = "hyperv"
 
+        }
+        elseif ($hostOsVersion.Revision -ne $containerOsversion.Revision) {
+
+            Write-Host "WARNING: The container operating system matches the host operating system, but the revision is different."
+            Write-Host "If you encounter issues, you might want to specify -isolation hyperv"
+
+        }
     }
 
     $locale = Get-LocaleFromCountry $devCountry
@@ -629,6 +636,10 @@ function New-NavContainer {
 
     if ($includeAL -and ($version.Major -lt 14)) {
         throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
+    }
+
+    if ($includeCSide -and ($version.Major -ge 15)) {
+        throw "IncludeCSide is no longer supported in Dynamics 365 Business Central Fall 2019 release (1910 / 15.x)"
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
@@ -796,7 +807,7 @@ if ($restartingInstance -eq $false) {
     $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
     [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
     $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$winclientServer+'"
-    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value=$ServerInstance
     if ($multitenant) {
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
     }
@@ -893,10 +904,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
         $customNavSettings = "PublicODataBaseUrl=$restUrl/odata,PublicSOAPBaseUrl=$soapUrl/ws,PublicWebBaseUrl=$webclientUrl"
 
+        if ($version.Major -ge 15) {
+            $ServerInstance = "BC"
+        }
+        else {
+            $ServerInstance = "NAV"
+        }
+
         $webclientRule="PathPrefix:$webclientPart"
-        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /NAV`$1"
-        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /NAV`$1"
-        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /NAV`$1"
+        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
+        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
+        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
         $dlRule="PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Substring(0, $publicDnsName.IndexOf("."))
@@ -1136,7 +1154,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         } -argumentList $dotnetAssembliesFolder
     }
 
-    Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
+    Write-Host -ForegroundColor Green "Container $containerName successfully created"
 
     if ($useTraefik) {
         Write-Host -ForegroundColor Yellow "Because of Traefik, the following URLs need to be used when accessing the container from outside your Docker host:"

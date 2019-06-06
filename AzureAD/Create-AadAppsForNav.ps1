@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Create Apps in Azure Active Directory to allow Single Signon with NAV using AAD
+  Create Apps in Azure Active Directory to allow Single Signon when using AAD
  .Description
-  This function will create an app in AAD, to allow NAV Web and Windows Client to use AAD for authentication
+  This function will create an app in AAD, to allow Web and Windows Client to use AAD for authentication
   Optionally the function can also create apps for the Excel AddIn and/or PowerBI integration
  .Parameter AadAdminCredential
   Credentials for your AAD/Office 365 administrator user, who can create apps in the AAD
@@ -17,22 +17,22 @@
  .Parameter IncludePowerBiAadApp
   Add this switch to request the function to also create an AAD app for the PowerBI service
  .Example
-  Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/nav/
+  Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/bc/
 #>
 function Create-AadAppsForNav
 {
     Param
     (
         [Parameter(Mandatory=$true)]
-        [System.Management.Automation.PSCredential]$AadAdminCredential,
+        [PSCredential] $AadAdminCredential,
         [Parameter(Mandatory=$true)]
-        [string]$appIdUri,
+        [string] $appIdUri,
         [Parameter(Mandatory=$false)]
-        [string]$publicWebBaseUrl = $appIdUri,
+        [string] $publicWebBaseUrl = $appIdUri,
         [Parameter(Mandatory=$false)]
-        [string]$iconPath,
-        [switch]$IncludeExcelAadApp,
-        [switch]$IncludePowerBiAadApp
+        [string] $iconPath,
+        [switch] $IncludeExcelAadApp,
+        [switch] $IncludePowerBiAadApp
     )
 
     function Create-AesKey {
@@ -79,7 +79,7 @@ function Create-AadAppsForNav
     $AdProperties["SsoAdAppKeyValue"] = $SsoAdAppKeyValue
 
     Write-Host "Creating AAD App for WebClient"
-    $ssoAdApp = New-AzureADApplication -DisplayName "NAV WebClient for $appIdUri" `
+    $ssoAdApp = New-AzureADApplication -DisplayName "WebClient for $appIdUri" `
                                        -Homepage $publicWebBaseUrl `
                                        -IdentifierUris $appIdUri `
                                        -ReplyUrls @($publicWebBaseUrl, ($publicWebBaseUrl.ToLowerInvariant()+"SignIn"))

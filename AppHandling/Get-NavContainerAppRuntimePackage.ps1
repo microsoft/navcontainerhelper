@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Download Nav App Runtime Package from Container
+  Download App Runtime Package from NAV/BC Container
  .Description
-  Downloads a Nav App runtime package to a shared folder and returns the filename of the app
+  Downloads an App runtime package to a shared folder and returns the filename of the app
  .Parameter containerName
   Name of the container from which you want to download a runtime package
  .Parameter appName
@@ -18,14 +18,14 @@
 #>
 function Get-NavContainerAppRuntimePackage {
     Param(
-        [string]$containerName = "navserver",
-        [string]$appName,
+        [string] $containerName = "navserver",
+        [string] $appName,
         [Parameter(Mandatory=$false)]
-        [string]$appVersion,
+        [string] $appVersion,
         [Parameter(Mandatory=$false)]
-        [string]$Tenant,
+        [string] $Tenant,
         [Parameter(Mandatory=$false)]
-        [string]$appFile = (Join-Path $extensionsFolder "$containerName\$appName.app")
+        [string] $appFile = (Join-Path $extensionsFolder "$containerName\$appName.app")
     )
 
     $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
@@ -36,7 +36,7 @@ function Get-NavContainerAppRuntimePackage {
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $appFile)
 
         $parameters = @{ 
-            "ServerInstance" = "NAV"
+            "ServerInstance" = $ServerInstance
             "Name" = $appName
             "Path" = $appFile
         }

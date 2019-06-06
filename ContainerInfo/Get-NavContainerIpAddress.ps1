@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the IP Address of a Nav container
+  Get the IP Address of a NAV/BC Container
  .Description
-  Inspect the Nav Container and return the IP Address of the first network.
+  Inspect the Container and return the IP Address of the first network.
  .Parameter containerName
   Name of the container for which you want to get the IP Address
  .Example

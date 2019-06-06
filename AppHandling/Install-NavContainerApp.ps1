@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Install Nav App in Nav container
+  Install App in NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Install-NavApp in the container
+  Creates a session to the container and runs the CmdLet Install-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to install the app (default navserver)
  .Parameter appName
@@ -13,21 +13,20 @@
 function Install-NavContainerApp {
     Param
     (
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
+        [string] $appName,
         [Parameter()]
-        [string]$appVersion
+        [string] $appVersion
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Installing $appName on $tenant"
         $parameters = @{ 
-            "ServerInstance" = "NAV";
-            "Name" = $appName; 
+            "ServerInstance" = $ServerInstance
+            "Name" = $appName
             "Tenant" = $tenant
         }
         if ($appVersion)

@@ -1,6 +1,6 @@
 <# 
  .Synopsis
-  Repairs Nav App in a Nav container
+  Repairs App in a NAV/BC Container
  .Description
   Repairs a Business Central App by recompiling it against the current base application. Use this cmdlet if the base application has changed since publishing the Business Central App.
   It is recommended that the Business Central Server instance is restarted after running the repair.
@@ -15,17 +15,17 @@
 #>
 function Repair-NavContainerApp {
     Param(
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
+        [string] $appName,
         [Parameter()]
-        [string]$appVersion
+        [string] $appVersion
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion)
         Write-Host "Repairing $appName"
         $parameters = @{
-            "ServerInstance" = "NAV";
+            "ServerInstance" = $ServerInstance;
             "Name" = $appName
         }
         if ($appVersion)

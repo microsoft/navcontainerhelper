@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Removes a configuration package from the application database
+  Removes a configuration package from the application database in a NAV/BC Container
  .Description
-  Create a session to a Nav container and run Remove-NAVConfigurationPackageFile
+  Create a session to a container and run Remove-NAVConfigurationPackageFile
  .Parameter containerName
   Name of the container in which you want to remove the configuration package from
  .Parameter configPackageCode
@@ -12,10 +12,9 @@
 #>
 function Remove-ConfigPackageInNavContainer {
     Param(
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$true)]
-        [string]$configPackageCode
+        [string] $configPackageCode
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageCode)

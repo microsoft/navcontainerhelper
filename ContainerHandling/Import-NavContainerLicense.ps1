@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Import License file to Nav container
+  Import License file to a NAV/BC Container
  .Description
   Import a license from a file or a url to a container
  .Parameter containerName
@@ -14,10 +14,9 @@
 #>
 function Import-NavContainerLicense {
     Param(
+        [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [Parameter(Mandatory=$true)]
-        [string]$licenseFile
+        [string] $licenseFile
     )
 
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -49,8 +48,8 @@ function Import-NavContainerLicense {
             }
         }
     
-        Write-Host "Import NAV License $licensefile"
-        Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance 'NAV' -Database NavDatabase -WarningAction SilentlyContinue
+        Write-Host "Import License $licensefile"
+        Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance $ServerInstance -Database NavDatabase -WarningAction SilentlyContinue
     
     }  -ArgumentList $containerLicenseFile
 }

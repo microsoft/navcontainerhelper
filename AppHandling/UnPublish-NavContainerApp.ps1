@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Unpublish Nav App in Nav container
+  Unpublish App in NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Unpublish-NavApp in the container
+  Creates a session to the container and runs the CmdLet Unpublish-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to unpublish the app (default navserver)
  .Parameter appName
@@ -24,18 +24,18 @@
 #>
 function UnPublish-NavContainerApp {
     Param(
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
-        [switch]$unInstall,
-        [switch]$doNotSaveData,
-        [switch]$force,
+        [string] $appName,
+        [switch] $unInstall,
+        [switch] $doNotSaveData,
+        [switch] $force,
         [Parameter(Mandatory=$false)]
-        [string]$publisher,
+        [string] $publisher,
         [Parameter(Mandatory=$false)]
-        [Version]$version,
+        [Version] $version,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default"
+        [string] $tenant = "default"
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force)

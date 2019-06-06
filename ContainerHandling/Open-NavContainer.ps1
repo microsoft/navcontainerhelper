@@ -1,9 +1,9 @@
 ﻿<# 
  .Synopsis
-  Open a new PowerShell session for a Nav Container
+  Open a new PowerShell session for a NAV/BC Container
  .Description
-  Opens a new PowerShell window for a Nav Container.
-  The PowerShell prompt will have the Nav PowerShell modules pre-loaded, meaning that you can use most Nav PowerShell CmdLets.
+  Opens a new PowerShell window for a Container.
+  The PowerShell prompt will have the PowerShell modules pre-loaded, meaning that you can use most PowerShell CmdLets.
  .Parameter containerName
   Name of the container for which you want to open a session
  .Example
@@ -13,8 +13,7 @@ function Open-NavContainer {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string] $containerName = "navserver"
     )
 
     Process {

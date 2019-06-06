@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Test whether a Nav container exists
+  Test whether a NAV/BC Container exists
  .Description
-  Returns $true if the Nav container with the specified name exists
+  Returns $true if a NAV/BC Container with the specified name exists
  .Parameter containerName
   Name of the container which you want to check for existence
  .Example

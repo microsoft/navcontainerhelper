@@ -52,7 +52,7 @@ function Convert-ModifiedObjectsToAl {
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
     $txt2al = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { $txt2al }
     if (!($txt2al)) {
-        throw "You cannot run Convert-ModifiedObjectsToAl on this Nav Container, the txt2al tool is not present."
+        throw "You cannot run Convert-ModifiedObjectsToAl on this Container, the txt2al tool is not present."
     }
 
     $suffix = "-newsyntax"
