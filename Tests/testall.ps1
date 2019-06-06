@@ -89,7 +89,7 @@ $windowsCredential = get-credential -UserName $env:USERNAME -Message "Please ent
 $aadAdminCredential = get-credential -Message "Please enter your AAD Admin credentials if you want to include AAD auth testing"
 
 $testParams = @(
-#    @{ "name" = "n2018w1"; "image" = "mcr.microsoft.com/dynamicsnav:$platform"               ; "country" = "w1" }
+    @{ "name" = "n2018w1"; "image" = "mcr.microsoft.com/dynamicsnav:$platform"               ; "country" = "w1" }
 #    @{ "name" = "n2018de"; "image" = "mcr.microsoft.com/dynamicsnav:de-$platform"            ; "country" = "de" }
     @{ "name" = "bcopw1";  "image" = "mcr.microsoft.com/businesscentral/onprem:$platform"    ; "country" = "w1" }
 #    @{ "name" = "bcopnl";  "image" = "mcr.microsoft.com/businesscentral/onprem:nl-$platform" ; "country" = "nl" }
@@ -310,11 +310,11 @@ $testParams | ForEach-Object {
 
                         Test "Publish-NavContainerApp"
                         $scopeArgs = @{}
-                        if ($multitenant) {
+                        if ($multitenant -and $navVersion.Major -ge 14) {
                             $scopeArgs = @{ "Scope" = "Tenant" }
                         }
                         $appFile = (Get-item "$appoutputfolder\*.app").FullName
-                        Publish-NavContainerApp -containerName $name -appFile $appFile -skipVerification -sync -install -useDevEndpoint @scopeArgs
+                        Publish-NavContainerApp -containerName $name -appFile $appFile -skipVerification -sync -install -useDevEndpoint:($navVersion.Major -ge 12) @scopeArgs
 
                         Test "Get-NavContainerAppInfo"
                         AreEqual -expr "@(Get-NavContainerAppInfo -containerName $name).Count" -expected ($count+1)
@@ -364,12 +364,15 @@ $testParams | ForEach-Object {
                         Import-DeltasToNavContainer -containerName $name `
                                                     -deltaFolder $myDeltaFolder
     
-                        if ($auth -eq "Windows") {
-                            Test "Compile-ObjectsInNavContainer"
-                            Compile-ObjectsInNavContainer -containerName $name
+                        $authParam = @{}
+                        if ($auth -ne "Windows") {
+                            $authParam += @{ "sqlCredential" = $credential }
                         }
+
+                        Test "Compile-ObjectsInNavContainer"
+                        Compile-ObjectsInNavContainer -containerName $name
     
-                        if ($testAppHandling -and ($navVersion.Major -ge 11)) {
+                        if ($testAppHandling -and ($navVersion.Major -eq 12)) {
 
                             Test "Convert-ModifiedObjectsToAl"
                             Convert-ModifiedObjectsToAl -containerName $name `
@@ -405,7 +408,7 @@ $testParams | ForEach-Object {
 
                             Test "Publish-NavContainerApp"
                             $appFile = (Get-item "$appoutputfolder\*.app").FullName
-                            Publish-NavContainerApp -containerName compiler -appFile $appFile -skipVerification -sync -install -useDevEndpoint
+                            Publish-NavContainerApp -containerName compiler -appFile $appFile -skipVerification -sync -install -useDevEndpoint:($navVersion.Major -ge 12)
 
                             Test "Unpublish-NavContainerApp"
                             UnPublish-NavContainerApp -containerName compiler -appName TestApp -publisher TestApp -version "1.0.0.0" -unInstall
