@@ -485,7 +485,7 @@ $testParams | ForEach-Object {
                                     Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password
                                 }
                                 else {
-                                    Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password -credential $credential
+                                    Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password -credential $credential2
                                 }
                                 AreEqual -expr "@(Get-NavContainerNavUser -containerName $name -tenant UserTest).Count" -expected ($count+7)
                             }
