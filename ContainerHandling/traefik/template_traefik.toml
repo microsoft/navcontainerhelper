@@ -38,4 +38,4 @@ entryPoint = "http"
   [frontends.host]
     backend = "host"
     [frontends.host.routes.route1]
-      rule = "PathPrefixStrip:/landing"
+      rule = "PathPrefix:/"
