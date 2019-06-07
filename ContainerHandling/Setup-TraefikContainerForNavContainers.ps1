@@ -56,7 +56,7 @@ function Setup-TraefikContainerForNavContainers {
 
         Log "Pulling and running traefik"
         docker pull $traefikDockerImage
-        docker run -p 8080:127.0.0.1:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
     }
 }
 Set-Alias -Name Setup-TraefikContainerForBCContainers -Value Setup-TraefikContainerForNavContainers
