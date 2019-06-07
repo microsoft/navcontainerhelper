@@ -2,6 +2,8 @@
 using namespace Microsoft.Dynamics.Framework.UI.Client
 using namespace Microsoft.Dynamics.Framework.UI.Client.Interactions
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute("TypeNotFound", Scope="Function", Target="*")]
+
 class ClientContext {
 
     $events = @()
