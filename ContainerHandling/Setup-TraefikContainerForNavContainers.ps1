@@ -72,39 +72,43 @@ function Setup-TraefikContainerForNavContainers {
         Copy-Item $traefikTomlFile -Destination $traefiktomltemplate
         Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
 
-        if ($CrtFile -is [string]) {
-            if ($CrtFile.ToLower().StartsWith("http://") -or $CrtFile.ToLower().StartsWith("https://")) {
-                (New-Object System.Net.WebClient).DownloadFile($CrtFile, $CrtFilePath)
-            } else {
-                if (!(Test-Path $CrtFile)) {
-                    throw "File $CrtFile does not exist"
+        if($CrtFile) {
+            if ($CrtFile -is [string]) {
+                if ($CrtFile.ToLower().StartsWith("http://") -or $CrtFile.ToLower().StartsWith("https://")) {
+                    (New-Object System.Net.WebClient).DownloadFile($CrtFile, $CrtFilePath)
                 } else {
-                    Copy-Item $CrtFile -Destination $CrtFilePath
+                    if (!(Test-Path $CrtFile)) {
+                        throw "File $CrtFile does not exist"
+                    } else {
+                        Copy-Item $CrtFile -Destination $CrtFilePath
+                    }
                 }
+            } else {
+                throw "Illegal value in CrtFile"
             }
-        } else {
-            throw "Illegal value in CrtFile"
         }
 
-        if ($CrtKeyFile -is [string]) {
-            if ($CrtKeyFile.ToLower().StartsWith("http://") -or $CrtKeyFile.ToLower().StartsWith("https://")) {
-                (New-Object System.Net.WebClient).DownloadFile($CrtKeyFile, $CrtKeyFilePath)
-            } else {
-                if (!(Test-Path $CrtKeyFile)) {
-                    throw "File $CrtKeyFile does not exist"
+        if($CrtKeyFile) {
+            if ($CrtKeyFile -is [string]) {
+                if ($CrtKeyFile.ToLower().StartsWith("http://") -or $CrtKeyFile.ToLower().StartsWith("https://")) {
+                    (New-Object System.Net.WebClient).DownloadFile($CrtKeyFile, $CrtKeyFilePath)
                 } else {
-                    Copy-Item $CrtKeyFile -Destination $CrtKeyFilePath
+                    if (!(Test-Path $CrtKeyFile)) {
+                        throw "File $CrtKeyFile does not exist"
+                    } else {
+                        Copy-Item $CrtKeyFile -Destination $CrtKeyFilePath
+                    }
                 }
+            } else {
+                throw "Illegal value in CertKeyFile"
             }
-        } else {
-            throw "Illegal value in CertKeyFile"
         }
 
         Write-Host "Create traefik config file"
         $template = Get-Content $traefiktomltemplate -Raw
         $expanded = Invoke-Expression "@`"`r`n$template`r`n`"@"
         $expanded | Out-File (Join-Path $traefikForBcBasePath "config\traefik.toml") -Encoding ASCII
-        break
+
         if ($overrideDefaultBinding) {
             Write-Host "Change standard port as Traefik will handle that. Content previously avaiable on port 80 will be available on 8180"
             Set-WebBinding -Name 'Default Web Site' -BindingInformation "*:80:" -PropertyName Port -Value 8180
