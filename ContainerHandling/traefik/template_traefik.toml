@@ -32,7 +32,7 @@ entryPoint = "http"
 [backends]
   [backends.host]
     [backends.host.servers.server1]
-       url = "http://$IP:8180"
+       url = "http://${IP}:8180"
 
 [frontends]
   [frontends.host]
