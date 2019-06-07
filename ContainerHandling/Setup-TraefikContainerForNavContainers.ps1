@@ -10,11 +10,11 @@
  .Parameter overrideDefaultBinding
   Include this switch if you already have an IIS listening on port 80 on your Docker host. This will move the binding on port 80 to port 8180
  .Parameter traefikToml
-  Include this switch if you already have an IIS listening on port 80 on your Docker host. This will move the binding on port 80 to port 8180
+  Path/Url of the toml file for traefik
  .Parameter CrtFile
-  Include this switch if you already have an IIS listening on port 80 on your Docker host. This will move the binding on port 80 to port 8180
+  Path/Url of the certificate crt file for using your own domain
  .Parameter CertKeyFile
-  Include this switch if you already have an IIS listening on port 80 on your Docker host. This will move the binding on port 80 to port 8180
+  Path/Url of the certificate key file for using your own domain
  .Example
   Setup-TraefikContainerForNavContainers -overrideDefaultBinding
 #>
