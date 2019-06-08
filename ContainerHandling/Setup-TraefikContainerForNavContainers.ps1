@@ -27,7 +27,7 @@ function Setup-TraefikContainerForNavContainers {
         [Parameter(Mandatory=$true, ParameterSetName="LetsEncrypt")]
         [string]$ContactEMailForLetsEncrypt,
         [switch]$overrideDefaultBinding,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string]$traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml"),
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string]$CrtFile,
