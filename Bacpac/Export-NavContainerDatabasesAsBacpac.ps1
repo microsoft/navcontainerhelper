@@ -34,7 +34,7 @@ function Export-NavContainerDatabasesAsBacpac {
         [string] $containerName = "navserver", 
         [PSCredential] $sqlCredential = $null,
         [string] $bacpacFolder = "",
-        [string[]] $tenant = @("tenant"),
+        [string[]] $tenant = @("default"),
         [int] $commandTimeout = 3600,
         [switch] $diagnostics,
         [string[]] $additionalArguments = @()
@@ -272,6 +272,12 @@ function Export-NavContainerDatabasesAsBacpac {
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
             $tenant | ForEach-Object {
+                if ("$_" -ne "tenant") {
+                    $tenantInfo = Get-NavTenant -ServerInstance $ServerInstance -tenant $_ -ForceRefresh
+                    if ($tenantInfo.State -ne "Operational") {
+                        throw "Tenant $_ is not operational, you might need to synchronize the tenant"
+                    }
+                }
                 $tempTenantDatabaseName = "tempTenant"
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
                 Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $_ -DestinationDatabaseName $tempTenantDatabaseName
