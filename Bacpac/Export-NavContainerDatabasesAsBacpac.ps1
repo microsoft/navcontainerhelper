@@ -275,7 +275,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 if ("$_" -ne "tenant") {
                     $tenantInfo = Get-NavTenant -ServerInstance $ServerInstance -tenant $_ -ForceRefresh
                     if ($tenantInfo.State -ne "Operational") {
-                        throw "Tenant $_ is not operational, you might need to synchronize the tenant"
+                        throw "Tenant $_ is not operational, you might need to synchronize the tenant or run data upgrade"
                     }
                 }
                 $tempTenantDatabaseName = "tempTenant"
