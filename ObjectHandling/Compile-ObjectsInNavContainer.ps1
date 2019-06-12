@@ -40,8 +40,15 @@ function Compile-ObjectsInNavContainer {
         $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
 
+        if ("$filter" -ne "") {
+            Write-Host "Compiling objects with $filter"
+        }
+        else {
+            Write-Host "Compiling all objects"
+        }
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
         if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+            Write-Host "Generating symbols for objects compiled"
             # HACK: Parameter insertion...
             # generatesymbolreference is not supported by Compile-NAVApplicationObject yet
             # insert an extra parameter for the finsql command by splitting the filter property
@@ -52,7 +59,6 @@ function Compile-ObjectsInNavContainer {
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
-        Write-Host "Compiling objects"
         Compile-NAVApplicationObject @params -Filter $filter `
                                      -DatabaseName $databaseName `
                                      -DatabaseServer $databaseServer `
