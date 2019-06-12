@@ -14,6 +14,8 @@
   Folder in which the output will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\output.
  .Parameter appSymbolsFolder
   Folder in which the symbols of dependent apps will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\symbols.
+ .Parameter appName
+  File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
  .Parameter AzureDevOps
@@ -24,6 +26,8 @@
   Specify a ruleset file for the compiler.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning (Works only if you specify -AzureDevOps)
+ .Parameter assemblyProbingPaths
+  Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
@@ -33,28 +37,30 @@
 function Compile-AppInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$true)]
-        [string]$appProjectFolder,
+        [string] $appProjectFolder,
         [Parameter(Mandatory=$false)]
-        [string]$appOutputFolder = (Join-Path $appProjectFolder "output"),
+        [string] $appOutputFolder = (Join-Path $appProjectFolder "output"),
         [Parameter(Mandatory=$false)]
-        [string]$appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
-        [switch]$UpdateSymbols,
-        [switch]$AzureDevOps,
-        [switch]$EnableCodeCop,
+        [string] $appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
+        [Parameter(Mandatory=$false)]
+        [string] $appName = "",
+        [switch] $UpdateSymbols,
+        [switch] $AzureDevOps,
+        [switch] $EnableCodeCop,
         [ValidateSet('none','error','warning')]
-        [string]$FailOn = 'none',
+        [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
-        [string]$rulesetFile,
+        [string] $rulesetFile,
         [Parameter(Mandatory=$false)]
-        [string]$nowarn,
+        [string] $nowarn,
         [Parameter(Mandatory=$false)]
-        [string]$assemblyProbingPaths
+        [string] $assemblyProbingPaths
     )
 
     $startTime = [DateTime]::Now
@@ -110,7 +116,9 @@ function Compile-AppInNavContainer {
 
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = Get-Content -Raw -Path $appJsonFile | ConvertFrom-Json
-    $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app"
+    if ("$appName" -eq "") {
+        $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app"
+    }
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
