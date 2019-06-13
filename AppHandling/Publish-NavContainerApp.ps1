@@ -65,16 +65,17 @@ function Publish-NavContainerApp {
         $appUrl = $appFile
         $appFile = Join-Path $extensionsFolder "$containerName\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
+        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
         $copied = $true
     }
-
-    $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-    if ("$containerAppFile" -eq "") {
-        $containerAppFile = Join-Path $extensionsFolder "$containerName\$([System.IO.Path]::GetFileName($appFile))"
-        Copy-Item -Path $appFile -Destination $containerAppFile
-        $copied = $true
+    else {
+        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+        if ("$containerAppFile" -eq "") {
+            $containerAppFile = Join-Path $extensionsFolder "$containerName\$([System.IO.Path]::GetFileName($appFile))"
+            Copy-Item -Path $appFile -Destination $containerAppFile
+            $copied = $true
+        }
     }
-
 
     if ($useDevEndpoint) {
 
@@ -211,7 +212,7 @@ function Publish-NavContainerApp {
     }
 
     if ($copied) { 
-        Remove-Item $appFile -Force
+        Remove-Item $containerAppFile -Force
     }
     Write-Host -ForegroundColor Green "App successfully published"
 }
