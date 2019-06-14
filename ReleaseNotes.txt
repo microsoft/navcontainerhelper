@@ -1,3 +1,8 @@
+0.6.1.4
+Add parameters EnableAppSourceCop, EnablePerTenantExtensionCop and EnableUICop to Compile-AppInNavContainer
+Shortcuts on the Desktop will only have RunAsAdmin if you are running NavContainerHelper as admin
+BugFix #494
+
 0.6.1.3
 Added parameter appName to Compile-AppInNavContainer to allow you to specify an app name instead of the default publisher_appname_version.app
 Added some debugging output to Compile-ObjectsInNavContainer
