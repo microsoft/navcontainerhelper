@@ -22,6 +22,12 @@
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
  .Parameter EnableCodeCop
   Add this switch to Enable CodeCop to run
+ .Parameter EnableAppSourceCop
+  Add this switch to Enable AppSourceCop to run
+ .Parameter EnablePerTenantExtensionCop
+  Add this switch to Enable PerTenantExtensionCop to run
+ .Parameter EnableUICop
+  Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler.
  .Parameter Failon
@@ -53,6 +59,9 @@ function Compile-AppInNavContainer {
         [switch] $UpdateSymbols,
         [switch] $AzureDevOps,
         [switch] $EnableCodeCop,
+        [switch] $EnableAppSourceCop,
+        [switch] $EnablePerTenantExtensionCop,
+        [switch] $EnableUICop,
         [ValidateSet('none','error','warning')]
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
@@ -257,7 +266,7 @@ function Compile-AppInNavContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $rulesetFile, $assemblyProbingPaths, $nowarn )
+    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
@@ -276,8 +285,16 @@ function Compile-AppInNavContainer {
         $alcParameters = @("/project:$appProjectFolder", "/packagecachepath:$appSymbolsFolder", "/out:$appOutputFile")
         
         if ($EnableCodeCop) {
-            $analyzerPath = Join-Path $alcPath "Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll"
-            $alcParameters += @("/analyzer:$analyzerPath")
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
+        }
+        if ($EnableAppSourceCop) {
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.AppSourceCop.dll')")
+        }
+        if ($EnablePerTenantExtensionCop) {
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
+        }
+        if ($EnableUICop) {
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
         if ($rulesetFile) {
@@ -296,7 +313,7 @@ function Compile-AppInNavContainer {
 
         & .\alc.exe $alcParameters
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $containerRulesetFile, $assemblyProbingPaths, $nowarn
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
