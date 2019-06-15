@@ -31,9 +31,9 @@ function Copy-FileToNavContainer {
         $id = Get-NavContainerId -containerName $containerName 
 
         $inspect = docker inspect $containerName | ConvertFrom-Json
-        if (!$inspect.State.Running -or $inspect.hostConfig.Isolation -eq "process") {
-            docker cp $localPath ${id}:$containerPath
-        } else {
+#        if (!$inspect.State.Running -or $inspect.hostConfig.Isolation -eq "process") {
+#            docker cp $localPath ${id}:$containerPath
+#        } else {
             # running hyperv containers doesn't support docker cp
             $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
             try {
@@ -49,7 +49,7 @@ function Copy-FileToNavContainer {
                     Remove-Item $tempFile -ErrorAction Ignore
                 }
             }
-        }
+#        }
     }
 }
 Set-Alias -Name Copy-FileToBCContainer -Value Copy-FileToNavContainer
