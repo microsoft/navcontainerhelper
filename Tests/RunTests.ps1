@@ -62,4 +62,4 @@ function AreEqual($expr, $expected) {
     }
 }
 
-AreEqual("5+5","2+8")
+AreEqual -expr "5+5" -expected "10"
