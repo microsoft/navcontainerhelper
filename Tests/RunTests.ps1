@@ -62,4 +62,4 @@ function AreEqual($expr, $expected) {
     }
 }
 
-AreEqual(5,5)
+AreEqual("5+5","2+8")
