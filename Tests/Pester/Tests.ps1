@@ -1,62 +1,38 @@
 ﻿. (Join-Path $PSScriptRoot 'HelperFunctions.ps1')
 
 $modulePath = Join-Path $PSScriptRoot "..\..\NavContainerHelper.psd1"
+Remove-Module NavContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
-Describe 'Tests' {
-    
-    Context 'Info' {
+$credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
 
-        $imageName = Get-BestBCContainerImageName -ImageName "mcr.microsoft.com/businesscentral/onprem:1904-rtm-w1"
-        $containerName = "test"
-        $containerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $containerName
-        $myPath = Join-Path $containerPath "my"
-        $credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
-
-        It 'Dummy' {
-            $true | Should -be $true
-        }
-
-#        New-BCContainer -accept_eula -accept_outdated -containerName $containerName -imageName $imageName -auth NavUserPassword -Credential $credential -updateHosts
-#
-#        It 'Get-BcContainerCountry' {
-#            Get-BcContainerCountry -containerOrImageName $containerName | Should -Be "W1"
-#            Get-BcContainerCountry -containerOrImageName $imageName | Should -Be "W1"
-#        }
-#        It 'Get-BcContainerEula' {
-#            Get-BcContainerEula -containerOrImageName $containerName | Should -BeLike 'http*'
-#            Get-BcContainerEula -containerOrImageName $imageName | Should -BeLike 'http*'
-#        }
-#        It 'Get-BcContainerGenericTag' {
-#            ([System.Version](Get-BcContainerGenericTag -containerOrImageName $containerName)) | Should -BeOfType [System.Version]
-#            ([System.Version](Get-BcContainerGenericTag -containerOrImageName $imageName)) | Should -BeOfType [System.Version]
-#        }
-#        It 'Get-BcContainerEventLog' {
-#            Get-BcContainerEventLog -containerName $containerName -doNotOpen
-#            (Join-Path $myPath "*.evtx") | should -Exist
-#        }
-#        It 'Get-BcContainerId+Get-BcContainerName' {
-#            $containerId = Get-BcContainerId -containerName $containerName
-#            Get-BcContainerName -containerId $containerId | Should -Be $containerName
-#        }
-#        It 'Get-BCContainerImageName' {
-#            Get-BCContainerImageName -containerName $containerName | Should -Be $imageName
-#        }
-#        It 'Get-BcContainerIpAddress' {
-#            $ip = Get-BcContainerIpAddress -containerName $containerName
-#            (Resolve-DnsName -Name $containerName -Type A).IPAddress | Should -Be $ip
-#        }
-#        It 'Get-BcContainerSharedFolders' {
-#            $sharedFolders = Get-BcContainerSharedFolders -containerName $containerName
-#            $hostMyPath = foreach ($Key in ($sharedFolders.GetEnumerator() | Where-Object {$_.Value -eq "c:\run\my"})) { $Key.name }
-#            $hostMyPath | Should -Be $myPath
-#        }
-#        It 'Get-BcContainerNavVersion' {
-#            $version = Get-NavContainerNavVersion -containerOrImageName $containerName
-#            $image2 = Get-BestBCContainerImageName -imageName ($imageName.subString(0,$imageName.indexOf(':')+1)+$version.ToLowerInvariant())
-#            docker pull $image2
-#            Get-BcContainerNavVersion -containerOrImageName $image2 | Should -Be $version
-#            Get-BcContainerNavVersion -containerOrImageName $imageName | Should -Be $version
-#        }
-    }
-}  
+$bcImageName = Get-BestBCContainerImageName -ImageName "mcr.microsoft.com/businesscentral/onprem:1904-rtm-w1"
+$bcContainerName = 'bc'
+$bcContainerPlatformVersion = '14.0.29530.0'
+$bcContainerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $bcContainerName
+$bcMyPath = Join-Path $bcContainerPath "my"
+if (-not (Test-BcContainer -containerName $bcContainerName)) {
+    New-BCContainer -accept_eula -accept_outdated -containerName $bcContainerName -imageName $bcImageName -auth NavUserPassword -Credential $credential -updateHosts
+}
+$navImageName = Get-BestBCContainerImageName -ImageName "mcr.microsoft.com/dynamicsnav:2018-cu17-w1"
+$navContainerName = 'nav'
+$navContainerPlatformVersion = ''
+$navContainerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $navContainerName
+$navMyPath = Join-Path $navContainerPath "my"
+if (-not (Test-NavContainer -containerName $navContainerName)) {
+    New-NavContainer -accept_eula -accept_outdated -containerName $navContainerName -imageName $navImageName -auth NavUserPassword -Credential $credential -updateHosts
+}
+. (Join-Path $PSScriptRoot "Api.ps1")
+. (Join-Path $PSScriptRoot "AppHandling.ps1")
+. (Join-Path $PSScriptRoot "AzureAD.ps1")
+. (Join-Path $PSScriptRoot "AzureVM.ps1")
+. (Join-Path $PSScriptRoot "Bacpac.ps1")
+. (Join-Path $PSScriptRoot "CompanyHandling.ps1")
+. (Join-Path $PSScriptRoot "ConfigPackageHandling.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo.ps1")
+. (Join-Path $PSScriptRoot "Misc.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling.ps1")
+. (Join-Path $PSScriptRoot "SymbolHandling.ps1")
+. (Join-Path $PSScriptRoot "TenantHandling.ps1")
+. (Join-Path $PSScriptRoot "UserHandling.ps1")
