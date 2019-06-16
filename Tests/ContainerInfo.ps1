@@ -32,7 +32,13 @@
         Get-BCContainerImageName -containerName $bcContainerName | Should -Be $bcImageName
     }
     It 'Get-BcContainerImageTags' {
-        ((get-bccontainerImageTags -imageName mcr.microsoft.com/businesscentral/onprem).Tags | Where-Object { $_.startsWith('14.0') }).Count | Should -BeGreaterThan 100
+        $imageTags = get-bccontainerImageTags -imageName mcr.microsoft.com/businesscentral/onprem
+        if ($imageTags) {
+            ($imageTags.Tags | Where-Object { $_.startsWith('14.0') }).Count | Should -BeGreaterThan 100
+        }
+        else {
+            Set-ItResult -Inconclusive -Because 'Downloading image tags from mcr.microsoft.com failed'
+        }
     }
     It 'Get-BcContainerIpAddress' {
         $ip = Get-BcContainerIpAddress -containerName $bcContainerName
