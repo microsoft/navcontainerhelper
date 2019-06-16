@@ -28,7 +28,7 @@
     }
     It 'Get-NavVersionFromVersionInfo' {
         Get-NavVersionFromVersionInfo -versionInfo '11.0.23400.0' | Should -Be '2018'
-        Get-NavVersionFromVersionInfo -versionInfo '13.0.12345.0' | Should -Be ''
+        Get-NavVersionFromVersionInfo -versionInfo '13.0.12345.0' | Should -Be $null
     }
     It 'Import-PfxCertificateToNavContainer' {
         #TODO

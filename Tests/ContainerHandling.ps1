@@ -34,16 +34,20 @@
         #TODO
     }
     It 'Restart-NavContainer' {
-        #TODO
+        Restart-NavContainer -containerName $bcContainerName
+        $json = docker inspect $bcContainerName | ConvertFrom-Json
+        $json.State.Status | Should -Be 'running'
     }
     It 'Setup-TraefikContainerForNavContainers' {
         #TODO
     }
-    It 'Start-NavContainer' {
-        #TODO
-    }
-    It 'Stop-NavContainer' {
-        #TODO
+    It 'Stop/Start-NavContainer' {
+        Stop-NavContainer -containerName $bcContainerName
+        $json = docker inspect $bcContainerName | ConvertFrom-Json
+        $json.State.Status | Should -Be 'exited'
+        Start-NavContainer -containerName $bcContainerName
+        $json = docker inspect $bcContainerName | ConvertFrom-Json
+        $json.State.Status | Should -Be 'running'
     }
     It 'Wait-NavContainerReady' {
         #TODO
