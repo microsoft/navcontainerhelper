@@ -34,6 +34,8 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
+$NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+
 $sessions = @{}
 
 $usePsSession = $isAdministrator

@@ -248,7 +248,6 @@ function New-NavContainer {
         $hostOs = "ltsc2016"
     }
     
-    $navContainerHelperVersion = $MyInvocation.MyCommand.Module.Version
     Write-Host "NavContainerHelper is version $navContainerHelperVersion"
 
     $isServerHost = $os.ProductType -eq 3
