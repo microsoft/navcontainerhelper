@@ -1,3 +1,8 @@
+0.6.1.5
+Use (Get-CimInstance Win32_OperatingSystem).Version instead of [System.Environment]::OSVersion to identify OS Version in Get-BestNavContainerImageName
+Do not use docker cp for Copy-FileToNavContainer and Copy-FileFromNavContainer
+Published from Azure DevOps
+
 0.6.1.4
 Add parameters EnableAppSourceCop, EnablePerTenantExtensionCop and EnableUICop to Compile-AppInNavContainer
 Shortcuts on the Desktop will only have RunAsAdmin if you are running NavContainerHelper as admin
@@ -153,3 +158,374 @@ Bugfix: All User data wasn't cleaned up when doing Export-NavContainerDatabasesA
 
 0.5.0.1
 Fix bug where Get-BestNavContainerImageName returns an illegal image name
+
+0.5.0.0
+Support for running NavContainerHelper without elevated permissions 
+Added function Check-NavContainerHelperPermissions to test whether you have the needed permissions to run NavContainerHelper 
+Added function Repair-NavContainerApp 
+Added function Invoke-ScriptInNavContainer to invoke a PowerShell script in a Nav Container 
+Added function Get-NavContainerAppRuntimePackage to download a runtime package for an app from a container 
+Added function Get-NavContainerImageLabels to get the labels for an image directly from the registry 
+Added function Get-NavContainerImageTags to get the available tags a repository directly from the registry 
+Added parameter doNotUpdateSymbols to Import-TestToolkitToNavContainer to avoid symbol generation 
+Check Docker OS in New-NavContainer for better error messages 
+Fix timestamp in file name for Get-NavContainerEventLog 
+
+0.4.3.2
+BugFix: Replace-NavServerContainer doesn't resolve the best containername and pulls the wrong container 
+
+0.4.3.1
+Idea #308: Add ID to finsql shortcut to get individual .zup files 
+Idea #305: Include #Requires -PSEdition Desktop 
+Issue #204,#279: Business Inbox fails when running Business Central on Docker 
+Issue #290: Remove-NavContainer fails sometimes with shar 
+
+0.4.3.0
+Default to process isolation when running Windows 10 18.09.1 or newer 
+Include Collation when using UseBestContainerOS 
+Fix Convert-CALTestOutputToAzureDevOps to support non-us cultures 
+Display NavContainerHelper version in New-NavContainer output 
+Check whether current user has access to run docker.exe instead of checking for admin privileges 
+BugFix: Backup-NavContainerDatabases did not work with multitenant containers 
+
+0.4.2.6
+BugFix: Publish-NavContainerApp fails in 0.4.2.4 and 0.4.2.5 due to new parameters added 
+
+0.4.2.5
+BugFix: Wrong defaulting of isolation mode 
+
+0.4.2.4
+Added Scope and SyncMode parameters to Publish-NavContainerApp 
+Change mechanism to identify host OS 
+Display Docker version during New-NavContainer 
+Removed exception when trying to run Process isolation on Windows 10 
+Added defaulting mechanism for isolation (Server=process, non-server=hyperv) 
+
+0.4.2.3
+BugFix: New-NavContainer cannot use images without a platform tag 
+BugFix: Get-BestNavContainerImageName should not append OS if already appended 
+BugFix: Extract-FilesFromNavContainerImage didn't work with SQL 2017 
+
+0.4.2.2
+Better algorithm for finding which image to use 
+
+0.4.2.1
+BugFix #268 Revert back to original image name if best container os doesn't exist 
+
+0.4.2.0
+Automatically detect host OS and use best pre-built container (ltsc2016 or ltsc2019) unless specified 
+Added function Get-BestNavContainerImageName 
+BugFix Export-NavContainerDatabasesAsBacpac didn't work with containers with generic version pre 0.0.8.0 
+
+0.4.1.2
+Include docker icon 
+
+0.4.1.1
+Better error message in New-NavContainer 
+Bugfix: 1703 and 1709 build numbers was switched 
+
+0.4.1.0
+Support for Windows Server 2019 
+Support for images with SQL Server 2017 
+
+0.4.0.2
+BugFix #246: Windows Server insider builds couldn't use navcontainerhelper 
+Added function Sign-NavContainerApp to use a container to Sign an app file with a code signing certificate 
+When running generic image, .txt files were exported to a wrong folder (country not included) 
+Division by zero when exporting objects from a container and no objects matched the filter 
+
+0.4.0.1
+Bugfix: If you specify -includeTestToolkit to New-NavContainer and use a foreign database, the import would fail 
+New-NavContainer will cache the files from Extract-FilesFromNavContainer for future usage instead of deleting them 
+New-CSideDevContainer has been removed - use New-NavContainer with -includeCSide instead 
+Added function Import-PfxCertificateToNavContainer 
+Feature request #238: Adding SynchronizeSchemaChanges parametar to Import-ObjectsToNavContainer 
+Added parameters -publishPorts and -publicDnsName in order to be able to create publicly available containers easier 
+Extract-FilesFromNavContainerImage would fail if any folders were missing 
+
+0.4.0.0
+BugFix #207: Compile-AppInNavContainer is downloading symbols for app which is in the AppSymbolFolder 
+Include timezone parameter on Invoke-NavContainerCodeunit 
+Compile-AppInNavContainer checks existance of dependencies in app.json 
+Use .alpackages as default symbols folder 
+BugFix #216: enableSymbolLoading only works with includeCSide 
+BugFix #215: Naming symbol-files when compiling with Compile-AppInNavContainer 
+Display progress when pulling and avoid deadlocks when running using New-NavContainer 
+Bugfix Get-AzureADUser didn't always retrieve the user needed 
+New-NavContainer automatically detects best os version of generic image 
+Bugfix: navdvdpath didn't work when pointing to a url which was case sensitive 
+Feature #232: added tenant parameter to Get-NavContainerAppInfo 
+Added function Extract-FilesFromNavContainerImage to extract the files from a Nav Container image 
+Added parameter UseBestContainerOS to tell New-NavContainer to spin up a container based on the best compatible generic image. 
+Added parameter TestToolkitCountry to import-TestToolkitToNavContainer 
+
+0.3.1.4
+BugFix Convert-ModifiedObjectsToAl failed after the newly introduced [LineStart()] property in newsyntax export 
+
+0.3.1.3
+Bugfix #202: NavDvd tempfolder was not deleted when using a navdvd.zip file 
+Added function Convert-CALTestOutputToAzureDevOps to convert CAL Test Runner output to XUnit Test Xml for Azure DevOps 
+Added function Convert-CALExecutionTimeToTimeSpan to convert text based ExecutionTime to System.TimeSpan 
+Added parameter doNotSaveData to UnInstall-NavContainerApp and UnPublish-NavContainerApp 
+
+0.3.1.2
+Bugfix - Setting timezone didn't work with all timezones 
+Automatically use hyperv isolation if host operating system doesn't match container os 
+
+0.3.1.1
+New flag on Compile-AppInNavContainer -AzureDevOps to output the result in AzureDevOps/VSTS compatible format
+New function Convert-ALCOutputToAzureDevOps 
+
+0.3.1.0
+New function Add-FontsToNavContainer 
+Added ClickOnce switch to New-NavContainer 
+Added new parameters to New-NavContainer: WebClientPort, FileSharePort, ManagementServicesPort, ClientServicesPort, SoapServicesPort, ODataServicesPort and DeveloperServicesPort 
+Bugfix #163: Perform Sync-NavTenant after all objects have been imported in Import-TestToolkitToNavContainer 
+Added mode and appVersion to Sync-NavContainerApp 
+Bugfix #143: CSIDE desktop shortcut authentication method follows service tier authentication method 
+Check that windows authentication user is not a Microsoft user in New-NavContainer 
+Added appVersion to Start-NavContainerAppDataUpgrade 
+Ensure that NavContainerHelper is running as administrator 
+Bugfix #153: Ensure that timeZone is set correctly 
+Added function Generate-SymbolsInNavContainer 
+Include test in app.json in Compile-AppInNavContainer 
+Bugfix #nav-docker/251: Create-AadUsersInNavContainer now creates all users (not only the first 100) 
+
+0.3.0.1
+Added function Get-NavCompanyInNavContainer 
+Always enable API Services in container 
+Throw error if new-navcontainer fails (instead of just displaying error) 
+
+0.3.0.0
+Update navcontainerhelper welcome text with some missing functions 
+Added function Stop-NavContainer 
+Added function Start-NavContainer 
+Added function Restart-NavContainer 
+Added function New-LetsEncryptCertificate 
+Added function Renew-LetsEncryptCertificate 
+Bugfix: Invoke-NavContainerCodeunit fails if the user already exists 
+Added ReplyTo address to Aad App, which matches Business Central Sandbox Containers 
+
+0.2.9.7
+Bugfix: docker restart caused Windows Client deployed by -includeCSide to loose ACSUri setting 
+
+0.2.9.6
+Rewrote Create-AadAppsForNAV to use AzureAD powershell package instead or AzureRM 
+Added function Create-AadUsersInNavContainer 
+
+0.2.9.5
+Add generatesymbolreference=1 when Importing objects using Import-ObjectsToNavContainer or ImportTestToolkitToNavContainer 
+
+0.2.9.4
+Set license to NULL from dbo.[dbproperty] and dbo.[tenantproperty] tables when exporting databases to bacpac 
+
+0.2.9.3
+Use containername for hosts file when using -updatehosts (like remove-navcontainer) 
+Added parameter isolation to new-navcontainer to allow Windows Server to use hyperv isolation 
+Fixed a number of ScriptAnalyzer errors/warnings in NavContainerHelper 
+Empty the dbo.[Tenant License State] table when exporting databases to bacpac 
+
+0.2.9.1
+Added function Backup-NavContainerDatabases 
+Added function New-CompanyInNavContainer (thanks Mike Glue) 
+Added function Remove-CompanyInNavContainer (thanks Mike Glue) 
+Added function Import-ConfigPackageInNavContainer.ps1 (thanks Mike Glue) 
+Added function Remove-ConfigPackageInNavContainer.ps1 (thanks Mike Glue) 
+Added function Get-NavContainerServerConfiguration (thanks Richard Robberse) 
+In Get-NavContainerPath - if you start the path with a colon (:), then the path refers to a path inside the container and not a shared folder 
+Bugfix: Create-AadAppsForNav required reboot after setup 
+
+0.2.9.0
+Added tenant parameter (0..many tenants) to Export-NavContainerDatabasesAsBacpac 
+Object handling functions will not ask for credentials if not specified 
+BugFix: doNotOpen in Get-NavContainerEventLog was string - should be switch 
+Compile-AppInNavContainer had a dependency on the WebClient, this dependency is removed 
+BufFix: Compile-AppInNavContainer did not work on multitenant containers 
+BugFix: New-NavContainer will not crash when running the generic image with a NAV 2013 DVD 
+Updated tests 
+
+0.2.8.4
+Bugfix: Invoke-NavContainerCodeunit didn't work with multitenancy 
+Bugfix: Premium user didn't work with multitenancy 
+Bugfix: Hardcoded containername in Setup-NavContainerTestUsers
+
+0.2.8.0
+BugFix: Create-AadAppsForNav throws an error when the owner of the Excel App Registration already exists 
+Add function Get-NavContainerNavUser to return users from the container 
+Add function Invoke-NavContainerCodeunit to invoke a codeunit in a container 
+Add function Compile-AppInNavContainer to compile an extension v2 app in a container (preview) 
+Added publisher and version to unpublish-navcontainerapp 
+Add function Setup-NavContainerTestUsers to setup test users with different plans and permissions 
+Add parameter -AssignPremiumPlan to new-navcontainer in order to assign premium plan to the default super user 
+
+0.2.7.5
+BugFix: New-NavContainerTenant and Remove-NavContainerTenant falsely asks for SQL credentials if not specified 
+
+0.2.7.4
+BugFix: -includeCSide and -shortcuts None caused an error that $customconfig didn't exist 
+Added -fullObjectsFolder to export-ModifiedObjectsAsDeltas to receive full objects 
+Added TLS1.2 support to Download-File 
+New-NavContainer now supports specifying a .zip file (UNC or URL) as NavDvdPath 
+Add function Get-NavContainerTenants to list all tenants from a multitenant container 
+
+0.2.7.3
+BugFix: ExportTxtSkipUnlicensed doesn't get set in Export-NavContainerObject when using NavUserPassword authentication 
+Added -compile switch to Import-DeltasToNavContainer 
+Added -deltaFolder to Export-ModifiedObjectsAsDeltas 
+Increased timeout in Wait-NavContainerReady 
+
+0.2.7.1
+Bugfix: Get-LocaleFromCountry returned blank for finnl and a lot of other finxx localizations 
+Add -settings on Windows Client shortcut to ensure correct clientsettings.config usage 
+Silence output of clearing modified flag 
+Add function Import-NavContainerLicense 
+Add parameters -sync and -install to Publish-NavContainerApp 
+Add filter parameter to Convert-ModifiedObjectsToAl and Export-ModifiedObjectsAsDeltas (default is Modified=1) 
+Support for inline scripts, URLs and .zip files in myscripts on New-NavContainer 
+Bugfix: Remove-NavContainer doesn't remove entries in hosts file 
+Remove-NavContainer to fail if it cannot remove the containerFolder (open files etc.) 
+
+0.2.7.0
+Bugfix: Convert-ModifiedObjectsAsAl didn't include page extensions due to new parameter on Compare-NavApplicationObject 
+
+0.2.6.9
+Bugfix: Use docker pull in New-NavContainer 
+
+0.2.6.8
+Bugfix: New-NavContainer seems to hang 
+
+0.2.6.7
+Add sync parameter on Publish-NavContainerApp 
+Added ExportTxtSkipUnlicensed to Export-NavContainerObjects 
+
+0.2.6.6
+Add uninstall parameter on UnPublish-NavContainerApp 
+Add startup option to New-DesktopShortcut 
+Add generatesymbolreference=1 when Compiling objects using Compile-ObjectsInNavContainer 
+
+0.2.6.5
+AzureSQL support for multitenancy 
+Add install parameter on Publish-NavContainerApp 
+
+0.2.6.4
+Bugfix: Didn't work with "old" images 
+
+0.2.6.2
+Bugfix: Create-AadAppsForNAV wasn't exported and was missing help 
+
+0.2.6.1
+Check whether AAD is supported by Docker image 
+
+0.2.6.0
+Add function Create-AadAppsForNav 
+Add parameter authenticationEmail to New-NavContainer 
+Remove default memory limit when running Windows Server as Docker host 
+
+0.2.5.2
+Bugfix: Remove Test Tool shortcut when removing nav containers 
+Bugfix: Issue 89 CSide with external SQL and different port 
+
+0.2.5.1
+Update Welcometext 
+
+0.2.5.0
+Add support for multitenancy 
+Add switch -multitenant to new-navcontainer 
+Add function New-NavContainerTenant 
+Add function Remove-NavContainerTenant 
+Add function New-NavContainerNavUser 
+Add function New-NavContainerWindowsUser 
+Add function Get-NavContainerEventLog 
+Add function Export-NavContainerDatabasesAsBacpac 
+Change default filter in Compile-ObjectsInNavContainer to compiled=No 
+Add Shortcut for opening WebClient with Test Tool page if TestToolKit is included 
+
+0.2.2.4
+Updated Readme 
+
+0.2.2.3
+Add nav specific tags when running generic image 
+Check for tag tag when running fetching the tag (support generic image) 
+Check container name validity 
+Add test running generic image 
+
+0.2.2.2
+Added switch for enabling SymbolLoading (dual development), default is off 
+
+0.2.2.1
+Added function Import-TestToolkitToNavContainer 
+Added parameter -includeTestToolkit to New-NavContainer to automatically include TestToolkit objects 
+Include more information during start of new-navcontainer (and output the docker run command if it fails early) 
+Fix report preview when running docker images 0.0.4.3 or earlier 
+Bugfix CSide desktop shortcut was always set to windows auth 
+
+0.2.2.0
+Bugfix: Copying files to/from containers didn't work on Windows 10 
+Bugfix: Export-NavContainerObjects with a strange error if sharing the folder used for export directly 
+Export-NavContainerObjects now supports txt files and fob files -exportTo parameter replaces -exportToNewSyntax 
+Added Get-NavContainers to get all Nav containers 
+Add pipeline support for Remove-NavContainer and Remove-NavContainerSession (to allow Get-NavContainers | Remove-NavContainer) 
+Added Get-NavContainerDebugInfo 
+Show ContainerName in prompt in Enter-NavContainer 
+
+0.2.1.3
+Bugfix: Do not clear modified flag when container is restarting 
+
+0.2.1.2
+Bugfix: Azure VM detection looked in wrong folder 
+
+0.2.1.1
+Bugfix: username can now contain spaces 
+-myscripts parameter now supports files or folders - all will be copied into the c:\run\my folder 
+
+0.2.1.0
+Added -databaseServer, -databaseInstance, -databaseName, -databaseCredential to new-navcontainer (Support for External SQL Server - generic tag 0.0.4.0 or later) 
+Added -shortcuts to new-navcontainer (support for placing shortcuts on startmenu or avoid them) 
+Added -navDvdPath and -navDvdCountry (support for running microsoft/dynamics-nav:generic with a DVD mounted) 
+Moved the working folder from c:\demo to c:\programdata\navcontainerhelper 
+Added -alwaysPull to new-navcontainerhelper to always pull newer image if exists 
+
+0.2.0.1
+Remove recreate-navservercontainer 
+Simplify replace-navservercontainer and allow empty imagename 
+
+0.2.0.0
+Breaking change: Change all username/password parameters to PSCredential 
+Change -updatehost to automatically update hosts on container restart 
+Breaking change: Remove -updatehost from Remove-NavContainer (automatically handled) 
+
+0.1.2.1
+Add generatesymbolreference=yes to CSide shortcut if EnableSymbolLoading is true 
+
+0.1.2.0
+When specifying -includeCSide containers are started with EnableSymbolLoad 
+Refactored all functions into different script files 
+Only clear object modified flag if using localhost\SQLExpress 
+Specify server in sqlcmd 
+Export-NavContainerObjects doesn't fail on NAV2016 and NAV2017 due to missing ExportToNewSyntax parameter 
+
+0.1.1.9
+Added Start-NavContainerAppDataUpgrade function 
+
+0.1.1.8
+Added ReleaseNotes a few versions back 
+
+0.1.1.7
+Added ReleaseNotes to PowerShell Gallery 
+
+0.1.1.6
+Added default values for additionalParameters and myScripts 
+
+0.1.1.5
+Added -additionalParameters and -myScripts to New-CsideDevContainer and New-NavContainer 
+Added -useSSL switch to New-CsideDevContainer and New-NavContainer 
+
+0.1.1.4
+Fixed a bug in Convert-ModifiedObjectsToAl, where conversion would end up with an empty AL folder 
+
+0.1.1.3
+Secure passwords for creating containers 
+
+0.1.1.2
+Initial releases 
+use help on the individual functions to get info.

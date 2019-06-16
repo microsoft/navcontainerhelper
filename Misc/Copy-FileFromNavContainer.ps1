@@ -30,24 +30,19 @@ function Copy-FileFromNavContainer {
         Log "Copy from container $containerName ($containerPath) to $localPath"
         $id = Get-NavContainerId -containerName $containerName 
 
-        $inspect = docker inspect $containerName | ConvertFrom-Json
-        if (!$inspect.State.Running -or $inspect.hostConfig.Isolation -eq "process") {
-            docker cp ${id}:$containerPath $localPath
-        } else {
-            # running hyperv containers doesn't support docker cp
-            $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
-            try {
-                if (Test-Path $localPath -PathType Container) {
-                    throw "localPath ($localPath) already exists as a folder. Cannot copy file, LocalPath needs to specify a filename."
-                }
-                Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($containerPath, $tempFile)
-                    Copy-Item -Path $containerPath -Destination $tempFile
-                } -argumentList $containerPath, $tempFile
-                Move-Item -Path $tempFile -Destination $localPath -Force
-            } finally {
-                if (Test-Path $tempFile) {
-                    Remove-Item $tempFile -ErrorAction Ignore
-                }
+        # running hyperv containers doesn't support docker cp
+        $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
+        try {
+            if (Test-Path $localPath -PathType Container) {
+                throw "localPath ($localPath) already exists as a folder. Cannot copy file, LocalPath needs to specify a filename."
+            }
+            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($containerPath, $tempFile)
+                Copy-Item -Path $containerPath -Destination $tempFile
+            } -argumentList $containerPath, $tempFile
+            Move-Item -Path $tempFile -Destination $localPath -Force
+        } finally {
+            if (Test-Path $tempFile) {
+                Remove-Item $tempFile -ErrorAction Ignore
             }
         }
     }
