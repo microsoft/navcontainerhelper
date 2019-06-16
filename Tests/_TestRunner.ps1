@@ -1,6 +1,6 @@
-﻿. (Join-Path $PSScriptRoot 'HelperFunctions.ps1')
+﻿. (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
 
-$modulePath = Join-Path $PSScriptRoot "..\..\NavContainerHelper.psd1"
+$modulePath = Join-Path $PSScriptRoot "..\NavContainerHelper.psm1"
 Remove-Module NavContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
@@ -22,6 +22,8 @@ $navMyPath = Join-Path $navContainerPath "my"
 if (-not (Test-NavContainer -containerName $navContainerName)) {
     New-NavContainer -accept_eula -accept_outdated -containerName $navContainerName -imageName $navImageName -auth NavUserPassword -Credential $credential -updateHosts
 }
+try {
+
 . (Join-Path $PSScriptRoot "Api.ps1")
 . (Join-Path $PSScriptRoot "AppHandling.ps1")
 . (Join-Path $PSScriptRoot "AzureAD.ps1")
@@ -37,5 +39,8 @@ if (-not (Test-NavContainer -containerName $navContainerName)) {
 . (Join-Path $PSScriptRoot "TenantHandling.ps1")
 . (Join-Path $PSScriptRoot "UserHandling.ps1")
 
-Remove-BCContainer -containerName $bcContainerName
-Remove-NavContainer -containerName $navContainerName
+}
+finally {
+    Remove-BCContainer -containerName $bcContainerName
+    Remove-NavContainer -containerName $navContainerName
+}
