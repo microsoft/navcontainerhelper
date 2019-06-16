@@ -23,22 +23,9 @@ if (-not (Test-NavContainer -containerName $navContainerName)) {
     New-NavContainer -accept_eula -accept_outdated -containerName $navContainerName -imageName $navImageName -auth NavUserPassword -Credential $credential -updateHosts
 }
 try {
-
-. (Join-Path $PSScriptRoot "Api.ps1")
-. (Join-Path $PSScriptRoot "AppHandling.ps1")
-. (Join-Path $PSScriptRoot "AzureAD.ps1")
-. (Join-Path $PSScriptRoot "AzureVM.ps1")
-. (Join-Path $PSScriptRoot "Bacpac.ps1")
-. (Join-Path $PSScriptRoot "CompanyHandling.ps1")
-. (Join-Path $PSScriptRoot "ConfigPackageHandling.ps1")
-. (Join-Path $PSScriptRoot "ContainerHandling.ps1")
-. (Join-Path $PSScriptRoot "ContainerInfo.ps1")
-. (Join-Path $PSScriptRoot "Misc.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling.ps1")
-. (Join-Path $PSScriptRoot "SymbolHandling.ps1")
-. (Join-Path $PSScriptRoot "TenantHandling.ps1")
-. (Join-Path $PSScriptRoot "UserHandling.ps1")
-
+    Get-ChildItem -Path (Join-Path $PSScriptRoot '*.ps1') -Exclude @("_*.ps1") | % {
+        . $_.FullName
+    }
 }
 finally {
     Remove-BCContainer -containerName $bcContainerName
