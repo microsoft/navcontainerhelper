@@ -840,7 +840,8 @@ Write-Host "Registering event sources"
         New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
     }
 }
-') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+. "C:\Run\SetupWebClient.ps1"
+') | Add-Content -Path "$myfolder\SetupWebClient.ps1"
     }
 
     if ($assignPremiumPlan) {
