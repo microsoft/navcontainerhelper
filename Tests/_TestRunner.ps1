@@ -12,7 +12,7 @@ $bcContainerPlatformVersion = '14.0.29530.0'
 $bcContainerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $bcContainerName
 $bcMyPath = Join-Path $bcContainerPath "my"
 if (-not (Test-BcContainer -containerName $bcContainerName)) {
-    New-BCContainer -accept_eula -accept_outdated -containerName $bcContainerName -imageName $bcImageName -auth NavUserPassword -Credential $credential -updateHosts
+    New-BCContainer -accept_eula -accept_outdated -containerName $bcContainerName -imageName $bcImageName -auth NavUserPassword -Credential $credential -updateHosts -useBestContainerOS
 }
 $navImageName = Get-BestBCContainerImageName -ImageName "mcr.microsoft.com/dynamicsnav:2018-cu17-w1"
 $navContainerName = 'nav'
@@ -20,7 +20,7 @@ $navContainerPlatformVersion = ''
 $navContainerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $navContainerName
 $navMyPath = Join-Path $navContainerPath "my"
 if (-not (Test-NavContainer -containerName $navContainerName)) {
-    New-NavContainer -accept_eula -accept_outdated -containerName $navContainerName -imageName $navImageName -auth NavUserPassword -Credential $credential -updateHosts
+    New-NavContainer -accept_eula -accept_outdated -containerName $navContainerName -imageName $navImageName -auth NavUserPassword -Credential $credential -updateHosts -useBestContainerOS
 }
 try {
     Get-ChildItem -Path (Join-Path $PSScriptRoot '*.ps1') -Exclude @("_*.ps1") | % {
