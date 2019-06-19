@@ -128,42 +128,52 @@
         UnPublish-BcContainerApp -containerName $bcContainerName -appName $appName
     }
 
-#    It 'Create-AlProjectFolderFromBcContainer' {
-#        
-#        $TypeFolders = { Param ($type, $id, $name) 
-#            switch ($type) {
-#                "page"     { "Pages\$($type) $($id) - $($name).al" }
-#                "table"    { "Tables\$($type) $($id) - $($name).al" }
-#                "codeunit" { "Codeunits\$($type) $($id) - $($name).al" }
-#                "query"    { "Queries\$($type) $($id) - $($name).al" }
-#                "report"   { "Reports\$($type) $($id) - $($name).al" }
-#                "xmlport"  { "XmlPorts\$($type) $($id) - $($name).al" }
-#                "profile"  { "Profiles\$($name).Profile.al" }
-#                "dotnet"   { "$($name).al" }
-#                ".rdlc"    { "Layouts\$name$type" }
-#                ".docx"    { "Layouts\$name$type" }
-#                ".xlf"     { "Translations\$name$type" }
-#                default { throw "Unknown type '$type'" }
-#            }
-#        }
-#                         
-#        Create-AlProjectFolderFromBcContainer -containerName $bcContainerName `
-#                                              -alProjectFolder (Join-Path $bcContainerPath "mybaseapp") `
-#                                              -id ([Guid]::NewGuid().ToString()) `
-#                                              -name MyBaseApp `
-#                                              -publisher Freddy `
-#                                              -version "1.0.0.0" `
-#                                              -useBaseLine `
-#                                              -alFileStructure $TypeFolders
-#
-#        (Get-ChildItem -Path (Join-Path $bcContainerPath "mybaseapp") -Recurse).Count | Should -BeGreaterThan 5000
-#    }
-    It 'Publish-NewApplicationToNavContainer' {
-        #TODO
+    It 'Create-AlProjectFolderFromBcContainer' {
+        
+        $TypeFolders = { Param ($type, $id, $name) 
+            switch ($type) {
+                "page"     { "Pages\$($type) $($id) - $($name).al" }
+                "table"    { "Tables\$($type) $($id) - $($name).al" }
+                "codeunit" { "Codeunits\$($type) $($id) - $($name).al" }
+                "query"    { "Queries\$($type) $($id) - $($name).al" }
+                "report"   { "Reports\$($type) $($id) - $($name).al" }
+                "xmlport"  { "XmlPorts\$($type) $($id) - $($name).al" }
+                "profile"  { "Profiles\$($name).Profile.al" }
+                "dotnet"   { "$($name).al" }
+                ".rdlc"    { "Layouts\$name$type" }
+                ".docx"    { "Layouts\$name$type" }
+                ".xlf"     { "Translations\$name$type" }
+                default { throw "Unknown type '$type'" }
+            }
+        }
+        
+        $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
+        Create-AlProjectFolderFromBcContainer -containerName $bcContainerName `
+                                              -alProjectFolder $alProjectFolder `
+                                              -id ([Guid]::NewGuid().ToString()) `
+                                              -name MyBaseApp `
+                                              -publisher Freddy `
+                                              -version "1.0.0.0" `
+                                              -useBaseLine `
+                                              -alFileStructure $TypeFolders
+
+        (Get-ChildItem -Path (Join-Path $bcContainerPath "mybaseapp") -Recurse).Count | Should -BeGreaterThan 5000
+    }
+    It 'Compile/Publish-NewApplicationToBcContainer' {
+        $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
+        $appFile = Compile-AppInBCContainer -containerName $bcContainerName `
+                                            -appProjectFolder $alProjectFolder `
+                                            -appOutputFolder $alProjectFolder `
+                                            -credential $credential
+
+        Publish-NewApplicationToBcContainer -containerName $bcContainerName `
+                                            -appFile $appFile `
+                                            -credential $credential `
+                                            -useCleanDatabase
     }
 
 
     # Recreate contaminated containers
-    #. (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
-    #. (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
+    . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
 }
