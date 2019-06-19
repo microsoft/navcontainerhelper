@@ -35,7 +35,15 @@ function Publish-NewApplicationToNavContainer {
         [switch] $useCleanDatabase
     )
 
-    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    if ("$platform" -eq "") {
+        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+    }
+    [System.Version]$platformversion = $platform
+
+    if ($platformversion.Major -lt 14) {
+        throw "Container $containerName does not support the function Publish-NewApplicationToNavContainer"
+    }
 
     Add-Type -AssemblyName System.Net.Http
 
@@ -53,10 +61,12 @@ function Publish-NewApplicationToNavContainer {
     Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $appDotNetPackagesFolder )
 
         $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
-        $RTCAddInsFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client\Add-ins").FullName
+        $RTCFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
     
-        if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTCAddIns"))) {
-            new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTCAddIns" -value $RTCAddInsFolder | Out-Null
+        if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
+            if (Test-Path $RTCFolder -PathType Container) {
+                new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RTCFolder).FullName | Out-Null
+            }
         }
         if (Test-Path (Join-Path $serviceTierAddInsFolder "ProjectDotNetPackages")) {
             (Get-Item (Join-Path $serviceTierAddInsFolder "ProjectDotNetPackages")).Delete()
@@ -69,17 +79,15 @@ function Publish-NewApplicationToNavContainer {
 
     if ($useCleanDatabase) {
 
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig )
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig, $platformversion )
             
             if (!(Test-Path "c:\run\my\license.flf")) {
                 throw "Container must be started with a developer license in order to publish a new application"
             }
 
             Write-Host "Uninstalling apps"
-            Get-NAVAppInfo $serverInstance | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
+            Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
 
-            $tenant = "default"
-        
             if ($customConfig.databaseInstance) {
                 $databaseServerInstance = "$($customConfig.databaseServer)\$($customConfig.databaseInstance)"
             }
@@ -87,12 +95,22 @@ function Publish-NewApplicationToNavContainer {
                 $databaseServerInstance = $customConfig.databaseServer
             }
 
-            Write-Host "Removing C/AL Application Objects"
-            Delete-NAVApplicationObject -DatabaseName $customConfig.databaseName -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
+            if ($platformversion.Major -eq 14) {
+                Write-Host "Removing C/AL Application Objects"
+                Delete-NAVApplicationObject -DatabaseName $customConfig.databaseName -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
+            }
+            else {
+                # Run 3 times to remove dependent apps first
+                Write-Host "Unpublishing apps"
+                Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore -ErrorAction Ignore
+                Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore -ErrorAction Ignore
+                Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore
+            }
 
-        } -argumentList $customConfig
+        } -argumentList $customConfig, $platformversion
     }
 
     Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global
 }
-Export-ModuleMember -Function Publish-NewApplicationToNavContainer
+Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
+Export-ModuleMember -Function Publish-NewApplicationToNavContainer -Alias Publish-NewApplicationToBcContainer

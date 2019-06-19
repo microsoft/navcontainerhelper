@@ -120,8 +120,9 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-TestsFromNavContainer.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer")
-. (Join-Path $PSScriptRoot "AppHandling\Publish-NewApplicationToNavContainer")
+. (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Publish-NewApplicationToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Copy-AlSourceFiles.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")

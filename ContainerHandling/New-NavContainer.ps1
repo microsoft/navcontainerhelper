@@ -638,7 +638,7 @@ function New-NavContainer {
     }
 
     if ($includeCSide -and ($version.Major -ge 15)) {
-        throw "IncludeCSide is no longer supported in Dynamics 365 Business Central Fall 2019 release (1910 / 15.x)"
+        throw "IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
@@ -714,8 +714,8 @@ function New-NavContainer {
         if ($includeCSide -and !$doNotExportObjectsToText) {
             throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
         }
-        if ($includeAL) {
-            throw "You must specify a license file when creating a AL Development container."
+        if ($includeAL -and ($version.Major -eq 14)) {
+            throw "You must specify a license file when creating a AL Development container with this version."
         }
         $containerlicenseFile = ""
     } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -1116,7 +1116,28 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             }
         }
 
-        if ($version.Major -gt 10) {
+        if ($version.Major -ge 15) {
+            $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+            if (!(Test-Path $alFolder)) {
+                New-Item $alFolder -ItemType Directory | Out-Null
+                $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
+                Get-NavContainerApp -containerName $containerName `
+                                    -publisher Microsoft `
+                                    -appName BaseApp `
+                                    -appFile $appFile `
+                                    -credential $credential
+
+                $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
+                Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
+
+                Copy-Item -Path (Join-Path $appFolder "layout") -Destination $alFolder -Recurse -Force
+                Copy-Item -Path (Join-Path $appFolder "src") -Destination $alFolder -Recurse -Force
+
+                Remove-Item -Path $appFolder -Recurse -Force
+                Remove-Item -Path $appFile -Force
+            }
+        }
+        elseif ($version.Major -gt 10) {
             $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
             if (!(Test-Path $originalFolder)) {
                 # Export base objects as new syntax
@@ -1144,10 +1165,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         Write-Host "Creating .net Assembly Reference Folder for VS Code"
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
 
-            "C:\Windows\assembly",
-            (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName,
-            (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName,
-            "C:\Program Files (x86)\Open XML SDK" | % {
+            $paths = @("C:\Windows\assembly",
+                       (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName)
+
+            $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
+            if (Test-Path $rtcFolder -PathType Container) {
+                $paths += (Get-Item $rtcFolder).FullName
+            }
+            $paths += "C:\Program Files (x86)\Open XML SDK"
+            
+            $paths | % {
+                Write-Host "Copying DLLs from $_ to assemblyProbingPath"
                 Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"
             }
 

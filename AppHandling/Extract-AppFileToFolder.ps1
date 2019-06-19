@@ -18,7 +18,8 @@ function Extract-AppFileToFolder {
     if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
         throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
     }
-    
+
+    Write-Host "Extracting $appFilename"    
     if (Test-Path $appFolder -PathType Container) {
         Get-ChildItem -Path $appFolder -Include * | Remove-Item -Recurse -Force
     } else {

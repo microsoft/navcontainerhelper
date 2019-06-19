@@ -44,12 +44,12 @@ function Create-AlProjectFolderFromNavContainer {
         [string] $publisher = "Default Publisher",
         [string] $version = "1.0.0.0",
         [switch] $AddGIT,
-        [switch] $useBaseLine
+        [switch] $useBaseLine,
+        [ScriptBlock] $alFileStructure
     )
 
-    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
-
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $ver = [System.Version]($navversion.split('-')[0])
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
     $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
 
@@ -65,34 +65,62 @@ function Create-AlProjectFolderFromNavContainer {
         New-Item -Path $AlProjectFolder -ItemType Directory | Out-Null
     }
 
-    Write-Host "Creating AL Project Folder"
     if ($useBaseLine) {
-        Copy-Item -Path "$alFolder\*" -Destination $AlProjectFolder -Recurse -Force | Out-Null
+        Copy-AlSourceFiles -Path "$alFolder\*" -Destination $AlProjectFolder -Recurse -alFileStructure $alFileStructure
     }
     else {
-        Convert-ModifiedObjectsToAl -containerName $containerName -doNotUseDeltas -alProjectFolder $AlProjectFolder
+        Convert-ModifiedObjectsToAl -containerName $containerName -doNotUseDeltas -alProjectFolder $AlProjectFolder -alFileStructure $alFileStructure
     }
 
     $appJsonFile = Join-Path $AlProjectFolder "app.json"
-    $appJson = @{ 
-        "id" = $id
-        "name" = $name
-        "publisher" = $publisher
-        "version" = $version
-        "brief" = ""
-        "description" = ""
-        "privacyStatement" = ""
-        "EULA" = ""
-        "help" = ""
-        "url" = ""
-        "logo" = ""
-        "dependencies" = @()
-        "screenshots" = @()
-        "platform" = "14.0.0.0"
-        "idRanges" = @()
-        "showMyCode" = $true
-        "runtime" = "3.0"
-        "target" = "Internal"
+    if ($ver.Major -eq 15) {
+        $appJson = @{ 
+            "id" = $id
+            "name" = $name
+            "publisher" = $publisher
+            "version" = $version
+            "brief" = ""
+            "description" = ""
+            "privacyStatement" = ""
+            "EULA" = ""
+            "help" = ""
+            "url" = ""
+            "logo" = ""
+            "dependencies" = @(@{
+                "appId" = "63ca2fa4-4f03-4f2b-a480-172fef340d3f"
+                "publisher" = "Microsoft"
+                "name" = "System Application"
+                "version" = "1.0.0.0"
+            })
+            "screenshots" = @()
+            "platform" = "15.0.0.0"
+            "idRanges" = @()
+            "showMyCode" = $true
+            "runtime" = "4.0"
+            "target" = "OnPrem"
+        }
+    }
+    else {
+        $appJson = @{ 
+            "id" = $id
+            "name" = $name
+            "publisher" = $publisher
+            "version" = $version
+            "brief" = ""
+            "description" = ""
+            "privacyStatement" = ""
+            "EULA" = ""
+            "help" = ""
+            "url" = ""
+            "logo" = ""
+            "dependencies" = @()
+            "screenshots" = @()
+            "platform" = "14.0.0.0"
+            "idRanges" = @()
+            "showMyCode" = $true
+            "runtime" = "3.0"
+            "target" = "Internal"
+        }
     }
     Set-Content -Path $appJsonFile -Value ($appJson | ConvertTo-Json)
 
@@ -165,4 +193,6 @@ function Create-AlProjectFolderFromNavContainer {
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"
 }
-Export-ModuleMember -Function Create-AlProjectFolderFromNavContainer
+Set-Alias -Name Create-AlProjectFolderFromBcContainer -Value Create-AlProjectFolderFromNavContainer
+Export-ModuleMember -Function Create-AlProjectFolderFromNavContainer -Alias Create-AlProjectFolderFromBcContainer
+
