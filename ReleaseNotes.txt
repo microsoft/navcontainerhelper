@@ -6,7 +6,6 @@ Added an alias for NavUserPassword to New-NavContainer called UserPassword.
 Added alFileStructure parameter to Convert-ModifiedObjectsToAl and Create-AlProjectFolderFromNavContainer
 Added function Copy-AlSourceFiles to copy AL source files to a file structure given by the alFileStructure parameter
 
-
 0.6.1.5
 Use (Get-CimInstance Win32_OperatingSystem).Version instead of [System.Environment]::OSVersion to identify OS Version in Get-BestNavContainerImageName
 Do not use docker cp for Copy-FileToNavContainer and Copy-FileFromNavContainer
