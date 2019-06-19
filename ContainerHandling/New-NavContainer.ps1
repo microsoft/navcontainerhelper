@@ -153,7 +153,7 @@ function New-NavContainer {
         [switch]$includeTestLibrariesOnly,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string]$restart='unless-stopped',
-        [ValidateSet('Windows','NavUserPassword','AAD')]
+        [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
         [string]$auth='Windows',
         [int]$timeout = 1800,
         [string[]]$additionalParameters = @(),
@@ -173,6 +173,10 @@ function New-NavContainer {
 
     if (!$accept_eula) {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
+    }
+
+    if ($auth -eq "UserPassword") {
+        $auth = "NavUserPassword"
     }
 
     Check-NavContainerName -ContainerName $containerName
@@ -312,7 +316,7 @@ function New-NavContainer {
                 $imageName = $useGenericImage
             }
             else {
-                $imageName = "mcr.microsoft.com/dynamicsnav:generic"
+                $imageName = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
             }
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
