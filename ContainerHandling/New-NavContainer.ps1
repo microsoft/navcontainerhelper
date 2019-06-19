@@ -604,6 +604,9 @@ function New-NavContainer {
         }
     
         Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
+
+        $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
+        Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
     if ("$isolation" -eq "") {

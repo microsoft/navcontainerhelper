@@ -29,3 +29,4 @@ function Get-RandomPasswordAsSecureString {
 
     ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
 }
+
