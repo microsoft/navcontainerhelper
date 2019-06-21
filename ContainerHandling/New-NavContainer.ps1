@@ -812,7 +812,7 @@ if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $da
             $winclientServer = $containerName
         }
         else {
-            $winclientServer = $PublicDnsName
+            $winclientServer = '$PublicDnsName'
         }
 
         ('

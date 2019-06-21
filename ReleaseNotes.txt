@@ -1,5 +1,6 @@
 0.6.2.1
 Renamed parameters navDvd* on New-BcContainer to dvd* (and created alias' for backwards compatibility)
+Bugfix #502 Windows Client tries to connect to localhost
 
 0.6.2.0
 Support for 15.x Containers
