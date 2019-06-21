@@ -12,13 +12,13 @@
   Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
   Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
- .Parameter navDvdPath
+ .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
- .Parameter navDvdCountry
+ .Parameter dvdCountry
   When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.) (default is w1)
- .Parameter navDvdVersion
+ .Parameter dvdVersion
   When you are spinning up a Generic image, you can specify the version (default is the version of the executables)
- .Parameter navDvdPlatform
+ .Parameter dvdPlatform
   When you are spinning up a Generic image, you can specify the platform version (default is the version of the executables)
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
@@ -120,10 +120,14 @@ function New-NavContainer {
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
         [string]$imageName = "", 
-        [string]$navDvdPath = "", 
-        [string]$navDvdCountry = "",
-        [string]$navDvdVersion = "",
-        [string]$navDvdPlatform = "",
+        [Alias('navDvdPath')]
+        [string]$dvdPath = "", 
+        [Alias('navDvdCountry')]
+        [string]$dvdCountry = "",
+        [Alias('navDvdVersion')]
+        [string]$dvdVersion = "",
+        [Alias('navDvdPlatform')]
+        [string]$dvdPlatform = "",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$authenticationEMail = "",
@@ -185,7 +189,7 @@ function New-NavContainer {
         if ($auth -eq "Windows") {
             $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
         } else {
-            $credential = get-credential -Message "Using NavUserPassword Authentication. Please enter username/password for the Containter."
+            $credential = get-credential -Message "Using UserPassword Authentication. Please enter username/password for the Containter."
         }
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You have to specify credentials for your Container"
@@ -311,7 +315,7 @@ function New-NavContainer {
     $devCountry = ""
     $navVersion = ""
     if ($imageName -eq "") {
-        if ("$navDvdPath" -ne "") {
+        if ("$dvdPath" -ne "") {
             if ($useGenericImage) {
                 $imageName = $useGenericImage
             }
@@ -430,45 +434,45 @@ function New-NavContainer {
         Copy-Item -Path $bakFile -Destination $containerBakFile
     }
 
-    if ($navDvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
+    if ($dvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
 
         $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
-        if ($navDvdPath.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $navDvdPath.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
-            Write-Host "Downloading DVD .zip file from $navdvdpath"
-            Download-File -sourceUrl $navDvdPath -destinationFile "$temp.zip"
+        if ($dvdPath.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $dvdPath.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
+            Write-Host "Downloading DVD .zip file from $dvdpath"
+            Download-File -sourceUrl $dvdPath -destinationFile "$temp.zip"
             Write-Host "Extracting DVD .zip file"
             Expand-Archive -Path "$temp.zip" -DestinationPath $temp
             Remove-Item -Path "$temp.zip"
         } else {
             Write-Host "Extracting DVD .zip file"
-            Expand-Archive -Path $navDvdPath -DestinationPath $temp
+            Expand-Archive -Path $dvdPath -DestinationPath $temp
         }
-        $navDvdPath = $temp
+        $dvdPath = $temp
     }
 
-    if ("$navDvdPath" -ne "") {
-        if ("$navDvdVersion" -eq "" -and (Test-Path "$navDvdPath\version.txt")) {
-            $navDvdVersion = Get-Content "$navDvdPath\version.txt"
+    if ("$dvdPath" -ne "") {
+        if ("$dvdVersion" -eq "" -and (Test-Path "$dvdPath\version.txt")) {
+            $dvdVersion = Get-Content "$dvdPath\version.txt"
         }
-        if ("$navDvdPlatform" -eq "" -and (Test-Path "$navDvdPath\platform.txt")) {
-            $navDvdPlatform = Get-Content "$navDvdPath\platform.txt"
+        if ("$dvdPlatform" -eq "" -and (Test-Path "$dvdPath\platform.txt")) {
+            $dvdPlatform = Get-Content "$dvdPath\platform.txt"
         }
-        if ("$navDvdCountry" -eq "" -and (Test-Path "$navDvdPath\country.txt")) {
-            $navDvdCountry = Get-Content "$navDvdPath\country.txt"
+        if ("$dvdCountry" -eq "" -and (Test-Path "$dvdPath\country.txt")) {
+            $dvdCountry = Get-Content "$dvdPath\country.txt"
         }
-        if ($navDvdVersion) {
-            $navVersion = $navDvdVersion
+        if ($dvdVersion) {
+            $navVersion = $dvdVersion
         }
         else {
-            $navversion = (Get-Item -Path "$navDvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+            $navversion = (Get-Item -Path "$dvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
         }
         $navtag = Get-NavVersionFromVersionInfo -VersionInfo $navversion
-        if ("$navtag" -eq "" -and "$navDvdPlatform" -eq "") {
-            $navDvdPlatform = $navversion
+        if ("$navtag" -eq "" -and "$dvdPlatform" -eq "") {
+            $dvdPlatform = $navversion
         }
-        if ($navDvdCountry) {
-            $devCountry = $navDvdCountry
+        if ($dvdCountry) {
+            $devCountry = $dvdCountry
         }
         else {
             $devCountry = "w1"
@@ -481,8 +485,8 @@ function New-NavContainer {
                        "--label cu="
                        )
 
-        if ($navDvdPlatform) {
-            $parameters += @( "--label platform=$navDvdPlatform" )
+        if ($dvdPlatform) {
+            $parameters += @( "--label platform=$dvdPlatform" )
         }
 
         $navVersion += "-$devCountry"
@@ -542,7 +546,7 @@ function New-NavContainer {
                $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
                $hostOsVersion.Build -ne $containerOsversion.Build)) {
 
-        if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
+        if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
             
             # There is a generic image, which is better than the selected image
             Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
@@ -553,11 +557,11 @@ function New-NavContainer {
 
     if ($useGenericImage) {
 
-        if ("$NavDvdPath" -eq "") {
+        if ("$dvdPath" -eq "") {
             # Extract files from image if not already done
-            $NavDvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
-            if (!(Test-Path $NavDvdPath)) {
-                Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
+            $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
+            if (!(Test-Path $dvdPath)) {
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
             }
 
             $inspect = docker inspect $imageName | ConvertFrom-Json
@@ -646,6 +650,10 @@ function New-NavContainer {
 
     if ($includeCSide -and ($version.Major -ge 15)) {
         throw "IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
+    }
+
+    if ($enableSymbolLoading -and ($version.Major -ge 15)) {
+        throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
@@ -777,7 +785,7 @@ function New-NavContainer {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
     }
 
-    if ($enableSymbolLoading -and $version.Major -ge 11) {
+    if ($enableSymbolLoading -and $version.Major -ge 11 -and $version.Major -lt 15) {
         $parameters += "--env enableSymbolLoading=Y"
     }
     else {
@@ -806,6 +814,7 @@ if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $da
         else {
             $winclientServer = $PublicDnsName
         }
+
         ('
 if ($restartingInstance -eq $false) {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
@@ -883,8 +892,8 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $parameters += "--volume ""$($programFilesFolder):C:\navpfiles"""
     }
 
-    if ("$navDvdPath" -ne "") {
-        $parameters += "--volume ""$($navDvdPath):c:\NAVDVD"""
+    if ("$dvdPath" -ne "") {
+        $parameters += "--volume ""$($dvdPath):c:\NAVDVD"""
     }
 
     if ($updateHosts) {

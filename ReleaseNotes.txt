@@ -1,3 +1,6 @@
+0.6.2.1
+Renamed parameters navDvd* on New-BcContainer to dvd* (and created alias' for backwards compatibility)
+
 0.6.2.0
 Support for 15.x Containers
 Select the best generic image when running a DVD (earlier versions chose between ltsc2016 and ltsc2019)
