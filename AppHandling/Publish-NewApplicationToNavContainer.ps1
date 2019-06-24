@@ -110,7 +110,7 @@ function Publish-NewApplicationToNavContainer {
         } -argumentList $customConfig, $platformversion
     }
 
-    Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global
+    Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global -credential $credential
 }
 Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
 Export-ModuleMember -Function Publish-NewApplicationToNavContainer -Alias Publish-NewApplicationToBcContainer
