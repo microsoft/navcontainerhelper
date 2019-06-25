@@ -17,9 +17,17 @@
  .Parameter testFunction
   Name of test function to run. Wildcards (? and *) are supported. Default is *.
  .Parameter XUnitResultFileName
-  Credentials of the SUPER user if using NavUserPassword authentication
+  Filename where the function should place an XUnit compatible result file
+ .Parameter AppendToXUnitResultFile
+  Specify this switch if you want the function to append to the XUnit compatible result file instead of overwriting it
+ .Parameter ReRun
+  Specify this switch if you want the function to replace an existing test run (of the same test codeunit) in the XUnit compatible result file instead of adding it
  .Parameter AzureDevOps
   Generate Azure DevOps Pipeline compatible output. This setting determines the severity of errors.
+ .Parameter InteractionTimeout
+  Timespan allowed for a single interaction (Running a test codeunit is an interaction). Default is 24 hours.
+ .Parameter ReturnTrueIfAllPassed
+  Specify this switch if the function should return true/false on whether all tests passes. If not specified, the function returns nothing.
  .Example
   Run-TestsInNavContainer -contatinerName test -credential $credential
  .Example
@@ -44,9 +52,13 @@ function Run-TestsInNavContainer {
         [string] $testFunction = "*",
         [Parameter(Mandatory=$false)]
         [string] $XUnitResultFileName,
+        [switch] $AppendToXUnitResultFile,
+        [switch] $ReRun,
         [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no',
-        [switch] $detailed
+        [switch] $detailed,
+        [timespan] $interactionTimeout = [timespan]::FromHours(24),
+        [switch] $returnTrueIfAllPassed
     )
     
     $containerXUnitResultFileName = ""
@@ -89,7 +101,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
+    $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -123,7 +135,7 @@ function Run-TestsInNavContainer {
                 Disable-SslVerification
             }
             
-            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout
     
             Run-Tests -clientContext $clientContext `
                       -TestSuite $testSuite `
@@ -131,6 +143,8 @@ function Run-TestsInNavContainer {
                       -TestCodeunit $testCodeunit `
                       -TestFunction $testFunction `
                       -XUnitResultFileName $XUnitResultFileName `
+                      -AppendToXUnitResultFile:$AppendToXUnitResultFile `
+                      -ReRun:$ReRun `
                       -AzureDevOps $AzureDevOps `
                       -detailed:$detailed
         }
@@ -141,7 +155,10 @@ function Run-TestsInNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
+    } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout
+    if ($returnTrueIfAllPassed) {
+        $allPassed
+    }
 }
 Set-Alias -Name Run-TestsInBCContainer -Value Run-TestsInNavContainer
 Export-ModuleMember -Function Run-TestsInNavContainer -Alias Run-TestsInBCContainer

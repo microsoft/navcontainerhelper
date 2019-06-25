@@ -2,6 +2,12 @@
 Renamed parameters navDvd* on New-BcContainer to dvd* (and created alias' for backwards compatibility)
 Bugfix #502 Windows Client tries to connect to localhost
 Bugfix #503 Credential parameter missing on Publish-NavContainerApp
+Support for additional docker registry for private deployments
+Added parameter interactionTimeout to Run-TestsInNavContainer and set the default to 2 hours (earlier hardcoded to 10 minutes)
+Added parameter AppendToXUnitResultFile to Run-TestsInNavContainer to allow additional tests runs added to same Xunit output file
+Added parameter ReRun to Run-TestsInNavContainer to replace former entry in XUnitResultFile with new run
+Added parameter ReturnTrueIfAllPassed to make Run-TestsInNavContainer return $true if all tests passed
+Use filtering to increase performance of running a single test codeunit through Run-TestsInNavContainer (instead of running all)
 
 0.6.2.0
 Support for 15.x Containers

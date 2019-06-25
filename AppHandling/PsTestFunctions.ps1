@@ -24,17 +24,17 @@ function New-ClientContext {
         [string] $auth='NavUserPassword',
         [Parameter(Mandatory=$false)]
         [pscredential] $credential,
-        [timespan] $transactionTimeout = [timespan]::FromMinutes(10),
+        [timespan] $interactionTimeout = [timespan]::FromMinutes(10),
         [string] $culture = "en-US"
     )
 
     if ($auth -eq "Windows") {
-        return [ClientContext]::new($serviceUrl, $transactionTimeout, $culture)
+        return [ClientContext]::new($serviceUrl, $interactionTimeout, $culture)
     } elseif ($auth -eq "NavUserPassword") {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials if using NavUserPassword authentication"
         }
-        return [ClientContext]::new($serviceUrl, $credential, $transactionTimeout, $culture)
+        return [ClientContext]::new($serviceUrl, $credential, $interactionTimeout, $culture)
     } else {
         throw "Unsupported authentication setting"
     }
@@ -125,9 +125,13 @@ function Run-Tests {
         [string] $testFunction = "*",
         [switch] $detailed,
         [string] $XUnitResultFileName = "",
+        [switch] $AppendToXUnitResultFile,
+        [switch] $ReRun,
         [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no'
     )
+
+    $allPassed = $true
 
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
@@ -138,11 +142,29 @@ function Run-Tests {
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
 
+    $i = 0
+    if ([int]::TryParse($testCodeunit, [ref] $i) -and ($testCodeunit -eq $i)) {
+        $filterControl = $clientContext.GetControlByType($form, [ClientFilterLogicalControl])
+        $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.FilterInteraction -ArgumentList $filterControl
+        $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
+        $filterInteraction.FilterValue = $testCodeunit
+        $clientContext.InvokeInteraction($filterInteraction)
+    }
+
     if ($XUnitResultFileName) {
-        [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
-        $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
-        $XUnitAssemblies = $XUnitDoc.CreateElement("assemblies")
-        $XUnitDoc.AppendChild($XUnitAssemblies) | Out-Null
+        if ($AppendToXUnitResultFile -and (Test-Path $XUnitResultFileName)) {
+            [xml]$XUnitDoc = Get-Content $XUnitResultFileName
+            $XUnitAssemblies = $XUnitDoc.assemblies
+        }
+        else {
+            if (Test-Path $XUnitResultFileName -PathType Leaf) {
+                Remove-Item $XUnitResultFileName -Force
+            }
+            [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
+            $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
+            $XUnitAssemblies = $XUnitDoc.CreateElement("assemblies")
+            $XUnitDoc.AppendChild($XUnitAssemblies) | Out-Null
+        }
     }
     
     $TestCodeunitNames = @{}
@@ -208,9 +230,16 @@ function Run-Tests {
                         }
                         else {
                             Write-Host -ForegroundColor Red "Failure ($([Math]::Round($duration.TotalSeconds,3)) seconds)"
+                            $allPassed = $false
                         }
                     }
                     if ($XUnitResultFileName) {
+                        if ($ReRun) {
+                            $LastResult = $XUnitDoc.assemblies.ChildNodes | Where-Object { $_.name -eq $Name }
+                            if ($LastResult) {
+                                $XUnitDoc.assemblies.RemoveChild($LastResult) | Out-Null
+                            }
+                        }
                         $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
                         $XUnitAssembly.SetAttribute("name",$Name)
                         $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
@@ -282,6 +311,7 @@ function Run-Tests {
                             Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$name;]$firstError"
                         }
                         Write-Host -ForegroundColor Red "    Testfunction $name Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
+                        $allPassed = $false
                         $callStack = $clientContext.GetControlByName($row, "Call Stack").StringValue
                         if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                         if ($XUnitResultFileName) {
@@ -324,6 +354,7 @@ function Run-Tests {
         $XUnitDoc.Save($XUnitResultFileName)
     }
     $clientContext.CloseForm($form)
+    $allPassed
 }
 
 function Disable-SslVerification
