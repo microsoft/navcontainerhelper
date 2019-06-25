@@ -37,9 +37,9 @@ function Get-NavContainerImageLabels {
         $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
         $authorization = "Basic $credentials"
 
-    } elseif ("$registry" -eq "bcinsider.azurecr.io") {
+    } elseif ("$registry" -eq "bcinsider.azurecr.io" -or "$registry" -eq "bcprivate.azurecr.io") {
 
-        throw "bcinsider.azurecr.io registry requires authorization. Please specify username and password for the registry in registryCredential."
+        throw "$registry registry requires authorization. Please specify username and password for the registry in registryCredential."
 
     } else {
 

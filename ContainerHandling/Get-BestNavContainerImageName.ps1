@@ -30,6 +30,7 @@ function Get-BestNavContainerImageName {
        )) {
 
         if ($imagename.StartsWith('microsoft/') -or 
+            $imagename.StartsWith('bcprivate.azurecr.io/') -or 
             $imagename.StartsWith('bcinsider.azurecr.io/') -or 
             $imagename.StartsWith('mcr.microsoft.com/') -or 
             $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) {

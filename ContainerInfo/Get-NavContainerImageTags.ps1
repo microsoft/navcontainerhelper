@@ -38,9 +38,9 @@ function Get-NavContainerImageTags {
             $pageSize = 1000
         }
 
-    } elseif ("$registry" -eq "bcinsider.azurecr.io") {
+    } elseif ("$registry" -eq "bcinsider.azurecr.io" -or "$registry" -eq "bcprivate.azurecr.io") {
 
-        throw "bcinsider.azurecr.io registry requires authorization. Please specify username and password for the registry in registryCredential."
+        throw "$registry registry requires authorization. Please specify username and password for the registry in registryCredential."
 
     } else {
 
