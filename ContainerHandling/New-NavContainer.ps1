@@ -560,6 +560,12 @@ function New-NavContainer {
         if ("$dvdPath" -eq "") {
             # Extract files from image if not already done
             $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
+
+            if ($NavVersion -eq "15.0.33664.0-W1" -and !(Test-Path "$dvdPath\ModernDev")) {
+                Remove-Item "$dvdPath" -Recurse -Force -ErrorAction Ignore
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
+            }
+
             if (!(Test-Path $dvdPath)) {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
             }
