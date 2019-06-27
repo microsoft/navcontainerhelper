@@ -26,7 +26,7 @@
     }
     It 'Convert-ModifiedObjectsToAl' {
         Convert-ModifiedObjectsToAl -containerName $navContainerName `
-                                    -startId 50100 -openFolder
+                                    -startId 50100
         $alFiles = Get-ChildItem -Path (Join-Path $navContainerPath "al-newsyntax")
         $alFiles.Count | Should -Be 2
     }
