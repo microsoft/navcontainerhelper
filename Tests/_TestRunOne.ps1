@@ -8,17 +8,9 @@ $modulePath = Join-Path $PSScriptRoot "..\NavContainerHelper.psm1"
 Remove-Module NavContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
-$credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
+$credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String "P@ssword1" -Force))
 
 . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
 . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
 
-try {
-    Get-ChildItem -Path (Join-Path $PSScriptRoot '*.ps1') -Exclude @("_*.ps1") | % {
-        . $_.FullName
-    }
-}
-finally {
-    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
-    . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
-}
+. (Join-Path $PSScriptRoot "ObjectHandling.ps1")
