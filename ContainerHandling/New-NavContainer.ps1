@@ -20,6 +20,8 @@
   When you are spinning up a Generic image, you can specify the version (default is the version of the executables)
  .Parameter dvdPlatform
   When you are spinning up a Generic image, you can specify the platform version (default is the version of the executables)
+ .Parameter locale
+  Optional locale for the container. Default is to deduct the locale from the country version of the container.
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
  .Parameter credential
@@ -128,6 +130,7 @@ function New-NavContainer {
         [string]$dvdVersion = "",
         [Alias('navDvdPlatform')]
         [string]$dvdPlatform = "",
+        [string]$locale = "",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$authenticationEMail = "",
@@ -640,7 +643,9 @@ function New-NavContainer {
         }
     }
 
-    $locale = Get-LocaleFromCountry $devCountry
+    if ("$locale" -eq "") {
+        $locale = Get-LocaleFromCountry $devCountry
+    }
 
     if ((!$doNotExportObjectsToText) -and ($version -lt [System.Version]"8.0.0.0")) {
         throw "PowerShell Cmdlets to export objects as text are not included before NAV 2015, please specify -doNotExportObjectsToText."
