@@ -46,7 +46,31 @@ function Create-MyDeltaFolder {
         if ($useNewSyntax) {
             $params += @{ 'ExportToNewSyntax' = $true }
         }
+
+        if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+            $cp = (Get-Culture).TextInfo.OEMCodePage
+            $encoding = [System.Text.Encoding]::GetEncoding($cp)
+            
+            Write-Host "Converting my modified objects from OEM($cp) to UTF8 before comparing"
+            Get-ChildItem -Path (Join-Path $modifiedFolder "*.*") | ForEach-Object {
+                $content = [System.IO.File]::ReadAllText($_.FullName, $encoding )
+                [System.IO.File]::WriteAllText($_.FullName, $content, [System.Text.Encoding]::UTF8 )
+            }
+        }
+
         Compare-NAVApplicationObject @params -OriginalPath $myOriginalFolder -ModifiedPath $modifiedFolder -DeltaPath $myDeltaFolder | Out-Null
+
+        if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+            Write-Host "Converting files from UTF8 to OEM($cp) after comparing"
+            
+            $myDeltaFolder, $modifiedFolder | % {
+                Get-ChildItem -Path (Join-Path $_ "*.*") | ForEach-Object {
+                    $content = [System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8 )
+                    [System.IO.File]::WriteAllText($_.FullName, $content, $encoding )
+                }
+            }
+        }
+
 
         Write-Host "Rename new objects to .TXT"
         Get-ChildItem $myDeltaFolder | ForEach-Object {

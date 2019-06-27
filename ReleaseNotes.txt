@@ -1,6 +1,8 @@
 0.6.2.3
 Added parameter locale to New-NavContainer to override the culture setting of the container
 BugFix: Export-NavContainerObjects in hyperv ltsc2019 containers caused destructive encoding of the object files
+Use different folder name for PsTestTool to avoid using old cached versions
+BugFix: Convert-Txt2Al, Create-MyDeltaFolder, Create-MyOriginalFolder (and Convert-ModifiedObjectsToAl and Export-ModifiedObjectsAsDeltas) in hyperv ltsc2019 containers caused destructive encoding of files
 
 0.6.2.2
 Extract-FilesFromStoppedNavContainer (and -useBestContainerOS) didn't support 15.x containers
