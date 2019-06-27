@@ -108,12 +108,30 @@ function Export-NavContainerObjects {
                                     -DatabaseServer $databaseServer `
                                     -Force `
                                     -Filter "$filter" | Out-Null
-
+        
         if ($exportTo.Contains("folder")) {
             Write-Host "Split $objectsFile to $objectsFolder (container paths)"
             if ((Test-Path $objectsFile) -and ((Get-Item -Path $objectsFile).Length -gt 0)) {
+
+                if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+                    $cp = (Get-Culture).TextInfo.OEMCodePage
+                    $encoding = [System.Text.Encoding]::GetEncoding($cp)
+                
+                    Write-Host "Converting objects file from OEM($cp) to UTF8 before splitting"
+                    $content = [System.IO.File]::ReadAllText($objectsFile, $encoding )
+                    [System.IO.File]::WriteAllText($objectsFile, $content, [System.Text.Encoding]::UTF8 )
+                }
+
                 Split-NAVApplicationObjectFile -Source $objectsFile `
                                                -Destination $objectsFolder
+
+                if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+                    Write-Host "Converting object files from UTF8 to OEM($cp) after splitting"
+                    Get-ChildItem -Path (Join-Path $objectsFolder "*.txt") | ForEach-Object {
+                        $content = [System.IO.File]::ReadAllText($_.FullName,[System.Text.Encoding]::UTF8 )
+                        [System.IO.File]::WriteAllText($_.FullName, $content, $encoding )
+                    }
+                }
             }
             Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
         }
