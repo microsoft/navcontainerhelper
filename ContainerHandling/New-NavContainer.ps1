@@ -646,6 +646,7 @@ function New-NavContainer {
     if ("$locale" -eq "") {
         $locale = Get-LocaleFromCountry $devCountry
     }
+    Write-Host "Using locale $locale"
 
     if ((!$doNotExportObjectsToText) -and ($version -lt [System.Version]"8.0.0.0")) {
         throw "PowerShell Cmdlets to export objects as text are not included before NAV 2015, please specify -doNotExportObjectsToText."
