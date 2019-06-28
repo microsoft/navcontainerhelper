@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the OS Version for a Nav container or a Nav container image
+  Get the OS Version for a NAV/BC Container or a NAV/BC Container image
  .Description
-  Returns the version of the WindowsServerCore image used to build the Nav container or Nav containerImage
+  Returns the version of the WindowsServerCore image used to build the Container or ContainerImage
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the OS Version
  .Example
@@ -19,9 +19,9 @@ function Get-NavContainerOsVersion {
     )
 
     Process {
-        # returns empty with generic tag 0.0.2.3 or earlier
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        return "$($inspect.OsVersion)"
+        return "$($inspect.Config.Labels.osversion)"
     }
 }
-Export-ModuleMember -function Get-NavContainerOsVersion
+Set-Alias -Name Get-BCContainerOsVersion -Value Get-NavContainerOsVersion
+Export-ModuleMember -Function Get-NavContainerOsVersion -Alias Get-BCContainerOsVersion

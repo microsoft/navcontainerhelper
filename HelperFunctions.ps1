@@ -148,8 +148,7 @@ function Get-NavContainerAuth {
         [string]$containerName
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { 
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
@@ -179,5 +178,26 @@ function Check-NavContainerName {
         if (($_ -lt "a" -or $_ -gt "z") -and ($_ -lt "0" -or $_ -gt "9") -and ($_ -ne "-")) {
             throw "Container name contains invalid characters. Allowed characters are letters (a-z), numbers (0-9) and dashes (-)"
         }
+    }
+}
+
+function AssumeNavContainer {
+    Param
+    (
+        [string]$containerOrImageName = "",
+        [string]$functionName = ""
+    )
+
+    $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        throw "Container $containerOrImageName is not a NAV container"
+    }
+    [System.Version]$version = $inspect.Config.Labels.version
+
+    if ("$functionName" -eq "") {
+        $functionName = (Get-Variable MyInvocation -Scope 1).Value.MyCommand.Name
+    }
+    if ($version.Major -ge 15) {
+        throw "Container $containerOrImageName does not support the function $functionName"
     }
 }

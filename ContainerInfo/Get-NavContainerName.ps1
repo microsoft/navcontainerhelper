@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the name of a Nav container
+  Get the name of a NAV/BC Container
  .Description
-  Returns the name of a Nav container based on the container Id
+  Returns the name of a Container based on the container Id
   You need to specify enought characters of the Id to make it unambiguous
  .Parameter containerId
   Id (or part of the Id) of the container for which you want to get the name
@@ -17,4 +17,5 @@ function Get-NavContainerName {
 
     docker ps --format='{{.Names}}' -a --filter "id=$containerId"
 }
-Export-ModuleMember -function Get-NavContainerName
+Set-Alias -Name Get-BCContainerName -Value Get-NavContainerName
+Export-ModuleMember -Function Get-NavContainerName -Alias Get-BCContainerName

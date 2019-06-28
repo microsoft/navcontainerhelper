@@ -1,9 +1,13 @@
-﻿# Run all tests
+﻿. "C:\Users\freddyk\Documents\GitHub\Microsoft\navcontainerhelper\NavContainerHelper.ps1"
+
+# Run all tests
 
 Clear-Host
 $global:testErrors = @()
 $global:currentTest = ""
 Clear-Content -Path "c:\temp\errors.txt" -ErrorAction Ignore
+
+$ErrorActionPreference = "Stop"
 
 function randomchar([string]$str)
 {
@@ -75,7 +79,9 @@ function IsUrl($expr) {
     Download-File -sourceUrl $result -destinationFile (Join-Path $env:TEMP "Test.htm")
 }
 
-$genericImage = "microsoft/dynamics-nav:generic"
+$platform = "ltsc2019"
+
+$genericImage = "mcr.microsoft.com/dynamicsnav:generic-$platform"
 docker pull $genericImage
 $genericTag = Get-NavContainerGenericTag -containerOrImageName $genericImage
 
@@ -83,21 +89,23 @@ $windowsCredential = get-credential -UserName $env:USERNAME -Message "Please ent
 $aadAdminCredential = get-credential -Message "Please enter your AAD Admin credentials if you want to include AAD auth testing"
 
 $testParams = @(
-    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav"                   ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de"                ; "country" = "de" },
-    @{ "name" = "bcshw1";  "image" = "microsoft/bcsandbox"                      ; "country" = "w1" },
-    @{ "name" = "bcshnl";  "image" = "microsoft/bcsandbox:nl"                   ; "country" = "nl" },
-    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016"              ; "country" = "w1" },
-    @{ "name" = "n2016dk"; "image" = "microsoft/dynamics-nav:2016-dk"           ; "country" = "dk" },
-    @{ "name" = "n2017w1"; "image" = "microsoft/dynamics-nav:2017"              ; "country" = "w1" },
-    @{ "name" = "n2017na"; "image" = "microsoft/dynamics-nav:2017-na"           ; "country" = "na" },
-    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav"                   ; "country" = "w1" },
-    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de"                ; "country" = "de" },
-    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox"           ; "country" = "w1" },
-    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:be"        ; "country" = "be" },
-    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master"    ; "country" = "w1" },
-    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master:es" ; "country" = "es" }
+#    @{ "name" = "n2018w1"; "image" = "mcr.microsoft.com/dynamicsnav:$platform"               ; "country" = "w1" }
+#    @{ "name" = "n2018de"; "image" = "mcr.microsoft.com/dynamicsnav:de-$platform"            ; "country" = "de" }
+    @{ "name" = "bcopw1";  "image" = "mcr.microsoft.com/businesscentral/onprem:$platform"    ; "country" = "w1" }
+#    @{ "name" = "bcopnl";  "image" = "mcr.microsoft.com/businesscentral/onprem:nl-$platform" ; "country" = "nl" }
 )
+
+#    @{ "name" = "n2016w1"; "image" = "microsoft/dynamics-nav:2016-$platform"                 ; "country" = "w1" },
+#    @{ "name" = "n2016dk"; "image" = "microsoft/dynamics-nav:2016-dk-$platform"              ; "country" = "dk" },
+#    @{ "name" = "n2017w1"; "image" = "microsoft/dynamics-nav:2017-$platform"                 ; "country" = "w1" },
+#    @{ "name" = "n2017na"; "image" = "microsoft/dynamics-nav:2017-na-$platform"              ; "country" = "na" },
+#    @{ "name" = "n2018w1"; "image" = "microsoft/dynamics-nav:$platform"                      ; "country" = "w1" },
+#    @{ "name" = "n2018de"; "image" = "microsoft/dynamics-nav:de-$platform"                   ; "country" = "de" },
+#    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:$platform"              ; "country" = "w1" },
+#    @{ "name" = "bcmjw1";  "image" = "bcinsider.azurecr.io/bcsandbox:be-$platform"           ; "country" = "be" },
+#    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master-$platform"       ; "country" = "w1" },
+#    @{ "name" = "bcmaw1";  "image" = "bcinsider.azurecr.io/bcsandbox-master:es-$platform"    ; "country" = "es" }
+
 
 $testContainerInfo = $true
 $testBacpac = $true
@@ -233,7 +241,7 @@ $testParams | ForEach-Object {
                         Test "Get-NavContainerNavVersion"
                         $version = Get-NavContainerNavVersion -containerOrImageName $name
                         $temp = $image+':'
-                        $image2 = $temp.subString(0,$temp.indexOf(':')+1)+$version.ToLowerInvariant()
+                        $image2 = $temp.subString(0,$temp.indexOf(':')+1)+$version.ToLowerInvariant()+"-$platform"
                         docker pull $image2
                         AreEqual -expr "Get-NavContainerNavVersion -containerOrImageName $image2" -expected $version
                         AreEqual -expr "Get-NavContainerNavVersion -containerOrImageName $image" -expected $version
@@ -301,8 +309,12 @@ $testParams | ForEach-Object {
                         $count = @(Get-NavContainerAppInfo -containerName $name).Count
 
                         Test "Publish-NavContainerApp"
+                        $scopeArgs = @{}
+                        if ($multitenant) {
+                            $scopeArgs = @{ "Scope" = "Tenant" }
+                        }
                         $appFile = (Get-item "$appoutputfolder\*.app").FullName
-                        Publish-NavContainerApp -containerName $name -appFile $appFile -skipVerification -sync -install
+                        Publish-NavContainerApp -containerName $name -appFile $appFile -skipVerification -sync -install -useDevEndpoint @scopeArgs
 
                         Test "Get-NavContainerAppInfo"
                         AreEqual -expr "@(Get-NavContainerAppInfo -containerName $name).Count" -expected ($count+1)
@@ -393,7 +405,7 @@ $testParams | ForEach-Object {
 
                             Test "Publish-NavContainerApp"
                             $appFile = (Get-item "$appoutputfolder\*.app").FullName
-                            Publish-NavContainerApp -containerName compiler -appFile $appFile -skipVerification -sync -install
+                            Publish-NavContainerApp -containerName compiler -appFile $appFile -skipVerification -sync -install -useDevEndpoint
 
                             Test "Unpublish-NavContainerApp"
                             UnPublish-NavContainerApp -containerName compiler -appName TestApp -publisher TestApp -version "1.0.0.0" -unInstall
@@ -466,7 +478,12 @@ $testParams | ForEach-Object {
         
                             if ($navVersion.Major -ge 12) {
                                 Test "Setup-NavContainerTestUsers"
-                                Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password
+                                if ($auth -eq "Windows") {
+                                    Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password
+                                }
+                                else {
+                                    Setup-NavContainerTestUsers -containerName $name -tenant UserTest -password $credential2.Password -credential $credential
+                                }
                                 AreEqual -expr "@(Get-NavContainerNavUser -containerName $name -tenant UserTest).Count" -expected ($count+7)
                             }
         
@@ -486,7 +503,12 @@ $testParams | ForEach-Object {
         
                             if ($navVersion.Major -ge 12) {
                                 Test "Setup-NavContainerTestUsers"
-                                Setup-NavContainerTestUsers -containerName $name -password $credential2.Password
+                                if ($auth -eq "Windows") {
+                                    Setup-NavContainerTestUsers -containerName $name -password $credential2.Password
+                                }
+                                else {
+                                    Setup-NavContainerTestUsers -containerName $name -password $credential2.Password -credential $credential
+                                }
                                 AreEqual -expr "@(Get-NavContainerNavUser -containerName $name).Count" -expected ($count+7)
                             }
                         }

@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Copy Font(s) to a Nav container
+  Copy Font(s) to a NAV/BC container
  .Description
   Copies and registers missing fonts in a container to use in report printing or preview
  .Parameter containerName
@@ -24,10 +24,21 @@ function Add-FontsToNavContainer {
         [string]$path = "C:\Windows\Fonts"
     )
 
+    $ExistingFonts = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+        $fontsFolderPath = "C:\Windows\Fonts"
+        Get-ChildItem -Path $fontsFolderPath | % { $_.Name }
+    }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
+    Get-ChildItem $path -ErrorAction Ignore | % {
+        if (!$ExistingFonts.Contains($_.Name) -and $_.Extension -ne ".ini") {
 
-    $ExistingFonts = Invoke-Command -Session $session -ScriptBlock {
+            try
+            {
+                $WindowsFontPath = Join-Path "c:\Windows\Fonts" $_.Name
+                $fullName = $_.FullName
+                Copy-FileToNavContainer -containerName $containerName -localPath $fullName -containerPath $WindowsFontPath
+
+                Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($path)
 
 #*******************************************************************
 #  Load C# code
@@ -60,33 +71,17 @@ namespace FontResource
 }
 '@
 
-        Add-Type $fontCSharpCode
+                    Add-Type $fontCSharpCode
+                    
+                    # Create hashtable containing valid font file extensions and text to append to Registry entry name.
+                    $hashFontFileTypes = @{}
+                    $hashFontFileTypes.Add(".fon", "")
+                    $hashFontFileTypes.Add(".fnt", "")
+                    $hashFontFileTypes.Add(".ttf", " (TrueType)")
+                    $hashFontFileTypes.Add(".ttc", " (TrueType)")
+                    $hashFontFileTypes.Add(".otf", " (OpenType)")
+                    $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
         
-        # Create hashtable containing valid font file extensions and text to append to Registry entry name.
-        $hashFontFileTypes = @{}
-        $hashFontFileTypes.Add(".fon", "")
-        $hashFontFileTypes.Add(".fnt", "")
-        $hashFontFileTypes.Add(".ttf", " (TrueType)")
-        $hashFontFileTypes.Add(".ttc", " (TrueType)")
-        $hashFontFileTypes.Add(".otf", " (OpenType)")
-        
-        $fontsFolderPath = "C:\Windows\Fonts"
-        $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-
-        Get-ChildItem -Path $fontsFolderPath | % { $_.Name }
-    }
-
-    Get-ChildItem $path -ErrorAction Ignore | % {
-        if (!$ExistingFonts.Contains($_.Name) -and $_.Extension -ne ".ini") {
-
-            try
-            {
-                $WindowsFontPath = Join-Path "c:\Windows\Fonts" $_.Name
-                $fullName = $_.FullName
-                Copy-FileToNavContainer -containerName $containerName -localPath $fullName -containerPath $WindowsFontPath
-
-                Invoke-Command -Session $session -ScriptBlock { Param($path)
-
                     $fileDir  = split-path $path
                     $fileName = split-path $path -leaf
                     $fileExt = (Get-Item $path).extension
@@ -107,7 +102,7 @@ namespace FontResource
                         Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
                         Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
                     }
-                } -ArgumentList $fullName
+                } -ArgumentList $WindowsFontPath
             }
             catch
             {
@@ -117,5 +112,5 @@ namespace FontResource
         }
     }
 }
-
-Export-ModuleMember -Function Add-FontsToNavContainer
+Set-Alias -Name Add-FontsToBCContainer -Value Add-FontsToNavContainer
+Export-ModuleMember -Function Add-FontsToNavContainer -Alias Add-FontsToBCContainer

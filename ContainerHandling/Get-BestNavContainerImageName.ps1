@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Get Best Nav Container Image Name
+  Get Best NAV/BC Container Image Name
  .Description
   If a Container Os platform name is not specified in the imageName, find the best container os and add it (if his is a microsoft image)
  .Parameter imageName
@@ -13,20 +13,28 @@ function Get-BestNavContainerImageName {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$imageName
+        [string] $imageName
     )
 
-    if (!($imagename.EndsWith('-ltsc2016') -or
+    if (!(
+          $imagename.EndsWith('-ltsc2016') -or
           $imagename.EndsWith('-1709') -or
           $imagename.EndsWith('-1803') -or
-          $imagename.EndsWith('-ltsc2019'))) {
+          $imagename.EndsWith('-ltsc2019') -or
+          $imagename.EndsWith('-1903') -or
+          $imagename.EndsWith(':ltsc2016') -or
+          $imagename.EndsWith(':1709') -or
+          $imagename.EndsWith(':1803') -or
+          $imagename.EndsWith(':ltsc2019') -or
+          $imagename.EndsWith(':1903')
+       )) {
 
         if ($imagename.StartsWith('microsoft/') -or 
             $imagename.StartsWith('bcinsider.azurecr.io/') -or 
             $imagename.StartsWith('mcr.microsoft.com/') -or 
             $imagename.StartsWith('mcrbusinesscentral.azurecr.io/')) {
 
-                # If we are using a Microsoft image without specific containeros - add best container tag
+            # If we are using a Microsoft image without specific containeros - add best container tag
 
             $hostOsVersion = [System.Environment]::OSVersion.Version
             $bestContainerOs = "ltsc2016"
@@ -42,10 +50,7 @@ function Get-BestNavContainerImageName {
         }
     }
     
-    if (!$imageName.Contains(':')) {
-        $imageName += ":latest"
-    }
-
     $imageName
 }
-Export-ModuleMember -function Get-BestNavContainerImageName
+Set-Alias -Name Get-BestBCContainerImageName -Value Get-BestNavContainerImageName
+Export-ModuleMember -Function Get-BestNavContainerImageName -Alias Get-BestBCContainerImageName

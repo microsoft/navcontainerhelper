@@ -1,15 +1,14 @@
 ﻿<# 
  .Synopsis
-  Get the country version of Nav for a Nav container or a Nav container image
+  Get the country version from a NAV/BC Ccontainer or a NAV/BC Container image
  .Description
-  Returns the country version (localization) for the version of Nav in the Nav container or Nav containerImage
-  Financials versions of Nav will be preceeded by 'fin', like finus, finca, fingb.
+  Returns the country version (localization) for the version of NAV or Business Central in the Container or ContainerImage
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the country version
  .Example
   Get-NavContainerCountry -containerOrImageName navserver
  .Example
-  Get-NavContainerCountry -containerOrImageName microsoft/dynamics-nav:2017
+  Get-NavContainerCountry -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
 #>
 function Get-NavContainerCountry {
     [CmdletBinding()]
@@ -22,9 +21,10 @@ function Get-NavContainerCountry {
     Process {
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV container"
+            throw "Container $containerOrImageName is not a NAV/BC container"
         }
         return "$($inspect.Config.Labels.country)"
     }
 }
-Export-ModuleMember -function Get-NavContainerCountry
+Set-Alias -Name Get-BCContainerCountry -Value Get-NavContainerCountry
+Export-ModuleMember -Function Get-NavContainerCountry -Alias Get-BCContainerCountry

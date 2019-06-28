@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Uninstall Nav App in Nav container
+  Uninstall App in NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Uninstall-NavApp in the container
+  Creates a session to the container and runs the CmdLet Uninstall-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to uninstall the app (default navserver)
  .Parameter appName
@@ -18,35 +18,36 @@
 #>
 function UnInstall-NavContainerApp {
     Param(
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
-        [Parameter()]
-        [string]$appVersion,
-        [switch]$doNotSaveData
+        [string] $appName,
+        [Parameter(Mandatory=$false)]
+        [string] $appVersion,
+        [switch] $doNotSaveData,
+        [switch] $Force
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $Force)
         Write-Host "Uninstalling $appName from $tenant"
         $parameters = @{
-            "ServerInstance" = "NAV";
-            "Name" = $appName;
+            "ServerInstance" = $ServerInstance
+            "Name" = $appName
             "Tenant" = $tenant
         }
-        if ($appVersion)
-        {
+        if ($appVersion) {
             $parameters += @{ "Version" = $appVersion }
         }
-        if ($doNotSaveData)
-        {
+        if ($doNotSaveData) {
             $parameters += @{ "DoNotSaveData" = $true }
         }
+        if ($Force) {
+            $parameters += @{ "Force" = $true }
+        }
         Uninstall-NavApp @parameters
-    } -ArgumentList $appName, $appVersion, $tenant
+    } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
-Export-ModuleMember -Function UnInstall-NavContainerApp
+Set-Alias -Name UnInstall-BCContainerApp -Value UnInstall-NavContainerApp
+Export-ModuleMember -Function UnInstall-NavContainerApp -Alias UnInstall-BCContainerApp

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Start Nav container
+  Start a NAV/BC Container
  .Description
-  Start a Nav Container
+  Start a Container
  .Parameter containerName
   Name of the container you want to start
  .Parameter timeout
@@ -15,8 +15,8 @@ function Start-NavContainer {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$containerName,
-        [int]$timeout = 1800
+        [string] $containerName,
+        [int] $timeout = 1800
     )
 
     if (!(DockerDo -command start -imageName $containerName)) {
@@ -26,4 +26,5 @@ function Start-NavContainer {
         Wait-NavContainerReady -containerName $containerName -timeout $timeout
     }
 }
-Export-ModuleMember -function Start-NavContainer
+Set-Alias -Name Start-BCContainer -Value Start-NavContainer
+Export-ModuleMember -Function Start-NavContainer -Alias Start-BCContainer

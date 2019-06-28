@@ -1,9 +1,9 @@
 ﻿<# 
  .Synopsis
-  Get the Eula Link for for a Nav container or a Nav container image
+  Get the Eula Link for for a NAV/BC Container or a NAV/BC Container image
  .Description
-  Returns the Eula link for the version of Nav in the Nav container or Nav containerImage
-  This is the Eula, which you accept when running the Nav Container using -e accept_eula=Y
+  Returns the Eula link for the version of NAV or Business Central in the Container or Container Image
+  This is the Eula, which you accept when running the Container using -e accept_eula=Y
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the Eula link
  .Example
@@ -22,9 +22,10 @@ function Get-NavContainerEula {
     Process {
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV container"
+            throw "Container $containerOrImageName is not a NAV/BC container"
         }
         return "$($inspect.Config.Labels.Eula)"
     }
 }
-Export-ModuleMember -function Get-NavContainerEula
+Set-Alias -Name Get-BCContainerEula -Value Get-NavContainerEula
+Export-ModuleMember -Function Get-NavContainerEula -Alias Get-BCContainerEula

@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Remove a PSSession for a Nav Container
+  Remove a PSSession for a NAV/BC Container
  .Description
   If a session exists in the session cache, it will be removed and disposed.
   Remove-NavContainer automatically removes sessions created.
@@ -14,7 +14,7 @@ function Remove-NavContainerSession {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$containerName
+        [string] $containerName
     )
 
     Process {
@@ -27,4 +27,5 @@ function Remove-NavContainerSession {
         }
     }
 }
-Export-ModuleMember -function Remove-NavContainerSession
+Set-Alias -Name Remove-BCContainerSession -Value Remove-NavContainerSession
+Export-ModuleMember -Function Remove-NavContainerSession -Alias Remove-BCContainerSession

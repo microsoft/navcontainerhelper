@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Copy the NavSip.dll Crypto Provider from a Container and install it locally
+  Copy the NavSip.dll Crypto Provider from a NAV/BC Container and install it locally
  .Description
   The NavSip crypto provider is used when signing extensions
   Extensions cannot be signed inside the container, they need to be signed on the host.
@@ -12,7 +12,7 @@
 #>
 function Install-NAVSipCryptoProviderFromNavContainer {
     Param(
-        [string]$containerName = "navserver"
+        [string] $containerName = "navserver"
     )
 
     $msvcr120Path = "C:\Windows\System32\msvcr120.dll"
@@ -26,11 +26,12 @@ function Install-NAVSipCryptoProviderFromNavContainer {
     RegSvr32 /u /s $navSip64Path
     RegSvr32 /u /s $navSip32Path
 
-    Log "Copy NAV SIP crypto provider from container $containerName"
+    Log "Copy SIP crypto provider from container $containerName"
     Copy-FileFromNavContainer -containerName $containerName -ContainerPath $navSip64Path
     Copy-FileFromNavContainer -containerName $containerName -ContainerPath $navSip32Path
 
     RegSvr32 /s $navSip32Path
     RegSvr32 /s $navSip64Path
 }
-Export-ModuleMember -Function Install-NAVSipCryptoProviderFromNavContainer
+Set-Alias -Name Install-NAVSipCryptoProviderFromBCContainer -Value Install-NAVSipCryptoProviderFromNavContainer
+Export-ModuleMember -Function Install-NAVSipCryptoProviderFromNavContainer -Alias Install-NAVSipCryptoProviderFromBCContainer

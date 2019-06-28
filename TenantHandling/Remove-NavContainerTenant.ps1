@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Removes a Tenant in a multitenant Nav container
+  Removes a Tenant in a multitenant NAV/BC Container
  .Description
-  Unmounts and removes a tenant database in the Nav container
+  Unmounts and removes a tenant database in the Container
  .Parameter containerName
   Name of the container in which you want remove a tenant
  .Parameter tenantId
@@ -28,23 +28,23 @@ function Remove-NavContainerTenant {
         throw "You cannot remove a tenant called tenant"
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenantId, [System.Management.Automation.PSCredential]$sqlCredential)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [System.Management.Automation.PSCredential]$sqlCredential)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         if ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -ne "true") {
-            throw "The NAV Container is not setup for multitenancy"
+            throw "The Container is not setup for multitenancy"
         }
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
 
         # Remove tenant
         Write-Host "Dismounting tenant $tenantId"
-        Dismount-NavTenant -ServerInstance NAV -Tenant $TenantId -force | Out-null
+        Dismount-NavTenant -ServerInstance $ServerInstance -Tenant $TenantId -force | Out-null
         Remove-NavDatabase -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
     } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
-Export-ModuleMember -Function Remove-NavContainerTenant
+Set-Alias -Name Remove-BCContainerTenant -Value Remove-NavContainerTenant
+Export-ModuleMember -Function Remove-NavContainerTenant -Alias Remove-BCContainerTenant

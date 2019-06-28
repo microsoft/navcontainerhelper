@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the version of NAV in a Nav container or a Nav container image
+  Get the application version from a NAV/BC Container or a NAV/BC Container image
  .Description
-  Returns the version of NAV in the format major.minor.build.release-country
+  Returns the version of NAV/BC in the format major.minor.build.release-country
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the version
  .Example
@@ -21,9 +21,10 @@ function Get-NavContainerNavVersion {
     Process {
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV container"
+            throw "Container $containerOrImageName is not a NAV/BC container"
         }
         return "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
     }
 }
-Export-ModuleMember -function Get-NavContainerNavVersion
+Set-Alias -Name Get-BCContainerNavVersion -Value Get-NavContainerNavVersion
+Export-ModuleMember -Function Get-NavContainerNavVersion -Alias Get-BCContainerNavVersion

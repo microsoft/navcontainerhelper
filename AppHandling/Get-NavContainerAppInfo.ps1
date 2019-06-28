@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get Nav App Info from Nav container
+  Get App Info from NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Get-NavAppInfo in the container
+  Creates a session to the NAV/BC Container and runs the CmdLet Get-NavAppInfo in the container
  .Parameter containerName
   Name of the container in which you want to enumerate apps (default navserver)
  .Parameter tenant
@@ -20,14 +20,13 @@
 #>
 function Get-NavContainerAppInfo {
     Param(
-        [string]$containerName = "navserver",
-        [string]$tenant = "",
-        [switch]$symbolsOnly,
-        [switch]$tenantSpecificProperties
+        [string] $containerName = "navserver",
+        [string] $tenant = "",
+        [switch] $symbolsOnly,
+        [switch] $tenantSpecificProperties
     )
 
-    $args = @{ "ServerInstance" = "NAV" }
-
+    $args = @{}
     if ($symbolsOnly) {
         $args += @{ "SymbolsOnly" = $true }
     } else {
@@ -40,9 +39,9 @@ function Get-NavContainerAppInfo {
         $args += @{ "Tenant" = $tenant }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($inArgs)
-        Get-NavAppInfo @inArgs
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($inArgs)
+        Get-NavAppInfo -ServerInstance $ServerInstance @inArgs
     } -ArgumentList $args
 }
-Export-ModuleMember -Function Get-NavContainerAppInfo
+Set-Alias -Name Get-BCContainerAppInfo -Value Get-NavContainerAppInfo
+Export-ModuleMember -Function Get-NavContainerAppInfo -Alias Get-BCContainerAppInfo

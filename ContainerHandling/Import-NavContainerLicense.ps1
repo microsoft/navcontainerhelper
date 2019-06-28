@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Import License file to Nav container
+  Import License file to a NAV/BC Container
  .Description
   Import a license from a file or a url to a container
  .Parameter containerName
@@ -14,10 +14,9 @@
 #>
 function Import-NavContainerLicense {
     Param(
+        [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [Parameter(Mandatory=$true)]
-        [string]$licenseFile
+        [string] $licenseFile
     )
 
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -32,8 +31,7 @@ function Import-NavContainerLicense {
         }
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($licensefile)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($licensefile)
 
         if ($licensefile.StartsWith("https://") -or $licensefile.StartsWith("http://"))
         {
@@ -50,9 +48,10 @@ function Import-NavContainerLicense {
             }
         }
     
-        Write-Host "Import NAV License $licensefile"
-        Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance 'NAV' -Database NavDatabase -WarningAction SilentlyContinue
+        Write-Host "Import License $licensefile"
+        Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance $ServerInstance -Database NavDatabase -WarningAction SilentlyContinue
     
     }  -ArgumentList $containerLicenseFile
 }
-Export-ModuleMember -function Import-NavContainerLicense
+Set-Alias -Name Import-BCContainerLicense -Value Import-NavContainerLicense
+Export-ModuleMember -Function Import-NavContainerLicense -Alias Import-BCContainerLicense

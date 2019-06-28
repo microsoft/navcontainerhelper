@@ -1,6 +1,6 @@
 ﻿<# 
  .Synopsis
-  Get (or create) a PSSession for a Nav Container
+  Get (or create) a PSSession for a NAV/BC Container
  .Description
   Checks the session cache for an existing session. If a session exists, it will be reused.
   If no session exists, a new session will be created.
@@ -8,16 +8,14 @@
   Name of the container for which you want to create a session
  .Example
   $session = Get-NavContainerSession -containerName navserver
-  PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance NAV -restart }
+  PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance $ServerInstance -restart }
 #>
 function Get-NavContainerSession {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$false)]
-        [switch]$silent
+        [string] $containerName = "navserver",
+        [switch] $silent
     )
 
     Process {
@@ -37,6 +35,7 @@ function Get-NavContainerSession {
             $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
             Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
+                $ErrorActionPreference = 'Stop'
                 $runPath = "c:\Run"
                 $myPath = Join-Path $runPath "my"
 
@@ -50,6 +49,7 @@ function Get-NavContainerSession {
                 }
 
                 . (Get-MyFilePath "prompt.ps1") -silent:$silent | Out-Null
+                . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
                 . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
 
                 $txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
@@ -60,4 +60,5 @@ function Get-NavContainerSession {
         $sessions[$containerId]
     }
 }
-Export-ModuleMember -function Get-NavContainerSession
+Set-Alias -Name Get-BCContainerSession -Value Get-NavContainerSession
+Export-ModuleMember -Function Get-NavContainerSession -Alias Get-BCContainerSession

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Create Apps in Azure Active Directory to allow Single Signon with NAV using AAD
+  Create Apps in Azure Active Directory to allow Single Signon when using AAD
  .Description
-  This function will create an app in AAD, to allow NAV Web and Windows Client to use AAD for authentication
+  This function will create an app in AAD, to allow Web and Windows Client to use AAD for authentication
   Optionally the function can also create apps for the Excel AddIn and/or PowerBI integration
  .Parameter AadAdminCredential
   Credentials for your AAD/Office 365 administrator user, who can create apps in the AAD
@@ -17,22 +17,22 @@
  .Parameter IncludePowerBiAadApp
   Add this switch to request the function to also create an AAD app for the PowerBI service
  .Example
-  Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/nav/
+  Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/bc/
 #>
 function Create-AadAppsForNav
 {
     Param
     (
         [Parameter(Mandatory=$true)]
-        [System.Management.Automation.PSCredential]$AadAdminCredential,
+        [PSCredential] $AadAdminCredential,
         [Parameter(Mandatory=$true)]
-        [string]$appIdUri,
+        [string] $appIdUri,
         [Parameter(Mandatory=$false)]
-        [string]$publicWebBaseUrl = $appIdUri,
+        [string] $publicWebBaseUrl = $appIdUri,
         [Parameter(Mandatory=$false)]
-        [string]$iconPath,
-        [switch]$IncludeExcelAadApp,
-        [switch]$IncludePowerBiAadApp
+        [string] $iconPath,
+        [switch] $IncludeExcelAadApp,
+        [switch] $IncludePowerBiAadApp
     )
 
     function Create-AesKey {
@@ -79,7 +79,7 @@ function Create-AadAppsForNav
     $AdProperties["SsoAdAppKeyValue"] = $SsoAdAppKeyValue
 
     Write-Host "Creating AAD App for WebClient"
-    $ssoAdApp = New-AzureADApplication -DisplayName "NAV WebClient for $appIdUri" `
+    $ssoAdApp = New-AzureADApplication -DisplayName "WebClient for $appIdUri" `
                                        -Homepage $publicWebBaseUrl `
                                        -IdentifierUris $appIdUri `
                                        -ReplyUrls @($publicWebBaseUrl, ($publicWebBaseUrl.ToLowerInvariant()+"SignIn"))
@@ -97,11 +97,17 @@ function Create-AadAppsForNav
     # Get oauth2 permission id for sso app
     $oauth2permissionid = $ssoAdApp.Oauth2Permissions.id
 
+    # Windows Azure Active Directory -> Delegated permissions for Sign in and read user profile (User.Read)
     $req1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
     $req1.ResourceAppId = "00000002-0000-0000-c000-000000000000"
     $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
 
-    Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1)
+    # Dynamics 365 Business Central -> Delegated permissions for Access as the signed-in user (Financials.ReadWrite.All)
+    $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+    $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"
+    $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+
+    Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1, $req2)
 
     # Set Logo Image for App
     if ($iconPath) {
@@ -179,4 +185,5 @@ function Create-AadAppsForNav
 
     $AdProperties
 }
-Export-ModuleMember -Function Create-AadAppsForNav
+Set-Alias -Name Create-AadAppsForBC -Value Create-AadAppsForNav
+Export-ModuleMember -Function Create-AadAppsForNav -Alias Create-AadAppsForBC

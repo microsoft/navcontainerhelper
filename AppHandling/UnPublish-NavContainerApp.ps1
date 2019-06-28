@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Unpublish Nav App in Nav container
+  Unpublish App in NAV/BC Container
  .Description
-  Creates a session to the Nav container and runs the Nav CmdLet Unpublish-NavApp in the container
+  Creates a session to the container and runs the CmdLet Unpublish-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to unpublish the app (default navserver)
  .Parameter appName
@@ -24,29 +24,31 @@
 #>
 function UnPublish-NavContainerApp {
     Param(
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
-        [switch]$unInstall,
-        [switch]$doNotSaveData,
+        [string] $appName,
+        [switch] $unInstall,
+        [switch] $doNotSaveData,
+        [switch] $force,
         [Parameter(Mandatory=$false)]
-        [string]$publisher,
+        [string] $publisher,
         [Parameter(Mandatory=$false)]
-        [Version]$version,
+        [Version] $version,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default"
+        [string] $tenant = "default"
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
             $params = @{}
-            if ($doNotSaveData)
-            {
+            if ($doNotSaveData) {
                 $params += @{ "DoNotSaveData" = $true }
             }
-            Uninstall-NavApp -ServerInstance NAV -Name $appName -Tenant $tenant @params
+            if ($force) {
+                $params += @{ "force" = $true }
+            }
+            Uninstall-NavApp -ServerInstance $ServerInstance -Name $appName -Tenant $tenant @params
         }
         $params = @{}
         if ($publisher) {
@@ -56,8 +58,9 @@ function UnPublish-NavContainerApp {
             $params += @{ 'Version' = $version }
         }
         Write-Host "Unpublishing $appName"
-        Unpublish-NavApp -ServerInstance NAV -Name $appName @params
-    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version
+        Unpublish-NavApp -ServerInstance $ServerInstance -Name $appName @params
+    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
-Export-ModuleMember -Function UnPublish-NavContainerApp
+Set-Alias -Name UnPublish-BCContainerApp -Value UnPublish-NavContainerApp
+Export-ModuleMember -Function UnPublish-NavContainerApp -Alias UnPublish-BCContainerApp

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Enumerate users in AAD and create them in NAV Container
+  Enumerate users in AAD and create them in NAV/BC Container
  .Description
-  This function will create an app in AAD, to allow NAV Web and Windows Client to use AAD for authentication
+  This function will create an app in AAD, to allow Web and Windows Client to use AAD for authentication
   Optionally the function can also create apps for the Excel AddIn and/or PowerBI integration
  .Parameter containerName
   Name of the container in which you want to create the users (default navserver)
@@ -23,18 +23,13 @@ function Create-AadUsersInNavContainer
 {
     Param
     (
-        [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $containerName = "navserver",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [System.Management.Automation.PSCredential]$AadAdminCredential,
-        [parameter(Mandatory=$false)]
-        [bool]$ChangePasswordAtNextLogOn = $true,
-        [Parameter(Mandatory=$false)]
-        [string]$permissionSetId = "SUPER",
-        [Parameter(Mandatory=$false)]
-        [Securestring]$securePassword = $AadAdminCredential.Password
+        [PSCredential] $AadAdminCredential,
+        [bool] $ChangePasswordAtNextLogOn = $true,
+        [string] $permissionSetId = "SUPER",
+        [Securestring] $securePassword = $AadAdminCredential.Password
     )
     
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
@@ -60,4 +55,5 @@ function Create-AadUsersInNavContainer
         }
     }
 }
-Export-ModuleMember -Function Create-AadUsersInNavContainer
+Set-Alias -Name Create-AadUsersInBCContainer -Value Create-AadUsersInNavContainer
+Export-ModuleMember -Function Create-AadUsersInNavContainer -Alias Create-AadUsersInBCContainer

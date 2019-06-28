@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Restart Nav container
+  Restart a NAV/BC Container
  .Description
-  Restart a Nav Container
+  Restart a Container
  .Parameter containerName
   Name of the container you want to restart
  .Parameter renewBindings
@@ -10,23 +10,22 @@
  .Parameter timeout
   Specify the number of seconds to wait for activity. Default is 1800 (30 min.), -1 means wait forever, 0 means don't wait.
  .Example
-  Remove-NavContainer -containerName devServer
+  Restart-NavContainer -containerName test
  .Example
-  Remove-NavContainer -containerName test -updateHosts
+  Restart-NavContainer -containerName test -renewBindings
 #>
 function Restart-NavContainer {
     [CmdletBinding()]
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$containerName,
-        [switch]$renewBindings,
-        [int]$timeout = 1800
+        [string] $containerName,
+        [switch] $renewBindings,
+        [int] $timeout = 1800
     )
 
     if ($renewBindings) {
-        $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock { 
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { 
             Set-Content -Path "c:\run\PublicDnsName.txt" -Value ""
         }
     }
@@ -38,4 +37,5 @@ function Restart-NavContainer {
         Wait-NavContainerReady -containerName $containerName -timeout $timeout
     }
 }
-Export-ModuleMember -function Restart-NavContainer
+Set-Alias -Name Restart-BCContainer -Value Restart-NavContainer
+Export-ModuleMember -Function Restart-NavContainer -Alias Restart-BCContainer

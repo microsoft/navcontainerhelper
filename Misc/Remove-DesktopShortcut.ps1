@@ -3,17 +3,26 @@
         [Parameter(Mandatory=$true)]
         [string]$Name
     )
-    $filename = Join-Path ([Environment]::GetFolderPath("Desktop")) "$Name.lnk"
-    if (Test-Path -Path $filename) {
-        Remove-Item $filename -force
+    $environmentPath = [Environment]::GetFolderPath("Desktop")
+    If ($environmentPath -ne "") {
+        $filename = Join-Path $environmentPath "$Name.lnk"
+        if (Test-Path -Path $filename) {
+            Remove-Item $filename -force
+        }
     }
-    $filename = Join-Path ([Environment]::GetFolderPath("StartMenu")) "NavContainerHelper\$Name.lnk"
-    if (Test-Path -Path $filename) {
-        Remove-Item $filename -force
+    $environmentPath = [Environment]::GetFolderPath("StartMenu")
+    if ($environmentPath -ne "") {
+        $filename = Join-Path $environmentPath "NavContainerHelper\$Name.lnk"
+        if (Test-Path -Path $filename) {
+            Remove-Item $filename -force
+        }
     }
-    $filename = Join-Path ([Environment]::GetFolderPath("CommonStartMenu")) "NavContainerHelper\$Name.lnk"
-    if (Test-Path -Path $filename) {
-        Remove-Item $filename -force
+    $environmentPath = [Environment]::GetFolderPath("CommonStartMenu")
+    if ($environmentPath -ne "") {
+        $filename = Join-Path $environmentPath "NavContainerHelper\$Name.lnk"
+        if (Test-Path -Path $filename) {
+            Remove-Item $filename -force
+        }
     }
 }
-Export-ModuleMember Remove-DesktopShortcut
+Export-ModuleMember -Function Remove-DesktopShortcut

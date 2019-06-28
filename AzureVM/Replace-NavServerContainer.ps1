@@ -9,16 +9,18 @@
  .Parameter alwaysPull
   Include this switch if you want to make sure that you pull latest version of the docker image
  .Example
-  Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus
+  Replace-NavServerContainer -imageName mcr.microsoft.com/dynamicsnav:2018
  .Example
-  Replace-NavServerContainer -imageName microsoft/dynamics-nav:devpreview-december-finus -alwaysPull
+  Replace-NavServerContainer -imageName mcr.microsoft.com/businesscentral/onprem:w1 -alwaysPull
  .Example
   Replace-NavServerContainer
 #>
 function Replace-NavServerContainer {
     Param(
-        [string]$imageName = "",
-        [switch]$alwaysPull
+        [string] $imageName = "",
+        [switch] $alwaysPull,
+        [ValidateSet('Yes','No','Default')]
+        [string] $enableSymbolLoading = 'Default'
     )
 
     $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
@@ -26,16 +28,24 @@ function Replace-NavServerContainer {
     $settingsScript = "C:\DEMO\settings.ps1"
 
     if (!((Test-Path $SetupNavContainerScript) -and (Test-Path $setupDesktopScript) -and (Test-Path $settingsScript))) {
-        throw "The Replace-NavServerContainer is designed to work inside the Nav on Azure DEMO VMs"
+        throw "The Replace-NavServerContainer is designed to work inside the ARM template VMs created by (ex. http://aka.ms/getbc)"
+    }
+
+    if ($enableSymbolLoading -ne "Default") {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
+        $settings += ('$enableSymbolLoading = "'+$enableSymbolLoading+'"')
+        Set-Content -Path $settingsScript -Value $settings
     }
 
     . $settingsScript
 
     if ("$imageName" -eq "") {
-        $imageName = $navDockerImage
+        $imageName = $navDockerImage.Split(',')[0]
     }
     if ("$imageName" -ne "$navDockerImage") {
-        ('$navDockerImage = "'+$imageName + '"') | Add-Content $settingsScript
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
+        $settings += '$navDockerImage = "'+$imageName + '"'
+        Set-Content -Path $settingsScript -Value $settings
     }
 
     $imageName = Get-BestNavContainerImageName -imageName $imageName
@@ -44,8 +54,9 @@ function Replace-NavServerContainer {
         docker pull $imageName
     }
 
-    Write-Host -ForegroundColor Green "Setup new Nav container"
+    Write-Host -ForegroundColor Green "Setup new Container"
     . $SetupNavContainerScript
     . $setupDesktopScript
 }
-Export-ModuleMember -Function Replace-NavServerContainer
+Set-Alias -Name Replace-BCServerContainer -Value Replace-NavServerContainer
+Export-ModuleMember -Function Replace-NavServerContainer -Alias Replace-BCServerContainer

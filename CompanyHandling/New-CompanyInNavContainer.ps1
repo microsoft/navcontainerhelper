@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Create a new company in the database
+  Create a new company in the NAV/BC Container
  .Description
-  Create a session to a Nav container and run New-NavCompany
+  Create a session to a container and run New-NavCompany
  .Parameter containerName
   Name of the container in which you want to create the company
   .Parameter tenant
@@ -16,20 +16,18 @@
 #>
 function New-CompanyInNavContainer {
     Param(
+        [string] $containerName = "navserver",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
-        [Parameter(Mandatory=$true)]
-        [string]$companyName,
-        [switch]$evaluationCompany
+        [string] $companyName,
+        [switch] $evaluationCompany
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($companyName, $evaluationCompany, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($companyName, $evaluationCompany, $tenant)
         Write-Host "Creating company $companyName in $tenant"
-        New-NavCompany -ServerInstance NAV -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
+        New-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
     } -ArgumentList $companyName, $evaluationCompany, $tenant
     Write-Host -ForegroundColor Green "Company successfully created"
 }
-Export-ModuleMember -Function New-CompanyInNavContainer
+Set-Alias -Name New-CompanyInBCContainer -Value New-CompanyInNavContainer
+Export-ModuleMember -Function New-CompanyInNavContainer -Alias New-CompanyInBCContainer

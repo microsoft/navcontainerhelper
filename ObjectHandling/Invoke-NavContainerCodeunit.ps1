@@ -39,16 +39,17 @@ function Invoke-NavContainerCodeunit {
         [string]$TimeZone
     )
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
-        $userexist = Get-NAVServerUser -ServerInstance NAV -Tenant $tenant | Where-Object username -eq $me
+        $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me
-            New-NAVServerUserPermissionSet -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
         } elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -state Enabled
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled
         }
 
         $Params = @{}
@@ -64,12 +65,12 @@ function Invoke-NavContainerCodeunit {
         if ($Timezone) {
             $Params += @{ "TimeZone" = $TimeZone }
         }
-        Invoke-NAVCodeunit -ServerInstance NAV -Tenant $tenant @Params -CodeunitId $CodeUnitId
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
     
         if (!($userexist)) {
-            Remove-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -Force
+            Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
         } elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance NAV -Tenant $tenant -WindowsAccount $me -state Disabled
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
         }
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone

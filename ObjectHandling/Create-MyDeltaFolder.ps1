@@ -28,12 +28,13 @@ function Create-MyDeltaFolder {
         [switch]$useNewSyntax
     )
 
+    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+
     $containerModifiedFolder = Get-NavContainerPath -containerName $containerName -path $modifiedFolder -throw
     $containerMyOriginalFolder = Get-NavContainerPath -containerName $containerName -path $myOriginalFolder -throw
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($modifiedFolder, $myOriginalFolder, $myDeltaFolder, $useNewSyntax)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($modifiedFolder, $myOriginalFolder, $myDeltaFolder, $useNewSyntax)
 
         Write-Host "Compare modified objects with original objects in $myOriginalFolder and create Deltas in $myDeltaFolder (container paths)"
         if (Test-Path $myDeltaFolder -PathType Container) {
@@ -60,4 +61,4 @@ function Create-MyDeltaFolder {
         }
     } -ArgumentList $containerModifiedFolder, $containerMyOriginalFolder, $containerMyDeltaFolder, $useNewSyntax
 }
-Export-ModuleMember -function Create-MyDeltaFolder
+Export-ModuleMember -Function Create-MyDeltaFolder

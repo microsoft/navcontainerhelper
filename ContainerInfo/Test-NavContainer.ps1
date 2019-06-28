@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Test whether a Nav container exists
+  Test whether a NAV/BC Container exists
  .Description
-  Returns $true if the Nav container with the specified name exists
+  Returns $true if a NAV/BC Container with the specified name exists
  .Parameter containerName
   Name of the container which you want to check for existence
  .Example
@@ -17,7 +17,7 @@ function Test-NavContainer {
         $name = Get-NavContainerName $containerName
         if ($name) { $containerName = $name }
         $id = ""
-        docker ps --filter name="$containerName" -a -q --no-trunc | ForEach-Object {
+        docker ps -a -q --no-trunc | ForEach-Object {
             $name = Get-NavContainerName -containerId $_
             if ($name -eq $containerName) {
                 $id = $_
@@ -31,4 +31,5 @@ function Test-NavContainer {
         }
     }
 }
-Export-ModuleMember -function Test-NavContainer
+Set-Alias -Name Test-BCContainer -Value Test-NavContainer
+Export-ModuleMember -Function Test-NavContainer -Alias Test-BCContainer

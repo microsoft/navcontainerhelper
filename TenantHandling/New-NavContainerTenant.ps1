@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Creates a new Tenant in a multitenant Nav container
+  Creates a new Tenant in a multitenant NAV/BC Container
  .Description
-  Creates a tenant database in the Nav container and mounts it as a new tenant
+  Creates a tenant database in the Container and mounts it as a new tenant
  .Parameter containerName
   Name of the container in which you want create a tenant
  .Parameter tenantId
@@ -28,13 +28,12 @@ function New-NavContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($tenantId, [System.Management.Automation.PSCredential]$sqlCredential)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [System.Management.Automation.PSCredential]$sqlCredential)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         if ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -ne "true") {
-            throw "The NAV Container is not setup for multitenancy"
+            throw "The Container is not setup for multitenancy"
         }
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
@@ -46,4 +45,5 @@ function New-NavContainerTenant {
     } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
-Export-ModuleMember -Function New-NavContainerTenant
+Set-Alias -Name New-BCContainerTenant -Value New-NavContainerTenant
+Export-ModuleMember -Function New-NavContainerTenant -Alias New-BCContainerTenant

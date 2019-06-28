@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get list of users from container
+  Get list of users from NAV/BC Container
  .Description
-  Retrieve the list of user objects from a tenant in a container
+  Retrieve the list of user objects from a tenant in a NAV/BC Container
  .Parameter containerName
   Name of the container from which you want to get the users (default navserver)
  .Parameter tenant
@@ -23,11 +23,10 @@ Param
 
     PROCESS
     {
-        $session = Get-NavContainerSession -containerName $containerName -silent
-        Invoke-Command -Session $session -ScriptBlock { param($tenant)
-
-            Get-NavServerUser -ServerInstance NAV -tenant $tenant
-        } -ArgumentList $tenant
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param($tenant)
+            Get-NavServerUser -ServerInstance $ServerInstance -tenant $tenant
+        } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
     }
 }
-Export-ModuleMember -Function Get-NavContainerNavUser
+Set-Alias -Name Get-BCContainerBCUser -Value Get-NavContainerNavUser
+Export-ModuleMember -Function Get-NavContainerNavUser -Alias Get-BCContainerBCUser

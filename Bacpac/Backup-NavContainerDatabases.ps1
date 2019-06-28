@@ -1,9 +1,9 @@
 ﻿<# 
  .Synopsis
-  Backup databases in a Nav container as .bak files
+  Backup databases in a NAV/BC Container as .bak files
  .Description
-  If the Nav Container is multi-tenant, this command will create an app.bak and a tenant.bak (or multiple tenant.bak files)
-  If the Nav Container is single-tenant, this command will create one .bak file called database.bak.
+  If the Container is multi-tenant, this command will create an app.bak and a tenant.bak (or multiple tenant.bak files)
+  If the Container is single-tenant, this command will create one .bak file called database.bak.
  .Parameter containerName
   Name of the container for which you want to export and convert objects
  .Parameter sqlCredential
@@ -26,16 +26,12 @@
 #>
 function Backup-NavContainerDatabases {
     Param(
-        [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [Parameter(Mandatory=$false)]
-        [string]$bakFolder = "",
-        [Parameter(Mandatory=$false)]
-        [string[]]$tenant = @("tenant")
+        [string] $containerName = "navserver", 
+        [PSCredential] $sqlCredential = $null,
+        [string] $bakFolder = "",
+        [string[]] $tenant = @("tenant")
     )
-    
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
@@ -44,9 +40,22 @@ function Backup-NavContainerDatabases {
     }
     $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bakFolder, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bakFolder, $tenant)
        
+        function Backup {
+            Param(
+                [string]$serverInstance,
+                [string]$database,
+                [string]$bakFolder,
+                [string]$bakName
+            )
+            $bakFile = Join-Path $bakFolder "$bakName.bak"
+            if (Test-Path $bakFile) {
+                Remove-Item -Path $bakFile -Force
+            }
+            Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile
+        }
+
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $multitenant = ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true")
@@ -59,15 +68,19 @@ function Backup-NavContainerDatabases {
             $databaseServerInstance = "$databaseServer\$databaseInstance"
         }
 
+        if (!(Test-Path $bakFolder)) {
+            New-Item $bakFolder -ItemType Directory | Out-Null
+        }
+
         if ($multitenant) {
-            Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $DatabaseName -BackupFile (Join-Path $bakFolder "app.bak")
+            Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app"
             $tenant | ForEach-Object {
-                Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $_ -BackupFile (Join-Path $bakFolder "$_.bak")
+                Backup -ServerInstance $databaseServerInstance -database $_ -bakFolder $bakFolder -bakName $_
             }
         } else {
-            Backup-SqlDatabase -ServerInstance $databaseServerInstance -database $DatabaseName -BackupFile (Join-Path $bakFolder "database.bak")
+            Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database"
         }
     } -ArgumentList $sqlCredential, $containerbakFolder, $tenant
 }
-Export-ModuleMember Backup-NavContainerDatabases
-
+Set-Alias -Name Backup-BCContainerDatabases -Value Backup-NavContainerDatabases
+Export-ModuleMember -Function Backup-NavContainerDatabases -Alias Backup-BCContainerDatabases

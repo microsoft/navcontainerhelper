@@ -1,10 +1,10 @@
 ﻿<# 
  .Synopsis
-  Uses a Nav Container to signs a Nav App
+  Uses a NAV/BC Container to sign an App
  .Description
   appFile must be shared with the container
   Copies the pfxFile to the container if necessary
-  Creates a session to the Nav container and Signs the App using the provided certificate and password
+  Creates a session to the container and Signs the App using the provided certificate and password
  .Parameter containerName
   Name of the container in which you want to publish an app (default is navserver)
  .Parameter appFile
@@ -20,11 +20,13 @@
 #>
 function Sign-NavContainerApp {
     Param(
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$appFile,
-        [string]$pfxFile,
-        [SecureString]$pfxPassword
+        [string] $appFile,
+        [Parameter(Mandatory=$true)]
+        [string] $pfxFile,
+        [Parameter(Mandatory=$true)]
+        [SecureString] $pfxPassword
     )
 
     $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
@@ -45,8 +47,7 @@ function Sign-NavContainerApp {
     }
 
 
-    $session = Get-NavContainerSession -containerName $containerName -silent
-    Invoke-Command -Session $session -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
@@ -79,4 +80,5 @@ function Sign-NavContainerApp {
         }
     } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword
 }
-Export-ModuleMember -Function Sign-NavContainerApp
+Set-Alias -Name Sign-BCContainerApp -Value Sign-NavContainerApp
+Export-ModuleMember -Function Sign-NavContainerApp -Alias Sign-BCContainerApp

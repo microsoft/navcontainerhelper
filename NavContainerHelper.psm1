@@ -6,30 +6,42 @@ $verbosePreference = "SilentlyContinue"
 $warningPreference = 'Continue'
 $errorActionPreference = 'Stop'
 
-$hostHelperFolder = "C:\ProgramData\NavContainerHelper"
-New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore
+if ([intptr]::Size -eq 4) {
+    throw "NavContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
+}
 
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+$isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+try {
+    $myUsername = $currentPrincipal.Identity.Name
+} catch {
+    $myUsername = (whoami)
+}
+
+$hostHelperFolder = "C:\ProgramData\NavContainerHelper"
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
-New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore
+if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
+    New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+    New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+
+    if (!$isAdministrator) {
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+        $acl.AddAccessRule($rule)
+        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
+    }
+}
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
-$dockerOk = $true
-try {
-    $ps = (docker ps)
-    if ($LASTEXITCODE -ne 0) {
-        $dockerOk = $false
-    }
-} catch{
-    $dockerOk = $false
-}
-if (!$dockerOk) {
-    Write-Warning "NavContainerHelper might not work. Current user might not have permissions or docker engine might not be running."
-}
-
 $sessions = @{}
 
+$usePsSession = $isAdministrator
+
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")
+
+Check-NavContainerHelperPermissions -Silent
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
@@ -50,6 +62,12 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEventLog.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags")
+
+# Api Functions
+. (Join-Path $PSScriptRoot "Api\Get-NavContainerApiCompanyId.ps1")
+. (Join-Path $PSScriptRoot "Api\Invoke-NavContainerApi.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
@@ -64,7 +82,10 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromNavContainerImage.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromStoppedNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-BestNavContainerImageName.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Invoke-ScriptInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Setup-TraefikContainerForNavContainers.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
@@ -81,6 +102,7 @@ $sessions = @{}
 
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Repair-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sync-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Start-NavContainerAppDataUpgrade.ps1")
@@ -89,10 +111,15 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Compile-AppInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Convert-ALCOutputToAzureDevOps.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Convert-CALTestOutputToAzureDevOps.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Convert-CALExecutionTimeToTimeSpan.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sign-NavContainerApp.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerApp.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Get-TestsFromNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer")
+. (Join-Path $PSScriptRoot "AppHandling\Publish-NewApplicationToNavContainer")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
@@ -131,6 +158,7 @@ $sessions = @{}
 . (Join-Path $PSScriptRoot "Misc\Import-PfxCertificateToNavContainer.ps1")
 
 # Company Handling functions
+. (Join-Path $PSScriptRoot "CompanyHandling\Copy-CompanyInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "CompanyHandling\Get-CompanyInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "CompanyHandling\New-CompanyInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "CompanyHandling\Remove-CompanyInNavContainer.ps1")

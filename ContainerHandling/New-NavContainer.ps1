@@ -1,35 +1,43 @@
 ﻿<# 
  .Synopsis
-  Create or refresh a Nav container
+  Create or refresh a NAV/BC Container
  .Description
-  Creates a new Nav container based on a Nav Docker Image
+  Creates a new Container based on a Docker Image
   Adds shortcut on the desktop for Web Client and Container PowerShell prompt
  .Parameter accept_eula
-  Switch, which you need to specify if you accept the eula for running Nav on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
+  Switch, which you need to specify if you accept the eula for running NAV or Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
+ .Parameter accept_outdated
+  Specify accept_outdated to ignore error when running containers which are older than 90 days
  .Parameter containerName
-  Name of the new Nav container (if the container already exists it will be replaced)
+  Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
-  Name of the image you want to use for your Nav container (default is to grab the imagename from the navserver container)
+  Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
  .Parameter navDvdPath
-  When you are spinning up a Generic image, you need to specify the NAV DVD path
+  When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter navDvdCountry
-  When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.)
+  When you are spinning up a Generic image, you need to specify the country version (w1, dk, etc.) (default is w1)
+ .Parameter navDvdVersion
+  When you are spinning up a Generic image, you can specify the version (default is the version of the executables)
+ .Parameter navDvdPlatform
+  When you are spinning up a Generic image, you can specify the platform version (default is the version of the executables)
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
  .Parameter credential
-  Username and Password for the NAV Container
+  Username and Password for the Container
+ .Parameter AuthenticationEmail
+  AuthenticationEmail of the admin user
  .Parameter memoryLimit
   Memory limit for the container (default is unlimited for Windows Server host else 4G)
  .Parameter isolation
   Isolation mode for the container (default is process for Windows Server host else hyperv)
- .Parameter AuthenticationEmail
-  AuthenticationEmail of the admin user of NAV
  .Parameter databaseServer
   Name of database server when using external SQL Server (omit if using database inside the container)
  .Parameter databaseInstance
   Name of database instance when using external SQL Server (omit if using database inside the container)
  .Parameter databaseName
   Name of database to connect to when using external SQL Server (omit if using database inside the container)
+ .Parameter bakFile
+  Path or Secure Url of a bakFile if you want to restore a database in the container
  .Parameter databaseCredential
   Credentials for the database connection when using external SQL Server (omit if using database inside the container)
  .Parameter shortcuts
@@ -39,19 +47,27 @@
  .Parameter useSSL
   Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter includeCSide
-  Include this switch if you want to have Windows Client and CSide development environment available on the host
+  Include this switch if you want to have Windows Client and CSide development environment available on the host. This switch will also export all objects as txt for object handling functions unless doNotExportObjectsAsText is set.
+ .Parameter includeAL
+  Include this switch if you want to have all objects exported as al for code merging and comparing functions unless doNotExportObjectsAsText is set.
  .Parameter enableSymbolLoading
   Include this switch if you want to do development in both CSide and VS Code to have symbols automatically generated for your changes in CSide
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
- .Parameter assignPremiumPlan
-  Assign Premium plan to admin user
  .Parameter alwaysPull
   Always pull latest version of the docker image
  .Parameter useBestContainerOS
   Use the best Container OS based on the Host OS
+ .Parameter assignPremiumPlan
+  Assign Premium plan to admin user
  .Parameter multitenant
   Setup container for multitenancy by adding this switch
+ .Parameter clickonce
+  Specify the clickonce switch if you want to have a clickonce version of the Windows Client created
+ .Parameter includeTestToolkit
+  Specify this parameter to add the test toolkit and the standard tests to the container
+ .Parameter includeTestLibrariesOnly
+  Specify this parameter to avoid including the standard tests when adding includeTestToolkit
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
@@ -62,38 +78,40 @@
   This allows you to transfer an additional number of parameters to the docker run
  .Parameter myscripts
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
- .Parameter $TimeZoneId,
+ .Parameter TimeZoneId,
   This parameter specifies the timezone in which you want to start the Container.
- .Parameter $WebClientPort,
+ .Parameter WebClientPort,
   Use this parameter to specify which port to use for the WebClient. Default is 80 if http and 443 if https.
- .Parameter $FileSharePort,
+ .Parameter FileSharePort,
   Use this parameter to specify which port to use for the File Share. Default is 8080.
- .Parameter $ManagementServicesPort,
+ .Parameter ManagementServicesPort,
   Use this parameter to specify which port to use for Management Services. Default is 7045.
- .Parameter $ClientServicesPort,
+ .Parameter ClientServicesPort,
   Use this parameter to specify which port to use for Client Services. Default is 7046.
- .Parameter $SoapServicesPort,
+ .Parameter SoapServicesPort,
   Use this parameter to specify which port to use for Soap Web Services. Default is 7047.
- .Parameter $ODataServicesPort,
+ .Parameter ODataServicesPort,
   Use this parameter to specify which port to use for OData Web Services. Default is 7048.
- .Parameter $DeveloperServicesPort,
+ .Parameter DeveloperServicesPort,
   Use this parameter to specify which port to use for Developer Services. Default is 7049.
- .Parameter $PublishPorts,
+ .Parameter PublishPorts,
   Use this parameter to specify the ports you want to publish on the host. Default is to NOT publish any ports.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
- .Parameter $PublicDnsName
+ .Parameter PublicDnsName
   Use this parameter to specify which public dns name is pointing to this container.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
+ .Parameter useTraefik
+  Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
   New-NavContainer -accept_eula -containerName test -multitenant
  .Example
-  New-NavContainer -accept_eula -containerName test -memoryLimit 3G -imageName "microsoft/dynamics-nav:2017" -updateHosts -useBestContainerOS
+  New-NavContainer -accept_eula -containerName test -memoryLimit 3G -imageName "mcr.microsoft.com/dynamicsnav:2017" -updateHosts -useBestContainerOS
  .Example
-  New-NavContainer -accept_eula -containerName test -imageName "microsoft/dynamics-nav:2017" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+  New-NavContainer -accept_eula -containerName test -imageName "mcr.microsoft.com/businesscentral/onprem:dk" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "microsoft/dynamics-nav:devpreview-finus"
+  New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "mcr.microsoft.com/businesscentral/onprem:de"
 #>
 function New-NavContainer {
     Param(
@@ -103,7 +121,9 @@ function New-NavContainer {
         [string]$containerName, 
         [string]$imageName = "", 
         [string]$navDvdPath = "", 
-        [string]$navDvdCountry = "w1",
+        [string]$navDvdCountry = "",
+        [string]$navDvdVersion = "",
+        [string]$navDvdPlatform = "",
         [string]$licenseFile = "",
         [System.Management.Automation.PSCredential]$Credential = $null,
         [string]$authenticationEMail = "",
@@ -113,16 +133,19 @@ function New-NavContainer {
         [string]$databaseServer = "",
         [string]$databaseInstance = "",
         [string]$databaseName = "",
+        [string]$bakFile = "",
         [System.Management.Automation.PSCredential]$databaseCredential = $null,
         [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
         [string]$shortcuts='Desktop',
         [switch]$updateHosts,
         [switch]$useSSL,
+        [switch]$includeAL,
         [switch]$includeCSide,
         [switch]$enableSymbolLoading,
         [switch]$doNotExportObjectsToText,
         [switch]$alwaysPull,
         [switch]$useBestContainerOS,
+        [string]$useGenericImage,
         [switch]$assignPremiumPlan,
         [switch]$multitenant,
         [switch]$clickonce,
@@ -144,7 +167,8 @@ function New-NavContainer {
         [int]$ODataServicesPort,
         [int]$DeveloperServicesPort,
         [int[]]$PublishPorts = @(),
-        [string]$PublicDnsName
+        [string]$PublicDnsName,
+        [switch]$useTraefik
     )
 
     if (!$accept_eula) {
@@ -165,8 +189,11 @@ function New-NavContainer {
     }
 
     if ($auth -eq "Windows") {
-        if ($credential.Username.Contains("@")) {
+        if ($credential.Username.Contains('@')) {
             throw "You cannot use a Microsoft account, you need to use a local Windows user account (like $env:USERNAME)"
+        }
+        if ($credential.Username.Contains('\')) {
+            throw "The username cannot contain domain information, you need to use a local Windows user account (like $env:USERNAME)"
         }
     }
 
@@ -193,7 +220,13 @@ function New-NavContainer {
     $bestContainerOs = "ltsc2016"
     $bestGenericContainerOs = "ltsc2016"
 
-    if ($os.BuildNumber -ge 17763) { 
+    if ($os.BuildNumber -ge 18362) { 
+        if ($os.BuildNumber -eq 18362) { 
+            $hostOs = "1903"
+        }
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "1903"
+    } elseif ($os.BuildNumber -ge 17763) { 
         if ($os.BuildNumber -eq 17763) { 
             $hostOs = "ltsc2019"
         }
@@ -221,52 +254,99 @@ function New-NavContainer {
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
+    $dockerOS = docker version -f "{{.Server.Os}}"
+    if ($dockerOS -ne "Windows") {
+        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
+    }
+
     $dockerService = (Get-Service docker -ErrorAction Ignore)
     if (!($dockerService)) {
-        throw "Docker Service not found / Docker is not installed"
+        throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
     }
 
     if ($dockerService.Status -ne "Running") {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
     }
 
+    if ($bakFile -and !(Test-Path $bakFile)) {
+        throw "Database backup $bakFile doesn't exist"
+    }
+
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
 
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
-    Write-Host "Docker Server Version is $dockerClientVersion"
+    Write-Host "Docker Server Version is $dockerServerVersion"
+
+    if ($useTraefik) {
+        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
+            throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
+        }
+
+        if ($PublishPorts.Count -gt 0 -or
+            $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
+            $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort) {
+            throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
+        }
+
+        if ($useSSL) {
+            Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+            $useSSL = $false
+        }
+
+        if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
+            $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
+        }
+        if (-not $PublicDnsName) {
+            throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
+        }
+    }
 
     $parameters = @()
 
     $devCountry = ""
     $navVersion = ""
     if ($imageName -eq "") {
-        $alwaysPull = $true
         if ("$navDvdPath" -ne "") {
-            $imageName = "microsoft/dynamics-nav:generic"
+            if ($useGenericImage) {
+                $imageName = $useGenericImage
+            }
+            else {
+                $imageName = "mcr.microsoft.com/dynamicsnav:generic"
+            }
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
         } else {
-            $imageName = "microsoft/dynamics-nav:latest"
+            $imageName = "mcr.microsoft.com/businesscentral/onprem"
+            $alwaysPull = $true
         }
+    }
+
+    if (!$imageName.Contains(':')) {
+        $imageName += ":latest"
     }
 
     # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
     $bestImageName = Get-BestNavContainerImageName -imageName $imageName
 
-    $imageExists = $false
-    $bestImageExists = $false
-    docker images -q --no-trunc | ForEach-Object {
-        $inspect = docker inspect $_ | ConvertFrom-Json
-        if ($inspect | % { $_.RepoTags | Where-Object { "$_" -eq "$imageName" -or "$_" -eq "${imageName}:latest"} } ) { $imageExists = $true }
-        if ($inspect | % { $_.RepoTags | Where-Object { "$_" -eq "$bestImageName" } } ) { $bestImageExists = $true }
+    if ($useBestContainerOS) {
+        $imageName = $bestImageName
     }
+    
+    if (!$alwaysPull) {
 
-    if (!($alwaysPull)) {
+        $imageExists = $false
+        $bestImageExists = $false
+        docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+            if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $imageExists = $true }
+            if ("$_" -eq "$bestImageName") { $bestImageExists = $true }
+        }
+
         if ($bestImageExists) {
             $imageName = $bestImageName
         } elseif ($imageExists) {
-            # use image
+            Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
             $alwaysPull = $true
         }
@@ -341,6 +421,12 @@ function New-NavContainer {
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
+    if ($bakFile) {
+        $containerBakFile = Join-Path $containerFolder "database.bak"
+        $parameters += "--env bakfile=$containerBakFile"
+        Copy-Item -Path $bakFile -Destination $containerBakFile
+    }
+
     if ($navDvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
 
         $temp = Join-Path $containerFolder "NAVDVD"
@@ -359,9 +445,31 @@ function New-NavContainer {
     }
 
     if ("$navDvdPath" -ne "") {
-        $navversion = (Get-Item -Path "$navDvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-        $devCountry = $navDvdCountry
+        if ("$navDvdVersion" -eq "" -and (Test-Path "$navDvdPath\version.txt")) {
+            $navDvdVersion = Get-Content "$navDvdPath\version.txt"
+        }
+        if ("$navDvdPlatform" -eq "" -and (Test-Path "$navDvdPath\platform.txt")) {
+            $navDvdPlatform = Get-Content "$navDvdPath\platform.txt"
+        }
+        if ("$navDvdCountry" -eq "" -and (Test-Path "$navDvdPath\country.txt")) {
+            $navDvdCountry = Get-Content "$navDvdPath\country.txt"
+        }
+        if ($navDvdVersion) {
+            $navVersion = $navDvdVersion
+        }
+        else {
+            $navversion = (Get-Item -Path "$navDvdPath\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+        }
         $navtag = Get-NavVersionFromVersionInfo -VersionInfo $navversion
+        if ("$navtag" -eq "" -and "$navDvdPlatform" -eq "") {
+            $navDvdPlatform = $navversion
+        }
+        if ($navDvdCountry) {
+            $devCountry = $navDvdCountry
+        }
+        else {
+            $devCountry = "w1"
+        }
 
         $parameters += @(
                        "--label nav=$navtag",
@@ -370,13 +478,17 @@ function New-NavContainer {
                        "--label cu="
                        )
 
+        if ($navDvdPlatform) {
+            $parameters += @( "--label platform=$navDvdPlatform" )
+        }
+
         $navVersion += "-$devCountry"
 
     } elseif ($devCountry -eq "") {
         $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
 
-    Write-Host "Creating Nav container $containerName"
+    Write-Host "Creating Container $containerName"
     
     if ("$licenseFile" -ne "") {
         Write-Host "Using license file $licenseFile"
@@ -408,6 +520,8 @@ function New-NavContainer {
         $containerOs = "1803"
     } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
         $containerOs = "ltsc2019"
+    } elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+        $containerOs = "1903"
     } else {
         $containerOs = "unknown"
     }
@@ -417,16 +531,28 @@ function New-NavContainer {
     if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
-        throw "The container operating system is newer than the host operating system."
-    } elseif ($hostOsVersion.Major -ne $containerOsversion.Major -or $hostOsVersion.Minor -ne $containerOsversion.Minor -or $hostOsVersion.Build -ne $containerOsversion.Build) {
+
+        throw "The container operating system is newer than the host operating system, cannot use image"
+    
+    } elseif ("$useGenericImage" -eq "" -and
+              ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+               $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+               $hostOsVersion.Build -ne $containerOsversion.Build)) {
 
         if ("$NavDvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
             
             # There is a generic image, which is better than the selected image
             Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
+            $useGenericImage = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
 
+        }
+    }
+
+    if ($useGenericImage) {
+
+        if ("$NavDvdPath" -eq "") {
             # Extract files from image if not already done
-            $NavDvdPath = Join-Path $containerHelperFolder "${NavVersion}-Files"
+            $NavDvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
             if (!(Test-Path $NavDvdPath)) {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $navDvdPath
             }
@@ -440,17 +566,61 @@ function New-NavContainer {
                            "--label cu=$($inspect.Config.Labels.cu)"
                            )
 
-            $imageName = "microsoft/dynamics-nav:generic-$bestGenericContainerOs"
-            DockerDo -command pull -imageName $imageName | Out-Null
-
-            if ("$hostOs" -ne "$bestGenericContainerOs") {
-                Write-Host "The best generic container operating system does not match the host operating system, forcing hyperv isolation."
-                $isolation = "hyperv"
+            if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
+                $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
             }
+        }
 
-        } elseif ($isolation -ne "hyperv") {
+        $imageName = $useGenericImage
+        Write-Host "Using generic image $imageName"
+
+        if (!$alwaysPull) {
+            $alwaysPull = $true
+            docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+                if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $alwaysPull = $false }
+            }
+        }
+
+        if ($alwaysPull) {
+            Write-Host "Pulling image $imageName"
+            DockerDo -command pull -imageName $imageName | Out-Null
+        }
+
+        $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+    
+        if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+            $containerOs = "ltsc2016"
+        } elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+            $containerOs = "1703"
+        } elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+            $containerOs = "1709"
+        } elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+            $containerOs = "1803"
+        } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+            $containerOs = "ltsc2019"
+        } elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+            $containerOs = "1903"
+        } else {
+            $containerOs = "unknown"
+        }
+    
+        Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
+    }
+
+    if ("$isolation" -eq "") {
+        if ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+            $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+            $hostOsVersion.Build -ne $containerOsversion.Build) {
+        
             Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
             $isolation = "hyperv"
+
+        }
+        elseif ($hostOsVersion.Revision -ne $containerOsversion.Revision) {
+
+            Write-Host "WARNING: The container operating system matches the host operating system, but the revision is different."
+            Write-Host "If you encounter issues, you might want to specify -isolation hyperv"
+
         }
     }
 
@@ -462,6 +632,14 @@ function New-NavContainer {
 
     if ($multitenant -and ($version -lt [System.Version]"7.1.0.0")) {
         throw "Multitenancy is not supported in NAV 2013"
+    }
+
+    if ($includeAL -and ($version.Major -lt 14)) {
+        throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
+    }
+
+    if ($includeCSide -and ($version.Major -ge 15)) {
+        throw "IncludeCSide is no longer supported in Dynamics 365 Business Central Fall 2019 release (1910 / 15.x)"
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
@@ -499,6 +677,11 @@ function New-NavContainer {
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
+    if ($useTraefik) {
+        Write-Host "Adding special CheckHealth.ps1 to enable Traefik support"
+        $myscripts += (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+    }
+
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -529,8 +712,11 @@ function New-NavContainer {
     }
     
     if ("$licensefile" -eq "") {
-        if ($includeCSide -and (!$doNotExportObjectsToText)) {
+        if ($includeCSide -and !$doNotExportObjectsToText) {
             throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+        }
+        if ($includeAL) {
+            throw "You must specify a license file when creating a AL Development container."
         }
         $containerlicenseFile = ""
     } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -559,8 +745,8 @@ function New-NavContainer {
                     "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    "--volume ""${hostHelperFolder}:$containerHelperFolder""",
-                    "--volume ""${myFolder}:C:\Run\my""",
+                    "--volume ""$($hostHelperFolder):$containerHelperFolder""",
+                    "--volume ""$($myFolder):C:\Run\my""",
                     "--isolation $isolation",
                     "--restart $restart"
                    )
@@ -585,8 +771,11 @@ function New-NavContainer {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
     }
 
-    if ($enableSymbolLoading -and $version.Major -gt 10) {
+    if ($enableSymbolLoading -and $version.Major -ge 11) {
         $parameters += "--env enableSymbolLoading=Y"
+    }
+    else {
+        $enableSymbolLoading = $false
     }
 
     if ($includeCSide) {
@@ -594,43 +783,65 @@ function New-NavContainer {
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Clear modified flag on all objects
-        'if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-             sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
-         }' | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+        ('
+if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
+    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
         if (Test-Path $programFilesFolder) {
             Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore
         }
         New-Item $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
         
-        ('if ($restartingInstance -eq $false) {
-        Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
-        $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
-        $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
-        [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$publicDnsName"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value="NAV"
-        if ($multitenant) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
+        if ($useTraefik) {
+            $winclientServer = $containerName
         }
-        if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ServicesCertificateValidationEnabled""]") -ne $null) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
+        else {
+            $winclientServer = $PublicDnsName
         }
-        if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]") -ne $null) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]").value="false"
+        ('
+if ($restartingInstance -eq $false) {
+    Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
+    $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
+    $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
+    [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$winclientServer+'"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value=$ServerInstance
+    if ($multitenant) {
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
+    }
+    if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ServicesCertificateValidationEnabled""]") -ne $null) {
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value="false"
+    }
+    if ($clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]") -ne $null) {
+        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]").value="false"
+    }
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
+    $acsUri = "$federationLoginEndpoint"
+    if ($acsUri -ne "") {
+        if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
+            $acsUri += "%26wreply=$publicWebBaseUrl"
         }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value="$publicWinClientPort"
-        $acsUri = "$federationLoginEndpoint"
-        if ($acsUri -ne "") {
-            if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
-                $acsUri += "%26wreply=$publicWebBaseUrl"
-            }
-        }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
-        $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
-        }') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
+    $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+
+    if ([System.Version]$genericTag -le [System.Version]"0.0.9.5") {
+        ('
+Write-Host "Registering event sources"
+"MicrosoftDynamicsNAVClientWebClient","MicrosoftDynamicsNAVClientClientService" | % {
+    if (-not [System.Diagnostics.EventLog]::SourceExists($_)) {
+        $frameworkDir = (Get-Item "HKLM:\SOFTWARE\Microsoft\.NETFramework").GetValue("InstallRoot")
+        New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
+    }
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
     if ($assignPremiumPlan) {
@@ -640,16 +851,17 @@ function New-NavContainer {
             ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
-        ('Get-NavServerUser -serverInstance NAV -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
-            $UserId = $_.UserSecurityId
-            Write-Host "Assign Premium plan for $($_.Username)"
-            $dbName = $DatabaseName
-            if ($multitenant) {
-                $dbName = $TenantId
-            }
-            sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
-          }
-        ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
+        ('
+Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
+    $UserId = $_.UserSecurityId
+    Write-Host "Assign Premium plan for $($_.Username)"
+    $dbName = $DatabaseName
+    if ($multitenant) {
+        $dbName = $TenantId
+    }
+    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
+}
+') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
     }
 
     Write-Host "Creating container $containerName from image $imageName"
@@ -661,19 +873,83 @@ function New-NavContainer {
     }
 
     if ($includeCSide) {
-        $parameters += "--volume ""${programFilesFolder}:C:\navpfiles"""
+        $parameters += "--volume ""$($programFilesFolder):C:\navpfiles"""
     }
 
     if ("$navDvdPath" -ne "") {
-        $parameters += "--volume ""${navDvdPath}:c:\NAVDVD"""
+        $parameters += "--volume ""$($navDvdPath):c:\NAVDVD"""
     }
 
     if ($updateHosts) {
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
         ('
-        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
-        ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
+') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+    }
+
+    if ($useTraefik) {
+        $restPart = "/${containerName}rest" 
+        $soapPart = "/${containerName}soap"
+        $devPart = "/${containerName}dev"
+        $dlPart = "/${containerName}dl"
+        $webclientPart = "/$containerName"
+
+        $baseUrl = "https://$publicDnsName"
+        $restUrl = $baseUrl + $restPart
+        $soapUrl = $baseUrl + $soapPart
+        $webclientUrl = $baseUrl + $webclientPart
+        $devUrl = $baseUrl + $devPart
+        $dlUrl = $baseUrl + $dlPart
+
+        $customNavSettings = "PublicODataBaseUrl=$restUrl/odata,PublicSOAPBaseUrl=$soapUrl/ws,PublicWebBaseUrl=$webclientUrl"
+
+        if ($version.Major -ge 15) {
+            $ServerInstance = "BC"
+        }
+        else {
+            $ServerInstance = "NAV"
+        }
+
+        $webclientRule="PathPrefix:$webclientPart"
+        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
+        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
+        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
+        $dlRule="PathPrefixStrip:${dlPart}"
+
+        $traefikHostname = $publicDnsName.Substring(0, $publicDnsName.IndexOf("."))
+
+        $added = $false
+        $cnt = $additionalParameters.Count-1
+        if ($cnt -ge 0) {
+            0..$cnt | % {
+                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
+                if ($idx -gt 0) {
+                    $additionalParameters[$_] = "$($additionalParameters[$_]),$customNavSettings"
+                    $added = $true
+                }
+            }
+        }
+        if (-not $added) {
+            $additionalParameters += @("-e customNavSettings=$customNavSettings")
+        }
+
+        $additionalParameters += @("--hostname $traefikHostname",
+                                   "-e webserverinstance=$containerName",
+                                   "-e publicdnsname=$publicDnsName", 
+                                   "-l `"traefik.web.frontend.rule=$webclientRule`"", 
+                                   "-l `"traefik.web.port=80`"",
+                                   "-l `"traefik.soap.frontend.rule=$soapRule`"", 
+                                   "-l `"traefik.soap.port=7047`"",
+                                   "-l `"traefik.rest.frontend.rule=$restRule`"", 
+                                   "-l `"traefik.rest.port=7048`"",
+                                   "-l `"traefik.dev.frontend.rule=$devRule`"", 
+                                   "-l `"traefik.dev.port=7049`"",
+                                   "-l `"traefik.dl.frontend.rule=$dlRule`"", 
+                                   "-l `"traefik.dl.port=8080`"",
+                                   "-l `"traefik.enable=true`"",
+                                   "-l `"traefik.frontend.entryPoints=https`""
+        )
     }
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
@@ -722,33 +998,49 @@ function New-NavContainer {
 
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
-        docker exec $containerName powershell "try { if ((Get-TimeZone).Id -ne '$TimeZoneId') { Set-TimeZone -ID '$TimeZoneId' } } catch { Write-Host ""Unable to set TimeZone to '$TimeZoneId', TimeZone is "" (Get-TimeZone).Id }"
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
+            $OldTimeZoneId = (Get-TimeZone).Id
+            try { 
+                if ($OldTimeZoneId -ne $TimeZoneId) { 
+                    Set-TimeZone -ID $TimeZoneId
+                }
+            }
+            catch {
+                Write-Host "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
+            }
+        } -argumentList $TimeZoneId
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
-    $ps = '$customConfigFile = Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "CustomSettings.config"
-    [System.IO.File]::ReadAllText($customConfigFile)'
-    [xml]$customConfig = docker exec $containerName powershell $ps
+    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+
+    if ($enableSymbolLoading) {
+        # Unpublish symbols when running hybrid development
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            # Unpublish only, when Apps when present
+            # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
+            #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+        }
+    }
 
     if ($shortcuts -ne "None") {
         Write-Host "Creating Desktop Shortcuts for $containerName"
-        if ($customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']") -ne $null) {
-            $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-            if ("$publicWebBaseUrl" -ne "") {
-                $webClientUrl = "$publicWebBaseUrl"
-                if ($multitenant) {
-                    $webClientUrl += "?tenant=default"
-                }
-                New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                if ($includeTestToolkit) {
-                    if ($multitenant) {
-                        $webClientUrl += "&page=130401"
-                    } else {
-                        $webClientUrl += "?page=130401"
-                    }
-                    New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                }
+        if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
+            $webClientUrl = $customConfig.PublicWebBaseUrl
+            if ($multitenant) {
+                $webClientUrl += "?tenant=default"
             }
+            New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            if ($includeTestToolkit) {
+                if ($webClientUrl.Contains('?')) {
+                    $webClientUrl += "&page=130401"
+                } else {
+                    $webClientUrl += "?page=130401"
+                }
+                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+            }
+            
         }
         
         $dockerIco = Join-Path $PSScriptRoot "docker.ico"
@@ -762,7 +1054,7 @@ function New-NavContainer {
         }
     }
 
-    if ($auth -eq "AAD" -and [System.Version]$genericTag -le [System.Version]"0.0.9.0") {
+    if ($auth -eq "AAD" -and [System.Version]$genericTag -le [System.Version]"0.0.9.2") {
         Write-Host "Using AAD authentication, Microsoft.IdentityModel.dll is missing, download and copy"
         $wifdll = Join-Path $containerFolder "Microsoft.IdentityModel.dll"
         Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/Microsoft.IdentityModel.dll' -destinationFile $wifdll
@@ -783,10 +1075,11 @@ function New-NavContainer {
     if ($includeCSide) {
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
+        New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
 
-        $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-        $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+        $databaseInstance = $customConfig.DatabaseInstance
+        $databaseName = $customConfig.DatabaseName
+        $databaseServer = $customConfig.DatabaseServer
         if ($databaseServer -eq "localhost") {
             $databaseServer = "$containerName"
         }
@@ -799,33 +1092,78 @@ function New-NavContainer {
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
 
-        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
-        if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+        if ($enableSymbolLoading) {
             $csideParameters += ",generatesymbolreference=1"
         }
 
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts
+    }
 
-        if (!$doNotExportObjectsToText) {
-            
-            # Include newsyntax if NAV Version is greater than NAV 2017
-            0..($version.Major -gt 10) | ForEach-Object {
-                $newSyntax = ($_ -eq 1)
-                $suffix = ""
-                if ($newSyntax) { $suffix = "-newsyntax" }
-                $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
-                if (!(Test-Path $originalFolder)) {
-                    # Export base objects
-                    Export-NavContainerObjects -containerName $containerName `
-                                               -objectsFolder $originalFolder `
-                                               -filter "" `
-                                               -sqlCredential $sqlCredential `
-                                               -ExportToNewSyntax:$newSyntax
+    if (($includeCSide -and !$doNotExportObjectsToText) -or $includeAL) {
+
+        # Include oldsyntax only if IncludeCSide is specified
+        # Include newsyntax if NAV Version is greater than NAV 2017
+
+        if ($includeCSide) {
+            $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
+            if (!(Test-Path $originalFolder)) {
+                # Export base objects
+                Export-NavContainerObjects -containerName $containerName `
+                                           -objectsFolder $originalFolder `
+                                           -filter "" `
+                                           -sqlCredential $sqlCredential `
+                                           -ExportTo 'txt folder'
+            }
+        }
+
+        if ($version.Major -gt 10) {
+            $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
+            if (!(Test-Path $originalFolder)) {
+                # Export base objects as new syntax
+                Export-NavContainerObjects -containerName $containerName `
+                                           -objectsFolder $originalFolder `
+                                           -filter "" `
+                                           -sqlCredential $sqlCredential `
+                                           -ExportTo 'txt folder (new syntax)'
+            }
+            if ($version.Major -ge 14 -and $includeAL) {
+                $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                if (!(Test-Path $alFolder)) {
+                    $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
+                    Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+                    Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
                 }
             }
         }
     }
 
-    Write-Host -ForegroundColor Green "Nav container $containerName successfully created"
+    if ($includeAL) {
+        $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
+        New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+
+            "C:\Windows\assembly",
+            (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName,
+            (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName,
+            "C:\Program Files (x86)\Open XML SDK" | % {
+                Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"
+            }
+
+        } -argumentList $dotnetAssembliesFolder
+    }
+
+    Write-Host -ForegroundColor Green "Container $containerName successfully created"
+
+    if ($useTraefik) {
+        Write-Host -ForegroundColor Yellow "Because of Traefik, the following URLs need to be used when accessing the container from outside your Docker host:"
+        Write-Host "Web Client:        $webclientUrl"
+        Write-Host "SOAP WebServices:  $soapUrl"
+        Write-Host "OData WebServices: $restUrl"
+        Write-Host "Dev Service:       $devUrl"
+        Write-Host "File downloads:    $dlUrl"
+    }
 }
-Export-ModuleMember -function New-NavContainer
+Set-Alias -Name New-BCContainer -Value New-NavContainer
+Export-ModuleMember -Function New-NavContainer -Alias New-BCContainer

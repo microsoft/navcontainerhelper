@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Get the Id of a Nav container
+  Get the Id of a NAV/BC Container
  .Description
-  Returns the Id of a Nav container based on the container name
+  Returns the Id of a Container based on the container name
   The Id returned is the full 64 digit container Id and the name must match
  .Parameter containerName
   Name of the container for which you want the Id
@@ -18,12 +18,14 @@ function Get-NavContainerId {
     )
 
     Process {
+        $name = Get-NavContainerName $containerName
+        if ($name) { $containerName = $name }
+
         $id = ""
-        docker ps --filter name="$containerName" -a -q --no-trunc | ForEach-Object {
-            # filter only filters on the start of the name
-            $name = Get-NavContainerName -containerId $_
-            if ($name -eq $containerName) {
-                $id = $_
+        docker ps --format "{{.ID}}:{{.Names}}" -a --no-trunc | ForEach-Object {
+            $ps = $_.split(':')
+            if ($containerName -eq $ps[1]) {
+                $id = $ps[0]
             }
         }
         if (!($id)) {
@@ -32,4 +34,5 @@ function Get-NavContainerId {
         $id
     }
 }
-Export-ModuleMember -function Get-NavContainerId
+Set-Alias -Name Get-BCContainerId -Value Get-NavContainerId
+Export-ModuleMember -Function Get-NavContainerId -Alias Get-BCContainerId

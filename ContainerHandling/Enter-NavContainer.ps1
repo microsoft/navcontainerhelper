@@ -1,10 +1,10 @@
 ﻿<# 
  .Synopsis
-  Enter PowerShell session in Nav Container
+  Enter PowerShell session in a NAV/BC Container
  .Description
-  Use the current PowerShell prompt to enter a PowerShell session in a Nav Container.
+  Use the current PowerShell prompt to enter a PowerShell session in a Container.
   Especially useful in PowerShell ISE, where you after entering a session, can use PSEdit to edit files inside the container.
-  The PowerShell session will have the Nav PowerShell modules pre-loaded, meaning that you can use most Nav PowerShell CmdLets.
+  The PowerShell session will have the PowerShell modules pre-loaded, meaning that you can use most PowerShell CmdLets.
  .Parameter containerName
   Name of the container for which you want to enter a session
  .Example
@@ -15,16 +15,21 @@ function Enter-NavContainer {
     [CmdletBinding()]
     Param
     (
-        [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string] $containerName = "navserver"
     )
 
     Process {
-        $session = Get-NavContainerSession $containerName
-        Enter-PSSession -Session $session
-        Invoke-Command -Session $session -ScriptBlock {
-            function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+        if ($usePsSession) {
+            $session = Get-NavContainerSession $containerName
+            Enter-PSSession -Session $session
+            Invoke-Command -Session $session -ScriptBlock {
+                function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+            }
+        } else {
+            Write-Host "Enter-NavContainer needs administrator privileges, running Open-NavContainer instead"
+            Open-NavContainer $containerName
         }
     }
 }
-Export-ModuleMember -function Enter-NavContainer
+Set-Alias -Name Enter-BCContainer -Value Enter-NavContainer
+Export-ModuleMember -Function Enter-NavContainer -Alias Enter-BCContainer

@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Imports a configuration package into the application database
+  Imports a configuration package into the application database in a NAV/BC Container
  .Description
-  Create a session to a Nav container and run Import-NAVConfigurationPackageFile
+  Create a session to a container and run Import-NAVConfigurationPackageFile
  .Parameter containerName
   Name of the container in which you want to import the configuration package to
  .Parameter configPackageFile
@@ -12,19 +12,18 @@
 #>
 function Import-ConfigPackageInNavContainer {
     Param(
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [Parameter(Mandatory=$true)]
-        [string]$configPackageFile
+        [string] $configPackageFile
     )
 
     $containerConfigPackageFile = Get-NavContainerPath -containerName $containerName -path $configPackageFile -throw
 
-    $session = Get-NavContainerSession -containerName $containerName
-    Invoke-Command -Session $session -ScriptBlock { Param($configPackageFile)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageFile)
         Write-Host "Importing configuration package from $configPackageFile (container path)"
-        Import-NAVConfigurationPackageFile -ServerInstance NAV -Path $configPackageFile
+        Import-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Path $configPackageFile
     } -ArgumentList $containerConfigPackageFile
     Write-Host -ForegroundColor Green "Configuration package imported"
 }
-Export-ModuleMember -Function Import-ConfigPackageInNavContainer
+Set-Alias -Name Import-ConfigPackageInBCContainer -Value Import-ConfigPackageInNavContainer
+Export-ModuleMember -Function Import-ConfigPackageInNavContainer -Alias Import-ConfigPackageInBCContainer

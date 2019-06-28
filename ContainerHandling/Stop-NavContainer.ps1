@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Stop Nav container
+  Stop a NAV/BC Container
  .Description
-  Stop a Nav Container
+  Stop a Container
  .Parameter containerName
   Name of the container you want to stop
  .Example
@@ -13,11 +13,12 @@ function Stop-NavContainer {
     Param
     (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string]$containerName
+        [string] $containerName
     )
 
     if (!(DockerDo -command stop -imageName $containerName)) {
         return
     }
 }
-Export-ModuleMember -function Stop-NavContainer
+Set-Alias -Name Stop-BCContainer -Value Stop-NavContainer
+Export-ModuleMember -Function Stop-NavContainer -Alias Stop-BCContainer

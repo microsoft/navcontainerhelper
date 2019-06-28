@@ -1,9 +1,9 @@
 ﻿<# 
  .Synopsis
-  Get the name of the image used to run a Nav container
+  Get the name of the image used to run a NAV/BC Container
  .Description
-  Get the name of the image used to run a Nav container
-  The image name can be used to run a new instance of a Nav Container with the same version of Nav
+  Get the name of the image used to run a Container
+  The image name can be used to run a new instance of a Container with the same version of NAV/BC
  .Parameter containerName
   Name of the container for which you want to get the image name
  .Example
@@ -23,4 +23,5 @@ function Get-NavContainerImageName {
         return "$($inspect.Config.Image)"
     }
 }
-Export-ModuleMember -function Get-NavContainerImageName
+Set-Alias -Name Get-BCContainerImageName -Value Get-NavContainerImageName
+Export-ModuleMember -Function Get-NavContainerImageName -Alias Get-BCContainerImageName
