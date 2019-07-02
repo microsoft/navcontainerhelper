@@ -24,8 +24,7 @@ function Copy-AlSourceFiles {
     if ($alFileStructure) {
         $types = @('page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet')
         
-        $files = Get-ChildItem -Path $Path -Recurse
-        
+        $files = Get-ChildItem -Path $Path -Recurse:$Recurse
         $files | Where-Object { ($_.Extension -eq '.al' -or $_.Extension -eq '.xlf') -and !($_.Attributes.HasFlag([System.IO.FileAttributes]::Directory)) } | ForEach-Object {
     
             $filename = $_.Name
@@ -82,50 +81,52 @@ function Copy-AlSourceFiles {
                 $filename = $alFileStructure.Invoke($type, $id, $name, [ref] $content)
             }
 
-            $filename = $filename.Replace('/','').Replace(':','')
-            $destFileName = Join-Path $Destination $filename
-            $destPath = $destFileName.Substring(0,$destFileName.LastIndexOf('\'))
-            if (-not (Test-Path $destPath)) {
-                New-Item $destPath -ItemType Directory | Out-Null
-            }
-
-            if ($type -eq "report") {
-                0..($content.Count-1) | % {
-                    $line = $content[$_]
-                    if ($line.Trim() -like "RDLCLayout = '*';" -or $line.Trim() -like "WordLayout = '*';") {
-                        $startIdx = $line.IndexOf("'")+1
-                        $endIdx = $line.LastIndexOf("'")
-                        $layoutFilename = $line.SubString($startIdx, $endIdx-$startIdx)
-                        $layoutFilename = $layoutFilename.SubString($layoutFilename.LastIndexOf('/')+1)
-                        $layoutFile = $Files | Where-Object { $_.name -eq $layoutFilename }
-                        if ($layoutFile) {
-                            $layoutcontent = [System.IO.File]::ReadAllBytes($layoutFile.FullName)
-
-                            if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
-                                $layoutFilename = $alFileStructure.Invoke($layoutFile.Extension, $id, $name)
+            if ($filename) {
+                $filename = $filename.Replace('/','').Replace(':','')
+                $destFileName = Join-Path $Destination $filename
+                $destPath = $destFileName.Substring(0,$destFileName.LastIndexOf('\'))
+                if (-not (Test-Path $destPath)) {
+                    New-Item $destPath -ItemType Directory | Out-Null
+                }
+    
+                if ($type -eq "report") {
+                    0..($content.Count-1) | % {
+                        $line = $content[$_]
+                        if ($line.Trim() -like "RDLCLayout = '*';" -or $line.Trim() -like "WordLayout = '*';") {
+                            $startIdx = $line.IndexOf("'")+1
+                            $endIdx = $line.LastIndexOf("'")
+                            $layoutFilename = $line.SubString($startIdx, $endIdx-$startIdx)
+                            $layoutFilename = $layoutFilename.SubString($layoutFilename.LastIndexOfAny(@('\','/'))+1)
+                            $layoutFile = $Files | Where-Object { $_.name -eq $layoutFilename }
+                            if ($layoutFile) {
+                                $layoutcontent = [System.IO.File]::ReadAllBytes($layoutFile.FullName)
+    
+                                if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
+                                    $layoutFilename = $alFileStructure.Invoke($layoutFile.Extension, $id, $name)
+                                }
+                                else {
+                                    $layoutFilename = $alFileStructure.Invoke($layoutFile.Extension, $id, $name, [ref] $content)
+                                }
+    
+                                $layoutFilename = $layoutFilename.Replace('/','').Replace(':','')
+                                $layoutDestFilename = Join-Path $Destination $layoutFilename
+                                $layoutDestPath = $layoutDestFilename.Substring(0,$layoutDestFilename.LastIndexOfAny(@('\','/')))
+                                if (-not (Test-Path $layoutDestPath)) {
+                                    New-Item $layoutDestPath -ItemType Directory | Out-Null
+                                }
+                                [System.IO.File]::WriteAllBytes($layoutDestFilename, $layoutcontent)
+    
+                                $content[$_] = $line.SubString(0,$startIdx) + $layoutFilename.Replace('\','/') + $line.SubString($endIdx)
                             }
                             else {
-                                $layoutFilename = $alFileStructure.Invoke($layoutFile.Extension, $id, $name, [ref] $content)
+                                Write-Warning "Unable to find $layoutFilename"
                             }
-
-                            $layoutFilename = $layoutFilename.Replace('/','').Replace(':','')
-                            $layoutDestFilename = Join-Path $Destination $layoutFilename
-                            $layoutDestPath = $layoutDestFilename.Substring(0,$layoutDestFilename.LastIndexOf('\'))
-                            if (-not (Test-Path $layoutDestPath)) {
-                                New-Item $layoutDestPath -ItemType Directory | Out-Null
-                            }
-                            [System.IO.File]::WriteAllBytes($layoutDestFilename, $layoutcontent)
-
-                            $content[$_] = $line.SubString(0,$startIdx) + $layoutFilename + $line.SubString($endIdx)
-                        }
-                        else {
-                            Write-Warning "Unable to find $layoutFilename"
                         }
                     }
                 }
+    
+                [System.IO.File]::WriteAllLines($destFileName, $content)
             }
-
-            [System.IO.File]::WriteAllLines($destFileName, $content)
         }
     }
     else {

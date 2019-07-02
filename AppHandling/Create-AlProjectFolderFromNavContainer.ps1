@@ -175,20 +175,7 @@ function Create-AlProjectFolderFromNavContainer {
     Set-Content -Path $launchJsonFile -Value ($launchJson | ConvertTo-Json)
 
     if ($addGit) {
-        Write-Host "Initializing Git repository"
-
-        $gitIgnoreFile = Join-Path $AlProjectFolder ".gitignore"
-        Set-Content -Path $gitIgnoreFile -Value ".vscode`r`n*.app"
-
-        $oldLocation = Get-Location
-        Set-Location $AlProjectFolder
-        & git init
-        Write-Host "Adding files"
-        & git add .
-        & git gc --auto --quiet
-        Write-Host "Committing files"
-        & git commit -m "$containerName" | Out-Null
-        Set-Location $oldLocation
+        Add-GitToAlProjectFolder -alProjectFolder $alProjectFolder -commitMessage $containerName
     }
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"

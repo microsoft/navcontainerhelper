@@ -14,7 +14,7 @@
  .Parameter credential
   Credentials of the container super user if using NavUserPassword authentication
  .Parameter useCleanDatabase
-  Add this switch if you want to uninstall all extensioins and remove all C/AL objects in the range 1..1999999999.
+  Add this switch if you want to uninstall all extensions and remove all C/AL objects in the range 1..1999999999.
   This switch is needed when turning a C/AL container into an AL Container.
  .Example
   Publish-NewApplicationToNavContainer -containerName test `
@@ -78,36 +78,7 @@ function Publish-NewApplicationToNavContainer {
     } -argumentList $containerAppDotNetPackagesFolder
 
     if ($useCleanDatabase) {
-
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig, $platformversion )
-            
-            if (!(Test-Path "c:\run\my\license.flf")) {
-                throw "Container must be started with a developer license in order to publish a new application"
-            }
-
-            Write-Host "Uninstalling apps"
-            Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
-
-            if ($customConfig.databaseInstance) {
-                $databaseServerInstance = "$($customConfig.databaseServer)\$($customConfig.databaseInstance)"
-            }
-            else {
-                $databaseServerInstance = $customConfig.databaseServer
-            }
-
-            if ($platformversion.Major -eq 14) {
-                Write-Host "Removing C/AL Application Objects"
-                Delete-NAVApplicationObject -DatabaseName $customConfig.databaseName -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
-            }
-            else {
-                # Run 3 times to remove dependent apps first
-                Write-Host "Unpublishing apps"
-                Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore -ErrorAction Ignore
-                Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore -ErrorAction Ignore
-                Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore
-            }
-
-        } -argumentList $customConfig, $platformversion
+        Clean-BcContainerDatabase -containerName $containerName
     }
 
     Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global -credential $credential

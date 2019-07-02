@@ -1,3 +1,9 @@
+0.6.2.4
+Fix Layout reference in report .al files when using Copy-alSourceFiles
+Added function Clean-BcContainerDatabase to remove the base app from a container (extracted from Publish-NewApplicationToNavContainer)
+Added function Add-GitToAlProjectFolder (extracted from Create-AlProjectFolderFromNavContainer)
+Added parameter -useCleanDatabase to New-BcContainer to allow you to create a container which is ready for VS Code to publish code customized AL app
+
 0.6.2.3
 Added parameter locale to New-NavContainer to override the culture setting of the container
 BugFix: Export-NavContainerObjects in hyperv ltsc2019 containers caused destructive encoding of the object files

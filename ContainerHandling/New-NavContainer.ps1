@@ -104,6 +104,8 @@
   This parameter is necessary if you want to be able to connect to the container from outside the host.
  .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
+ .Parameter useCleanDatabase
+  Add this switch if you want to uninstall all extensions and remove the base app from the container
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -175,7 +177,8 @@ function New-NavContainer {
         [int]$DeveloperServicesPort,
         [int[]]$PublishPorts = @(),
         [string]$PublicDnsName,
-        [switch]$useTraefik
+        [switch]$useTraefik,
+        [switch] $useCleanDatabase
     )
 
     if (!$accept_eula) {
@@ -1127,7 +1130,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts
     }
 
-    if (($includeCSide -and !$doNotExportObjectsToText) -or $includeAL) {
+    if (($includeCSide -or $includeAL) -and !$doNotExportObjectsToText) {
 
         # Include oldsyntax only if IncludeCSide is specified
         # Include newsyntax if NAV Version is greater than NAV 2017
@@ -1193,8 +1196,9 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         Write-Host "Creating .net Assembly Reference Folder for VS Code"
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
 
-            $paths = @("C:\Windows\assembly",
-                       (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName)
+            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+
+            $paths = @("C:\Windows\assembly", $serviceTierFolder)
 
             $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
             if (Test-Path $rtcFolder -PathType Container) {
@@ -1207,7 +1211,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                 Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"
             }
 
+            $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
+            if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
+                if (Test-Path $RtcFolder -PathType Container) {
+                    new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
+                }
+            }
         } -argumentList $dotnetAssembliesFolder
+
+        if ($useCleanDatabase) {
+            Clean-BcContainerDatabase -containerName $containerName
+        }
     }
 
     Write-Host -ForegroundColor Green "Container $containerName successfully created"
