@@ -185,17 +185,13 @@ function New-NavContainer {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
     }
 
-    if ($auth -eq "UserPassword") {
-        $auth = "NavUserPassword"
-    }
-
     Check-NavContainerName -ContainerName $containerName
 
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
         if ($auth -eq "Windows") {
             $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
         } else {
-            $credential = get-credential -Message "Using UserPassword Authentication. Please enter username/password for the Containter."
+            $credential = get-credential -Message "Using $auth Authentication. Please enter username/password for the Containter."
         }
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You have to specify credentials for your Container"
@@ -209,6 +205,15 @@ function New-NavContainer {
         if ($credential.Username.Contains('\')) {
             throw "The username cannot contain domain information, you need to use a local Windows user account (like $env:USERNAME)"
         }
+    }
+    if ($auth -eq "AAD") {
+        if ("$authenticationEMail" -eq "") {
+            throw "When using AAD authentication, you have to specify AuthenticationEMail for the user: $($credential.UserName)"
+        }
+    }
+
+    if ($auth -eq "UserPassword") {
+        $auth = "NavUserPassword"
     }
 
     $myScripts | ForEach-Object {
