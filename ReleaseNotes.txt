@@ -1,3 +1,7 @@
+0.6.2.5
+Breaking change: Do not dump eventlog in container log every 2nd second when using New-NavContainer to minimize CPU usage. Added parameter dumpEventLog to keep default behavior.
+Added parameter doNotCheckHealth to disable health check and always report healthy (minimize CPU usage)
+
 0.6.2.4
 Fix Layout reference in report .al files when using Copy-alSourceFiles
 Added function Clean-BcContainerDatabase to remove the base app from a container (extracted from Publish-NewApplicationToNavContainer)

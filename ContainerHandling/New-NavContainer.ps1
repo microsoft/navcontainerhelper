@@ -106,6 +106,10 @@
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove the base app from the container
+ .Parameter dumpEventLog
+  Add this switch if you want the container to dump new entries in the eventlog to the output (docker logs) every 2 seconds
+ .Parameter doNotCheckHealth
+  Add this switch if you want to avoid CPU usage on health check.
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -178,7 +182,9 @@ function New-NavContainer {
         [int[]]$PublishPorts = @(),
         [string]$PublicDnsName,
         [switch]$useTraefik,
-        [switch] $useCleanDatabase
+        [switch] $useCleanDatabase,
+        [switch] $dumpEventLog,
+        [switch] $doNotCheckHealth
     )
 
     if (!$accept_eula) {
@@ -430,6 +436,11 @@ function New-NavContainer {
     if ($publicDnsName) {
         Write-Host "PublicDnsName is $publicDnsName"
         $parameters += "--env PublicDnsName=$PublicDnsName"
+    }
+
+    if ($doNotCheckHealth) {
+        Write-Host "Disabling Health Check (always report healthy)"
+        $parameters += '--health-cmd "exit 0"'
     }
 
     # Remove if it already exists
@@ -716,6 +727,11 @@ function New-NavContainer {
         $myscripts += (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
     }
 
+    if (-not $dumpEventLog) {
+        Write-Host "Overriding default functionality to dump eventlog in container log every 2nd second. (use -dumpEventLog to avoid this)"
+        Set-Content -Path (Join-Path $myFolder "MainLoop.ps1") -Value 'while ($true) { start-sleep -seconds 1 }'
+    }
+
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -900,8 +916,6 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
     }
 
-    Write-Host "Creating container $containerName from image $imageName"
-
     if ($useSSL) {
         $parameters += "--env useSSL=Y"
     } else {
@@ -987,6 +1001,11 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                                    "-l `"traefik.frontend.entryPoints=https`""
         )
     }
+
+    Write-Host "Files in $($myfolder):"
+    get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+
+    Write-Host "Creating container $containerName from image $imageName"
 
     if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
         $passwordKeyFile = "$myfolder\aes.key"
