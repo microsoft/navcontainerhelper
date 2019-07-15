@@ -55,7 +55,7 @@ function Copy-AlSourceFiles {
 
                 if ($type -eq "dotnet") {
                     $id = ''
-                    $name = 'dotnet'
+                    $name = $_.BaseName
                 }
                 else {
                     $line = $line.SubString($type.Length).TrimStart()
