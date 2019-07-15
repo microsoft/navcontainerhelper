@@ -1,3 +1,10 @@
+0.6.2.6
+Allow -bakFile parameter on New-BcContainer to specify a URL
+Allow -dvdpath parameter on New-BcContainer to specify a Dropbox, a SAS URL or other URL's which doesn't end in .zip
+Add parameter dns to new-navcontainer to override the default dns settings in the container (8.8.8.8 is the address of Google's public dns server)
+BugFix: Copy-AlSourceFiles overwrites dotnet.al with local versions of dotnet.al
+RunTests and GetTests should give a better error if WebClient isn't included in the container
+
 0.6.2.5
 Breaking change: Do not dump eventlog in container log every 2nd second when using New-NavContainer to minimize CPU usage. Added parameter dumpEventLog to keep default behavior.
 Added parameter doNotCheckHealth to disable health check and always report healthy (minimize CPU usage)

@@ -102,6 +102,8 @@
  .Parameter PublicDnsName
   Use this parameter to specify which public dns name is pointing to this container.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
+ .Parameter dns
+  Use this parameter to override the default dns settings in the container (corresponds to --dns on docker run)
  .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Parameter useCleanDatabase
@@ -181,6 +183,7 @@ function New-NavContainer {
         [int]$DeveloperServicesPort,
         [int[]]$PublishPorts = @(),
         [string]$PublicDnsName,
+        [string] $dns,
         [switch]$useTraefik,
         [switch] $useCleanDatabase,
         [switch] $dumpEventLog,
@@ -290,10 +293,6 @@ function New-NavContainer {
 
     if ($dockerService.Status -ne "Running") {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
-    }
-
-    if ($bakFile -and !(Test-Path $bakFile)) {
-        throw "Database backup $bakFile doesn't exist"
     }
 
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
@@ -428,6 +427,10 @@ function New-NavContainer {
         $parameters += "--env DeveloperServicesPort=$DeveloperServicesPort"
     }
 
+    if ($dns) {
+        $parameters += "--dns $dns"
+    }
+
     $publishPorts | ForEach-Object {
         Write-Host "Publishing port $_"
         $parameters += "--publish $($_):$($_)"
@@ -440,7 +443,7 @@ function New-NavContainer {
 
     if ($doNotCheckHealth) {
         Write-Host "Disabling Health Check (always report healthy)"
-        $parameters += '--health-cmd "exit 0"'
+        $parameters += '--no-healthcheck'
     }
 
     # Remove if it already exists
@@ -451,25 +454,37 @@ function New-NavContainer {
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
     if ($bakFile) {
-        $containerBakFile = Join-Path $containerFolder "database.bak"
-        $parameters += "--env bakfile=$containerBakFile"
-        Copy-Item -Path $bakFile -Destination $containerBakFile
+        if ($bakFile.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $bakFile.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
+            $temp = Join-Path $containerFolder "database.bak"
+            Download-File -sourceUrl $bakFile -destinationFile $temp
+            $bakFile = $temp
+        }
+        if (!(Test-Path $bakFile)) {
+            throw "Database backup $bakFile doesn't exist"
+        }
+        
+        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+            $containerBakFile = Join-Path $containerFolder "database.bak"
+            Copy-Item -Path $bakFile -Destination $containerBakFile
+            $bakFile = $containerBakFile
+        }
+        $parameters += "--env bakfile=$bakFile"
     }
-
-    if ($dvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
-
+    if ($dvdPath.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $dvdPath.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
+        $tempFolder = Join-Path $containerFolder "DVD"
+        new-item -type directory -Path $tempFolder | Out-Null
+        $tempFile = "$tempFolder.zip"
+        Download-File -sourceUrl $dvdPath -destinationFile $tempFile
+        Write-Host "Extracting DVD .zip file"
+        Expand-Archive -Path $tempFile -DestinationPath $tempFolder
+        Remove-Item -Path $tempFile
+        $dvdPath = $tempFolder
+    }
+    elseif ($dvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
         $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
-        if ($dvdPath.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $dvdPath.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
-            Write-Host "Downloading DVD .zip file from $dvdpath"
-            Download-File -sourceUrl $dvdPath -destinationFile "$temp.zip"
-            Write-Host "Extracting DVD .zip file"
-            Expand-Archive -Path "$temp.zip" -DestinationPath $temp
-            Remove-Item -Path "$temp.zip"
-        } else {
-            Write-Host "Extracting DVD .zip file"
-            Expand-Archive -Path $dvdPath -DestinationPath $temp
-        }
+        Write-Host "Extracting DVD .zip file"
+        Expand-Archive -Path $dvdPath -DestinationPath $temp
         $dvdPath = $temp
     }
 
@@ -728,7 +743,7 @@ function New-NavContainer {
     }
 
     if (-not $dumpEventLog) {
-        Write-Host "Overriding default functionality to dump eventlog in container log every 2nd second. (use -dumpEventLog to avoid this)"
+        Write-Host "Disabling the standard eventlog dump to container log every 2 seconds (use -dumpEventLog to enable)"
         Set-Content -Path (Join-Path $myFolder "MainLoop.ps1") -Value 'while ($true) { start-sleep -seconds 1 }'
     }
 
