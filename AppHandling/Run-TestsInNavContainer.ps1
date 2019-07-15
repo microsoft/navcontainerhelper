@@ -73,7 +73,12 @@ function Run-TestsInNavContainer {
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
-    $clientServicesCredentialType = (Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType
+    $serverConfiguration = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
+
+    if ($serverConfiguration.PublicWebBaseUrl -eq "") {
+        throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
+    }
 
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         try {

@@ -34,6 +34,12 @@ function Get-TestsFromNavContainer {
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
+    $serverConfiguration = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
+
+    if ($serverConfiguration.PublicWebBaseUrl -eq "") {
+        throw "Container $containerName needs to include the WebClient in order to get tests (PublicWebBaseUrl is blank)"
+    }
 
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         try {
@@ -43,7 +49,7 @@ function Get-TestsFromNavContainer {
             Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
             Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
 
-            if ((Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType -eq "Windows") {
+            if ($clientServicesCredentialType -eq "Windows") {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
             } else {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
