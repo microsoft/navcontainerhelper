@@ -1,3 +1,6 @@
+0.6.2.7
+Add -includeCSIDE parameter to Replace-NavServerContainer
+
 0.6.2.6
 Allow -bakFile parameter on New-BcContainer to specify a URL
 Allow -dvdpath parameter on New-BcContainer to specify a Dropbox, a SAS URL or other URL's which doesn't end in .zip
