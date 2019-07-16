@@ -20,7 +20,9 @@ function Replace-NavServerContainer {
         [string] $imageName = "",
         [switch] $alwaysPull,
         [ValidateSet('Yes','No','Default')]
-        [string] $enableSymbolLoading = 'Default'
+        [string] $enableSymbolLoading = 'Default',
+        [ValidateSet('Yes','No','Default')]
+        [string] $includeCSIDE = 'Default'
     )
 
     $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
@@ -34,6 +36,12 @@ function Replace-NavServerContainer {
     if ($enableSymbolLoading -ne "Default") {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
         $settings += ('$enableSymbolLoading = "'+$enableSymbolLoading+'"')
+        Set-Content -Path $settingsScript -Value $settings
+    }
+
+    if ($includeCSIDE -ne "Default") {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$includeCSIDE = ') }
+        $settings += ('$includeCSIDE = "'+$includeCSIDE+'"')
         Set-Content -Path $settingsScript -Value $settings
     }
 
