@@ -1,0 +1,24 @@
+{
+  "id": "b20833f6-1ae6-416c-ac3a-c7cad91fa07a",
+  "name": "inserttests",
+  "publisher": "Freddy Kristiansen",
+  "version": "1.0.0.0",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [],
+  "screenshots": [],
+  "platform": "13.0.0.0",
+  "application": "13.0.0.0",
+  "test": "13.0.0.0",
+  "idRange": {
+    "from": 50100,
+    "to": 50149
+  },
+  "showMyCode": true,
+  "runtime": "2.4"
+}

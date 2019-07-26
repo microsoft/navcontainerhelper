@@ -1,0 +1,160 @@
+OBJECT Codeunit 50000 InsertTests
+{
+  OBJECT-PROPERTIES
+  {
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+            CreateTestSuite('DEFAULT','134006..134007', FALSE);
+          END;
+
+  }
+  CODE
+  {
+    LOCAL PROCEDURE CreateTestSuite@1(TestSuiteName@1002 : Code[10];TestCodeunitFilter@1003 : Text;EmptyTestSuite@1004 : Boolean);
+    VAR
+      CALTestLine@1001 : Record 130401;
+      TempAllObjWithCaption@1000 : TEMPORARY Record 2000000058;
+    BEGIN
+      TryInsertTestSuite(TestSuiteName);
+
+      CALTestLine.SETRANGE("Test Suite", TestSuiteName);
+      IF EmptyTestSuite THEN
+          CALTestLine.DELETEALL(TRUE);
+
+      IF GetTestCodeunits(TestCodeunitFilter, TempAllObjWithCaption) THEN
+          RefreshSuite(TestSuiteName, TempAllObjWithCaption);
+    END;
+
+    LOCAL PROCEDURE TryInsertTestSuite@2(TestSuiteName@1001 : Code[10]);
+    VAR
+      CALTestSuite@1000 : Record 130400;
+    BEGIN
+              IF CALTestSuite.GET(TestSuiteName) THEN
+                  EXIT;
+
+              WITH CALTestSuite DO BEGIN
+                  INIT;
+
+          VALIDATE(Name, TestSuiteName);
+          VALIDATE(Description, TestSuiteName);
+          VALIDATE(Export, FALSE);
+          INSERT(TRUE);
+      END;
+    END;
+
+    LOCAL PROCEDURE GetTestCodeunits@3(TestCodeunitFilter@1001 : Text;VAR ToAllObjWithCaption@1002 : Record 2000000058) : Boolean;
+    VAR
+      FromAllObjWithCaption@1000 : Record 2000000058;
+    BEGIN
+      WITH ToAllObjWithCaption DO BEGIN
+          FromAllObjWithCaption.SETRANGE("Object Type", "Object Type"::Codeunit);
+          FromAllObjWithCaption.SETFILTER("Object ID", TestCodeunitFilter);
+          FromAllObjWithCaption.SETRANGE("Object Subtype", 'Test');
+          IF FromAllObjWithCaption.FIND('-') THEN
+              REPEAT
+                  ToAllObjWithCaption := FromAllObjWithCaption;
+                   INSERT;
+              UNTIL FromAllObjWithCaption.NEXT = 0;
+      END;
+
+      EXIT(ToAllObjWithCaption.FIND('-'));
+    END;
+
+    LOCAL PROCEDURE RefreshSuite@4(CALTestSuiteName@1002 : Text;VAR AllObjWithCaption@1003 : Record 2000000058);
+    VAR
+      CALTestLine@1000 : Record 130401;
+      LineNo@1001 : Integer;
+    BEGIN
+      WITH CALTestLine DO BEGIN
+          LineNo := LineNo + 10000;
+
+          INIT;
+          VALIDATE("Test Suite", CALTestSuiteName);
+          VALIDATE("Line No.", LineNo);
+          VALIDATE("Line Type", "Line Type"::Group);
+          VALIDATE(Name, CALTestSuiteName);
+          VALIDATE(Run, TRUE);
+          INSERT(TRUE);
+
+          AddTestCodeunits(CALTestSuiteName, AllObjWithCaption);
+      END;
+    END;
+
+    LOCAL PROCEDURE AddTestCodeunits@5(CALTestSuiteName@1001 : Text;VAR AllObjWithCaption@1002 : Record 2000000058);
+    VAR
+      TestLineNo@1000 : Integer;
+    BEGIN
+      IF AllObjWithCaption.FIND('-') THEN BEGIN
+          TestLineNo := GetLastTestLineNo(CALTestSuiteName);
+          REPEAT
+              TestLineNo := TestLineNo + 10000;
+              AddTestLine(CALTestSuiteName, AllObjWithCaption."Object ID", TestLineNo);
+          UNTIL AllObjWithCaption.NEXT = 0;
+      END;
+    END;
+
+    LOCAL PROCEDURE GetLastTestLineNo@6(TestSuiteName@1001 : Code[10]) LineNo : Integer;
+    VAR
+      CALTestLine@1000 : Record 130401;
+    BEGIN
+      CALTestLine.SETRANGE("Test Suite", TestSuiteName);
+      IF CALTestLine.FINDLAST THEN
+          LineNo := CALTestLine."Line No.";
+    END;
+
+    LOCAL PROCEDURE AddTestLine@7(TestSuiteName@1000 : Code[10];TestCodeunitId@1001 : Integer;LineNo@1002 : Integer);
+    VAR
+      CALTestLine@1003 : Record 130401;
+      AllObj@1004 : Record 2000000038;
+      CodeunitIsValid@1005 : Boolean;
+      CALTestMgmt@1006 : Codeunit 130401;
+      ObjectNotCompiledErr@1008 : TextConst 'ENU=Object not compiled';
+    BEGIN
+      WITH CALTestLine DO BEGIN
+          IF TestLineExists(TestSuiteName, TestCodeunitId) THEN
+              EXIT;
+
+          INIT;
+          VALIDATE("Test Suite", TestSuiteName);
+          VALIDATE("Line No.", LineNo);
+          VALIDATE("Line Type", "Line Type"::Codeunit);
+          VALIDATE("Test Codeunit", TestCodeunitId);
+          VALIDATE(Run, TRUE);
+
+          INSERT(TRUE);
+
+          AllObj.SETRANGE("Object Type", AllObj."Object Type"::Codeunit);
+          AllObj.SETRANGE("Object ID", TestCodeunitId);
+          IF FORMAT(AllObj."App Package ID") <> '' THEN
+              CodeunitIsValid := TRUE;
+
+          IF CodeunitIsValid THEN BEGIN
+              CALTestMgmt.SETPUBLISHMODE;
+              SETRECFILTER;
+              CODEUNIT.RUN(CODEUNIT::"CAL Test Runner", CALTestLine);
+          END ELSE BEGIN
+              VALIDATE(Result, Result::Failure);
+              VALIDATE("First Error", ObjectNotCompiledErr);
+              MODIFY(TRUE);
+          END;
+      END;
+    END;
+
+    LOCAL PROCEDURE TestLineExists@8(TestSuiteName@1000 : Code[10];TestCodeunitId@1001 : Integer) : Boolean;
+    VAR
+      CALTestLine@1002 : Record 130401;
+    BEGIN
+      CALTestLine.SETRANGE("Test Suite", TestSuiteName);
+      CALTestLine.SETRANGE("Test Codeunit", TestCodeunitId);
+      EXIT(NOT CALTestLine.ISEMPTY);
+    END;
+
+    BEGIN
+    END.
+  }
+}
+

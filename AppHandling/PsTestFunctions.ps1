@@ -145,10 +145,19 @@ function Run-Tests {
     $i = 0
     if ([int]::TryParse($testCodeunit, [ref] $i) -and ($testCodeunit -eq $i)) {
         $filterControl = $clientContext.GetControlByType($form, [ClientFilterLogicalControl])
-        $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.FilterInteraction -ArgumentList $filterControl
-        $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
-        $filterInteraction.FilterValue = $testCodeunit
-        $clientContext.InvokeInteraction($filterInteraction)
+
+        if (([System.Management.Automation.PSTypeName]'Microsoft.Dynamics.Framework.UI.Client.Interactions.ExecuteFilterInteraction').Type) {
+            $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.ExecuteFilterInteraction -ArgumentList $filterControl
+            $filterInteraction.QuickFilterColumnId = $filterControl.QuickFilterColumns[0].Id
+            $filterInteraction.QuickFilterValue = $testCodeunit
+            $clientContext.InvokeInteraction($filterInteraction)
+        }
+        else {
+            $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.FilterInteraction -ArgumentList $filterControl
+            $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
+            $filterInteraction.FilterValue = $testCodeunit
+            $clientContext.InvokeInteraction($filterInteraction)
+        }
     }
 
     if ($XUnitResultFileName) {

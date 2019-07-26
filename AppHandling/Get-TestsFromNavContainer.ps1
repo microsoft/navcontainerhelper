@@ -30,6 +30,9 @@ function Get-TestsFromNavContainer {
         [string] $testCodeunit = "*"
     )
     
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+
     $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-1"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
@@ -47,7 +50,12 @@ function Get-TestsFromNavContainer {
     
             Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestFunctionsPath -Force
             Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
-            Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
+            if ($version.Major -lt 11) {
+                Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage$($version.Major).fob") -Destination $fobfile -Force
+            }
+            else {
+                Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
+            }
 
             if ($clientServicesCredentialType -eq "Windows") {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
@@ -60,7 +68,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $version)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -71,7 +79,12 @@ function Get-TestsFromNavContainer {
         $idx = $publicWebBaseUrl.IndexOf('//')
         $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
         $disableSslVerification = ($protocol -eq "https://")
-        $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
+        if ($version.Major -ge 11) {
+            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
+        }
+        else {
+            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/WebClient/cs?tenant=$tenant"
+        }
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami
@@ -101,7 +114,7 @@ function Get-TestsFromNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath | ConvertFrom-Json
+    } -argumentList $tenant, $credential, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $version | ConvertFrom-Json
 }
 Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
 Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer
