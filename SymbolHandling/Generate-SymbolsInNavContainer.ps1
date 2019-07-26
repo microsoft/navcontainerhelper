@@ -5,18 +5,23 @@
   Create a session to a Nav container and run finsql command to generate application symbols
  .Parameter containerName
   Name of the container in which you want to generate application symbols
+ .Parameter sqlCredential
+  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided 
  .Example
   Generate-SymbolsInNavContainer -containerName test2
+ .Example
+  Generate-SymbolsInNavContainer -containerName test2 -sqlCredential <sqlCredential> 
 #>
 function Generate-SymbolsInNavContainer {
     Param(
         [Parameter(Mandatory = $true)]
-        [string]$containerName
+        [string]$containerName,
+        [System.Management.Automation.PSCredential]$sqlCredential = $null
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($containerName)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($containerName, $sqlCredential)
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
@@ -28,7 +33,11 @@ function Generate-SymbolsInNavContainer {
     
         $ProcessArguments = @()
         $ProcessArguments += "Command=generatesymbolreference, Database=""$databaseName"", ServerName=""$databaseServer"""
-    
+        if ($sqlCredential) {
+            Write-Host "add SQL-Server credentials for authentication"
+            $ProcessArguments += ", ntauthentication=0, username=""$($sqlCredential.UserName)"", password=""$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))"""
+        }
+
         Write-Host "Creating application symbols in $containerName"
     
         $Process = Start-Process -FilePath (Join-Path (Get-Item $roleTailoredBasePath).FullName "finsql.exe") -ArgumentList $ProcessArguments -PassThru
@@ -43,7 +52,7 @@ function Generate-SymbolsInNavContainer {
             $Result = Get-Content -Path (Join-Path (Get-Item $roleTailoredBasePath).FullName "navcommandresult.txt")
             Write-Host ([system.String]::Join("`n", $result))
         }
-    } -ArgumentList $containerName
+    } -ArgumentList $containerName, $sqlCredential
     
     Write-Host -ForegroundColor Green "Symbols successfully generated"
 }
