@@ -1,3 +1,7 @@
+0.6.2.8
+Get-TestsFromNavContainer and Run-TestsInNavContainer now supports NAV 2016, NAV 2017, NAV 2018 and Business Central.
+Issue #528 - add SqlCredential to Generate-SymbolsInNavContainer
+
 0.6.2.7
 Add -includeCSIDE parameter to Replace-NavServerContainer
 
