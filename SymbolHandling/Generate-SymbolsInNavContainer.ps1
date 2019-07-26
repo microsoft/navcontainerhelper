@@ -10,7 +10,7 @@
  .Example
   Generate-SymbolsInNavContainer -containerName test2
  .Example
-  Generate-SymbolsInNavContainer -containerName test2 -sqlCredential <sqlCredential> 
+  Generate-SymbolsInNavContainer -containerName test2 -sqlCredential (get-credential -credential 'sa') 
 #>
 function Generate-SymbolsInNavContainer {
     Param(
@@ -34,7 +34,7 @@ function Generate-SymbolsInNavContainer {
         $ProcessArguments = @()
         $ProcessArguments += "Command=generatesymbolreference, Database=""$databaseName"", ServerName=""$databaseServer"""
         if ($sqlCredential) {
-            Write-Host "add SQL-Server credentials for authentication"
+            Write-Host "Adding SQL-Server credentials for authentication"
             $ProcessArguments += ", ntauthentication=0, username=""$($sqlCredential.UserName)"", password=""$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))"""
         }
 
