@@ -37,11 +37,11 @@ function Generate-SymbolsInNavContainer {
     
         if ($Process.ExitCode -ne 0) {
             $Result = Get-Content -Path (Join-Path (Get-Item $roleTailoredBasePath).FullName "naverrorlog.txt")
-            Write-Error $Result
+            Write-Error ([system.String]::Join("`n", $result))
         }
         else {
             $Result = Get-Content -Path (Join-Path (Get-Item $roleTailoredBasePath).FullName "navcommandresult.txt")
-            Write-Host $Result
+            Write-Host ([system.String]::Join("`n", $result))
         }
     } -ArgumentList $containerName
     
