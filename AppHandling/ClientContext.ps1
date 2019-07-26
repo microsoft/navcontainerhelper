@@ -177,14 +177,8 @@ class ClientContext {
             Param(
                 [ClientLogicalControl] $control
             )
-            Write-Host "'$($control.Name)' = $($control.ObjectValue)"
-            if ("$($control.Name)" -ne "") {
-                @{
-                    "$($control.Name)" = $control.ObjectValue
-                }
-            }
-            else {
-                @{}
+            @{
+                "$($control.Name)" = $control.ObjectValue
             }
         }
     
