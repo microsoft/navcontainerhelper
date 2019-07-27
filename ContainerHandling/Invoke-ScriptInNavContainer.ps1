@@ -25,7 +25,14 @@ function Invoke-ScriptInNavContainer {
     )
 
     if ($usePsSession) {
-        $session = Get-NavContainerSession -containerName $containerName -silent
+        try {
+            $session = Get-NavContainerSession -containerName $containerName -silent
+        }
+        catch {
+            $usePsSession = $false
+        }
+    }
+    if ($usePsSession) {
         try {
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
