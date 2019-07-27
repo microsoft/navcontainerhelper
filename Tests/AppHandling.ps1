@@ -28,6 +28,18 @@
         }
         $bcAppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols @authParam
         $bcAppFile | Should -Exist
+
+        Publish-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -skipVerification -sync -install
+
+        Copy-Item -Path (Join-Path $PSScriptRoot "bc2-app") -Destination $bcContainerPath -Recurse -Force
+        $appProjectFolder = Join-Path $bcContainerPath "bc2-app"
+        $appOutputFolder = Join-Path $appProjectFolder "output"
+        $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
+
+        $bc2AppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols @authParam
+        $bc2AppFile | Should -Exist
+
+        UnPublish-BCContainerApp -containerName $bcContainerName -appName "Hello World" -publisher "Microsoft" -version "1.0.0.0" -unInstall -doNotSaveData
     }
     It 'Convert-ALCOutputToAzureDevOps' {
         #TODO
