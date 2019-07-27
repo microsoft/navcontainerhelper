@@ -39,6 +39,10 @@ function Import-TestToolkitToNavContainer {
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
     
+        if (-not (Test-Path -Path "C:\TestToolKit" -PathType Container)) {
+            throw "Container $containerName does not include the TestToolkit yet"
+        }
+
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value

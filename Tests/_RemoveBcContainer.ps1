@@ -1,0 +1,1 @@
+﻿Remove-BCContainer -containerName $bcContainerName

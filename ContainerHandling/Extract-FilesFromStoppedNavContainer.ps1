@@ -68,7 +68,7 @@ function Extract-FilesFromStoppedNavContainer {
         docker cp "$($containerName):\Windows\System32\NavSip.dll" "$path\ServiceTier\System64Folder"
         docker cp "$($containerName):\Program Files\Microsoft Dynamics NAV" "$path\ServiceTier\program files\Microsoft Dynamics NAV"
         Write-Host "Extracting Windows Client Files"
-        docker cp "$($containerName):\Windows\SysWow64\NavSip.dll" "$path\RoleTailoredClient\systemFolder"
+        docker cp "$($containerName):\Windows\SysWow64\NavSip.dll" "$path\RoleTailoredClient\systemFolder" 2>$null
         docker cp "$($containerName):\Program Files (x86)\Microsoft Dynamics NAV" "$path\RoleTailoredClient\Program Files"
         Write-Host "Extracting Configuration packages"
         docker cp "$($containerName):\ConfigurationPackages" "$path" 2>$null
@@ -85,11 +85,22 @@ function Extract-FilesFromStoppedNavContainer {
         $destFolder = $sourceFolder.Replace('\Web Client','').Replace('ServiceTier\Program Files','WebClient')
         New-Item -Path $destFolder -ItemType Directory | Out-Null
         Move-Item -Path $sourceFolder -Destination $destFolder
+
+        $sourceItem = Get-Item "$path\ServiceTier\Program Files\Microsoft Dynamics NAV\*\AL Development Environment"
+        if ($sourceItem) {
+            $sourceFolder = $SourceItem.FullName
+            $destFolder = $sourceFolder.Replace('\AL Development Environment','').Replace('ServiceTier\','ModernDev\')
+            New-Item -Path $destFolder -ItemType Directory | Out-Null
+            Move-Item -Path $sourceFolder -Destination $destFolder
+        }
         
-        $sourceFolder = (Get-Item "$path\RoleTailoredClient\Program Files\Microsoft Dynamics NAV\*\ClickOnce Installer Tools").FullName
-        $destFolder = $sourceFolder.Replace('\ClickOnce Installer Tools','').Replace('\RoleTailoredClient\','\ClickOnceInstallerTools\')
-        New-Item -Path $destFolder -ItemType Directory | Out-Null
-        Move-Item -Path $sourceFolder -Destination $destFolder
+        $sourceItem = Get-Item "$path\RoleTailoredClient\Program Files\Microsoft Dynamics NAV\*\ClickOnce Installer Tools"
+        if ($sourceItem) {
+            $sourceFolder = $SourceItem.FullName
+            $destFolder = $sourceFolder.Replace('\ClickOnce Installer Tools','').Replace('\RoleTailoredClient\','\ClickOnceInstallerTools\')
+            New-Item -Path $destFolder -ItemType Directory | Out-Null
+            Move-Item -Path $sourceFolder -Destination $destFolder
+        }
     }
     if ($extract -eq "all" -or $extract -eq "vsix") {
         Write-Host "Extracting Files from Run folder"
@@ -119,8 +130,8 @@ function Extract-FilesFromStoppedNavContainer {
     Write-Host "Performing cleanup"
     if ($extract -eq "all" -or $extract -eq "database") {
         if (Test-Path "$path\databases\*.mdf") {
-            Move-Item -Path (Get-Item "$path\databases\*.mdf").FullName -Destination "$path\databases\Cronus.mdf"
-            Move-Item -Path (Get-Item "$path\databases\*.ldf").FullName -Destination "$path\databases\Cronus.ldf"
+            Move-Item -Path (Get-Item "$path\databases\*.mdf").FullName -Destination "$path\databases\CRONUS.mdf"
+            Move-Item -Path (Get-Item "$path\databases\*.ldf").FullName -Destination "$path\databases\CRONUS.ldf"
         } else {
             $folder = Get-ChildItem -Path "$path\databases" -Directory
             if ($folder) {
@@ -152,7 +163,10 @@ function Extract-FilesFromStoppedNavContainer {
         if (Test-Path "$path\Run\WebSearch") {
             Copy-Item -Path "$path\Run\WebSearch" -Destination "$path\WindowsPowerShellScripts\Cloud" -Force -Recurse
         }
-        Copy-Item -Path "$path\Run\ClientUserSettings.config" -Destination "$path\RoleTailoredClient\CommonAppData\Microsoft\Microsoft Dynamics NAV\VER" -Force
+
+        if ($ver -lt 150) {
+            Copy-Item -Path "$path\Run\ClientUserSettings.config" -Destination "$path\RoleTailoredClient\CommonAppData\Microsoft\Microsoft Dynamics NAV\VER" -Force
+        }
         If (Test-Path "$path\Run\inetpub") {
             Copy-Item -Path "$path\Run\inetpub" -Destination "$path\WebClient" -Force -Recurse
         }

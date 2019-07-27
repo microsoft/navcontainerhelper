@@ -54,6 +54,7 @@ function Publish-NavContainerApp {
         [ValidateSet('Global','Tenant')]
         [string] $scope,
         [switch] $useDevEndpoint,
+        [pscredential] $credential,
         [string] $language = ""
     )
 
@@ -63,18 +64,19 @@ function Publish-NavContainerApp {
     $copied = $false
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
         $appUrl = $appFile
-        $appFile = Join-Path $extensionsFolder "$containerName\my\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
+        $appFile = Join-Path $extensionsFolder "$containerName\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
+        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
         $copied = $true
     }
-
-    $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-    if ("$containerAppFile" -eq "") {
-        $containerAppFile = Join-Path "c:\run\my" ([System.IO.Path]::GetFileName($appFile))
-        Copy-FileToNavContainer -containerName $containerName -localPath $appFile -containerPath $containerAppFile
-        $copied = $true
+    else {
+        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+        if ("$containerAppFile" -eq "") {
+            $containerAppFile = Join-Path $extensionsFolder "$containerName\$([System.IO.Path]::GetFileName($appFile))"
+            Copy-Item -Path $appFile -Destination $containerAppFile
+            $copied = $true
+        }
     }
-
 
     if ($useDevEndpoint) {
 
@@ -84,6 +86,9 @@ function Publish-NavContainerApp {
         }
         $HttpClient = [System.Net.Http.HttpClient]::new($handler)
         if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
+            if (!($credential)) {
+                throw "You need to specify credentials when you are not using Windows Authentication"
+            }
             $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
             $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
             $base64 = [System.Convert]::ToBase64String($bytes)
@@ -124,8 +129,15 @@ function Publish-NavContainerApp {
             Write-Host "Disabling SSL Verification"
             [SslVerification]::Disable()
         }
-    
-        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=synchronize"
+        
+        $schemaUpdateMode = "synchronize"
+        if ($syncMode -eq "Clean") {
+            $schemaUpdateMode = "recreate";
+        }
+        elseif ($syncMode -eq "ForceSync") {
+            $schemaUpdateMode = "forcesync"
+        }
+        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
         if ($Scope -eq "Tenant") {
             $url += "&tenant=$tenant"
         }
@@ -204,7 +216,7 @@ function Publish-NavContainerApp {
     }
 
     if ($copied) { 
-        Remove-Item $appFile -Force
+        Remove-Item $containerAppFile -Force
     }
     Write-Host -ForegroundColor Green "App successfully published"
 }

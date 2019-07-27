@@ -99,7 +99,7 @@ function DockerDo {
             $outtask = $null
             if ($outStr.StartsWith("Please login")) {
                 $registry = $imageName.Split("/")[0]
-                if ($registry -eq "bcinsider.azurecr.io") {
+                if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
                     throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
                 } else {
                     throw "You need to login to $registry prior to pulling images."
@@ -128,7 +128,7 @@ function DockerDo {
                 $errorMessage += "$err`r`n"
                 if ($err.Contains("authentication required")) {
                     $registry = $imageName.Split("/")[0]
-                    if ($registry -eq "bcinsider.azurecr.io") {
+                    if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
                         $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
                     } else {
                         $errorMessage += "You need to login to $registry prior to pulling images.`r`n"

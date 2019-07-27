@@ -52,6 +52,17 @@ function Convert-Txt2Al {
         Remove-Item -Path $myAlFolder -Recurse -Force -ErrorAction Ignore
         New-Item -Path $myAlFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
+        if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+            $cp = (Get-Culture).TextInfo.OEMCodePage
+            $encoding = [System.Text.Encoding]::GetEncoding($cp)
+            
+            Write-Host "Converting my delta files from OEM($cp) to UTF8 before converting"
+            Get-ChildItem -Path (Join-Path $myDeltaFolder "*.*") | ForEach-Object {
+                $content = [System.IO.File]::ReadAllText($_.FullName, $encoding )
+                [System.IO.File]::WriteAllText($_.FullName, $content, [System.Text.Encoding]::UTF8 )
+            }
+        }
+
         $txt2alParameters = @("--source=""$myDeltaFolder""", "--target=""$myAlFolder""", "--rename", "--extensionStartId=$startId")
         if ($dotNetAddInsPackage) {
             $txt2alParameters += @("--dotNetAddInsPackage=""$dotNetAddInsPackage""")
@@ -59,6 +70,14 @@ function Convert-Txt2Al {
 
         Write-Host "txt2al.exe $([string]::Join(' ', $txt2alParameters))"
         & $txt2al $txt2alParameters 2> $null
+
+        if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+            Write-Host "Converting my delta files from UTF8 to OEM($cp) after converting"
+            Get-ChildItem -Path (Join-Path $myDeltaFolder "*.*") | ForEach-Object {
+                $content = [System.IO.File]::ReadAllText($_.FullName, [System.Text.Encoding]::UTF8 )
+                [System.IO.File]::WriteAllText($_.FullName, $content, $encoding )
+            }
+        }
 
         $erroractionpreference = 'Stop'
 

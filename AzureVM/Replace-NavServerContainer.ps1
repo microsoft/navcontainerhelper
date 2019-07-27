@@ -8,6 +8,12 @@
   imageName you want to use to replace the navserver container (omit to recreate the same container)
  .Parameter alwaysPull
   Include this switch if you want to make sure that you pull latest version of the docker image
+ .Parameter enableSymbolLoading
+  Include this parameter if you want to change the enableSymbolLoading flag in the new container (default is to use the same setting as before)
+ .Parameter includeCSIDE
+  Include this parameter if you want to change the includeCSIDE flag in the new container (default is to use the same setting as before)
+ .Parameter AadAccessToken
+  Include this parameter if you want to change the AadAccessToken for the next deployment (accesstokens typically only have a lifetime of 1 hour)
  .Example
   Replace-NavServerContainer -imageName mcr.microsoft.com/dynamicsnav:2018
  .Example
@@ -20,7 +26,10 @@ function Replace-NavServerContainer {
         [string] $imageName = "",
         [switch] $alwaysPull,
         [ValidateSet('Yes','No','Default')]
-        [string] $enableSymbolLoading = 'Default'
+        [string] $enableSymbolLoading = 'Default',
+        [ValidateSet('Yes','No','Default')]
+        [string] $includeCSIDE = 'Default',
+        [string] $aadAccessToken
     )
 
     $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
@@ -37,7 +46,24 @@ function Replace-NavServerContainer {
         Set-Content -Path $settingsScript -Value $settings
     }
 
+    if ($includeCSIDE -ne "Default") {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$includeCSIDE = ') }
+        $settings += ('$includeCSIDE = "'+$includeCSIDE+'"')
+        Set-Content -Path $settingsScript -Value $settings
+    }
+
     . $settingsScript
+
+    if ($aadAccessToken) {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$Office365Password = ') }
+
+        $secureOffice365Password = ConvertTo-SecureString -String $AadAccessToken -AsPlainText -Force
+        $encOffice365Password = ConvertFrom-SecureString -SecureString $secureOffice365Password -Key $passwordKey
+        $settings += ('$Office365Password = "'+$encOffice365Password+'"')
+        Set-Content -Path $settingsScript -Value $settings
+    
+        . $settingsScript
+    }
 
     if ("$imageName" -eq "") {
         $imageName = $navDockerImage.Split(',')[0]

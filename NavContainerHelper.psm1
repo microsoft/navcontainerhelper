@@ -34,6 +34,8 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 
 $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
+$NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+
 $sessions = @{}
 
 $usePsSession = $isAdministrator
@@ -118,8 +120,11 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-TestsFromNavContainer.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer")
-. (Join-Path $PSScriptRoot "AppHandling\Publish-NewApplicationToNavContainer")
+. (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Publish-NewApplicationToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Copy-AlSourceFiles.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Clean-BcContainerDatabase.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Add-GitToAlProjectFolder.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")

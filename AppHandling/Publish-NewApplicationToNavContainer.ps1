@@ -14,7 +14,7 @@
  .Parameter credential
   Credentials of the container super user if using NavUserPassword authentication
  .Parameter useCleanDatabase
-  Add this switch if you want to uninstall all extensioins and remove all C/AL objects in the range 1..1999999999.
+  Add this switch if you want to uninstall all extensions and remove all C/AL objects in the range 1..1999999999.
   This switch is needed when turning a C/AL container into an AL Container.
  .Example
   Publish-NewApplicationToNavContainer -containerName test `
@@ -35,14 +35,22 @@ function Publish-NewApplicationToNavContainer {
         [switch] $useCleanDatabase
     )
 
-    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    if ("$platform" -eq "") {
+        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+    }
+    [System.Version]$platformversion = $platform
+
+    if ($platformversion.Major -lt 14) {
+        throw "Container $containerName does not support the function Publish-NewApplicationToNavContainer"
+    }
 
     Add-Type -AssemblyName System.Net.Http
 
     $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
     if ($customConfig.Multitenant -eq "True") {
-        throw "This script doesn't support multitenancy yet"
+        throw "This script doesn't support multitenancy"
     }
 
     $containerAppDotNetPackagesFolder = ""
@@ -53,10 +61,12 @@ function Publish-NewApplicationToNavContainer {
     Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $appDotNetPackagesFolder )
 
         $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
-        $RTCAddInsFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client\Add-ins").FullName
+        $RTCFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
     
-        if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTCAddIns"))) {
-            new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTCAddIns" -value $RTCAddInsFolder | Out-Null
+        if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
+            if (Test-Path $RTCFolder -PathType Container) {
+                new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RTCFolder).FullName | Out-Null
+            }
         }
         if (Test-Path (Join-Path $serviceTierAddInsFolder "ProjectDotNetPackages")) {
             (Get-Item (Join-Path $serviceTierAddInsFolder "ProjectDotNetPackages")).Delete()
@@ -68,106 +78,10 @@ function Publish-NewApplicationToNavContainer {
     } -argumentList $containerAppDotNetPackagesFolder
 
     if ($useCleanDatabase) {
-
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig )
-            
-            if (!(Test-Path "c:\run\my\license.flf")) {
-                throw "Container must be started with a developer license in order to publish a new application"
-            }
-
-            Write-Host "Uninstalling apps"
-            Get-NAVAppInfo $serverInstance | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
-
-            $tenant = "default"
-        
-            if ($customConfig.databaseInstance) {
-                $databaseServerInstance = "$($customConfig.databaseServer)\$($customConfig.databaseInstance)"
-            }
-            else {
-                $databaseServerInstance = $customConfig.databaseServer
-            }
-
-            Write-Host "Removing C/AL Application Objects"
-            Delete-NAVApplicationObject -DatabaseName $customConfig.databaseName -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
-
-        } -argumentList $customConfig
+        Clean-BcContainerDatabase -containerName $containerName
     }
 
-    $handler = New-Object  System.Net.Http.HttpClientHandler
-    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-        $handler.UseDefaultCredentials = $true
-    }
-    $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-    if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
-        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
-    }
-    $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-    $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-    
-    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
-        $protocol = "https://"
-    }
-    else {
-        $protocol = "http://"
-    }
-
-    $ip = Get-NavContainerIpAddress -containerName $containerName
-    if ($ip) {
-        $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-    }
-    else {
-        $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-    }
-
-    $sslVerificationDisabled = ($protocol -eq "https://")
-    if ($sslVerificationDisabled) {
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-        {
-            Add-Type -TypeDefinition "
-                using System.Net.Security;
-                using System.Security.Cryptography.X509Certificates;
-                public static class SslVerification
-                {
-                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                }"
-        }
-        Write-Host "Disabling SSL Verification"
-        [SslVerification]::Disable()
-    }
-
-    $url = "$devServerUrl/dev/apps?SchemaUpdateMode=synchronize"
-    
-    $appName = [System.IO.Path]::GetFileName($appFile)
-    
-    $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
-    $FileStream = [System.IO.FileStream]::new($appFile, [System.IO.FileMode]::Open)
-    try {
-        $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
-        $fileHeader.Name = "$AppName"
-        $fileHeader.FileName = "$appName"
-        $fileHeader.FileNameStar = "$appName"
-        $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
-        $fileContent.Headers.ContentDisposition = $fileHeader
-        $multipartContent.Add($fileContent)
-        Write-Host "Publishing $appName to $url"
-        $result = $HttpClient.PostAsync($url, $multipartContent).GetAwaiter().GetResult()
-        if (!$result.IsSuccessStatusCode) {
-            throw "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
-        }
-        Write-Host -ForegroundColor Green "New Application successfully published to $containerName"
-    }
-    finally {
-        $FileStream.Close()
-    }
-
-    if ($sslverificationdisabled) {
-        Write-Host "Re-enablssing SSL Verification"
-        [SslVerification]::Enable()
-    }
+    Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global -credential $credential
 }
-Export-ModuleMember -Function Publish-NewApplicationToNavContainer
+Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
+Export-ModuleMember -Function Publish-NewApplicationToNavContainer -Alias Publish-NewApplicationToBcContainer

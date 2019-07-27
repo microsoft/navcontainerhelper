@@ -270,7 +270,11 @@ class ClientContext {
     }
     
     [ClientLogicalControl]GetControlByName([ClientLogicalControl] $control, [string] $name) {
-        return $control.ContainedControls | Where-Object { $_.Name -eq $name } | Select-Object -First 1
+        $result = $control.ContainedControls | Where-Object { $_.Name -eq $name } | Select-Object -First 1
+        if (-not $result) {
+            $result = $control.ContainedControls | Where-Object { $_.Caption -eq $name } | Select-Object -First 1
+        }
+        return $result
     }
     
     [ClientLogicalControl]GetControlByType([ClientLogicalControl] $control, [Type] $type) {
@@ -294,7 +298,11 @@ class ClientContext {
     }
     
     [ClientActionControl]GetActionByName([ClientLogicalControl] $control, [string] $name) {
-        return $control.ContainedControls | Where-Object { ($_ -is [ClientActionControl]) -and ($_.Name -eq $name) } | Select-Object -First 1
+        $result = $control.ContainedControls | Where-Object { ($_ -is [ClientActionControl]) -and ($_.Name -eq $name) } | Select-Object -First 1
+        if (-not $result) {
+            $result = $control.ContainedControls | Where-Object { ($_ -is [ClientActionControl]) -and ($_.Caption -eq $name) } | Select-Object -First 1
+        }
+        return $result
     }
     
     InvokeAction([ClientActionControl] $action) {

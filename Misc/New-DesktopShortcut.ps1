@@ -1,15 +1,15 @@
 ﻿function New-DesktopShortcut {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$Name, 
+        [string] $Name, 
         [Parameter(Mandatory=$true)]
-        [string]$TargetPath, 
-        [string]$WorkingDirectory = "", 
-        [string]$IconLocation = "", 
-        [string]$Arguments = "",
+        [string] $TargetPath, 
+        [string] $WorkingDirectory = "", 
+        [string] $IconLocation = "", 
+        [string] $Arguments = "",
         [ValidateSet('None','Desktop','StartMenu','Startup','CommonDesktop','CommonStartMenu','CommonStartup')]
-        [string]$shortcuts = "Desktop",
-        [switch]$RunAsAdministrator = $true
+        [string] $shortcuts = "Desktop",
+        [switch] $RunAsAdministrator = $isAdministrator
     )
     if ($shortcuts -ne "None") {
         

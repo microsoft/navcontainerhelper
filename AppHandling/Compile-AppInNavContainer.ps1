@@ -14,16 +14,26 @@
   Folder in which the output will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\output.
  .Parameter appSymbolsFolder
   Folder in which the symbols of dependent apps will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\symbols.
+ .Parameter appName
+  File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
  .Parameter AzureDevOps
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
  .Parameter EnableCodeCop
   Add this switch to Enable CodeCop to run
+ .Parameter EnableAppSourceCop
+  Add this switch to Enable AppSourceCop to run
+ .Parameter EnablePerTenantExtensionCop
+  Add this switch to Enable PerTenantExtensionCop to run
+ .Parameter EnableUICop
+  Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning (Works only if you specify -AzureDevOps)
+ .Parameter assemblyProbingPaths
+  Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
@@ -33,28 +43,33 @@
 function Compile-AppInNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$true)]
-        [string]$appProjectFolder,
+        [string] $appProjectFolder,
         [Parameter(Mandatory=$false)]
-        [string]$appOutputFolder = (Join-Path $appProjectFolder "output"),
+        [string] $appOutputFolder = (Join-Path $appProjectFolder "output"),
         [Parameter(Mandatory=$false)]
-        [string]$appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
-        [switch]$UpdateSymbols,
-        [switch]$AzureDevOps,
-        [switch]$EnableCodeCop,
+        [string] $appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
+        [Parameter(Mandatory=$false)]
+        [string] $appName = "",
+        [switch] $UpdateSymbols,
+        [switch] $AzureDevOps,
+        [switch] $EnableCodeCop,
+        [switch] $EnableAppSourceCop,
+        [switch] $EnablePerTenantExtensionCop,
+        [switch] $EnableUICop,
         [ValidateSet('none','error','warning')]
-        [string]$FailOn = 'none',
+        [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
-        [string]$rulesetFile,
+        [string] $rulesetFile,
         [Parameter(Mandatory=$false)]
-        [string]$nowarn,
+        [string] $nowarn,
         [Parameter(Mandatory=$false)]
-        [string]$assemblyProbingPaths
+        [string] $assemblyProbingPaths
     )
 
     $startTime = [DateTime]::Now
@@ -75,12 +90,17 @@ function Compile-AppInNavContainer {
             $assemblyProbingPaths = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
-                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-                $roleTailoredClientFolder = (Get-Item "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client").FullName
                 if (Test-Path $netpackagesPath) {
                     $assemblyProbingPaths += """$netpackagesPath"","
                 }
-                $assemblyProbingPaths += """$roleTailoredClientFolder"",""$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
+
+                $roleTailoredClientFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
+                if (Test-Path $roleTailoredClientFolder) {
+                    $assemblyProbingPaths += """$((Get-Item $roleTailoredClientFolder).FullName)"","
+                }
+
+                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
                 $assemblyProbingPaths
             } -ArgumentList $containerProjectFolder
         }
@@ -110,7 +130,9 @@ function Compile-AppInNavContainer {
 
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = Get-Content -Raw -Path $appJsonFile | ConvertFrom-Json
-    $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app"
+    if ("$appName" -eq "") {
+        $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app"
+    }
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
@@ -249,7 +271,7 @@ function Compile-AppInNavContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $rulesetFile, $assemblyProbingPaths, $nowarn )
+    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
@@ -268,8 +290,16 @@ function Compile-AppInNavContainer {
         $alcParameters = @("/project:$appProjectFolder", "/packagecachepath:$appSymbolsFolder", "/out:$appOutputFile")
         
         if ($EnableCodeCop) {
-            $analyzerPath = Join-Path $alcPath "Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll"
-            $alcParameters += @("/analyzer:$analyzerPath")
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
+        }
+        if ($EnableAppSourceCop) {
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.AppSourceCop.dll')")
+        }
+        if ($EnablePerTenantExtensionCop) {
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
+        }
+        if ($EnableUICop) {
+            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
         if ($rulesetFile) {
@@ -288,7 +318,7 @@ function Compile-AppInNavContainer {
 
         & .\alc.exe $alcParameters
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $containerRulesetFile, $assemblyProbingPaths, $nowarn
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn

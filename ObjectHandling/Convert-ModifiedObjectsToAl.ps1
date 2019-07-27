@@ -44,7 +44,8 @@ function Convert-ModifiedObjectsToAl {
         [switch] $doNotUseDeltas,
         [string] $alProjectFolder,
         [string] $alFilePattern = "*",
-        [string] $dotNetAddInsPackage 
+        [string] $dotNetAddInsPackage,
+        [ScriptBlock] $alFileStructure
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -89,7 +90,7 @@ function Convert-ModifiedObjectsToAl {
 
     if ($alProjectFolder) {
         $alFilePattern.Split(',') | % {
-            Copy-Item -Path (Join-Path $myAlFolder "$_") -Destination $alProjectFolder -Recurse -Force
+            Copy-AlSourceFiles -Path (Join-Path $myAlFolder "$_") -Destination $alProjectFolder -Recurse -alFileStructure $alFileStructure
         }
         if ($openFolder) {
             Start-Process $alProjectFolder

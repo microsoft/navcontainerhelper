@@ -1,0 +1,33 @@
+{
+  "id": "25e71a28-8a6f-485f-b58a-39d9f3faf5dd",
+  "name": "bc2-app",
+  "publisher": "Default publisher",
+  "version": "1.0.0.0",
+  "brief": "",
+  "description": "",
+  "privacyStatement": "",
+  "EULA": "",
+  "help": "",
+  "url": "",
+  "logo": "",
+  "dependencies": [
+    {
+      "appId": "cb99d78b-f9db-4a1e-822a-0c9c444535df",
+      "name": "Hello World",
+      "publisher": "Microsoft",
+      "version": "1.0.0.0"
+    }
+  ],
+  "screenshots": [],
+  "platform": "14.0.0.0",
+  "application": "14.0.0.0",
+  "idRanges": [
+    {
+      "from": 50100,
+      "to": 50149
+    }
+  ],
+  "contextSensitiveHelpUrl": "https://bc2-app.com/help/",
+  "showMyCode": true,
+  "runtime": "3.0"
+}

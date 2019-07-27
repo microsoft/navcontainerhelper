@@ -17,9 +17,17 @@
  .Parameter testFunction
   Name of test function to run. Wildcards (? and *) are supported. Default is *.
  .Parameter XUnitResultFileName
-  Credentials of the SUPER user if using NavUserPassword authentication
+  Filename where the function should place an XUnit compatible result file
+ .Parameter AppendToXUnitResultFile
+  Specify this switch if you want the function to append to the XUnit compatible result file instead of overwriting it
+ .Parameter ReRun
+  Specify this switch if you want the function to replace an existing test run (of the same test codeunit) in the XUnit compatible result file instead of adding it
  .Parameter AzureDevOps
   Generate Azure DevOps Pipeline compatible output. This setting determines the severity of errors.
+ .Parameter InteractionTimeout
+  Timespan allowed for a single interaction (Running a test codeunit is an interaction). Default is 24 hours.
+ .Parameter ReturnTrueIfAllPassed
+  Specify this switch if the function should return true/false on whether all tests passes. If not specified, the function returns nothing.
  .Example
   Run-TestsInNavContainer -contatinerName test -credential $credential
  .Example
@@ -44,11 +52,18 @@ function Run-TestsInNavContainer {
         [string] $testFunction = "*",
         [Parameter(Mandatory=$false)]
         [string] $XUnitResultFileName,
+        [switch] $AppendToXUnitResultFile,
+        [switch] $ReRun,
         [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no',
-        [switch] $detailed
+        [switch] $detailed,
+        [timespan] $interactionTimeout = [timespan]::FromHours(24),
+        [switch] $returnTrueIfAllPassed
     )
     
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+
     $containerXUnitResultFileName = ""
     if ($XUnitResultFileName) {
         $containerXUnitResultFileName = Get-NavContainerPath -containerName $containerName -path $XUnitResultFileName
@@ -57,11 +72,16 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool"
+    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-1"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
-    $clientServicesCredentialType = (Get-NavContainerServerConfiguration -ContainerName $containerName ).ClientServicesCredentialType
+    $serverConfiguration = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
+
+    if ($serverConfiguration.PublicWebBaseUrl -eq "") {
+        throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
+    }
 
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         try {
@@ -69,7 +89,12 @@ function Run-TestsInNavContainer {
     
             Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestFunctionsPath -Force
             Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
-            Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
+            if ($version.Major -lt 11) {
+                Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage$($version.Major).fob") -Destination $fobfile -Force
+            }
+            else {
+                Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
+            }
 
             if ($clientServicesCredentialType -eq "Windows") {
                 Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
@@ -89,7 +114,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [string] $AzureDevOps, [bool] $detailed)
+    $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $version)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -100,7 +125,12 @@ function Run-TestsInNavContainer {
         $idx = $publicWebBaseUrl.IndexOf('//')
         $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
         $disableSslVerification = ($protocol -eq "https://")
-        $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
+        if ($version.Major -ge 11) {
+            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
+        }
+        else {
+            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/WebClient/cs?tenant=$tenant"
+        }
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami
@@ -123,7 +153,7 @@ function Run-TestsInNavContainer {
                 Disable-SslVerification
             }
             
-            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout
     
             Run-Tests -clientContext $clientContext `
                       -TestSuite $testSuite `
@@ -131,6 +161,8 @@ function Run-TestsInNavContainer {
                       -TestCodeunit $testCodeunit `
                       -TestFunction $testFunction `
                       -XUnitResultFileName $XUnitResultFileName `
+                      -AppendToXUnitResultFile:$AppendToXUnitResultFile `
+                      -ReRun:$ReRun `
                       -AzureDevOps $AzureDevOps `
                       -detailed:$detailed
         }
@@ -141,7 +173,10 @@ function Run-TestsInNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AzureDevOps, $detailed
+    } -argumentList $tenant, $companyName, $credential, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $version
+    if ($returnTrueIfAllPassed) {
+        $allPassed
+    }
 }
 Set-Alias -Name Run-TestsInBCContainer -Value Run-TestsInNavContainer
 Export-ModuleMember -Function Run-TestsInNavContainer -Alias Run-TestsInBCContainer

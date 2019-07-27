@@ -25,21 +25,40 @@ function Create-MyOriginalFolder {
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
-    Write-Host "Copy original objects to $myoriginalFolder for all objects that are modified (container path)"
-    if (Test-Path $myoriginalFolder -PathType Container) {
-        Get-ChildItem -Path $myoriginalFolder -Include * | Remove-Item -Recurse -Force
-    } else {
-        New-Item -Path $myoriginalFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
-    }        
-    Get-ChildItem $modifiedFolder | ForEach-Object {
-        $Name = ($_.BaseName+".txt")
-        $OrgName = Join-Path $myOriginalFolder $Name
-        $TxtFile = Join-Path $originalFolder $Name
-        if (Test-Path -Path $TxtFile) {
-            # Copy-Item -Path $TxtFile -Destination $OrgName
-            # Remove [LineStart()] Properties
-            Set-Content -Path $OrgName -Value (Get-Content -Path $TxtFile | Where-Object { !($_.Trim().Startswith('[LineStart(') -and $_.Trim().Endswith(')]')) })
+    $containerOriginalFolder = Get-NavContainerPath -containerName $containerName -path $originalFolder -throw
+    $containerModifiedFolder = Get-NavContainerPath -containerName $containerName -path $modifiedFolder -throw
+    $containerMyOriginalFolder = Get-NavContainerPath -containerName $containerName -path $myOriginalFolder -throw
+
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($originalFolder, $modifiedFolder, $myOriginalFolder)
+    
+        Write-Host "Copy original objects to $myoriginalFolder for all objects that are modified (container path)"
+        if (Test-Path $myoriginalFolder -PathType Container) {
+            Get-ChildItem -Path $myoriginalFolder -Include * | Remove-Item -Recurse -Force
+        } else {
+            New-Item -Path $myoriginalFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
         }
-    }
+    
+        # If we are running a hyperv container we need to write the files in UTF8 (for compare)
+        $cp = (Get-Culture).TextInfo.OEMCodePage
+        $encoding = [System.Text.Encoding]::GetEncoding($cp)
+        if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
+            $dstenc = [System.Text.Encoding]::UTF8
+            Write-Host "Use UTF8"
+        }
+        else {
+            $dstenc = $encoding
+        }
+    
+        Get-ChildItem $modifiedFolder | ForEach-Object {
+            $Name = ($_.BaseName+".txt")
+            $OrgName = Join-Path $myOriginalFolder $Name
+            $TxtFile = Join-Path $originalFolder $Name
+            if (Test-Path -Path $TxtFile) {
+                # Remove [LineStart()] Properties
+                $content = [System.IO.File]::ReadAllLines($TxtFile, $encoding) | Where-Object { !($_.Trim().Startswith('[LineStart(') -and $_.Trim().Endswith(')]')) }
+                [System.IO.File]::WriteAllLines($OrgName, $content, $dstenc)
+            }
+        }
+    } -argumentList $containerOriginalFolder, $containerModifiedFolder, $containerMyOriginalFolder
 }
 Export-ModuleMember -Function Create-MyOriginalFolder

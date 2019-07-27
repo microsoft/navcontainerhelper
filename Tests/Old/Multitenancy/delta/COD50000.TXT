@@ -1,0 +1,24 @@
+OBJECT Codeunit 50000 DeltaTest
+{
+  OBJECT-PROPERTIES
+  {
+    Date=11/02/17;
+    Time=12:38:30 PM;
+    Modified=Yes;
+    Version List=;
+  }
+  PROPERTIES
+  {
+    OnRun=BEGIN
+            MESSAGE('Hello world');
+          END;
+
+  }
+  CODE
+  {
+
+    BEGIN
+    END.
+  }
+}
+
