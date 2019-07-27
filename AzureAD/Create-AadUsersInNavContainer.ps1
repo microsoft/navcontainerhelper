@@ -43,7 +43,14 @@ function Create-AadUsersInNavContainer
     }
 
     # Login to AzureRm
-    $account = Connect-AzureAD -Credential $AadAdminCredential
+    $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
+    if ($password.Length -gt 100) {
+        $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
+    }
+    else {
+        $account = Connect-AzureAD -Credential $AadAdminCredential
+    }
+
     Get-AzureADUser -All $true | Where-Object { $_.AccountEnabled } | ForEach-Object {
         $userName = $_.MailNickName
         $authenticationEMail = $_.UserPrincipalName

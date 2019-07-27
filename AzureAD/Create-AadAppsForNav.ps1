@@ -63,6 +63,7 @@ function Create-AadAppsForNav
     else {
         $account = Connect-AzureAD -Credential $AadAdminCredential
     }
+
     $AdProperties = @{}
     $adUserObjectId = 0
 
