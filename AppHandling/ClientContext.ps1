@@ -9,6 +9,14 @@ class ClientContext {
     $culture = ""
     $caughtForm = $null
 
+    ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture) {
+        $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture)
+    }
+
+    ClientContext([string] $serviceUrl, [string] $accessToken) {
+        $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), ([timespan]::FromMinutes(10)), 'en-US')
+    }
+
     ClientContext([string] $serviceUrl, [pscredential] $credential, [timespan] $interactionTimeout, [string] $culture) {
         $this.Initialize($serviceUrl, ([AuthenticationScheme]::UserNamePassword), (New-Object System.Net.NetworkCredential -ArgumentList $credential.UserName, $credential.Password), $interactionTimeout, $culture)
     }
@@ -25,7 +33,7 @@ class ClientContext {
         $this.Initialize($serviceUrl, ([AuthenticationScheme]::Windows), $null, ([timespan]::FromMinutes(10)), 'en-US')
     }
     
-    Initialize([string] $serviceUrl, [AuthenticationScheme] $authenticationScheme, [System.Net.NetworkCredential] $credential, [timespan] $interactionTimeout, [string] $culture) {
+    Initialize([string] $serviceUrl, [AuthenticationScheme] $authenticationScheme, [System.Net.ICredentials] $credential, [timespan] $interactionTimeout, [string] $culture) {
         $addressUri = New-Object System.Uri -ArgumentList $serviceUrl
         $addressUri = [ServiceAddressProvider]::ServiceAddress($addressUri)
         $jsonClient = New-Object JsonHttpClient -ArgumentList $addressUri, $credential, $authenticationScheme
