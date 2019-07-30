@@ -1,5 +1,7 @@
 0.6.2.9
-Support AccessToken for AAD authentication in Get-TestsFromNavContainer and Run-TestsInNavContainer
+Support AccessToken for AAD authentication in Get-TestsFromBcContainer and Run-TestsInBcContainer
+Support using current AzureAD connection in Create-AadAppsForBc and Create-AadUsersInBcContainer
+Support GUI flow in Create-AadAppsForBc and Create-AadUsersInBcContainer
 
 0.6.2.8
 Get-TestsFromNavContainer and Run-TestsInNavContainer now supports NAV 2016, NAV 2017, NAV 2018 and Business Central.
