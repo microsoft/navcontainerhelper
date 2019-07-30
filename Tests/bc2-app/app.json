@@ -1,7 +1,7 @@
 {
   "id": "25e71a28-8a6f-485f-b58a-39d9f3faf5dd",
-  "name": "bc2-app",
-  "publisher": "Default publisher",
+  "name": "Test app",
+  "publisher": "Cronus Denmark A/S",
   "version": "1.0.0.0",
   "brief": "",
   "description": "",
@@ -13,8 +13,8 @@
   "dependencies": [
     {
       "appId": "cb99d78b-f9db-4a1e-822a-0c9c444535df",
-      "name": "Hello World",
-      "publisher": "Microsoft",
+      "name": "Hello ÆØÅ",
+      "publisher": "Cronus Denmark A/S",
       "version": "1.0.0.0"
     }
   ],
