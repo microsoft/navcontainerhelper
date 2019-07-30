@@ -131,7 +131,7 @@ function Copy-AlSourceFiles {
                 }
             }
             catch {
-                throw "Unexpected error while handling $filename"
+                Write-Warning "Unexpected error while handling $filename"
             }
         }
     }
