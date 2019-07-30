@@ -30,12 +30,22 @@ function New-ClientContext {
 
     if ($auth -eq "Windows") {
         return [ClientContext]::new($serviceUrl, $interactionTimeout, $culture)
-    } elseif ($auth -eq "NavUserPassword") {
+    }
+    elseif ($auth -eq "NavUserPassword") {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials if using NavUserPassword authentication"
         }
         return [ClientContext]::new($serviceUrl, $credential, $interactionTimeout, $culture)
-    } else {
+    }
+    elseif ($auth -eq "AAD") {
+
+        if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
+            throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
+        }
+        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        return [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture)
+    }
+    else {
         throw "Unsupported authentication setting"
     }
 }

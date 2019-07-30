@@ -25,11 +25,13 @@ function Create-AadUsersInNavContainer
     (
         [string] $containerName = "navserver",
         [string] $tenant = "default",
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [PSCredential] $AadAdminCredential,
         [bool] $ChangePasswordAtNextLogOn = $true,
         [string] $permissionSetId = "SUPER",
-        [Securestring] $securePassword = $AadAdminCredential.Password
+        [Parameter(Mandatory=$true)]
+        [Securestring] $securePassword,
+        [switch] $useCurrentAzureAdConnection
     )
     
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
@@ -42,13 +44,23 @@ function Create-AadUsersInNavContainer
         Install-Package AzureAD -Force -WarningAction Ignore | Out-Null
     }
 
-    # Login to AzureRm
-    $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
-    if ($password.Length -gt 100) {
-        $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
+    # Connect to AzureAD
+    if ($useCurrentAzureAdConnection) {
+        $account = Get-AzureADCurrentSessionInfo
     }
     else {
-        $account = Connect-AzureAD -Credential $AadAdminCredential
+        if ($AadAdminCredential) {
+            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
+            if ($password.Length -gt 100) {
+                $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
+            }
+            else {
+                $account = Connect-AzureAD -Credential $AadAdminCredential
+            }
+        }
+        else {
+            $account = Connect-AzureAD
+        }
     }
 
     Get-AzureADUser -All $true | Where-Object { $_.AccountEnabled } | ForEach-Object {

@@ -23,7 +23,7 @@ function Create-AadAppsForNav
 {
     Param
     (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [PSCredential] $AadAdminCredential,
         [Parameter(Mandatory=$true)]
         [string] $appIdUri,
@@ -32,7 +32,8 @@ function Create-AadAppsForNav
         [Parameter(Mandatory=$false)]
         [string] $iconPath,
         [switch] $IncludeExcelAadApp,
-        [switch] $IncludePowerBiAadApp
+        [switch] $IncludePowerBiAadApp,
+        [switch] $useCurrentAzureAdConnection
     )
 
     function Create-AesKey {
@@ -55,13 +56,23 @@ function Create-AadAppsForNav
         Install-Package AzureAD -Force -WarningAction Ignore | Out-Null
     }
 
-    # Login to AzureRm
-    $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
-    if ($password.Length -gt 100) {
-        $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
+    # Connect to AzureAD
+    if ($useCurrentAzureAdConnection) {
+        $account = Get-AzureADCurrentSessionInfo
     }
     else {
-        $account = Connect-AzureAD -Credential $AadAdminCredential
+        if ($AadAdminCredential) {
+            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
+            if ($password.Length -gt 100) {
+                $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
+            }
+            else {
+                $account = Connect-AzureAD -Credential $AadAdminCredential
+            }
+        }
+        else {
+            $account = Connect-AzureAD
+        }
     }
 
     $AdProperties = @{}
@@ -71,7 +82,7 @@ function Create-AadAppsForNav
     $aadTenant = $account.TenantId
     $AdProperties["AadTenant"] = $AadTenant
 
-    $adUser = Get-AzureADUser -ObjectId $aadadmincredential.UserName
+    $adUser = Get-AzureADUser -ObjectId $account.Account.Id
     if (!$adUser) {
         throw "Could not identify Aad Tenant"
     }

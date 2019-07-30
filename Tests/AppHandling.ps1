@@ -1,6 +1,7 @@
 ﻿Describe 'AppHandling' {
 
-    $appName = "Hello World"
+    $appPublisher = "Cronus Denmark A/S"
+    $appName = "Hello ÆØÅ"
     $appVersion = "1.0.0.0"
 
     It 'Compile-AppInNavContainer' {
@@ -39,28 +40,28 @@
         $bc2AppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols @authParam
         $bc2AppFile | Should -Exist
 
-        UnPublish-BCContainerApp -containerName $bcContainerName -appName "Hello World" -publisher "Microsoft" -version "1.0.0.0" -unInstall -doNotSaveData
+        UnPublish-BCContainerApp -containerName $bcContainerName -appName $appName -publisher $appPublisher -version $appVersion -unInstall -doNotSaveData
     }
     It 'Convert-ALCOutputToAzureDevOps' {
         #TODO
     }
     It 'Extract-AppFileToFolder (nav app)' {
-        $navAppFile = Join-Path $navContainerPath "nav-app\output\Microsoft_$($appName)_$($appVersion).app"
+        $navAppFile = Join-Path $navContainerPath "nav-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
         Extract-AppFileToFolder $navAppFile -appFolder (Join-Path $navContainerPath "nav-app2")
         (Get-ChildItem -Path (Join-Path $navContainerPath "nav-app2\*.al") -Recurse).Count | Should -Be (Get-ChildItem -Path (Join-Path $navContainerPath "nav-app\*.al") -Recurse).Count
     }
     It 'Extract-AppFileToFolder (bc app)' {
-        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\Microsoft_$($appName)_$($appVersion).app"
+        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
         Extract-AppFileToFolder $bcAppFile -appFolder (Join-Path $bcContainerPath "bc-app2")
         (Get-ChildItem -Path (Join-Path $bcContainerPath "bc-app\*.al") -Recurse).Count | Should -Be (Get-ChildItem -Path (Join-Path $bcContainerPath "bc-app2\*.al") -Recurse).Count
 
     }
     It 'Publish-NavContainerApp' {
-        $navAppFile = Join-Path $navContainerPath "nav-app\output\Microsoft_Hello World_1.0.0.0.app"
+        $navAppFile = Join-Path $navContainerPath "nav-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
         Publish-NavContainerApp -containerName $navContainerName -appFile $navAppFile -skipVerification
     }
     It 'Publish-BcContainerApp' {
-        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\Microsoft_Hello World_1.0.0.0.app"
+        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
         Publish-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -skipVerification
     }
     It 'Sync-NavContainerApp' {
@@ -76,7 +77,7 @@
         Install-navContainerApp -containerName $bcContainerName -appName $appName -appVersion $appVersion
     }
     It 'Get-NavContainerApp' {
-        Get-NavContainerApp -containerName $navContainerName -publisher Microsoft -appName $appName -appVersion $appVersion -credential $credential
+        Get-NavContainerApp -containerName $navContainerName -publisher $appPublisher -appName $appName -appVersion $appVersion -credential $credential
     }
     It 'Get-NavContainerAppInfo' {
         $myapp = Get-NavContainerAppInfo -containerName $navContainerName | Where-Object { $_.Name -eq $appName }
@@ -200,18 +201,22 @@
         
         $TypeFolders = { Param ($type, $id, $name) 
             switch ($type) {
-                "page"     { "Pages\$($type) $($id) - $($name).al" }
-                "table"    { "Tables\$($type) $($id) - $($name).al" }
-                "codeunit" { "Codeunits\$($type) $($id) - $($name).al" }
-                "query"    { "Queries\$($type) $($id) - $($name).al" }
-                "report"   { "Reports\$($type) $($id) - $($name).al" }
-                "xmlport"  { "XmlPorts\$($type) $($id) - $($name).al" }
-                "profile"  { "Profiles\$($name).Profile.al" }
-                "dotnet"   { "$($name).al" }
-                ".rdlc"    { "Layouts\$name$type" }
-                ".docx"    { "Layouts\$name$type" }
-                ".xlf"     { "Translations\$name$type" }
-                default { throw "Unknown type '$type'" }
+                "enum"           { "Enums\$($type) $($id) - $($name).al" }
+                "enumextension"  { "Enums\$($type) $($id) - $($name).al" }
+                "page"           { "Pages\$($type) $($id) - $($name).al" }
+                "pageextension"  { "Pages\$($type) $($id) - $($name).al" }
+                "table"          { "Tables\$($type) $($id) - $($name).al" }
+                "tableexension"  { "Tables\$($type) $($id) - $($name).al" }
+                "codeunit"       { "Codeunits\$($type) $($id) - $($name).al" }
+                "query"          { "Queries\$($type) $($id) - $($name).al" }
+                "report"         { "Reports\$($type) $($id) - $($name).al" }
+                "xmlport"        { "XmlPorts\$($type) $($id) - $($name).al" }
+                "profile"        { "Profiles\$($name).Profile.al" }
+                "dotnet"         { "$($name).al" }
+                ".rdlc"          { "Layouts\$name$type" }
+                ".docx"          { "Layouts\$name$type" }
+                ".xlf"           { "Translations\$name$type" }
+                default          { throw "Unknown type '$type'" }
             }
         }
         
