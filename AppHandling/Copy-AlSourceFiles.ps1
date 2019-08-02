@@ -2,10 +2,16 @@
  .Synopsis
   Copy AL Source Files
  .Description
+  This function will copy all .al and .xlf files from Path to Destination.
+  Information about each file will be sent to the alFileStructure function to determine the relative location of the file.
  .Parameter Path
+  Source Path from where you want to copy all AL source files
  .Parameter Destination
+  Destination Path
  .Parameter Recurse
+  Copy source in subfolders
  .Parameter alFileStructure
+  Specify a function, which will determine the location of the individual al source files
  .Example
   Copy-AlSourceFiles -Path "$sourceFolder\*" -Destination $destinationFolder -Recurse -alFileStructure $TypeFolders
 

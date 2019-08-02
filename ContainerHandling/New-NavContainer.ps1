@@ -104,6 +104,8 @@
   This parameter is necessary if you want to be able to connect to the container from outside the host.
  .Parameter dns
   Use this parameter to override the default dns settings in the container (corresponds to --dns on docker run)
+ .Parameter runTxt2AlInContainer
+  Specify a foreign container in which you want to run the txt2al tool when using -includeAL
  .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Parameter useCleanDatabase
@@ -1230,6 +1232,9 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                 if (!(Test-Path $alFolder)) {
                     $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
                     Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+                    if ($runTxt2AlInContainer -ne $containerName) {
+                        Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
+                    }
                     Convert-Txt2Al -containerName $runTxt2AlInContainer -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
                 }
             }
