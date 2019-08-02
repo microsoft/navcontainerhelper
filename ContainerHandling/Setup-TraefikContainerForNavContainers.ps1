@@ -9,6 +9,8 @@
   The eMail address to use when requesting an SSL cert from Let's encrypt
  .Parameter overrideDefaultBinding
   Include this switch if you already have an IIS listening on port 80 on your Docker host. This will move the binding on port 80 to port 8180
+ .Parameter IP
+  IP Address to use for binding. If you don't specify, the function will grab the IP address of the first dhcp adapter 
  .Parameter traefikToml
   Path/Url of the toml file for traefik
  .Parameter CrtFile
@@ -23,16 +25,17 @@ function Setup-TraefikContainerForNavContainers {
     Param
     (
         [Parameter(Mandatory=$true)]
-        [string]$PublicDnsName,
+        [string] $PublicDnsName,
         [Parameter(Mandatory=$true, ParameterSetName="LetsEncrypt")]
-        [string]$ContactEMailForLetsEncrypt,
-        [switch]$overrideDefaultBinding,
+        [string] $ContactEMailForLetsEncrypt,
+        [switch] $overrideDefaultBinding,
+        [string] $IP = "",
         [Parameter(Mandatory=$false)]
-        [string]$traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml"),
+        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml"),
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
-        [string]$CrtFile,
+        [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
-        [string]$CrtKeyFile
+        [string] $CrtKeyFile
     )
 
     Process {
@@ -106,7 +109,9 @@ function Setup-TraefikContainerForNavContainers {
 
         Write-Host "Create traefik config file"
         $template = Get-Content $traefiktomltemplate -Raw
-        $IP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object PrefixOrigin -eq "Dhcp").IPAddress
+        if ($IP -eq "") {
+            $IP = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object PrefixOrigin -eq "Dhcp" | Select-Object -First 1).IPAddress
+        }
         $expanded = Invoke-Expression "@`"`r`n$template`r`n`"@"
         $expanded | Out-File (Join-Path $traefikForBcBasePath "config\traefik.toml") -Encoding ASCII
 
