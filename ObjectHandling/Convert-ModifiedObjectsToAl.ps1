@@ -26,6 +26,10 @@
  .Parameter alFilePattern
   Specify the file pattern (or multiple seperated by comma) of the files you want to copy to the alProjectFolder. Default is *.
   If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\NavContainerHelper
+ .Parameter alFileStructure
+  Specify a function, which will determine the location of the individual al source files
+ .Parameter runTxt2AlInContainer
+  Specify a foreign container in which you want to run the txt2al tool
  .Example
   Convert-ModifiedObjectsToAl -containerName test
  .Example
@@ -45,7 +49,8 @@ function Convert-ModifiedObjectsToAl {
         [string] $alProjectFolder,
         [string] $alFilePattern = "*",
         [string] $dotNetAddInsPackage,
-        [ScriptBlock] $alFileStructure
+        [ScriptBlock] $alFileStructure,
+        [string] $runTxt2AlInContainer = $containerName
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -80,7 +85,7 @@ function Convert-ModifiedObjectsToAl {
 
     $myAlFolder = Join-Path $ExtensionsFolder "$containerName\al$suffix"
 
-    Convert-Txt2Al -containerName $containerName `
+    Convert-Txt2Al -containerName $runTxt2AlInContainer `
                    -myDeltaFolder $myDeltaFolder `
                    -myAlFolder $myAlFolder `
                    -startId $startId `

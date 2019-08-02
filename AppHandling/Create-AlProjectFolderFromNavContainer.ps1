@@ -23,6 +23,10 @@
  .Parameter useBaseLine
   Specify this switch if you want to use the AL BaseLine, which was created when creating the container with -includeAL.
   The baseline AL objects are added to "C:\ProgramData\NavContainerHelper\Extensions\Original-<version>-<country>-al" and will contain AL files for the C/AL objects in the container at create time.
+ .Parameter alFileStructure
+  Specify a function, which will determine the location of the individual al source files
+ .Parameter runTxt2AlInContainer
+  Specify a foreign container in which you want to run the txt2al tool
  .Example
   $alProjectFolder = "C:\ProgramData\NavContainerHelper\AL\BaseApp"
   Create-AlProjectFolderFromNavContainer -containerName alContainer `
@@ -45,7 +49,8 @@ function Create-AlProjectFolderFromNavContainer {
         [string] $version = "1.0.0.0",
         [switch] $AddGIT,
         [switch] $useBaseLine,
-        [ScriptBlock] $alFileStructure
+        [ScriptBlock] $alFileStructure,
+        [string] $runTxt2AlInContainer = $containerName
     )
 
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -69,7 +74,7 @@ function Create-AlProjectFolderFromNavContainer {
         Copy-AlSourceFiles -Path "$alFolder\*" -Destination $AlProjectFolder -Recurse -alFileStructure $alFileStructure
     }
     else {
-        Convert-ModifiedObjectsToAl -containerName $containerName -doNotUseDeltas -alProjectFolder $AlProjectFolder -alFileStructure $alFileStructure
+        Convert-ModifiedObjectsToAl -containerName $containerName -doNotUseDeltas -alProjectFolder $AlProjectFolder -alFileStructure $alFileStructure -runTxt2AlInContainer $runTxt2AlInContainer
     }
 
     $appJsonFile = Join-Path $AlProjectFolder "app.json"
