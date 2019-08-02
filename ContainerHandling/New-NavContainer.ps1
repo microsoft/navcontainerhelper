@@ -125,66 +125,67 @@
 #>
 function New-NavContainer {
     Param(
-        [switch]$accept_eula,
-        [switch]$accept_outdated,
+        [switch] $accept_eula,
+        [switch] $accept_outdated,
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [string]$imageName = "", 
+        [string] $containerName, 
+        [string] $imageName = "", 
         [Alias('navDvdPath')]
-        [string]$dvdPath = "", 
+        [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
-        [string]$dvdCountry = "",
+        [string] $dvdCountry = "",
         [Alias('navDvdVersion')]
-        [string]$dvdVersion = "",
+        [string] $dvdVersion = "",
         [Alias('navDvdPlatform')]
-        [string]$dvdPlatform = "",
-        [string]$locale = "",
-        [string]$licenseFile = "",
-        [System.Management.Automation.PSCredential]$Credential = $null,
-        [string]$authenticationEMail = "",
-        [string]$memoryLimit = "",
+        [string] $dvdPlatform = "",
+        [string] $locale = "",
+        [string] $licenseFile = "",
+        [PSCredential]$Credential = $null,
+        [string] $authenticationEMail = "",
+        [string] $memoryLimit = "",
         [ValidateSet('','process','hyperv')]
-        [string]$isolation = "",
-        [string]$databaseServer = "",
-        [string]$databaseInstance = "",
-        [string]$databaseName = "",
-        [string]$bakFile = "",
+        [string] $isolation = "",
+        [string] $databaseServer = "",
+        [string] $databaseInstance = "",
+        [string] $databaseName = "",
+        [string] $bakFile = "",
         [System.Management.Automation.PSCredential]$databaseCredential = $null,
         [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
-        [string]$shortcuts='Desktop',
-        [switch]$updateHosts,
-        [switch]$useSSL,
-        [switch]$includeAL,
-        [switch]$includeCSide,
-        [switch]$enableSymbolLoading,
-        [switch]$doNotExportObjectsToText,
-        [switch]$alwaysPull,
-        [switch]$useBestContainerOS,
-        [string]$useGenericImage,
-        [switch]$assignPremiumPlan,
-        [switch]$multitenant,
-        [switch]$clickonce,
-        [switch]$includeTestToolkit,
-        [switch]$includeTestLibrariesOnly,
+        [string] $shortcuts='Desktop',
+        [switch] $updateHosts,
+        [switch] $useSSL,
+        [switch] $includeAL,
+        [string] $runTxt2AlInContainer = $containerName,
+        [switch] $includeCSide,
+        [switch] $enableSymbolLoading,
+        [switch] $doNotExportObjectsToText,
+        [switch] $alwaysPull,
+        [switch] $useBestContainerOS,
+        [string] $useGenericImage,
+        [switch] $assignPremiumPlan,
+        [switch] $multitenant,
+        [switch] $clickonce,
+        [switch] $includeTestToolkit,
+        [switch] $includeTestLibrariesOnly,
         [ValidateSet('no','on-failure','unless-stopped','always')]
-        [string]$restart='unless-stopped',
+        [string] $restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
-        [string]$auth='Windows',
-        [int]$timeout = 1800,
-        [string[]]$additionalParameters = @(),
+        [string] $auth='Windows',
+        [int] $timeout = 1800,
+        [string[]] $additionalParameters = @(),
         $myScripts = @(),
-        [string]$TimeZoneId = $null,
-        [int]$WebClientPort,
-        [int]$FileSharePort,
-        [int]$ManagementServicesPort,
-        [int]$ClientServicesPort,
-        [int]$SoapServicesPort,
-        [int]$ODataServicesPort,
-        [int]$DeveloperServicesPort,
-        [int[]]$PublishPorts = @(),
-        [string]$PublicDnsName,
+        [string] $TimeZoneId = $null,
+        [int] $WebClientPort,
+        [int] $FileSharePort,
+        [int] $ManagementServicesPort,
+        [int] $ClientServicesPort,
+        [int] $SoapServicesPort,
+        [int] $ODataServicesPort,
+        [int] $DeveloperServicesPort,
+        [int[]] $PublishPorts = @(),
+        [string] $PublicDnsName,
         [string] $dns,
-        [switch]$useTraefik,
+        [switch] $useTraefik,
         [switch] $useCleanDatabase,
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth
@@ -1219,10 +1220,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             }
             if ($version.Major -ge 14 -and $includeAL) {
                 $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                if ($runTxt2AlInContainer -ne $containerName) {
+                    Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
+                    if (Test-Path $alFolder) {
+                        Write-Host "Removing existing AL folder $alFolder"
+                        Remove-Item -Path $alFolder -Recurse -Force
+                    }
+                }
                 if (!(Test-Path $alFolder)) {
                     $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
                     Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
-                    Convert-Txt2Al -containerName $containerName -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
+                    Convert-Txt2Al -containerName $runTxt2AlInContainer -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
                 }
             }
         }

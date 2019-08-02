@@ -28,7 +28,7 @@ function Convert-Txt2Al {
         [string] $dotNetAddInsPackage
     )
 
-    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+    #AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
     $containerMyAlFolder = Get-NavContainerPath -containerName $containerName -path $myAlFolder -throw
@@ -40,8 +40,9 @@ function Convert-Txt2Al {
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
     $ignoreSystemObjects = ($version.Major -ge 14)
+    $platformVersion = Get-NavContainerPlatformVersion -containerOrImageName $containerName
 
-    $dummy = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId, $dotNetAddInsPackage)
+    $dummy = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($myDeltaFolder, $myAlFolder, $startId, $dotNetAddInsPackage, $platformVersion)
         
         $erroractionpreference = 'Continue'
 
@@ -68,6 +69,23 @@ function Convert-Txt2Al {
             $txt2alParameters += @("--dotNetAddInsPackage=""$dotNetAddInsPackage""")
         }
 
+        if ($platformVersion) {
+            $ver = [System.Version]($platformVersion)
+            if (($ver.Major -eq 14 -and $ver.Build -ge 34429) -or ($ver.Major -eq 15 -and $ver.Build -ge 34399)) {
+                Write-Host "Using Compiler CodeAnalysis to format documents"
+                if (-not (Test-Path (Join-Path ([System.IO.Path]::GetDirectoryName($txt2al)) "Microsoft.Dynamics.Nav.CodeAnalysis.Workspaces.dll"))) {
+                    Write-Host "Copying Microsoft.Dynamics.Nav.CodeAnalysis.Workspaces.dll from vsix"
+                    if (!(Test-Path "c:\build" -PathType Container)) {
+                        $tempZip = Join-Path $env:TEMP "alc.zip"
+                        Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
+                        Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
+                    }
+                    $alcPath = 'C:\build\vsix\extension\bin'
+                    Copy-Item -Path (Join-Path $alcPath "Microsoft.Dynamics.Nav.CodeAnalysis.Workspaces.dll") -Destination ([System.IO.Path]::GetDirectoryName($txt2al))
+                }
+            }
+        }
+
         Write-Host "txt2al.exe $([string]::Join(' ', $txt2alParameters))"
         & $txt2al $txt2alParameters 2> $null
 
@@ -81,6 +99,6 @@ function Convert-Txt2Al {
 
         $erroractionpreference = 'Stop'
 
-    } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage
+    } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage, $platformVersion
 }
 Export-ModuleMember -Function Convert-Txt2Al

@@ -1,3 +1,6 @@
+0.6.2.91
+Add parameter -runTxt2AlInContainer to New-NavContainer to allow a foreign container to perform the Txt2Al conversion when specifying -includeAL
+
 0.6.2.9
 Support AccessToken for AAD authentication in Get-TestsFromBcContainer and Run-TestsInBcContainer
 Support using current AzureAD connection in Create-AadAppsForBc and Create-AadUsersInBcContainer
