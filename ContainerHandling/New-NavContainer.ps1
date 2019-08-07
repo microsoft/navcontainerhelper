@@ -921,6 +921,12 @@ Write-Host "Registering event sources"
             ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
+        if ($version.Major -ge 15) {
+            $userPlanTableName = 'User Plan$63ca2fa4-4f03-4f2b-a480-172fef340d3f'
+        }
+        else {
+            $userPlanTableName = 'User Plan'
+        }
         ('
 Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType -eq "FullUser" | ForEach-Object {
     $UserId = $_.UserSecurityId
@@ -929,7 +935,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     if ($multitenant) {
         $dbName = $TenantId
     }
-    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
+    $userPlanTableName = '''+$userPlanTableName+'''
+    Invoke-Sqlcmd -ServerInstance ''localhost\SQLEXPRESS'' -Query "USE [$DbName]
+    INSERT INTO [dbo].[$userPlanTableName] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')"
+    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan$63ca2fa4-4f03-4f2b-a480-172fef340d3f] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
 }
 ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
     }
