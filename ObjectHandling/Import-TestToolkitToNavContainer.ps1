@@ -35,6 +35,32 @@ function Import-TestToolkitToNavContainer {
         [string]$ImportAction = "Overwrite"
     )
 
+    $inspect = docker inspect $containerName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        throw "Container $containerName is not a NAV container"
+    }
+    [System.Version]$version = $inspect.Config.Labels.version
+
+    $generateSymbols = $false
+
+    if (!$doNotUpdateSymbols) {
+        $enableSymbolLoading = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+            [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+            $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
+            ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True")
+        }
+        if (!$enableSymbolLoading) {
+            $doNotUpdateSymbols = $true
+        }
+    }
+
+    $generateSymbols = $false
+    if ($version.Major -eq 14 -and !$doNotUpdateSymbols) {
+        $generateSymbols = $true
+        $doNotUpdateSymbols = $true
+    }
+
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
@@ -50,8 +76,7 @@ function Import-TestToolkitToNavContainer {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-        $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
-    
+   
         $params = @{}
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
@@ -68,7 +93,8 @@ function Import-TestToolkitToNavContainer {
                 Write-Host "Importing Objects from $objectsFile (container path)"
                 $databaseServerParameter = $databaseServer
 
-                if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True" -and !$doNotUpdateSymbols) {
+                if (!$doNotUpdateSymbols) {
+                    Write-Host "Generating Symbols while importing"
                     # HACK: Parameter insertion...
                     # generatesymbolreference is not supported by Import-NAVApplicationObject yet
                     # insert an extra parameter for the finsql command by splitting the filter property
@@ -89,9 +115,13 @@ function Import-TestToolkitToNavContainer {
         }
 
         # Sync after all objects hav been imported
-         Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
+        Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
 
     } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
+
+    if ($generateSymbols) {
+        Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
+    }
     Write-Host -ForegroundColor Green "TestToolkit successfully imported"
 }
 Set-Alias -Name Import-TestToolkitToBCContainer -Value Import-TestToolkitToNavContainer
