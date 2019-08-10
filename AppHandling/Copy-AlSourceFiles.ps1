@@ -83,20 +83,36 @@ function Copy-AlSourceFiles {
                     }
                 }
                 if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
-                    $filename = $alFileStructure.Invoke($type, $id, $name)
+                    $newFilename = "$($alFileStructure.Invoke($type, $id, $name))"
                 }
                 else {
-                    $filename = $alFileStructure.Invoke($type, $id, $name, [ref] $content)
+                    $newFilename = "$($alFileStructure.Invoke($type, $id, $name, [ref] $content))"
                 }
     
-                if ($filename) {
-                    $filename = $filename.Replace('/','').Replace(':','')
-                    $destFileName = Join-Path $Destination $filename
-                    $destPath = $destFileName.Substring(0,$destFileName.LastIndexOf('\'))
+                if ($newFilename) {
+                    $newFilename = $newFilename -replace '[~#%&*{}|:<>?/"]', ''
+ 
+                    $destFilename = Join-Path $Destination $newFilename
+                    $destPath = [System.IO.Path]::GetDirectoryName($destFilename)
+                    $destName = [System.IO.Path]::GetFileName($destFilename)
+                    
                     if (-not (Test-Path $destPath)) {
                         New-Item $destPath -ItemType Directory | Out-Null
                     }
-        
+
+                    if (Test-Path -Path $destFilename) {
+                        Write-Warning "$destFilename already exists, adding sequence number"
+                        $seq = 1
+                        $dotIdx = $destName.IndexOf('.')
+                        if ($dotIdx -lt 0) {
+                            throw "Cannot add sequence number to $destName"
+                        }
+                        while (Test-Path -Path $destFilename) {
+                            $seq++
+                            $destFilename = Join-Path $destPath $destName.Insert($dotIdx,"$seq")
+                        }
+                    }
+
                     if ($type -eq "report") {
                         0..($content.Count-1) | % {
                             $line = $content[$_]
@@ -110,21 +126,40 @@ function Copy-AlSourceFiles {
                                     $layoutcontent = [System.IO.File]::ReadAllBytes($layoutFile.FullName)
         
                                     if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
-                                        $layoutFilename = $alFileStructure.Invoke($layoutFile.Extension, $id, $name)
+                                        $layoutNewFilename = "$($alFileStructure.Invoke($layoutFile.Extension, $id, $name))"
                                     }
                                     else {
-                                        $layoutFilename = $alFileStructure.Invoke($layoutFile.Extension, $id, $name, [ref] $content)
+                                        $layoutNewFilename = "$($alFileStructure.Invoke($layoutFile.Extension, $id, $name, [ref] $content))"
                                     }
         
-                                    $layoutFilename = $layoutFilename.Replace('/','').Replace(':','')
-                                    $layoutDestFilename = Join-Path $Destination $layoutFilename
-                                    $layoutDestPath = $layoutDestFilename.Substring(0,$layoutDestFilename.LastIndexOfAny(@('\','/')))
-                                    if (-not (Test-Path $layoutDestPath)) {
-                                        New-Item $layoutDestPath -ItemType Directory | Out-Null
+                                    if ($layoutNewFilename) {
+                                        $layoutNewFilename = $layoutNewFilename -replace '[~#%&*{}|:<>?/"]', ''
+
+                                        $layoutDestFilename = Join-Path $Destination $layoutNewFilename
+                                        $layoutDestPath = [System.IO.Path]::GetDirectoryName($layoutDestFilename)
+                                        $layoutDestName = [System.IO.Path]::GetFileName($layoutDestFilename)
+    
+                                        if (-not (Test-Path $layoutDestPath)) {
+                                            New-Item $layoutDestPath -ItemType Directory | Out-Null
+                                        }
+    
+                                        if (Test-Path -Path $layoutDestFilename) {
+                                            Write-Warning "$layoutDestFilename already exists, adding sequence number"
+                                            $seq = 1
+                                            $dotIdx = $layoutDestName.IndexOf('.')
+                                            if ($dotIdx -lt 0) {
+                                                throw "Cannot add sequence number to $layoutDestName"
+                                            }
+                                            while (Test-Path -Path $layoutDestFilename) {
+                                                $seq++
+                                                $layoutDestFilename = Join-Path $layoutDestPath $layoutDestName.Insert($dotIdx,"$seq")
+                                            }
+                                        }
+
+                                        [System.IO.File]::WriteAllBytes($layoutDestFilename, $layoutcontent)
+            
+                                        $content[$_] = $line.SubString(0,$startIdx) + $layoutDestFilename.Substring($destination.Length+1).Replace('\','/') + $line.SubString($endIdx)
                                     }
-                                    [System.IO.File]::WriteAllBytes($layoutDestFilename, $layoutcontent)
-        
-                                    $content[$_] = $line.SubString(0,$startIdx) + $layoutFilename.Replace('\','/') + $line.SubString($endIdx)
                                 }
                                 else {
                                     Write-Warning "Unable to find $layoutFilename"
@@ -138,6 +173,7 @@ function Copy-AlSourceFiles {
             }
             catch {
                 Write-Warning "Unexpected error while handling $filename"
+                throw
             }
         }
     }
