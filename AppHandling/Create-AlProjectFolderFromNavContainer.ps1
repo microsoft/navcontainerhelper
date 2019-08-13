@@ -101,7 +101,6 @@ function Create-AlProjectFolderFromNavContainer {
             "platform" = "15.0.0.0"
             "idRanges" = @()
             "showMyCode" = $true
-            "runtime" = "4.0"
             "target" = "OnPrem"
         }
     }
@@ -123,7 +122,6 @@ function Create-AlProjectFolderFromNavContainer {
             "platform" = "14.0.0.0"
             "idRanges" = @()
             "showMyCode" = $true
-            "runtime" = "3.0"
             "target" = "Internal"
         }
     }
