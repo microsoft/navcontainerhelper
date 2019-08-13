@@ -23,25 +23,56 @@ function Get-NavContainerAppInfo {
         [string] $containerName = "navserver",
         [string] $tenant = "",
         [switch] $symbolsOnly,
-        [switch] $tenantSpecificProperties
+        [switch] $tenantSpecificProperties,
+        [ValidateSet('None','DependenciesFirst','DependenciesLast')]
+        [string] $sort
     )
 
     $args = @{}
     if ($symbolsOnly) {
         $args += @{ "SymbolsOnly" = $true }
     } else {
-        if ($tenantSpecificProperties) {
-            $args += @{ "TenantSpecificProperties" = $true }
-        }
+        $args += @{ "TenantSpecificProperties" = $tenantSpecificProperties }
         if ("$tenant" -eq "") {
             $tenant = "default"
         }
         $args += @{ "Tenant" = $tenant }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($inArgs)
-        Get-NavAppInfo -ServerInstance $ServerInstance @inArgs
-    } -ArgumentList $args
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort)
+
+        $script:installedApps = @()
+
+        function AddAnApp { Param($anApp) 
+            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId }
+            if (-not $alreadyAdded) {
+                AddDependencies -anApp $anApp
+                $script:installedApps += $anApp
+            }
+        }
+    
+        function AddDependency { Param($dependency)
+            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId }
+            AddAnApp -AnApp $dependentApp
+        }
+    
+        function AddDependencies { Param($anApp)
+            $anApp.Dependencies | % { AddDependency -Dependency $_ }
+        }
+
+        $apps = Get-NavAppInfo -ServerInstance $ServerInstance @inArgs | ForEach-Object { Get-NavAppInfo -ServerInstance $serverInstance -id $_.AppId @inArgs }
+        if ($sort -eq "None") {
+            $apps
+        }
+        else {
+            $apps | ForEach-Object { AddAnApp -AnApp $_ }
+            if ($sort -eq "DependenciesLast") {
+                [Array]::Reverse($script:installedApps)
+            }
+            $script:installedApps
+        }
+
+    } -ArgumentList $args, $sort
 }
 Set-Alias -Name Get-BCContainerAppInfo -Value Get-NavContainerAppInfo
 Export-ModuleMember -Function Get-NavContainerAppInfo -Alias Get-BCContainerAppInfo
