@@ -27,7 +27,7 @@ function Import-TestToolkitToNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$containerName, 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [PSCredential]$sqlCredential = $null,
         [switch]$includeTestLibrariesOnly,
         [string]$testToolkitCountry,
         [switch]$doNotUpdateSymbols,
@@ -41,29 +41,18 @@ function Import-TestToolkitToNavContainer {
     }
     [System.Version]$version = $inspect.Config.Labels.version
 
-    $generateSymbols = $false
-
-    if (!$doNotUpdateSymbols) {
-        $enableSymbolLoading = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
-            $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-            [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-            $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
-            ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True")
-        }
-        if (!$enableSymbolLoading) {
-            $doNotUpdateSymbols = $true
-        }
-    }
+    $config = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
 
     $generateSymbols = $false
-    if ($version.Major -eq 14 -and !$doNotUpdateSymbols) {
+    if ($version.Major -eq 14 -and !$doNotUpdateSymbols -and $config.ClientServicesCredentialType -ne "Windows") {
         $generateSymbols = $true
         $doNotUpdateSymbols = $true
     }
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
+    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
     
         if (-not (Test-Path -Path "C:\TestToolKit" -PathType Container)) {
             throw "Container $containerName does not include the TestToolkit yet"
