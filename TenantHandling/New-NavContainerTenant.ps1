@@ -9,6 +9,8 @@
   Name of tenant you want to create in the container
  .Parameter sqlCredential
   Credentials for the SQL server of the tenant database (if using an external SQL Server)
+ .Parameter sourceDatabase
+  Specify a source database which will be the template for the new tenant (default is tenant)
  .Example
   New-NavContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -19,7 +21,8 @@ function New-NavContainerTenant {
         [string]$containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string]$tenantId,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [PSCredential]$sqlCredential = $null,
+        [string]$sourceDatabase = "tenant"
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
@@ -39,8 +42,8 @@ function New-NavContainerTenant {
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
 
         # Setup tenant
-        Copy-NavDatabase -SourceDatabaseName "tenant" -DestinationDatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
-        Mount-NavDatabase -TenantId $TenantId -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
     } -ArgumentList $tenantId, $sqlCredential
     Write-Host -ForegroundColor Green "Tenant successfully created"

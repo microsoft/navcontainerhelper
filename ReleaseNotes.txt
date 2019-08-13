@@ -4,6 +4,7 @@ Switch to original behavior on importing testtoolkit if running Windows Authenti
 Add parameter -sort to Get-BcContainerAppInfo to get apps sorted with dependencies first or last (for uninstalling etc.)
 Remove "runtime" property from generated app.json to use latest
 Support multitenancy for Publish-NewApplicationToBcContainer
+Added parameter sourceDatabase to New-BcContainerTenant
 
 0.6.2.92
 Bugfix #549 -assignPremiumPlan doesn't work with 15.x containers
