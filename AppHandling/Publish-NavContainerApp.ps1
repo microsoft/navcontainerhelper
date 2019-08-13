@@ -80,6 +80,10 @@ function Publish-NavContainerApp {
 
     if ($useDevEndpoint) {
 
+        if ($scope -eq "Global") {
+            throw "You cannot publish to global scope using the dev. endpoint"
+        }
+
         $handler = New-Object  System.Net.Http.HttpClientHandler
         if ($customConfig.ClientServicesCredentialType -eq "Windows") {
             $handler.UseDefaultCredentials = $true
@@ -137,10 +141,7 @@ function Publish-NavContainerApp {
         elseif ($syncMode -eq "ForceSync") {
             $schemaUpdateMode = "forcesync"
         }
-        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
-        if ($Scope -eq "Tenant") {
-            $url += "&tenant=$tenant"
-        }
+        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&tenant=$tenant"
         
         $appName = [System.IO.Path]::GetFileName($appFile)
         

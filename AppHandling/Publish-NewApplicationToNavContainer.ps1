@@ -32,7 +32,8 @@ function Publish-NewApplicationToNavContainer {
         [string] $appDotNetPackagesFolder,
         [Parameter(Mandatory=$false)]
         [pscredential] $credential,
-        [switch] $useCleanDatabase
+        [switch] $useCleanDatabase,
+        [switch] $doNotUseDevEndpoint
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -48,11 +49,6 @@ function Publish-NewApplicationToNavContainer {
     Add-Type -AssemblyName System.Net.Http
 
     $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
-
-    if ($customConfig.Multitenant -eq "True") {
-        throw "This script doesn't support multitenancy"
-    }
-
     $containerAppDotNetPackagesFolder = ""
     if ($appDotNetPackagesFolder -and (Test-Path $appDotNetPackagesFolder)) {
         $containerAppDotNetPackagesFolder = Get-NavContainerPath -containerName $containerName -path $appDotNetPackagesFolder -throw
@@ -81,7 +77,8 @@ function Publish-NewApplicationToNavContainer {
         Clean-BcContainerDatabase -containerName $containerName
     }
 
-    Publish-NavContainerApp -containerName $containerName -appFile $appFile -useDevEndpoint -scope Global -credential $credential
+    Publish-NavContainerApp -containerName $containerName -appFile $appFile -scope global -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
+
 }
 Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
 Export-ModuleMember -Function Publish-NewApplicationToNavContainer -Alias Publish-NewApplicationToBcContainer

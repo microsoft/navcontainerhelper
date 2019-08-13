@@ -11,7 +11,9 @@
 #>
 function Clean-BcContainerDatabase {
     Param(
-        [string] $containerName = "navserver"
+        [string] $containerName = "navserver",
+        [switch] $saveData,
+        [switch] $doNotUnpublish
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -24,42 +26,52 @@ function Clean-BcContainerDatabase {
         throw "Container $containerName does not support the function Clean-NavContainerDatabase"
     }
 
-    Add-Type -AssemblyName System.Net.Http
+    $myFolder = Join-Path $ExtensionsFolder "$containerName\my"
 
-    $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
-    if ($customConfig.Multitenant -eq "True") {
-        throw "This script doesn't support multitenancy"
+    if (!(Test-Path "$myFolder\license.flf")) {
+        throw "Container must be started with a developer license in order to publish a new application"
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig, $platformversion )
-        
-        if (!(Test-Path "c:\run\my\license.flf")) {
-            throw "Container must be started with a developer license in order to publish a new application"
-        }
+    $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
-        Write-Host "Uninstalling apps"
-        Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Uninstall-NAVApp -DoNotSaveData -WarningAction Ignore -Force
+    $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
+    $installedApps | % {
+        $app = $_
+        Invoke-ScriptInBCContainer -containerName test -scriptblock { Param($app, $SaveData)
+            if ($app.IsInstalled) {
+                Write-Host "Uninstalling $($app.Name)"
+                $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData)
+            }
+        } -argumentList $app, $SaveData
+    }
 
-        if ($customConfig.databaseInstance) {
-            $databaseServerInstance = "$($customConfig.databaseServer)\$($customConfig.databaseInstance)"
-        }
-        else {
-            $databaseServerInstance = $customConfig.databaseServer
-        }
-
-        if ($platformversion.Major -eq 14) {
+    if ($platformversion.Major -eq 14) {
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig )
+            
+            if ($customConfig.databaseInstance) {
+                $databaseServerInstance = "$($customConfig.databaseServer)\$($customConfig.databaseInstance)"
+            }
+            else {
+                $databaseServerInstance = $customConfig.databaseServer
+            }
+    
             Write-Host "Removing C/AL Application Objects"
             Delete-NAVApplicationObject -DatabaseName $customConfig.databaseName -DatabaseServer $databaseServerInstance -Filter 'ID=1..1999999999' -SynchronizeSchemaChanges Force -Confirm:$false
-        }
-        else {
-            # Run 3 times to remove dependent apps first
-            Write-Host "Unpublishing apps"
-            Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore -ErrorAction Ignore
-            Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore -ErrorAction Ignore
-            Get-NAVAppInfo $customConfig.ServerInstance | Where-Object { $_.Name -ne "System Application" } | Unpublish-NAVApp -WarningAction Ignore
-        }
 
-    } -argumentList $customConfig, $platformversion
-
+        } -argumentList $customconfig
+    }
+    else {
+        if (!$doNotUnpublish) {
+            $installedApps | % {
+                $app = $_
+                Invoke-ScriptInBCContainer -containerName test -scriptblock { Param($app)
+                    if ($app.IsPublished) {
+                        Write-Host "Unpublishing $($app.Name)"
+                        $app | UnPublish-NavApp
+                    }
+                } -argumentList $app
+            }
+        }
+    }
 }
 Export-ModuleMember -Function Clean-BcContainerDatabase
