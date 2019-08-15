@@ -902,16 +902,23 @@ if ($restartingInstance -eq $false) {
     }
 
     if ([System.Version]$genericTag -le [System.Version]"0.0.9.5") {
-        ('
-Write-Host "Registering event sources"
+
+        $setupWebClientFile = "$myfolder\SetupWebClient.ps1"
+        $setupWebClientContent = '. "C:\Run\SetupWebClient.ps1"'
+        if (Test-Path "$myfolder\SetupWebClient.ps1") {
+            $setupWebClientContent = Get-Content -path $setupWebClientFile -raw
+        }
+
+        $setupWebClientContent = 'Write-Host "Registering event sources"
 "MicrosoftDynamicsNAVClientWebClient","MicrosoftDynamicsNAVClientClientService" | % {
     if (-not [System.Diagnostics.EventLog]::SourceExists($_)) {
         $frameworkDir = (Get-Item "HKLM:\SOFTWARE\Microsoft\.NETFramework").GetValue("InstallRoot")
         New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
     }
 }
-. "C:\Run\SetupWebClient.ps1"
-') | Add-Content -Path "$myfolder\SetupWebClient.ps1"
+'+$setupWebClientContent
+
+        $setupWebClientContent | Set-Content -path $setupWebClientFile
     }
 
     if ($assignPremiumPlan) {
