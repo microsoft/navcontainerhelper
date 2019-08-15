@@ -77,7 +77,12 @@ function Publish-NewApplicationToNavContainer {
         Clean-BcContainerDatabase -containerName $containerName
     }
 
-    Publish-NavContainerApp -containerName $containerName -appFile $appFile -scope global -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
+    $scope = "tenant"
+    if ($doNotUseDevEndpoint) {
+        $scope = "global"
+    }
+
+    Publish-NavContainerApp -containerName $containerName -appFile $appFile -scope $scope -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
 
 }
 Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
