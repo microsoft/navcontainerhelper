@@ -37,7 +37,7 @@ function Clean-BcContainerDatabase {
     $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
     $installedApps | % {
         $app = $_
-        Invoke-ScriptInBCContainer -containerName test -scriptblock { Param($app, $SaveData)
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData)
             if ($app.IsInstalled) {
                 Write-Host "Uninstalling $($app.Name)"
                 $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData)
@@ -64,7 +64,7 @@ function Clean-BcContainerDatabase {
         if (!$doNotUnpublish) {
             $installedApps | % {
                 $app = $_
-                Invoke-ScriptInBCContainer -containerName test -scriptblock { Param($app)
+                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app)
                     if ($app.IsPublished) {
                         Write-Host "Unpublishing $($app.Name)"
                         $app | UnPublish-NavApp
