@@ -119,62 +119,6 @@
         [xml]$testResults = Get-Content $testResultsFile
         $testResults.assemblies.assembly.passed | Should -Be $testResults.assemblies.assembly.total
     }
-    It 'Get/RunTests for all versions' {
-        $runTestsContainerName = "runtests"
-
-        2016,2017,2018,1810,1904 | % {
-
-            $runTestsInVersion  = $_
-            if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
-                $imageName = "mcr.microsoft.com/dynamicsnav:$runTestsInVersion"
-            }
-            else {
-                $imageName = "mcr.microsoft.com/businesscentral/onprem:$runTestsInVersion"
-            }
-
-            New-BcContainer -accept_eula `
-                            -accept_outdated `
-                            -containerName $runTestsContainerName `
-                            -imageName $imageName `
-                            -auth NavUserPassword `
-                            -Credential $credential `
-                            -updateHosts `
-                            -licenseFile $licenseFile `
-                            -includeTestToolkit `
-                            -includeCSide `
-                            -doNotExportObjectsToText
-
-            if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
-                Import-ObjectsToNavContainer -containerName $runTestsContainerName -objectsFile (Join-Path $PSScriptRoot "inserttests.txt") -sqlCredential $credential
-                Compile-ObjectsInNavContainer -containerName $runTestsContainerName
-                Invoke-NavContainerCodeunit -containerName $runTestsContainerName -Codeunitid 50000 -CompanyName "CRONUS International Ltd."
-            }
-            else {
-                Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
-                $appProjectFolder = Join-Path "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" "inserttests"
-                Compile-AppInBCContainer -containerName $runTestsContainerName -credential $credential -appProjectFolder $appProjectFolder -appOutputFolder $appProjectFolder -appName "inserttests.app" -UpdateSymbols
-                Publish-NavContainerApp -containerName $runTestsContainerName -appFile (Join-Path $appProjectFolder "inserttests.app") -skipVerification -sync -install
-            }
-            
-            $tests = Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential
-            $tests.Codeunits.Count | Should -be 2
-        
-            $first = $true
-            $resultsFile = "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName\result.xml"
-            $tests.Codeunits | % {
-                $allpassed = Run-TestsInBcContainer -containerName $runTestsContainerName `
-                                                    -credential $credential `
-                                                    -XUnitResultFileName $resultsFile `
-                                                    -AppendToXUnitResultFile:(!$first) `
-                                                    -detailed `
-                                                    -testCodeunit $_.Id `
-                                                    -returnTrueIfAllPassed
-                $first = $false
-            }
-            $resultsFile | Should -Exist
-        }
-        Remove-NavContainer $runTestsContainerName
-    }
     It 'Sign-NavContainerApp' {
         #TODO
     }
@@ -237,7 +181,8 @@
         $appFile = Compile-AppInBCContainer -containerName $bcContainerName `
                                             -appProjectFolder $alProjectFolder `
                                             -appOutputFolder $alProjectFolder `
-                                            -credential $credential
+                                            -credential $credential `
+                                            -updateSymbols
 
         Publish-NewApplicationToBcContainer -containerName $bcContainerName `
                                             -appFile $appFile `
@@ -245,6 +190,62 @@
                                             -useCleanDatabase
     }
 
+    It 'Get/RunTests for all versions' {
+        $runTestsContainerName = "runtests"
+
+        2016,2017,2018,1810,1904 | % {
+
+            $runTestsInVersion  = $_
+            if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
+                $imageName = "mcr.microsoft.com/dynamicsnav:$runTestsInVersion"
+            }
+            else {
+                $imageName = "mcr.microsoft.com/businesscentral/onprem:$runTestsInVersion"
+            }
+
+            New-BcContainer -accept_eula `
+                            -accept_outdated `
+                            -containerName $runTestsContainerName `
+                            -imageName $imageName `
+                            -auth NavUserPassword `
+                            -Credential $credential `
+                            -updateHosts `
+                            -licenseFile $licenseFile `
+                            -includeTestToolkit `
+                            -includeCSide `
+                            -doNotExportObjectsToText
+
+            if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
+                Import-ObjectsToNavContainer -containerName $runTestsContainerName -objectsFile (Join-Path $PSScriptRoot "inserttests.txt") -sqlCredential $credential
+                Compile-ObjectsInNavContainer -containerName $runTestsContainerName
+                Invoke-NavContainerCodeunit -containerName $runTestsContainerName -Codeunitid 50000 -CompanyName "CRONUS International Ltd."
+            }
+            else {
+                Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
+                $appProjectFolder = Join-Path "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" "inserttests"
+                Compile-AppInBCContainer -containerName $runTestsContainerName -credential $credential -appProjectFolder $appProjectFolder -appOutputFolder $appProjectFolder -appName "inserttests.app" -UpdateSymbols
+                Publish-NavContainerApp -containerName $runTestsContainerName -appFile (Join-Path $appProjectFolder "inserttests.app") -skipVerification -sync -install
+            }
+            
+            $tests = Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential
+            $tests.Codeunits.Count | Should -be 2
+        
+            $first = $true
+            $resultsFile = "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName\result.xml"
+            $tests.Codeunits | % {
+                $allpassed = Run-TestsInBcContainer -containerName $runTestsContainerName `
+                                                    -credential $credential `
+                                                    -XUnitResultFileName $resultsFile `
+                                                    -AppendToXUnitResultFile:(!$first) `
+                                                    -detailed `
+                                                    -testCodeunit $_.Id `
+                                                    -returnTrueIfAllPassed
+                $first = $false
+            }
+            $resultsFile | Should -Exist
+        }
+        Remove-NavContainer $runTestsContainerName
+    }
 
     # Recreate contaminated containers
     . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
