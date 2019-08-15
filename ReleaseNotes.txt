@@ -1,3 +1,6 @@
+0.6.2.94
+Ignore SQL Errors when using -assignpremiumplan
+
 0.6.2.93
 Copy-alSourceFiles will insert a sequence number if duplicate destination file names are detected
 Switch to original behavior on importing testtoolkit if running Windows Authentication - the error is tied to UserPassword auth
