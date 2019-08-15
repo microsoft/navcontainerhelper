@@ -25,7 +25,7 @@ function Get-NavContainerAppRuntimePackage {
         [Parameter(Mandatory=$false)]
         [string] $Tenant,
         [Parameter(Mandatory=$false)]
-        [string] $appFile = (Join-Path $extensionsFolder "$containerName\$appName.app")
+        [string] $appFile = (Join-Path $extensionsFolder ("$containerName\$appName.app" -replace '[~#%&*{}|:<>?/|"]', '_'))
     )
 
     $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
