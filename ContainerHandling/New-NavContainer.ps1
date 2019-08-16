@@ -870,7 +870,7 @@ if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $da
         }
 
         ('
-if ($restartingInstance -eq $false) {
+if (!(Test-Path "c:\navpfiles\*")) {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
     $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
     $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
