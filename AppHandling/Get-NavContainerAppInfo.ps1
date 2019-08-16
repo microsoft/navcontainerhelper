@@ -25,7 +25,7 @@ function Get-NavContainerAppInfo {
         [switch] $symbolsOnly,
         [switch] $tenantSpecificProperties,
         [ValidateSet('None','DependenciesFirst','DependenciesLast')]
-        [string] $sort
+        [string] $sort = 'None'
     )
 
     $args = @{}
@@ -45,7 +45,7 @@ function Get-NavContainerAppInfo {
 
         function AddAnApp { Param($anApp) 
             $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId }
-            if (-not $alreadyAdded) {
+            if (-not ($alreadyAdded)) {
                 AddDependencies -anApp $anApp
                 $script:installedApps += $anApp
             }
@@ -53,11 +53,15 @@ function Get-NavContainerAppInfo {
     
         function AddDependency { Param($dependency)
             $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId }
-            AddAnApp -AnApp $dependentApp
+            if ($dependentApp) {
+                AddAnApp -AnApp $dependentApp
+            }
         }
     
         function AddDependencies { Param($anApp)
-            $anApp.Dependencies | % { AddDependency -Dependency $_ }
+            if (($anApp) -and ($anApp.Dependencies)) {
+                $anApp.Dependencies | % { AddDependency -Dependency $_ }
+            }
         }
 
         $apps = Get-NavAppInfo -ServerInstance $ServerInstance @inArgs | ForEach-Object { Get-NavAppInfo -ServerInstance $serverInstance -id $_.AppId @inArgs }

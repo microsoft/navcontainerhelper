@@ -870,7 +870,7 @@ if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $da
         }
 
         ('
-if ($restartingInstance -eq $false) {
+if (!(Test-Path "c:\navpfiles\*")) {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
     $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
     $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
@@ -943,9 +943,8 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $dbName = $TenantId
     }
     $userPlanTableName = '''+$userPlanTableName+'''
-    Invoke-Sqlcmd -ServerInstance ''localhost\SQLEXPRESS'' -Query "USE [$DbName]
+    Invoke-Sqlcmd -ErrorAction Ignore -ServerInstance ''localhost\SQLEXPRESS'' -Query "USE [$DbName]
     INSERT INTO [dbo].[$userPlanTableName] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')"
-    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DbName -Q "INSERT INTO [dbo].[User Plan$63ca2fa4-4f03-4f2b-a480-172fef340d3f] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')" | Out-Null
 }
 ') | Add-Content -Path "$myfolder\SetupNavUsers.ps1"
     }
