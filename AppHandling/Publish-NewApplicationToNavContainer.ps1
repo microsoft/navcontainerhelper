@@ -16,6 +16,8 @@
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove all C/AL objects in the range 1..1999999999.
   This switch is needed when turning a C/AL container into an AL Container.
+ .Parameter saveData
+  Add this switch if you want to keep all extension data. Requires -useCleanDatabase
  .Example
   Publish-NewApplicationToNavContainer -containerName test `
                                        -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
@@ -33,7 +35,8 @@ function Publish-NewApplicationToNavContainer {
         [Parameter(Mandatory=$false)]
         [pscredential] $credential,
         [switch] $useCleanDatabase,
-        [switch] $doNotUseDevEndpoint
+        [switch] $doNotUseDevEndpoint,
+        [switch] $saveData
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -74,7 +77,12 @@ function Publish-NewApplicationToNavContainer {
     } -argumentList $containerAppDotNetPackagesFolder
 
     if ($useCleanDatabase) {
-        Clean-BcContainerDatabase -containerName $containerName
+        $args = @{}
+        if ($saveData) {
+            $args += @{"saveData" = $true}
+        }
+
+        Clean-BcContainerDatabase -containerName $containerName @args
     }
 
     $scope = "tenant"
