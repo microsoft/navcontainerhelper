@@ -27,6 +27,8 @@
   Specify a function, which will determine the location of the individual al source files
  .Parameter runTxt2AlInContainer
   Specify a foreign container in which you want to run the txt2al tool
+ .Parameter useBaseAppProperties
+  Specify to retrieve app properties from base app actually installed in container
  .Example
   $alProjectFolder = "C:\ProgramData\NavContainerHelper\AL\BaseApp"
   Create-AlProjectFolderFromNavContainer -containerName alContainer `
@@ -43,20 +45,40 @@ function Create-AlProjectFolderFromNavContainer {
         [string] $containerName, 
         [Parameter(Mandatory=$true)]
         [string] $alProjectFolder,
+        [Parameter(ParameterSetName="AppProperties")]
         [string] $id = [GUID]::NewGuid().ToString(),
+        [Parameter(ParameterSetName="AppProperties")]
         [string] $name = $containerName,
+        [Parameter(ParameterSetName="AppProperties")]
         [string] $publisher = "Default Publisher",
+        [Parameter(ParameterSetName="AppProperties")]
         [string] $version = "1.0.0.0",
         [switch] $AddGIT,
         [switch] $useBaseLine,
         [ScriptBlock] $alFileStructure,
-        [string] $runTxt2AlInContainer = $containerName
+        [string] $runTxt2AlInContainer = $containerName,
+        [Parameter(ParameterSetName="BaseAppProperties")]
+        [switch] $useBaseAppProperties
     )
 
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $ver = [System.Version]($navversion.split('-')[0])
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
     $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
+
+    if ($useBaseAppProperties) {
+        $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq 'BaseApp' }
+        if ($null -eq $baseapp)
+        {
+            Write-Host 'BaseApp not found' -ForegroundColor Red
+        }
+        else {
+            $id = $baseapp.AppId
+            $name = $baseapp.Name
+            $publisher = $baseapp.Publisher
+            $version = $baseapp.Version
+        }
+    }
 
     if (!(Test-Path $alFolder -PathType Container) -or !(Test-Path $dotnetAssembliesFolder -PathType Container)) {
         throw "Container $containerName was not started with -includeAL (or -doNotExportObjectsAsText was specified)"
