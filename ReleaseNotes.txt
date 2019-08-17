@@ -1,3 +1,6 @@
+0.6.2.95
+Copy-alSourceFiles to support using the same path and/or name for layout as report (*\name.rdlc, *.rdlc or *\..\layouts\*.rdlc)
+
 0.6.2.94
 Ignore SQL Errors when using -assignpremiumplan
 New-NavContainer will populate the shared program files folder if it is empty (not if not restarting) to allow starting a saved image
