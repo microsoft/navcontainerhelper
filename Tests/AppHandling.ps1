@@ -167,23 +167,53 @@
         $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
         Create-AlProjectFolderFromBcContainer -containerName $bcContainerName `
                                               -alProjectFolder $alProjectFolder `
-                                              -id ([Guid]::NewGuid().ToString()) `
-                                              -name MyBaseApp `
-                                              -publisher Freddy `
-                                              -version "1.0.0.0" `
+                                              -useBaseAppProperties `
                                               -useBaseLine `
                                               -alFileStructure $TypeFolders
 
         (Get-ChildItem -Path (Join-Path $bcContainerPath "mybaseapp") -Recurse).Count | Should -BeGreaterThan 5000
     }
-    It 'Compile/Publish-NewApplicationToBcContainer' {
+    It 'Compile BaseApp' {
         $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
         $appFile = Compile-AppInBCContainer -containerName $bcContainerName `
                                             -appProjectFolder $alProjectFolder `
                                             -appOutputFolder $alProjectFolder `
                                             -credential $credential `
                                             -updateSymbols
-
+        $appFile | Should -Exist
+    }
+    It 'Publish-NewApplicationToBcContainer (restore Apps=Yes)' {
+        $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
+        Publish-NewApplicationToBcContainer -containerName $bcContainerName `
+                                            -appFile $appFile `
+                                            -credential $credential `
+                                            -useCleanDatabase `
+                                            -SaveData `
+                                            -doNotUseDevEndpoint `
+                                            -restoreApps Yes
+    }
+    It 'Publish-NewApplicationToBcContainer (restore Apps=Runtime)' {
+        $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
+        Publish-NewApplicationToBcContainer -containerName $bcContainerName `
+                                            -appFile $appFile `
+                                            -credential $credential `
+                                            -useCleanDatabase `
+                                            -SaveData `
+                                            -doNotUseDevEndpoint `
+                                            -restoreApps AsRuntimePackages
+    }
+    It 'Publish-NewApplicationToBcContainer (restore Apps=No)' {
+        $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
+        Publish-NewApplicationToBcContainer -containerName $bcContainerName `
+                                            -appFile $appFile `
+                                            -credential $credential `
+                                            -useCleanDatabase `
+                                            -SaveData `
+                                            -doNotUseDevEndpoint `
+                                            -restoreApps No
+    }
+    It 'Publish-NewApplicationToBcContainer (use dev endpoint)' {
+        $alProjectFolder = Join-Path $bcContainerPath "mybaseapp"
         Publish-NewApplicationToBcContainer -containerName $bcContainerName `
                                             -appFile $appFile `
                                             -credential $credential `

@@ -68,15 +68,14 @@ function Create-AlProjectFolderFromNavContainer {
 
     if ($useBaseAppProperties) {
         $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq 'BaseApp' }
-        if ($null -eq $baseapp)
-        {
-            Write-Host 'BaseApp not found' -ForegroundColor Red
-        }
-        else {
+        if ($baseapp) {
             $id = $baseapp.AppId
             $name = $baseapp.Name
             $publisher = $baseapp.Publisher
             $version = $baseapp.Version
+        }
+        else {
+            throw "BaseApp not found"
         }
     }
 

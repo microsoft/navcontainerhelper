@@ -131,13 +131,29 @@ function Copy-AlSourceFiles {
                                     else {
                                         $layoutNewFilename = "$($alFileStructure.Invoke($layoutFile.Extension, $id, $name, [ref] $content))"
                                     }
-        
-                                    if ($layoutNewFilename) {
-                                        $layoutNewFilename = $layoutNewFilename -replace '[~#%&*{}|:<>?/"]', ''
 
-                                        $layoutDestFilename = Join-Path $Destination $layoutNewFilename
-                                        $layoutDestPath = [System.IO.Path]::GetDirectoryName($layoutDestFilename)
-                                        $layoutDestName = [System.IO.Path]::GetFileName($layoutDestFilename)
+                                    if ($layoutNewFilename) {
+                                        if ($layoutNewFilename.StartsWith('*\')) {
+                                            $layoutDestFilename = Join-Path $DestPath $layoutNewFilename.Substring(2)
+                                            $layoutDestPath = [System.IO.Path]::GetDirectoryName($layoutDestFilename)
+                                            $layoutDestName = [System.IO.Path]::GetFileName($layoutDestFilename)
+                                            if ($layoutDestName.StartsWith('*.')) {
+                                                $layoutDestName = [System.IO.Path]::GetFileNameWithoutExtension($destFileName) + $layoutDestName.Substring(1)
+                                                $layoutDestFileName = Join-Path $layoutDestPath $layoutDestName
+                                            }
+                                        }
+                                        elseif ($layoutNewFilename.StartsWith('*.')) {
+                                            $layoutDestPath = $destPath
+                                            $layoutDestName = [System.IO.Path]::GetFileNameWithoutExtension($destFileName) + $layoutNewFilename.Substring(1)
+                                            $layoutDestFilename = Join-Path $layoutDestPath $layoutDestName
+                                        }
+                                        else {
+                                            $layoutNewFilename = $layoutNewFilename -replace '[~#%&*{}|:<>?/"]', ''
+    
+                                            $layoutDestFilename = Join-Path $Destination $layoutNewFilename
+                                            $layoutDestPath = [System.IO.Path]::GetDirectoryName($layoutDestFilename)
+                                            $layoutDestName = [System.IO.Path]::GetFileName($layoutDestFilename)
+                                        }
     
                                         if (-not (Test-Path $layoutDestPath)) {
                                             New-Item $layoutDestPath -ItemType Directory | Out-Null
@@ -157,6 +173,11 @@ function Copy-AlSourceFiles {
                                         }
 
                                         [System.IO.File]::WriteAllBytes($layoutDestFilename, $layoutcontent)
+
+                                        $filename = (get-item $layoutDestFilename).FullName
+                                        if ($filename.StartsWith($Destination,"InvariantCultureIgnoreCase")) {
+                                            $layoutDestFilename = $filename
+                                        }
             
                                         $content[$_] = $line.SubString(0,$startIdx) + $layoutDestFilename.Substring($destination.Length+1).Replace('\','/') + $line.SubString($endIdx)
                                     }
