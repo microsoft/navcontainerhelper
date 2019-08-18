@@ -36,7 +36,9 @@ function Publish-NewApplicationToNavContainer {
         [pscredential] $credential,
         [switch] $useCleanDatabase,
         [switch] $doNotUseDevEndpoint,
-        [switch] $saveData
+        [switch] $saveData,
+        [ValidateSet('No','Yes','AsRuntimePackages')]
+        [string] $restoreApps = "No"
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -76,22 +78,47 @@ function Publish-NewApplicationToNavContainer {
 
     } -argumentList $containerAppDotNetPackagesFolder
 
-    if ($useCleanDatabase) {
-        $args = @{}
-        if ($saveData) {
-            $args += @{"saveData" = $true}
+    if ($restoreApps -ne "No") {
+        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        $appsFolder = Join-Path $containerFolder "Extensions"
+        if (!(Test-Path $appsFolder)) {
+            New-Item -Path $appsFolder -ItemType Directory | Out-Null
         }
-
-        Clean-BcContainerDatabase -containerName $containerName @args
+        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" }
+        $installedApps | ForEach-Object {
+            if ($_.Scope -eq "Global" -and !$doNotUseDevEndpoint) {
+                Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
+            }
+        }
+        $installedApps | ForEach-Object {
+            $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
+            if ($restoreApps -ne "Yes") {
+                Write-Host "Downloading app $($_.Name) as runtime package"
+                Get-BCContainerAppRuntimePackage -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default | Out-Null
+            }
+            else {
+                Get-BCContainerApp -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default -credential $credential | Out-Null
+            }
+        }
+    }
+    if ($useCleanDatabase) {
+        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No")
     }
 
     $scope = "tenant"
     if ($doNotUseDevEndpoint) {
         $scope = "global"
     }
-
     Publish-NavContainerApp -containerName $containerName -appFile $appFile -scope $scope -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
 
+    if ($restoreApps -ne "No") {
+        $installedApps | ForEach-Object {
+            $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
+            if ($_.IsPublished) {
+                Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $_.Scope
+            }
+        }
+    }
 }
 Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
 Export-ModuleMember -Function Publish-NewApplicationToNavContainer -Alias Publish-NewApplicationToBcContainer

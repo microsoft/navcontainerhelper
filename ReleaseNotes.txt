@@ -1,5 +1,10 @@
 0.6.2.95
 Copy-alSourceFiles to support using the same path and/or name for layout as report (*\name.rdlc, *.rdlc or *\..\layouts\*.rdlc)
+Include translations when extracting app source from 15.x containers
+Add parameter useBaseAppProperties to Create-AlProjectFromBcContainer in order to use AppId, Name, Publisher and version from existing BaseApp
+Add parameter saveData to Publish-NewApplicationToBcContainer
+Add parameter onlySaveBaseAppData to Clean-BcContainerDatabase to avoid saving data for other apps
+Add parameter restoreApps to Publish-NewApplicationToBcContainer to republish and reinstall installed apps after publishing new BaseApp
 
 0.6.2.94
 Ignore SQL Errors when using -assignpremiumplan

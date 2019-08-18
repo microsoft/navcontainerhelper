@@ -1218,9 +1218,11 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                 $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
                 Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
 
-                Copy-Item -Path (Join-Path $appFolder "layout") -Destination $alFolder -Recurse -Force
-                Copy-Item -Path (Join-Path $appFolder "src") -Destination $alFolder -Recurse -Force
-                Copy-Item -Path (Join-Path $appFolder "Translations") -Destination $alFolder -Recurse -Force
+                'layout','src','translations' | ForEach-Object {
+                    if (Test-Path (Join-Path $appFolder $_)) {
+                        Copy-Item -Path (Join-Path $appFolder $_) -Destination $alFolder -Recurse -Force
+                    }
+                }
 
                 Remove-Item -Path $appFolder -Recurse -Force
                 Remove-Item -Path $appFile -Force

@@ -21,6 +21,8 @@ function Get-NavContainerAppRuntimePackage {
         [string] $containerName = "navserver",
         [string] $appName,
         [Parameter(Mandatory=$false)]
+        [string] $Publisher,
+        [Parameter(Mandatory=$false)]
         [string] $appVersion,
         [Parameter(Mandatory=$false)]
         [string] $Tenant,
@@ -39,6 +41,10 @@ function Get-NavContainerAppRuntimePackage {
             "ServerInstance" = $ServerInstance
             "Name" = $appName
             "Path" = $appFile
+        }
+        if ($publisher)
+        {
+            $parameters += @{ "Publisher" = $publisher }
         }
         if ($appVersion)
         {

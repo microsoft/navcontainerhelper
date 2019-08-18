@@ -13,6 +13,7 @@ function Clean-BcContainerDatabase {
     Param(
         [string] $containerName = "navserver",
         [switch] $saveData,
+        [Switch] $onlySaveBaseAppData,
         [switch] $doNotUnpublish
     )
 
@@ -37,12 +38,12 @@ function Clean-BcContainerDatabase {
     $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
     $installedApps | % {
         $app = $_
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData)
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData, $onlySaveBaseAppData)
             if ($app.IsInstalled) {
                 Write-Host "Uninstalling $($app.Name)"
-                $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData)
+                $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData -or ($Name -ne "BaseApp" -and $onlySaveBaseAppData))
             }
-        } -argumentList $app, $SaveData
+        } -argumentList $app, $SaveData, $onlySaveBaseAppData
     }
 
     if ($platformversion.Major -eq 14) {
