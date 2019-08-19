@@ -29,15 +29,16 @@ function Copy-AlSourceFiles {
 
     if ($alFileStructure) {
         $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension')
-        
+        $extensions = @(".al",".xlf",".lcl")
+
         $files = Get-ChildItem -Path $Path -Recurse:$Recurse
-        $files | Where-Object { ($_.Extension -eq '.al' -or $_.Extension -eq '.xlf') -and !($_.Attributes.HasFlag([System.IO.FileAttributes]::Directory)) } | ForEach-Object {
+        $files | Where-Object { ($extensions.Contains($_.Extension.ToLowerInvariant())) -and !($_.Attributes.HasFlag([System.IO.FileAttributes]::Directory)) } | ForEach-Object {
     
             $filename = $_.Name
             $content = [System.IO.File]::ReadAllLines($_.FullName)
 
             try {
-                if ($_.Extension -eq '.xlf') {
+                if ($_.Extension -eq ".xlf" -or $_.Extension -eq ".lcl") {
                     $type = $_.Extension
                     $id = ''
                     $name = $_.BaseName
