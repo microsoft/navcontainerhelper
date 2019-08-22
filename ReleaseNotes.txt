@@ -1,3 +1,6 @@
+0.6.3.0
+Include Applications folder on docker images for 15.x containers
+
 0.6.2.95
 Copy-alSourceFiles to support using the same path and/or name for layout as report (*\name.rdlc, *.rdlc or *\..\layouts\*.rdlc)
 Include translations when extracting app source from 15.x containers
