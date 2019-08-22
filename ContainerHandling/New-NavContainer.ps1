@@ -622,6 +622,9 @@ function New-NavContainer {
             if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
                 $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
             }
+            if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
+                $parameters += @(" --env IsBcSandbox=Y" )
+            }
         }
 
         $imageName = $useGenericImage
