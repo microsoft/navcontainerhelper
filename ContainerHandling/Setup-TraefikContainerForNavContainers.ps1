@@ -15,7 +15,7 @@
   Path/Url of the toml file for traefik
  .Parameter CrtFile
   Path/Url of the certificate crt file for using your own domain
- .Parameter CertKeyFile
+ .Parameter CrtKeyFile
   Path/Url of the certificate key file for using your own domain
  .Example
   Setup-TraefikContainerForNavContainers -overrideDefaultBinding
