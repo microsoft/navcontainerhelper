@@ -1,6 +1,8 @@
 0.6.3.0
+Bugfix: When running Sandbox containers with -useBestContainerOS, the IsBcSandbox setting wasn't transferred
 Include Applications folder on docker images for 15.x containers
-When running Sandbox containers with -useBestContainerOS, the IsBcSandbox setting wasn't transferred
+Support running tests for 15.x containers
+Grab application source from Applications folder instead of extracting app on 15.x containers
 
 0.6.2.95
 Copy-alSourceFiles to support using the same path and/or name for layout as report (*\name.rdlc, *.rdlc or *\..\layouts\*.rdlc)
