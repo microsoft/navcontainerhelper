@@ -67,6 +67,13 @@ function Get-Tests {
         [string] $testCodeunit = "*"
     )
 
+    if ($testPage -eq 130455) {
+        $LineTypeAdjust = 1
+    }
+    else {
+        $lineTypeAdjust = 0
+    }
+
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the page object here: http://aka.ms/pstesttoolpagefob"
@@ -94,30 +101,32 @@ function Get-Tests {
         }
         $row = $repeater.DefaultViewport[$rowIndex]
         $lineTypeControl = $clientContext.GetControlByName($row, "LineType")
-        $lineType = $lineTypeControl.StringValue
+        $lineType = "$(([int]$lineTypeControl.StringValue) + $lineTypeAdjust)"
         $name = $clientContext.GetControlByName($row, "Name").StringValue
         $codeUnitId = $clientContext.GetControlByName($row, "TestCodeunit").StringValue
 
         # Refresh form????
         #Write-Host "$linetype $name"        
 
-        if ($linetype -eq "0") {
-            $group = @{ "Group" = $name; "Codeunits" = @() }
-            $Tests += $group
-                        
-        } elseif ($linetype -eq "1") {
-            $codeUnitName = $name
-            if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
-                $codeunit = @{ "Id" = "$codeunitId"; "Name" = $codeUnitName; "Tests" = @() }
-                if ($group) {
-                    $group.Codeunits += $codeunit
-                } else {
-                    $Tests += $codeunit
+        if ($name) {
+            if ($linetype -eq "0") {
+                $group = @{ "Group" = $name; "Codeunits" = @() }
+                $Tests += $group
+                            
+            } elseif ($linetype -eq "1") {
+                $codeUnitName = $name
+                if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
+                    $codeunit = @{ "Id" = "$codeunitId"; "Name" = $codeUnitName; "Tests" = @() }
+                    if ($group) {
+                        $group.Codeunits += $codeunit
+                    } else {
+                        $Tests += $codeunit
+                    }
                 }
-            }
-        } elseif ($lineType -eq "2") {
-            if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
-                $codeunit.Tests += $name
+            } elseif ($lineType -eq "2") {
+                if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
+                    $codeunit.Tests += $name
+                }
             }
         }
     }
@@ -141,6 +150,14 @@ function Run-Tests {
         [string] $AzureDevOps = 'no'
     )
 
+    if ($testPage -eq 130455) {
+        $LineTypeAdjust = 1
+        $runSelectedName = "RunSelectedTests"
+    }
+    else {
+        $lineTypeAdjust = 0
+        $runSelectedName = "RunSelected"
+    }
     $allPassed = $true
 
     $form = $clientContext.OpenForm($testPage)
@@ -205,22 +222,24 @@ function Run-Tests {
             }
             $row = $repeater.DefaultViewport[$rowIndex]
             $lineTypeControl = $clientContext.GetControlByName($row, "LineType")
-            $lineType = $lineTypeControl.StringValue
+            $lineType = "$(([int]$lineTypeControl.StringValue) + $lineTypeAdjust)"
             $name = $clientContext.GetControlByName($row, "Name").StringValue
             $codeUnitId = $clientContext.GetControlByName($row, "TestCodeunit").StringValue
-            if ($linetype -eq "0") {
-                $groupName = $name
-            }
-            elseif ($linetype -eq "1") {
-                $codeUnitName = $name
-                $codeUnitNames += @{ $codeunitId = $codeunitName }
-            }
-            elseif ($linetype -eq "2") {
-                $codeUnitname = $codeUnitNames[$codeunitId]
+            if ($name) {
+                if ($linetype -eq "0") {
+                    $groupName = $name
+                }
+                elseif ($linetype -eq "1") {
+                    $codeUnitName = $name
+                    $codeUnitNames += @{ $codeunitId = $codeunitName }
+                }
+                elseif ($linetype -eq "2") {
+                    $codeUnitname = $codeUnitNames[$codeunitId]
+                }
             }
         } while (!(($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) -and ($linetype -eq "1" -or $name -like $testFunction)))
 
-        if ($rowIndex -ge $repeater.DefaultViewport.Count)
+        if ($rowIndex -ge $repeater.DefaultViewport.Count -or !($name))
         {
             break 
         }
@@ -234,7 +253,7 @@ function Run-Tests {
                         Write-Host "  Codeunit $codeunitId $name " -NoNewline
                         $clientContext.ActivateControl($lineTypeControl)
         
-                        $clientContext.InvokeAction($clientContext.GetActionByName($form, "RunSelected"))
+                        $clientContext.InvokeAction($clientContext.GetActionByName($form, $runSelectedName))
                         $finishTime = get-date
                         $duration = $finishTime.Subtract($startTime)
         
@@ -287,7 +306,7 @@ function Run-Tests {
                         $clientContext.ActivateControl($lineTypeControl)
     
                         $startTime = get-date
-                        $clientContext.InvokeAction($clientContext.GetActionByName($form, "RunSelected"))
+                        $clientContext.InvokeAction($clientContext.GetActionByName($form, $runSelectedName))
                         $finishTime = get-date
                         $testduration = $finishTime.Subtract($startTime)
     

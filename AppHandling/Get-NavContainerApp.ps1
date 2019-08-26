@@ -17,7 +17,7 @@
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
  .Example
-  $appFile = Get-NavContainerApp -containerName test -publisher "Microsoft" -appName "BaseApp" -appVersion "
+  $appFile = Get-NavContainerApp -containerName test -publisher "Microsoft" -appName "Base Application" -appVersion "15.0.35528.0"
 #>
 function Get-NavContainerApp {
     Param(

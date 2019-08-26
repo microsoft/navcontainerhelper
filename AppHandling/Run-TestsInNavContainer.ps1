@@ -60,7 +60,9 @@ function Run-TestsInNavContainer {
         [string] $AzureDevOps = 'no',
         [switch] $detailed,
         [timespan] $interactionTimeout = [timespan]::FromHours(24),
-        [switch] $returnTrueIfAllPassed
+        [switch] $returnTrueIfAllPassed,
+        [Parameter(Mandatory=$false)]
+        [int] $testPage
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -74,7 +76,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-1"
+    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-2"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
@@ -85,23 +87,40 @@ function Run-TestsInNavContainer {
         throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
     }
 
+    if (!$testPage) {
+        if ($version.Major -ge 15) {
+            $testPage = 130455
+        }
+        else {
+            $testPage = 130409
+        }
+    }
+
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         try {
             New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
     
             Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestFunctionsPath -Force
             Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
-            if ($version.Major -lt 11) {
-                Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage$($version.Major).fob") -Destination $fobfile -Force
+
+            if ($version.Major -ge 15) {
+                if ($testPage -eq 130409) {
+                    Publish-BcContainerApp -containerName $containerName -appFile (Join-Path $PSScriptRoot "Microsoft_PSTestToolPage_15.0.0.0.app") -skipVerification -sync -install
+                }
             }
             else {
-                Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
-            }
+                if ($version.Major -lt 11) {
+                    Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage$($version.Major).fob") -Destination $fobfile -Force
+                }
+                else {
+                    Copy-Item -Path (Join-Path $PSScriptRoot "PSTestToolPage.fob") -Destination $fobfile -Force
+                }
 
-            if ($clientServicesCredentialType -eq "Windows") {
-                Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
-            } else {
-                Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+                if ($clientServicesCredentialType -eq "Windows") {
+                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
+                } else {
+                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+                }
             }
         } catch {
             Remove-Item -Path $PsTestToolFolder -Recurse -Force
@@ -116,7 +135,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $version)
+    $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -170,7 +189,8 @@ function Run-TestsInNavContainer {
                       -AppendToXUnitResultFile:$AppendToXUnitResultFile `
                       -ReRun:$ReRun `
                       -AzureDevOps $AzureDevOps `
-                      -detailed:$detailed
+                      -detailed:$detailed `
+                      -testPage $testPage
         }
         finally {
             if ($disableSslVerification) {
@@ -179,7 +199,7 @@ function Run-TestsInNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $version
+    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version
     if ($returnTrueIfAllPassed) {
         $allPassed
     }

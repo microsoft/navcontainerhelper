@@ -50,68 +50,83 @@ function Import-TestToolkitToNavContainer {
         $doNotUpdateSymbols = $true
     }
 
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
-
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
-    
-        if (-not (Test-Path -Path "C:\TestToolKit" -PathType Container)) {
-            throw "Container $containerName does not include the TestToolkit yet"
+    if ($version.Major -ge 15) {
+        if ($version -lt [Version]("15.0.35528.0")) {
+            throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
+        }
+        if (!$includeTestLibrariesOnly) {
+            Write-Warning "Importing Microsoft tests isn't yet supported, only test libraries will be imported"
         }
 
-        $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-        [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-        $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
-        $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-        $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
-        if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-   
-        $params = @{}
-        if ($sqlCredential) {
-            $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
-        }
-        if ($testToolkitCountry) {
-            $fileFilter = "*.$testToolkitCountry.fob"
-        }
-        else {
-            $fileFilter = "*.fob"
-        }
-        Get-ChildItem -Path "C:\TestToolKit" -Filter $fileFilter | ForEach-Object { 
-            if (!$includeTestLibrariesOnly -or $_.Name.StartsWith("CALTestLibraries")) {
-                $objectsFile = $_.FullName
-                Write-Host "Importing Objects from $objectsFile (container path)"
-                $databaseServerParameter = $databaseServer
-
-                if (!$doNotUpdateSymbols) {
-                    Write-Host "Generating Symbols while importing"
-                    # HACK: Parameter insertion...
-                    # generatesymbolreference is not supported by Import-NAVApplicationObject yet
-                    # insert an extra parameter for the finsql command by splitting the filter property
-                    $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
-                }
-    
-                Import-NAVApplicationObject @params -Path $objectsFile `
-                                            -DatabaseName $databaseName `
-                                            -DatabaseServer $databaseServerParameter `
-                                            -ImportAction $ImportAction `
-                                            -SynchronizeSchemaChanges No `
-                                            -NavServerName localhost `
-                                            -NavServerInstance $ServerInstance `
-                                            -NavServerManagementPort "$managementServicesPort" `
-                                            -Confirm:$false
-    
+        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
+            "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
+                @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
             }
         }
-
-        # Sync after all objects hav been imported
-        Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
-
-    } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
-
-    if ($generateSymbols) {
-        Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
+        $appFiles | % {
+            Publish-BCContainerApp -containerName $containerName -appFile ":$($_.FullName)" -sync -install
+        }
+        Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
-    Write-Host -ForegroundColor Green "TestToolkit successfully imported"
+    else {
+        $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
+        
+            $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+            [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+            $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+            $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+            $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+            $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
+            if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
+       
+            $params = @{}
+            if ($sqlCredential) {
+                $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            }
+            if ($testToolkitCountry) {
+                $fileFilter = "*.$testToolkitCountry.fob"
+            }
+            else {
+                $fileFilter = "*.fob"
+            }
+            Get-ChildItem -Path "C:\TestToolKit" -Filter $fileFilter | ForEach-Object { 
+                if (!$includeTestLibrariesOnly -or $_.Name.StartsWith("CALTestLibraries")) {
+                    $objectsFile = $_.FullName
+                    Write-Host "Importing Objects from $objectsFile (container path)"
+                    $databaseServerParameter = $databaseServer
+    
+                    if (!$doNotUpdateSymbols) {
+                        Write-Host "Generating Symbols while importing"
+                        # HACK: Parameter insertion...
+                        # generatesymbolreference is not supported by Import-NAVApplicationObject yet
+                        # insert an extra parameter for the finsql command by splitting the filter property
+                        $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
+                    }
+        
+                    Import-NAVApplicationObject @params -Path $objectsFile `
+                                                -DatabaseName $databaseName `
+                                                -DatabaseServer $databaseServerParameter `
+                                                -ImportAction $ImportAction `
+                                                -SynchronizeSchemaChanges No `
+                                                -NavServerName localhost `
+                                                -NavServerInstance $ServerInstance `
+                                                -NavServerManagementPort "$managementServicesPort" `
+                                                -Confirm:$false
+        
+                }
+            }
+    
+            # Sync after all objects hav been imported
+            Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
+    
+        } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
+    
+        if ($generateSymbols) {
+            Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
+        }
+        Write-Host -ForegroundColor Green "TestToolkit successfully imported"
+    }
 }
 Set-Alias -Name Import-TestToolkitToBCContainer -Value Import-TestToolkitToNavContainer
 Export-ModuleMember -Function Import-TestToolkitToNavContainer -Alias Import-TestToolkitToBCContainer
