@@ -153,10 +153,14 @@ function Run-Tests {
     if ($testPage -eq 130455) {
         $LineTypeAdjust = 1
         $runSelectedName = "RunSelectedTests"
+        $callStackName = "Stack Trace"
+        $firstErrorName = "Error Message"
     }
     else {
         $lineTypeAdjust = 0
         $runSelectedName = "RunSelected"
+        $callStackName = "Call Stack"
+        $firstErrorName = "First Error"
     }
     $allPassed = $true
 
@@ -344,13 +348,13 @@ function Run-Tests {
                         }
                     }
                     elseif ($result -eq "1") {
-                        $firstError = $clientContext.GetControlByName($row, "First Error").StringValue
+                        $firstError = $clientContext.GetControlByName($row, $firstErrorName).StringValue
                         if ($AzureDevOps -ne 'no') {
                             Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$name;]$firstError"
                         }
                         Write-Host -ForegroundColor Red "    Testfunction $name Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                         $allPassed = $false
-                        $callStack = $clientContext.GetControlByName($row, "Call Stack").StringValue
+                        $callStack = $clientContext.GetControlByName($row, $callStackName).StringValue
                         if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                         if ($XUnitResultFileName) {
                             $XUnitAssembly.SetAttribute("failed",([int]$XUnitAssembly.GetAttribute("failed")+1))
