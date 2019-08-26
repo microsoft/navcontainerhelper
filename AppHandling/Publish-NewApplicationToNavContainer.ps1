@@ -84,7 +84,7 @@ function Publish-NewApplicationToNavContainer {
         if (!(Test-Path $appsFolder)) {
             New-Item -Path $appsFolder -ItemType Directory | Out-Null
         }
-        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" }
+        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
         $installedApps | ForEach-Object {
             if ($_.Scope -eq "Global" -and !$doNotUseDevEndpoint) {
                 Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"

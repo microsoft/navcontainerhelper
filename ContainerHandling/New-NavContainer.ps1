@@ -622,6 +622,9 @@ function New-NavContainer {
             if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
                 $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
             }
+            if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
+                $parameters += @(" --env IsBcSandbox=Y" )
+            }
         }
 
         $imageName = $useGenericImage
@@ -1208,24 +1211,46 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
             if (!(Test-Path $alFolder)) {
                 New-Item $alFolder -ItemType Directory | Out-Null
-                $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
-                Get-NavContainerApp -containerName $containerName `
-                                    -publisher Microsoft `
-                                    -appName BaseApp `
-                                    -appFile $appFile `
-                                    -credential $credential
-
-                $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
-                Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
-
-                'layout','src','translations' | ForEach-Object {
-                    if (Test-Path (Join-Path $appFolder $_)) {
-                        Copy-Item -Path (Join-Path $appFolder $_) -Destination $alFolder -Recurse -Force
-                    }
+                if ($version -ge [Version]("15.0.35528.0")) {
+                    Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($alFolder, $country)
+                        [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.Filesystem") | Out-Null
+                        if (Test-Path "C:\Applications.$country") {
+                            $baseAppSource = @(get-childitem -Path "C:\Applications.$country\*.*" -recurse -filter "Base Application.Source.zip")
+                        }
+                        else {
+                            $baseAppSource = @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Base Application.Source.zip")
+                        }
+                        if ($baseAppSource.Count -ne 1) {
+                            throw "Unable to locate Base Application.Source.zip"
+                        }
+                        Write-Host "Extracting $($baseAppSource[0].FullName)"
+                        [System.IO.Compression.ZipFile]::ExtractToDirectory($baseAppSource[0].FullName, $alFolder)
+                    } -argumentList (Get-BCContainerPath -containerName $containerName -path $alFolder), $devCountry
                 }
-
-                Remove-Item -Path $appFolder -Recurse -Force
-                Remove-Item -Path $appFile -Force
+                else {
+                    $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
+                    $appName = "Base Application"
+                    if ($version -lt [Version]("15.0.35659.0")) {
+                        $appName = "BaseApp"
+                    }
+                    Get-NavContainerApp -containerName $containerName `
+                                        -publisher Microsoft `
+                                        -appName $appName `
+                                        -appFile $appFile `
+                                        -credential $credential
+    
+                    $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
+                    Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
+    
+                    'layout','src','translations' | ForEach-Object {
+                        if (Test-Path (Join-Path $appFolder $_)) {
+                            Copy-Item -Path (Join-Path $appFolder $_) -Destination $alFolder -Recurse -Force
+                        }
+                    }
+    
+                    Remove-Item -Path $appFolder -Recurse -Force
+                    Remove-Item -Path $appFile -Force
+                }
             }
         }
         elseif ($version.Major -gt 10) {

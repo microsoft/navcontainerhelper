@@ -41,7 +41,7 @@ function Clean-BcContainerDatabase {
         Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData, $onlySaveBaseAppData)
             if ($app.IsInstalled) {
                 Write-Host "Uninstalling $($app.Name)"
-                $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData -or ($Name -ne "BaseApp" -and $onlySaveBaseAppData))
+                $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData -or ($Name -ne "BaseApp" -and $Name -ne "Base Application" -and $onlySaveBaseAppData))
             }
         } -argumentList $app, $SaveData, $onlySaveBaseAppData
     }

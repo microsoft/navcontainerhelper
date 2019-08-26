@@ -80,6 +80,8 @@ function Extract-FilesFromStoppedNavContainer {
         docker cp "$($containerName):\UpgradeToolKit" "$path" 2>$null
         Write-Host "Extracting Extensions"
         docker cp "$($containerName):\Extensions" "$path" 2>$null
+        Write-Host "Extracting Applications"
+        docker cp "$($containerName):\Applications" "$path" 2>$null
 
         $sourceFolder = (Get-Item "$path\ServiceTier\Program Files\Microsoft Dynamics NAV\*\Web Client").FullName
         $destFolder = $sourceFolder.Replace('\Web Client','').Replace('ServiceTier\Program Files','WebClient')

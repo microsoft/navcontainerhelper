@@ -66,19 +66,6 @@ function Create-AlProjectFolderFromNavContainer {
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
     $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
 
-    if ($useBaseAppProperties) {
-        $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq 'BaseApp' }
-        if ($baseapp) {
-            $id = $baseapp.AppId
-            $name = $baseapp.Name
-            $publisher = $baseapp.Publisher
-            $version = $baseapp.Version
-        }
-        else {
-            throw "BaseApp not found"
-        }
-    }
-
     if (!(Test-Path $alFolder -PathType Container) -or !(Test-Path $dotnetAssembliesFolder -PathType Container)) {
         throw "Container $containerName was not started with -includeAL (or -doNotExportObjectsAsText was specified)"
     }
@@ -94,12 +81,77 @@ function Create-AlProjectFolderFromNavContainer {
     if ($useBaseLine) {
         Copy-AlSourceFiles -Path "$alFolder\*" -Destination $AlProjectFolder -Recurse -alFileStructure $alFileStructure
     }
+    elseif ($ver.Major -ge 15) {
+        $id = [Guid]::NewGuid().Guid
+        $appFile = Join-Path $ExtensionsFolder "BaseApp-$id.app"
+        $appFolder = Join-Path $ExtensionsFolder "BaseApp-$id"
+        $myAlFolder = Join-Path $ExtensionsFolder "al-$id"
+        try {
+            $appName = "Base Application"
+            if ($ver -lt [Version]("15.0.35659.0")) {
+                $appName = "BaseApp"
+            }
+            $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq $appName }
+            Get-NavContainerApp -containerName $containerName `
+                                -publisher $baseapp.Publisher `
+                                -appName $baseapp.Name `
+                                -appFile $appFile `
+                                -credential $credential
+        
+            Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
+            'layout','src','translations' | ForEach-Object {
+                if (Test-Path (Join-Path $appFolder $_)) {
+                    Copy-Item -Path (Join-Path $appFolder $_) -Destination $myAlFolder -Recurse -Force
+                }
+            }
+
+            Copy-AlSourceFiles -Path "$myAlFolder\*" -Destination $AlProjectFolder -Recurse -alFileStructure $alFileStructure
+        }
+        finally {    
+            Remove-Item -Path $myAlFolder -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $appFolder -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path $appFile -Force -ErrorAction SilentlyContinue
+        }
+    }
     else {
         Convert-ModifiedObjectsToAl -containerName $containerName -doNotUseDeltas -alProjectFolder $AlProjectFolder -alFileStructure $alFileStructure -runTxt2AlInContainer $runTxt2AlInContainer
     }
 
     $appJsonFile = Join-Path $AlProjectFolder "app.json"
-    if ($ver.Major -eq 15) {
+    if ($useBaseLine -and $ver -ge [Version]("15.0.35528.0")) {
+        $appJson = Get-Content "$alFolder\app.json" | ConvertFrom-Json
+
+        if (-not $useBaseAppProperties) {
+            $appJson.Id = $id
+            $appJson.Name = $name
+            $appJson.Publisher = $publisher
+            $appJson.Version = $version
+        }
+
+    } elseif ($ver.Major -ge  15) {
+        
+        if ($useBaseAppProperties) {
+            $appName = "Base Application"
+            if ($ver -lt [Version]("15.0.35659.0")) {
+                $appName = "BaseApp"
+            }
+            $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq $appName }
+            if ($baseapp) {
+                $id = $baseapp.AppId
+                $name = $baseapp.Name
+                $publisher = $baseapp.Publisher
+                $version = $baseapp.Version
+            }
+            else {
+                throw "BaseApp not found"
+            }
+        }
+        if ($ver -ge [Version]("15.0.35528.0")) {
+            $sysAppVer = "$($ver.Major).0.0.0"
+        }
+        else {
+            $sysAppVer = "1.0.0.0"
+        }
         $appJson = @{ 
             "id" = $id
             "name" = $name
@@ -116,10 +168,10 @@ function Create-AlProjectFolderFromNavContainer {
                 "appId" = "63ca2fa4-4f03-4f2b-a480-172fef340d3f"
                 "publisher" = "Microsoft"
                 "name" = "System Application"
-                "version" = "1.0.0.0"
+                "version" = $sysAppVer
             })
             "screenshots" = @()
-            "platform" = "15.0.0.0"
+            "platform" = "$($ver.Major).0.0.0"
             "idRanges" = @()
             "showMyCode" = $true
             "target" = "OnPrem"
