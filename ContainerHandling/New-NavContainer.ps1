@@ -1124,10 +1124,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             }
             New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
             if ($includeTestToolkit) {
+                if ($version -ge [Version]("15.0.35528.0")) {
+                    $pageno = 130451
+                }
+                else {
+                    $pageno = 130401
+                }
+
                 if ($webClientUrl.Contains('?')) {
-                    $webClientUrl += "&page=130401"
+                    $webClientUrl += "&page=$pageno"
                 } else {
-                    $webClientUrl += "?page=130401"
+                    $webClientUrl += "?page=$pageno"
                 }
                 New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
             }
