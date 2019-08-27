@@ -229,9 +229,9 @@ function Compile-AppInNavContainer {
     }
     
 
-    $authParam = @{}
+    $webClient = [System.Net.WebClient]::new()
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-        $authParam += @{ "usedefaultcredential" = $true }
+        $webClient.UseDefaultCredentials = $true
     }
     else {
         if (!($credential)) {
@@ -242,8 +242,7 @@ function Compile-AppInNavContainer {
         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
         $base64 = [System.Convert]::ToBase64String($bytes)
         $basicAuthValue = "Basic $base64"
-        $headers = @{ Authorization = $basicAuthValue }
-        $authParam += @{ "headers" = $headers }
+        $webClient.Headers.Add("Authorization", $basicAuthValue)
     }
 
     $dependencies | ForEach-Object {
@@ -262,10 +261,16 @@ function Compile-AppInNavContainer {
             $publisher = [uri]::EscapeDataString($publisher)
             $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
             Write-Host "Url : $Url"
-            Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $symbolsFile
+            $webClient.DownloadFile($url, $symbolsFile)
+            if (Test-Path -Path $symbolsFile) {
+                Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile)
+                    # Wait for file to be accessible in container
+                    While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
+                } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile)
+            }
         }
     }
-
+ 
     if ($sslverificationdisabled) {
         Write-Host "Re-enabling SSL Verification"
         [SslVerification]::Enable()
