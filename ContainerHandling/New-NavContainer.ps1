@@ -606,6 +606,11 @@ function New-NavContainer {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
             }
 
+            if ($version -ge [Version]"15.0.35659.0" -and !(Test-Path "$dvdPath\Applications")) {
+                Remove-Item "$dvdPath" -Recurse -Force -ErrorAction Ignore
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
+            }
+
             if (!(Test-Path $dvdPath)) {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
             }
