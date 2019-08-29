@@ -54,15 +54,27 @@ function Import-TestToolkitToNavContainer {
         if ($version -lt [Version]("15.0.35528.0")) {
             throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
         }
-        if (!$includeTestLibrariesOnly) {
-            Write-Warning "Importing Microsoft tests isn't yet supported, only test libraries will be imported"
-        }
 
-        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
+        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly)
             "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
             }
-        }
+            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+            if (Test-Path $mockAssembliesPath) {
+                $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
+                if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
+                    new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
+                }
+                "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                    @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+                }
+
+                if (!$includeTestLibrariesOnly) {
+                    @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app"}
+                }
+
+            }
+        } -argumentList $includeTestLibrariesOnly
         $appFiles | % {
             Publish-BCContainerApp -containerName $containerName -appFile ":$($_.FullName)" -sync -install
         }

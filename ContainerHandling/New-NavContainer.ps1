@@ -606,6 +606,11 @@ function New-NavContainer {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
             }
 
+            if ($version -ge [Version]"15.0.35659.0" -and !(Test-Path "$dvdPath\Applications")) {
+                Remove-Item "$dvdPath" -Recurse -Force -ErrorAction Ignore
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
+            }
+
             if (!(Test-Path $dvdPath)) {
                 Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
             }
@@ -1216,8 +1221,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
         if ($version.Major -ge 15) {
             $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
-            if (!(Test-Path $alFolder)) {
-                New-Item $alFolder -ItemType Directory | Out-Null
+            if (!(Test-Path $alFolder) -or (Get-ChildItem -Path $alFolder -Recurse | Measure-Object).Count -eq 0) {
+                if (!(Test-Path $alFolder)) {
+                    New-Item $alFolder -ItemType Directory | Out-Null
+                }
                 if ($version -ge [Version]("15.0.35528.0")) {
                     Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($alFolder, $country)
                         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.Filesystem") | Out-Null
@@ -1306,8 +1313,12 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             if (Test-Path $rtcFolder -PathType Container) {
                 $paths += (Get-Item $rtcFolder).FullName
             }
+            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+            if (Test-Path $mockAssembliesPath -PathType Container) {
+                $paths += $mockAssembliesPath
+            }
             $paths += "C:\Program Files (x86)\Open XML SDK"
-            
+
             $paths | % {
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
                 Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"

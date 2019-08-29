@@ -1,3 +1,11 @@
+0.6.3.2
+Bugfix: Compile-AppInBcContainer sometimes cannot use the downloaded symbols due to a timing issue
+Issue #577: Create source files cache folder even if empty
+Include C:\Applications.Country (if exists) during extract from container
+Include C:\Test Assemblies\Mock Assemblies in probing path when importing test toolkit
+Support importing test apps from C:\Application in 15.x containers
+Bugfix #585: Ignore warning messages in Get-NavContainerAppInfo
+
 0.6.3.1
 Use page 130451 as testtool page for 15.x containers
 Report errors and callstack correctly on 15.x containers

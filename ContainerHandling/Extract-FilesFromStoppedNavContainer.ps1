@@ -52,7 +52,8 @@ function Extract-FilesFromStoppedNavContainer {
         if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
             Set-Content -Path "$path\platform.txt" -value "$($inspect.Config.Labels.platform)"
         }
-        Set-Content -Path "$path\country.txt" -value "$($inspect.Config.Labels.Country)"
+        $country = $inspect.Config.Labels.Country
+        Set-Content -Path "$path\country.txt" -value "$country"
         Set-Content -Path "$path\version.txt" -value "$($inspect.Config.Labels.Version)"
 
         New-Item "$path\ServiceTier\System64Folder" -ItemType Directory | Out-Null
@@ -82,6 +83,8 @@ function Extract-FilesFromStoppedNavContainer {
         docker cp "$($containerName):\Extensions" "$path" 2>$null
         Write-Host "Extracting Applications"
         docker cp "$($containerName):\Applications" "$path" 2>$null
+        Write-Host "Extracting Applications.$country"
+        docker cp "$($containerName):\Applications.$country" "$path" 2>$null
 
         $sourceFolder = (Get-Item "$path\ServiceTier\Program Files\Microsoft Dynamics NAV\*\Web Client").FullName
         $destFolder = $sourceFolder.Replace('\Web Client','').Replace('ServiceTier\Program Files','WebClient')

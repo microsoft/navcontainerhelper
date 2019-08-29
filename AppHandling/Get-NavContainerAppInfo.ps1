@@ -76,7 +76,7 @@ function Get-NavContainerAppInfo {
             $script:installedApps
         }
 
-    } -ArgumentList $args, $sort
+    } -ArgumentList $args, $sort | Where-Object {$_ -isnot [System.String]}
 }
 Set-Alias -Name Get-BCContainerAppInfo -Value Get-NavContainerAppInfo
 Export-ModuleMember -Function Get-NavContainerAppInfo -Alias Get-BCContainerAppInfo
