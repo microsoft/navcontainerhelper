@@ -1313,8 +1313,12 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             if (Test-Path $rtcFolder -PathType Container) {
                 $paths += (Get-Item $rtcFolder).FullName
             }
+            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+            if (Test-Path $mockAssembliesPath -PathType Container) {
+                $paths += $mockAssembliesPath
+            }
             $paths += "C:\Program Files (x86)\Open XML SDK"
-            
+
             $paths | % {
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
                 Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"

@@ -101,6 +101,12 @@ function Compile-AppInNavContainer {
 
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
                 $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
+                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                if (Test-Path $mockAssembliesPath -PathType Container) {
+                    $assemblyProbingPaths += ",""$mockAssembliesPath"""
+                }
+
+
                 $assemblyProbingPaths
             } -ArgumentList $containerProjectFolder
         }
