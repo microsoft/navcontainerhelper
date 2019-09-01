@@ -1229,7 +1229,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                     Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($alFolder, $country)
                         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.Filesystem") | Out-Null
                         if (Test-Path "C:\Applications.$country") {
-                            $baseAppSource = @(get-childitem -Path "C:\Applications.$country\*.*" -recurse -filter "Base Application.Source.zip")
+                            $baseAppSource = @(get-childitem -Path "C:\Applications.*\*.*" -recurse -filter "Base Application.Source.zip")
                         }
                         else {
                             $baseAppSource = @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Base Application.Source.zip")

@@ -1,3 +1,6 @@
+0.6.3.3
+Import-TestToolkit to use local apps when using local sandbox builds
+
 0.6.3.2
 Bugfix: Compile-AppInBcContainer sometimes cannot use the downloaded symbols due to a timing issue
 Issue #577: Create source files cache folder even if empty
