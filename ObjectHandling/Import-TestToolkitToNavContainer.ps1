@@ -65,18 +65,27 @@ function Import-TestToolkitToNavContainer {
                 if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
                     new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
                 }
-                "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                $apps = "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
                     @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                 }
 
                 if (!$includeTestLibrariesOnly) {
-                    @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app"}
+                    $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                }
+                $apps | % {
+                    $localapp = Get-ChildItem -path "c:\applications.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+                    if ($localapp) {
+                        $localapp
+                    }
+                    else {
+                        $_
+                    }
                 }
 
             }
         } -argumentList $includeTestLibrariesOnly
         $appFiles | % {
-            Publish-BCContainerApp -containerName $containerName -appFile ":$($_.FullName)" -sync -install
+            Publish-BCContainerApp -containerName $containerName -appFile ":$($_.FullName)" -sync -install -skipVerification
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
