@@ -56,7 +56,7 @@ function Import-TestToolkitToNavContainer {
         }
 
         $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly)
-            "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
+            $apps = "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
             }
             $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
@@ -65,7 +65,7 @@ function Import-TestToolkitToNavContainer {
                 if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
                     new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
                 }
-                $apps = "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
                     @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                 }
 
@@ -73,19 +73,22 @@ function Import-TestToolkitToNavContainer {
                     $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
                 }
                 $apps | % {
-                    $localapp = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
-                    if ($localapp) {
-                        $localapp
+                    $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+                    if (!($appFile)) {
+                        $appFile = $_
                     }
-                    else {
-                        $_
-                    }
+                    Write-Host "Publishing $appFile"
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification
+            
+                    $navAppInfo = Get-NAVAppInfo -Path $appFile
+                    $appName = $navAppInfo.Name
+                    $appVersion = $navAppInfo.Version
+                    Sync-NavTenant -ServerInstance $ServerInstance -Tenant default -Force
+                    Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant default -force -WarningAction Ignore
+                    Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant default
                 }
             }
         } -argumentList $includeTestLibrariesOnly
-        $appFiles | % {
-            Publish-BCContainerApp -containerName $containerName -appFile ":$($_.FullName)" -sync -install -skipVerification
-        }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
     else {

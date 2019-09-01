@@ -189,8 +189,9 @@ function Publish-NavContainerApp {
             Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
 
             if ($sync -or $install) {
-                $appName = (Get-NAVAppInfo -Path $appFile).Name
-                $appVersion = (Get-NAVAppInfo -Path $appFile).Version
+                $navAppInfo = Get-NAVAppInfo -Path $appFile
+                $appName = $navAppInfo.Name
+                $appVersion = $navAppInfo.Version
         
                 $syncArgs = @{}
                 if ($syncMode) {
