@@ -1229,10 +1229,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                     Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($alFolder, $country)
                         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.Filesystem") | Out-Null
                         if (Test-Path "C:\Applications.$country") {
-                            $baseAppSource = @(get-childitem -Path "C:\Applications.*" -recurse -filter "Base Application.Source.zip")
+                            $baseAppSource = @(get-childitem -Path "C:\Applications.*\*.*" -recurse -filter "Base Application.Source.zip")
                         }
                         else {
-                            $baseAppSource = @(get-childitem -Path "C:\Applications" -recurse -filter "Base Application.Source.zip")
+                            $baseAppSource = @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Base Application.Source.zip")
                         }
                         if ($baseAppSource.Count -ne 1) {
                             throw "Unable to locate Base Application.Source.zip"

@@ -73,7 +73,7 @@ function Import-TestToolkitToNavContainer {
                     $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
                 }
                 $apps | % {
-                    $localapp = Get-ChildItem -path "c:\applications.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+                    $localapp = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
                     if ($localapp) {
                         $localapp
                     }
@@ -81,7 +81,6 @@ function Import-TestToolkitToNavContainer {
                         $_
                     }
                 }
-
             }
         } -argumentList $includeTestLibrariesOnly
         $appFiles | % {
