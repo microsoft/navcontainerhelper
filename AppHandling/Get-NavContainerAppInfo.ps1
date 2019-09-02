@@ -64,7 +64,7 @@ function Get-NavContainerAppInfo {
             }
         }
 
-        $apps = Get-NavAppInfo -ServerInstance $ServerInstance @inArgs | ForEach-Object { Get-NavAppInfo -ServerInstance $serverInstance -id $_.AppId @inArgs }
+        $apps = Get-NavAppInfo -ServerInstance $ServerInstance @inArgs | ForEach-Object { Get-NavAppInfo -ServerInstance $serverInstance -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
         if ($sort -eq "None") {
             $apps
         }
