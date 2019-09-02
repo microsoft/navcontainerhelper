@@ -44,21 +44,26 @@ function Get-NavContainerAppInfo {
         $script:installedApps = @()
 
         function AddAnApp { Param($anApp) 
-            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.name -eq $anApp.name -and $_.publisher -eq $anApp.publisher -and $_.version -eq $anApp.version }
+            #Write-Host "AddAnApp $($anapp.Name)"
+            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId }
             if (-not ($alreadyAdded)) {
+                #Write-Host "add dependencies"
                 AddDependencies -anApp $anApp
+                #Write-Host "add the app $($anapp.Name)"
                 $script:installedApps += $anApp
             }
         }
     
         function AddDependency { Param($dependency)
-            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId -and $_.name -eq $dependency.name -and $_.publisher -eq $dependency.publisher -and $_.version -eq $dependency.version }
+            #Write-Host "Add Dependency $($dependency.Name)"
+            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId }
             if ($dependentApp) {
                 AddAnApp -AnApp $dependentApp
             }
         }
     
         function AddDependencies { Param($anApp)
+            #Write-Host "Add Dependencies for $($anApp.Name)"
             if (($anApp) -and ($anApp.Dependencies)) {
                 $anApp.Dependencies | % { AddDependency -Dependency $_ }
             }
