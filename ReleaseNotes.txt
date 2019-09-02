@@ -1,5 +1,7 @@
 0.6.3.4
 Bugfix #570: Get-NavContainerAppInfo can return one app multiple times
+PR #592: Catch errors from PTE CodeCop 
+Add caching of runtime packages to Import-TestToolkitToBcContainer (or -IncludeTestToolkit) to allow faster subsequent starts of the same version
 
 0.6.3.3
 Import-TestToolkit to use local apps when using local sandbox builds

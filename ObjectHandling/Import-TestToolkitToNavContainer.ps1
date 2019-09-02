@@ -26,13 +26,14 @@
 function Import-TestToolkitToNavContainer {
     Param(
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [PSCredential]$sqlCredential = $null,
-        [switch]$includeTestLibrariesOnly,
-        [string]$testToolkitCountry,
-        [switch]$doNotUpdateSymbols,
+        [string] $containerName, 
+        [PSCredential] $sqlCredential = $null,
+        [switch] $includeTestLibrariesOnly,
+        [string] $testToolkitCountry,
+        [switch] $doNotUpdateSymbols,
         [ValidateSet("Overwrite","Skip")]
-        [string]$ImportAction = "Overwrite"
+        [string] $ImportAction = "Overwrite",
+        [switch] $doNotUseRuntimePackages
     )
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
@@ -40,6 +41,7 @@ function Import-TestToolkitToNavContainer {
         throw "Container $containerName is not a NAV container"
     }
     [System.Version]$version = $inspect.Config.Labels.version
+    $country = $inspect.Config.Labels.country
 
     $config = Get-NavContainerServerConfiguration -ContainerName $containerName
     $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
@@ -55,7 +57,7 @@ function Import-TestToolkitToNavContainer {
             throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
         }
 
-        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly)
+        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $navVersion, $doNotUseRuntimePackages)
             $apps = "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
             }
@@ -77,18 +79,35 @@ function Import-TestToolkitToNavContainer {
                     if (!($appFile)) {
                         $appFile = $_
                     }
+
+                    if (!$doNotUseRuntimePackages) {
+                        $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\Applications-$navVersion"
+                        if (!(Test-Path $applicationsPath)) {
+                            New-Item -Path $applicationsPath -ItemType Directory | Out-Null
+                        }
+                        $runtimeAppFile = "$applicationsPath\$($_.name.Replace('.app','.runtime.app'))"
+                        $useRuntimeApp = $false
+                        if (Test-Path $runtimeAppFile) {
+                            $appFile = $runtimeAppFile
+                            $useRuntimeApp = $true
+                        }
+                    }
+
                     Write-Host "Publishing $appFile"
                     Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification
-            
                     $navAppInfo = Get-NAVAppInfo -Path $appFile
                     $appName = $navAppInfo.Name
+                    $appPublisher = $navAppInfo.Publisher
                     $appVersion = $navAppInfo.Version
                     Sync-NavTenant -ServerInstance $ServerInstance -Tenant default -Force
-                    Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant default -force -WarningAction Ignore
-                    Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant default
+                    Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant default -force -WarningAction Ignore
+                    Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant default
+                    if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
+                        Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile
+                    }
                 }
             }
-        } -argumentList $includeTestLibrariesOnly
+        } -argumentList $includeTestLibrariesOnly, "$version-$country", $doNotUseRuntimePackages
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
     else {
