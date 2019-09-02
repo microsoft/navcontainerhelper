@@ -31,7 +31,8 @@ function Get-TestsFromNavContainer {
         [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
         [Parameter(Mandatory=$false)]
-        [int] $testPage
+        [int] $testPage,
+        [switch] $debugMode
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -89,7 +90,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -127,10 +128,16 @@ function Get-TestsFromNavContainer {
                 Disable-SslVerification
             }
             
-            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential
+            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -debugMode:$debugMode
 
             Get-Tests -clientContext $clientContext -TestSuite $testSuite -TestCodeunit $testCodeunit -testPage $testPage
 
+        }
+        catch {
+            if ($debugMode) {
+                Dump-ClientContext -clientcontext $clientContext 
+            }
+            throw
         }
         finally {
             if ($disableSslVerification) {
@@ -139,7 +146,7 @@ function Get-TestsFromNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version | ConvertFrom-Json
+    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode | ConvertFrom-Json
 }
 Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
 Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer
