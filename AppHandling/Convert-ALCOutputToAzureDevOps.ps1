@@ -37,7 +37,7 @@ Function Convert-AlcOutputToAzureDevOps {
             
                     $hasWarning = $true
                 }
-                "^(.*)\((\d+),(\d+)\): error (\w{2}\d{4}): (.*)$"
+                "^(.*)\((\d+),(\d+)\): error (\w{2,3}\d{4}): (.*)$"
                 #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
                 {
                     Write-Host "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
