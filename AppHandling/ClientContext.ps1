@@ -8,6 +8,7 @@ class ClientContext {
     $clientSession = $null
     $culture = ""
     $caughtForm = $null
+    $debugMode = $false
 
     ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture) {
         $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture)
@@ -52,13 +53,41 @@ class ClientContext {
     
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"
+            if ($this.debugMode) {
+                $this.GetAllForms() | % {
+                    $formInfo = $this.GetFormInfo($_)
+                    if ($formInfo) {
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                    }
+                }
+                Remove-ClientSession
+            }
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName CommunicationError -Action {
             Write-Host -ForegroundColor Red "CommunicationError : $($EventArgs.Exception.Message)"
+            if ($this.debugMode) {
+                $this.GetAllForms() | % {
+                    $formInfo = $this.GetFormInfo($_)
+                    if ($formInfo) {
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                    }
+                }
+            }
             Remove-ClientSession
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UnhandledException -Action {
             Write-Host -ForegroundColor Red "UnhandledException : $($EventArgs.Exception.Message)"
+            if ($this.debugMode) {
+                $this.GetAllForms() | % {
+                    $formInfo = $this.GetFormInfo($_)
+                    if ($formInfo) {
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                    }
+                }
+            }
             Remove-ClientSession
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName InvalidCredentialsError -Action {
@@ -74,9 +103,19 @@ class ClientContext {
                 $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
                 Write-Host -ForegroundColor Red "ERROR: $($errorControl.StringValue)"
             }
-            if ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
+            elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
                 $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
                 Write-Host -ForegroundColor Yellow "WARNING: $($errorControl.StringValue)"
+            }
+            else {
+                if ($this.debugMode) {
+                    Write-Host -ForegroundColor Yellow "Show dialog $($form.ControlIdentifier)"
+                    $formInfo = $this.GetFormInfo($form)
+                    if ($formInfo) {
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                    }
+                }
             }
         })
     
