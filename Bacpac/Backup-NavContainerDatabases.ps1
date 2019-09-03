@@ -2,37 +2,27 @@
  .Synopsis
   Backup databases in a NAV/BC Container as .bak files
  .Description
-  If the Container is multi-tenant, this command will create an app.bak and a tenant.bak (or multiple tenant.bak files)
+  If the Container is multi-tenant, this command will create an app.bak and a number of tenant .bak files
   If the Container is single-tenant, this command will create one .bak file called database.bak.
  .Parameter containerName
-  Name of the container for which you want to export and convert objects
- .Parameter sqlCredential
-  Credentials for the SQL admin user if using NavUserPassword authentication.
+  Name of the container in which you want to backup databases
  .Parameter bakFolder
-  The folder to which the bak files are exported (needs to be shared with the container)
+  The folder to which the .bak files are exported (needs to be shared with the container)
  .Parameter tenant
-  The tenant database(s) to export, only applies to multi-tenant containers
-  Omit to export tenant template, specify default to export the default tenant.
+  The tenant database(s) to export, only applies to multi-tenant containers. Omit to export all tenants.
  .Example
   Backup-NavContainerDatabases -containerName test
  .Example
   Backup-NavContainerDatabases -containerName test -bakfolder "c:\programdata\navcontainerhelper\extensions\test"
  .Example
-  Backup-NavContainerDatabases -containerName test -bakfolder "c:\demo" -sqlCredential <sqlCredential>
- .Example
-  Backup-NavContainerDatabases -containerName test -tenant default
- .Example
-  Backup-NavContainerDatabases -containerName test -tenant @("default","tenant")
+  Backup-NavContainerDatabases -containerName test -tenant @("default")
 #>
 function Backup-NavContainerDatabases {
     Param (
         [string] $containerName = "navserver", 
-        [PSCredential] $sqlCredential = $null,
         [string] $bakFolder = "",
-        [string[]] $tenant = @("tenant")
+        [string[]] $tenant
     )
-
-    $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     if ("$bakFolder" -eq "") {
@@ -40,7 +30,7 @@ function Backup-NavContainerDatabases {
     }
     $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bakFolder, $tenant)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($bakFolder, $tenant)
        
         function Backup {
             Param (
@@ -53,6 +43,7 @@ function Backup-NavContainerDatabases {
             if (Test-Path $bakFile) {
                 Remove-Item -Path $bakFile -Force
             }
+            Write-Host "Backing up $database to $bakFile"
             Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile
         }
 
@@ -62,7 +53,7 @@ function Backup-NavContainerDatabases {
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-
+        
         $databaseServerInstance = $databaseServer
         if ("$databaseInstance" -ne "") {
             $databaseServerInstance = "$databaseServer\$databaseInstance"
@@ -73,6 +64,9 @@ function Backup-NavContainerDatabases {
         }
 
         if ($multitenant) {
+            if (!($tenant)) {
+                $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
+            }
             Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app"
             $tenant | ForEach-Object {
                 Backup -ServerInstance $databaseServerInstance -database $_ -bakFolder $bakFolder -bakName $_
@@ -80,7 +74,7 @@ function Backup-NavContainerDatabases {
         } else {
             Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database"
         }
-    } -ArgumentList $sqlCredential, $containerbakFolder, $tenant
+    } -ArgumentList $containerbakFolder, $tenant
 }
 Set-Alias -Name Backup-BCContainerDatabases -Value Backup-NavContainerDatabases
 Export-ModuleMember -Function Backup-NavContainerDatabases -Alias Backup-BCContainerDatabases

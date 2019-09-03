@@ -69,7 +69,7 @@ Description = 'PowerShell module'
 # NestedModules = @()
 
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
-FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases', 
+FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases', 'Restore-DatabasesInNavContainer', 
                'Check-NavContainerHelperPermissions', 'Compile-AppInNavContainer', 
                'Compile-ObjectsInNavContainer', 'Convert-AlcOutputToAzureDevOps', 
                'Convert-ModifiedObjectsToAl', 'Convert-Txt2Al', 
@@ -131,7 +131,7 @@ CmdletsToExport = @()
 # VariablesToExport = @()
 
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
-AliasesToExport = 'Add-FontsToBCContainer', 'Backup-BCContainerDatabases', 
+AliasesToExport = 'Add-FontsToBCContainer', 'Backup-BCContainerDatabases', 'Restore-DatabasesInBCContainer', 
                'Compile-AppInBCContainer', 'Copy-CompanyInBCContainer', 
                'Copy-FileFromBCContainer', 'Copy-FileToBCContainer', 
                'Create-AadAppsForBC', 'Create-AadUsersInBCContainer', 
