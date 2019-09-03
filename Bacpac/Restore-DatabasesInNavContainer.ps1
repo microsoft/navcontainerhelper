@@ -73,7 +73,7 @@ function Restore-DatabasesInNavContainer {
         $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
 
         if ($multitenant -and !($tenant)) {
-            $tenant = @(get-navtenant bc | % { $_.Id }) + "tenant"
+            $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
         }
 
         Set-NavServerInstance -ServerInstance $serverInstance -stop
