@@ -1,7 +1,17 @@
-﻿function Get-NavVersionFromVersionInfo {
-    Param(
+﻿<# 
+ .Synopsis
+  Get NAV Version based on version info
+ .Description
+  Return NAV Version (like 2017, 2013r2 etc.) based on version number
+ .Parameter versionInfo
+  Version Info like (11.0.45332.0)
+ .Example
+  $mynav = "NAV $(Get-MavVersionFromVersionInfo -versionInfo $version) - build $version"
+#>
+function Get-NavVersionFromVersionInfo {
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$versionInfo
+        [string] $versionInfo
     )
 
     $versionInfoArr = $versionInfo.Split(".")

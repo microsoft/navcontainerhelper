@@ -13,10 +13,9 @@
 #>
 function Get-NavContainerPlatformVersion {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerOrImageName
+        [string] $containerOrImageName
     )
 
     Process {

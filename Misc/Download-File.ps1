@@ -1,10 +1,24 @@
-﻿function Download-File {
-    Param(
+﻿<#
+ .Synopsis
+  Download File
+ .Description
+  Download a file to local computer
+ .Parameter sourceUrl
+  Url from which the file will get downloaded
+ .Parameter destinationFile
+  Destinatin for the downloaded file
+ .Parameter dontOverwrite
+  Specify dontOverwrite if you want top skip downloading if the file already exists
+ .Example
+  Download-File -sourceUrl "https://myurl/file.zip" -destinationFile "c:\temp\file.zip" -dontOverwrite
+#>
+function Download-File {
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$sourceUrl,
+        [string] $sourceUrl,
         [Parameter(Mandatory=$true)]
-        [string]$destinationFile,
-        [switch]$dontOverwrite
+        [string] $destinationFile,
+        [switch] $dontOverwrite
     )
 
     if (Test-Path $destinationFile -PathType Leaf) {

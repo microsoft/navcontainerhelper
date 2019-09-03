@@ -5,19 +5,22 @@
   Creates a session to the container and runs the CmdLet Start-NAVAppDataUpgrade in the container
  .Parameter containerName
   Name of the container in which you want to upgrade the app (default navserver)
+ .Parameter tenant
+  Name of the tenant in which you want to upgrade the app (default default)
  .Parameter appName
   Name of app you want to upgrade in the container
+ .Parameter appVersion
+  Version of app you want to upgrade in the container
  .Example
   Start-NavContainerAppDataUpgrade -containerName test2 -appName myapp
 #>
 function  Start-NavContainerAppDataUpgrade {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $appName,
         [Parameter(Mandatory=$false)]
-
         [string] $appVersion
     )
 

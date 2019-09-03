@@ -10,9 +10,9 @@
   Get-NavContainerName -containerId 7d
 #>
 function Get-NavContainerName {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerId
+        [string] $containerId
     )
 
     docker ps --format='{{.Names}}' -a --filter "id=$containerId"

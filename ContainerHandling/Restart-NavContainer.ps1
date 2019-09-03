@@ -16,8 +16,7 @@
 #>
 function Restart-NavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string] $containerName,
         [switch] $renewBindings,

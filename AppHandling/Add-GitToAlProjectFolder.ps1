@@ -12,7 +12,7 @@
   Add-GitToAlProjectFolder
 #>
 function Add-GitToAlProjectFolder {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $alProjectFolder,
         [Parameter(Mandatory=$true)]

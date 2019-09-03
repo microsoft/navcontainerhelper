@@ -12,8 +12,8 @@
   Name of the container for which you want to export and convert objects
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
- .Parameter startId
-  Starting offset for objects created by the tool (table and page extensions)
+ .Parameter useNewSyntax
+  Include the useNewSyntax switch to use new syntax
  .Parameter filter
   Filter specifying the objects you want to export (default is modified=1)
  .Parameter deltaFolder
@@ -28,15 +28,15 @@
   Export-ModifiedObjectsAsDeltas -containerName test -sqlCredential <sqlCredential>
 #>
 function Export-ModifiedObjectsAsDeltas {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [switch]$useNewSyntax,
-        [string]$filter = "Modified=1",
-        [string]$deltaFolder = "",
-        [string]$fullObjectsFolder = "",
-        [switch]$openFolder
+        [string] $containerName, 
+        [PSCredential] $sqlCredential = $null,
+        [switch] $useNewSyntax,
+        [string] $filter = "Modified=1",
+        [string] $deltaFolder = "",
+        [string] $fullObjectsFolder = "",
+        [switch] $openFolder
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

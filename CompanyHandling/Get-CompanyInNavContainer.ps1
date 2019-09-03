@@ -11,7 +11,7 @@
   Get-CompanyInNavContainer -containerName navserver
 #>
 function Get-CompanyInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $tenant = "default"
     )

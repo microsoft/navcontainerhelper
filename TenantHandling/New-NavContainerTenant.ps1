@@ -15,14 +15,13 @@
   New-NavContainerTenant -containerName test2 -tenantId mytenant
 #>
 function New-NavContainerTenant {
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$tenantId,
-        [PSCredential]$sqlCredential = $null,
-        [string]$sourceDatabase = "tenant"
+        [string] $tenantId,
+        [PSCredential] $sqlCredential = $null,
+        [string] $sourceDatabase = "tenant"
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"

@@ -14,7 +14,7 @@
   Repair-NavContainerApp -containerName test2 -appName myapp
 #>
 function Repair-NavContainerApp {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $appName,

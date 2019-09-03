@@ -20,7 +20,7 @@
   $appFile = Get-NavContainerApp -containerName test -publisher "Microsoft" -appName "Base Application" -appVersion "15.0.35528.0"
 #>
 function Get-NavContainerApp {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $publisher,
         [string] $appName,

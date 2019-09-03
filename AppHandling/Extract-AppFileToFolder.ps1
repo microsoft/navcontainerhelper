@@ -2,15 +2,15 @@
  .Synopsis
   Extract the content of an App File to a Folder
  .Description
- .Parameter AppFile
-  Path of the appFile
+ .Parameter AppFilename
+  Path of the application file
  .Parameter AppFolder
-  Path of the folder in which the appFile will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
+  Path of the folder in which the application File will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
  .Example
-  Extract-AppFileToFolder -appFile c:\temp\baseapp.app
+  Extract-AppFileToFolder -appFilename c:\temp\baseapp.app
 #>
 function Extract-AppFileToFolder {
-    Param(
+    Param (
         [string] $appFilename,
         [string] $appFolder = "$($appFilename).source"
     )

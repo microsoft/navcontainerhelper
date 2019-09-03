@@ -12,28 +12,32 @@
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter filter
   Specifies which objects to export (default is modified=Yes)
+ .Parameter exportTo
+  Specifies how you want to export objects, one of ('txt folder','txt folder (new syntax)','txt file','txt file (new syntax)','fob file')
  .Parameter exportToNewSyntax
   Specifies whether or not to export objects in new syntax (default is true)
+ .Parameter includeSystemObjects
+  Include the includeSystemObjects switch to include the system objects in the export
  .Example
   Export-NavContainerObject -containerName test -objectsFolder c:\programdata\navcontainerhelper\objects
  .Example
   Export-NavContainerObject -containerName test -objectsFolder c:\programdata\navcontainerhelper\objects -sqlCredential (get-credential -credential 'sa') -filter ""
 #>
 function Export-NavContainerObjects {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$true)]
-        [string]$objectsFolder, 
+        [string] $objectsFolder, 
         [Parameter(Mandatory=$false)]
-        [string]$filter = "modified=Yes", 
+        [string] $filter = "modified=Yes", 
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [PSCredential] $sqlCredential = $null,
         [ValidateSet('txt folder','txt folder (new syntax)','txt file','txt file (new syntax)','fob file')]
-        [string]$exportTo = 'txt folder (new syntax)',
+        [string] $exportTo = 'txt folder (new syntax)',
         [Obsolete("exportToNewSyntax is obsolete, please use exportTo instead")]
-        [switch]$exportToNewSyntax = $true,
-        [switch]$includeSystemObjects
+        [switch] $exportToNewSyntax = $true,
+        [switch] $includeSystemObjects
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -51,7 +55,7 @@ function Export-NavContainerObjects {
 
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
-    $ignoreSystemObjects = ($version.Major -ge 14)
+    $ignoreSystemObjects = ($version.Major -ge 14 -and !$includeSystemObjects)
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo, $ignoreSystemObjects)
 

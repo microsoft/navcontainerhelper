@@ -28,6 +28,8 @@
   If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\NavContainerHelper
  .Parameter alFileStructure
   Specify a function, which will determine the location of the individual al source files
+ .Parameter dotNetAddInsPackage
+  Path to folder where dotnet add-ins are located (folder must be shared with container)
  .Parameter runTxt2AlInContainer
   Specify a foreign container in which you want to run the txt2al tool
  .Example
@@ -38,10 +40,10 @@
   Convert-ModifiedObjectsToAl -containerName test -alProjectFolder $alProjectFolder -doNotUseDeltas
 #>
 function Convert-ModifiedObjectsToAl {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [PSCredential] $sqlCredential = $null,
         [int]    $startId = 50100,
         [string] $filter = "None",
         [switch] $openFolder,

@@ -8,24 +8,26 @@
   Name of the container in which the Nav Development Cmdlets are to be executed
  .Parameter modifiedFolder
   Folder containing your modified objects
- .Parameter $myoriginalFolder
+ .Parameter myoriginalFolder
   Folder containing the original objects for your modified objects
  .Parameter myDeltaFolder
   Folder in which the delta files are created
+ .Parameter useNewSyntax
+  Include the useNewSyntax switch to use new syntax
  .Example
   Create-MyDeltaFolder -containerName test -modifiedFolder c:\programdata\navcontainerhelper\myobjects -myoriginalFolder c:\programdata\navcontainerhelper\myoriginalobjects -mydeltaFolder c:\programdata\navcontainerhelper\mydeltafiles
 #>
 function Create-MyDeltaFolder {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$true)]
-        [string]$modifiedFolder, 
+        [string] $modifiedFolder, 
         [Parameter(Mandatory=$true)]
-        [string]$myOriginalFolder, 
+        [string] $myOriginalFolder, 
         [Parameter(Mandatory=$true)]
-        [string]$myDeltaFolder,
-        [switch]$useNewSyntax
+        [string] $myDeltaFolder,
+        [switch] $useNewSyntax
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

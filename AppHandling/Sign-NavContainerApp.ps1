@@ -19,7 +19,7 @@
   Sign-NavContainerApp -appFile c:\programdata\navcontainerhelper\myapp.app -pfxFile c:\programdata\navcontainerhelper\mycert.pfx -pfxPassword $securePassword
 #>
 function Sign-NavContainerApp {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $appFile,

@@ -10,8 +10,7 @@
 #>
 function Get-BestNavContainerImageName {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string] $imageName
     )

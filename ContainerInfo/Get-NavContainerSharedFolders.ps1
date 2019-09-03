@@ -15,10 +15,9 @@
 #>
 function Get-NavContainerSharedFolders {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string] $containerName
     )
 
     Process {

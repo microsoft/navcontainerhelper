@@ -5,19 +5,23 @@
   Creates a session to the container and runs the CmdLet Uninstall-NavApp in the container
  .Parameter containerName
   Name of the container in which you want to uninstall the app (default navserver)
+ .Parameter tenant
+  Name of the tenant in which you want to uninstall the app (default default)
  .Parameter appName
   Name of app you want to uninstall in the container
  .Parameter appVersion
   Version of app you want to uninstall in the container
  .Parameter doNotSaveData
   Include this flag to indicate that you do not wish to save data when uninstalling the app
+ .Parameter force
+  Include this flag to indicate that you want to force uninstall the app
  .Example
   Uninstall-NavContainerApp -containerName test2 -appName myapp
  .Example
   Uninstall-NavContainerApp -containerName test2 -appName myapp -doNotSaveData
 #>
 function UnInstall-NavContainerApp {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",

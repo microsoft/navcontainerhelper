@@ -16,13 +16,12 @@
 #>
 function Get-NavContainerEventLog {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$false)]
-        [string]$logname = "Application",
-        [switch]$doNotOpen
+        [string] $logname = "Application",
+        [switch] $doNotOpen
     )
 
     Process {

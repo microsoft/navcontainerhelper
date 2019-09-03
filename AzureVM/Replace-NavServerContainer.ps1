@@ -22,7 +22,7 @@
   Replace-NavServerContainer
 #>
 function Replace-NavServerContainer {
-    Param(
+    Param (
         [string] $imageName = "",
         [switch] $alwaysPull,
         [ValidateSet('Yes','No','Default')]

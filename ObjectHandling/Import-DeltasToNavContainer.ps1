@@ -17,13 +17,13 @@
   Import-DeltasToNavContainer -containerName test2 -deltaFolder c:\temp\mydeltas
 #>
 function Import-DeltasToNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$true)]
-        [string]$deltaFolder,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
-        [switch]$compile
+        [string] $deltaFolder,
+        [PSCredential] $sqlCredential = $null,
+        [switch] $compile
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

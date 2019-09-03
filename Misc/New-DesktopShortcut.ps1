@@ -1,5 +1,25 @@
-﻿function New-DesktopShortcut {
-    Param(
+﻿<# 
+ .Synopsis
+  Create a Desktop shortcut
+ .Description
+  Create a Desktop shortcut
+ .Parameter Name
+  Name of shortcut
+ .Parameter TargetPath
+  TargetPath of shortcut
+ .Parameter WorkingDirectory
+  Working Directory of shortcut
+ .Parameter IconLocation
+  Icon location for shortcut
+ .Parameter Arguments
+  Arguments for the program executed by shortcut
+ .Parameter shortcuts
+  Specify where you want to shortcut created: ('None','Desktop','StartMenu','Startup','CommonDesktop','CommonStartMenu','CommonStartup')
+ .Parameter RunAsAdministrator
+  Include this switch if you want the shortcut to be set to Run As Administrator
+#>
+function New-DesktopShortcut {
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $Name, 
         [Parameter(Mandatory=$true)]

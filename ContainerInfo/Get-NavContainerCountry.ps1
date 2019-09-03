@@ -12,10 +12,9 @@
 #>
 function Get-NavContainerCountry {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerOrImageName
+        [string] $containerOrImageName
     )
 
     Process {

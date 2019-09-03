@@ -16,13 +16,13 @@
   Name of the permissionSetId to assign to the user (default is SUPER)
  .Parameter SecurePassword
   Default password for all users
+ .Parameter useCurrentAzureAdConnection
+  Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
   Create-AadUsersInNavContainer -containerName test -AadAdminCredential (Get-Credential)
 #>
-function Create-AadUsersInNavContainer
-{
-    Param
-    (
+function Create-AadUsersInNavContainer {
+    Param (
         [string] $containerName = "navserver",
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]

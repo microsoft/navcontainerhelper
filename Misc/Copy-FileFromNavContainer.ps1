@@ -13,14 +13,13 @@
   Copy-FileFromNavContainer -containerName test2 -containerPath "c:\run\my\myfile.txt" -localPath "c:\temp\myfile.txt"
 #>
 function Copy-FileFromNavContainer {
-
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$true)]
-        [string]$containerPath,
+        [string] $containerPath,
         [Parameter(Mandatory=$false)]
-        [string]$localPath = $containerPath
+        [string] $localPath = $containerPath
     )
 
     Process {

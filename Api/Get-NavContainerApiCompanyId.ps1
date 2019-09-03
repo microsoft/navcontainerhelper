@@ -17,15 +17,15 @@
   $companyId = Get-NavContainerApiCompanyId -containerName $containerName -credential $credential -CompanyName 'CRONUS International Ltd.'
 #>
 function Get-NavContainerApiCompanyId {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
-        [string]$CompanyName = ""
+        [string] $CompanyName = ""
     )
 
     if (!($CompanyName)) {

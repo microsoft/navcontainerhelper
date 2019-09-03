@@ -10,8 +10,12 @@
   company to use if container
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
+ .Parameter accesstoken
+  If your container is running AAD authentication, you need to specify an accesstoken for the user specified in credential
  .Parameter testSuite
   Name of test suite to run. Default is DEFAULT.
+ .Parameter testGroup
+  Only supported in 14.x containers or older. Name of test group to run. Wildcards (? and *) are supported. Default is *.
  .Parameter testCodeunit
   Name or ID of test codeunit to run. Wildcards (? and *) are supported. Default is *.
  .Parameter testFunction
@@ -24,17 +28,23 @@
   Specify this switch if you want the function to replace an existing test run (of the same test codeunit) in the XUnit compatible result file instead of adding it
  .Parameter AzureDevOps
   Generate Azure DevOps Pipeline compatible output. This setting determines the severity of errors.
+ .Parameter detailed
+  Include this switch to output success/failure information for all tests.
  .Parameter InteractionTimeout
   Timespan allowed for a single interaction (Running a test codeunit is an interaction). Default is 24 hours.
  .Parameter ReturnTrueIfAllPassed
   Specify this switch if the function should return true/false on whether all tests passes. If not specified, the function returns nothing.
+ .Parameter testPage
+  ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
+ .Parameter debugMode
+  Include this switch to output debug information if running the tests fails.
  .Example
   Run-TestsInNavContainer -contatinerName test -credential $credential
  .Example
   Run-TestsInNavContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\NavContainerHelper\$containername.results.xml" -AzureDevOps "warning"
 #>
 function Run-TestsInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
