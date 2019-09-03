@@ -4,7 +4,7 @@
  .Description
   Remove a shortcut
  .Parameter Name
-  Name of shortcut to remove
+  Name of shortcut to remove from all locations
 #>
 function Remove-DesktopShortcut {
     Param (
