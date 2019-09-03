@@ -6,14 +6,15 @@
   If no session exists, a new session will be created.
  .Parameter containerName
   Name of the container for which you want to create a session
+ .Parameter silent
+  Include the silent switch to avoid the welcome text
  .Example
   $session = Get-NavContainerSession -containerName navserver
   PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance $ServerInstance -restart }
 #>
 function Get-NavContainerSession {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [string] $containerName = "navserver",
         [switch] $silent
     )

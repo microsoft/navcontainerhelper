@@ -7,6 +7,8 @@
   Name of the container from which you want to download a runtime package
  .Parameter appName
   Name of the app for which you want to download a runtime package
+ .Parameter publisher
+  Publisher of the app for which you want to download a runtime package
  .Parameter appVersion
   Version of the app for which you want to download a runtime package
  .Parameter tenant
@@ -17,7 +19,7 @@
   $appFile = Get-NavContainerAppRuntimePackage -containerName test -appName "Image Analyzer"
 #>
 function Get-NavContainerAppRuntimePackage {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $appName,
         [Parameter(Mandatory=$false)]

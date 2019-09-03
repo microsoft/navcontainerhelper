@@ -4,23 +4,23 @@
  .Description
   Compares files from the modifiedFolder with files in the originalFolder to identify which base objects have been changed.
   All changed base objects are copied to the myoriginalFolder, which allows the Create-MyDeltaFolder to identify new and modified objects.
- .Parameter $originalFolder, 
+ .Parameter originalFolder
   Folder containig the original base objects
- .Parameter $modifiedFolder, 
+ .Parameter modifiedFolder
   Folder containing your modified objects
- .Parameter $myoriginalFolder
+ .Parameter myoriginalFolder
   Folder in which the original objects for your modified objects are copied to
  .Example
   Create-MyOriginalFolder -originalFolder c:\programdata\navcontainerhelper\baseobjects -modifiedFolder c:\programdata\navcontainerhelper\myobjects -myoriginalFolder c:\programdata\navcontainerhelper\mybaseobjects
 #>
 function Create-MyOriginalFolder {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$originalFolder, 
+        [string] $originalFolder, 
         [Parameter(Mandatory=$true)]
-        [string]$modifiedFolder, 
+        [string] $modifiedFolder, 
         [Parameter(Mandatory=$true)]
-        [string]$myoriginalFolder
+        [string] $myoriginalFolder
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

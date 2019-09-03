@@ -3,13 +3,15 @@
   Retrieve the Server configuration from a NAV/BC Container as a powershell object
  .Description
   Returns all the settings of the middletier from a container.
+ .Parameter containerName
+  Name of the container for which you want to get the server configuration
  .Example
   Get-NavContainerServerConfiguration -ContainerName "MyContainer"
 #>
 Function Get-NavContainerServerConfiguration {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [String]$ContainerName
+        [String] $ContainerName
     )
 
     $ResultObjectArray = @()

@@ -5,17 +5,18 @@
   Inspect the Container and return the IP Address of the first network.
  .Parameter containerName
   Name of the container for which you want to get the IP Address
+ .Parameter networkName
+  Specify network name if you want to get the IP Address for a specific network
  .Example
   Get-NavContainerIpAddress -containerName navserver
 #>
 function Get-NavContainerIpAddress {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$false)]
-        [string]$networkName = ""
+        [string] $networkName = ""
     )
 
     Process {

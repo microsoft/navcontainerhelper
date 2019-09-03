@@ -1,4 +1,8 @@
-﻿function Write-NavContainerHelperWelcomeText {
+﻿<# 
+ .Synopsis
+  Print out the ContainerHelper WelCome text
+#>
+function Write-NavContainerHelperWelcomeText {
     Clear-Host
     Write-Host -ForegroundColor Yellow "Welcome to the Nav Container Helper PowerShell Prompt"
     Write-Host

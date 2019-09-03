@@ -12,7 +12,7 @@
   $created = (Get-NavContainerImageLabels -imageName "mcr.microsoft.com/businesscentral/sandbox:us-ltsc2019").created
 #>
 function Get-NavContainerImageLabels {
-    Param(
+    Param (
         [string] $imageName,
         [PSCredential] $registryCredential
     )

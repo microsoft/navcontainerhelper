@@ -9,9 +9,9 @@
   if (Test-NavContainer -containerName devcontainer) { dosomething }
 #>
 function Test-NavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string] $containerName
     )
     Process {
         $name = Get-NavContainerName $containerName

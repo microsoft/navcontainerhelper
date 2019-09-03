@@ -13,7 +13,7 @@
  (Get-NavContainerImageTags -imageName "mcr.microsoft.com/businesscentral/onprem").tags
 #>
 function Get-NavContainerImageTags {
-    Param(
+    Param (
         [string] $imageName,
         [PSCredential] $registryCredential,
         [int] $pageSize = -1

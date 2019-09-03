@@ -13,10 +13,10 @@
   Generate-SymbolsInNavContainer -containerName test2 -sqlCredential (get-credential -credential 'sa') 
 #>
 function Generate-SymbolsInNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory = $true)]
-        [string]$containerName,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [string] $containerName,
+        [PSCredential] $sqlCredential = $null
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

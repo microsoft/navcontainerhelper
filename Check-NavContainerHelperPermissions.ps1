@@ -22,7 +22,7 @@
   Check-NavContainerHelperPermissions -silent
 #>
 function Check-NavContainerHelperPermissions {
-    Param(
+    Param (
         [switch] $Fix,
         [switch] $Silent,
         [switch] $IgnoreHosts

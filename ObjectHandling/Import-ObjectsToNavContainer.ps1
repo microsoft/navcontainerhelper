@@ -18,16 +18,16 @@
   Import-ObjectsToNavContainer -containerName test2 -objectsFile c:\temp\objects.txt -sqlCredential (get-credential -credential 'sa')
 #>
 function Import-ObjectsToNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$true)]
-        [string]$objectsFile,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [string] $objectsFile,
+        [PSCredential] $sqlCredential = $null,
         [ValidateSet("Overwrite","Skip")]
-        [string]$ImportAction = "Overwrite",
+        [string] $ImportAction = "Overwrite",
         [ValidateSet("Force","Yes","No")]
-        [string]$SynchronizeSchemaChanges = "Force"
+        [string] $SynchronizeSchemaChanges = "Force"
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

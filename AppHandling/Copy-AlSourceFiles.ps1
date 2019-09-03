@@ -17,8 +17,7 @@
 
 #>
 function Copy-AlSourceFiles {
-
-    Param(
+    Param (
         [string] $Path,
         [string] $Destination,
         [switch] $Recurse,

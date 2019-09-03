@@ -16,27 +16,29 @@
   Name of the method you want to invoke (default is OnRun)
  .Parameter Argument
   Arguments for the method (default empty)
+ .Parameter TimeZone
+  TimeZone in which the codeunit will the invoked
  .Example
   Invoke-NavContainerCodeunit -containerName test -codeunitId 50000
  .Example
   Invoke-NavContainerCodeunit -containerName test -codeunitId 50000 -methodName "doit" -argument "Hello"
 #>
 function Invoke-NavContainerCodeunit {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [string]$CompanyName,
+        [string] $CompanyName,
         [Parameter(Mandatory=$true)]
-        [int]$Codeunitid,
+        [int] $Codeunitid,
         [Parameter(Mandatory=$false)]
-        [string]$MethodName,
+        [string] $MethodName,
         [Parameter(Mandatory=$false)]
-        [string]$Argument,
+        [string] $Argument,
         [Parameter(Mandatory=$false)]
-        [string]$TimeZone
+        [string] $TimeZone
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

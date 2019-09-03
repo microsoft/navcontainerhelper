@@ -14,24 +14,25 @@
   Password for certificate .pfx file
  .Parameter WebSiteRef
   Local web site to use for ACME Challenge (default is Default Web Site) 
+ .Parameter dnsAlias
+  DNS Alias to use for LetsEncrypt
  .Example
   New-LetsEncryptCertificate -ContactEMailForLetsEncrypt "me@my.com" -publicDnsName "host.westeurope.cloudapp.azure.com" -certificatePfxFilename "c:\temp\cert.pfx" -certificatePfxPassword $securePassword
 #>
 function New-LetsEncryptCertificate {
-
     Param (
         [Parameter(Mandatory=$true)]
-        [string]$ContactEMailForLetsEncrypt,
+        [string] $ContactEMailForLetsEncrypt,
         [Parameter(Mandatory=$true)]
-        [string]$publicDnsName,
+        [string] $publicDnsName,
         [Parameter(Mandatory=$true)]
-        [string]$certificatePfxFilename,
+        [string] $certificatePfxFilename,
         [Parameter(Mandatory=$true)]
-        [SecureString]$certificatePfxPassword,
+        [SecureString] $certificatePfxPassword,
         [Parameter(Mandatory=$false)]
-        [string]$WebSiteRef = "Default Web Site",
+        [string] $WebSiteRef = "Default Web Site",
         [Parameter(Mandatory=$false)]
-        [string]$dnsAlias = "dnsAlias"
+        [string] $dnsAlias = "dnsAlias"
     )
 
     Write-Host "Installing ACMESharp PowerShell modules"

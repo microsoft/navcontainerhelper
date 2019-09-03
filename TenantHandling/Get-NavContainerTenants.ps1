@@ -9,10 +9,9 @@
   Get-NavContainerTenants -containerName test
 #>
 function Get-NavContainerTenants {
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver"
+        [string] $containerName = "navserver"
     )
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {

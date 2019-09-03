@@ -10,8 +10,7 @@
 #>
 function Stop-NavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string] $containerName
     )

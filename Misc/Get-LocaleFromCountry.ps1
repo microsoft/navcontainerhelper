@@ -1,7 +1,17 @@
-﻿function Get-LocaleFromCountry {
-    Param(
+﻿<# 
+ .Synopsis
+  Get locale from NAV/BC country code
+ .Description
+  Get default locale based on country code used for NAV/BC
+ .Parameter country
+  A NAV/BC supported country code
+ .Example
+  $locale = Get-LocaleFromCountry -country "dk"
+#>
+function Get-LocaleFromCountry {
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$country
+        [string] $country
     )
 
     $country = $country.ToLowerInvariant()

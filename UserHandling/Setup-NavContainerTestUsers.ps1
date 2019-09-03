@@ -35,6 +35,8 @@
   Name of the container in which you want to add test users (default navserver)
  .Parameter tenant
   Name of tenant in which you want to add test users (default defeault)
+ .Parameter password
+  The password for all test users created
  .Parameter Credential
   Credentials for the admin user if using NavUserPassword authentication
  .Example
@@ -43,16 +45,15 @@
   Setup-NavContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
 #>
 function Setup-NavContainerTestUsers {
-Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [securestring] $Password,
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential
+        [PSCredential] $credential
     )
 
     $inspect = docker inspect $containerName | ConvertFrom-Json

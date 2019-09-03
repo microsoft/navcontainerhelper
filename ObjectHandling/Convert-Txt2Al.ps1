@@ -13,18 +13,20 @@
   Folder in which the AL files are created
  .Parameter startId
   Starting offset for objects created by the tool (table and page extensions)
+ .Parameter dotNetAddInsPackage
+  Path to folder where dotnet add-ins are located (folder must be shared with container)
  .Example
   Convert-Txt2Al -containerName test -mydeltaFolder c:\programdata\navcontainerhelper\mydeltafiles -myAlFolder c:\programdata\navcontainerhelper\myAlFiles -startId 50100
 #>
 function Convert-Txt2Al {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [Parameter(Mandatory=$true)]
         [string] $myDeltaFolder, 
         [Parameter(Mandatory=$true)]
         [string] $myAlFolder, 
-        [int] $startId=50100,
+        [int] $startId = 50100,
         [string] $dotNetAddInsPackage
     )
 

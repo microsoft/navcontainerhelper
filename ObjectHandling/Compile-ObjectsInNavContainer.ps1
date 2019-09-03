@@ -11,20 +11,19 @@
   Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter SynchronizeSchemaChanges
   Specify Force, Yes or No on whether you want to synchronize schema changes to the database
- .Parameter doNotAskForCredential
  .Example
   Compile-ObjectsToNavContainer -containerName test2 -sqlCredential (get-credential -credential 'sa')
  .Example
   Compile-ObjectsToNavContainer -containerName test2
 #>
 function Compile-ObjectsInNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
-        [string]$filter = "compiled=0", 
-        [System.Management.Automation.PSCredential]$sqlCredential = $null,
+        [string] $containerName, 
+        [string] $filter = "compiled=0", 
+        [PSCredential] $sqlCredential = $null,
         [ValidateSet('Force','Yes','No')]
-        [string]$SynchronizeSchemaChanges = 'Force'
+        [string] $SynchronizeSchemaChanges = 'Force'
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name

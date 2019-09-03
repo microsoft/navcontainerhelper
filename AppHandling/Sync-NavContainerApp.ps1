@@ -4,25 +4,31 @@
  .Description
   Creates a session to the container and runs the CmdLet Sync-NavApp in the container
  .Parameter containerName
-  Name of the container in which you want to install the app (default navserver)
+  Name of the container in which you want to sync the app (default navserver)
+ .Parameter tenant
+  Name of the tenant in which you want to sync the app (default navserver)
  .Parameter appName
   Name of app you want to sync in the container
+ .Parameter appVersion
+  Version of app you want to sync in the container
+ .Parameter mode
+  Sync mode to transfer to Sync-NavApp
  .Example
   Sync-NavContainerApp -containerName test2 -appName myapp
 #>
 function Sync-NavContainerApp {
-    Param(
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
-        [string]$appName,
+        [string] $appName,
         [Parameter()]
-        [string]$appVersion,
+        [string] $appVersion,
         [Parameter(Mandatory = $false)]
         [ValidateSet('Add','Clean')]
-        $Mode
+        [string] $Mode
     )
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
         Write-Host "Synchronizing $appFile on $tenant"

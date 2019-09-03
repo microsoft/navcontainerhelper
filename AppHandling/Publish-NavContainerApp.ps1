@@ -24,6 +24,8 @@
   Specify Global or Tenant based on how you want to publish the package. Default is Global
  .Parameter useDevEndpoint
   Specify the useDevEndpoint switch if you want to publish using the Dev Endpoint (like VS Code). This allows VS Code to re-publish.
+ .Parameter credential
+  Specify the credentials for the admin user if you use DevEndpoint and authentication is set to UserPassword
  .Parameter language
   Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Example
@@ -36,7 +38,7 @@
   Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification -install -tenant mytenant
 #>
 function Publish-NavContainerApp {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $appFile,

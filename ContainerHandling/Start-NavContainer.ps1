@@ -12,8 +12,7 @@
 #>
 function Start-NavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string] $containerName,
         [int] $timeout = 1800

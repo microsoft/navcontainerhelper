@@ -1,7 +1,15 @@
-﻿function Remove-DesktopShortcut {
-    Param(
+﻿<# 
+ .Synopsis
+  Remove a shortcut
+ .Description
+  Remove a shortcut
+ .Parameter Name
+  Name of shortcut to remove
+#>
+function Remove-DesktopShortcut {
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$Name
+        [string] $Name
     )
     $environmentPath = [Environment]::GetFolderPath("Desktop")
     If ($environmentPath -ne "") {

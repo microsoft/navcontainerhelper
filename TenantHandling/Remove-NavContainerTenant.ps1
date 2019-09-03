@@ -13,13 +13,12 @@
   Remove-NavContainerTenant -containerName test2 -tenantId mytenant
 #>
 function Remove-NavContainerTenant {
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
-        [string]$tenantId,
-        [System.Management.Automation.PSCredential]$sqlCredential = $null
+        [string] $tenantId,
+        [PSCredential] $sqlCredential = $null
     )
 
     Write-Host "Removing Tenant $tenantId from $containerName"

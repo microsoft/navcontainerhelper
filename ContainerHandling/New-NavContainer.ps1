@@ -59,7 +59,9 @@
  .Parameter alwaysPull
   Always pull latest version of the docker image
  .Parameter useBestContainerOS
-  Use the best Container OS based on the Host OS
+  Use the best Container OS based on the Host OS. If the OS doesn't match, a better public generic image is selected.
+ .Parameter useGenericImage
+  Specify a private (or special) generic image to use for the Container OS.
  .Parameter assignPremiumPlan
   Assign Premium plan to admin user
  .Parameter multitenant
@@ -80,23 +82,23 @@
   This allows you to transfer an additional number of parameters to the docker run
  .Parameter myscripts
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
- .Parameter TimeZoneId,
+ .Parameter TimeZoneId
   This parameter specifies the timezone in which you want to start the Container.
- .Parameter WebClientPort,
+ .Parameter WebClientPort
   Use this parameter to specify which port to use for the WebClient. Default is 80 if http and 443 if https.
- .Parameter FileSharePort,
+ .Parameter FileSharePort
   Use this parameter to specify which port to use for the File Share. Default is 8080.
- .Parameter ManagementServicesPort,
+ .Parameter ManagementServicesPort
   Use this parameter to specify which port to use for Management Services. Default is 7045.
- .Parameter ClientServicesPort,
+ .Parameter ClientServicesPort
   Use this parameter to specify which port to use for Client Services. Default is 7046.
- .Parameter SoapServicesPort,
+ .Parameter SoapServicesPort
   Use this parameter to specify which port to use for Soap Web Services. Default is 7047.
- .Parameter ODataServicesPort,
+ .Parameter ODataServicesPort
   Use this parameter to specify which port to use for OData Web Services. Default is 7048.
- .Parameter DeveloperServicesPort,
+ .Parameter DeveloperServicesPort
   Use this parameter to specify which port to use for Developer Services. Default is 7049.
- .Parameter PublishPorts,
+ .Parameter PublishPorts
   Use this parameter to specify the ports you want to publish on the host. Default is to NOT publish any ports.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
  .Parameter PublicDnsName
@@ -126,7 +128,7 @@
   New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "mcr.microsoft.com/businesscentral/onprem:de"
 #>
 function New-NavContainer {
-    Param(
+    Param (
         [switch] $accept_eula,
         [switch] $accept_outdated,
         [Parameter(Mandatory=$true)]
@@ -142,7 +144,7 @@ function New-NavContainer {
         [string] $dvdPlatform = "",
         [string] $locale = "",
         [string] $licenseFile = "",
-        [PSCredential]$Credential = $null,
+        [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
         [string] $memoryLimit = "",
         [ValidateSet('','process','hyperv')]
@@ -151,7 +153,7 @@ function New-NavContainer {
         [string] $databaseInstance = "",
         [string] $databaseName = "",
         [string] $bakFile = "",
-        [System.Management.Automation.PSCredential]$databaseCredential = $null,
+        [PSCredential] $databaseCredential = $null,
         [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
         [string] $shortcuts='Desktop',
         [switch] $updateHosts,

@@ -13,7 +13,7 @@
   Remove-CompanyInNavContainer -containerName test2 -companyName 'My Company' -tenant mytenant
 #>
 function Remove-CompanyInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]

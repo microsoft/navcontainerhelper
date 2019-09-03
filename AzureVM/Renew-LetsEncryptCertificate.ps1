@@ -10,20 +10,21 @@
   Filename for certificate .pfx file
  .Parameter certificatePfxPassword
   Password for certificate .pfx file
+ .Parameter dnsAlias
+  DNS Alias to use for LetsEncrypt
  .Example
   Renew-LetsEncryptCertificate -publicDnsName "host.westeurope.cloudapp.azure.com" -certificatePfxFilename "c:\temp\cert.pfx" -certificatePfxPassword (ConvertTo-SecureString -String "S0mep@ssw0rd!" -AsPlainText -Force)
 #>
 function Renew-LetsEncryptCertificate {
-
     Param (
         [Parameter(Mandatory=$true)]
-        [string]$publicDnsName,
+        [string] $publicDnsName,
         [Parameter(Mandatory=$true)]
-        [string]$certificatePfxFilename,
+        [string] $certificatePfxFilename,
         [Parameter(Mandatory=$true)]
-        [SecureString]$certificatePfxPassword,
+        [SecureString] $certificatePfxPassword,
         [Parameter(Mandatory=$false)]
-        [string]$dnsAlias = "dnsAlias"
+        [string] $dnsAlias = "dnsAlias"
     )
 
     Import-Module ACMESharp

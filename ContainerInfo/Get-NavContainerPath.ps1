@@ -7,18 +7,19 @@
   Name of the container for which you want to find the filepath
  .Parameter path
   Path of a file in the host file system
+ .Parameter throw
+  Include the throw switch to throw an exception if the folder isn't shared with the container
  .Example
   $containerPath = Get-NavContainerPath -containerName navserver -path c:\programdata\navcontainerhelper\extensions\test2\my
 #>
 function Get-NavContainerPath {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter(Mandatory=$true)]
-        [string]$path,
-        [switch]$throw
+        [string] $path,
+        [switch] $throw
     )
 
     Process {

@@ -16,8 +16,12 @@
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove all C/AL objects in the range 1..1999999999.
   This switch is needed when turning a C/AL container into an AL Container.
+ .Parameter doNotUseDevEndpoint
+  Specify this parameter to deploy the application to the global scope instead of the developer (tenant) scope
  .Parameter saveData
   Add this switch if you want to keep all extension data. Requires -useCleanDatabase
+ .Parameter restoreApps
+  Specify whether or not you want to restore previously installed apps in the container
  .Example
   Publish-NewApplicationToNavContainer -containerName test `
                                        -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
@@ -26,7 +30,7 @@
 
 #>
 function Publish-NewApplicationToNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $appFile,

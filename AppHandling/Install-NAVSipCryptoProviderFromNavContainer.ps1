@@ -11,7 +11,7 @@
   Install-NAVSipCryptoProviderFromNavContainer
 #>
 function Install-NAVSipCryptoProviderFromNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver"
     )
 

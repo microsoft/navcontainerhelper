@@ -13,8 +13,7 @@
   New-NavContainerWindowsUser -containerName test -tenantId mytenant -username freddyk -password $password
 #>
 function New-NavContainerWindowsUser {
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]

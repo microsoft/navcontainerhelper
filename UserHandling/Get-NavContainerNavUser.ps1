@@ -13,12 +13,11 @@
   Get-NavContainerNavUser -containerName test -tenant mytenant
 #>
 function Get-NavContainerNavUser {
-Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default"
+        [string] $tenant = "default"
     )
 
     PROCESS

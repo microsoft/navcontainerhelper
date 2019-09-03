@@ -16,8 +16,7 @@
 #>
 function Extract-FilesFromStoppedNavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [string] $containerName,
         [string] $path,
         [ValidateSet('all','vsix','database')]

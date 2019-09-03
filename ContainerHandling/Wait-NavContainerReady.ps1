@@ -13,11 +13,10 @@
 #>
 function Wait-NavContainerReady {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
-        [int]$timeout = 1800
+        [string] $containerName,
+        [int] $timeout = 1800
     )
 
     Process {

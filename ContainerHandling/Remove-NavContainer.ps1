@@ -5,8 +5,6 @@
   Remove container, Session, Shortcuts, temp. files and entries in the hosts file,
  .Parameter containerName
   Name of the container you want to remove
- .Parameter updateHosts
-  Include this switch if you want to update the hosts file and remove the container entry
  .Example
   Remove-NavContainer -containerName devServer
  .Example
@@ -14,8 +12,7 @@
 #>
 function Remove-NavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
         [string] $containerName
     )

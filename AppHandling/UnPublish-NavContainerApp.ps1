@@ -11,6 +11,8 @@
   Include this parameter if you want to uninstall the app before unpublishing
  .Parameter doNotSaveData
   Include this flag to indicate that you do not wish to save data when uninstalling the app
+ .Parameter force
+  Include this flag to indicate that you want to force uninstall the app
  .Parameter publisher
   Publisher of the app you want to unpublish
  .Parameter version
@@ -23,7 +25,7 @@
   Unpublish-NavContainerApp -containerName test2 -appName myapp -uninstall
 #>
 function UnPublish-NavContainerApp {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $appName,
@@ -33,7 +35,7 @@ function UnPublish-NavContainerApp {
         [Parameter(Mandatory=$false)]
         [string] $publisher,
         [Parameter(Mandatory=$false)]
-        [Version] $version,
+        [string] $version,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default"
     )

@@ -24,22 +24,21 @@
   New-NavContainerNavUser -containerName test -tenantId mytenant -WindowsAccount freddyk -PermissionSetId SUPER
 #>
 function New-NavContainerNavUser {
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver",
+        [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [parameter(Mandatory=$true, ParameterSetName="NavUserPassword")]
-        [System.Management.Automation.PSCredential]$Credential,
+        [PSCredential] $Credential,
         [parameter(Mandatory=$true, ParameterSetName="Windows")]
-        [string]$WindowsAccount,
+        [string] $WindowsAccount,
         [parameter(Mandatory=$false, ParameterSetName="NavUserPassword")]
-        [string]$AuthenticationEmail,
+        [string] $AuthenticationEmail,
         [parameter(Mandatory=$false, ParameterSetName="NavUserPassword")]
-        [bool]$ChangePasswordAtNextLogOn = $true,
+        [bool] $ChangePasswordAtNextLogOn = $true,
         [parameter(Mandatory=$false)]        
-        [string]$PermissionSetId = "SUPER"
+        [string] $PermissionSetId = "SUPER"
     )
 
     PROCESS
