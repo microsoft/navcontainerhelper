@@ -16,13 +16,13 @@
   Add this switch to request the function to also create an AAD app for the Excel AddIn
  .Parameter IncludePowerBiAadApp
   Add this switch to request the function to also create an AAD app for the PowerBI service
+ .Parameter useCurrentAzureAdConnection
+  Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
   Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/bc/
 #>
-function Create-AadAppsForNav
-{
-    Param
-    (
+function Create-AadAppsForNav {
+    Param (
         [Parameter(Mandatory=$false)]
         [PSCredential] $AadAdminCredential,
         [Parameter(Mandatory=$true)]

@@ -15,14 +15,14 @@
   Import-PfxCertificateToNavContainer -containerName test -pfxCertificatePath 'c:\temp\cert.pfx' -pfxPassword $pfxPassword -CertificateStoreLocation 'cert:\localmachine\my'
 #>
 function Import-PfxCertificateToNavContainer {
-   Param(
+   Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver", 
+        [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
-        [string]$pfxCertificatePath,
+        [string] $pfxCertificatePath,
         [Parameter(Mandatory=$true)]
-        [SecureString]$pfxPassword,
-        [String]$CertificateStoreLocation = "cert:\localmachine\my"
+        [SecureString] $pfxPassword,
+        [String] $CertificateStoreLocation = "cert:\localmachine\my"
     )
 
     $containerPfxCertificatePath = Get-NavContainerPath -containerName $containerName -path $pfxCertificatePath

@@ -11,6 +11,8 @@
   Add this switch if you want to exclude docker info in the debugging info
  .Parameter ExcludeDockerLogs
   Add this switch if you want to exclude docker logs in the debugging info
+ .Parameter ExcludePing
+  Add this switch if you want to exclude ping information in the debugging info
  .Parameter includeSensitiveInformation
   Add this switch to include sensitive information in the debugging info (passwords and urls)
  .Parameter CopyToClipboard
@@ -27,22 +29,21 @@
 #>
 function Get-NavContainerDebugInfo {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName,
+        [string] $containerName,
         [Parameter()]
-        [switch]$ExcludeEnvVars,
+        [switch] $ExcludeEnvVars,
         [Parameter()]
-        [switch]$ExcludeDockerInfo,
+        [switch] $ExcludeDockerInfo,
         [Parameter()]
-        [switch]$ExcludeDockerLogs,
+        [switch] $ExcludeDockerLogs,
         [Parameter()]
-        $ExcludePing,
+        [switch] $ExcludePing,
         [Parameter()]
-        [switch]$IncludeSensitiveInformation,
+        [switch] $IncludeSensitiveInformation,
         [Parameter()]
-        [switch]$CopyToClipboard
+        [switch] $CopyToClipboard
     )
 
     Process {

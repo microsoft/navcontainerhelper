@@ -11,7 +11,7 @@
   Remove-ConfigPackageInNavContainer -containerName test2 -configPackageCode 'US.ENU.EXTENDED'
 #>
 function Remove-ConfigPackageInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $configPackageCode

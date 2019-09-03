@@ -13,8 +13,7 @@
 #>
 function Enter-NavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [string] $containerName = "navserver"
     )
 

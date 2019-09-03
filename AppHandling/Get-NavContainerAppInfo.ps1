@@ -11,6 +11,8 @@
   Specifies whether you want to get the tenant specific app properties
  .Parameter symbolsOnly
   Specifies whether you only want apps, which are of packagetype SymbolsOnly (Specifying SymbolsOnly ignores the tenant parameter)
+ .Parameter sort
+  Specifies how (if any) you want to sort apps based on dependencies to other apps
  .Example
   Get-NavContainerAppInfo -containerName test2
  .Example
@@ -19,7 +21,7 @@
   Get-NavContainerAppInfo -containerName test2 -symbolsOnly
 #>
 function Get-NavContainerAppInfo {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $tenant = "",
         [switch] $symbolsOnly,

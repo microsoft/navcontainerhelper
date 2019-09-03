@@ -11,10 +11,9 @@
 #>
 function Get-NavContainerId {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName
+        [string] $containerName
     )
 
     Process {

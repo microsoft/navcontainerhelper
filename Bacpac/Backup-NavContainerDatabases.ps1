@@ -8,7 +8,7 @@
   Name of the container for which you want to export and convert objects
  .Parameter sqlCredential
   Credentials for the SQL admin user if using NavUserPassword authentication.
- .Parameter Folder
+ .Parameter bakFolder
   The folder to which the bak files are exported (needs to be shared with the container)
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers
@@ -25,7 +25,7 @@
   Backup-NavContainerDatabases -containerName test -tenant @("default","tenant")
 #>
 function Backup-NavContainerDatabases {
-    Param(
+    Param (
         [string] $containerName = "navserver", 
         [PSCredential] $sqlCredential = $null,
         [string] $bakFolder = "",
@@ -43,11 +43,11 @@ function Backup-NavContainerDatabases {
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bakFolder, $tenant)
        
         function Backup {
-            Param(
-                [string]$serverInstance,
-                [string]$database,
-                [string]$bakFolder,
-                [string]$bakName
+            Param (
+                [string] $serverInstance,
+                [string] $database,
+                [string] $bakFolder,
+                [string] $bakName
             )
             $bakFile = Join-Path $bakFolder "$bakName.bak"
             if (Test-Path $bakFile) {

@@ -17,11 +17,11 @@
   Add-FontsToNavContainer -containerName test2 -path "C:\Windows\Fonts\mingliu.ttc"
 #>
 function Add-FontsToNavContainer {
-   Param(
+   Param (
         [Parameter(Mandatory=$false)]
-        [string]$containerName = "navserver", 
+        [string] $containerName = "navserver", 
         [Parameter(Mandatory=$false)]
-        [string]$path = "C:\Windows\Fonts"
+        [string] $path = "C:\Windows\Fonts"
     )
 
     $ExistingFonts = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {

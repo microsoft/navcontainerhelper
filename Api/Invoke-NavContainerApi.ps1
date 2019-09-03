@@ -9,8 +9,6 @@
   Name of the tenant in which context you want to invoke an api
  .Parameter CompanyId
   Id the Company in which context you want to invoke an api (Use Get-NavContainerApiCompanyId
- .Parameter Codeunitid
-  Id of the codeunit you want to invoke
  .Parameter Credential
   Credentials for the user making invoking the api (do not specify if using Windows auth)
  .Parameter APIPublisher
@@ -37,29 +35,29 @@
   Invoke-NavContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
 #>
 function Invoke-NavContainerApi {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerName, 
+        [string] $containerName, 
         [Parameter(Mandatory=$false)]
-        [string]$tenant = "default",
+        [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
-        [string]$CompanyId,
+        [string] $CompanyId,
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential]$credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
-        [string]$APIPublisher = "",
+        [string] $APIPublisher = "",
         [Parameter(Mandatory=$false)]
-        [string]$APIGroup = "",
+        [string] $APIGroup = "",
         [Parameter(Mandatory=$true)]
-        [string]$APIVersion,
+        [string] $APIVersion,
         [Parameter(Mandatory=$false)]
-        [string]$Method = "GET",
+        [string] $Method = "GET",
         [Parameter(Mandatory=$false)]
-        [string]$Query,
+        [string] $Query,
         [Parameter(Mandatory=$false)]
-        [hashtable]$headers = @{},
+        [hashtable] $headers = @{},
         [Parameter(Mandatory=$false)]
-        [hashtable]$body = $null
+        [hashtable] $body = $null
     )
 
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName

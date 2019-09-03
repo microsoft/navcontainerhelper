@@ -29,9 +29,11 @@
  .Parameter EnableUICop
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
-  Specify a ruleset file for the compiler.
+  Specify a ruleset file for the compiler
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning (Works only if you specify -AzureDevOps)
+ .Parameter nowarn
+  Specify a nowarn parameter for the compiler
  .Parameter assemblyProbingPaths
   Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
  .Example
@@ -41,7 +43,7 @@
 
 #>
 function Compile-AppInNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $containerName,
         [Parameter(Mandatory=$false)]

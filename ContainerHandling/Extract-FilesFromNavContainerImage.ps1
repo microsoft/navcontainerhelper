@@ -16,8 +16,7 @@
 #>
 function Extract-FilesFromNavContainerImage {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [string] $imageName,
         [string] $path,
         [ValidateSet('all','vsix','database')]

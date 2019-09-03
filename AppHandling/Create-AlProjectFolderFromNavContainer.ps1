@@ -40,7 +40,7 @@
                                          -useBaseLine
 #>
 function Create-AlProjectFolderFromNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [Parameter(Mandatory=$true)]

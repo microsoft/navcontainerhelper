@@ -15,7 +15,7 @@
   Copy-CompanyInNavContainer -containerName test2 -sourceCompanyName 'Cronus International Ltd.' -destinationCompanyName 'Cronus Subsidiary' -tenant mytenant
 #>
 function Copy-CompanyInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]

@@ -13,7 +13,7 @@
   Import-NavContainerLicense -containerName test -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1"
 #>
 function Import-NavContainerLicense {
-    Param(
+    Param (
         [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
         [string] $licenseFile

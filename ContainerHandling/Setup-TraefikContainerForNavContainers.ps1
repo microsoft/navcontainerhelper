@@ -22,8 +22,7 @@
 #>
 function Setup-TraefikContainerForNavContainers {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $PublicDnsName,
         [Parameter(Mandatory=$true, ParameterSetName="LetsEncrypt")]

@@ -14,12 +14,12 @@
   & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile | Convert-AlcOutputToAzureDevOps
 #>
 Function Convert-AlcOutputToAzureDevOps {
-    Param(
+    Param (
         [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         $AlcOutput,
         [Parameter(Position=1)]
         [ValidateSet('none','error','warning')]
-        [string]$FailOn
+        [string] $FailOn
     )
 
     Process {

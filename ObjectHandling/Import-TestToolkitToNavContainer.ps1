@@ -17,14 +17,16 @@
  .Parameter doNotUpdateSymbols
   Add this switch to avoid updating symbols when importing the test toolkit
  .Parameter ImportAction
-  Specifies the import action. Default is Overwrite.
+  Specifies the import action. Default is Overwrite
+ .Parameter doNotUseRuntimePackages
+  Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
  .Example
   Import-TestToolkitToNavContainer -containerName test2
   .Example
   Import-TestToolkitToNavContainer -containerName test2 -testToolkitCountry US
 #>
 function Import-TestToolkitToNavContainer {
-    Param(
+    Param (
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [PSCredential] $sqlCredential = $null,

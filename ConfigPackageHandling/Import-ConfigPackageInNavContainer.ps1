@@ -11,7 +11,7 @@
   Import-ConfigPackageInNavContainer -containerName test2 -configPackage 'c:\temp\configPackage.rapidstart'
 #>
 function Import-ConfigPackageInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $configPackageFile

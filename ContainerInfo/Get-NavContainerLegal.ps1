@@ -13,10 +13,9 @@
 #>
 function Get-NavContainerLegal {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [Parameter(Mandatory=$true)]
-        [string]$containerOrImageName
+        [string] $containerOrImageName
     )
 
     Process {

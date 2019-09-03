@@ -11,8 +11,7 @@
 #>
 function Open-NavContainer {
     [CmdletBinding()]
-    Param
-    (
+    Param (
         [string] $containerName = "navserver"
     )
 

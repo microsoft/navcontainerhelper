@@ -16,7 +16,7 @@
   [xml](Invoke-ScriptInNavContainer -containerName dev -scriptblock { Get-Content -Path (Get-item 'c:\Program Files\Microsoft Dynamics NAV\*\Service\CustomSettings.config').FullName })
 #>
 function Invoke-ScriptInNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $scriptblock,

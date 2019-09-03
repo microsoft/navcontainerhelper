@@ -6,11 +6,17 @@
   You will have to publish a new base app before Business Central is useful
  .Parameter containerName
   Name of the container in which you want to clean the database
+ .Parameter saveData
+  Include the saveData switch if you want to save data while uninstalling apps
+ .Parameter onlySaveBaseAppData
+  Include the onlySaveBaseAppData switch if you want to only save data in the base application and not in other apps
+ .Parameter doNotUnpublish
+  Include the doNotUnpublish switch if you do not want to unpublish apps (only 15.x containers or later)
  .Example
   Clean-BcContainerDatabase -containerName test
 #>
 function Clean-BcContainerDatabase {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [switch] $saveData,
         [Switch] $onlySaveBaseAppData,

@@ -18,6 +18,8 @@
  .Parameter diagnostics
   Include this switch to enable diagnostics from the database export command
   Timeout in seconds for the export command for every database. Default is 1 hour (3600).
+ .Parameter additionalArguments
+  Use this parameter to specify additional arguments to sqlpackage.exe
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test
  .Example
@@ -30,7 +32,7 @@
   Export-NavContainerDatabasesAsBacpac -containerName test -tenant @("default","tenant")
 #>
 function Export-NavContainerDatabasesAsBacpac {
-    Param(
+    Param (
         [string] $containerName = "navserver", 
         [PSCredential] $sqlCredential = $null,
         [string] $bacpacFolder = "",
@@ -53,16 +55,16 @@ function Export-NavContainerDatabasesAsBacpac {
     }
     $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([System.Management.Automation.PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments)
     
         function InstallPrerequisite {
-            Param(
+            Param (
                 [Parameter(Mandatory=$true)]
-                [string]$Name,
+                [string] $Name,
                 [Parameter(Mandatory=$true)]
-                [string]$MsiPath,
+                [string] $MsiPath,
                 [Parameter(Mandatory=$true)]
-                [string]$MsiUrl
+                [string] $MsiUrl
             )
         
             if (!(Test-Path $MsiPath)) {
@@ -88,16 +90,16 @@ function Export-NavContainerDatabasesAsBacpac {
             $sqlpakcageExe.FullName
         }
         
-        function Remove-NetworkServiceUser
-        (
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseName,
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseServer,
-            [Parameter(Mandatory=$false)]
-            [System.Management.Automation.PSCredential]$sqlCredential = $null
-        )
-        {
+        function Remove-NetworkServiceUser {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null
+            )
+
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
@@ -114,16 +116,16 @@ function Export-NavContainerDatabasesAsBacpac {
               BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
         }
         
-        function Remove-NavDatabaseSystemTableData
-        (
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseName,
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseServer,
-            [Parameter(Mandatory=$false)]
-            [System.Management.Automation.PSCredential]$sqlCredential = $null
-        )
-        {
+        function Remove-NavDatabaseSystemTableData {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null
+            )
+         
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
@@ -146,17 +148,17 @@ function Export-NavContainerDatabasesAsBacpac {
             Remove-NetworkServiceUser -DatabaseServer $DatabaseServer -DatabaseName $DatabaseName -sqlCredential $sqlCredential
         }
         
-        function Remove-NavTenantDatabaseUserData
-        (        
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseName,
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseServer,
-            [Parameter(Mandatory=$false)]
-            [System.Management.Automation.PSCredential]$sqlCredential = $null,
-            [switch]$KeepUserData
-        )
-        {
+        function Remove-NavTenantDatabaseUserData {
+            Param (        
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null,
+                [switch] $KeepUserData
+            )
+
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
@@ -201,23 +203,23 @@ function Export-NavContainerDatabasesAsBacpac {
             Remove-NetworkServiceUser -DatabaseServer $DatabaseServer -DatabaseName $DatabaseName -sqlCredential $sqlCredential
         }
 
-        function Do-Export
-        (        
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseName,
-            [Parameter(Mandatory=$true)]
-            [string]$DatabaseServer,
-            [Parameter(Mandatory=$false)]
-            [System.Management.Automation.PSCredential]$sqlCredential = $null,
-            [Parameter(Mandatory=$true)]
-            [string]$targetFile,
-            [Parameter(Mandatory=$false)]
-            [int]$commandTimeout = 3600,
-            [switch]$diagnostics,
-            [Parameter(Mandatory=$false)]
-            [string[]]$additionalArguments = @()
-        )
-        {
+        function Do-Export {
+            Param (        
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null,
+                [Parameter(Mandatory=$true)]
+                [string] $targetFile,
+                [Parameter(Mandatory=$false)]
+                [int] $commandTimeout = 3600,
+                [switch] $diagnostics,
+                [Parameter(Mandatory=$false)]
+                [string[]] $additionalArguments = @()
+            )
+
             Write-Host "Exporting..."
             $arguments = @(
                 ('/Action:Export'),

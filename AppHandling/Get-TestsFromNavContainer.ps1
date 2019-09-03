@@ -8,17 +8,23 @@
   tenant to use if container is multitenant
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
+ .Parameter accesstoken
+  If your container is running AAD authentication, you need to specify an accesstoken for the user specified in credential
  .Parameter testSuite
   Name of test suite to get. Default is DEFAULT.
  .Parameter testCodeunit
   Name or ID of test codeunit to get. Wildcards (? and *) are supported. Default is *.
+ .Parameter testPage
+  ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
+ .Parameter debugMode
+  Include this switch to output debug information if getting the tests fails.
  .Example
   Get-TestsFromNavContainer -contatinerName test -credential $credential
  .Example
   Get-TestsFromNavContainer -contatinerName $containername -credential $credential -TestSuite "MYTESTS" -TestCodeunit "134001"
 #>
 function Get-TestsFromNavContainer {
-    Param(
+    Param (
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
