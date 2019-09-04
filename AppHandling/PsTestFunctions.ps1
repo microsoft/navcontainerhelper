@@ -228,7 +228,7 @@ function Run-Tests {
         }
     }
     
-    $TestCodeunitNames = @{}
+    $codeunitNames = @{}
     $LastCodeunitName = ""
     $groupName = ""
 
@@ -256,7 +256,9 @@ function Run-Tests {
                 }
                 elseif ($linetype -eq "1") {
                     $codeUnitName = $name
-                    $codeUnitNames += @{ $codeunitId = $codeunitName }
+                    if (!($codeUnitNames.Contains($codeunitId))) {
+                        $codeUnitNames += @{ $codeunitId = $codeunitName }
+                    }
                 }
                 elseif ($linetype -eq "2") {
                     $codeUnitname = $codeUnitNames[$codeunitId]
