@@ -92,7 +92,7 @@ function Get-MyFilePath([string]$FileName)
 $txt2al = ""
 if ($roleTailoredClientFolder) {
     $txt2al = Join-Path $roleTailoredClientFolder "txt2al.exe"
-    if (!(Test-Path $txt2al))
+    if (!(Test-Path $txt2al)) {
         $txt2al = ""
     }
 }
