@@ -73,6 +73,7 @@ function Dump-ClientContext {
             $formInfo = $clientContext.GetFormInfo($_)
             if ($formInfo) {
                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
                 $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
             }
         }
@@ -227,7 +228,7 @@ function Run-Tests {
         }
     }
     
-    $TestCodeunitNames = @{}
+    $codeunitNames = @{}
     $LastCodeunitName = ""
     $groupName = ""
 
@@ -255,7 +256,9 @@ function Run-Tests {
                 }
                 elseif ($linetype -eq "1") {
                     $codeUnitName = $name
-                    $codeUnitNames += @{ $codeunitId = $codeunitName }
+                    if (!($codeUnitNames.Contains($codeunitId))) {
+                        $codeUnitNames += @{ $codeunitId = $codeunitName }
+                    }
                 }
                 elseif ($linetype -eq "2") {
                     $codeUnitname = $codeUnitNames[$codeunitId]

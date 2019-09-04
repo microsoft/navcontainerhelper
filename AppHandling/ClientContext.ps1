@@ -54,23 +54,24 @@ class ClientContext {
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"
             if ($this.debugMode) {
-                $this.GetAllForms() | % {
+                $this.GetAllForms() | ForEach-Object {
                     $formInfo = $this.GetFormInfo($_)
                     if ($formInfo) {
                         Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
                         $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
                     }
                 }
-                Remove-ClientSession
             }
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName CommunicationError -Action {
             Write-Host -ForegroundColor Red "CommunicationError : $($EventArgs.Exception.Message)"
             if ($this.debugMode) {
-                $this.GetAllForms() | % {
+                $this.GetAllForms() | ForEach-Object {
                     $formInfo = $this.GetFormInfo($_)
                     if ($formInfo) {
                         Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
                         $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
                     }
                 }
@@ -80,10 +81,11 @@ class ClientContext {
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UnhandledException -Action {
             Write-Host -ForegroundColor Red "UnhandledException : $($EventArgs.Exception.Message)"
             if ($this.debugMode) {
-                $this.GetAllForms() | % {
+                $this.GetAllForms() | ForEach-Object {
                     $formInfo = $this.GetFormInfo($_)
                     if ($formInfo) {
                         Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
                         $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
                     }
                 }
@@ -102,10 +104,12 @@ class ClientContext {
             if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
                 $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
                 Write-Host -ForegroundColor Red "ERROR: $($errorControl.StringValue)"
+                $this.InvokeAction($this.GetActionByCaption($form, "OK"))
             }
             elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
                 $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
                 Write-Host -ForegroundColor Yellow "WARNING: $($errorControl.StringValue)"
+                $this.InvokeAction($this.GetActionByCaption($form, "OK"))
             }
             else {
                 if ($this.debugMode) {
@@ -125,7 +129,7 @@ class ClientContext {
     #
     
     Dispose() {
-        $this.events | % { Unregister-Event $_.Name }
+        $this.events | ForEach-Object { Unregister-Event $_.Name }
         $this.events = @()
     
         try {
@@ -188,16 +192,16 @@ class ClientContext {
     
     [ClientLogicalForm[]]GetAllForms() {
         $forms = @()
-        $this.clientSession.OpenedForms.GetEnumerator() | % { $forms += $_ }
+        $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object { $forms += $_ }
         return $forms
     }
     
     [string]GetErrorFromErrorForm() {
         $errorText = ""
-        $this.clientSession.OpenedForms.GetEnumerator() | % {
+        $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object {
             $form = $_
             if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
-                $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | % {
+                $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | ForEach-Object {
                     $errorText = $_.StringValue
                 }
             }
@@ -207,10 +211,10 @@ class ClientContext {
     
     [string]GetWarningFromWarningForm() {
         $warningText = ""
-        $this.clientSession.OpenedForms.GetEnumerator() | % {
+        $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object {
             $form = $_
             if ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
-                $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | % {
+                $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | ForEach-Object {
                     $warningText = $_.StringValue
                 }
             }
@@ -231,18 +235,19 @@ class ClientContext {
     
         function Dump-Control {
             Param(
-                [ClientLogicalControl] $control,
-                [int] $indent
+                [ClientLogicalControl] $control
             )
     
             $output = @{
                 "name" = $control.Name
                 "type" = $control.GetType().Name
+                "identifier" = $control.ControlIdentifier
             }
             if ($control -is [ClientGroupControl]) {
                 $output += @{
                     "caption" = $control.Caption
                     "mappingHint" = $control.MappingHint
+                    "children" = @($control.Children | ForEach-Object { Dump-Control -control $_ })
                 }
             } elseif ($control -is [ClientStaticStringControl]) {
                 $output += @{
@@ -268,7 +273,7 @@ class ClientContext {
                 $index = 0
                 while ($true) {
                     if ($index -ge ($control.Offset + $control.DefaultViewport.Count)) {
-                        $this.ScrollRepeater($control, 1)
+                        break
                     }
                     $rowIndex = $index - $control.Offset
                     if ($rowIndex -ge $control.DefaultViewport.Count) {
@@ -276,7 +281,7 @@ class ClientContext {
                     }
                     $row = $control.DefaultViewport[$rowIndex]
                     $rowoutput = @{}
-                    $row.Children | % { $rowoutput += Dump-RowControl -control $_ }
+                    $row.Children | ForEach-Object { $rowoutput += Dump-RowControl -control $_ }
                     $output[$control.name] += $rowoutput
                     $index++
                 }
@@ -288,16 +293,17 @@ class ClientContext {
     
         return @{
             "title" = "$($form.Name) $($form.Caption)"
-            "controls" = $form.Children | % { Dump-Control -output $output -control $_ -indent 1 }
+            "identifier" = $form.ControlIdentifier
+            "controls" = $form.Children | ForEach-Object { Dump-Control -control $_ }
         }
     }
     
     CloseAllForms() {
-        $this.GetAllForms() | % { $this.CloseForm($_) }
+        $this.GetAllForms() | ForEach-Object { $this.CloseForm($_) }
     }
 
     CloseAllErrorForms() {
-        $this.GetAllForms() | % {
+        $this.GetAllForms() | ForEach-Object {
             if ($_.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2") {
                 $this.CloseForm($_)
             }
@@ -305,7 +311,7 @@ class ClientContext {
     }
 
     CloseAllWarningForms() {
-        $this.GetAllForms() | % {
+        $this.GetAllForms() | ForEach-Object {
             if ($_.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2") {
                 $this.CloseForm($_)
             }

@@ -116,6 +116,8 @@
   Add this switch if you want the container to dump new entries in the eventlog to the output (docker logs) every 2 seconds
  .Parameter doNotCheckHealth
   Add this switch if you want to avoid CPU usage on health check.
+ .Parameter doNotUseRuntimePackages
+  Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -192,7 +194,8 @@ function New-NavContainer {
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
         [switch] $dumpEventLog,
-        [switch] $doNotCheckHealth
+        [switch] $doNotCheckHealth,
+        [switch] $doNotUseRuntimePackages
     )
 
     if (!$accept_eula) {
@@ -1174,7 +1177,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     }
 
     if ($includeTestToolkit) {
-        Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly
+        Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
     }
 
     if ($includeCSide) {

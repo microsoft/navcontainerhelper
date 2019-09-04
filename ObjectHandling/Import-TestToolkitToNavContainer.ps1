@@ -90,8 +90,13 @@ function Import-TestToolkitToNavContainer {
                         $runtimeAppFile = "$applicationsPath\$($_.name.Replace('.app','.runtime.app'))"
                         $useRuntimeApp = $false
                         if (Test-Path $runtimeAppFile) {
-                            $appFile = $runtimeAppFile
-                            $useRuntimeApp = $true
+                            if ((Get-Item $runtimeAppFile).Length -eq 0) {
+                                Remove-Item $runtimeAppFile -force
+                            }
+                            else {
+                                $appFile = $runtimeAppFile
+                                $useRuntimeApp = $true
+                            }
                         }
                     }
 

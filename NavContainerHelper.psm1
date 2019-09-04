@@ -134,6 +134,7 @@ Check-NavContainerHelperPermissions -Silent
 # Bacpac Handling functions
 . (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
 . (Join-Path $PSScriptRoot "Bacpac\Backup-NavContainerDatabases.ps1")
+. (Join-Path $PSScriptRoot "Bacpac\Restore-DatabasesInNavContainer.ps1")
 
 # User Handling functions
 . (Join-Path $PSScriptRoot "UserHandling\Get-NavContainerNavUser.ps1")

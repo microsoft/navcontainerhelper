@@ -89,7 +89,14 @@ function Get-MyFilePath([string]$FileName)
 . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
 . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
 
-$txt2al = $NavIde.replace("finsql.exe","txt2al.exe")
+$txt2al = ""
+if ($roleTailoredClientFolder) {
+    $txt2al = Join-Path $roleTailoredClientFolder "txt2al.exe"
+    if (!(Test-Path $txt2al)) {
+        $txt2al = ""
+    }
+}
+
 Set-Location $runPath
 ' | Add-Content $file
 
