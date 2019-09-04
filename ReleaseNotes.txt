@@ -1,5 +1,8 @@
 0.6.3.5
 Cleanup help for functions
+Add more debugging info to Get-/Run-Tests when using -DebugMode
+Add function Restore-DatabasesInBcContainer
+Cannot find txt2al in latest 15.x container
 
 0.6.3.4
 Bugfix #570: Get-NavContainerAppInfo can return one app multiple times
