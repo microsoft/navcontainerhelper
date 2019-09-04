@@ -14,26 +14,48 @@
   Restore-DatabasesInNavContainer -containerName test
  .Example
   Restore-DatabasesInNavContainer -containerName test -tenant @("default")
+ .Example
+  Restore-DatabasesInBCContainer -containerName test -bakFile C:\ProgramData\NavContainerHelper\mydb.bak -databaseFolder "c:\databases\mydb"
 #>
 function Restore-DatabasesInNavContainer {
     Param(
         [string] $containerName = "navserver", 
         [string] $bakFolder = "",
+        [string] $bakFile = "",
+        [string] $databaseName = "",
         [string[]] $tenant,
         [Parameter(Mandatory=$false)]
         [string] $databaseFolder = "c:\databases",
         [int] $sqlTimeout = 300
     )
 
-    $extensionsFolder = "C:\programdata\navcontainerhelper\extensions"
+    $containerBakFile = ""
+    $containerBakFolder = ""
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
-    if ("$bakFolder" -eq "") {
-        $bakFolder = $containerFolder
+    if ($bakFile) {
+        if ($bakFolder) {
+            throw "You cannot specify bakFolder when you specify bakFile"
+        }
+        if ($tenant) {
+            throw "You cannot specify tenant when you specify bakFile"
+        }
+        $containerBakFile = Get-NavContainerPath -containerName $containerName -path $bakFile -throw
+        if (-not $databaseName) {
+            $databaseName = [System.IO.Path]::GetFileNameWithoutExtension($bakFile)
+        }
     }
-    $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
+    elseif ($databaseName) {
+        throw "You need to specify bakFile when you specify databaseName"
+    }
+    else {
+        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        if ("$bakFolder" -eq "") {
+            $bakFolder = $containerFolder
+        }
+        $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
+    }
 
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($bakFolder, $tenant, $databaseFolder, $sqlTimeout)
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($bakFolder, $bakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout)
 
         function Restore {
             Param (
@@ -70,26 +92,32 @@ function Restore-DatabasesInNavContainer {
         $multitenant = ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true")
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
 
-        if ($multitenant -and !($tenant)) {
-            $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
+        if ($bakFile) {
+            Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $DatabaseName -bakFile $bakFile -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
         }
-
-        Set-NavServerInstance -ServerInstance $serverInstance -stop
-
-        if ($multitenant) {
-            Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $DatabaseName -bakFile (Join-Path $bakFolder "app.bak") -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
-            $tenant | ForEach-Object {
-                Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $_ -bakFile (Join-Path $bakFolder "$_.bak") -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
-            }
-        } else {
-            Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $DatabaseName -bakFile (Join-Path $bakFolder "database.bak") -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
-        }
-
-        Set-NavServerInstance -ServerInstance $serverInstance -start
+        else {
+            $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
     
-    } -argumentList $containerBakFolder, $tenant, $databaseFolder, $sqlTimeout
+            if ($multitenant -and !($tenant)) {
+                $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
+            }
+    
+            Set-NavServerInstance -ServerInstance $serverInstance -stop
+    
+            if ($multitenant) {
+                Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $DatabaseName -bakFile (Join-Path $bakFolder "app.bak") -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
+                $tenant | ForEach-Object {
+                    Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $_ -bakFile (Join-Path $bakFolder "$_.bak") -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
+                }
+            } else {
+                Restore -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName $DatabaseName -bakFile (Join-Path $bakFolder "database.bak") -databaseFolder $databaseFolder -sqlTimeout $sqlTimeout
+            }
+    
+            Set-NavServerInstance -ServerInstance $serverInstance -start
+        }
+    
+    } -argumentList $containerBakFolder, $containerBakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout
 
 }
 Set-Alias -Name Restore-DatabasesInBCContainer -Value Restore-DatabasesInNavContainer
