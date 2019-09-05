@@ -52,6 +52,10 @@ function Restore-DatabasesInNavContainer {
         if ("$bakFolder" -eq "") {
             $bakFolder = $containerFolder
         }
+        elseif (!$bakFolder.Contains('\')) {
+            $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+            $bakFolder = Join-Path $containerHelperFolder "$($NavVersion)-bakFolders\$bakFolder"
+        }
         $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
     }
 
