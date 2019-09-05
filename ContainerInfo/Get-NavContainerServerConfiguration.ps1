@@ -16,7 +16,7 @@ Function Get-NavContainerServerConfiguration {
 
     $ResultObjectArray = @()
     $config = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock{
-        Get-NAVServerInstance -ServerInstance $ServerInstance | Get-NAVServerConfiguration -AsXml
+        Get-NAVServerConfiguration -ServerInstance $ServerInstance -AsXml
     }
     
     $Object = New-Object -TypeName PSObject -Property @{
