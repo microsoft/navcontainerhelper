@@ -216,6 +216,12 @@ function Run-Tests {
         if ($AppendToXUnitResultFile -and (Test-Path $XUnitResultFileName)) {
             [xml]$XUnitDoc = Get-Content $XUnitResultFileName
             $XUnitAssemblies = $XUnitDoc.assemblies
+            if (-not $XUnitAssemblies) {
+                [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
+                $XUnitDoc.AppendChild($XUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
+                $XUnitAssemblies = $XUnitDoc.CreateElement("assemblies")
+                $XUnitDoc.AppendChild($XUnitAssemblies) | Out-Null
+            }
         }
         else {
             if (Test-Path $XUnitResultFileName -PathType Leaf) {

@@ -38,6 +38,9 @@
   ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
  .Parameter debugMode
   Include this switch to output debug information if running the tests fails.
+ .Parameter restartContainerAndRetry
+  Include this switch to restart container and retry the operation (everything) on non-recoverable errors.
+  This is NOT test failures, but more things like out of memory, communication errors or that kind.
  .Example
   Run-TestsInNavContainer -contatinerName test -credential $credential
  .Example
@@ -73,7 +76,8 @@ function Run-TestsInNavContainer {
         [switch] $returnTrueIfAllPassed,
         [Parameter(Mandatory=$false)]
         [int] $testPage,
-        [switch] $debugMode
+        [switch] $debugMode,
+        [switch] $restartContainerAndRetry
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -146,79 +150,98 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode)
-    
-        $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
-        $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
-        $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-        [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-        $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
-        $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
-        $idx = $publicWebBaseUrl.IndexOf('//')
-        $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
-        $disableSslVerification = ($protocol -eq "https://")
-        if ($version.Major -ge 11) {
-            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
-        }
-        else {
-            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/WebClient/cs?tenant=$tenant"
-        }
-
-        if ($clientServicesCredentialType -eq "Windows") {
-            $windowsUserName = whoami
-            $NavServerUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore | Where-Object { $_.UserName -eq $windowsusername }
-            if (!($NavServerUser)) {
-                Write-Host "Creating $windowsusername as user"
-                New-NavServerUser -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername
-                New-NavServerUserPermissionSet -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername -PermissionSetId SUPER
-            }
-        }
-        elseif ($accessToken) {
-            $clientServicesCredentialType = "AAD"
-            $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
-        }
-
-        if ($companyName) {
-            $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
-        }
-
-        . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
-
-        try {
-            if ($disableSslVerification) {
-                Disable-SslVerification
-            }
+    while ($true) {
+        try
+        {
+            $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode)
             
-            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -debugMode:$debugMode
-    
-            Run-Tests -clientContext $clientContext `
-                      -TestSuite $testSuite `
-                      -TestGroup $testGroup `
-                      -TestCodeunit $testCodeunit `
-                      -TestFunction $testFunction `
-                      -XUnitResultFileName $XUnitResultFileName `
-                      -AppendToXUnitResultFile:$AppendToXUnitResultFile `
-                      -ReRun:$ReRun `
-                      -AzureDevOps $AzureDevOps `
-                      -detailed:$detailed `
-                      -testPage $testPage
+                $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+                $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
+                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
+                $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
+                $idx = $publicWebBaseUrl.IndexOf('//')
+                $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
+                $disableSslVerification = ($protocol -eq "https://")
+                if ($version.Major -ge 11) {
+                    $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
+                }
+                else {
+                    $serviceUrl = "$($protocol)localhost/$($ServerInstance)/WebClient/cs?tenant=$tenant"
+                }
+        
+                if ($clientServicesCredentialType -eq "Windows") {
+                    $windowsUserName = whoami
+                    $NavServerUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore | Where-Object { $_.UserName -eq $windowsusername }
+                    if (!($NavServerUser)) {
+                        Write-Host "Creating $windowsusername as user"
+                        New-NavServerUser -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername
+                        New-NavServerUserPermissionSet -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername -PermissionSetId SUPER
+                    }
+                }
+                elseif ($accessToken) {
+                    $clientServicesCredentialType = "AAD"
+                    $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+                }
+        
+                if ($companyName) {
+                    $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
+                }
+        
+                . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
+        
+                try {
+                    if ($disableSslVerification) {
+                        Disable-SslVerification
+                    }
+                    
+                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -debugMode:$debugMode
+            
+                    Run-Tests -clientContext $clientContext `
+                              -TestSuite $testSuite `
+                              -TestGroup $testGroup `
+                              -TestCodeunit $testCodeunit `
+                              -TestFunction $testFunction `
+                              -XUnitResultFileName $XUnitResultFileName `
+                              -AppendToXUnitResultFile:$AppendToXUnitResultFile `
+                              -ReRun:$ReRun `
+                              -AzureDevOps $AzureDevOps `
+                              -detailed:$detailed `
+                              -testPage $testPage
+                }
+                catch {
+                    if ($debugMode) {
+                        Dump-ClientContext -clientcontext $clientContext 
+                    }
+                    throw
+                }
+                finally {
+                    if ($disableSslVerification) {
+                        Enable-SslVerification
+                    }
+                    Remove-ClientContext -clientContext $clientContext
+                }
+        
+            } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode
+            if ($returnTrueIfAllPassed) {
+                $allPassed
+            }
+            if (!$allPassed) {
+                Remove-NavContainerSession -containerName $containerName
+            }
+            break
         }
         catch {
-            if ($debugMode) {
-                Dump-ClientContext -clientcontext $clientContext 
+            if ($restartContainerAndRetry) {
+                Write-Host -ForegroundColor Red $_.Exception.Message
+                Restart-NavContainer $containerName
+                $restartContainerAndRetry = $false
             }
-            throw
-        }
-        finally {
-            if ($disableSslVerification) {
-                Enable-SslVerification
+            else {
+                throw $_.Exception.Message
             }
-            Remove-ClientContext -clientContext $clientContext
         }
-
-    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode
-    if ($returnTrueIfAllPassed) {
-        $allPassed
     }
 }
 Set-Alias -Name Run-TestsInBCContainer -Value Run-TestsInNavContainer
