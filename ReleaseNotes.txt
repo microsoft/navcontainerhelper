@@ -5,6 +5,7 @@ Add function Restore-DatabasesInBcContainer
 Cannot find txt2al in latest 15.x container
 Add parameter doNotUseRuntimePackages to New-BcContainer
 Ignore empty runtime packages when caching runtime test apps
+Add credential parameter to Create-AlProjectFolderFromBcContainer
 
 0.6.3.4
 Bugfix #570: Get-NavContainerAppInfo can return one app multiple times
