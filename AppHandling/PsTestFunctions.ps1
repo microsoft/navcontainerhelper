@@ -85,7 +85,8 @@ function Get-Tests {
         [ClientContext] $clientContext,
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
-        [string] $testCodeunit = "*"
+        [string] $testCodeunit = "*",
+        [switch] $ignoreGroups
     )
 
     if ($testPage -eq 130455) {
@@ -130,7 +131,7 @@ function Get-Tests {
         #Write-Host "$linetype $name"        
 
         if ($name) {
-            if ($linetype -eq "0") {
+            if ($linetype -eq "0" -and !$ignoreGroups) {
                 $group = @{ "Group" = $name; "Codeunits" = @() }
                 $Tests += $group
                             
@@ -197,7 +198,7 @@ function Run-Tests {
     $i = 0
     if ([int]::TryParse($testCodeunit, [ref] $i) -and ($testCodeunit -eq $i)) {
         $filterControl = $clientContext.GetControlByType($form, [ClientFilterLogicalControl])
-
+        
         if (([System.Management.Automation.PSTypeName]'Microsoft.Dynamics.Framework.UI.Client.Interactions.ExecuteFilterInteraction').Type) {
             $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.ExecuteFilterInteraction -ArgumentList $filterControl
             $filterInteraction.QuickFilterColumnId = $filterControl.QuickFilterColumns[0].Id

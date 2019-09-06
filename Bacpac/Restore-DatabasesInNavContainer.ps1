@@ -54,7 +54,13 @@ function Restore-DatabasesInNavContainer {
         }
         elseif (!$bakFolder.Contains('\')) {
             $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-            $bakFolder = Join-Path $containerHelperFolder "$($NavVersion)-bakFolders\$bakFolder"
+            if ((Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
+                $folderPrefix = "sandbox"
+            }
+            else {
+                $folderPrefix = "onprem"
+            }
+            $bakFolder = Join-Path $containerHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
         }
         $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
     }

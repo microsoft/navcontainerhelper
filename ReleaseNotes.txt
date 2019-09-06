@@ -1,13 +1,16 @@
-0.6.3.5
+0.6.4.0
 Cleanup help for functions
 Add more debugging info to Get-/Run-Tests when using -DebugMode
-Add function Restore-DatabasesInBcContainer
+New function Restore-DatabasesInBcContainer
 Cannot find txt2al in latest 15.x container
 Add parameter doNotUseRuntimePackages to New-BcContainer
 Ignore empty runtime packages when caching runtime test apps
 Add credential parameter to Create-AlProjectFolderFromBcContainer
 Add support for relative bakfolders in Backup/Restore
 Add parameter bakFolder to New-BcContainer to store and reuse database
+Rename application runtime cache to sandbox-applications or onprem-applications based on style
+Add parameter -ignoreGroups to Get-TestsFromBcContainer to allow compatible output with 15.x containers (where groups are not supported)
+New function Flush-ContainerHelperCache to cleanup caches used by ContainerHelperCache
 
 0.6.3.4
 Bugfix #570: Get-NavContainerAppInfo can return one app multiple times

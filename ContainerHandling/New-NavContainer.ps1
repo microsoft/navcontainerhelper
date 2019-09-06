@@ -342,6 +342,8 @@ function New-NavContainer {
 
     $devCountry = ""
     $navVersion = ""
+    $bcStyle = "onprem"
+
     if ($imageName -eq "") {
         if ("$dvdPath" -ne "") {
             if ($useGenericImage) {
@@ -530,9 +532,19 @@ function New-NavContainer {
     }
 
     if ($navVersion -eq "") {
-        $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
+        $inspect = docker inspect $imageName | ConvertFrom-Json
+        if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+            throw "Container $containerOrImageName is not a NAV/BC container"
+        }
+        $navversion = "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
+        if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
+            $bcStyle = "sandbox"
+        }
     }
+
     Write-Host "Version: $navversion"
+    Write-Host "Style: $bcStyle"
+
     $version = [System.Version]($navversion.split('-')[0])
     $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
     if ($platformversion) {
@@ -778,7 +790,7 @@ function New-NavContainer {
     $restoreBakFolder = $false
     if ($bakFolder) {
         if (!$bakFolder.Contains('\')) {
-            $bakFolder = Join-Path $containerHelperFolder "$($NavVersion)-bakFolders\$bakFolder"
+            $bakFolder = Join-Path $containerHelperFolder "$bcStyle-$($NavVersion)-bakFolders\$bakFolder"
         }
         if (Test-Path (Join-Path $bakFolder "*.bak")) {
             $restoreBakFolder = $true

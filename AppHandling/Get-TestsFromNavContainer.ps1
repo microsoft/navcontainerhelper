@@ -18,6 +18,8 @@
   ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
  .Parameter debugMode
   Include this switch to output debug information if getting the tests fails.
+ .Parameter ignoreGroups
+  Test Groups are not supported in 15.x - include this switch to ignore test groups in 14.x and earlier and have compatible resultsets from this function
  .Example
   Get-TestsFromNavContainer -contatinerName test -credential $credential
  .Example
@@ -38,7 +40,8 @@ function Get-TestsFromNavContainer {
         [string] $testCodeunit = "*",
         [Parameter(Mandatory=$false)]
         [int] $testPage,
-        [switch] $debugMode
+        [switch] $debugMode,
+        [switch] $ignoreGroups
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -96,7 +99,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -136,7 +139,7 @@ function Get-TestsFromNavContainer {
             
             $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -debugMode:$debugMode
 
-            Get-Tests -clientContext $clientContext -TestSuite $testSuite -TestCodeunit $testCodeunit -testPage $testPage
+            Get-Tests -clientContext $clientContext -TestSuite $testSuite -TestCodeunit $testCodeunit -testPage $testPage -ignoreGroups:$ignoreGroups
 
         }
         catch {
@@ -152,7 +155,7 @@ function Get-TestsFromNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode | ConvertFrom-Json
+    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups | ConvertFrom-Json
 }
 Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
 Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer
