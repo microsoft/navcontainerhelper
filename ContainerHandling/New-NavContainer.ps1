@@ -121,6 +121,9 @@
   Add this switch if you want to avoid CPU usage on health check.
  .Parameter doNotUseRuntimePackages
   Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
+ .Parameter finalizeDatabasesScriptBlock
+  In this scriptblock you can install additional apps or import additional objects in your container.
+  These apps/objects will be included in the backup if you specify bakFolder and this script will NOT run if a backup already exists in bakFolder.
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -199,7 +202,8 @@ function New-NavContainer {
         [switch] $useCleanDatabase,
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth,
-        [switch] $doNotUseRuntimePackages
+        [switch] $doNotUseRuntimePackages,
+        [scriptblock] $finalizeDatabasesScriptBlock
     )
 
     if (!$accept_eula) {
@@ -527,10 +531,6 @@ function New-NavContainer {
 
     Write-Host "Creating Container $containerName"
     
-    if ("$licenseFile" -ne "") {
-        Write-Host "Using license file $licenseFile"
-    }
-
     if ($navVersion -eq "") {
         $inspect = docker inspect $imageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
@@ -794,6 +794,10 @@ function New-NavContainer {
         }
         if (Test-Path (Join-Path $bakFolder "*.bak")) {
             $restoreBakFolder = $true
+            if (!$multitenant) {
+                $bakFile = Join-Path $bakFolder "database.bak"
+                $parameters += "--env bakfile=$bakFile"
+            }
         }
     }
 
@@ -819,29 +823,35 @@ function New-NavContainer {
         $parameters += "--env bakfile=$bakFile"
     }
 
-    if ("$licensefile" -eq "") {
-        if ($includeCSide -and !$doNotExportObjectsToText) {
-            throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+    if (!$restoreBakFolder) {
+        if ("$licensefile" -eq "") {
+            if ($includeCSide -and !$doNotExportObjectsToText) {
+                throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+            }
+            if ($includeAL -and ($version.Major -eq 14)) {
+                throw "You must specify a license file when creating a AL Development container with this version."
+            }
+            $containerlicenseFile = ""
+        } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+            Write-Host "Using license file $licenseFile"
+            $licensefileUri = $licensefile
+            $licenseFile = "$myFolder\license.flf"
+            Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
+            $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
+            $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+            if (!($text.StartsWith("Microsoft Software License Information"))) {
+                Remove-Item -Path $licenseFile -Force
+                throw "Specified license file Uri isn't a direct download Uri"
+            }
+            $containerLicenseFile = "c:\run\my\license.flf"
+        } else {
+            Write-Host "Using license file $licenseFile"
+            Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
+            $containerLicenseFile = "c:\run\my\license.flf"
         }
-        if ($includeAL -and ($version.Major -eq 14)) {
-            throw "You must specify a license file when creating a AL Development container with this version."
-        }
-        $containerlicenseFile = ""
-    } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-        $licensefileUri = $licensefile
-        $licenseFile = "$myFolder\license.flf"
-        Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
-        $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
-        $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-        if (!($text.StartsWith("Microsoft Software License Information"))) {
-            Remove-Item -Path $licenseFile -Force
-            throw "Specified license file Uri isn't a direct download Uri"
-        }
-        $containerLicenseFile = "c:\run\my\license.flf"
-    } else {
-        Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
-        $containerLicenseFile = "c:\run\my\license.flf"
+        $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
     }
+
 
     $parameters += @(
                     "--name $containerName",
@@ -850,7 +860,6 @@ function New-NavContainer {
                     "--env username=""$($credential.UserName)""",
                     "--env ExitOnError=N",
                     "--env locale=$locale",
-                    "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
                     "--volume ""$($hostHelperFolder):$containerHelperFolder""",
@@ -961,7 +970,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
         $setupWebClientContent | Set-Content -path $setupWebClientFile
     }
 
-    if ($assignPremiumPlan) {
+    if ($assignPremiumPlan -and !$restoreBakFolder) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
@@ -1202,9 +1211,6 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             }
             Restore-DatabasesInNavContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
         }
-        else {
-            Restore-DatabasesInNavContainer -containerName $containerName -bakFolder $bakFolder
-        }
     }
     else {
         if ($enableSymbolLoading) {
@@ -1382,6 +1388,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         if ($useCleanDatabase -and !$restoreBakFolder) {
             Clean-BcContainerDatabase -containerName $containerName
         }
+    }
+
+    if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {
+        Invoke-Command -ScriptBlock $finalizeDatabasesScriptBlock
     }
 
     if ($bakFolder -and !$restoreBakFolder) {
