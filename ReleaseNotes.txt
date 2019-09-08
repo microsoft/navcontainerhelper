@@ -1,4 +1,6 @@
-0.6.4.0
+0.6.4.1
+Add parameter finalizeDatabasesScriptBlock to New-BcContainer
+
 Cleanup help for functions
 Add more debugging info to Get-/Run-Tests when using -DebugMode
 New function Restore-DatabasesInBcContainer
