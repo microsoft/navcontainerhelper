@@ -107,7 +107,7 @@ FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases', '
                'Invoke-NavContainerApi', 'Invoke-NavContainerCodeunit', 
                'Invoke-ScriptInNavContainer', 'New-CompanyInNavContainer', 
                'New-DesktopShortcut', 'New-LetsEncryptCertificate', 
-               'New-NavContainer', 'New-NavContainerNavUser', 
+               'New-NavContainer', 'Flush-ContainerHelperCache', 'New-NavContainerNavUser', 
                'New-NavContainerTenant', 'New-NavContainerWindowsUser', 
                'Open-NavContainer', 'Publish-NavContainerApp', 
                'Publish-NewApplicationToNavContainer', 

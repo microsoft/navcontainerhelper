@@ -88,6 +88,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-BestNavContainerImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Invoke-ScriptInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Setup-TraefikContainerForNavContainers.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Flush-ContainerHelperCache.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")

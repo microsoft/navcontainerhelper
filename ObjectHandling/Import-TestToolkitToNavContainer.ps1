@@ -83,7 +83,13 @@ function Import-TestToolkitToNavContainer {
                     }
 
                     if (!$doNotUseRuntimePackages) {
-                        $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\Applications-$navVersion"
+                        if ($env:IsBcSandbox -eq "Y") {
+                            $folderPrefix = "sandbox"
+                        }
+                        else {
+                            $folderPrefix = "onprem"
+                        }
+                        $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\$folderPrefix-Applications-$navVersion"
                         if (!(Test-Path $applicationsPath)) {
                             New-Item -Path $applicationsPath -ItemType Directory | Out-Null
                         }
@@ -110,7 +116,7 @@ function Import-TestToolkitToNavContainer {
                     Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant default -force -WarningAction Ignore
                     Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant default
                     if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
-                        Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile
+                        Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
                     }
                 }
             }

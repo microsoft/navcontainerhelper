@@ -40,6 +40,9 @@
   Name of database to connect to when using external SQL Server (omit if using database inside the container)
  .Parameter bakFile
   Path or Secure Url of a bakFile if you want to restore a database in the container
+ .Parameter bakFolder
+  A folder in which a backup of the database(s) will be placed after the container has been created and initialized
+  If the folder already exists, then the database(s) in this folder will be restored and used.
  .Parameter databaseCredential
   Credentials for the database connection when using external SQL Server (omit if using database inside the container)
  .Parameter shortcuts
@@ -118,6 +121,9 @@
   Add this switch if you want to avoid CPU usage on health check.
  .Parameter doNotUseRuntimePackages
   Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
+ .Parameter finalizeDatabasesScriptBlock
+  In this scriptblock you can install additional apps or import additional objects in your container.
+  These apps/objects will be included in the backup if you specify bakFolder and this script will NOT run if a backup already exists in bakFolder.
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -155,6 +161,7 @@ function New-NavContainer {
         [string] $databaseInstance = "",
         [string] $databaseName = "",
         [string] $bakFile = "",
+        [string] $bakFolder = "",
         [PSCredential] $databaseCredential = $null,
         [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
         [string] $shortcuts='Desktop',
@@ -195,7 +202,8 @@ function New-NavContainer {
         [switch] $useCleanDatabase,
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth,
-        [switch] $doNotUseRuntimePackages
+        [switch] $doNotUseRuntimePackages,
+        [scriptblock] $finalizeDatabasesScriptBlock
     )
 
     if (!$accept_eula) {
@@ -338,6 +346,8 @@ function New-NavContainer {
 
     $devCountry = ""
     $navVersion = ""
+    $bcStyle = "onprem"
+
     if ($imageName -eq "") {
         if ("$dvdPath" -ne "") {
             if ($useGenericImage) {
@@ -399,10 +409,6 @@ function New-NavContainer {
 
     Write-Host "Using image $imageName"
 
-    if ($multitenant) {
-        $parameters += "--env multitenant=Y"
-    }
-
     if ($clickonce) {
         $parameters += "--env clickonce=Y"
     }
@@ -461,23 +467,6 @@ function New-NavContainer {
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-    if ($bakFile) {
-        if ($bakFile.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $bakFile.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
-            $temp = Join-Path $containerFolder "database.bak"
-            Download-File -sourceUrl $bakFile -destinationFile $temp
-            $bakFile = $temp
-        }
-        if (!(Test-Path $bakFile)) {
-            throw "Database backup $bakFile doesn't exist"
-        }
-        
-        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
-            $containerBakFile = Join-Path $containerFolder "database.bak"
-            Copy-Item -Path $bakFile -Destination $containerBakFile
-            $bakFile = $containerBakFile
-        }
-        $parameters += "--env bakfile=$bakFile"
-    }
     if ($dvdPath.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $dvdPath.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
         $tempFolder = Join-Path $containerFolder "DVD"
         new-item -type directory -Path $tempFolder | Out-Null
@@ -542,14 +531,20 @@ function New-NavContainer {
 
     Write-Host "Creating Container $containerName"
     
-    if ("$licenseFile" -ne "") {
-        Write-Host "Using license file $licenseFile"
+    if ($navVersion -eq "") {
+        $inspect = docker inspect $imageName | ConvertFrom-Json
+        if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+            throw "Container $containerOrImageName is not a NAV/BC container"
+        }
+        $navversion = "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
+        if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
+            $bcStyle = "sandbox"
+        }
     }
 
-    if ($navVersion -eq "") {
-        $navversion = Get-NavContainerNavversion -containerOrImageName $imageName
-    }
     Write-Host "Version: $navversion"
+    Write-Host "Style: $bcStyle"
+
     $version = [System.Version]($navversion.split('-')[0])
     $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
     if ($platformversion) {
@@ -792,29 +787,71 @@ function New-NavContainer {
         }
     }
     
-    if ("$licensefile" -eq "") {
-        if ($includeCSide -and !$doNotExportObjectsToText) {
-            throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+    $restoreBakFolder = $false
+    if ($bakFolder) {
+        if (!$bakFolder.Contains('\')) {
+            $bakFolder = Join-Path $containerHelperFolder "$bcStyle-$($NavVersion)-bakFolders\$bakFolder"
         }
-        if ($includeAL -and ($version.Major -eq 14)) {
-            throw "You must specify a license file when creating a AL Development container with this version."
+        if (Test-Path (Join-Path $bakFolder "*.bak")) {
+            $restoreBakFolder = $true
+            if (!$multitenant) {
+                $bakFile = Join-Path $bakFolder "database.bak"
+                $parameters += "--env bakfile=$bakFile"
+            }
         }
-        $containerlicenseFile = ""
-    } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-        $licensefileUri = $licensefile
-        $licenseFile = "$myFolder\license.flf"
-        Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
-        $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
-        $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-        if (!($text.StartsWith("Microsoft Software License Information"))) {
-            Remove-Item -Path $licenseFile -Force
-            throw "Specified license file Uri isn't a direct download Uri"
-        }
-        $containerLicenseFile = "c:\run\my\license.flf"
-    } else {
-        Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
-        $containerLicenseFile = "c:\run\my\license.flf"
     }
+
+    if ($multitenant -and !$restoreBakFolder) {
+        $parameters += "--env multitenant=Y"
+    }
+
+    if ($bakFile -and !$restoreBakFolder) {
+        if ($bakFile.StartsWith("http://", [StringComparison]::OrdinalIgnoreCase) -or $bakFile.StartsWith("https://", [StringComparison]::OrdinalIgnoreCase)) {
+            $temp = Join-Path $containerFolder "database.bak"
+            Download-File -sourceUrl $bakFile -destinationFile $temp
+            $bakFile = $temp
+        }
+        if (!(Test-Path $bakFile)) {
+            throw "Database backup $bakFile doesn't exist"
+        }
+        
+        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+            $containerBakFile = Join-Path $containerFolder "database.bak"
+            Copy-Item -Path $bakFile -Destination $containerBakFile
+            $bakFile = $containerBakFile
+        }
+        $parameters += "--env bakfile=$bakFile"
+    }
+
+    if (!$restoreBakFolder) {
+        if ("$licensefile" -eq "") {
+            if ($includeCSide -and !$doNotExportObjectsToText) {
+                throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
+            }
+            if ($includeAL -and ($version.Major -eq 14)) {
+                throw "You must specify a license file when creating a AL Development container with this version."
+            }
+            $containerlicenseFile = ""
+        } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+            Write-Host "Using license file $licenseFile"
+            $licensefileUri = $licensefile
+            $licenseFile = "$myFolder\license.flf"
+            Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
+            $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
+            $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+            if (!($text.StartsWith("Microsoft Software License Information"))) {
+                Remove-Item -Path $licenseFile -Force
+                throw "Specified license file Uri isn't a direct download Uri"
+            }
+            $containerLicenseFile = "c:\run\my\license.flf"
+        } else {
+            Write-Host "Using license file $licenseFile"
+            Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
+            $containerLicenseFile = "c:\run\my\license.flf"
+        }
+        $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
+    }
+
 
     $parameters += @(
                     "--name $containerName",
@@ -823,7 +860,6 @@ function New-NavContainer {
                     "--env username=""$($credential.UserName)""",
                     "--env ExitOnError=N",
                     "--env locale=$locale",
-                    "--env licenseFile=""$containerLicenseFile""",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
                     "--volume ""$($hostHelperFolder):$containerHelperFolder""",
@@ -934,7 +970,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
         $setupWebClientContent | Set-Content -path $setupWebClientFile
     }
 
-    if ($assignPremiumPlan) {
+    if ($assignPremiumPlan -and !$restoreBakFolder) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
@@ -1115,16 +1151,6 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
-    if ($enableSymbolLoading) {
-        # Unpublish symbols when running hybrid development
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
-            # Unpublish only, when Apps when present
-            # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
-            #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
-            Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
-        }
-    }
-
     if ($shortcuts -ne "None") {
         Write-Host "Creating Desktop Shortcuts for $containerName"
         if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
@@ -1176,8 +1202,30 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
     }
 
-    if ($includeTestToolkit) {
-        Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
+    if ($restoreBakFolder) {
+        if ($multitenant) {
+            $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
+            $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
+            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+                Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
+            }
+            Restore-DatabasesInNavContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
+        }
+    }
+    else {
+        if ($enableSymbolLoading) {
+            # Unpublish symbols when running hybrid development
+            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+                # Unpublish only, when Apps when present
+                # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
+                #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+                Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+            }
+        }
+    
+        if ($includeTestToolkit) {
+            Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
+        }
     }
 
     if ($includeCSide) {
@@ -1337,9 +1385,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             }
         } -argumentList $dotnetAssembliesFolder
 
-        if ($useCleanDatabase) {
+        if ($useCleanDatabase -and !$restoreBakFolder) {
             Clean-BcContainerDatabase -containerName $containerName
         }
+    }
+
+    if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {
+        Invoke-Command -ScriptBlock $finalizeDatabasesScriptBlock
+    }
+
+    if ($bakFolder -and !$restoreBakFolder) {
+        Backup-NavContainerDatabases -containerName $containerName -bakFolder $bakFolder
     }
 
     Write-Host -ForegroundColor Green "Container $containerName successfully created"

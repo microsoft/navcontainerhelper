@@ -9,6 +9,7 @@ class ClientContext {
     $culture = ""
     $caughtForm = $null
     $debugMode = $false
+    $addressUri = $null
 
     ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture) {
         $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture)
@@ -35,9 +36,9 @@ class ClientContext {
     }
     
     Initialize([string] $serviceUrl, [AuthenticationScheme] $authenticationScheme, [System.Net.ICredentials] $credential, [timespan] $interactionTimeout, [string] $culture) {
-        $addressUri = New-Object System.Uri -ArgumentList $serviceUrl
-        $addressUri = [ServiceAddressProvider]::ServiceAddress($addressUri)
-        $jsonClient = New-Object JsonHttpClient -ArgumentList $addressUri, $credential, $authenticationScheme
+        $this.addressUri = New-Object System.Uri -ArgumentList $serviceUrl
+        $this.addressUri = [ServiceAddressProvider]::ServiceAddress($this.addressUri)
+        $jsonClient = New-Object JsonHttpClient -ArgumentList $this.addressUri, $credential, $authenticationScheme
         $httpClient = ($jsonClient.GetType().GetField("httpClient", [Reflection.BindingFlags]::NonPublic -bor [Reflection.BindingFlags]::Instance)).GetValue($jsonClient)
         $httpClient.Timeout = $interactionTimeout
         $this.clientSession = New-Object ClientSession -ArgumentList $jsonClient, (New-Object NonDispatcher), (New-Object 'TimerFactory[TaskTimer]')
@@ -99,27 +100,28 @@ class ClientContext {
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UriToShow -Action {
             Write-Host -ForegroundColor Yellow "UriToShow : $($EventArgs.UriToShow)"
         })
+        $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName LookupFormToShow -Action { 
+            Write-Host -ForegroundColor Yellow "Open Lookup form"
+        })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName DialogToShow -Action {
             $form = $EventArgs.DialogToShow
+            if ($this.debugMode) {
+                Write-Host -ForegroundColor Yellow "Show dialog $($form.ControlIdentifier)"
+                $formInfo = $this.GetFormInfo($form)
+                if ($formInfo) {
+                    Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                    $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                }
+            }
             if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
                 $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
                 Write-Host -ForegroundColor Red "ERROR: $($errorControl.StringValue)"
-                $this.InvokeAction($this.GetActionByCaption($form, "OK"))
+                $this.CloseForm($form)
             }
             elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
                 $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
                 Write-Host -ForegroundColor Yellow "WARNING: $($errorControl.StringValue)"
-                $this.InvokeAction($this.GetActionByCaption($form, "OK"))
-            }
-            else {
-                if ($this.debugMode) {
-                    Write-Host -ForegroundColor Yellow "Show dialog $($form.ControlIdentifier)"
-                    $formInfo = $this.GetFormInfo($form)
-                    if ($formInfo) {
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
-                    }
-                }
+                $this.CloseForm($form)
             }
         })
     

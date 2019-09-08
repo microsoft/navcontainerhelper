@@ -29,6 +29,8 @@
   Specify a foreign container in which you want to run the txt2al tool
  .Parameter useBaseAppProperties
   Specify to retrieve app properties from base app actually installed in container
+ .Parameter credential
+  Credentials are needed to download the app if you do not use the baseline
  .Example
   $alProjectFolder = "C:\ProgramData\NavContainerHelper\AL\BaseApp"
   Create-AlProjectFolderFromNavContainer -containerName alContainer `
@@ -58,7 +60,8 @@ function Create-AlProjectFolderFromNavContainer {
         [ScriptBlock] $alFileStructure,
         [string] $runTxt2AlInContainer = $containerName,
         [Parameter(ParameterSetName="BaseAppProperties")]
-        [switch] $useBaseAppProperties
+        [switch] $useBaseAppProperties,
+        [PSCredential] $credential = $null
     )
 
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
