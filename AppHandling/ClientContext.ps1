@@ -67,6 +67,9 @@ class ClientContext {
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName CommunicationError -Action {
             Write-Host -ForegroundColor Red "CommunicationError : $($EventArgs.Exception.Message)"
+            if ($null -ne $EventArgs.Exception.InnerException) {
+                Write-Host -ForegroundColor Red "CommunicationError InnerException : $($EventArgs.Exception.InnerException)"    
+            }
             if ($this.debugMode) {
                 $this.GetAllForms() | ForEach-Object {
                     $formInfo = $this.GetFormInfo($_)
@@ -81,6 +84,9 @@ class ClientContext {
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UnhandledException -Action {
             Write-Host -ForegroundColor Red "UnhandledException : $($EventArgs.Exception.Message)"
+            if ($null -ne $EventArgs.Exception.InnerException) {
+                Write-Host -ForegroundColor Red "UnhandledException InnerException : $($EventArgs.Exception.InnerException)"    
+            }
             if ($this.debugMode) {
                 $this.GetAllForms() | ForEach-Object {
                     $formInfo = $this.GetFormInfo($_)
