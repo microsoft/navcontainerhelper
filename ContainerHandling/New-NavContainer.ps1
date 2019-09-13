@@ -189,7 +189,7 @@ function New-NavContainer {
         $myScripts = @(),
         [string] $TimeZoneId = $null,
         [int] $WebClientPort,
-        [int] $FileSharePort,
+        [int] $FileSharePort = 8080,
         [int] $ManagementServicesPort,
         [int] $ClientServicesPort,
         [int] $SoapServicesPort,
@@ -414,10 +414,18 @@ function New-NavContainer {
     }
 
     if ($WebClientPort) {
+        if ($WebClientPort -eq $FileSharePort) {
+            Throw "You cannot use the same port as FileSharePort as for the WebClientPort ($FileSharePort)"
+        }
         $parameters += "--env WebClientPort=$WebClientPort"
     }
 
     if ($FileSharePort) {
+        if (!$WebClientPort) {
+            if (($useSSL -and ($FileSharePort -eq 443)) -or (!$useSSL -and ($FileSharePort -eq 80))) {
+                Throw "You cannot use the same port as FileSharePort ($FileSharePort) as for the WebClientPort"
+            }
+        }
         $parameters += "--env FileSharePort=$FileSharePort"
     }
 
