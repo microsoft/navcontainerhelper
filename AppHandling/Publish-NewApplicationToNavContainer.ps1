@@ -22,12 +22,20 @@
   Add this switch if you want to keep all extension data. Requires -useCleanDatabase
  .Parameter restoreApps
   Specify whether or not you want to restore previously installed apps in the container
+ .Parameter replaceDependencies
+  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+  If your application doesn't use the same appId, Publisher, Name and version as the original baseapp, you need to specify this if you want to restore apps
  .Example
   Publish-NewApplicationToNavContainer -containerName test `
                                        -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
                                        -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
                                        -credential $credential
-
+ .Example
+  Publish-NewApplicationToNavContainer -containerName test `
+                                       -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
+                                       -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
+                                       -credential $credential `
+                                       -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
 function Publish-NewApplicationToNavContainer {
     Param (
@@ -42,7 +50,8 @@ function Publish-NewApplicationToNavContainer {
         [switch] $doNotUseDevEndpoint,
         [switch] $saveData,
         [ValidateSet('No','Yes','AsRuntimePackages')]
-        [string] $restoreApps = "No"
+        [string] $restoreApps = "No",
+        [hashtable] $replaceDependencies = $null
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -113,13 +122,18 @@ function Publish-NewApplicationToNavContainer {
     if ($doNotUseDevEndpoint) {
         $scope = "global"
     }
-    Publish-NavContainerApp -containerName $containerName -appFile $appFile -scope $scope -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
+    Publish-BCContainerApp -containerName $containerName -appFile $appFile -scope $scope -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
 
     if ($restoreApps -ne "No") {
         $installedApps | ForEach-Object {
             $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
             if ($_.IsPublished) {
-                Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $_.Scope
+                try {
+                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $_.Scope -replaceDependencies $replaceDependencies
+                }
+                catch {
+                    Write-Warning "Could not republish $installedAppFile"
+                }
             }
         }
     }

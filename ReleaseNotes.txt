@@ -1,5 +1,6 @@
 0.6.4.2
 Support WebClientPort in Get-Tests / Run-Tests (Issue #617)
+Support ReplaceDependencies on functions when publishing apps to containers with custom BaseApp
 
 0.6.4.1
 Add parameter finalizeDatabasesScriptBlock to New-BcContainer

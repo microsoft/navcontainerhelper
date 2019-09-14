@@ -98,6 +98,7 @@ function Create-AlProjectFolderFromNavContainer {
             Get-NavContainerApp -containerName $containerName `
                                 -publisher $baseapp.Publisher `
                                 -appName $baseapp.Name `
+                                -appVersion $baseapp.Version `
                                 -appFile $appFile `
                                 -credential $credential
         

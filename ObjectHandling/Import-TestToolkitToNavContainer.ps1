@@ -20,10 +20,14 @@
   Specifies the import action. Default is Overwrite
  .Parameter doNotUseRuntimePackages
   Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
+ .Parameter replaceDependencies
+  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
  .Example
   Import-TestToolkitToNavContainer -containerName test2
   .Example
   Import-TestToolkitToNavContainer -containerName test2 -testToolkitCountry US
+  .Example
+  Import-TestToolkitToNavContainer -containerName test2 -includeTestLibrariesOnly -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
 function Import-TestToolkitToNavContainer {
     Param (
@@ -35,8 +39,13 @@ function Import-TestToolkitToNavContainer {
         [switch] $doNotUpdateSymbols,
         [ValidateSet("Overwrite","Skip")]
         [string] $ImportAction = "Overwrite",
-        [switch] $doNotUseRuntimePackages
+        [switch] $doNotUseRuntimePackages,
+        [hashtable] $replaceDependencies = $null
     )
+
+    if ($replaceDependencies) {
+        $doNotUseRuntimePackages = $true
+    }
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
@@ -59,7 +68,8 @@ function Import-TestToolkitToNavContainer {
             throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
         }
 
-        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $navVersion, $doNotUseRuntimePackages)
+        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $navVersion, $doNotUseRuntimePackages, $replaceDependencies)
+
             $apps = "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
             }
@@ -68,6 +78,8 @@ function Import-TestToolkitToNavContainer {
                 $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
                 if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
                     new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
+                    Write-Host "Restarting Service Tier to support new add-ins folder"
+                    Set-NavServerInstance $serverInstance -restart
                 }
                 $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
                     @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
@@ -76,51 +88,63 @@ function Import-TestToolkitToNavContainer {
                 if (!$includeTestLibrariesOnly) {
                     $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
                 }
-                $apps | % {
-                    $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
-                    if (!($appFile)) {
-                        $appFile = $_
-                    }
+            }
 
-                    if (!$doNotUseRuntimePackages) {
-                        if ($env:IsBcSandbox -eq "Y") {
-                            $folderPrefix = "sandbox"
-                        }
-                        else {
-                            $folderPrefix = "onprem"
-                        }
-                        $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\$folderPrefix-Applications-$navVersion"
-                        if (!(Test-Path $applicationsPath)) {
-                            New-Item -Path $applicationsPath -ItemType Directory | Out-Null
-                        }
-                        $runtimeAppFile = "$applicationsPath\$($_.name.Replace('.app','.runtime.app'))"
-                        $useRuntimeApp = $false
-                        if (Test-Path $runtimeAppFile) {
-                            if ((Get-Item $runtimeAppFile).Length -eq 0) {
-                                Remove-Item $runtimeAppFile -force
-                            }
-                            else {
-                                $appFile = $runtimeAppFile
-                                $useRuntimeApp = $true
-                            }
-                        }
-                    }
+            $apps | % {
+                $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+                if (!($appFile)) {
+                    $appFile = $_
+                }
+                $appFile
+            }
+        } -argumentList $includeTestLibrariesOnly, "$version-$country", $doNotUseRuntimePackages, $replaceDependencies
 
-                    Write-Host "Publishing $appFile"
-                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification
-                    $navAppInfo = Get-NAVAppInfo -Path $appFile
-                    $appName = $navAppInfo.Name
-                    $appPublisher = $navAppInfo.Publisher
-                    $appVersion = $navAppInfo.Version
-                    Sync-NavTenant -ServerInstance $ServerInstance -Tenant default -Force
-                    Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant default -force -WarningAction Ignore
-                    Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant default
-                    if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
-                        Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
+        if (!$doNotUseRuntimePackages) {
+            $folderPrefix = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+                if ($env:IsBcSandbox -eq "Y") {
+                    "sandbox"
+                }
+                else {
+                    "onprem"
+                }
+            }
+            $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\$folderPrefix-Applications-$navVersion"
+            if (!(Test-Path $applicationsPath)) {
+                New-Item -Path $applicationsPath -ItemType Directory | Out-Null
+            }
+        }
+
+        $appFiles | % {
+            $appFile = $_
+            if (!$doNotUseRuntimePackages) {
+                $name = [System.IO.Path]::GetFileName($appFile)
+                $runtimeAppFile = "$applicationsPath\$($name.Replace('.app','.runtime.app'))"
+                $useRuntimeApp = $false
+                if (Test-Path $runtimeAppFile) {
+                    if ((Get-Item $runtimeAppFile).Length -eq 0) {
+                        Remove-Item $runtimeAppFile -force
+                    }
+                    else {
+                        $appFile = $runtimeAppFile
+                        $useRuntimeApp = $true
                     }
                 }
             }
-        } -argumentList $includeTestLibrariesOnly, "$version-$country", $doNotUseRuntimePackages
+
+            Publish-NavContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
+
+            if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
+                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
+                    
+                    $navAppInfo = Get-NAVAppInfo -Path $appFile
+                    $appPublisher = $navAppInfo.Publisher
+                    $appName = $navAppInfo.Name
+                    $appVersion = $navAppInfo.Version
+
+                    Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
+                } -argumentList $appFile, (Get-NavContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+            }
+        }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
     else {
