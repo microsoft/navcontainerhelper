@@ -16,7 +16,7 @@ Function Replace-DependenciesInAppFile {
     Param (
         [string] $Path,
         [string] $Destination = $Path,
-        [hastable] $replaceDependencies
+        [hashtable] $replaceDependencies
     )
 
     $zipArchive = $null
