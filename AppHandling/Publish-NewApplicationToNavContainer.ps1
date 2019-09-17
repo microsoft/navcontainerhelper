@@ -15,7 +15,10 @@
   Credentials of the container super user if using NavUserPassword authentication
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove all C/AL objects in the range 1..1999999999.
-  This switch is needed when turning a C/AL container into an AL Container.
+  This switch (or useNewDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter useNewDatabase
+  Add this switch if you want to create a new and empty database in the container
+  This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
  .Parameter doNotUseDevEndpoint
   Specify this parameter to deploy the application to the global scope instead of the developer (tenant) scope
  .Parameter saveData
@@ -47,6 +50,7 @@ function Publish-NewApplicationToNavContainer {
         [Parameter(Mandatory=$false)]
         [pscredential] $credential,
         [switch] $useCleanDatabase,
+        [switch] $useNewDatabase,
         [switch] $doNotUseDevEndpoint,
         [switch] $saveData,
         [ValidateSet('No','Yes','AsRuntimePackages')]
@@ -114,8 +118,8 @@ function Publish-NewApplicationToNavContainer {
             }
         }
     }
-    if ($useCleanDatabase) {
-        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No")
+    if ($useCleanDatabase -or $useNewDatabase) {
+        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -credential $credential
     }
 
     $scope = "tenant"
