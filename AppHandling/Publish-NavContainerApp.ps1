@@ -71,16 +71,28 @@ function Publish-NavContainerApp {
     $copied = $false
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
         $appUrl = $appFile
-        $appFile = Join-Path $extensionsFolder "$containerName\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
+        $appFile = Join-Path $extensionsFolder "$containerName\_$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+        if ($replaceDependencies) {
+            Write-Host "Checking dependencies in $appFile"
+            Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies
+        }
         $copied = $true
     }
     else {
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-        if ("$containerAppFile" -eq "") {
-            $containerAppFile = Join-Path $extensionsFolder "$containerName\$([System.IO.Path]::GetFileName($appFile))"
-            Copy-Item -Path $appFile -Destination $containerAppFile
+        if ("$containerAppFile" -eq "" -or ($replaceDependencies)) {
+            $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
+            if ($replaceDependencies) {
+                Write-Host "Checking dependencies in $appFile"
+                Replace-DependenciesInAppFile -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies
+            }
+            else {
+                Copy-Item -Path $appFile -Destination $sharedAppFile
+            }
+            $appFile = $sharedAppFile
+            $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
             $copied = $true
         }
     }
@@ -183,138 +195,6 @@ function Publish-NavContainerApp {
 
         Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
 
-            Function ReplaceDependenciesInApp {
-                Param (
-                    [string] $appFile,
-                    $replaceDependencies
-                )
-            
-                $zipArchive = $null
-                $memoryStream = $null
-                $fs = $null
-                $binaryReader = $null
-                $binaryWriter = $null
-                $tempDir = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())) + "\"
-                New-Item $tempDir -ItemType Directory | Out-Null
-
-                try {
-
-                    $fs = [System.IO.File]::OpenRead($appFile)
-                    $binaryReader = [System.IO.BinaryReader]::new($fs)
-                    $magicNumber1 = $binaryReader.ReadUInt32()
-                    $metadataSize = $binaryReader.ReadUInt32()
-                    $metadataVersion = $binaryReader.ReadUInt32()
-                    $packageId = [Guid]::new($binaryReader.ReadBytes(16))
-                    $contentLength = $binaryReader.ReadInt64()
-                    $magicNumber2 = $binaryReader.ReadUInt32()
-                    
-                    if ($magicNumber1 -ne 0x5856414E -or 
-                        $magicNumber2 -ne 0x5856414E -or 
-                        $metadataVersion -gt 2 -or
-                        $fs.Position + $contentLength -gt $fs.Length)
-                    {
-                        throw "Unsupported package format"
-                    }
-                
-                    Add-Type -Assembly System.IO.Compression
-                    Add-Type -Assembly System.IO.Compression.FileSystem
-                    $content = $binaryReader.ReadBytes($contentLength)
-                    $memoryStream = [System.IO.MemoryStream]::new($content)
-                    $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
-                    $prevdir = ""
-                    $zipArchive.Entries | ForEach-Object {
-                        $fullname = Join-Path $tempDir $_.FullName
-                        $dir = [System.IO.Path]::GetDirectoryName($fullname)
-                        if ($dir -ne $prevdir) {
-                            if (-not (Test-Path $dir -PathType Container)) {
-                                New-Item -Path $dir -ItemType Directory | Out-Null
-                            }
-                        }
-                        $prevdir = $dir
-                        [System.IO.Compression.ZipFileExtensions]::ExtractToFile($_, $fullname)
-                    }
-                    $zipArchive.Dispose()
-                    $zipArchive = $null
-                    $binaryReader.Close()
-                    $binaryReader = $null
-                    $fs.Close()
-                    $fs = $null
-
-                    $changes = $false
-                    $manifestFile = Join-Path $tempDir "NavxManifest.xml"
-                    $manifest = [xml](Get-Content $manifestFile)
-                    $manifest.Package.Dependencies.GetEnumerator() | % {
-                        $dependency = $_
-                        if ($replaceDependencies.ContainsKey($dependency.id)) {
-                            $newDependency = $replaceDependencies[$dependency.id]
-                            Write-Host "Replacing dependency from $($dependency.id) to $($newDependency.id)"
-                            $dependency.id = $newDependency.id
-                            $dependency.name = $newDependency.name
-                            $dependency.publisher = $newDependency.publisher
-                            $dependency.minVersion = $newDependency.minVersion
-                            $changes = $true
-                        }
-                    }
-                    if ($changes) {
-            
-                        $manifest.Save($manifestFile)
-                        
-                        $memoryStream = [System.IO.MemoryStream]::new()
-                        $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Create, $true)
-                        $files = [System.IO.Directory]::EnumerateFiles($tempDir, "*.*", [System.IO.SearchOption]::AllDirectories)
-                        $files | % {
-                            $file = $_.SubString($tempDir.Length)
-                            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $_, $file) | Out-Null
-                        }
-                        $zipArchive.Dispose()
-                        $zipArchive = $null
-                        
-                        $appFileName = [System.IO.Path]::GetTempFileName()
-                        $fs = [System.IO.FileStream]::new($appFileName, [System.IO.FileMode]::Create)
-                    
-                        $binaryWriter = [System.IO.BinaryWriter]::new($fs)
-                        $binaryWriter.Write([UInt32](0x5856414E))
-                        $binaryWriter.Write([UInt32](40))
-                        $binaryWriter.Write([UInt32](2))
-                        $binaryWriter.Write($packageId.ToByteArray())
-                        $binaryWriter.Write([UInt64]($memoryStream.Length))
-                        $binaryWriter.Write([UInt32](0x5856414E))
-                        
-                        $memoryStream.Seek(0, [System.IO.SeekOrigin]::Begin) | Out-Null
-                        $memoryStream.CopyTo($fs)
-                        
-                        return $appFileName
-                    }
-                    else {
-                        return $appFile
-                    }
-                }
-                catch {
-                    return $appFile
-                }
-                finally {
-                    if ($zipArchive) {
-                        $zipArchive.Dispose()
-                    }
-                    if ($memoryStream) {
-                        $memoryStream.Close()
-                        $memoryStream.Dispose()
-                    }
-                    if ($binaryWriter) {
-                        $binaryWriter.Close()
-                    }
-                    if ($binaryReader) {
-                        $binaryReader.Close()
-                    }
-                    if ($fs) {
-                        $fs.Close()
-                    }
-                    if (Test-Path $tempDir) {
-                        Remove-Item -Path $tempDir -Recurse -Force
-                    }
-                }
-            }
-    
             $publishArgs = @{ "packageType" = $packageType }
             if ($scope) {
                 $publishArgs += @{ "Scope" = $scope }
@@ -323,12 +203,6 @@ function Publish-NavContainerApp {
                 }
             }
     
-            $orgAppFile = $appFile
-            if ($replaceDependencies) {
-                Write-Host "Checking dependencies in $appFile"
-                $appFile = ReplaceDependenciesInApp -appFile $appFile -replaceDependencies $replaceDependencies
-            }
-
             Write-Host "Publishing $appFile"
             Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
 
@@ -361,15 +235,11 @@ function Publish-NavContainerApp {
                 }
             }
 
-            if ($appFile -ne $orgAppFile) {
-                Remove-Item $appFile -Force -ErrorAction SilentlyContinue
-            }
-
         } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies
     }
 
     if ($copied) { 
-        Remove-Item $containerAppFile -Force
+        Remove-Item $appFile -Force
     }
     Write-Host -ForegroundColor Green "App successfully published"
 }
