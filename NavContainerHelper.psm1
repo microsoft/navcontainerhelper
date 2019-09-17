@@ -119,6 +119,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Replace-DependenciesInAppFile.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-TestsFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer.ps1")

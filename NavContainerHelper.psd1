@@ -80,7 +80,7 @@ FunctionsToExport = 'Add-FontsToNavContainer', 'Backup-NavContainerDatabases', '
                'Download-File', 'Enter-NavContainer', 
                'Export-ModifiedObjectsAsDeltas', 
                'Export-NavContainerDatabasesAsBacpac', 
-               'Export-NavContainerObjects', 'Extract-AppFileToFolder', 
+               'Export-NavContainerObjects', 'Extract-AppFileToFolder', 'Replace-DependenciesInAppFile', 
                'Extract-FilesFromNavContainerImage', 
                'Extract-FilesFromStoppedNavContainer', 
                'Generate-SymbolsInNavContainer', 'Get-BestNavContainerImageName', 
