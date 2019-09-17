@@ -4,6 +4,9 @@ Support ReplaceDependencies on functions when publishing apps to containers with
 Issue #616 add PreserveFormatting
 Issue #622 wrong variable passed in Get-NavContainerAppRuntimePackage
 Added function Replace-DependenciesInAppFile to replace dependencies to f.ex. BaseApp with custom BaseApp
+Add parameter APIVersion to Get-NavContainerApiCompanyId
+Add silent to Get-NavContainerApiCompanyId and Invoke-NavContainerApi
+Add InFile to Invoke-NavContainerApi in order to transfer files
 
 0.6.4.1
 Add parameter finalizeDatabasesScriptBlock to New-BcContainer

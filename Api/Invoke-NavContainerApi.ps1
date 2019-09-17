@@ -21,10 +21,14 @@
   API Method to invoke (GET, POST, PATCH, DELETE)
  .Parameter Query
   API Query (ex. salesInvoices?$filter=totalAmountIncludingTax gt 10000)
+ .Parameter InFile
+  When uploading a file through APIs, specify the file in InFile
  .Parameter headers
   Additional headers for the api (example: @{ "If-Match" = $etag } )
  .Parameter body
   Parameters for the api (example: @{ "name" = "The Name"; "phoneNumber" = "12 34 56 78" })
+ .Parameter silent
+  Include the silent switch to avoid the printout of the URL invoked
  .Example
   $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
  .Example
@@ -55,9 +59,12 @@ function Invoke-NavContainerApi {
         [Parameter(Mandatory=$false)]
         [string] $Query,
         [Parameter(Mandatory=$false)]
+        [string] $inFile,
+        [Parameter(Mandatory=$false)]
         [hashtable] $headers = @{},
         [Parameter(Mandatory=$false)]
-        [hashtable] $body = $null
+        [hashtable] $body = $null,
+        [switch] $silent
     )
 
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
@@ -129,13 +136,21 @@ function Invoke-NavContainerApi {
         $url += "?tenant=$tenant"
     }
 
-    $headers += @{"Content-Type" = "application/json" }
+    if ($inFile) {
+        $headers += @{"Content-Type" = "application/octet-stream" }
+        $parameters += @{ "InFile" = $inFile }
+    }
+    else {
+        $headers += @{"Content-Type" = "application/json" }
+    }
     
     if ($body) {
         $parameters += @{ "body" = $body | ConvertTo-Json }
     }
 
-    Write-Host "Invoke $Method on $url"
+    if (!$silent) {
+        Write-Host "Invoke $Method on $url"
+    }
     Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters
 
     if ($sslverificationdisabled) {
