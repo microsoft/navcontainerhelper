@@ -95,10 +95,10 @@ function Clean-BcContainerDatabase {
                 Create-NAVDatabase -databasename $databaseName -databaseserver $databaseServerInstance @CollationParam | Out-Null
             }
             
-            Writing "Starting Service Tier"
+            Write-Host "Starting Service Tier"
             Set-NavServerInstance -ServerInstance $ServerInstance -start
             
-            Writing "Synchronizing"
+            Write-Host "Synchronizing"
             Sync-NavTenant -ServerInstance $ServerInstance -Force
         
         } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance
