@@ -37,7 +37,7 @@ function Copy-AlSourceFiles {
             $content = [System.IO.File]::ReadAllLines($_.FullName)
 
             try {
-                if ($_.Extension -eq ".xlf" -or $_.Extension -eq ".lcl") {
+                if ($_.Extension -ne ".al") {
                     $type = $_.Extension
                     $id = ''
                     $name = $_.BaseName
