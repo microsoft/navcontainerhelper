@@ -186,7 +186,6 @@ function Publish-NavContainerApp {
             if (!$result.IsSuccessStatusCode) {
                 throw "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
             }
-            Write-Host -ForegroundColor Green "New Application successfully published to $containerName"
         }
         finally {
             $FileStream.Close()
