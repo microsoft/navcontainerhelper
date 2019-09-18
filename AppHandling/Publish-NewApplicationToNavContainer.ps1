@@ -19,6 +19,8 @@
  .Parameter useNewDatabase
   Add this switch if you want to create a new and empty database in the container
   This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter companyName
+  CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter doNotUseDevEndpoint
   Specify this parameter to deploy the application to the global scope instead of the developer (tenant) scope
  .Parameter saveData
@@ -51,6 +53,7 @@ function Publish-NewApplicationToNavContainer {
         [pscredential] $credential,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
+        [string] $companyName = "My Company",
         [switch] $doNotUseDevEndpoint,
         [switch] $saveData,
         [ValidateSet('No','Yes','AsRuntimePackages')]
@@ -120,6 +123,11 @@ function Publish-NewApplicationToNavContainer {
     }
     if ($useCleanDatabase -or $useNewDatabase) {
         Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -credential $credential
+        
+        if ($useNewDatabase) {
+            New-CompanyInBCContainer -containerName $containerName -companyName $companyName
+        }
+
     }
 
     $scope = "tenant"
@@ -133,7 +141,7 @@ function Publish-NewApplicationToNavContainer {
             $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
             if ($_.IsPublished) {
                 try {
-                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $_.Scope -replaceDependencies $replaceDependencies
+                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies
                 }
                 catch {
                     Write-Warning "Could not republish $installedAppFile"

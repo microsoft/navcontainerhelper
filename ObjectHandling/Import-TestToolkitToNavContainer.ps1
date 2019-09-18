@@ -18,6 +18,10 @@
   Add this switch to avoid updating symbols when importing the test toolkit
  .Parameter ImportAction
   Specifies the import action. Default is Overwrite
+ .Parameter scope
+  Specify Global or Tenant based on how you want to publish the package. Default is Global
+ .Parameter useDevEndpoint
+  Specify the useDevEndpoint switch if you want to publish using the Dev Endpoint (like VS Code). This allows VS Code to re-publish.
  .Parameter doNotUseRuntimePackages
   Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
  .Parameter replaceDependencies
@@ -40,11 +44,23 @@ function Import-TestToolkitToNavContainer {
         [ValidateSet("Overwrite","Skip")]
         [string] $ImportAction = "Overwrite",
         [switch] $doNotUseRuntimePackages,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet('Global','Tenant')]
+        [string] $scope,
+        [switch] $useDevEndpoint,
         [hashtable] $replaceDependencies = $null
     )
 
     if ($replaceDependencies) {
         $doNotUseRuntimePackages = $true
+    }
+    if (!($scope)) {
+        if ($useDevEndpoint) {
+            $scope = "tenant"
+        }
+        else {
+            $scope = "global"
+        }
     }
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
@@ -68,7 +84,7 @@ function Import-TestToolkitToNavContainer {
             throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
         }
 
-        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $navVersion, $doNotUseRuntimePackages, $replaceDependencies)
+        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly)
 
             $apps = "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
                 @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
@@ -97,7 +113,7 @@ function Import-TestToolkitToNavContainer {
                 }
                 $appFile
             }
-        } -argumentList $includeTestLibrariesOnly, "$version-$country", $doNotUseRuntimePackages, $replaceDependencies
+        } -argumentList $includeTestLibrariesOnly
 
         if (!$doNotUseRuntimePackages) {
             $folderPrefix = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
@@ -108,7 +124,7 @@ function Import-TestToolkitToNavContainer {
                     "onprem"
                 }
             }
-            $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\$folderPrefix-Applications-$navVersion"
+            $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\$folderPrefix-Applications-$Version-$country"
             if (!(Test-Path $applicationsPath)) {
                 New-Item -Path $applicationsPath -ItemType Directory | Out-Null
             }
@@ -131,7 +147,7 @@ function Import-TestToolkitToNavContainer {
                 }
             }
 
-            Publish-NavContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
+            Publish-NavContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies
 
             if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
                 Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
