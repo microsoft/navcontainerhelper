@@ -82,9 +82,16 @@ function Publish-NavContainerApp {
     }
     else {
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-        if ("$containerAppFile" -eq "" -or ($replaceDependencies)) {
+        if ("$containerAppFile" -eq "" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
             $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
-            if ($replaceDependencies) {
+            if ($appFile.StartsWith(':')) {
+                Copy-FileFromBCContainer -containerName $containerName -containerPath $containerAppFile -localPath $sharedAppFile
+                if ($replaceDependencies) {
+                    Write-Host "Checking dependencies in $sharedAppFile"
+                    Replace-DependenciesInAppFile -Path $sharedAppFile -replaceDependencies $replaceDependencies
+                }
+            }
+            elseif ($replaceDependencies) {
                 Write-Host "Checking dependencies in $appFile"
                 Replace-DependenciesInAppFile -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies
             }
