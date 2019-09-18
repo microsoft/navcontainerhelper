@@ -19,11 +19,8 @@ Function Replace-DependenciesInAppFile {
         [hashtable] $replaceDependencies
     )
 
-    $zipArchive = $null
     $memoryStream = $null
     $fs = $null
-    $binaryReader = $null
-    $binaryWriter = $null
     $tempDir = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())) + "\"
     New-Item $tempDir -ItemType Directory | Out-Null
 
@@ -46,33 +43,20 @@ Function Replace-DependenciesInAppFile {
             throw "Unsupported package format"
         }
     
-        Add-Type -Assembly System.IO.Compression
-        Add-Type -Assembly System.IO.Compression.FileSystem
-        $content = $binaryReader.ReadBytes($contentLength)
-        $memoryStream = [System.IO.MemoryStream]::new($content)
-        $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
-        $prevdir = ""
-        $zipArchive.Entries | ForEach-Object {
-            $fullname = Join-Path $tempDir $_.FullName
-            $dir = [System.IO.Path]::GetDirectoryName($fullname)
-            if ($dir -ne $prevdir) {
-                if (-not (Test-Path $dir -PathType Container)) {
-                    New-Item -Path $dir -ItemType Directory | Out-Null
-                }
-            }
-            $prevdir = $dir
-            [System.IO.Compression.ZipFileExtensions]::ExtractToFile($_, $fullname)
-        }
-        $zipArchive.Dispose()
-        $zipArchive = $null
-        $binaryReader.Close()
-        $binaryReader = $null
+        $memoryStream = [System.IO.MemoryStream]::new()
+        $fs.Seek($metadataSize, [System.IO.SeekOrigin]::Begin) | Out-Null
+        $fs.CopyTo($memoryStream)
+        $memoryStream.Seek(0, [System.IO.SeekOrigin]::Begin) | Out-Null
+        $memoryStream.SetLength($contentLength)
         $fs.Close()
+        $fs.Dispose()
         $fs = $null
-
+        
+        $package = [System.IO.Packaging.Package]::Open($memoryStream, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
+        $manifestPart = $package.GetPart('/NavxManifest.xml')
+        $manifest = [xml]([System.IO.StreamReader]::new($manifestPart.GetStream())).ReadToEnd()
         $changes = $false
-        $manifestFile = Join-Path $tempDir "NavxManifest.xml"
-        $manifest = [xml](Get-Content $manifestFile)
+
         $manifest.Package.Dependencies.GetEnumerator() | % {
             $dependency = $_
             if ($replaceDependencies.ContainsKey($dependency.id)) {
@@ -88,20 +72,13 @@ Function Replace-DependenciesInAppFile {
 
         if ($changes) {
 
-            $manifest.Save($manifestFile)
-            
-            $memoryStream = [System.IO.MemoryStream]::new()
-            $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Create, $true)
-            $files = [System.IO.Directory]::EnumerateFiles($tempDir, "*.*", [System.IO.SearchOption]::AllDirectories)
-            $files | % {
-                $file = $_.SubString($tempDir.Length)
-                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zipArchive, $_, $file) | Out-Null
-            }
-            $zipArchive.Dispose()
-            $zipArchive = $null
+            $partStream = $manifestPart.GetStream()
+            $manifest.Save($partStream)
+            $partStream.Flush()
+            $package.Flush()
             
             $fs = [System.IO.FileStream]::new($Destination, [System.IO.FileMode]::Create)
-        
+            
             $binaryWriter = [System.IO.BinaryWriter]::new($fs)
             $binaryWriter.Write([UInt32](0x5856414E))
             $binaryWriter.Write([UInt32](40))
@@ -112,6 +89,10 @@ Function Replace-DependenciesInAppFile {
             
             $memoryStream.Seek(0, [System.IO.SeekOrigin]::Begin) | Out-Null
             $memoryStream.CopyTo($fs)
+            
+            $fs.Close()
+            $fs.Dispose()
+            $fs = $null
         }
         else {
             if ($Path -ne $Destination) {
@@ -120,19 +101,6 @@ Function Replace-DependenciesInAppFile {
         }
     }
     finally {
-        if ($zipArchive) {
-            $zipArchive.Dispose()
-        }
-        if ($memoryStream) {
-            $memoryStream.Close()
-            $memoryStream.Dispose()
-        }
-        if ($binaryWriter) {
-            $binaryWriter.Close()
-        }
-        if ($binaryReader) {
-            $binaryReader.Close()
-        }
         if ($fs) {
             $fs.Close()
         }
