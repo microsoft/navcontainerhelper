@@ -7,7 +7,9 @@
  .Parameter containerName
   Name of the container for which you want to enter a session
  .Parameter sqlCredential
-  Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+  For 14.x containers and earlier. Credentials for the SQL admin user if using NavUserPassword authentication. User will be prompted if not provided
+ .Parameter credential
+  For 15.x containers and later. Credentials for the admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter includeTestLibrariesOnly
   Only import TestLibraries (do not import Test Codeunits)
  .Parameter testToolkitCountry
@@ -38,6 +40,7 @@ function Import-TestToolkitToNavContainer {
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [PSCredential] $sqlCredential = $null,
+        [PSCredential] $credential = $null,
         [switch] $includeTestLibrariesOnly,
         [string] $testToolkitCountry,
         [switch] $doNotUpdateSymbols,
@@ -147,7 +150,7 @@ function Import-TestToolkitToNavContainer {
                 }
             }
 
-            Publish-NavContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies
+            Publish-NavContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential
 
             if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
                 Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
