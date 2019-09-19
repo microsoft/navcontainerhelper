@@ -12,6 +12,13 @@
   Include the onlySaveBaseAppData switch if you want to only save data in the base application and not in other apps
  .Parameter doNotUnpublish
   Include the doNotUnpublish switch if you do not want to unpublish apps (only 15.x containers or later)
+ .Parameter useNewDatabase
+  Add this switch if you want to create a new and empty database in the container
+  This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter companyName
+  CompanyName when using -useNewDatabase. Default is My Company.
+ .Parameter credential
+  Credentials of the container super user if using NavUserPassword authentication
  .Example
   Clean-BcContainerDatabase -containerName test
 #>
@@ -22,6 +29,7 @@ function Clean-BcContainerDatabase {
         [Switch] $onlySaveBaseAppData,
         [switch] $doNotUnpublish,
         [switch] $useNewDatabase,
+        [string] $companyName = "My Company",
         [PSCredential] $credential
     )
 
@@ -48,6 +56,9 @@ function Clean-BcContainerDatabase {
         }
         if ($doNotUnpublish) {
             throw "Cannot use doNotUnpublish with useNewDatabase."
+        }
+        if ($customconfig.ClientServicesCredentialType -ne "Windows" -and !($credential)) {
+            throw "You need to specify credentials if using useNewDatabase and authentication is not Windows"
         }
 
         if ($platformversion.Major -lt 15) {
@@ -105,9 +116,19 @@ function Clean-BcContainerDatabase {
         
         Import-NavContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
-        New-NavContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
+        if ($customconfig.ClientServicesCredentialType -eq "Windows") {
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($username)
+                New-NavServerUser -ServerInstance $ServerInstance -WindowsAccount $username
+                New-NavServerUserPermissionSet -ServerInstance $ServerInstance -WindowsAccount $username -PermissionSetId SUPER
+            } -argumentList $env:USERNAME
+        }
+        else {
+            New-NavContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
+        }
         
         Publish-NavContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
+
+        New-CompanyInBCContainer -containerName $containerName -companyName $companyName
         
         if ($SystemApplicationFile) {
             Publish-NavContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync

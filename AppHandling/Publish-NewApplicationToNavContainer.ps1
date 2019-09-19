@@ -122,12 +122,7 @@ function Publish-NewApplicationToNavContainer {
         }
     }
     if ($useCleanDatabase -or $useNewDatabase) {
-        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -credential $credential
-        
-        if ($useNewDatabase) {
-            New-CompanyInBCContainer -containerName $containerName -companyName $companyName
-        }
-
+        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -credential $credential -CompanyName $CompanyName
     }
 
     $scope = "tenant"
