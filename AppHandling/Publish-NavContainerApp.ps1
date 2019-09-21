@@ -28,14 +28,20 @@
   Specify the credentials for the admin user if you use DevEndpoint and authentication is set to UserPassword
  .Parameter language
   Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
+ .Parameter replaceDependencies
+  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+ .Parameter showMyCode
+  With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Example
   Publish-NavContainerApp -appFile c:\temp\myapp.app
  .Example
   Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification
  .Example
-  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -install
+  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -install -sync
  .Example
-  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification -install -tenant mytenant
+  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification -install -sync -tenant mytenant
+ .Example
+  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -install -sync -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
 function Publish-NavContainerApp {
     Param (
@@ -57,7 +63,10 @@ function Publish-NavContainerApp {
         [string] $scope,
         [switch] $useDevEndpoint,
         [pscredential] $credential,
-        [string] $language = ""
+        [string] $language = "",
+        [hashtable] $replaceDependencies = $null,
+        [ValidateSet('Ignore','True','False','Check')]
+        [string] $ShowMyCode = "Ignore"
     )
 
     Add-Type -AssemblyName System.Net.Http
@@ -66,16 +75,35 @@ function Publish-NavContainerApp {
     $copied = $false
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
         $appUrl = $appFile
-        $appFile = Join-Path $extensionsFolder "$containerName\$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
+        $appFile = Join-Path $extensionsFolder "$containerName\_$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+        if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+            Write-Host "Checking dependencies in $appFile"
+            Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+        }
         $copied = $true
     }
     else {
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-        if ("$containerAppFile" -eq "") {
-            $containerAppFile = Join-Path $extensionsFolder "$containerName\$([System.IO.Path]::GetFileName($appFile))"
-            Copy-Item -Path $appFile -Destination $containerAppFile
+        if ("$containerAppFile" -eq "" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
+            $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
+            if ($appFile.StartsWith(':')) {
+                Copy-FileFromBCContainer -containerName $containerName -containerPath $containerAppFile -localPath $sharedAppFile
+                if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+                    Write-Host "Checking dependencies in $sharedAppFile"
+                    Replace-DependenciesInAppFile -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+                }
+            }
+            elseif ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+                Write-Host "Checking dependencies in $appFile"
+                Replace-DependenciesInAppFile -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+            }
+            else {
+                Copy-Item -Path $appFile -Destination $sharedAppFile
+            }
+            $appFile = $sharedAppFile
+            $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
             $copied = $true
         }
     }
@@ -162,7 +190,6 @@ function Publish-NavContainerApp {
             if (!$result.IsSuccessStatusCode) {
                 throw "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
             }
-            Write-Host -ForegroundColor Green "New Application successfully published to $containerName"
         }
         finally {
             $FileStream.Close()
@@ -176,9 +203,8 @@ function Publish-NavContainerApp {
     }
     else {
 
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language)
-    
-    
+        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
+
             $publishArgs = @{ "packageType" = $packageType }
             if ($scope) {
                 $publishArgs += @{ "Scope" = $scope }
@@ -191,10 +217,12 @@ function Publish-NavContainerApp {
             Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
 
             if ($sync -or $install) {
+
                 $navAppInfo = Get-NAVAppInfo -Path $appFile
+                $appPublisher = $navAppInfo.Publisher
                 $appName = $navAppInfo.Name
                 $appVersion = $navAppInfo.Version
-        
+
                 $syncArgs = @{}
                 if ($syncMode) {
                     $syncArgs += @{ "Mode" = $syncMode }
@@ -203,7 +231,7 @@ function Publish-NavContainerApp {
                 if ($sync) {
                     Write-Host "Synchronizing $appName on tenant $tenant"
                     Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
-                    Sync-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+                    Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
                 }
         
                 if ($install) {
@@ -213,14 +241,15 @@ function Publish-NavContainerApp {
                         $languageArgs += @{ "Language" = $language }
                     }
                     Write-Host "Installing $appName on tenant $tenant"
-                    Install-NavApp -ServerInstance $ServerInstance -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                    Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
                 }
             }
-        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language
+
+        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies
     }
 
     if ($copied) { 
-        Remove-Item $containerAppFile -Force
+        Remove-Item $appFile -Force
     }
     Write-Host -ForegroundColor Green "App successfully published"
 }

@@ -37,7 +37,8 @@ function Export-NavContainerObjects {
         [string] $exportTo = 'txt folder (new syntax)',
         [Obsolete("exportToNewSyntax is obsolete, please use exportTo instead")]
         [switch] $exportToNewSyntax = $true,
-        [switch] $includeSystemObjects
+        [switch] $includeSystemObjects,
+        [switch] $PreserveFormatting
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -56,8 +57,11 @@ function Export-NavContainerObjects {
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
     $ignoreSystemObjects = ($version.Major -ge 14 -and !$includeSystemObjects)
+    if ($version.Major -lt 9) {
+        $PreserveFormatting = $true
+    }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo, $ignoreSystemObjects)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($filter, $objectsFolder, [System.Management.Automation.PSCredential]$sqlCredential, $exportTo, $ignoreSystemObjects, $preserveFormatting)
 
         if ($exportTo -eq 'fob file') {
             $objectsFile = "$objectsFolder\objects.fob"
@@ -126,8 +130,13 @@ function Export-NavContainerObjects {
                     [System.IO.File]::WriteAllText($objectsFile, $content, [System.Text.Encoding]::UTF8 )
                 }
 
+                $preserveFormattingParam = @{}
+                if ($preserveFormatting) {
+                    $preserveFormattingParam = @{ "PreserveFormatting" = $true }
+                }
+
                 Split-NAVApplicationObjectFile -Source $objectsFile `
-                                               -Destination $objectsFolder
+                                               -Destination $objectsFolder @preserveFormattingParam
 
                 if ([System.Text.Encoding]::Default.BodyName -eq "utf-8") {
                     Write-Host "Converting object files from UTF8 to OEM($cp) after splitting"
@@ -140,6 +149,6 @@ function Export-NavContainerObjects {
             Remove-Item -Path $objectsFile -Force -ErrorAction Ignore
         }
     
-    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo, $ignoreSystemObjects
+    }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo, $ignoreSystemObjects, $preserveFormatting
 }
 Export-ModuleMember -Function Export-NavContainerObjects

@@ -1,3 +1,16 @@
+0.6.4.2
+Support WebClientPort in Get-Tests / Run-Tests (Issue #617)
+Support ReplaceDependencies on functions when publishing apps to containers with custom BaseApp
+Issue #616 add PreserveFormatting
+Issue #622 wrong variable passed in Get-BCContainerAppRuntimePackage
+Added function Replace-DependenciesInAppFile to replace dependencies to f.ex. BaseApp with custom BaseApp
+Add parameter APIVersion to Get-BCContainerApiCompanyId
+Add silent to Get-BCContainerApiCompanyId and Invoke-BCContainerApi
+Add InFile to Invoke-BCContainerApi in order to transfer files
+Add parameter EnableTaskScheduler to New-BCContainer
+Add parameter useNewDatabase to New-BCContainer, Publish-NewApplicationToBcContainer and Clean-BcContainerDatabase to create new DB instead of cleaning the existing
+Allow TestToolkit and apps to be installed in tenant scope and/or using the dev endpoint
+
 0.6.4.1
 Add parameter finalizeDatabasesScriptBlock to New-BcContainer
 

@@ -15,19 +15,32 @@
   Credentials of the container super user if using NavUserPassword authentication
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove all C/AL objects in the range 1..1999999999.
-  This switch is needed when turning a C/AL container into an AL Container.
+  This switch (or useNewDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter useNewDatabase
+  Add this switch if you want to create a new and empty database in the container
+  This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter companyName
+  CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter doNotUseDevEndpoint
   Specify this parameter to deploy the application to the global scope instead of the developer (tenant) scope
  .Parameter saveData
   Add this switch if you want to keep all extension data. Requires -useCleanDatabase
  .Parameter restoreApps
   Specify whether or not you want to restore previously installed apps in the container
+ .Parameter replaceDependencies
+  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+  If your application doesn't use the same appId, Publisher, Name and version as the original baseapp, you need to specify this if you want to restore apps
  .Example
   Publish-NewApplicationToNavContainer -containerName test `
                                        -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
                                        -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
                                        -credential $credential
-
+ .Example
+  Publish-NewApplicationToNavContainer -containerName test `
+                                       -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
+                                       -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
+                                       -credential $credential `
+                                       -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
 function Publish-NewApplicationToNavContainer {
     Param (
@@ -39,10 +52,13 @@ function Publish-NewApplicationToNavContainer {
         [Parameter(Mandatory=$false)]
         [pscredential] $credential,
         [switch] $useCleanDatabase,
+        [switch] $useNewDatabase,
+        [string] $companyName = "My Company",
         [switch] $doNotUseDevEndpoint,
         [switch] $saveData,
         [ValidateSet('No','Yes','AsRuntimePackages')]
-        [string] $restoreApps = "No"
+        [string] $restoreApps = "No",
+        [hashtable] $replaceDependencies = $null
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -89,14 +105,21 @@ function Publish-NewApplicationToNavContainer {
             New-Item -Path $appsFolder -ItemType Directory | Out-Null
         }
         $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
+        if ($restoreApps -eq "AsRuntimePackages" -and ($replaceDependencies)) {
+            Write-Warning "ReplaceDependencies will not work with apps restored as runtime packages"
+        }
+        $warninggiven = $false
         $installedApps | ForEach-Object {
             if ($_.Scope -eq "Global" -and !$doNotUseDevEndpoint) {
-                Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
+                if (!$warninggiven) {
+                    Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
+                    $warninggiven = $true
+                }
             }
         }
         $installedApps | ForEach-Object {
             $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
-            if ($restoreApps -ne "Yes") {
+            if ($restoreApps -eq "AsRuntimePackages") {
                 Write-Host "Downloading app $($_.Name) as runtime package"
                 Get-BCContainerAppRuntimePackage -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default | Out-Null
             }
@@ -105,21 +128,58 @@ function Publish-NewApplicationToNavContainer {
             }
         }
     }
-    if ($useCleanDatabase) {
-        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No")
+    if ($useCleanDatabase -or $useNewDatabase) {
+        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -credential $credential -CompanyName $CompanyName
     }
 
     $scope = "tenant"
     if ($doNotUseDevEndpoint) {
         $scope = "global"
     }
-    Publish-NavContainerApp -containerName $containerName -appFile $appFile -scope $scope -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
+    Publish-BCContainerApp -containerName $containerName -appFile $appFile -scope $scope -credential $credential -useDevEndpoint:(!$doNotUseDevEndpoint) -skipVerification -sync -install
 
     if ($restoreApps -ne "No") {
         $installedApps | ForEach-Object {
-            $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
+            $installedApp = $_
+            $installedAppFile = Join-Path $appsFolder "$($installedApp.Publisher.Replace('/',''))_$($installedApp.Name.Replace('/',''))_$($installedApp.Version).app"
             if ($_.IsPublished) {
-                Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $_.Scope
+                try {
+                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential -ShowMyCode "Check"
+                }
+                catch {
+                    $appFile = Invoke-ScriptInBCContainer -containerName $containername -scriptblock { Param($installedApp)
+                        $filename = ""
+                        $localdir = Get-Item -Path "c:\Applications.*"
+                        if ($localdir) {
+                            $filename = Get-ChildItem -Path $localdir.FullName -Filter "*.app" -Recurse | % {
+                                $appInfo = Get-NavAppInfo -Path $_.FullName
+                                if ("$($appInfo.Publisher)_$($appInfo.Name)_$($appInfo.Version)_$($appInfo.AppId)" -eq "$($installedApp.Publisher)_$($installedApp.Name)_$($installedApp.Version)_$($installedApp.AppId)") {
+                                    $_.FullName
+                                }
+                            }
+                        }
+                        if (!$filename) {
+                            $filename = Get-ChildItem -Path "c:\Applications" -Filter "*.app" -Recurse | % {
+                                $appInfo = Get-NavAppInfo -Path $_.FullName
+                                if ("$($appInfo.Publisher)_$($appInfo.Name)_$($appInfo.Version)_$($appInfo.AppId)" -eq "$($installedApp.Publisher)_$($installedApp.Name)_$($installedApp.Version)_$($installedApp.AppId)") {
+                                    $_.FullName
+                                }
+                            }
+                        }
+                        $filename
+                    } -argumentlist $installedapp
+                    if ($appfile) {
+                        try {
+                            Publish-BCContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential
+                        }
+                        catch {
+                            Write-Warning "Could not publish :$([System.IO.Path]::GetFileName($appFile)) - $($_.Exception.Message)"
+                        }
+                    }
+                    else {
+                        Write-Warning "Could not publish $([System.IO.Path]::GetFileName($installedAppFile)) - $($_.Exception.Message)"
+                    }
+                }
             }
         }
     }

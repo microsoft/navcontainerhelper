@@ -25,7 +25,10 @@ function Get-NavContainerApiCompanyId {
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
-        [string] $CompanyName = ""
+        [string] $APIVersion = "beta",
+        [Parameter(Mandatory=$false)]
+        [string] $CompanyName = "",
+        [switch] $silent
     )
 
     if (!($CompanyName)) {
@@ -57,7 +60,7 @@ function Get-NavContainerApiCompanyId {
 
     $companyFilter = [Uri]::EscapeDataString("name eq '$CompanyName'")
     
-    $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
+    $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion $APIVersion -Query "companies?`$filter=$companyFilter" -credential $credential -silent:$silent
     $result.value | Select-Object -First 1 -ExpandProperty id
 }
 Set-Alias -Name Get-BCContainerApiCompanyId -Value Get-NavContainerApiCompanyId

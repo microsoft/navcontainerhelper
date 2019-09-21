@@ -57,6 +57,8 @@
   Include this switch if you want to have all objects exported as al for code merging and comparing functions unless doNotExportObjectsAsText is set.
  .Parameter enableSymbolLoading
   Include this switch if you want to do development in both CSide and VS Code to have symbols automatically generated for your changes in CSide
+ .Parameter enableTaskScheduler
+  Include this switch if you want to do Enable the Task Scheduler
  .Parameter doNotExportObjectsToText
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
  .Parameter alwaysPull
@@ -115,6 +117,8 @@
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove the base app from the container
+ .Parameter useNewDatabase
+  Add this switch if you want to create a new and empty database in the container
  .Parameter dumpEventLog
   Add this switch if you want the container to dump new entries in the eventlog to the output (docker logs) every 2 seconds
  .Parameter doNotCheckHealth
@@ -171,6 +175,7 @@ function New-NavContainer {
         [string] $runTxt2AlInContainer = $containerName,
         [switch] $includeCSide,
         [switch] $enableSymbolLoading,
+        [switch] $enableTaskScheduler,
         [switch] $doNotExportObjectsToText,
         [switch] $alwaysPull,
         [switch] $useBestContainerOS,
@@ -200,9 +205,10 @@ function New-NavContainer {
         [string] $dns,
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
+        [switch] $useNewDatabase,
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth,
-        [switch] $doNotUseRuntimePackages,
+        [switch] $doNotUseRuntimePackages = $true,
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
@@ -888,6 +894,10 @@ function New-NavContainer {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
     }
 
+    if ($enableTaskScheduler) {
+        $parameters += "--env customNavSettings=EnableTaskScheduler=True"
+    }
+
     if ($enableSymbolLoading -and $version.Major -ge 11 -and $version.Major -lt 15) {
         $parameters += "--env enableSymbolLoading=Y"
     }
@@ -1385,8 +1395,8 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             }
         } -argumentList $dotnetAssembliesFolder
 
-        if ($useCleanDatabase -and !$restoreBakFolder) {
-            Clean-BcContainerDatabase -containerName $containerName
+        if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
+            Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential
         }
     }
 

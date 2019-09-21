@@ -105,17 +105,12 @@ function Get-TestsFromNavContainer {
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-        $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value
+        $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value.TrimEnd('/')
         $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
-        $idx = $publicWebBaseUrl.IndexOf('//')
-        $protocol = $publicWebBaseUrl.Substring(0, $idx+2)
-        $disableSslVerification = ($protocol -eq "https://")
-        if ($version.Major -ge 11) {
-            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/cs?tenant=$tenant"
-        }
-        else {
-            $serviceUrl = "$($protocol)localhost/$($ServerInstance)/WebClient/cs?tenant=$tenant"
-        }
+        
+        $uri = [Uri]::new($publicWebBaseUrl)
+        $disableSslVerification = ($Uri.Scheme -eq "https")
+        $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami

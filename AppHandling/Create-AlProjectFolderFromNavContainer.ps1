@@ -98,6 +98,7 @@ function Create-AlProjectFolderFromNavContainer {
             Get-NavContainerApp -containerName $containerName `
                                 -publisher $baseapp.Publisher `
                                 -appName $baseapp.Name `
+                                -appVersion $baseapp.Version `
                                 -appFile $appFile `
                                 -credential $credential
         
@@ -129,6 +130,15 @@ function Create-AlProjectFolderFromNavContainer {
             $appJson.Name = $name
             $appJson.Publisher = $publisher
             $appJson.Version = $version
+        }
+
+        if ($appJson.PSObject.Properties -match "Logo") {
+            try {
+                Copy-Item -Path (Join-Path $alFolder $appJson.Logo) -Destination (Join-Path $alProjectFolder $appJson.Logo) -Force
+            }
+            catch {
+                $appJson.Logo = ""
+            }
         }
 
     } elseif ($ver.Major -ge  15) {
