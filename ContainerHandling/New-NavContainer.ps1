@@ -208,7 +208,7 @@ function New-NavContainer {
         [switch] $useNewDatabase,
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth,
-        [switch] $doNotUseRuntimePackages,
+        [switch] $doNotUseRuntimePackages = $true,
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 

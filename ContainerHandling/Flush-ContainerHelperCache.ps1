@@ -34,7 +34,7 @@ function Flush-ContainerHelperCache {
     }
 
     if ($cache -eq 'all' -or $cache -eq 'applicationCache') {
-        $folders += @("extensions\applications-*-??","sandbox-applications-*-??","onprem-applications-*-??")
+        $folders += @("extensions\applications-*-??","extensions\sandbox-applications-*-??","extensions\onprem-applications-*-??")
     }
 
     if ($cache -eq 'all' -or $cache -eq 'bakFolderCache') {

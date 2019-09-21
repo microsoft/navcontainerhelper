@@ -105,14 +105,21 @@ function Publish-NewApplicationToNavContainer {
             New-Item -Path $appsFolder -ItemType Directory | Out-Null
         }
         $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
+        if ($restoreApps -eq "AsRuntimePackages" -and ($replaceDependencies)) {
+            Write-Warning "ReplaceDependencies will not work with apps restored as runtime packages"
+        }
+        $warninggiven = $false
         $installedApps | ForEach-Object {
             if ($_.Scope -eq "Global" -and !$doNotUseDevEndpoint) {
-                Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
+                if (!$warninggiven) {
+                    Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
+                    $warninggiven = $true
+                }
             }
         }
         $installedApps | ForEach-Object {
             $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
-            if ($restoreApps -ne "Yes") {
+            if ($restoreApps -eq "AsRuntimePackages") {
                 Write-Host "Downloading app $($_.Name) as runtime package"
                 Get-BCContainerAppRuntimePackage -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default | Out-Null
             }
@@ -133,13 +140,45 @@ function Publish-NewApplicationToNavContainer {
 
     if ($restoreApps -ne "No") {
         $installedApps | ForEach-Object {
-            $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
+            $installedApp = $_
+            $installedAppFile = Join-Path $appsFolder "$($installedApp.Publisher.Replace('/',''))_$($installedApp.Name.Replace('/',''))_$($installedApp.Version).app"
             if ($_.IsPublished) {
                 try {
-                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($_.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential
+                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential -ShowMyCode "Check"
                 }
                 catch {
-                    Write-Warning "Could not republish $installedAppFile"
+                    $appFile = Invoke-ScriptInBCContainer -containerName $containername -scriptblock { Param($installedApp)
+                        $filename = ""
+                        $localdir = Get-Item -Path "c:\Applications.*"
+                        if ($localdir) {
+                            $filename = Get-ChildItem -Path $localdir.FullName -Filter "*.app" -Recurse | % {
+                                $appInfo = Get-NavAppInfo -Path $_.FullName
+                                if ("$($appInfo.Publisher)_$($appInfo.Name)_$($appInfo.Version)_$($appInfo.AppId)" -eq "$($installedApp.Publisher)_$($installedApp.Name)_$($installedApp.Version)_$($installedApp.AppId)") {
+                                    $_.FullName
+                                }
+                            }
+                        }
+                        if (!$filename) {
+                            $filename = Get-ChildItem -Path "c:\Applications" -Filter "*.app" -Recurse | % {
+                                $appInfo = Get-NavAppInfo -Path $_.FullName
+                                if ("$($appInfo.Publisher)_$($appInfo.Name)_$($appInfo.Version)_$($appInfo.AppId)" -eq "$($installedApp.Publisher)_$($installedApp.Name)_$($installedApp.Version)_$($installedApp.AppId)") {
+                                    $_.FullName
+                                }
+                            }
+                        }
+                        $filename
+                    } -argumentlist $installedapp
+                    if ($appfile) {
+                        try {
+                            Publish-BCContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential
+                        }
+                        catch {
+                            Write-Warning "Could not publish :$([System.IO.Path]::GetFileName($appFile)) - $($_.Exception.Message)"
+                        }
+                    }
+                    else {
+                        Write-Warning "Could not publish $([System.IO.Path]::GetFileName($installedAppFile)) - $($_.Exception.Message)"
+                    }
                 }
             }
         }

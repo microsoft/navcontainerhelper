@@ -9,6 +9,8 @@
   Path of the modified application file, where dependencies was replaced (default is to rewrite the original file)
  .Parameter replaceDependencies
   A hashtable, describring the dependencies, which needs to be replaced
+ .Parameter showMyCode
+  With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Example
   Replace-DependenciesInAppFile -Path c:\temp\myapp.app -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
@@ -16,13 +18,13 @@ Function Replace-DependenciesInAppFile {
     Param (
         [string] $Path,
         [string] $Destination = $Path,
-        [hashtable] $replaceDependencies
+        [hashtable] $replaceDependencies,
+        [ValidateSet('Ignore','True','False','Check')]
+        [string] $ShowMyCode = "Ignore"
     )
 
     $memoryStream = $null
     $fs = $null
-    $tempDir = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())) + "\"
-    New-Item $tempDir -ItemType Directory | Out-Null
 
     try {
 
@@ -57,25 +59,38 @@ Function Replace-DependenciesInAppFile {
         $manifest = [xml]([System.IO.StreamReader]::new($manifestPart.GetStream())).ReadToEnd()
         $changes = $false
 
-        $manifest.Package.Dependencies.GetEnumerator() | % {
-            $dependency = $_
-            if ($replaceDependencies.ContainsKey($dependency.id)) {
-                $newDependency = $replaceDependencies[$dependency.id]
-                Write-Host "Replacing dependency from $($dependency.id) to $($newDependency.id)"
-                $dependency.id = $newDependency.id
-                $dependency.name = $newDependency.name
-                $dependency.publisher = $newDependency.publisher
-                $dependency.minVersion = $newDependency.minVersion
+        if ($ShowMyCode -ne "Ignore") {
+            if ($ShowMyCode -eq "Check") {
+                if ($manifest.Package.App.ShowMyCode -eq "False") {
+                    throw "Application has ShowMyCode set to False"
+                }
+            } elseif ($manifest.Package.App.ShowMyCode -ne $ShowMyCode) {
+                Write-Host "Changing ShowMyCode to $ShowMyCOde"
+                $manifest.Package.App.ShowMyCode = "$ShowMyCode"
                 $changes = $true
+            }
+        }
+        if ($replaceDependencies) {
+            $manifest.Package.Dependencies.GetEnumerator() | % {
+                $dependency = $_
+                if ($replaceDependencies.ContainsKey($dependency.id)) {
+                    $newDependency = $replaceDependencies[$dependency.id]
+                    Write-Host "Replacing dependency from $($dependency.id) to $($newDependency.id)"
+                    $dependency.id = $newDependency.id
+                    $dependency.name = $newDependency.name
+                    $dependency.publisher = $newDependency.publisher
+                    $dependency.minVersion = $newDependency.minVersion
+                    $changes = $true
+                }
             }
         }
 
         if ($changes) {
 
-            $partStream = $manifestPart.GetStream()
+            $partStream = $manifestPart.GetStream([System.IO.FileMode]::Create)
             $manifest.Save($partStream)
             $partStream.Flush()
-            $package.Flush()
+            $package.Close()
             
             $fs = [System.IO.FileStream]::new($Destination, [System.IO.FileMode]::Create)
             
@@ -103,9 +118,6 @@ Function Replace-DependenciesInAppFile {
     finally {
         if ($fs) {
             $fs.Close()
-        }
-        if (Test-Path $tempDir) {
-            Remove-Item -Path $tempDir -Recurse -Force
         }
     }
 }

@@ -30,6 +30,8 @@
   Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Parameter replaceDependencies
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+ .Parameter showMyCode
+  With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Example
   Publish-NavContainerApp -appFile c:\temp\myapp.app
  .Example
@@ -62,7 +64,9 @@ function Publish-NavContainerApp {
         [switch] $useDevEndpoint,
         [pscredential] $credential,
         [string] $language = "",
-        [hashtable] $replaceDependencies = $null
+        [hashtable] $replaceDependencies = $null,
+        [ValidateSet('Ignore','True','False','Check')]
+        [string] $ShowMyCode = "Ignore"
     )
 
     Add-Type -AssemblyName System.Net.Http
@@ -74,9 +78,9 @@ function Publish-NavContainerApp {
         $appFile = Join-Path $extensionsFolder "$containerName\_$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
-        if ($replaceDependencies) {
+        if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
             Write-Host "Checking dependencies in $appFile"
-            Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies
+            Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
         }
         $copied = $true
     }
@@ -86,14 +90,14 @@ function Publish-NavContainerApp {
             $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
             if ($appFile.StartsWith(':')) {
                 Copy-FileFromBCContainer -containerName $containerName -containerPath $containerAppFile -localPath $sharedAppFile
-                if ($replaceDependencies) {
+                if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
                     Write-Host "Checking dependencies in $sharedAppFile"
-                    Replace-DependenciesInAppFile -Path $sharedAppFile -replaceDependencies $replaceDependencies
+                    Replace-DependenciesInAppFile -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
                 }
             }
-            elseif ($replaceDependencies) {
+            elseif ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
                 Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies
+                Replace-DependenciesInAppFile -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
             }
             else {
                 Copy-Item -Path $appFile -Destination $sharedAppFile
