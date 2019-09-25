@@ -127,6 +127,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Copy-AlSourceFiles.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Clean-BcContainerDatabase.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Add-GitToAlProjectFolder.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Sort-AppFoldersByDependencies.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
