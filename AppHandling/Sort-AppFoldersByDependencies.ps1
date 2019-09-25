@@ -5,6 +5,8 @@
   Sort an array of app folders with dependencies first, for compile and publish order
  .Parameter appFolders
   Array of folders including an app.json
+ .Parameter baseFolder
+  If specified, all appFolders in the array are subFolders to this folder.
  .Parameter unknownDependencies
   If specified, this reference parameter will contain unresolved dependencies after sorting
  .Example
@@ -15,14 +17,20 @@ function Sort-AppFoldersByDependencies {
         [Parameter(Mandatory=$true)]
         [string[]] $appFolders,
         [Parameter(Mandatory=$false)]
+        [string] $baseFolder = "",
+        [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies
     )
+
+    if ($baseFolder) {
+        $baseFolder = $baseFolder.TrimEnd('\')+'\'
+    }
 
     # Read all app.json objects, populate $apps
     $apps = $()
     $folders = @{}
     $appFolders | ForEach-Object {
-        $appFolder = $_
+        $appFolder = "$baseFolder$_"
         $appJsonFile = Join-Path $appFolder "app.json"
         if (-not (Test-Path -Path $appJsonFile)) {
             Write-Warning "$appFolder doesn't contain app.json"
@@ -67,7 +75,9 @@ function Sort-AppFoldersByDependencies {
     
     $apps | ForEach-Object { AddAnApp -AnApp $_ }
 
-    $script:sortedApps | ForEach-Object { $folders[$_.id] }
+    $script:sortedApps | ForEach-Object {
+        ($folders[$_.id]).SubString($baseFolder.Length)
+    }
     if ($unknownDependencies) {
         $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { "$($_.appId):$($_.publisher.Replace('/',''))_$($_.name.Replace('/',''))_$($_.version).app" } })
     }
