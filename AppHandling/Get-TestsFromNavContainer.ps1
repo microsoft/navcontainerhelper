@@ -20,6 +20,8 @@
   Include this switch to output debug information if getting the tests fails.
  .Parameter ignoreGroups
   Test Groups are not supported in 15.x - include this switch to ignore test groups in 14.x and earlier and have compatible resultsets from this function
+ .Parameter usePublicWebBaseUrl
+  Connect to the public Url and not to localhost
  .Example
   Get-TestsFromNavContainer -contatinerName test -credential $credential
  .Example
@@ -41,7 +43,8 @@ function Get-TestsFromNavContainer {
         [Parameter(Mandatory=$false)]
         [int] $testPage,
         [switch] $debugMode,
-        [switch] $ignoreGroups
+        [switch] $ignoreGroups,
+        [switch] $usePublicWebBaseUrl
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -99,7 +102,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups)
+    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -109,8 +112,14 @@ function Get-TestsFromNavContainer {
         $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
         
         $uri = [Uri]::new($publicWebBaseUrl)
-        $disableSslVerification = ($Uri.Scheme -eq "https")
-        $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
+        if ($usePublicWebBaseUrl) {
+            $disableSslVerification = $false
+            $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
+        } 
+        else {
+            $disableSslVerification = ($Uri.Scheme -eq "https")
+            $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
+        }
 
         if ($clientServicesCredentialType -eq "Windows") {
             $windowsUserName = whoami
@@ -150,7 +159,7 @@ function Get-TestsFromNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups | ConvertFrom-Json
+    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl | ConvertFrom-Json
 }
 Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
 Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer

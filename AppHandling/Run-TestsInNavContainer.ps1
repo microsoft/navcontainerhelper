@@ -38,6 +38,8 @@
   ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
  .Parameter debugMode
   Include this switch to output debug information if running the tests fails.
+ .Parameter usePublicWebBaseUrl
+  Connect to the public Url and not to localhost
  .Parameter restartContainerAndRetry
   Include this switch to restart container and retry the operation (everything) on non-recoverable errors.
   This is NOT test failures, but more things like out of memory, communication errors or that kind.
@@ -77,7 +79,8 @@ function Run-TestsInNavContainer {
         [Parameter(Mandatory=$false)]
         [int] $testPage,
         [switch] $debugMode,
-        [switch] $restartContainerAndRetry
+        [switch] $restartContainerAndRetry,
+        [switch] $usePublicWebBaseUrl
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -153,7 +156,7 @@ function Run-TestsInNavContainer {
     while ($true) {
         try
         {
-            $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode)
+            $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl)
             
                 $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                 $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -161,10 +164,16 @@ function Run-TestsInNavContainer {
                 [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
                 $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value.TrimEnd('/')
                 $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
-                
+            
                 $uri = [Uri]::new($publicWebBaseUrl)
-                $disableSslVerification = ($Uri.Scheme -eq "https")
-                $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
+                if ($usePublicWebBaseUrl) {
+                    $disableSslVerification = $false
+                    $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
+                } 
+                else {
+                    $disableSslVerification = ($Uri.Scheme -eq "https")
+                    $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
+                }
         
                 if ($clientServicesCredentialType -eq "Windows") {
                     $windowsUserName = whoami
@@ -218,7 +227,7 @@ function Run-TestsInNavContainer {
                     Remove-ClientContext -clientContext $clientContext
                 }
         
-            } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode
+            } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl
             if ($returnTrueIfAllPassed) {
                 $allPassed
             }
