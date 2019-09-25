@@ -1,3 +1,6 @@
+0.6.4.4
+Add -usePublicWebBaseUrl to Get-TestsFromBcContainer and Run-TestsInBcContainer to use the public Web Base Url instead of localhost
+
 0.6.4.3
 RestoreApps would install empty apps if ShowMyCode was false. Now it will grab the apps from \Applications
 Fix issue #627
