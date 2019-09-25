@@ -60,8 +60,8 @@ function Sort-AppFoldersByDependencies {
             AddAnApp -AnApp $dependentApp
         }
         else {
-            if (-not ($script:unresolvedDependencies | Where-Object { $_.appId -eq $dependency.AppId })) {
-                Write-Host -ForegroundColor Red "Dependency $($dependency.appId):$($dependency.publisher.Replace('/',''))_$($dependency.name.Replace('/',''))_$($dependency.version)).app not found"
+            if (-not ($script:unresolvedDependencies | Where-Object { $_ -and $_.AppId -eq $dependency.AppId })) {
+                Write-Warning "Dependency $($dependency.appId):$($dependency.publisher.Replace('/',''))_$($dependency.name.Replace('/',''))_$($dependency.version)).app not found"
                 $script:unresolvedDependencies += @($dependency)
             }
         }
