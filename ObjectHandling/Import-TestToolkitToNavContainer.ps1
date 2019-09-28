@@ -97,7 +97,6 @@ function Import-TestToolkitToNavContainer {
                 $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
                 if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
                     new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
-                    Write-Host "Restarting Service Tier to support new add-ins folder"
                     Set-NavServerInstance $serverInstance -restart
                 }
                 $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {

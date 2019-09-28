@@ -1,3 +1,7 @@
+0.6.4.5
+Remove Parameter Set on Create-AlProjectFolderFromNavContainer - has caused confusion and blocks defaulting of id, publisher etc.
+BugFix: ImportTestToolkitToNavContainer running as non-administrator in 15.x containers fails
+
 0.6.4.4
 Add -usePublicWebBaseUrl to Get-TestsFromBcContainer and Run-TestsInBcContainer to use the public Web Base Url instead of localhost
 Added function Sort-AppFoldersByDependencies
