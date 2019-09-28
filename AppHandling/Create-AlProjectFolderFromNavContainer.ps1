@@ -47,19 +47,14 @@ function Create-AlProjectFolderFromNavContainer {
         [string] $containerName, 
         [Parameter(Mandatory=$true)]
         [string] $alProjectFolder,
-        [Parameter(ParameterSetName="AppProperties")]
         [string] $id = [GUID]::NewGuid().ToString(),
-        [Parameter(ParameterSetName="AppProperties")]
         [string] $name = $containerName,
-        [Parameter(ParameterSetName="AppProperties")]
         [string] $publisher = "Default Publisher",
-        [Parameter(ParameterSetName="AppProperties")]
         [string] $version = "1.0.0.0",
         [switch] $AddGIT,
         [switch] $useBaseLine,
         [ScriptBlock] $alFileStructure,
         [string] $runTxt2AlInContainer = $containerName,
-        [Parameter(ParameterSetName="BaseAppProperties")]
         [switch] $useBaseAppProperties,
         [PSCredential] $credential = $null
     )
