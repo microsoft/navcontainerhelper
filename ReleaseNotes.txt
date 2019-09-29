@@ -2,6 +2,7 @@
 Remove Parameter Set on Create-AlProjectFolderFromNavContainer - has caused confusion and blocks defaulting of id, publisher etc.
 BugFix: ImportTestToolkitToNavContainer running as non-administrator in 15.x containers fails
 Change New-NavContainer to accept containernames longer than 15 characters - change error to warning
+Add parameter doNotIncludeStoppedContainers to Test-NavContainer
 
 0.6.4.4
 Add -usePublicWebBaseUrl to Get-TestsFromBcContainer and Run-TestsInBcContainer to use the public Web Base Url instead of localhost
