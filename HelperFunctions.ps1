@@ -166,7 +166,7 @@ function Check-NavContainerName {
     }
 
     if ($containerName.Length -gt 15) {
-        throw "Container name should not exceed 15 characters"
+        Write-Host "WARNING: Container name should not exceed 15 characters"
     }
 
     $first = $containerName.ToLowerInvariant()[0]
