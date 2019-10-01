@@ -102,7 +102,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl)
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -159,7 +159,16 @@ function Get-TestsFromNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl | ConvertFrom-Json
+    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl
+
+    # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
+    # If the output is an array - grab the last item.
+    if ($result -is [array]) {
+        $result[$result.Count-1] | ConvertFrom-Json
+    }
+    else {
+        $result | ConvertFrom-Json
+    }
 }
 Set-Alias -Name Get-TestsFromBCContainer -Value Get-TestsFromNavContainer
 Export-ModuleMember -Function Get-TestsFromNavContainer -Alias Get-TestsFromBCContainer
