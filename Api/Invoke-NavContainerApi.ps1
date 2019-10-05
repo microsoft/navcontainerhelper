@@ -145,7 +145,7 @@ function Invoke-NavContainerApi {
     }
     
     if ($body) {
-        $parameters += @{ "body" = $body | ConvertTo-Json }
+        $parameters += @{ "body" = [System.Text.UTF8Encoding]::GetEncoding('UTF-8').GetBytes((ConvertTo-Json $body)) }
     }
 
     if (!$silent) {
