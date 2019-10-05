@@ -2,6 +2,8 @@
 Fix issue #642 - Invoke-NavContainerCodeunit cannot be used in 15.x containers
 Fix issue #643 - Get-TestsFromBcContainer sometimes fails running as non-administrator
 Fix issue #644 - -useCleanDatabase and -useNewDatabase get ignored if -includeAL isn't specified
+Add ReplaceDependencies to Setup-NavContainerTestUsers
+Support 15.x app in Setup-NavContainerTestUsers
 
 0.6.4.5
 Remove Parameter Set on Create-AlProjectFolderFromNavContainer - has caused confusion and blocks defaulting of id, publisher etc.
