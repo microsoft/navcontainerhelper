@@ -53,18 +53,35 @@ function Setup-NavContainerTestUsers {
         [Parameter(Mandatory=$true)]
         [securestring] $Password,
         [Parameter(Mandatory=$false)]
-        [PSCredential] $credential
+        [PSCredential] $credential,
+        [hashtable] $replaceDependencies = $null
     )
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
     $version = [Version]$($inspect.Config.Labels.version)
+    $systemAppTestLibrary = $null
 
     if ($version.Major -ge 13) {
 
         $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
-        Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app" -destinationFile $appfile
+        if (([System.Version]$navVersion).Major -ge 15) {
 
-        Publish-NavContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync
+            $systemAppTestLibrary = get-navcontainerappinfo -containername bingmaps-dev | Where-Object { $_.Name -eq "System Application Test Library" }
+            if (!($systemAppTestLibrary)) {
+                $testAppFile = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+                    get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_System Application Test Library.app"
+                }
+                if ($testAppFile) {
+                    Publish-NavContainerApp -containerName $containerName -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
+                }
+            }
+            Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_15.0.app" -destinationFile $appfile
+        }
+        else {
+            Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app" -destinationFile $appfile
+        }
+
+        Publish-NavContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
 
         $companyId = Get-NavContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
 
@@ -74,7 +91,10 @@ function Setup-NavContainerTestUsers {
         }
         Invoke-NavContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
 
-        UnPublish-NavContainerApp -containerName $containerName -appName CreateTestUsers -unInstall
+        UnPublish-NavContainerApp -containerName $containerName -appName "CreateTestUsers" -unInstall
+        if (!($systemAppTestLibrary)) {
+            UnPublish-NavContainerApp -containerName $containerName -appName "System Application Test Library" -unInstall
+        }
     }
 }
 Set-Alias -Name Setup-BCContainerTestUsers -Value Setup-NavContainerTestUsers
