@@ -69,6 +69,12 @@ function Setup-NavContainerTestUsers {
             $systemAppTestLibrary = get-navcontainerappinfo -containername bingmaps-dev | Where-Object { $_.Name -eq "System Application Test Library" }
             if (!($systemAppTestLibrary)) {
                 $testAppFile = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+                    $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                    $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
+                    if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
+                        new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
+                        Set-NavServerInstance $serverInstance -restart
+                    }
                     get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_System Application Test Library.app"
                 }
                 if ($testAppFile) {
