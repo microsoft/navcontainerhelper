@@ -1394,10 +1394,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                 }
             }
         } -argumentList $dotnetAssembliesFolder
+    }
 
-        if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
-            Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential
-        }
+    if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
+        Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential
     }
 
     if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {

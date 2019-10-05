@@ -41,8 +41,6 @@ function Invoke-NavContainerCodeunit {
         [string] $TimeZone
     )
 
-    AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
-
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
