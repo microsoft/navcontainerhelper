@@ -66,7 +66,7 @@ function Setup-NavContainerTestUsers {
         $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
         if (([System.Version]$navVersion).Major -ge 15) {
 
-            $systemAppTestLibrary = get-navcontainerappinfo -containername bingmaps-dev | Where-Object { $_.Name -eq "System Application Test Library" }
+            $systemAppTestLibrary = get-navcontainerappinfo -containername $containerName | Where-Object { $_.Name -eq "System Application Test Library" }
             if (!($systemAppTestLibrary)) {
                 $testAppFile = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
                     $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
