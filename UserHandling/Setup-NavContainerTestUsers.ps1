@@ -64,7 +64,7 @@ function Setup-NavContainerTestUsers {
     if ($version.Major -ge 13) {
 
         $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
-        if (([System.Version]$navVersion).Major -ge 15) {
+        if (([System.Version]$version).Major -ge 15) {
 
             $systemAppTestLibrary = get-navcontainerappinfo -containername $containerName | Where-Object { $_.Name -eq "System Application Test Library" }
             if (!($systemAppTestLibrary)) {
