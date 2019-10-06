@@ -323,6 +323,14 @@ function New-NavContainer {
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerServerVersion"
 
+    if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
+        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
+            Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:$false if you do NOT want to use Traefik."
+            $useTraefik = $true
+        }
+    }
+
     if ($useTraefik) {
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
         if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
@@ -1092,6 +1100,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                                    "-l `"traefik.enable=true`"",
                                    "-l `"traefik.frontend.entryPoints=https`""
         )
+
+        ("
+Copy-Item -Path 'C:\Run\*.vsix' -Destination 'C:\ProgramData\navcontainerhelper\Extensions\$containerName' -force
+") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
     Write-Host "Files in $($myfolder):"
