@@ -1,3 +1,6 @@
+0.6.4.7
+Issue #649 Setup-NavContainerTestUsers regression
+
 0.6.4.6
 Fix issue #642 - Invoke-NavContainerCodeunit cannot be used in 15.x containers
 Fix issue #643 - Get-TestsFromBcContainer sometimes fails running as non-administrator
