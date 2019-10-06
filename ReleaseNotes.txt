@@ -1,3 +1,6 @@
+0.6.4.8
+Default useTraefik to $true if Traefik container is created and initialized
+
 0.6.4.7
 Issue #649 Setup-NavContainerTestUsers regression
 
