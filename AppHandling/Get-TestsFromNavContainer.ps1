@@ -50,6 +50,15 @@ function Get-TestsFromNavContainer {
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
 
+    if (!($PSBoundParameters.ContainsKey('usePublicWebBaseUrl'))) {
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
+            if ($inspect.config.Labels.'traefik.enable' -eq "true") {
+                $usePublicWebBaseUrl = $true
+            }
+        }
+    }
+
     $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-3"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
