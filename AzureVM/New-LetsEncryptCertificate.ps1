@@ -15,7 +15,7 @@
  .Parameter WebSiteRef
   Local web site to use for ACME Challenge (default is Default Web Site) 
  .Parameter dnsAlias
-  DNS Alias to use for LetsEncrypt
+  DNS Alias is obsolete - you do not need to specify this
  .Example
   New-LetsEncryptCertificate -ContactEMailForLetsEncrypt "me@my.com" -publicDnsName "host.westeurope.cloudapp.azure.com" -certificatePfxFilename "c:\temp\cert.pfx" -certificatePfxPassword $securePassword
 #>
@@ -35,27 +35,20 @@ function New-LetsEncryptCertificate {
         [string] $dnsAlias = "dnsAlias"
     )
 
-    Write-Host "Installing ACMESharp PowerShell modules"
-    Install-Module -Name ACMESharp -AllowClobber -force -ErrorAction SilentlyContinue
-    Install-Module -Name ACMESharp.Providers.IIS -force -ErrorAction SilentlyContinue
-    Import-Module ACMESharp
-    Enable-ACMEExtensionModule -ModuleName ACMESharp.Providers.IIS -ErrorAction SilentlyContinue
-    
-    Write-Host "Initializing ACMEVault"
-    Initialize-ACMEVault
-    
-    Write-Host "Register Contact EMail address and accept Terms Of Service"
-    New-ACMERegistration -Contacts "mailto:$ContactEMailForLetsEncrypt" -AcceptTos
-    
-    Write-Host "Creating new dns Identifier"
-    New-ACMEIdentifier -Dns $publicDnsName -Alias $dnsAlias
+    $stateDir = "c:\programdata\navcontainerhelper\acmeState"
+    Write-Host "Installing ACME-PS PowerShell modules"
+    Install-Module -Name ACME-PS -AllowPrerelease
+    Import-Module ACME-PS
 
-    Write-Host "Performing Lets Encrypt challenge to $WebSiteRef"
-    Complete-ACMEChallenge -IdentifierRef $dnsAlias -ChallengeType http-01 -Handler iis -HandlerParameters @{ WebSiteRef = $webSiteRef }
-    Submit-ACMEChallenge -IdentifierRef $dnsAlias -ChallengeType http-01
-    sleep -s 60
-    Update-ACMEIdentifier -IdentifierRef $dnsAlias
+    Write-Host "Initializing ACME State"
+    $state = New-ACMEState -Path $stateDir
     
-    Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfxPassword -dnsAlias $dnsAlias
+    Write-Host "Registring Contact EMail address and accept Terms Of Service"
+    Get-ACMEServiceDirectory $state -ServiceName "LetsEncrypt" -PassThru | Out-Null
+    New-ACMENonce $state | Out-Null
+    New-ACMEAccountKey $state -PassThru | Out-Null
+    New-ACMEAccount $state -EmailAddresses $ContactEMailForLetsEncrypt -AcceptTOS | Out-Null
+
+    Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfxPassword
 }
 Export-ModuleMember -Function New-LetsEncryptCertificate
