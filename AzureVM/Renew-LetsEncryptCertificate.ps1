@@ -60,7 +60,7 @@ function Renew-LetsEncryptCertificate {
     Set-Content -Path $fileName -Value $challenge.Data.Content -NoNewLine
 
     # Check if the challenge is readable
-    Invoke-WebRequest $challenge.Data.AbsoluteUrl | Out-Null
+    Invoke-WebRequest $challenge.Data.AbsoluteUrl -UseBasicParsing | Out-Null
 
     Write-Host "Completing ACME Challenge"
     # Signal the ACME server that the challenge is ready
