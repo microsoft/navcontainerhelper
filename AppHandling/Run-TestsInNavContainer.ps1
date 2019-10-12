@@ -165,7 +165,7 @@ function Run-TestsInNavContainer {
     while ($true) {
         try
         {
-            $allPassed = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl)
+            $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl)
             
                 $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                 $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -237,6 +237,14 @@ function Run-TestsInNavContainer {
                 }
         
             } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl
+            if ($result -is [array]) {
+                0..($result.Count-2) | % { Write-Host $result[$_] }
+                $allPassed = $result[$result.Count-1]
+            }
+            else {
+                $allPassed = $result
+            }
+
             if ($returnTrueIfAllPassed) {
                 $allPassed
             }
