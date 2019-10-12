@@ -27,6 +27,7 @@ function Renew-LetsEncryptCertificate {
         [string] $dnsAlias = "dnsAlias"
     )
 
+    Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
     Import-Module ACME-PS
 
     $stateDir = "c:\programdata\navcontainerhelper\acmeState"

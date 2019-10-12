@@ -36,8 +36,7 @@ function New-LetsEncryptCertificate {
     )
 
     $stateDir = "c:\programdata\navcontainerhelper\acmeState"
-    Write-Host "Installing ACME-PS PowerShell modules"
-    Install-Module -Name ACME-PS -AllowPrerelease
+    Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
     Import-Module ACME-PS
 
     Write-Host "Initializing ACME State"
