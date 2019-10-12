@@ -1,3 +1,7 @@
+0.6.4.10
+Change ACME implementation to ACME-PS (supporting ACME.v2)
+Issue 660 Run-TestsInBCContainer doesn't output correctly when running as non-administrator
+
 0.6.4.9
 Default usePublicWebBaseUrl to $true if the container was started with useTraefik
 
