@@ -67,6 +67,8 @@ function Run-TestsInNavContainer {
         [string] $testCodeunit = "*",
         [Parameter(Mandatory=$false)]
         [string] $testFunction = "*",
+        [string] $extensionId = "",
+        [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
         [string] $XUnitResultFileName,
         [switch] $AppendToXUnitResultFile,
@@ -103,7 +105,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-3"
+    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-4"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
@@ -165,7 +167,7 @@ function Run-TestsInNavContainer {
     while ($true) {
         try
         {
-            $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl)
+            $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests)
             
                 $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                 $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -216,11 +218,14 @@ function Run-TestsInNavContainer {
                               -TestGroup $testGroup `
                               -TestCodeunit $testCodeunit `
                               -TestFunction $testFunction `
+                              -ExtensionId $extensionId `
+                              -DisabledTests $disabledtests `
                               -XUnitResultFileName $XUnitResultFileName `
                               -AppendToXUnitResultFile:$AppendToXUnitResultFile `
                               -ReRun:$ReRun `
                               -AzureDevOps $AzureDevOps `
                               -detailed:$detailed `
+                              -debugMode:$debugMode `
                               -testPage $testPage
                 }
                 catch {
@@ -236,7 +241,7 @@ function Run-TestsInNavContainer {
                     Remove-ClientContext -clientContext $clientContext
                 }
         
-            } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl
+            } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }
                 $allPassed = $result[$result.Count-1]

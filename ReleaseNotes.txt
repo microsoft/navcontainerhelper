@@ -1,3 +1,6 @@
+0.6.4.11
+Support ExtensionId and DisabledTests on Get-Tests and Run-Tests on AL test Runner
+
 0.6.4.10
 Change ACME implementation to ACME-PS (supporting ACME.v2)
 Issue 660 Run-TestsInBCContainer doesn't output correctly when running as non-administrator
