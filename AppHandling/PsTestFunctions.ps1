@@ -80,12 +80,59 @@ function Dump-ClientContext {
     }
 }
 
+function Set-ExtensionId
+(
+    [string] $ExtensionId,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if(!$ExtensionId)
+    {
+        return
+    }
+    
+    if ($debugMode) {
+        Write-Host "Setting Extension Id $ExtensionId"
+    }
+    $extensionIdControl = $ClientContext.GetControlByName($Form, "ExtensionId")
+    $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
+}
+
+function Set-RunFalseOnDisabledTests
+(
+    [ClientContext] $ClientContext,
+    [array] $DisabledTests,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if(!$DisabledTests)
+    {
+        return
+    }
+
+    foreach($disabledTestMethod in $DisabledTests)
+    {
+        if ($debugMode) {
+            Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$($disabledTestMethod.method)"
+        }
+        $testKey = $disabledTestMethod.codeunitName + "," + $disabledTestMethod.method
+        $removeTestMethodControl = $ClientContext.GetControlByName($Form, "DisableTestMethod")
+        $ClientContext.SaveValue($removeTestMethodControl, $testKey)
+    }
+}
+
 function Get-Tests {
     Param(
         [ClientContext] $clientContext,
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $extensionId = "",
+        [array]  $disabledtests = @(),
+        [switch] $debugMode,
         [switch] $ignoreGroups
     )
 
@@ -94,6 +141,12 @@ function Get-Tests {
     }
     else {
         $lineTypeAdjust = 0
+        if ($disabledTests) {
+            throw "Specifying disabledTests is not supported when using the C/AL test runner"
+        }
+        if ($extensionId) {
+            throw "Specifying extensionId is not supported when using the C/AL test runner"
+        }
     }
 
     $form = $clientContext.OpenForm($testPage)
@@ -103,7 +156,10 @@ function Get-Tests {
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
-    
+
+    Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+    Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
+
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
 
@@ -126,9 +182,12 @@ function Get-Tests {
         $lineType = "$(([int]$lineTypeControl.StringValue) + $lineTypeAdjust)"
         $name = $clientContext.GetControlByName($row, "Name").StringValue
         $codeUnitId = $clientContext.GetControlByName($row, "TestCodeunit").StringValue
-
-        # Refresh form????
-        #Write-Host "$linetype $name"        
+        if ($testPage -eq 130455) {
+            $run = $clientContext.GetControlByName($row, "Run").StringValue
+        }
+        else{
+            $run = $true
+        }
 
         if ($name) {
             if ($linetype -eq "0" -and !$ignoreGroups) {
@@ -141,13 +200,18 @@ function Get-Tests {
                     $codeunit = @{ "Id" = "$codeunitId"; "Name" = $codeUnitName; "Tests" = @() }
                     if ($group) {
                         $group.Codeunits += $codeunit
-                    } else {
-                        $Tests += $codeunit
+                    }
+                    else {
+                        if ($run) {
+                            $Tests += $codeunit
+                        }
                     }
                 }
             } elseif ($lineType -eq "2") {
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
-                    $codeunit.Tests += $name
+                    if ($run) {
+                        $codeunit.Tests += $name
+                    }
                 }
             }
         }
@@ -164,7 +228,10 @@ function Run-Tests {
         [string] $testCodeunit = "*",
         [string] $testGroup = "*",
         [string] $testFunction = "*",
+        [string] $extensionId = "",
+        [array]  $disabledtests = @(),
         [switch] $detailed,
+        [switch] $debugMode,
         [string] $XUnitResultFileName = "",
         [switch] $AppendToXUnitResultFile,
         [switch] $ReRun,
@@ -183,6 +250,12 @@ function Run-Tests {
         $runSelectedName = "RunSelected"
         $callStackName = "Call Stack"
         $firstErrorName = "First Error"
+        if ($disabledTests) {
+            throw "Specifying disabledTests is not supported when using the C/AL test runner"
+        }
+        if ($extensionId) {
+            throw "Specifying extensionId is not supported when using the C/AL test runner"
+        }
     }
     $allPassed = $true
 
@@ -192,6 +265,10 @@ function Run-Tests {
     }
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
+
+    Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+    Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
+
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
 
@@ -257,6 +334,13 @@ function Run-Tests {
             $lineType = "$(([int]$lineTypeControl.StringValue) + $lineTypeAdjust)"
             $name = $clientContext.GetControlByName($row, "Name").StringValue
             $codeUnitId = $clientContext.GetControlByName($row, "TestCodeunit").StringValue
+            if ($testPage -eq 130455) {
+                $run = $clientContext.GetControlByName($row, "Run").StringValue
+            }
+            else{
+                $run = $true
+            }
+
             if ($name) {
                 if ($linetype -eq "0") {
                     $groupName = $name
@@ -300,6 +384,9 @@ function Run-Tests {
                         if ($result -eq "2") {
                             Write-Host -ForegroundColor Green "Success ($([Math]::Round($duration.TotalSeconds,3)) seconds)"
                         }
+                        elseif ($result -eq "3") {
+                            Write-Host -ForegroundColor Yellow "Skipped"
+                        }
                         else {
                             Write-Host -ForegroundColor Red "Failure ($([Math]::Round($duration.TotalSeconds,3)) seconds)"
                             $allPassed = $false
@@ -320,6 +407,7 @@ function Run-Tests {
                         $XUnitAssembly.SetAttribute("total",0)
                         $XUnitAssembly.SetAttribute("passed",0)
                         $XUnitAssembly.SetAttribute("failed",0)
+                        $XUnitAssembly.SetAttribute("skipped",0)
                         $XUnitAssembly.SetAttribute("time", "0")
                         $XUnitCollection = $XUnitDoc.CreateElement("collection")
                         $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
@@ -400,8 +488,13 @@ function Run-Tests {
                         }
                     }
                     else {
+                        if ($detailed) {
+                            Write-Host -ForegroundColor Yellow "    Testfunction $name Skipped"
+                        }
                         if ($XUnitResultFileName) {
                             $XUnitCollection.SetAttribute("skipped",([int]$XUnitCollection.GetAttribute("skipped")+1))
+                            $XUnitAssembly.SetAttribute("skipped",([int]$XUnitAssembly.GetAttribute("skipped")+1))
+                            $XUnitTest.SetAttribute("result", "Skip")
                         }
                     }
                     if ($result -eq "1" -and $detailed) {
@@ -415,6 +508,7 @@ function Run-Tests {
                         $XUnitCollection.SetAttribute("total", $XUnitAssembly.GetAttribute("total"))
                         $XUnitCollection.SetAttribute("passed", $XUnitAssembly.GetAttribute("passed"))
                         $XUnitCollection.SetAttribute("failed", $XUnitAssembly.GetAttribute("failed"))
+                        $XUnitCollection.SetAttribute("Skipped", $XUnitAssembly.GetAttribute("skipped"))
                     }
                 }
                 else {

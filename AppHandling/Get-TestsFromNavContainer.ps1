@@ -40,6 +40,8 @@ function Get-TestsFromNavContainer {
         [string] $testSuite = "DEFAULT",
         [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
+        [string] $extensionId = "",
+        [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
         [int] $testPage,
         [switch] $debugMode,
@@ -59,7 +61,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-3"
+    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-4"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
@@ -111,7 +113,7 @@ function Get-TestsFromNavContainer {
         }
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl)
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -152,7 +154,14 @@ function Get-TestsFromNavContainer {
             
             $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -debugMode:$debugMode
 
-            Get-Tests -clientContext $clientContext -TestSuite $testSuite -TestCodeunit $testCodeunit -testPage $testPage -ignoreGroups:$ignoreGroups
+            Get-Tests -clientContext $clientContext `
+                      -TestSuite $testSuite `
+                      -TestCodeunit $testCodeunit `
+                      -ExtensionId $extensionId `
+                      -DisabledTests $disabledtests `
+                      -testPage $testPage `
+                      -debugMode:$debugMode `
+                      -ignoreGroups:$ignoreGroups
 
         }
         catch {
@@ -168,7 +177,7 @@ function Get-TestsFromNavContainer {
             Remove-ClientContext -clientContext $clientContext
         }
 
-    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl
+    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.
