@@ -1,3 +1,6 @@
+0.6.4.14
+Issue 668 consistent location for license file
+
 0.6.4.13
 Do not fail on missing Web.Config
 

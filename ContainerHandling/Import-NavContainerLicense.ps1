@@ -19,39 +19,29 @@ function Import-NavContainerLicense {
         [string] $licenseFile
     )
 
+    $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license.flf"
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-        $containerLicenseFile = $licensefile
+        Write-Host "Downloading license file '$licensefile' to container"
+        (New-Object System.Net.WebClient).DownloadFile($licensefile, $containerlicensefile)
+        $bytes = [System.IO.File]::ReadAllBytes($containerlicenseFile)
+        $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+        if (!($text.StartsWith("Microsoft Software License Information"))) {
+            Remove-Item -Path $containerlicenseFile -Force
+            Write-Error "Specified license file Uri isn't a direct download Uri"
+        }
     } else {
-        $containerLicenseFile = Get-NavContainerPath -containerName $containerName -path $licenseFile
-        $copied = $false
-        if ("$containerLicenseFile" -eq "") {
-            $containerLicenseFile = Join-Path "c:\run" ([System.IO.Path]::GetFileName($licensefile))
-            Copy-FileToNavContainer -containerName $containerName -localPath $licensefile -containerPath $containerLicenseFile
-            $copied = $true
+        if ($containerLicenseFile -ne $licenseFile) {
+            Write-Host "Copying license file '$licensefile' to container"
+            Copy-Item -Path $licenseFile -Destination $containerLicenseFile -Force
         }
     }
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($licensefile)
 
-        if ($licensefile.StartsWith("https://") -or $licensefile.StartsWith("http://"))
-        {
-            $licensefileurl = $licensefile
-            $licensefile = (Join-Path $runPath "license.flf")
-            Write-Host "Downloading license file '$licensefileurl'"
-            (New-Object System.Net.WebClient).DownloadFile($licensefileurl, $licensefile)
-
-            $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
-            $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-            if (!($text.StartsWith("Microsoft Software License Information"))) {
-                Remove-Item -Path $licenseFile -Force
-                Write-Error "Specified license file Uri isn't a direct download Uri"
-            }
-        }
-    
-        Write-Host "Import License $licensefile"
+        Write-Host "Importing License $licensefile"
         Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance $ServerInstance -Database NavDatabase -WarningAction SilentlyContinue
     
-    }  -ArgumentList $containerLicenseFile
+    }  -ArgumentList (Get-NavContainerPath -ContainerName $containerName -Path $containerLicenseFile)
 }
 Set-Alias -Name Import-BCContainerLicense -Value Import-NavContainerLicense
 Export-ModuleMember -Function Import-NavContainerLicense -Alias Import-BCContainerLicense
