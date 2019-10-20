@@ -10,6 +10,8 @@ class ClientContext {
     $caughtForm = $null
     $debugMode = $false
     $addressUri = $null
+    $interactionStart = $null
+    $currentInteraction = $null
 
     ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture) {
         $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture)
@@ -75,6 +77,8 @@ class ClientContext {
             if ($null -ne $EventArgs.Exception.InnerException) {
                 Write-Host -ForegroundColor Red "CommunicationError InnerException : $($EventArgs.Exception.InnerException)"    
             }
+            Write-Host -ForegroundColor Red "Current Interaction: $($this.currentInteraction.ToString())"
+            Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $this.interactionStart).Seconds) seconds"
             if ($this.debugMode) {
                 try {
                     $this.GetAllForms() | ForEach-Object {
@@ -97,6 +101,8 @@ class ClientContext {
             if ($null -ne $EventArgs.Exception.InnerException) {
                 Write-Host -ForegroundColor Red "UnhandledException InnerException : $($EventArgs.Exception.InnerException)"    
             }
+            Write-Host -ForegroundColor Red "Current Interaction: $($this.currentInteraction.ToString())"
+            Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $this.interactionStart).Seconds) seconds"
             if ($this.debugMode) {
                 try {
                     $this.GetAllForms() | ForEach-Object {
@@ -185,6 +191,8 @@ class ClientContext {
     }
     
     InvokeInteraction([ClientInteraction] $interaction) {
+        $this.interactionStart = [DateTime]::Now
+        $this.currentInteraction = $interaction
         $this.clientSession.InvokeInteractionAsync($interaction)
         $this.AwaitState([ClientSessionState]::Ready)
     }
