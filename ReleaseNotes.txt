@@ -1,3 +1,6 @@
+0.6.4.13
+Do not fail on missing Web.Config
+
 0.6.4.12
 Issue #669 ensure asp.net Core requestTimeout is set to interactionTimeout
 Set WebServiceInstance in ServiceSettings.ps1 is using Traefik

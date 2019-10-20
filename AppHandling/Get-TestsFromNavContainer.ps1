@@ -115,8 +115,8 @@ function Get-TestsFromNavContainer {
 
     Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
         $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
-        $webConfig = [xml](Get-Content $webConfigFile)
         try {
+            $webConfig = [xml](Get-Content $webConfigFile)
             $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.GetNamedItem('requestTimeout')
             if (!($node)) {
                 $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
