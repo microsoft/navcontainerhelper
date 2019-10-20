@@ -1,3 +1,9 @@
+0.6.4.12
+Issue #669 ensure asp.net Core requestTimeout is set to interactionTimeout
+Set WebServiceInstance in ServiceSettings.ps1 is using Traefik
+Support connecting to test runner from host (-connectFromHost) for debugging purposes (Fiddler support)
+Add additional debugging information in Run-TestsInBCContainer when using -debugMode
+
 0.6.4.11
 Support ExtensionId and DisabledTests on Get-Tests and Run-Tests on AL test Runner
 

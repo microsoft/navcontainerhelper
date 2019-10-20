@@ -1102,7 +1102,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         )
 
         ("
-Copy-Item -Path 'C:\Run\*.vsix' -Destination 'C:\ProgramData\navcontainerhelper\Extensions\$containerName' -force
+if (-not `$restartingInstance) {
+    Copy-Item -Path 'C:\Run\*.vsix' -Destination 'C:\ProgramData\navcontainerhelper\Extensions\$containerName' -force
+    Add-Content -Path 'c:\run\ServiceSettings.ps1' -Value '`$WebServerInstance = ""$containerName""'
+}
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
