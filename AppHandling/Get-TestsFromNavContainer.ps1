@@ -113,6 +113,21 @@ function Get-TestsFromNavContainer {
         }
     }
 
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
+        $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
+        $webConfig = [xml](Get-Content $webConfigFile)
+        try {
+            $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.GetNamedItem('requestTimeout')
+            if (!($node)) {
+                $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
+            }
+            $node.Value = $timeoutStr
+            $webConfig.Save($webConfigFile)
+        }
+        catch {
+        }
+    } -argumentList "01:00:00"
+
     $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName

@@ -55,13 +55,18 @@ class ClientContext {
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"
             if ($this.debugMode) {
-                $this.GetAllForms() | ForEach-Object {
-                    $formInfo = $this.GetFormInfo($_)
-                    if ($formInfo) {
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                try {
+                    $this.GetAllForms() | ForEach-Object {
+                        $formInfo = $this.GetFormInfo($_)
+                        if ($formInfo) {
+                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
+                            $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                        }
                     }
+                }
+                catch {
+                    Write-Host "Exception when enumerating forms"
                 }
             }
         })
@@ -71,13 +76,18 @@ class ClientContext {
                 Write-Host -ForegroundColor Red "CommunicationError InnerException : $($EventArgs.Exception.InnerException)"    
             }
             if ($this.debugMode) {
-                $this.GetAllForms() | ForEach-Object {
-                    $formInfo = $this.GetFormInfo($_)
-                    if ($formInfo) {
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                try {
+                    $this.GetAllForms() | ForEach-Object {
+                        $formInfo = $this.GetFormInfo($_)
+                        if ($formInfo) {
+                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
+                            $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                        }
                     }
+                }
+                catch {
+                    Write-Host "Exception when enumerating forms"
                 }
             }
             Remove-ClientSession
@@ -88,13 +98,18 @@ class ClientContext {
                 Write-Host -ForegroundColor Red "UnhandledException InnerException : $($EventArgs.Exception.InnerException)"    
             }
             if ($this.debugMode) {
-                $this.GetAllForms() | ForEach-Object {
-                    $formInfo = $this.GetFormInfo($_)
-                    if ($formInfo) {
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                try {
+                    $this.GetAllForms() | ForEach-Object {
+                        $formInfo = $this.GetFormInfo($_)
+                        if ($formInfo) {
+                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
+                            $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                        }
                     }
+                }
+                catch {
+                    Write-Host "Exception when enumerating forms"
                 }
             }
             Remove-ClientSession
@@ -151,16 +166,20 @@ class ClientContext {
     }
     
     AwaitState([ClientSessionState] $state) {
+        $now = [DateTime]::Now
         While ($this.clientSession.State -ne $state) {
             Start-Sleep -Milliseconds 100
             if ($this.clientSession.State -eq [ClientSessionState]::InError) {
-                throw "ClientSession in Error"
+                throw "ClientSession State is InError (Wait time $(([DateTime]::Now - $now).Seconds) seconds)"
             }
             if ($this.clientSession.State -eq [ClientSessionState]::TimedOut) {
-                throw "ClientSession timed out"
+                throw "ClientSession State is TimedOut (Wait time $(([DateTime]::Now - $now).Seconds) seconds)"
             }
             if ($this.clientSession.State -eq [ClientSessionState]::Uninitialized) {
-                throw "ClientSession is Uninitialized"
+                $waited = ([DateTime]::Now - $now).Seconds
+                if ($waited -ge 10) {
+                    throw "ClientSession State is Uninitialized (Wait time $waited seconds)"
+                }
             }
         }
     }

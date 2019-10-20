@@ -312,6 +312,7 @@ function Run-Tests {
         }
     }
     
+    $codeunitName = ""
     $codeunitNames = @{}
     $LastCodeunitName = ""
     $groupName = ""
