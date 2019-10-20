@@ -171,6 +171,7 @@ function Run-TestsInNavContainer {
             $webConfig.Save($webConfigFile)
         }
         catch {
+            Write-Host "WARNING: could not set requestTimeout in web.config"
         }
     } -argumentList $interactionTimeout.ToString()
 

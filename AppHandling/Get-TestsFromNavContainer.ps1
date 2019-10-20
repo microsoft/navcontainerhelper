@@ -125,6 +125,7 @@ function Get-TestsFromNavContainer {
             $webConfig.Save($webConfigFile)
         }
         catch {
+            Write-Host "WARNING: could not set requestTimeout in web.config"
         }
     } -argumentList "01:00:00"
 
