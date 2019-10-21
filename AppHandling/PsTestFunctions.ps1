@@ -395,13 +395,13 @@ function Run-Tests {
                     }
                     if ($XUnitResultFileName) {
                         if ($ReRun) {
-                            $LastResult = $XUnitDoc.assemblies.ChildNodes | Where-Object { $_.name -eq $Name }
+                            $LastResult = $XUnitDoc.assemblies.ChildNodes | Where-Object { $_.name -eq "$codeunitId $Name" }
                             if ($LastResult) {
                                 $XUnitDoc.assemblies.RemoveChild($LastResult) | Out-Null
                             }
                         }
                         $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
-                        $XUnitAssembly.SetAttribute("name",$Name)
+                        $XUnitAssembly.SetAttribute("name","$codeunitId $Name")
                         $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
                         $XUnitAssembly.SetAttribute("run-date", $startTime.ToString("yyyy-MM-dd"))
                         $XUnitAssembly.SetAttribute("run-time", $startTime.ToString("HH:mm:ss"))
@@ -453,7 +453,7 @@ function Run-Tests {
                         $XUnitAssembly.SetAttribute("total",([int]$XUnitAssembly.GetAttribute("total")+1))
                         $XUnitTest = $XUnitDoc.CreateElement("test")
                         $XUnitCollection.AppendChild($XUnitTest) | Out-Null
-                        $XUnitTest.SetAttribute("name", $XUnitAssembly.GetAttribute("name")+':'+$Name)
+                        $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name")+':'+$Name)
                         $XUnitTest.SetAttribute("method", $Name)
                         $XUnitTest.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                     }
