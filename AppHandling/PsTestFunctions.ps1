@@ -291,7 +291,7 @@ function Run-Tests {
     }
 
     if ($XUnitResultFileName) {
-        if ($AppendToXUnitResultFile -and (Test-Path $XUnitResultFileName)) {
+        if (($Rerun -or $AppendToXUnitResultFile) -and (Test-Path $XUnitResultFileName)) {
             [xml]$XUnitDoc = Get-Content $XUnitResultFileName
             $XUnitAssemblies = $XUnitDoc.assemblies
             if (-not $XUnitAssemblies) {
@@ -412,7 +412,7 @@ function Run-Tests {
                         $XUnitAssembly.SetAttribute("time", "0")
                         $XUnitCollection = $XUnitDoc.CreateElement("collection")
                         $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
-                        $XUnitCollection.SetAttribute("name",$Name)
+                        $XUnitCollection.SetAttribute("name","$Name")
                         $XUnitCollection.SetAttribute("total",0)
                         $XUnitCollection.SetAttribute("passed",0)
                         $XUnitCollection.SetAttribute("failed",0)
