@@ -91,12 +91,12 @@ function Run-TestsInNavContainer {
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
 
-    if (!($PSBoundParameters.ContainsKey('usePublicWebBaseUrl'))) {
-        $inspect = docker inspect $containerName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
-            if ($inspect.config.Labels.'traefik.enable' -eq "true") {
-                $usePublicWebBaseUrl = $true
-            }
+    $useTraefik = $false
+    $inspect = docker inspect $containerName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
+        if ($inspect.config.Labels.'traefik.enable' -eq "true") {
+            $usePublicWebBaseUrl = $true
+            $useTraefik = $true
         }
     }
 
@@ -347,6 +347,10 @@ function Run-TestsInNavContainer {
             if ($restartContainerAndRetry) {
                 Write-Host -ForegroundColor Red $_.Exception.Message
                 Restart-NavContainer $containerName
+                if ($useTraefik) {
+                    Write-Host "Waiting for 30 seconds to allow Traefik to pickup restarted container"
+                    Start-Sleep -Seconds 30
+                }
                 $restartContainerAndRetry = $false
             }
             else {

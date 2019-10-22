@@ -1,3 +1,9 @@
+0.6.4.14
+Issue 668 consistent location for license file
+When restarting container during Run-Tests, wait 30 seconds if using traefik to allow traefik to pickup restarted container
+Include codeunit ID in assembly name in XUnit output, to allow faster rerun
+Do not remove results file on rerun
+
 0.6.4.13
 Do not fail on missing Web.Config
 
