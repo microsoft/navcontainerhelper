@@ -18,7 +18,9 @@
  .Parameter CrtKeyFile
   Path/Url of the certificate key file for using your own domain
  .Example
-  Setup-TraefikContainerForNavContainers -overrideDefaultBinding
+  Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
+ .Example
+  Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -CrtFile "c:\my\cert.crt" -CrtKeyFile "c:\my\cert.key"
 #>
 function Setup-TraefikContainerForNavContainers {
     [CmdletBinding()]
