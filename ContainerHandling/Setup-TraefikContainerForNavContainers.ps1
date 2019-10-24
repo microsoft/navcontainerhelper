@@ -17,8 +17,12 @@
   Path/Url of the certificate crt file for using your own domain
  .Parameter CrtKeyFile
   Path/Url of the certificate key file for using your own domain
+ .Parameter Recreate
+  Switch to recreate traefik container and discard all existing configuration
  .Example
-  Setup-TraefikContainerForNavContainers -overrideDefaultBinding
+  Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
+ .Example
+  Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -CrtFile "c:\my\cert.crt" -CrtKeyFile "c:\my\cert.key"
 #>
 function Setup-TraefikContainerForNavContainers {
     [CmdletBinding()]
@@ -34,7 +38,8 @@ function Setup-TraefikContainerForNavContainers {
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
-        [string] $CrtKeyFile
+        [string] $CrtKeyFile,
+        [Switch] $Recreate
     )
 
     Process {
@@ -43,6 +48,15 @@ function Setup-TraefikContainerForNavContainers {
         $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
         $CrtFilePath = (Join-Path $traefikForBcBasePath "config\certificate.crt")
         $CrtKeyFilePath = (Join-Path $traefikForBcBasePath "config\certificate.key")
+
+        if ($Recreate){
+            Write-Host "Remove running Instances of Traefik"
+            docker images --filter "label=org.label-schema.name=Traefik" --format "{{.ID}}" | ForEach-Object { docker ps --filter ancestor=$_ --format "{{.ID}}" } | ForEach-Object { docker rm $_ -f }
+            Write-Host "Remove old configuration"
+            if (Test-Path -Path $traefikForBcBasePath){
+                remove-item -Path $traefikForBcBasePath -Recurse -force 
+            }
+        }
 
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
             Write-Host "Traefik container already initialized."
