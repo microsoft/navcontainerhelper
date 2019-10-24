@@ -60,7 +60,7 @@ function Setup-TraefikContainerForNavContainers {
 
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
             Write-Host "Traefik container already initialized."
-            exit
+            return
         }
 
         if ($traefikToml -is [string]) {
