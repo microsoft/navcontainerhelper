@@ -1,5 +1,6 @@
 0.6.4.15
 Creating a container with -enableTaskScheduler:$false will disable Task Scheduler (if the container has Task Scheduler running per default = Sandbox containers)
+Added parameter -recreate on Setup-TraefikContainerForNavContainer to allow recreation of the container (thanks ChrisBlankDe)
 
 0.6.4.14
 Issue 668 consistent location for license file
