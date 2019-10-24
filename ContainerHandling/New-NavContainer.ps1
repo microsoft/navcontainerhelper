@@ -902,8 +902,8 @@ function New-NavContainer {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
     }
 
-    if ($enableTaskScheduler) {
-        $parameters += "--env customNavSettings=EnableTaskScheduler=True"
+    if ($PSBoundParameters.ContainsKey('enableTaskScheduler')) {
+        $parameters += "--env customNavSettings=EnableTaskScheduler=$enableTaskScheduler"
     }
 
     if ($enableSymbolLoading -and $version.Major -ge 11 -and $version.Major -lt 15) {
