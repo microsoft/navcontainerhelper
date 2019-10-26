@@ -124,6 +124,23 @@ function Set-RunFalseOnDisabledTests
     }
 }
 
+function Set-TestRunner
+(
+    [int] $TestRunnerId,
+    [ClientContext] $ClientContext,
+    $Form
+)
+{
+    if(!$TestRunnerId)
+    {
+        return
+    }
+
+    Write-Host "Setting TestRunner to $TestRunnerId"
+    $testRunnerCodeunitIdControl = $ClientContext.GetControlByName($Form, "TestRunnerCodeunitId")
+    $ClientContext.SaveValue($testRunnerCodeunitIdControl, $TestRunnerId)
+}
+
 function Get-Tests {
     Param(
         [ClientContext] $clientContext,
@@ -131,6 +148,7 @@ function Get-Tests {
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
         [string] $extensionId = "",
+        [int] $TestRunnerId = 0,
         [array]  $disabledtests = @(),
         [switch] $debugMode,
         [switch] $ignoreGroups
@@ -158,6 +176,7 @@ function Get-Tests {
     $clientContext.SaveValue($suiteControl, $testSuite)
 
     Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+    Set-TestRunner -TestRunnerId $TestRunnerId -Form $form -ClientContext $clientContext
     Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
