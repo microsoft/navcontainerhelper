@@ -132,8 +132,10 @@ function Get-TestsFromNavContainer {
             if (!($node)) {
                 $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
             }
-            $node.Value = $timeoutStr
-            $webConfig.Save($webConfigFile)
+            if ($node.Value -ne $timeoutStr) {
+                $node.Value = $timeoutStr
+                $webConfig.Save($webConfigFile)
+            }
         }
         catch {
             Write-Host "WARNING: could not set requestTimeout in web.config"
@@ -178,6 +180,7 @@ function Get-TestsFromNavContainer {
 
         . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
+        $clientContext = $null
         try {
             if ($disableSslVerification) {
                 Disable-SslVerification
@@ -196,7 +199,7 @@ function Get-TestsFromNavContainer {
 
         }
         catch {
-            if ($debugMode) {
+            if ($debugMode -and $clientContext) {
                 Dump-ClientContext -clientcontext $clientContext 
             }
             throw
@@ -205,7 +208,10 @@ function Get-TestsFromNavContainer {
             if ($disableSslVerification) {
                 Enable-SslVerification
             }
-            Remove-ClientContext -clientContext $clientContext
+            if ($clientContext) {
+                Remove-ClientContext -clientContext $clientContext
+                $clientContext = $null
+            }
         }
 
     } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests

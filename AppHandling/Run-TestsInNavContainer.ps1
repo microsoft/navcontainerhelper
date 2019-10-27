@@ -254,7 +254,7 @@ function Run-TestsInNavContainer {
                 }
 
                 $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests)
-                
+    
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
                     $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -294,7 +294,7 @@ function Run-TestsInNavContainer {
 
                     $clientContext = $null
                     try {
-   
+
                         if ($disableSslVerification) {
                             Disable-SslVerification
                         }
@@ -328,6 +328,7 @@ function Run-TestsInNavContainer {
                         }
                         if ($clientContext) {
                             Remove-ClientContext -clientContext $clientContext
+                            $clientContext = $null
                         }
                     }
             
@@ -350,6 +351,7 @@ function Run-TestsInNavContainer {
             break
         }
         catch {
+            Remove-NavContainerSession $containerName
             if ($restartContainerAndRetry) {
                 Write-Host -ForegroundColor Red $_.Exception.Message
                 Restart-NavContainer $containerName
