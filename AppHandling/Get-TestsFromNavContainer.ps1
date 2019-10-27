@@ -6,6 +6,8 @@
   Name of the container from which you want to get test information
  .Parameter tenant
   tenant to use if container is multitenant
+ .Parameter companyName
+  company to use
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter accesstoken
@@ -32,6 +34,8 @@ function Get-TestsFromNavContainer {
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
+        [Parameter(Mandatory=$false)]
+        [string] $companyName = "",
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
@@ -113,6 +117,13 @@ function Get-TestsFromNavContainer {
         }
     }
 
+    if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
+        $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
+        Get-NavContainerNavUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
+            $companyName = $_.Company
+        }
+    }
+
     Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
         $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
         try {
@@ -121,15 +132,17 @@ function Get-TestsFromNavContainer {
             if (!($node)) {
                 $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
             }
-            $node.Value = $timeoutStr
-            $webConfig.Save($webConfigFile)
+            if ($node.Value -ne $timeoutStr) {
+                $node.Value = $timeoutStr
+                $webConfig.Save($webConfigFile)
+            }
         }
         catch {
             Write-Host "WARNING: could not set requestTimeout in web.config"
         }
     } -argumentList "01:00:00"
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests)
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -161,8 +174,13 @@ function Get-TestsFromNavContainer {
             $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
         }
 
+        if ($companyName) {
+            $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
+        }
+
         . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
+        $clientContext = $null
         try {
             if ($disableSslVerification) {
                 Disable-SslVerification
@@ -181,7 +199,7 @@ function Get-TestsFromNavContainer {
 
         }
         catch {
-            if ($debugMode) {
+            if ($debugMode -and $clientContext) {
                 Dump-ClientContext -clientcontext $clientContext 
             }
             throw
@@ -190,10 +208,13 @@ function Get-TestsFromNavContainer {
             if ($disableSslVerification) {
                 Enable-SslVerification
             }
-            Remove-ClientContext -clientContext $clientContext
+            if ($clientContext) {
+                Remove-ClientContext -clientContext $clientContext
+                $clientContext = $null
+            }
         }
 
-    } -argumentList $tenant, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests
+    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.

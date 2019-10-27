@@ -7,7 +7,7 @@
  .Parameter tenant
   tenant to use if container is multitenant
  .Parameter companyName
-  company to use if container
+  company to use
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter accesstoken
@@ -167,8 +167,10 @@ function Run-TestsInNavContainer {
             if (!($node)) {
                 $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
             }
-            $node.Value = $timeoutStr
-            $webConfig.Save($webConfigFile)
+            if ($node.Value -ne $timeoutStr) {
+                $node.Value = $timeoutStr
+                $webConfig.Save($webConfigFile)
+            }
         }
         catch {
             Write-Host "WARNING: could not set requestTimeout in web.config"
@@ -252,7 +254,7 @@ function Run-TestsInNavContainer {
                 }
 
                 $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests)
-                
+    
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
                     $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -289,14 +291,16 @@ function Run-TestsInNavContainer {
                     }
             
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
-            
+
+                    $clientContext = $null
                     try {
+
                         if ($disableSslVerification) {
                             Disable-SslVerification
                         }
-                        
+
                         $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -debugMode:$debugMode
-    
+
                         Run-Tests -clientContext $clientContext `
                                   -TestSuite $testSuite `
                                   -TestGroup $testGroup `
@@ -313,7 +317,7 @@ function Run-TestsInNavContainer {
                                   -testPage $testPage
                     }
                     catch {
-                        if ($debugMode) {
+                        if ($debugMode -and $clientContext) {
                             Dump-ClientContext -clientcontext $clientContext 
                         }
                         throw
@@ -322,7 +326,10 @@ function Run-TestsInNavContainer {
                         if ($disableSslVerification) {
                             Enable-SslVerification
                         }
-                        Remove-ClientContext -clientContext $clientContext
+                        if ($clientContext) {
+                            Remove-ClientContext -clientContext $clientContext
+                            $clientContext = $null
+                        }
                     }
             
                 } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests
@@ -344,6 +351,7 @@ function Run-TestsInNavContainer {
             break
         }
         catch {
+            Remove-NavContainerSession $containerName
             if ($restartContainerAndRetry) {
                 Write-Host -ForegroundColor Red $_.Exception.Message
                 Restart-NavContainer $containerName

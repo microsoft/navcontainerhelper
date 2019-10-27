@@ -50,9 +50,9 @@ function Setup-TraefikContainerForNavContainers {
         $CrtKeyFilePath = (Join-Path $traefikForBcBasePath "config\certificate.key")
 
         if ($Recreate){
-            Write-Host "Remove running Instances of Traefik"
+            Write-Host "Removing running Instances of the Traefik container"
             docker images --filter "label=org.label-schema.name=Traefik" --format "{{.ID}}" | ForEach-Object { docker ps --filter ancestor=$_ --format "{{.ID}}" } | ForEach-Object { docker rm $_ -f }
-            Write-Host "Remove old configuration"
+            Write-Host "Removing old Traefik configuration"
             if (Test-Path -Path $traefikForBcBasePath){
                 remove-item -Path $traefikForBcBasePath -Recurse -force 
             }
