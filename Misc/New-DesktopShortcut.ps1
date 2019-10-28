@@ -51,8 +51,9 @@ function New-DesktopShortcut {
                 Remove-Item $filename -force
             }
         
+            $tempfilename = Join-Path $containerHelperFolder "$([Guid]::NewGuid().ToString()).lnk"
             $Shell =  New-object -comobject WScript.Shell
-            $Shortcut = $Shell.CreateShortcut($filename)
+            $Shortcut = $Shell.CreateShortcut($tempfilename)
             $Shortcut.TargetPath = $TargetPath
             if (!$WorkingDirectory) {
                 $WorkingDirectory = Split-Path $TargetPath
@@ -65,6 +66,8 @@ function New-DesktopShortcut {
                 $Shortcut.IconLocation = $IconLocation
             }
             $Shortcut.save()
+            Move-Item -Path $tempfilename -Destination $filename
+
             if ($RunAsAdministrator) {
                 $bytes = [System.IO.File]::ReadAllBytes($filename)
                 $bytes[0x15] = $bytes[0x15] -bor 0x20 #set byte 21 (0x15) bit 6 (0x20) ON
