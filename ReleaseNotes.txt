@@ -1,5 +1,6 @@
 0.6.4.16
 New-DesktopShortcut didn't work if the username has special characters
+Add support for Windows Insider builds
 
 0.6.4.15
 Creating a container with -enableTaskScheduler:$false will disable Task Scheduler (if the container has Task Scheduler running per default = Sandbox containers)

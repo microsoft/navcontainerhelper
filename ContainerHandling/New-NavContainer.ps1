@@ -271,17 +271,18 @@ function New-NavContainer {
     $bestGenericContainerOs = "ltsc2016"
 
     if ($os.BuildNumber -ge 18362) { 
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 18362) { 
             $hostOs = "1903"
+            $bestGenericContainerOs = "1903"
         }
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "1903"
     } elseif ($os.BuildNumber -ge 17763) { 
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 17763) { 
             $hostOs = "ltsc2019"
         }
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
     } elseif ($os.BuildNumber -ge 17134) { 
         if ($os.BuildNumber -eq 17134) { 
             $hostOs = "1803"

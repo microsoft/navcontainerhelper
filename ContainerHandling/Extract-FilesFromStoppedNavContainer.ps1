@@ -144,8 +144,8 @@ function Extract-FilesFromStoppedNavContainer {
                 Move-Item -Path (Get-Item "$path\databases\$Name\*.ldf").FullName -Destination "$path\databases\$name.ldf"
                 Remove-Item $folder.FullName -Recurse -Force
             } else {
-                docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA" "$path" 2>null
-                docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA" "$path" 2>null
+                docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA" "$path" 2>$null
+                docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA" "$path" 2>$null
                 $mdffile = Get-Item "$path\DATA\Financials*.mdf"
                 if ($mdffile) {
                     $name = $mdffile.Name.SubString(0,$mdffile.Name.IndexOf('_'))
