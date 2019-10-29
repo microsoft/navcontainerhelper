@@ -300,6 +300,12 @@ function New-NavContainer {
     }
     
     Write-Host "NavContainerHelper is version $navContainerHelperVersion"
+    if ($isAdministrator) {
+        Write-Host "NavContainerHelper is running as administrator"
+    }
+    else {
+        Write-Host "NavContainerHelper is not running as administrator"
+    }
 
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
