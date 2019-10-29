@@ -271,17 +271,18 @@ function New-NavContainer {
     $bestGenericContainerOs = "ltsc2016"
 
     if ($os.BuildNumber -ge 18362) { 
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 18362) { 
             $hostOs = "1903"
+            $bestGenericContainerOs = "1903"
         }
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "1903"
     } elseif ($os.BuildNumber -ge 17763) { 
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 17763) { 
             $hostOs = "ltsc2019"
         }
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
     } elseif ($os.BuildNumber -ge 17134) { 
         if ($os.BuildNumber -eq 17134) { 
             $hostOs = "1803"
@@ -299,6 +300,12 @@ function New-NavContainer {
     }
     
     Write-Host "NavContainerHelper is version $navContainerHelperVersion"
+    if ($isAdministrator) {
+        Write-Host "NavContainerHelper is running as administrator"
+    }
+    else {
+        Write-Host "NavContainerHelper is not running as administrator"
+    }
 
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
@@ -389,6 +396,7 @@ function New-NavContainer {
         $imageName = $bestImageName
     }
     
+    $pullit = $alwaysPull
     if (!$alwaysPull) {
 
         $imageExists = $false
@@ -403,11 +411,11 @@ function New-NavContainer {
         } elseif ($imageExists) {
             Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
-            $alwaysPull = $true
+            $pullit = $true
         }
     }
 
-    if ($alwaysPull) {
+    if ($pullit) {
         try {
             Write-Host "Pulling image $bestImageName"
             DockerDo -command pull -imageName $bestImageName | Out-Null
@@ -1036,6 +1044,17 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+
+    if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
+        ('# Invoke default behavior
+          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+        ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+    }
+
+    ('
+. (Join-Path $PSScriptRoot "updatehosts.ps1")
+') | Add-Content -Path "$myfolder\SetupVariables.ps1"
+
     }
 
     if ($useTraefik) {
