@@ -390,6 +390,7 @@ function New-NavContainer {
         $imageName = $bestImageName
     }
     
+    $pullit = $alwaysPull
     if (!$alwaysPull) {
 
         $imageExists = $false
@@ -404,11 +405,11 @@ function New-NavContainer {
         } elseif ($imageExists) {
             Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
-            $alwaysPull = $true
+            $pullit = $true
         }
     }
 
-    if ($alwaysPull) {
+    if ($pullit) {
         try {
             Write-Host "Pulling image $bestImageName"
             DockerDo -command pull -imageName $bestImageName | Out-Null
