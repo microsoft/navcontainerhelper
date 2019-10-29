@@ -1,7 +1,7 @@
 ﻿Param(
     [string] $hostsFile = "c:\driversetc\hosts",
     [string] $hostname = "onprem",
-    [string] $ipAddress = "172.23.159.117"
+    [string] $ipAddress = ""
 )
 
 function UpdateHostsFile {
@@ -62,11 +62,23 @@ function UpdateHostsFile {
     }
 }
 
-$hosts = UpdateHostsFile -hostsFile $hostsFile -hostname $hostname -ipAddress $ipAddress
-
-$myhostsFile = "c:\windows\system32\drivers\etc\hosts"
-new-item -Path $myhostsFile -ItemType File -ErrorAction Ignore | Out-Null
-
-$hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.docker.internal') -and $_.Split(" ").Count -eq 2 } | % {
-    UpdateHostsFile -hostsFile $myhostsFile -ipAddress $_.Split(" ")[0] -hostname $_.Split(" ")[1] | Out-Null
+if ($ipAddress) {
+    Write-Host "Setting $hostname to $ipAddress in host hosts file"
+    $hosts = UpdateHostsFile -hostsFile $hostsFile -hostname $hostname -ipAddress $ipAddress
+    
+    $myhostsFile = "c:\windows\system32\drivers\etc\hosts"
+    new-item -Path $myhostsFile -ItemType File -ErrorAction Ignore | Out-Null
+    
+    $hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.docker.internal') -and $_.Split(" ").Count -eq 2 } | % {
+        UpdateHostsFile -hostsFile $myhostsFile -ipAddress $_.Split(" ")[0] -hostname $_.Split(" ")[1] | Out-Null
+    }
+}
+else {
+    $myhostsFile = "c:\windows\system32\drivers\etc\hosts"
+    new-item -Path $myhostsFile -ItemType File -ErrorAction Ignore | Out-Null
+    $gateway = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } )
+    if ($gateway -and ($gateway -is [string])) {
+        Write-Host "Setting host.docker.internal to $($gateway.Trim()) in container hosts file"
+        UpdateHostsFile -hostsFile $myhostsFile -ipAddress $gateway.Trim() -hostname "host.docker.internal" | Out-Null
+    }
 }

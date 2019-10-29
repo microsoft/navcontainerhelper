@@ -1052,12 +1052,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     }
 
     ('
-$myhostsFile = "c:\windows\system32\drivers\etc\hosts"
-$gateway = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } )
-if ($gateway -and ($gateway -is [string])) {
-    $addtohost = "`n# Added by Docker for Windows`n$gateway    host.docker.internal`n$gateway    gateway.docker.internal`n# End of section`n"
-    Add-Content -Value $addtohost -Path $myhostsFile
-}
+. (Join-Path $PSScriptRoot "updatehosts.ps1")
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }
