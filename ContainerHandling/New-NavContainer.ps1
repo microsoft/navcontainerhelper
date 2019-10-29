@@ -1044,6 +1044,22 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+
+    if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
+        ('# Invoke default behavior
+          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+        ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+    }
+
+    ('
+$myhostsFile = "c:\windows\system32\drivers\etc\hosts"
+$gateway = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } )
+if ($gateway -and ($gateway -is [string])) {
+    $addtohost = "`n# Added by Docker for Windows`n$gateway    host.docker.internal`n$gateway    gateway.docker.internal`n# End of section`n"
+    Add-Content -Value $addtohost -Path $myhostsFile
+}
+') | Add-Content -Path "$myfolder\SetupVariables.ps1"
+
     }
 
     if ($useTraefik) {
