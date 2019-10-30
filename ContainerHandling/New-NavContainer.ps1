@@ -1052,7 +1052,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     }
 
     ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1")
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts"
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }

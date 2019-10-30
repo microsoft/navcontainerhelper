@@ -28,7 +28,6 @@ function Remove-NavContainer {
         $updateHostsScript = Join-Path $containerFolder "my\updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
-            Write-Host "Removing $containerName from hosts"
             . $updateHostsScript -hostsFile "c:\windows\system32\drivers\etc\hosts" -hostname $containerName -ipAddress ""
         }
 
