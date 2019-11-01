@@ -128,6 +128,8 @@
  .Parameter finalizeDatabasesScriptBlock
   In this scriptblock you can install additional apps or import additional objects in your container.
   These apps/objects will be included in the backup if you specify bakFolder and this script will NOT run if a backup already exists in bakFolder.
+ .Parameter vsixFile
+  Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this
  .Example
   New-NavContainer -accept_eula -containerName test
  .Example
@@ -209,6 +211,7 @@ function New-NavContainer {
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth,
         [switch] $doNotUseRuntimePackages = $true,
+        [string] $vsixFile = "",
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
@@ -845,6 +848,19 @@ function New-NavContainer {
         $parameters += "--env bakfile=$bakFile"
     }
 
+    if ($vsixFile) {
+        if ($vsixFile.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixFile.StartsWith("http://", "OrdinalIgnoreCase")) {
+            $uri = [Uri]::new($vsixFile)
+            Download-File -sourceUrl $vsixFile -destinationFile "$containerFolder\$($uri.Segments[$uri.Segments.Count-1])"
+        }
+        elseif (Test-Path $vsixFile -PathType Leaf) {
+            Copy-Item -Path $vsixFile -Destination $containerFolder
+        }
+        else {
+            throw "Unable to locate vsix file ($vsixFile)"
+        }
+    }
+
     if (!$restoreBakFolder) {
         if ("$licensefile" -eq "") {
             if ($includeCSide -and !$doNotExportObjectsToText) {
@@ -1052,7 +1068,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     }
 
     ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1")
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts"
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }
@@ -1122,11 +1138,27 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
         ("
 if (-not `$restartingInstance) {
-    Copy-Item -Path 'C:\Run\*.vsix' -Destination 'C:\ProgramData\navcontainerhelper\Extensions\$containerName' -force
     Add-Content -Path 'c:\run\ServiceSettings.ps1' -Value '`$WebServerInstance = ""$containerName""'
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
+
+    ("
+if (-not `$restartingInstance) {
+    if (Test-Path -Path ""$containerFolder\*.vsix"") {
+        Remove-Item -Path 'C:\Run\*.vsix'
+        Copy-Item -Path ""$containerFolder\*.vsix"" -Destination 'C:\Run' -force
+        if (Test-Path 'C:\inetpub\wwwroot\http' -PathType Container) {
+            Remove-Item -Path 'C:\inetpub\wwwroot\http\*.vsix'
+            Copy-Item -Path ""$containerFolder\*.vsix"" -Destination 'C:\inetpub\wwwroot\http' -force
+        }
+    }
+    else {
+        Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerFolder"" -force
+    }
+}
+") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+
 
     Write-Host "Files in $($myfolder):"
     get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }

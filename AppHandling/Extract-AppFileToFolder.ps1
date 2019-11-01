@@ -6,13 +6,16 @@
   Path of the application file
  .Parameter AppFolder
   Path of the folder in which the application File will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
+ .Parameter GenerateAppJson
+  Add this switch to generate an sample app.json file in the AppFolder, containing the manifest properties.
  .Example
   Extract-AppFileToFolder -appFilename c:\temp\baseapp.app
 #>
 function Extract-AppFileToFolder {
     Param (
         [string] $appFilename,
-        [string] $appFolder = "$($appFilename).source"
+        [string] $appFolder = "$($appFilename).source",
+        [switch] $generateAppJson
     )
 
     if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
@@ -65,6 +68,61 @@ function Extract-AppFileToFolder {
     finally {
         $binaryReader.Close()
         $filestream.Close()
+    }
+
+    if ($generateAppJson) {
+        #Set-StrictMode -Off
+        $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml"))
+        $appJson = [ordered]@{
+            "id" = $manifest.Package.App.Id
+            "name" = $manifest.Package.App.Name
+            "publisher" = $manifest.Package.App.Publisher
+            "version" = $manifest.Package.App.Version
+            "brief" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Brief" } | % { $_.Value } )"
+            "description" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Description" } | % { $_.Value } )"
+            "platform" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Platform" } | % { $_.Value } )"
+            "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
+            "runtime" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+            "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
+            "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | % { $_.Value } )"
+            "EULA" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "EULA" } | % { $_.Value } )"
+            "privacyStatement" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "PrivacyStatement" } | % { $_.Value } )"
+            "help" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Help" } | % { $_.Value } )"
+            "screenshots" = @()
+            "dependencies" = @()
+            "idRanges" = @()
+            "features" = @()
+        }
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
+            $_.GetEnumerator() | % {
+                $appJson.dependencies += [ordered]@{
+                    "appId" = $_.Id
+                    "publisher" = $_.publisher
+                    "name" = $_.name
+                    "version" = $_.minVersion
+                }
+            }
+        }
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "IdRanges" } | % { 
+            $_.GetEnumerator() | % {
+                $appJson.idRanges += [ordered]@{
+                    "from" = [Int]::Parse($_.MinObjectId)
+                    "to" = [Int]::Parse($_.MaxObjectId)
+                }
+            }
+        }
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Features" } | % { 
+            $_.GetEnumerator() | % {
+                $feature = $_.'#text'
+                'TranslationFile','GenerateCaptions' | % {
+                    if ($feature -eq $_) {
+                        $appJson.features += $_
+                    }
+                }
+            }
+        }
+        $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json")
+        Set-StrictMode -Version 2.0
     }
 }
 Export-ModuleMember -Function Extract-AppFileToFolder
