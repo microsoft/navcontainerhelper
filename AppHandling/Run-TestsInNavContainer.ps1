@@ -111,10 +111,9 @@ function Run-TestsInNavContainer {
         throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
     }
 
-    if ($serverConfiguration.PSObject.Properties.Match('EnableTaskScheduler')) {
-        if ($serverConfiguration.EnableTaskScheduler -eq "True") {
-            Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container. Please specify -EnableTaskScheduler:`$false when creating container."
-        }
+    $prop = $serverConfiguration.PSObject.Properties.Match('EnableTaskScheduler')
+    if (($prop) -and ($prop.Value -eq "True") {
+        Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container. Please specify -EnableTaskScheduler:`$false when creating container."
     }
 
     if (!$testPage) {
