@@ -3,7 +3,9 @@ New-DesktopShortcut didn't work if the username has special characters
 Add support for Windows Insider builds
 New-BcContainer would always try to pull the generic image if the image specified didn't exist
 New-BcContainer will report whether or not it is running as administrator
-Add host.docker.internal to container hosts file for container to be able to connect to services at the host
+Add host.containerhelper.internal to container hosts file for container to be able to connect to services at the host
+Add parameter GenerateAppJson to Extract-AppFileToFolder in order to generate a sample app.json based on the app manifest
+Add parameter VsixFile to New-BCContainer in order to override the .vsix file in the image at runtime
 
 0.6.4.15
 Creating a container with -enableTaskScheduler:$false will disable Task Scheduler (if the container has Task Scheduler running per default = Sandbox containers)

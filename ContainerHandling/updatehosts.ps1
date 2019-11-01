@@ -78,20 +78,20 @@ else {
     new-item -Path $myhostsFile -ItemType File -ErrorAction Ignore | Out-Null
     $hosts = UpdateHostsFile -hostsFile $hostsFile
     $sethost = $true
-    $hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.docker.internal') -and $_.Split(" ").Count -eq 2 } | % {
+    $hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.internal') -and $_.Split(" ").Count -eq 2 } | % {
         $aHostname = $_.Split(" ")[1]
         $anIp = $_.Split(" ")[0]
         Write-Host "Setting $aHostname to $anIp in container hosts file (copy from host hosts file)"
         UpdateHostsFile -hostsFile $myhostsFile -ipAddress $anIp -hostname $aHostname | Out-Null
-        if ($aHostname -eq "host.docker.internal") {
+        if ($aHostname -eq "host.containerhelper.internal") {
             $sethost = $false
         }
     }
     if ($sethost) {
         $gateway = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } )
         if ($gateway -and ($gateway -is [string])) {
-            Write-Host "Setting host.docker.internal to $($gateway.Trim()) in container hosts file"
-            UpdateHostsFile -hostsFile $myhostsFile -ipAddress $gateway.Trim() -hostname "host.docker.internal" | Out-Null
+            Write-Host "Setting host.containerhelper.internal to $($gateway.Trim()) in container hosts file"
+            UpdateHostsFile -hostsFile $myhostsFile -ipAddress $gateway.Trim() -hostname "host.containerhelper.internal" | Out-Null
         }
     }
 }
