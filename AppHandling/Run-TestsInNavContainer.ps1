@@ -112,7 +112,7 @@ function Run-TestsInNavContainer {
     }
 
     $prop = $serverConfiguration.PSObject.Properties.Match('EnableTaskScheduler')
-    if (($prop) -and ($prop.Value -eq "True") {
+    if (($prop) -and ($prop.Value -eq "True")) {
         Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container. Please specify -EnableTaskScheduler:`$false when creating container."
     }
 
