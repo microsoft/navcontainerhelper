@@ -23,6 +23,8 @@ Function Replace-DependenciesInAppFile {
         [string] $ShowMyCode = "Ignore"
     )
 
+    add-type -path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\system.io.packaging.dll").FullName
+
     $memoryStream = $null
     $fs = $null
 
