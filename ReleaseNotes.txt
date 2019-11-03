@@ -1,3 +1,6 @@
+0.6.4.17
+Bug #700 Restore-DatabasesInBcContainer will clear the TestFunctions folder to force re-import
+
 0.6.4.16
 New-DesktopShortcut didn't work if the username has special characters
 Add support for Windows Insider builds
@@ -6,6 +9,7 @@ New-BcContainer will report whether or not it is running as administrator
 Add host.containerhelper.internal to container hosts file for container to be able to connect to services at the host
 Add parameter GenerateAppJson to Extract-AppFileToFolder in order to generate a sample app.json based on the app manifest
 Add parameter VsixFile to New-BCContainer in order to override the .vsix file in the image at runtime
+Display Error if trying to use Run-Tests while Task Scheduler is running
 
 0.6.4.15
 Creating a container with -enableTaskScheduler:$false will disable Task Scheduler (if the container has Task Scheduler running per default = Sandbox containers)
