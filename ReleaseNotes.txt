@@ -4,6 +4,8 @@ BREAKING CHANGE: added mandatory containerName parameter to Replace-Dependencies
 Issue #692 System.IO.Packaging.Package could not be found. This is fixed by the breaking change above
 Detect Windows 10 1909 on host (no generic 1909 yet)
 Add retry algorithm to SetupWebClient (as setupWebClient sometimes fails with locking issues)
+Issue #710 traefik fails if PublicDnsName doesn't contain a period (.)
+Issue #711 Alias Install-BCContainerApp cannot be found
 
 0.6.4.16
 New-DesktopShortcut didn't work if the username has special characters
