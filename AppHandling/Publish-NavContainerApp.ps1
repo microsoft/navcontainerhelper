@@ -80,7 +80,7 @@ function Publish-NavContainerApp {
         $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
         if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
             Write-Host "Checking dependencies in $appFile"
-            Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+            Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
         }
         $copied = $true
     }
@@ -92,12 +92,12 @@ function Publish-NavContainerApp {
                 Copy-FileFromBCContainer -containerName $containerName -containerPath $appFile.Substring(1) -localPath $sharedAppFile
                 if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
                     Write-Host "Checking dependencies in $sharedAppFile"
-                    Replace-DependenciesInAppFile -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+                    Replace-DependenciesInAppFile -containerName $containerName -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
                 }
             }
             elseif ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
                 Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
             }
             else {
                 Copy-Item -Path $appFile -Destination $sharedAppFile
