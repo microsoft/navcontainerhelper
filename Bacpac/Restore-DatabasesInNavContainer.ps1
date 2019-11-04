@@ -129,6 +129,12 @@ function Restore-DatabasesInNavContainer {
     
     } -argumentList $containerBakFolder, $containerBakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout
 
+    if (Test-Path -Path "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-*") {
+        Get-Item -Path "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-*" | % {
+            Remove-Item -Path $_.FullName -Force -Recurse
+        }
+    }
+
 }
 Set-Alias -Name Restore-DatabasesInBCContainer -Value Restore-DatabasesInNavContainer
 Export-ModuleMember -Function Restore-DatabasesInNavContainer -Alias Restore-DatabasesInBCContainer
