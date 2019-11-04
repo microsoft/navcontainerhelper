@@ -1148,7 +1148,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
         $dlRule="PathPrefixStrip:${dlPart}"
 
-        $traefikHostname = $publicDnsName.Substring(0, $publicDnsName.IndexOf("."))
+        $traefikHostname = $publicDnsName.Split(".")[0]
 
         $added = $false
         $cnt = $additionalParameters.Count-1
