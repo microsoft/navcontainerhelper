@@ -1,5 +1,9 @@
 0.6.4.17
-Bug #700 Restore-DatabasesInBcContainer will clear the TestFunctions folder to force re-import
+Issue #700 Restore-DatabasesInBcContainer will clear the TestFunctions folder to force re-import
+BREAKING CHANGE: added mandatory containerName parameter to Replace-DependenciesInAppFile
+Issue #692 System.IO.Packaging.Package could not be found. This is fixed by the breaking change above
+Detect Windows 10 1909 on host (no generic 1909 yet)
+Add retry algorithm to SetupWebClient (as setupWebClient sometimes fails with locking issues)
 
 0.6.4.16
 New-DesktopShortcut didn't work if the username has special characters

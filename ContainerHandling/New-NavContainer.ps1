@@ -273,32 +273,45 @@ function New-NavContainer {
     $bestContainerOs = "ltsc2016"
     $bestGenericContainerOs = "ltsc2016"
 
-    if ($os.BuildNumber -ge 18362) { 
+    if ($os.BuildNumber -ge 18363) { 
+        $bestContainerOs = "ltsc2019"
+        $bestGenericContainerOs = "ltsc2019"
+        if ($os.BuildNumber -eq 18363) { 
+            $hostOs = "1909"
+            $bestGenericContainerOs = "ltsc2019"
+        }
+    }
+    elseif ($os.BuildNumber -ge 18362) { 
         $bestContainerOs = "ltsc2019"
         $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 18362) { 
             $hostOs = "1903"
             $bestGenericContainerOs = "1903"
         }
-    } elseif ($os.BuildNumber -ge 17763) { 
+    }
+    elseif ($os.BuildNumber -ge 17763) { 
         $bestContainerOs = "ltsc2019"
         $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 17763) { 
             $hostOs = "ltsc2019"
         }
-    } elseif ($os.BuildNumber -ge 17134) { 
+    }
+    elseif ($os.BuildNumber -ge 17134) { 
         if ($os.BuildNumber -eq 17134) { 
             $hostOs = "1803"
         }
         $bestGenericContainerOs = "1803"
-    } elseif ($os.BuildNumber -ge 16299) {
+    }
+    elseif ($os.BuildNumber -ge 16299) {
         if ($os.BuildNumber -eq 16299) { 
             $hostOs = "1709"
         }
         $bestGenericContainerOs = "1709"
-    } elseif ($os.BuildNumber -eq 15063) {
+    }
+    elseif ($os.BuildNumber -eq 15063) {
         $hostOs = "1703"
-    } elseif ($os.BuildNumber -ge 14393) {
+    }
+    elseif ($os.BuildNumber -ge 14393) {
         $hostOs = "ltsc2016"
     }
     
@@ -584,17 +597,26 @@ function New-NavContainer {
         if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
             $timeZoneId = (Get-TimeZone).Id
         }
-    } elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
         $containerOs = "1703"
-    } elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
         $containerOs = "1709"
-    } elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
         $containerOs = "1803"
-    } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
         $containerOs = "ltsc2019"
-    } elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
         $containerOs = "1903"
-    } else {
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+        $containerOs = "1909"
+    }
+    else {
         $containerOs = "unknown"
     }
     Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
@@ -676,17 +698,26 @@ function New-NavContainer {
     
         if ("$containerOsVersion".StartsWith('10.0.14393.')) {
             $containerOs = "ltsc2016"
-        } elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
             $containerOs = "1703"
-        } elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
             $containerOs = "1709"
-        } elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
             $containerOs = "1803"
-        } elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
             $containerOs = "ltsc2019"
-        } elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
             $containerOs = "1903"
-        } else {
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+            $containerOs = "1909"
+        }
+        else {
             $containerOs = "unknown"
         }
     
@@ -996,7 +1027,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
 
         $setupWebClientFile = "$myfolder\SetupWebClient.ps1"
         $setupWebClientContent = '. "C:\Run\SetupWebClient.ps1"'
-        if (Test-Path "$myfolder\SetupWebClient.ps1") {
+        if (Test-Path $setupWebClientFile) {
             $setupWebClientContent = Get-Content -path $setupWebClientFile -raw
         }
 
@@ -1010,6 +1041,21 @@ if (!(Test-Path "c:\navpfiles\*")) {
 '+$setupWebClientContent
 
         $setupWebClientContent | Set-Content -path $setupWebClientFile
+    }
+    elseif ([System.Version]$genericTag -le [System.Version]"0.0.9.96") {
+        $setupWebClientFile = "$myfolder\SetupWebClient.ps1"
+        if (!(Test-Path $SetupWebClientFile)) {
+            'try {
+    . "c:\run\setupWebClient.ps1"
+}
+catch {
+    Write-Host "WARNING: SetupWebClient failed, retrying in 10 seconds"
+    Start-Sleep -seconds 10
+    . "c:\run\setupWebClient.ps1"
+}
+' | Set-Content -path $setupWebClientFile
+        }
+
     }
 
     if ($assignPremiumPlan -and !$restoreBakFolder) {
