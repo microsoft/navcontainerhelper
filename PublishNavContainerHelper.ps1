@@ -1,42 +1,40 @@
-﻿$VerbosePreference="SilentlyContinue"
+﻿$path = $PSScriptRoot
 
-# Version, Author, CompanyName and nugetkey
-. (Join-Path $PSScriptRoot "settings.ps1")
-
-Clear-Host
-#Invoke-ScriptAnalyzer -Path $PSScriptRoot -Recurse -Settings PSGallery -Severity Warning
-
-Get-ChildItem -Path $PSScriptRoot -Recurse | % { Unblock-File -Path $_.FullName }
-
-Remove-Module NavContainerHelper -ErrorAction Ignore
-Uninstall-module NavContainerHelper -ErrorAction Ignore
-
-$path = "c:\temp\NavContainerHelper"
-
-if (Test-Path -Path $path) {
-    Remove-Item -Path $path -Force -Recurse
-}
-Copy-Item -Path $PSScriptRoot -Destination "c:\temp" -Exclude @("settings.ps1", ".gitignore", "README.md", "PublishNavContainerHelper.ps1") -Recurse
-Remove-Item -Path (Join-Path $path ".git") -Force -Recurse
-Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
+$version = Get-Content -Path (Join-Path $path 'Version.txt')
+Write-Host "NavContainerHelper version $Version"
 
 $modulePath = Join-Path $path "NavContainerHelper.psm1"
 Import-Module $modulePath -DisableNameChecking
 
 $functionsToExport = (get-module -Name NavContainerHelper).ExportedFunctions.Keys | Sort-Object
+
 $aliasesToExport = (get-module -Name NavContainerHelper).ExportedAliases.Keys | Sort-Object
 
+$releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
+$idx = $releaseNotes.IndexOf($version)
+if ($idx -lt 0) {
+    throw 'No release notes identified'
+}
+$versionReleaseNotes = @()
+while ($releaseNotes[$idx]) {
+    $versionReleaseNotes += $releaseNotes[$idx]
+    $idx++
+}
+
+Write-Host "Release Notes:"
+Write-Host $VersionReleaseNotes
+
+
+Write-Host "Update Module Manifest"
 Update-ModuleManifest -Path (Join-Path $path "NavContainerHelper.psd1") `
                       -RootModule "NavContainerHelper.psm1" `
                       -FileList @("ContainerHandling\docker.ico") `
                       -ModuleVersion $version `
-                      -Author $author `
+                      -Author "Freddy Kristiansen" `
                       -FunctionsToExport $functionsToExport `
                       -AliasesToExport $aliasesToExport `
-                      -CompanyName $CompanyName `
-                      -ReleaseNotes (get-content (Join-Path $path "ReleaseNotes.txt")) 
+                      -CompanyName "Microsoft" `
+                      -ReleaseNotes $versionReleaseNotes
 
-Copy-Item -Path (Join-Path $path "NavContainerHelper.psd1") -Destination $PSScriptRoot -Force
-Publish-Module -Path $path -NuGetApiKey $nugetkey
-
-Remove-Item -Path $path -Force -Recurse
+Write-Host "Publishing Module"
+#Publish-Module -Path $path -NuGetApiKey $(nugetkey)
