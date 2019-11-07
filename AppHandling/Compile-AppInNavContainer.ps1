@@ -18,6 +18,8 @@
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
+ .Parameter CopyAppToSymbols
+  Add this switch to copy the compiled app to the appSymbolsFolder.
  .Parameter AzureDevOps
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
  .Parameter EnableCodeCop
@@ -59,6 +61,7 @@ function Compile-AppInNavContainer {
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
         [switch] $UpdateSymbols,
+        [switch] $CopyAppToSymbols,
         [switch] $AzureDevOps,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
@@ -345,6 +348,12 @@ function Compile-AppInNavContainer {
 
     if (Test-Path -Path $appFile) {
         Write-Host "$appFile successfully created in $timespend seconds"
+        if ($CopyAppToSymbols) {
+            Copy-Item -Path $appFile -Destination $appSymbolsFolder -ErrorAction SilentlyContinue
+            if (Test-Path -Path (Join-Path -Path $appSymbolsFolder -ChildPath $appName)) {
+                Write-Host "${appName} copied to ${appSymbolsFolder}"
+            }
+        }
     }
     else {
         Write-Error "App generation failed"
