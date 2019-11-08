@@ -19,6 +19,8 @@
   Path/Url of the certificate key file for using your own domain
  .Parameter Recreate
   Switch to recreate traefik container and discard all existing configuration
+ .Parameter isolation
+  Isolation mode for the traefik container (default is process for Windows Server host else hyperv)
  .Example
   Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
  .Example
@@ -39,7 +41,9 @@ function Setup-TraefikContainerForNavContainers {
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtKeyFile,
-        [Switch] $Recreate
+        [Switch] $Recreate,
+        [ValidateSet('','process','hyperv')]
+        [string] $isolation = ""
     )
 
     Process {
@@ -136,7 +140,12 @@ function Setup-TraefikContainerForNavContainers {
 
         Log "Pulling and running traefik"
         docker pull $traefikDockerImage
-        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        if ($isolation) {
+            docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always --isolation $isolation -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        }
+        else {
+            docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        }
     }
 }
 Set-Alias -Name Setup-TraefikContainerForBCContainers -Value Setup-TraefikContainerForNavContainers
