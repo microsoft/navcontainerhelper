@@ -4,6 +4,7 @@ Issue 728 allow CommonDesktop for shortcuts on New-BCContainer
 Pull Request 726 add -copyAppToSymbolsFolder in Compile-AppInBcContainer
 Issue 729 add isolation mode parameter for Setup-TraefikContainerForBcContainers
 Issue 716 add -assignPremiumPlan to New-BCContainerBCUser
+Issue 666 New-BCContainer with -useNewDatabase doesn't work with -multitenant
 
 0.6.4.17
 Issue #700 Restore-DatabasesInBcContainer will clear the TestFunctions folder to force re-import
