@@ -169,7 +169,7 @@ function New-NavContainer {
         [string] $bakFile = "",
         [string] $bakFolder = "",
         [PSCredential] $databaseCredential = $null,
-        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
+        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu','CommonDesktop')]
         [string] $shortcuts='Desktop',
         [switch] $updateHosts,
         [switch] $useSSL,
