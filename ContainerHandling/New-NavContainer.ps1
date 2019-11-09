@@ -169,7 +169,7 @@ function New-NavContainer {
         [string] $bakFile = "",
         [string] $bakFolder = "",
         [PSCredential] $databaseCredential = $null,
-        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
+        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu','CommonDesktop')]
         [string] $shortcuts='Desktop',
         [switch] $updateHosts,
         [switch] $useSSL,
@@ -857,7 +857,7 @@ function New-NavContainer {
         }
     }
 
-    if ($multitenant -and !$restoreBakFolder) {
+    if ($multitenant -and !($usecleandatabase -or $useNewDatabase -or $restoreBakFolder)) {
         $parameters += "--env multitenant=Y"
     }
 
@@ -1510,6 +1510,30 @@ if (-not `$restartingInstance) {
 
     if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
         Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential
+        if ($multitenant) {
+            Write-Host "Switching to multitenant"
+            
+            Invoke-ScriptInBCContainer -containerName test -scriptblock {
+            
+                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+                $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+                $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+                
+                Set-NavserverInstance -ServerInstance $serverInstance -stop
+                Copy-NavDatabase -SourceDatabaseName $databaseName -DestinationDatabaseName "tenant"
+                Remove-NavDatabase -DatabaseName $databaseName
+                Write-Host "Exporting Application to $DatabaseName"
+                Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query 'CREATE USER "NT AUTHORITY\SYSTEM" FOR LOGIN "NT AUTHORITY\SYSTEM";'
+                Export-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -DestinationDatabaseName $databaseName -Force -ServiceAccount 'NT AUTHORITY\SYSTEM' | Out-Null
+                Write-Host "Removing Application from tenant"
+                Remove-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -Force | Out-Null
+                Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
+                Set-NavserverInstance -ServerInstance $serverInstance -start
+            }
+            New-NavContainerTenant -containerName test -tenantId default
+        }
     }
 
     if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {
