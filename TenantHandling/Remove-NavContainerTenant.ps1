@@ -9,6 +9,8 @@
   Name of tenant you want to remove in the container
  .Parameter sqlCredential
   Credentials for the SQL server of the tenant database (if using an external SQL Server)
+ .Parameter databaseName
+  Specify a database name of the tenant you want to remove (default is the tenantId)
  .Example
   Remove-NavContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -18,6 +20,7 @@ function Remove-NavContainerTenant {
         [string] $containerName = "navserver",
         [Parameter(Mandatory=$true)]
         [string] $tenantId,
+        [string] $databaseName = $tenantId,
         [PSCredential] $sqlCredential = $null
     )
 
@@ -27,7 +30,7 @@ function Remove-NavContainerTenant {
         throw "You cannot remove a tenant called tenant"
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [System.Management.Automation.PSCredential]$sqlCredential)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $databaseName)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -40,9 +43,9 @@ function Remove-NavContainerTenant {
         # Remove tenant
         Write-Host "Dismounting tenant $tenantId"
         Dismount-NavTenant -ServerInstance $ServerInstance -Tenant $TenantId -force | Out-null
-        Remove-NavDatabase -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        Remove-NavDatabase -DatabaseName $databaseName -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
-    } -ArgumentList $tenantId, $sqlCredential
+    } -ArgumentList $tenantId, $sqlCredential, $databaseName
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
 Set-Alias -Name Remove-BCContainerTenant -Value Remove-NavContainerTenant
