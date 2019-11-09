@@ -7,6 +7,7 @@ Issue 716 add -assignPremiumPlan to New-BCContainerBCUser
 Issue 666 New-BCContainer with -useNewDatabase doesn't work with -multitenant
 Issue 717 Run-TestsInBCContainer hanging when using ExtensionId
 Add parameter destinationDatabase to New-BCContainerTenant
+Add parameter databaseName to Remove-BCContainerTenant
 
 0.6.4.17
 Issue #700 Restore-DatabasesInBcContainer will clear the TestFunctions folder to force re-import
