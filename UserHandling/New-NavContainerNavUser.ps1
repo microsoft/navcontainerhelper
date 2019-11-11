@@ -59,6 +59,35 @@ function New-NavContainerNavUser {
             if ($AuthenticationEMail) {
                 $Parameters.Add('AuthenticationEmail',$AuthenticationEmail)
             }
+
+            if ($assignPremiumPlan) {
+
+                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                $multitenant = ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true")
+                $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+                $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+                $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+                $databaseServerInstance = $databaseServer
+                if ($databaseInstance) {
+                    $databaseServerInstance += "\$databaseInstance"
+                }
+                
+                $sqlparams = @{
+                    "ErrorAction" = "Ignore"
+                }
+                if ($databaseServerInstance -ne "localhost\SQLEXPRESS") {
+                    if (!($databaseCredential)) {
+                        throw "When using a foreign SQL Server, you need to specify databaseCredential in order to assign Premium Plan"
+                    }
+                    $sqlparams += @{
+                        "ServerInstance" = $databaseServerInstance
+                        "Username" = $databaseCredential.Username
+                        "Password" = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+                    }
+                }
+            }
+
             if($WindowsAccount) {
                 Write-Host "Creating User for WindowsAccount $WindowsAccount"
       			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount @Parameters
@@ -79,26 +108,15 @@ function New-NavContainerNavUser {
 
             if ($assignPremiumPlan -and ($user)) {
 
-                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-                $multitenant = ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true")
-                $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-                $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
-                $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-                $databaseServerInstance = $databaseServer
-                if ($databaseInstance) {
-                    $databaseServerInstance += "\$databaseInstance"
-                }
-                
                 $UserId = $user.UserSecurityId
-                Write-Host "Assign Premium plan for $($user.Username)"
+                Write-Host "Assigning Premium plan for $($user.Username)"
                 $dbName = $DatabaseName
                 if ($multitenant) {
                     $dbName = (Get-NavTenant -ServerInstance $ServerInstance -tenant $tenant).DatabaseName
                 }
 
                 'User Plan$63ca2fa4-4f03-4f2b-a480-172fef340d3f','User Plan' | % {
-                    Invoke-Sqlcmd -ErrorAction Ignore -ServerInstance $databaseServerInstance -Username $databaseCredential.Username -Password ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password)))  -Query "USE [$DbName]
+                    Invoke-Sqlcmd @sqlParams -Query "USE [$DbName]
 INSERT INTO [dbo].[$_] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-4465-b952-817d2948e6e2}','$userId')"
 
                 }                   
