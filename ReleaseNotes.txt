@@ -1,3 +1,6 @@
+0.6.4.19
+Issue 716 assignPremiumPlan shouldn't require databaseCredential when using in-container database
+
 0.6.4.18
 Pull Request 715 use Join-Path instead of "+" in Get-NavContainerPath
 Issue 728 allow CommonDesktop for shortcuts on New-BCContainer
