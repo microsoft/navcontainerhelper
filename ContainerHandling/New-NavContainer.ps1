@@ -278,7 +278,7 @@ function New-NavContainer {
         $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 18363) { 
             $hostOs = "1909"
-            $bestGenericContainerOs = "ltsc2019"
+            $bestGenericContainerOs = "1909"
         }
     }
     elseif ($os.BuildNumber -ge 18362) { 

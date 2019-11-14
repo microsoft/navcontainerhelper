@@ -1,5 +1,6 @@
 0.6.4.19
 Issue 716 assignPremiumPlan shouldn't require databaseCredential when using in-container database
+Support Windows Servercore 1909 generic image with useBestContainerOS
 
 0.6.4.18
 Pull Request 715 use Join-Path instead of "+" in Get-NavContainerPath
