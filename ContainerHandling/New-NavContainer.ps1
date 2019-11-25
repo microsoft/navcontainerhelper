@@ -115,6 +115,9 @@
   Specify a foreign container in which you want to run the txt2al tool when using -includeAL
  .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
+ .Parameter forceHttpWithTraefik
+  Use this parameter to force http (disable SSL) although traefik is used. This will mean that the mobile apps and
+  the modern Windows app won't work
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove the base app from the container
  .Parameter useNewDatabase
@@ -206,6 +209,7 @@ function New-NavContainer {
         [string] $PublicDnsName,
         [string] $dns,
         [switch] $useTraefik,
+        [switch] $forceHttpWithTraefik,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
         [switch] $dumpEventLog,
@@ -366,11 +370,14 @@ function New-NavContainer {
             throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
         }
 
-        if ($useSSL) {
-            Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+        if ($forceHttpWithTraefik) {
+            Write-Host "Disabling SSL on the container as you have configured -forceHttpWithTraefik"
             $useSSL = $false
+        } else {
+            Write-Host "Enabling SSL as otherwise all clients will see mixed HTTP / HTTPS request, which will cause problems e.g. on the mobile and modern windows clients"
+            $useSSL = $true
         }
-
+        
         if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
             $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
         }
@@ -1165,11 +1172,21 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             $additionalParameters += @("-e customNavSettings=$customNavSettings")
         }
 
+        $webPort = "443"
+        if ($forceHttpWithTraefik) {
+            $webPort = "80"
+        }
+        $traefikProtocol = "https"
+        if ($forceHttpWithTraefik) {
+            $traefikProtocol = "http"
+        }
+
         $additionalParameters += @("--hostname $traefikHostname",
                                    "-e webserverinstance=$containerName",
                                    "-e publicdnsname=$publicDnsName", 
+                                   "-l `"traefik.protocol=$traefikProtocol`"",
                                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                                   "-l `"traefik.web.port=80`"",
+                                   "-l `"traefik.web.port=$webPort`"",
                                    "-l `"traefik.soap.frontend.rule=$soapRule`"", 
                                    "-l `"traefik.soap.port=7047`"",
                                    "-l `"traefik.rest.frontend.rule=$restRule`"", 
@@ -1178,6 +1195,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                                    "-l `"traefik.dev.port=7049`"",
                                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
                                    "-l `"traefik.dl.port=8080`"",
+                                   "-l `"traefik.dl.protocol=http`"",
                                    "-l `"traefik.enable=true`"",
                                    "-l `"traefik.frontend.entryPoints=https`""
         )
