@@ -31,7 +31,7 @@ function Sync-NavContainerApp {
         [string] $Mode
     )
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
-        Write-Host "Synchronizing $appFile on $tenant"
+        Write-Host "Synchronizing $appName on $tenant"
         Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
         $parameters = @{
             "ServerInstance" = $ServerInstance;
