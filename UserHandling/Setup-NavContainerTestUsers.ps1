@@ -74,6 +74,9 @@ function Setup-NavContainerTestUsers {
                     if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
                         new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
                         Set-NavServerInstance $serverInstance -restart
+                        while (Get-NavTenant $serverInstance -forcerefresh | Where-Object { $_.State -eq "Mounting" }) {
+                            Start-Sleep -Seconds 1
+                        }
                     }
                     get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_System Application Test Library.app"
                 }
