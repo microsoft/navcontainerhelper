@@ -85,6 +85,7 @@ function Run-TestsInNavContainer {
         [switch] $debugMode,
         [switch] $restartContainerAndRetry,
         [switch] $usePublicWebBaseUrl,
+        [string] $useUrl = "",
         [switch] $connectFromHost
     )
     
@@ -95,7 +96,7 @@ function Run-TestsInNavContainer {
     $inspect = docker inspect $containerName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
         if ($inspect.config.Labels.'traefik.enable' -eq "true") {
-            $usePublicWebBaseUrl = $true
+            $usePublicWebBaseUrl = ($useUrl -eq "")
             $useTraefik = $true
         }
     }
@@ -107,13 +108,19 @@ function Run-TestsInNavContainer {
     $serverConfiguration = Get-NavContainerServerConfiguration -ContainerName $containerName
     $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
 
+    if ($usePublicWebBaseUrl -and $useUrl -ne "") {
+        throw "You cannot specify usePublicWebBaseUrl and useUrl at the same time"
+    }
+
     if ($serverConfiguration.PublicWebBaseUrl -eq "") {
         throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
     }
 
-    if ([bool]($serverConfiguration.PSobject.Properties.name -match "EnableTaskScheduler")) {
-        if ($serverConfiguration.EnableTaskScheduler -eq "True") {
-            Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container. Please specify -EnableTaskScheduler:`$false when creating container."
+    if ($useUrl -eq "") {
+        if ([bool]($serverConfiguration.PSobject.Properties.name -match "EnableTaskScheduler")) {
+            if ($serverConfiguration.EnableTaskScheduler -eq "True") {
+                Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container. Please specify -EnableTaskScheduler:`$false when creating container."
+            }
         }
     }
 
@@ -203,7 +210,12 @@ function Run-TestsInNavContainer {
                 } -argumentList $newtonSoftDllPath, $clientDllPath
     
                 $config = Get-NavContainerServerConfiguration -ContainerName $containerName
-                $publicWebBaseUrl = $config.PublicWebBaseUrl.TrimEnd('/')
+                if ($useUrl) {
+                    $publicWebBaseUrl = $useUrl.TrimEnd('/')
+                }
+                else {
+                    $publicWebBaseUrl = $config.PublicWebBaseUrl.TrimEnd('/')
+                }
                 $clientServicesCredentialType = $config.ClientServicesCredentialType
                 $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
     
@@ -221,7 +233,7 @@ function Run-TestsInNavContainer {
                 $clientContext = $null
                 try {
                     $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -debugMode:$debugMode
-    
+
                     $result = Run-Tests -clientContext $clientContext `
                               -TestSuite $testSuite `
                               -TestGroup $testGroup `
@@ -259,7 +271,7 @@ function Run-TestsInNavContainer {
                     }
                 }
 
-                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests)
+                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -268,12 +280,16 @@ function Run-TestsInNavContainer {
                     $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value.TrimEnd('/')
                     $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
                 
-                    $uri = [Uri]::new($publicWebBaseUrl)
-                    if ($usePublicWebBaseUrl) {
+                    if ($useUrl) {
+                        $disableSslVerification = $false
+                        $serviceUrl = "$($useUrl.TrimEnd('/'))/cs?tenant=$tenant"
+                    }
+                    elseif ($usePublicWebBaseUrl) {
                         $disableSslVerification = $false
                         $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
                     } 
                     else {
+                        $uri = [Uri]::new($publicWebBaseUrl)
                         $disableSslVerification = ($Uri.Scheme -eq "https")
                         $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
                     }
@@ -338,7 +354,7 @@ function Run-TestsInNavContainer {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $extensionId, $disabledtests
+                } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }
