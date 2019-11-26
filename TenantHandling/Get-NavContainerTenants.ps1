@@ -9,21 +9,30 @@
   Get-NavContainerTenants -containerName test
 #>
 function Get-NavContainerTenants {
+    [CmdletBinding(DefaultParameterSetName = 'UseContainerName')]
     Param (
-        [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver"
+        [Parameter(Mandatory = $false)]
+        [string] $containerName = "navserver",
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'ForceRefreshTenantState')]
+        [switch] $ForceRefresh,
+
+        [Parameter(Mandatory = $false, ParameterSetName = 'ForceRefreshTenantState')]
+        [ValidateNotNullorEmpty()]
+        [string] $Tenant = 'default',
+
+        [switch] $Force
     )
-
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
-
-        $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-        [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-        if ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -ne "true") {
-            throw "The Container is not setup for multitenancy"
+    $Params = @{ "Force" = $Force }
+    If ($ForceRefresh) {
+        $Params += @{
+            "ForceRefresh" = $ForceRefresh
+            "Tenant" = $Tenant
         }
-
-        Get-NavTenant -ServerInstance $ServerInstance
     }
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+        Get-NavTenant -ServerInstance $ServerInstance @Params
+    } -argumentList $Params
 }
 Set-Alias -Name Get-BCContainerTenants -Value Get-NavContainerTenants
 Export-ModuleMember -Function Get-NavContainerTenants -Alias Get-BCContainerTenants
