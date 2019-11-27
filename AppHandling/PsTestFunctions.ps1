@@ -50,7 +50,7 @@ function New-ClientContext {
         throw "Unsupported authentication setting"
     }
     if ($clientContext) {
-        $clientContext.DebugMode = $debugMode
+        $clientContext.debugMode = $debugMode
     }
     return $clientContext
 }
@@ -151,7 +151,7 @@ function Get-Tests {
 
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
-        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry."
+        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
@@ -261,7 +261,7 @@ function Run-Tests {
 
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
-        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry."
+        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")

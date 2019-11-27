@@ -66,7 +66,7 @@ function New-DesktopShortcut {
                 $Shortcut.IconLocation = $IconLocation
             }
             $Shortcut.save()
-            Move-Item -Path $tempfilename -Destination $filename
+            Move-Item -Path $tempfilename -Destination $filename -ErrorAction SilentlyContinue
 
             if ($RunAsAdministrator) {
                 $bytes = [System.IO.File]::ReadAllBytes($filename)

@@ -37,6 +37,19 @@ function Sort-AppFoldersByDependencies {
         }
         else {
             $appJson = Get-Content -Path $appJsonFile | ConvertFrom-Json
+            
+            # replace id with appid
+            if ($appJson.dependencies) {
+                $appJson.dependencies = $appJson.dependencies | % {
+                    if ($_.psobject.Members | where-object membertype -like 'noteproperty' | Where-Object name -eq "id") {
+                        New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version })
+                    }
+                    else {
+                        $_
+                    }
+                }
+            }
+
             $folders += @{ "$($appJson.Id)" = $appFolder }
             $apps += @($appJson)
         }

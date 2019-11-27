@@ -49,11 +49,11 @@ class ClientContext {
     }
 
     OpenSession() {
+        $Global:OpenClientContext = $this
         $clientSessionParameters = New-Object ClientSessionParameters
         $clientSessionParameters.CultureId = $this.culture
         $clientSessionParameters.UICultureId = $this.culture
         $clientSessionParameters.AdditionalSettings.Add("IncludeControlIdentifier", $true)
-    
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"
             if ($this.debugMode) {
@@ -74,55 +74,59 @@ class ClientContext {
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName CommunicationError -Action {
             Write-Host -ForegroundColor Red "CommunicationError : $($EventArgs.Exception.Message)"
-            if ($null -ne $EventArgs.Exception.InnerException) {
-                Write-Host -ForegroundColor Red "CommunicationError InnerException : $($EventArgs.Exception.InnerException)"    
-            }
-            Write-Host -ForegroundColor Red "Current Interaction: $($this.currentInteraction.ToString())"
-            Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $this.interactionStart).Seconds) seconds"
-            if ($this.debugMode) {
-                try {
-                    $this.GetAllForms() | ForEach-Object {
-                        $formInfo = $this.GetFormInfo($_)
-                        if ($formInfo) {
-                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                            $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+            Get-PSCallStack | Write-Host -ForegroundColor Red
+            if ($Global:OpenClientContext) {
+                Write-Host -ForegroundColor Red "Current Interaction: $($Global:OpenClientContext.currentInteraction.ToString())"
+                Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $Global:OpenClientContext.interactionStart).Seconds) seconds"
+                if ($Global:OpenClientContext.debugMode) {
+                    if ($null -ne $EventArgs.Exception.InnerException) {
+                        Write-Host -ForegroundColor Red "CommunicationError InnerException : $($EventArgs.Exception.InnerException)"    
+                    }
+                    try {
+                        $Global:OpenClientContext.GetAllForms() | ForEach-Object {
+                            $formInfo = $Global:OpenClientContext.GetFormInfo($_)
+                            if ($formInfo) {
+                                Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                                Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
+                                $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                            }
                         }
                     }
-                }
-                catch {
-                    Write-Host "Exception when enumerating forms"
+                    catch {
+                        Write-Host "Exception when enumerating forms"
+                    }
                 }
             }
-            Remove-ClientSession
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UnhandledException -Action {
             Write-Host -ForegroundColor Red "UnhandledException : $($EventArgs.Exception.Message)"
-            if ($null -ne $EventArgs.Exception.InnerException) {
-                Write-Host -ForegroundColor Red "UnhandledException InnerException : $($EventArgs.Exception.InnerException)"    
-            }
-            Write-Host -ForegroundColor Red "Current Interaction: $($this.currentInteraction.ToString())"
-            Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $this.interactionStart).Seconds) seconds"
-            if ($this.debugMode) {
-                try {
-                    $this.GetAllForms() | ForEach-Object {
-                        $formInfo = $this.GetFormInfo($_)
-                        if ($formInfo) {
-                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                            $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+            Get-PSCallStack | Write-Host -ForegroundColor Red
+            if ($Global:OpenClientContext) {
+                Write-Host -ForegroundColor Red "Current Interaction: $($Global:OpenClientContext.currentInteraction.ToString())"
+                Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $Global:OpenClientContext.interactionStart).Seconds) seconds"
+                if ($Global:OpenClientContext.debugMode) {
+                    if ($null -ne $EventArgs.Exception.InnerException) {
+                        Write-Host -ForegroundColor Red "UnhandledException InnerException : $($EventArgs.Exception.InnerException)"    
+                    }
+                    try {
+                        $Global:OpenClientContext.GetAllForms() | ForEach-Object {
+                            $formInfo = $Global:OpenClientContext.GetFormInfo($_)
+                            if ($formInfo) {
+                                Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                                Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
+                                $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                            }
                         }
                     }
-                }
-                catch {
-                    Write-Host "Exception when enumerating forms"
+                    catch {
+                        Write-Host "Exception when enumerating forms"
+                    }
                 }
             }
-            Remove-ClientSession
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName InvalidCredentialsError -Action {
             Write-Host -ForegroundColor Red "InvalidCredentialsError"
-            Remove-ClientSession
+            Get-PSCallStack | Write-Host -ForegroundColor Red
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UriToShow -Action {
             Write-Host -ForegroundColor Yellow "UriToShow : $($EventArgs.UriToShow)"
@@ -158,6 +162,8 @@ class ClientContext {
     #
     
     Dispose() {
+        $Global:OpenClientContext = $null
+
         $this.events | ForEach-Object { Unregister-Event $_.Name }
         $this.events = @()
     
@@ -175,13 +181,14 @@ class ClientContext {
         $now = [DateTime]::Now
         While ($this.clientSession.State -ne $state) {
             Start-Sleep -Milliseconds 100
-            if ($this.clientSession.State -eq [ClientSessionState]::InError) {
+            $thisstate = $this.clientSession.State
+            if ($thisstate -eq [ClientSessionState]::InError) {
                 throw "ClientSession State is InError (Wait time $(([DateTime]::Now - $now).Seconds) seconds)"
             }
-            if ($this.clientSession.State -eq [ClientSessionState]::TimedOut) {
+            if ($thisstate -eq [ClientSessionState]::TimedOut) {
                 throw "ClientSession State is TimedOut (Wait time $(([DateTime]::Now - $now).Seconds) seconds)"
             }
-            if ($this.clientSession.State -eq [ClientSessionState]::Uninitialized) {
+            if ($thisstate -eq [ClientSessionState]::Uninitialized) {
                 $waited = ([DateTime]::Now - $now).Seconds
                 if ($waited -ge 10) {
                     throw "ClientSession State is Uninitialized (Wait time $waited seconds)"
@@ -216,9 +223,14 @@ class ClientContext {
     }
     
     [ClientLogicalForm] OpenForm([int] $page) {
-        $interaction = New-Object OpenFormInteraction
-        $interaction.Page = $page
-        return $this.InvokeInteractionAndCatchForm($interaction)
+        try {
+            $interaction = New-Object OpenFormInteraction
+            $interaction.Page = $page
+            return $this.InvokeInteractionAndCatchForm($interaction)
+        }
+        catch {
+            return $null
+        }
     }
     
     CloseForm([ClientLogicalControl] $form) {
