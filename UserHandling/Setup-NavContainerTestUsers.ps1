@@ -74,7 +74,7 @@ function Setup-NavContainerTestUsers {
                     if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
                         new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
                         Set-NavServerInstance $serverInstance -restart
-                        while (Get-NavTenant $serverInstance -forcerefresh | Where-Object { $_.State -eq "Mounting" }) {
+                        while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
                             Start-Sleep -Seconds 1
                         }
                     }
