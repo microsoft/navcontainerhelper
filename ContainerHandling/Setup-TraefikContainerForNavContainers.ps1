@@ -97,7 +97,11 @@ function Setup-TraefikContainerForNavContainers {
         New-Item (Join-Path $traefikForBcBasePath "config\acme.json") -ItemType File
 
         Copy-Item $traefikTomlFile -Destination $traefiktomltemplate
-        Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+        if ($forceHttpWithTraefik) {
+            Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+        } else {
+            Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth_https.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+        }
 
         if($CrtFile) {
             if ($CrtFile -is [string]) {
