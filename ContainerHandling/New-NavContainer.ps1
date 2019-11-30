@@ -357,12 +357,12 @@ function New-NavContainer {
         }
     }
 
-    $forceHttpWithTraefik = $false
-    if ((Get-Content $traefikTomlFileFullPath | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
-        $forceHttpWithTraefik = $true
-    }
-
     if ($useTraefik) {
+        $forceHttpWithTraefik = $false
+        if ((Get-Content $traefikTomlFileFullPath | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
+            $forceHttpWithTraefik = $true
+        }
+
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
         if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
             throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
