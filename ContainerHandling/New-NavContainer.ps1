@@ -378,7 +378,7 @@ function New-NavContainer {
             Write-Host "Enabling SSL as otherwise all clients will see mixed HTTP / HTTPS request, which will cause problems e.g. on the mobile and modern windows clients"
             $useSSL = $true
         }
-        
+
         if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
             $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
         }
