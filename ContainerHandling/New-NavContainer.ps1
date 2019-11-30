@@ -343,6 +343,11 @@ function New-NavContainer {
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
 
+    $myClientVersion = [System.Version]"0.0.0"
+    if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
+        Write-Host -ForegroundColor Red "WARNING: All container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
+    }
+
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerServerVersion"
 
