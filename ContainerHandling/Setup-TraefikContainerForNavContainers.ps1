@@ -39,7 +39,7 @@ function Setup-TraefikContainerForNavContainers {
         [switch] $overrideDefaultBinding,
         [string] $IP = "",
         [Parameter(Mandatory=$false)]
-        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml"),
+        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml"),
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
@@ -53,9 +53,9 @@ function Setup-TraefikContainerForNavContainers {
     Process {
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
         $traefikDockerImage = "stefanscherer/traefik-windows:v1.7.12"
-        $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik_https.toml")
+        $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
         if ($forceHttpWithTraefik) {
-            $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
+            $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml")
         }
         $CrtFilePath = (Join-Path $traefikForBcBasePath "config\certificate.crt")
         $CrtKeyFilePath = (Join-Path $traefikForBcBasePath "config\certificate.key")
