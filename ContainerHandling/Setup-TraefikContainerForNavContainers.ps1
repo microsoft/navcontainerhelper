@@ -39,7 +39,7 @@ function Setup-TraefikContainerForNavContainers {
         [switch] $overrideDefaultBinding,
         [string] $IP = "",
         [Parameter(Mandatory=$false)]
-        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml"),
+        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml"),
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]

@@ -209,7 +209,6 @@ function New-NavContainer {
         [string] $PublicDnsName,
         [string] $dns,
         [switch] $useTraefik,
-        [switch] $forceHttpWithTraefik,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
         [switch] $dumpEventLog,
@@ -356,6 +355,11 @@ function New-NavContainer {
             Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:$false if you do NOT want to use Traefik."
             $useTraefik = $true
         }
+    }
+
+    $forceHttpWithTraefik = $false
+    if ((Get-Content $traefikTomlFile | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
+        $forceHttpWithTraefik = $true
     }
 
     if ($useTraefik) {
