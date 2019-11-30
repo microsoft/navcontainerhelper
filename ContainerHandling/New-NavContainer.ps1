@@ -115,9 +115,6 @@
   Specify a foreign container in which you want to run the txt2al tool when using -includeAL
  .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
- .Parameter forceHttpWithTraefik
-  Use this parameter to force http (disable SSL) although traefik is used. This will mean that the mobile apps and
-  the modern Windows app won't work
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove the base app from the container
  .Parameter useNewDatabase

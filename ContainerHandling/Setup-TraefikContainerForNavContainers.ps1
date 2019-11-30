@@ -21,6 +21,9 @@
   Switch to recreate traefik container and discard all existing configuration
  .Parameter isolation
   Isolation mode for the traefik container (default is process for Windows Server host else hyperv)
+ .Parameter forceHttpWithTraefik
+  Use this parameter to force http (disable SSL) although traefik is used. This will mean that the mobile apps and
+  the modern Windows app won't work
  .Example
   Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
  .Example
