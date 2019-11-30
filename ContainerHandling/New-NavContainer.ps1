@@ -115,6 +115,8 @@
   Specify a foreign container in which you want to run the txt2al tool when using -includeAL
  .Parameter useTraefik
   Set the necessary options to make the container work behind a traefik proxy as explained here https://www.axians-infoma.com/techblog/running-multiple-nav-bc-containers-on-an-azure-vm/
+ .Parameter traefikTomlFileFullPath
+  Use this parameter to specify the full path of the toml config file for traefik, if you used a non-default one in Setup-TraefikContainerForNavContainers
  .Parameter useCleanDatabase
   Add this switch if you want to uninstall all extensions and remove the base app from the container
  .Parameter useNewDatabase
@@ -206,6 +208,7 @@ function New-NavContainer {
         [string] $PublicDnsName,
         [string] $dns,
         [switch] $useTraefik,
+        [string] $traefikTomlFileFullPath='c:\programdata\navcontainerhelper\traefikforbc\config\traefik.toml',
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
         [switch] $dumpEventLog,
@@ -355,7 +358,7 @@ function New-NavContainer {
     }
 
     $forceHttpWithTraefik = $false
-    if ((Get-Content $traefikTomlFile | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
+    if ((Get-Content $traefikTomlFileFullPath | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
         $forceHttpWithTraefik = $true
     }
 
