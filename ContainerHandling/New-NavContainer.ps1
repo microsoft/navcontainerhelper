@@ -361,7 +361,7 @@ function New-NavContainer {
         }
         
         $forceHttpWithTraefik = $false
-        if ((Get-Content (Join-Path $traefikForBcBasePath "traefik.toml") | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
+        if ((Get-Content (Join-Path $traefikForBcBasePath "config\traefik.toml") | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
             $forceHttpWithTraefik = $true
         }
 
