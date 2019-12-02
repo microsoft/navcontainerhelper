@@ -31,6 +31,7 @@ function Get-NavContainerTenants {
         }
     }
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+        Param( [PsCustomObject] $Params)
         Get-NavTenant -ServerInstance $ServerInstance @Params
     } -argumentList $Params
 }
