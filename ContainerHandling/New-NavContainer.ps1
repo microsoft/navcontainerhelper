@@ -364,6 +364,11 @@ function New-NavContainer {
         if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
             throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
         }
+        
+        $forceHttpWithTraefik = $false
+        if ((Get-Content (Join-Path $traefikForBcBasePath "config\traefik.toml") | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
+            $forceHttpWithTraefik = $true
+        }
 
         if ($PublishPorts.Count -gt 0 -or
             $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
@@ -371,9 +376,12 @@ function New-NavContainer {
             throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
         }
 
-        if ($useSSL) {
-            Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+        if ($forceHttpWithTraefik) {
+            Write-Host "Disabling SSL on the container as you have configured -forceHttpWithTraefik"
             $useSSL = $false
+        } else {
+            Write-Host "Enabling SSL as otherwise all clients will see mixed HTTP / HTTPS request, which will cause problems e.g. on the mobile and modern windows clients"
+            $useSSL = $true
         }
 
         if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
@@ -1170,11 +1178,21 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             $additionalParameters += @("-e customNavSettings=$customNavSettings")
         }
 
+        $webPort = "443"
+        if ($forceHttpWithTraefik) {
+            $webPort = "80"
+        }
+        $traefikProtocol = "https"
+        if ($forceHttpWithTraefik) {
+            $traefikProtocol = "http"
+        }
+
         $additionalParameters += @("--hostname $traefikHostname",
                                    "-e webserverinstance=$containerName",
                                    "-e publicdnsname=$publicDnsName", 
+                                   "-l `"traefik.protocol=$traefikProtocol`"",
                                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                                   "-l `"traefik.web.port=80`"",
+                                   "-l `"traefik.web.port=$webPort`"",
                                    "-l `"traefik.soap.frontend.rule=$soapRule`"", 
                                    "-l `"traefik.soap.port=7047`"",
                                    "-l `"traefik.rest.frontend.rule=$restRule`"", 
@@ -1183,6 +1201,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                                    "-l `"traefik.dev.port=7049`"",
                                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
                                    "-l `"traefik.dl.port=8080`"",
+                                   "-l `"traefik.dl.protocol=http`"",
                                    "-l `"traefik.enable=true`"",
                                    "-l `"traefik.frontend.entryPoints=https`""
         )
