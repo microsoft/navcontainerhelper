@@ -54,7 +54,7 @@ function Extract-AppFileToFolder {
         $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
         $prevdir = ""
         $zipArchive.Entries | ForEach-Object {
-            $fullname = Join-Path $appFolder $_.FullName
+            $fullname = Join-Path $appFolder ([Uri]::UnescapeDataString($_.FullName))
             $dir = [System.IO.Path]::GetDirectoryName($fullname)
             if ($dir -ne $prevdir) {
                 if (-not (Test-Path $dir -PathType Container)) {

@@ -29,7 +29,7 @@ Function Convert-AlcOutputToAzureDevOps {
         foreach($line in $AlcOutput) {
             switch -regex ($line) {
                 "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
-                    if (Test-Path $Matches[3]) {
+                    if ($null -ne $Matches[3]) {
                         Write-Host "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);code=$($Matches[1]);]$($Matches[2])"
                     } else {
                         Write-Host "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
