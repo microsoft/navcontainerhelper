@@ -38,8 +38,10 @@ function Get-NavContainerPath {
         } else {
             $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
             $sharedFolders.GetEnumerator() | ForEach-Object {
-                if ($path -eq $_.Name -or ($containerPath -eq "" -and $path.StartsWith((Join-Path $_.Name "\"), "OrdinalIgnoreCase"))) {
-                    $containerPath = ((Join-Path $_.Value $path.Substring($_.Name.Length)))
+                $Name = $_.Name.TrimEnd('\')
+                $Value = $_.Value.TrimEnd('\')
+                if ($path -eq $Name -or ($containerPath -eq "" -and $path.StartsWith($Name+"\", "OrdinalIgnoreCase"))) {
+                    $containerPath = ($Value + $path.Substring($Name.Length))
                 }
             }
             if ($throw -and "$containerPath" -eq "") {

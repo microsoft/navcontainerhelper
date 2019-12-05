@@ -50,7 +50,8 @@ function Get-TestsFromNavContainer {
         [int] $testPage,
         [switch] $debugMode,
         [switch] $ignoreGroups,
-        [switch] $usePublicWebBaseUrl
+        [switch] $usePublicWebBaseUrl,
+        [string] $useUrl
     )
     
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
@@ -60,7 +61,7 @@ function Get-TestsFromNavContainer {
         $inspect = docker inspect $containerName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
             if ($inspect.config.Labels.'traefik.enable' -eq "true") {
-                $usePublicWebBaseUrl = $true
+                $usePublicWebBaseUrl = ($useUrl -eq "")
             }
         }
     }
@@ -71,6 +72,10 @@ function Get-TestsFromNavContainer {
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
     $serverConfiguration = Get-NavContainerServerConfiguration -ContainerName $containerName
     $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
+
+    if ($usePublicWebBaseUrl -and $useUrl -ne "") {
+        throw "You cannot specify usePublicWebBaseUrl and useUrl at the same time"
+    }
 
     if ($serverConfiguration.PublicWebBaseUrl -eq "") {
         throw "Container $containerName needs to include the WebClient in order to get tests (PublicWebBaseUrl is blank)"
@@ -142,7 +147,7 @@ function Get-TestsFromNavContainer {
         }
     } -argumentList "01:00:00"
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests)
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -151,12 +156,16 @@ function Get-TestsFromNavContainer {
         $publicWebBaseUrl = $customConfig.SelectSingleNode("//appSettings/add[@key='PublicWebBaseUrl']").Value.TrimEnd('/')
         $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
         
-        $uri = [Uri]::new($publicWebBaseUrl)
-        if ($usePublicWebBaseUrl) {
+        if ($useUrl) {
+            $disableSslVerification = $false
+            $serviceUrl = "$($useUrl.TrimEnd('/'))/cs?tenant=$tenant"
+        }
+        elseif ($usePublicWebBaseUrl) {
             $disableSslVerification = $false
             $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
         } 
         else {
+            $uri = [Uri]::new($publicWebBaseUrl)
             $disableSslVerification = ($Uri.Scheme -eq "https")
             $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
         }
@@ -214,7 +223,7 @@ function Get-TestsFromNavContainer {
             }
         }
 
-    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $extensionId, $disabledtests
+    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.

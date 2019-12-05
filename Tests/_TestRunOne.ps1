@@ -13,4 +13,4 @@ $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText 
 . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
 . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
 
-. (Join-Path $PSScriptRoot "ObjectHandling.ps1")
+. (Join-Path $PSScriptRoot "bacpac.ps1")

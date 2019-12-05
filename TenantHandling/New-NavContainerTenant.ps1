@@ -11,6 +11,8 @@
   Credentials for the SQL server of the tenant database (if using an external SQL Server)
  .Parameter sourceDatabase
   Specify a source database which will be the template for the new tenant (default is tenant)
+ .Parameter destinationDatabase
+  Specify a database name for the new tenant (default is the tenantid)
  .Example
   New-NavContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -21,7 +23,8 @@ function New-NavContainerTenant {
         [Parameter(Mandatory=$true)]
         [string] $tenantId,
         [PSCredential] $sqlCredential = $null,
-        [string] $sourceDatabase = "tenant"
+        [string] $sourceDatabase = "tenant",
+        [string] $destinationDatabase = $tenantId
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
@@ -30,7 +33,7 @@ function New-NavContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $sourceDatabase)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -41,10 +44,10 @@ function New-NavContainerTenant {
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
 
         # Setup tenant
-        Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
-        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $TenantId -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
-    } -ArgumentList $tenantId, $sqlCredential, $sourceDatabase
+    } -ArgumentList $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
 Set-Alias -Name New-BCContainerTenant -Value New-NavContainerTenant

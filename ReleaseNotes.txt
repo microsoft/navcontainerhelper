@@ -1,3 +1,28 @@
+0.6.4.21
+Added parameter -includeLabels to Get-NavContainers
+Issue #769 filenames of tranlationfiles needs to be unescaped
+All docker versions prior to 18.03.0 will stop working end of 2019 (due to TLS v1.2) - added warning if user needs to update docker
+
+0.6.4.20
+Better error handling in Run-Tests and Get-Tests
+Issue #755 Sort-AppFoldersByDependencies doesn't support "id" in dependencies
+Wait for tenant ready when restarting service tier in Import-TestToolkitToNavContainer and Setup-NavContainerTestUsers
+
+0.6.4.19
+Issue 716 assignPremiumPlan shouldn't require databaseCredential when using in-container database
+Support Windows Servercore 1909 generic image with useBestContainerOS
+
+0.6.4.18
+Pull Request 715 use Join-Path instead of "+" in Get-NavContainerPath
+Issue 728 allow CommonDesktop for shortcuts on New-BCContainer
+Pull Request 726 add -copyAppToSymbolsFolder in Compile-AppInBcContainer
+Issue 729 add isolation mode parameter for Setup-TraefikContainerForBcContainers
+Issue 716 add -assignPremiumPlan to New-BCContainerBCUser
+Issue 666 New-BCContainer with -useNewDatabase doesn't work with -multitenant
+Issue 717 Run-TestsInBCContainer hanging when using ExtensionId
+Add parameter destinationDatabase to New-BCContainerTenant
+Add parameter databaseName to Remove-BCContainerTenant
+
 0.6.4.17
 Issue #700 Restore-DatabasesInBcContainer will clear the TestFunctions folder to force re-import
 BREAKING CHANGE: added mandatory containerName parameter to Replace-DependenciesInAppFile
@@ -6,6 +31,7 @@ Detect Windows 10 1909 on host (no generic 1909 yet)
 Add retry algorithm to SetupWebClient (as setupWebClient sometimes fails with locking issues)
 Issue #710 traefik fails if PublicDnsName doesn't contain a period (.)
 Issue #711 Alias Install-BCContainerApp cannot be found
+Allow container to be started with -includeAL and -doNotExportObjectsAsText when creating AL project without -useBaseLine
 
 0.6.4.16
 New-DesktopShortcut didn't work if the username has special characters

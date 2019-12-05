@@ -19,6 +19,11 @@
   Path/Url of the certificate key file for using your own domain
  .Parameter Recreate
   Switch to recreate traefik container and discard all existing configuration
+ .Parameter isolation
+  Isolation mode for the traefik container (default is process for Windows Server host else hyperv)
+ .Parameter forceHttpWithTraefik
+  Use this parameter to force http (disable SSL) although traefik is used. This will mean that the mobile apps and
+  the modern Windows app won't work
  .Example
   Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
  .Example
@@ -34,18 +39,24 @@ function Setup-TraefikContainerForNavContainers {
         [switch] $overrideDefaultBinding,
         [string] $IP = "",
         [Parameter(Mandatory=$false)]
-        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml"),
+        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml"),
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtKeyFile,
-        [Switch] $Recreate
+        [Switch] $Recreate,
+        [ValidateSet('','process','hyperv')]
+        [string] $isolation = "",
+        [switch] $forceHttpWithTraefik
     )
 
     Process {
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
         $traefikDockerImage = "stefanscherer/traefik-windows:v1.7.12"
         $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
+        if ($forceHttpWithTraefik) {
+            $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml")
+        }
         $CrtFilePath = (Join-Path $traefikForBcBasePath "config\certificate.crt")
         $CrtKeyFilePath = (Join-Path $traefikForBcBasePath "config\certificate.key")
 
@@ -86,7 +97,11 @@ function Setup-TraefikContainerForNavContainers {
         New-Item (Join-Path $traefikForBcBasePath "config\acme.json") -ItemType File
 
         Copy-Item $traefikTomlFile -Destination $traefiktomltemplate
-        Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+        if ($forceHttpWithTraefik) {
+            Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+        } else {
+            Copy-Item (Join-Path $PSScriptRoot "traefik\CheckHealth_https.ps1") -Destination (Join-Path $traefikForBcBasePath "my\CheckHealth.ps1")
+        }
 
         if($CrtFile) {
             if ($CrtFile -is [string]) {
@@ -136,7 +151,12 @@ function Setup-TraefikContainerForNavContainers {
 
         Log "Pulling and running traefik"
         docker pull $traefikDockerImage
-        docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        if ($isolation) {
+            docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always --isolation $isolation -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        }
+        else {
+            docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+        }
     }
 }
 Set-Alias -Name Setup-TraefikContainerForBCContainers -Value Setup-TraefikContainerForNavContainers

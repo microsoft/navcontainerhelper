@@ -169,7 +169,7 @@ function New-NavContainer {
         [string] $bakFile = "",
         [string] $bakFolder = "",
         [PSCredential] $databaseCredential = $null,
-        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu')]
+        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu','CommonDesktop')]
         [string] $shortcuts='Desktop',
         [switch] $updateHosts,
         [switch] $useSSL,
@@ -278,7 +278,7 @@ function New-NavContainer {
         $bestGenericContainerOs = "ltsc2019"
         if ($os.BuildNumber -eq 18363) { 
             $hostOs = "1909"
-            $bestGenericContainerOs = "ltsc2019"
+            $bestGenericContainerOs = "1909"
         }
     }
     elseif ($os.BuildNumber -ge 18362) { 
@@ -343,6 +343,11 @@ function New-NavContainer {
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
 
+    $myClientVersion = [System.Version]"0.0.0"
+    if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
+        Write-Host -ForegroundColor Red "WARNING: All container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
+    }
+
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerServerVersion"
 
@@ -359,6 +364,11 @@ function New-NavContainer {
         if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
             throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
         }
+        
+        $forceHttpWithTraefik = $false
+        if ((Get-Content (Join-Path $traefikForBcBasePath "config\traefik.toml") | Foreach-Object { $_ -match "^insecureSkipVerify = true$" } ) -notcontains $true) {
+            $forceHttpWithTraefik = $true
+        }
 
         if ($PublishPorts.Count -gt 0 -or
             $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
@@ -366,9 +376,12 @@ function New-NavContainer {
             throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
         }
 
-        if ($useSSL) {
-            Write-Host "Disabling SSL on the container as all external communictaion comes in through Traefik, which is handling the SSL cert"
+        if ($forceHttpWithTraefik) {
+            Write-Host "Disabling SSL on the container as you have configured -forceHttpWithTraefik"
             $useSSL = $false
+        } else {
+            Write-Host "Enabling SSL as otherwise all clients will see mixed HTTP / HTTPS request, which will cause problems e.g. on the mobile and modern windows clients"
+            $useSSL = $true
         }
 
         if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
@@ -857,7 +870,7 @@ function New-NavContainer {
         }
     }
 
-    if ($multitenant -and !$restoreBakFolder) {
+    if ($multitenant -and !($usecleandatabase -or $useNewDatabase -or $restoreBakFolder)) {
         $parameters += "--env multitenant=Y"
     }
 
@@ -1165,11 +1178,21 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             $additionalParameters += @("-e customNavSettings=$customNavSettings")
         }
 
+        $webPort = "443"
+        if ($forceHttpWithTraefik) {
+            $webPort = "80"
+        }
+        $traefikProtocol = "https"
+        if ($forceHttpWithTraefik) {
+            $traefikProtocol = "http"
+        }
+
         $additionalParameters += @("--hostname $traefikHostname",
                                    "-e webserverinstance=$containerName",
                                    "-e publicdnsname=$publicDnsName", 
+                                   "-l `"traefik.protocol=$traefikProtocol`"",
                                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                                   "-l `"traefik.web.port=80`"",
+                                   "-l `"traefik.web.port=$webPort`"",
                                    "-l `"traefik.soap.frontend.rule=$soapRule`"", 
                                    "-l `"traefik.soap.port=7047`"",
                                    "-l `"traefik.rest.frontend.rule=$restRule`"", 
@@ -1178,6 +1201,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
                                    "-l `"traefik.dev.port=7049`"",
                                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
                                    "-l `"traefik.dl.port=8080`"",
+                                   "-l `"traefik.dl.protocol=http`"",
                                    "-l `"traefik.enable=true`"",
                                    "-l `"traefik.frontend.entryPoints=https`""
         )
@@ -1510,6 +1534,30 @@ if (-not `$restartingInstance) {
 
     if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
         Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential
+        if ($multitenant) {
+            Write-Host "Switching to multitenant"
+            
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
+            
+                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+                $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+                $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+                
+                Set-NavserverInstance -ServerInstance $serverInstance -stop
+                Copy-NavDatabase -SourceDatabaseName $databaseName -DestinationDatabaseName "tenant"
+                Remove-NavDatabase -DatabaseName $databaseName
+                Write-Host "Exporting Application to $DatabaseName"
+                Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query 'CREATE USER "NT AUTHORITY\SYSTEM" FOR LOGIN "NT AUTHORITY\SYSTEM";'
+                Export-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -DestinationDatabaseName $databaseName -Force -ServiceAccount 'NT AUTHORITY\SYSTEM' | Out-Null
+                Write-Host "Removing Application from tenant"
+                Remove-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -Force | Out-Null
+                Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
+                Set-NavserverInstance -ServerInstance $serverInstance -start
+            }
+            New-NavContainerTenant -containerName $containerName -tenantId default
+        }
     }
 
     if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {

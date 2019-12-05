@@ -50,7 +50,7 @@ function New-ClientContext {
         throw "Unsupported authentication setting"
     }
     if ($clientContext) {
-        $clientContext.DebugMode = $debugMode
+        $clientContext.debugMode = $debugMode
     }
     return $clientContext
 }
@@ -124,23 +124,6 @@ function Set-RunFalseOnDisabledTests
     }
 }
 
-function Set-TestRunner
-(
-    [int] $TestRunnerId,
-    [ClientContext] $ClientContext,
-    $Form
-)
-{
-    if(!$TestRunnerId)
-    {
-        return
-    }
-
-    Write-Host "Setting TestRunner to $TestRunnerId"
-    $testRunnerCodeunitIdControl = $ClientContext.GetControlByName($Form, "TestRunnerCodeunitId")
-    $ClientContext.SaveValue($testRunnerCodeunitIdControl, $TestRunnerId)
-}
-
 function Get-Tests {
     Param(
         [ClientContext] $clientContext,
@@ -148,7 +131,6 @@ function Get-Tests {
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
         [string] $extensionId = "",
-        [int] $TestRunnerId = 0,
         [array]  $disabledtests = @(),
         [switch] $debugMode,
         [switch] $ignoreGroups
@@ -169,14 +151,13 @@ function Get-Tests {
 
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
-        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry."
+        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
 
     Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
-    Set-TestRunner -TestRunnerId $TestRunnerId -Form $form -ClientContext $clientContext
     Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
@@ -280,8 +261,9 @@ function Run-Tests {
 
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
-        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry."
+        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
+
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
 
@@ -338,6 +320,12 @@ function Run-Tests {
 
     while ($true)
     {
+
+        $validationResults = $form.validationResults
+        if ($validationResults) {
+            throw "Validation errors occured. Error is: $($validationResults | ConvertTo-Json -Depth 99)"
+        }
+
         do {
             if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count))
             {
@@ -377,10 +365,22 @@ function Run-Tests {
             }
         } while (!(($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) -and ($linetype -eq "1" -or $name -like $testFunction)))
 
+        #Write-Host "Index $Index"
+        #Write-Host "RowIndex $rowIndex"
+        #Write-Host "CodeunitId $codeunitId"
+        #Write-Host "CodeunitName $codeunitName"
+        #Write-Host "Name $Name"
+        #Write-Host "LineType $lineType"
+
         if ($rowIndex -ge $repeater.DefaultViewport.Count -or !($name))
         {
             break 
         }
+
+        #Write-Host "Bookmark $($row.Bookmark)"
+        #Write-Host "Offset $($repeater.Offset)"
+        #Write-Host "Viewport count $($repeater.DefaultViewPort.Count)"
+        #Write-Host "Bookmark of first row $($repeater.DefaultViewPort[0].Bookmark)"
 
         if ($groupName -like $testGroup) {
             switch ($linetype) {
@@ -390,7 +390,7 @@ function Run-Tests {
                     if ($TestFunction -eq "*") {
                         Write-Host "  Codeunit $codeunitId $name " -NoNewline
                         $clientContext.ActivateControl($lineTypeControl)
-        
+
                         $clientContext.InvokeAction($clientContext.GetActionByName($form, $runSelectedName))
                         $finishTime = get-date
                         $duration = $finishTime.Subtract($startTime)

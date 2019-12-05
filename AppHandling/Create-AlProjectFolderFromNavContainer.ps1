@@ -64,7 +64,7 @@ function Create-AlProjectFolderFromNavContainer {
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
     $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
 
-    if (!(Test-Path $alFolder -PathType Container) -or !(Test-Path $dotnetAssembliesFolder -PathType Container)) {
+    if (($useBaseLine -and !(Test-Path $alFolder -PathType Container)) -or !(Test-Path $dotnetAssembliesFolder -PathType Container)) {
         throw "Container $containerName was not started with -includeAL (or -doNotExportObjectsAsText was specified)"
     }
 
