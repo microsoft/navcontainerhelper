@@ -27,17 +27,25 @@ function New-DesktopShortcut {
         [string] $WorkingDirectory = "", 
         [string] $IconLocation = "", 
         [string] $Arguments = "",
-        [ValidateSet('None','Desktop','StartMenu','Startup','CommonDesktop','CommonStartMenu','CommonStartup')]
+        [ValidateSet('None','Desktop','StartMenu','Startup','CommonDesktop','CommonStartMenu','CommonStartup','DesktopFolder','CommonDesktopFolder')]
         [string] $shortcuts = "Desktop",
         [switch] $RunAsAdministrator = $isAdministrator
     )
+    $folderName = ""
+    if ($shortcuts.EndsWith("Folder")) {
+        $shortcuts = $shortcuts.Substring(0,$shortcuts.Length - 6)
+        $folderName = $name.Split(' ')[0]
+        $name = $name.Substring($folderName.Length).TrimStart(' ')
+    }
     if ($shortcuts -ne "None") {
         
         if ($shortcuts -eq "Desktop" -or 
             $shortcuts -eq "CommonDesktop" -or 
             $shortcuts -eq "Startup" -or 
             $shortcuts -eq "CommonStartup") {
+
             $folder = [Environment]::GetFolderPath($shortcuts)
+
         } else {
             $folder = Join-Path ([Environment]::GetFolderPath($shortcuts)) "NavContainerHelper"
             if (!(Test-Path $folder -PathType Container)) {
@@ -46,6 +54,13 @@ function New-DesktopShortcut {
         }
 
         if ($folder) {
+            if ($folderName) {
+               $folder = Join-Path $folder $folderName
+               if (!(Test-Path $folder -PathType Container)) {
+                   New-Item $folder -ItemType Directory | Out-Null
+               }
+            }
+
             $filename = Join-Path $folder "$Name.lnk"
             if (Test-Path -Path $filename) {
                 Remove-Item $filename -force

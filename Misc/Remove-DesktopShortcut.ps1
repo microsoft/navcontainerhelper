@@ -15,8 +15,16 @@ function Remove-DesktopShortcut {
         $environmentPath = [Environment]::GetFolderPath($_)
         If ($environmentPath -ne "") {
             $filename = Join-Path $environmentPath "$Name.lnk"
-            if (Test-Path -Path $filename) {
+            if (Test-Path -Path $filename -PathType Leaf) {
                 Remove-Item $filename -force
+            }
+            else {
+                $folderName = $Name.Split(' ')[0]
+                $name = $name.Substring($folderName.Length).TrimStart(' ')
+                $folderName = Join-Path $environmentPath $folderName
+                if (Test-Path -Path (Join-Path $foldername "$name.lnk") -PathType leaf) {
+                    Remove-Item $folderName -Recurse -force
+                }                
             }
         }
     }
