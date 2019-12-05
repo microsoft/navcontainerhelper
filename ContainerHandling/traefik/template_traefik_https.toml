@@ -1,0 +1,42 @@
+debug = false
+defaultEntryPoints = ["https","http"]
+insecureSkipVerify = true
+
+[api]
+# Check https://docs.traefik.io/v1.7/configuration/api/#security
+# to enable authentication on the dashboard for extra security
+
+[docker]
+domain = "$PublicDnsName"
+watch = true
+endpoint = "npipe:////./pipe/docker_engine"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+
+[acme]
+email = "$ContactEMailForLetsEncrypt"
+storage = "c:/etc/traefik/acme.json"
+entryPoint = "https"
+[acme.httpChallenge]
+entryPoint = "http"
+[[acme.domains]]
+   main = "$PublicDnsName"
+
+[file]
+[backends]
+  [backends.host]
+    [backends.host.servers.server1]
+       url = "http://${IP}:8180"
+
+ [frontends]
+  [frontends.host]
+    backend = "host"
+    [frontends.host.routes.route1]
+      rule = "PathPrefix:/" 
