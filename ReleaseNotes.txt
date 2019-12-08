@@ -1,7 +1,14 @@
 0.6.4.21
-Added parameter -includeLabels to Get-NavContainers
+Issue #752 Added two new options for -Shortcuts - DesktopFolder and CommonDesktopFolder, which will place shortcuts in a folder on the desktop
+Issue #751 Added parameter -includeLabels to Get-NavContainers
+Issue #765 Convert-ALCOutputToAzureDevOps fails on new AppSourceCop rules
 Issue #769 filenames of tranlationfiles needs to be unescaped
 All docker versions prior to 18.03.0 will stop working end of 2019 (due to TLS v1.2) - added warning if user needs to update docker
+Support communication between traefik and BC container to be https in order to support mobile apps (Thanks TFenster)
+Added parameter forceRefresh to Get-NavContainerTenants (thanks EPErnst)
+Fix hardcoded container name when using useCleanDatabase and multitenancy (thanks ChrisBlankDe)
+Support alternative database names when using Export-NavContainerDatabasesAsBacpac (thanks svengrav)
+
 
 0.6.4.20
 Better error handling in Run-Tests and Get-Tests
