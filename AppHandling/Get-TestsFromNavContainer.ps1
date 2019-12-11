@@ -18,6 +18,8 @@
   Name or ID of test codeunit to get. Wildcards (? and *) are supported. Default is *.
  .Parameter testPage
   ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
+ .Parameter culture
+  Set the culture when running the tests. Default is en-US. Microsoft tests are written for en-US.
  .Parameter debugMode
   Include this switch to output debug information if getting the tests fails.
  .Parameter ignoreGroups
@@ -48,6 +50,7 @@ function Get-TestsFromNavContainer {
         [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
         [int] $testPage,
+        [string] $culture = "en-US",
         [switch] $debugMode,
         [switch] $ignoreGroups,
         [switch] $usePublicWebBaseUrl,
@@ -147,7 +150,7 @@ function Get-TestsFromNavContainer {
         }
     } -argumentList "01:00:00"
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $culture, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -195,7 +198,7 @@ function Get-TestsFromNavContainer {
                 Disable-SslVerification
             }
             
-            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -debugMode:$debugMode
+            $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -culture $culture -debugMode:$debugMode
 
             Get-Tests -clientContext $clientContext `
                       -TestSuite $testSuite `
@@ -223,7 +226,7 @@ function Get-TestsFromNavContainer {
             }
         }
 
-    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $culture, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.
