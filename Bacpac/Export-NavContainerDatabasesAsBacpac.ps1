@@ -13,6 +13,8 @@
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers
   Omit to export tenant template, specify default to export the default tenant.
+ .Parameter doNotCheckEntitlements
+  Include this parameter to avoid checking entitlements. Entitlements are needed if the .bacpac file is to be used for cloud deployments.
  .Parameter commandTimeout
   Timeout in seconds for the export command for every database. Default is 1 hour (3600).
  .Parameter diagnostics
@@ -39,6 +41,7 @@ function Export-NavContainerDatabasesAsBacpac {
         [string[]] $tenant = @("default"),
         [int] $commandTimeout = 3600,
         [switch] $diagnostics,
+        [switch] $doNotCheckEntitlements,
         [string[]] $additionalArguments = @()
     )
     
@@ -55,7 +58,7 @@ function Export-NavContainerDatabasesAsBacpac {
     }
     $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
         function InstallPrerequisite {
             Param (
@@ -114,6 +117,30 @@ function Export-NavContainerDatabasesAsBacpac {
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\SYSTEM' and isntuser = 1)
               BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
+        }
+
+        function Check-Entitlements {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null
+            )
+
+            Write-Host "Checking Entitlements"
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            if ($sqlCredential) {
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            }
+
+            'Membership Entitlement', 'Entitlement Set', 'Entitlement' | % {
+                $result = Invoke-Sqlcmd -query "USE [$DatabaseName] select count(*) from [dbo].[$_]"
+                if (($result) -and ($result.Column1 -eq 0)) {
+                    throw "Entitlements are missing in table $_. Add -doNotCheckEntitlements to dismiss this error and create .bacpac files, that cannot be used for Cloud deployments."
+                }
+            }
         }
         
         function Remove-NavDatabaseSystemTableData {
@@ -270,6 +297,9 @@ function Export-NavContainerDatabasesAsBacpac {
             $tempAppDatabaseName = "temp$DatabaseName"
             $appBacpacFileName = Join-Path $bacpacFolder "app.bacpac"
             Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempAppDatabaseName
+            if (!$doNotCheckEntitlements) {
+                Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
+            }
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
@@ -290,11 +320,14 @@ function Export-NavContainerDatabasesAsBacpac {
             $tempDatabaseName = "temp$DatabaseName"
             $bacpacFileName = Join-Path $bacpacFolder "database.bacpac"
             Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempDatabaseName
+            if (!$doNotCheckEntitlements) {
+                Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+            }
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
-    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments
+    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
 Set-Alias -Name Export-BCContainerDatabasesAsBacpac -Value Export-NavContainerDatabasesAsBacpac
 Export-ModuleMember -Function Export-NavContainerDatabasesAsBacpac -Alias Export-BCContainerDatabasesAsBacpac
