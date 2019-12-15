@@ -180,6 +180,10 @@ function Extract-FilesFromStoppedNavContainer {
         Remove-Item -Path "$path\Run" -Recurse -Force
     }
     
+    if ($extract -eq "all") {
+        New-Item -Path "$path\allextracted" -ItemType File | Out-Null
+    }
+
     $ErrorActionPreference = 'Stop'
 
     if ($startContainer) {

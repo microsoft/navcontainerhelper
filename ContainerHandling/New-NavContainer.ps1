@@ -661,18 +661,11 @@ function New-NavContainer {
             # Extract files from image if not already done
             $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
 
-            if ($NavVersion -eq "15.0.33664.0-W1" -and !(Test-Path "$dvdPath\ModernDev")) {
-                Remove-Item "$dvdPath" -Recurse -Force -ErrorAction Ignore
-                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
-            }
-
-            if ($version -ge [Version]"15.0.35659.0" -and !(Test-Path "$dvdPath\Applications")) {
-                Remove-Item "$dvdPath" -Recurse -Force -ErrorAction Ignore
-                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
-            }
-
-            if (!(Test-Path $dvdPath)) {
-                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath
+            if (!(Test-Path "$dvdPath\allextracted")) {
+                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath -force
+                if (!(Test-Path "$dvdPath\allextracted")) {
+                    throw "Couldn't extract content from image $image"
+                }
             }
 
             $inspect = docker inspect $imageName | ConvertFrom-Json

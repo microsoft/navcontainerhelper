@@ -36,6 +36,8 @@
   Specify this switch if the function should return true/false on whether all tests passes. If not specified, the function returns nothing.
  .Parameter testPage
   ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
+ .Parameter culture
+  Set the culture when running the tests. Default is en-US. Microsoft tests are written for en-US.
  .Parameter debugMode
   Include this switch to output debug information if running the tests fails.
  .Parameter usePublicWebBaseUrl
@@ -82,6 +84,7 @@ function Run-TestsInNavContainer {
         [switch] $returnTrueIfAllPassed,
         [Parameter(Mandatory=$false)]
         [int] $testPage,
+        [string] $culture = "en-US",
         [switch] $debugMode,
         [switch] $restartContainerAndRetry,
         [switch] $usePublicWebBaseUrl,
@@ -232,7 +235,7 @@ function Run-TestsInNavContainer {
         
                 $clientContext = $null
                 try {
-                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -debugMode:$debugMode
+                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -debugMode:$debugMode
 
                     $result = Run-Tests -clientContext $clientContext `
                               -TestSuite $testSuite `
@@ -271,7 +274,7 @@ function Run-TestsInNavContainer {
                     }
                 }
 
-                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -321,7 +324,7 @@ function Run-TestsInNavContainer {
                             Disable-SslVerification
                         }
 
-                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -debugMode:$debugMode
+                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -debugMode:$debugMode
 
                         Run-Tests -clientContext $clientContext `
                                   -TestSuite $testSuite `
@@ -354,7 +357,7 @@ function Run-TestsInNavContainer {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+                } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $culture, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }
