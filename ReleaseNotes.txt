@@ -1,6 +1,7 @@
 0.6.4.22
 Added parameter -culture to Run-TestsInBCContainer and Get-TestsFromBCContainer in order to run tests in a different culture (default en-US)
 Export-NavContainerDatabasesAsBacpac will check that entitlement tables are NOT empty - specify -doNotCheckEntitlements if you do not want this check
+New-NavContainer only uses image file cache if all files was extracted
 
 0.6.4.21
 Issue #752 Added two new options for -Shortcuts - DesktopFolder and CommonDesktopFolder, which will place shortcuts in a folder on the desktop
