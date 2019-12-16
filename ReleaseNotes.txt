@@ -1,3 +1,6 @@
+0.6.4.23
+Copy entitlements from previous database when using -useNewDatabase on Publish-NewApplicationToBcContainer/Clean-BcContainerDatabase (unless -doNotCopyEntitlements is specified)
+
 0.6.4.22
 Added parameter -culture to Run-TestsInBCContainer and Get-TestsFromBCContainer in order to run tests in a different culture (default en-US)
 Export-NavContainerDatabasesAsBacpac will check that entitlement tables are NOT empty - specify -doNotCheckEntitlements if you do not want this check

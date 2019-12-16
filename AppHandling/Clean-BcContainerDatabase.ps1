@@ -15,6 +15,8 @@
  .Parameter useNewDatabase
   Add this switch if you want to create a new and empty database in the container
   This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter doNotCopyEntitlements
+  Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter companyName
   CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter credential
@@ -29,6 +31,7 @@ function Clean-BcContainerDatabase {
         [Switch] $onlySaveBaseAppData,
         [switch] $doNotUnpublish,
         [switch] $useNewDatabase,
+        [switch] $doNotCopyEntitlements,
         [string] $companyName = "My Company",
         [PSCredential] $credential
     )
@@ -74,7 +77,7 @@ function Clean-BcContainerDatabase {
             $SystemApplicationFile = ":C:\Applications\System Application\Source\Microsoft_System Application.app"
         }
 
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance)
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $doNotCopyEntitlements)
         
             Write-Host "Stopping ServiceTier in order to replace database"
             Set-NavServerInstance -ServerInstance $ServerInstance -stop
@@ -82,7 +85,10 @@ function Clean-BcContainerDatabase {
             if ($platformVersion.Major -ge 15) {
                 $dbproperties = Invoke-Sqlcmd -Query "SELECT [applicationversion],[applicationfamily] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]"
             }
-        
+
+            if (!$doNotCopyEntitlements) {
+                Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb"
+            }
             Remove-NavDatabase -databasename $databaseName -databaseserver $databaseServer -databaseInstance $databaseInstance
             $databaseServerInstance = $databaseServer
             if ($databaseInstance) {
@@ -105,6 +111,15 @@ function Clean-BcContainerDatabase {
             else {
                 Create-NAVDatabase -databasename $databaseName -databaseserver $databaseServerInstance @CollationParam | Out-Null
             }
+
+            if (!$doNotCopyEntitlements) {
+                Write-Host "Copying entitlements from original database"
+                "Entitlement","Entitlement Set","Membership Entitlement" | % {
+                    Invoke-Sqlcmd -Query "Drop table [$databaseName].[dbo].[$_]"
+                    Invoke-Sqlcmd -Query "Select * into [$databaseName].[dbo].[$_] from [mytempdb].[dbo].[$_]"
+                }
+                Remove-NavDatabase -databaseName "mytempdb"
+            }
             
             Write-Host "Starting Service Tier"
             Set-NavServerInstance -ServerInstance $ServerInstance -start
@@ -112,7 +127,7 @@ function Clean-BcContainerDatabase {
             Write-Host "Synchronizing"
             Sync-NavTenant -ServerInstance $ServerInstance -Force
         
-        } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance
+        } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $doNotCopyEntitlements
         
         Import-NavContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
