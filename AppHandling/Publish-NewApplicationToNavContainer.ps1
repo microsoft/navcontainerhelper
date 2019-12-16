@@ -19,6 +19,8 @@
  .Parameter useNewDatabase
   Add this switch if you want to create a new and empty database in the container
   This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
+ .Parameter doNotCopyEntitlements
+  Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter companyName
   CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter doNotUseDevEndpoint
@@ -53,6 +55,7 @@ function Publish-NewApplicationToNavContainer {
         [pscredential] $credential,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
+        [switch] $doNotCopyEntitlements,
         [string] $companyName = "My Company",
         [switch] $doNotUseDevEndpoint,
         [switch] $saveData,
@@ -129,7 +132,7 @@ function Publish-NewApplicationToNavContainer {
         }
     }
     if ($useCleanDatabase -or $useNewDatabase) {
-        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -credential $credential -CompanyName $CompanyName
+        Clean-BcContainerDatabase -containerName $containerName -saveData:$saveData -saveOnlyBaseAppData:($restoreApps -eq "No") -useNewDatabase:$useNewDatabase -doNotCopyEntitlements:$doNotCopyEntitlements -credential $credential -CompanyName $CompanyName
     }
 
     $scope = "tenant"
