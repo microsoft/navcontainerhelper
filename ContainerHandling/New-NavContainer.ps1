@@ -1110,7 +1110,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
         ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -hostname '+$containername+' -ipAddress $ip
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname '+$containername+' -theIpAddress $ip
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {

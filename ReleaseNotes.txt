@@ -1,3 +1,6 @@
+0.6.4.24
+Regression: UpdateHosts did overwrite the hostname variable, which is used in navstart (only for display purposes only)
+
 0.6.4.23
 Copy entitlements from previous database when using -useNewDatabase on Publish-NewApplicationToBcContainer/Clean-BcContainerDatabase (unless -doNotCopyEntitlements is specified)
 
