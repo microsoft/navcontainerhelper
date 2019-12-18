@@ -27,7 +27,7 @@
 
         $bacpacFolder = "C:\programdata\NavContainerHelper\bacpac"
         $bacpacFile = "$bacpacFolder\database.bacpac"
-        Export-NavContainerDatabasesAsBacpac -containerName $bcContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder
+        Export-NavContainerDatabasesAsBacpac -containerName $bcContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder -doNotCheckEntitlements
 
         $bacpacFile | Should -Exist
 
@@ -49,7 +49,7 @@
         $appBacpacFile = "$bacpacFolder\app.bacpac"
         $tenant = "default"
         $tenantBacpacFile = "$bacpacFolder\$tenant.bacpac"
-        Export-NavContainerDatabasesAsBacpac -containerName $testContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder -tenant $tenant
+        Export-NavContainerDatabasesAsBacpac -containerName $testContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder -tenant $tenant -doNotCheckEntitlements
 
         $appBacpacFile | Should -Exist
         $tenantBacpacFile | Should -Exist

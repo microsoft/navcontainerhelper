@@ -70,7 +70,14 @@ function Create-AlProjectFolderFromNavContainer {
 
     # Empty Al Project Folder
     if (Test-Path -Path $alProjectFolder -PathType Container) {
-        Remove-Item -Path "$alProjectFolder\*" -Recurse -Force
+        if (Test-Path -Path (Join-Path $alProjectFolder "*")) {
+            if (Test-Path -Path (Join-Path $alProjectFolder "app.json")) {
+                Remove-Item -Path (Join-Path $alProjectFolder "*") -Recurse -Force
+            }
+            else {
+                throw "The directory '$alProjectFolder' already exists, and it doesn't seem to be an AL project folder, please remove the folder manually."
+            }
+        }
     }
     else {
         New-Item -Path $AlProjectFolder -ItemType Directory | Out-Null

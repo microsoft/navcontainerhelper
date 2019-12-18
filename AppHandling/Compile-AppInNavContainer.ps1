@@ -20,6 +20,8 @@
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
  .Parameter CopyAppToSymbolsFolder
   Add this switch to copy the compiled app to the appSymbolsFolder.
+ .Parameter GenerateReportLayout
+  Add this switch to invoke report layout generation during compile. Default is default alc.exe behavior, which is to generate report layout
  .Parameter AzureDevOps
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
  .Parameter EnableCodeCop
@@ -62,6 +64,8 @@ function Compile-AppInNavContainer {
         [string] $appName = "",
         [switch] $UpdateSymbols,
         [switch] $CopyAppToSymbolsFolder,
+        [ValidateSet('Yes','No','NotSpecified')]
+        [string] $GenerateReportLayout = 'NotSpecified',
         [switch] $AzureDevOps,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
@@ -148,6 +152,16 @@ function Compile-AppInNavContainer {
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
+    }
+
+    $GenerateReportLayoutParam = ""
+    if (($GenerateReportLayout -ne "NotSpecified") -and ($platformversion.Major -ge 14)) {
+        if ($GenerateReportLayout -eq "Yes") {
+            $GenerateReportLayoutParam = "/GenerateReportLayout+"
+        }
+        else {
+            $GenerateReportLayoutParam = "/GenerateReportLayout-"
+        }
     }
 
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
@@ -287,7 +301,7 @@ function Compile-AppInNavContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn )
+    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
@@ -304,7 +318,9 @@ function Compile-AppInNavContainer {
         Set-Location -Path $alcPath
 
         $alcParameters = @("/project:$appProjectFolder", "/packagecachepath:$appSymbolsFolder", "/out:$appOutputFile")
-        
+        if ($GenerateReportLayoutParam) {
+            $alcParameters += @($GenerateReportLayoutParam)
+        }
         if ($EnableCodeCop) {
             $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
         }
@@ -334,7 +350,7 @@ function Compile-AppInNavContainer {
 
         & .\alc.exe $alcParameters
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
     
     if ($AzureDevOps) {
         $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
