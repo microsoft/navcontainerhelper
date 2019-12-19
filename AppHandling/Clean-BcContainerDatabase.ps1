@@ -82,18 +82,20 @@ function Clean-BcContainerDatabase {
             Write-Host "Stopping ServiceTier in order to replace database"
             Set-NavServerInstance -ServerInstance $ServerInstance -stop
         
-            if ($platformVersion.Major -ge 15) {
-                $dbproperties = Invoke-Sqlcmd -Query "SELECT [applicationversion],[applicationfamily] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]"
+            $databaseServerInstance = $databaseServer
+            if ($databaseInstance) {
+                $databaseServerInstance += "\$databaseInstance"
+            }
+
+            if ($platformVersion.Major -ge 15) {                
+                $dbproperties = Invoke-Sqlcmd -Query "SELECT [applicationversion],[applicationfamily] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]" -ServerInstance $databaseServerInstance
             }
 
             if (!$doNotCopyEntitlements) {
                 Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb"
             }
             Remove-NavDatabase -databasename $databaseName -databaseserver $databaseServer -databaseInstance $databaseInstance
-            $databaseServerInstance = $databaseServer
-            if ($databaseInstance) {
-                $databaseServerInstance += "\$databaseInstance"
-            }
+
             $CollationParam = @{}
             if (Test-Path "c:\run\Collation.txt") {
                 $Collation = Get-Content "c:\run\Collation.txt"
@@ -106,7 +108,7 @@ function Clean-BcContainerDatabase {
 
             if ($platformVersion.Major -ge 15) {
                 New-NAVApplicationDatabase -DatabaseServer $databaseServerInstance -DatabaseName $databaseName @CollationParam | Out-Null
-                Invoke-Sqlcmd -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)', [applicationversion] = '$($dbproperties.applicationversion)'"
+                Invoke-Sqlcmd -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)', [applicationversion] = '$($dbproperties.applicationversion)'" -ServerInstance $databaseServerInstance
             }
             else {
                 Create-NAVDatabase -databasename $databaseName -databaseserver $databaseServerInstance @CollationParam | Out-Null
@@ -115,8 +117,8 @@ function Clean-BcContainerDatabase {
             if (!$doNotCopyEntitlements) {
                 Write-Host "Copying entitlements from original database"
                 "Entitlement","Entitlement Set","Membership Entitlement" | % {
-                    Invoke-Sqlcmd -Query "Drop table [$databaseName].[dbo].[$_]"
-                    Invoke-Sqlcmd -Query "Select * into [$databaseName].[dbo].[$_] from [mytempdb].[dbo].[$_]"
+                    Invoke-Sqlcmd -Query "Drop table [$databaseName].[dbo].[$_]" -ServerInstance $databaseServerInstance
+                    Invoke-Sqlcmd -Query "Select * into [$databaseName].[dbo].[$_] from [mytempdb].[dbo].[$_]" -ServerInstance $databaseServerInstance
                 }
                 Remove-NavDatabase -databaseName "mytempdb"
             }
