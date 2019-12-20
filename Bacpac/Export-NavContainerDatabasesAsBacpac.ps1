@@ -111,12 +111,12 @@ function Export-NavContainerDatabasesAsBacpac {
             Write-Host "Remove Network Service User from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\NETWORK SERVICE' and isntuser = 1)
-              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END" -ServerInstance $databaseServerInstance
+              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END" 
 
             Write-Host "Remove System User from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\SYSTEM' and isntuser = 1)
-              BEGIN DROP USER [NT AUTHORITY\SYSTEM] END" -ServerInstance $databaseServerInstance
+              BEGIN DROP USER [NT AUTHORITY\SYSTEM] END" 
         }
 
         function Check-Entitlements {
@@ -136,7 +136,7 @@ function Export-NavContainerDatabasesAsBacpac {
             }
 
             'Membership Entitlement', 'Entitlement Set', 'Entitlement' | % {
-                $result = Invoke-Sqlcmd -query "USE [$DatabaseName] select count(*) from [dbo].[$_]" -ServerInstance $databaseServerInstance
+                $result = Invoke-Sqlcmd @params -query "USE [$DatabaseName] select count(*) from [dbo].[$_]"
                 if (($result) -and ($result.Column1 -eq 0)) {
                     throw "Entitlements are missing in table $_. Add -doNotCheckEntitlements to dismiss this error and create .bacpac files, that cannot be used for Cloud deployments."
                 }
@@ -160,17 +160,17 @@ function Export-NavContainerDatabasesAsBacpac {
         
             Write-Host "Remove data from System Tables database $DatabaseName"
             'Server Instance','$ndo$cachesync','$ndo$tenants','Object Tracking' | % {
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" -ServerInstance $databaseServerInstance
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" 
             }
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[`$ndo`$dbproperty] SET [license] = NULL" -ServerInstance $databaseServerInstance
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[`$ndo`$dbproperty] SET [license] = NULL" 
         
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
               IF EXISTS ( SELECT 'X' FROM [sys].[tables] WHERE name = 'Active Session' AND type = 'U' )
-                BEGIN Delete from dbo.[Active Session] END" -ServerInstance $databaseServerInstance
+                BEGIN Delete from dbo.[Active Session] END" 
             
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
               IF EXISTS ( SELECT 'X' FROM [sys].[tables] WHERE name = 'Session Event' AND type = 'U' )
-                BEGIN Delete from dbo.[Session Event] END" -ServerInstance $databaseServerInstance
+                BEGIN Delete from dbo.[Session Event] END"
         
             Remove-NetworkServiceUser -DatabaseServerInstance $DatabaseServerInstance -DatabaseName $DatabaseName -sqlCredential $sqlCredential
         }
@@ -202,30 +202,30 @@ function Export-NavContainerDatabasesAsBacpac {
                 'User Group Member',
                 'User Group Access Control',
                 'User Plan' | % {
-                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" -ServerInstance $databaseServerInstance
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
                 }
 
-                $tables = Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM sysobjects WHERE (xtype = 'U' ) AND (name LIKE '%User Login')" -ServerInstance $databaseServerInstance
+                $tables = Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM sysobjects WHERE (xtype = 'U' ) AND (name LIKE '%User Login')" 
                 $tables | % {
                     Write-Host "DELETE FROM dbo.[$($_.Name)]"
-                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]" -ServerInstance $databaseServerInstance
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]" 
                 }
             }
 
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")tenantproperty] SET [license] = NULL" -ServerInstance $databaseServerInstance
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")tenantproperty] SET [license] = NULL"
 
             'Tenant License State',
             'Active Session',
             'Session Event' | % {
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" -ServerInstance $databaseServerInstance
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" 
             }
         
             Write-Host "Drop triggers from $DatabaseName"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[RemoveOnLogoutActiveSession]" -ServerInstance $databaseServerInstance
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[DeleteActiveSession]" -ServerInstance $databaseServerInstance
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[RemoveOnLogoutActiveSession]" 
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[DeleteActiveSession]" 
             
             Write-Host "Drop Views from $DatabaseName"
-            Invoke-Sqlcmd @Params -Query "USE [$DatabaseName] DROP VIEW IF EXISTS [dbo].[deadlock_report_ring_buffer_view]" -ServerInstance $databaseServerInstance
+            Invoke-Sqlcmd @Params -Query "USE [$DatabaseName] DROP VIEW IF EXISTS [dbo].[deadlock_report_ring_buffer_view]" 
         
             Remove-NetworkServiceUser -DatabaseServerInstance $DatabaseServerInstance -DatabaseName $DatabaseName -sqlCredential $sqlCredential
         }
