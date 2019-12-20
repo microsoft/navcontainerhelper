@@ -301,7 +301,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 Check-Entitlements -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             }
             Remove-NavDatabaseSystemTableData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
             $tenant | ForEach-Object {
                 $sourceDatabase = $_
@@ -316,7 +316,7 @@ function Export-NavContainerDatabasesAsBacpac {
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
                 Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $tempTenantDatabaseName
                 Remove-NavTenantDatabaseUserData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-                Do-Export -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
@@ -327,7 +327,7 @@ function Export-NavContainerDatabasesAsBacpac {
             }
             Remove-NavDatabaseSystemTableData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
