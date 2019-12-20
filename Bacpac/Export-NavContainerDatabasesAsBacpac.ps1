@@ -98,12 +98,12 @@ function Export-NavContainerDatabasesAsBacpac {
                 [Parameter(Mandatory=$true)]
                 [string] $DatabaseName,
                 [Parameter(Mandatory=$true)]
-                [string] $DatabaseServer,
+                [string] $DatabaseServerInstance,
                 [Parameter(Mandatory=$false)]
                 [PSCredential] $sqlCredential = $null
             )
 
-            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServerInstance }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
@@ -111,12 +111,12 @@ function Export-NavContainerDatabasesAsBacpac {
             Write-Host "Remove Network Service User from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\NETWORK SERVICE' and isntuser = 1)
-              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END"
+              BEGIN DROP USER [NT AUTHORITY\NETWORK SERVICE] END" -ServerInstance $databaseServerInstance
 
             Write-Host "Remove System User from $DatabaseName"
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
             IF EXISTS (SELECT 'X' FROM sysusers WHERE name = 'NT AUTHORITY\SYSTEM' and isntuser = 1)
-              BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
+              BEGIN DROP USER [NT AUTHORITY\SYSTEM] END" -ServerInstance $databaseServerInstance
         }
 
         function Check-Entitlements {
@@ -124,19 +124,19 @@ function Export-NavContainerDatabasesAsBacpac {
                 [Parameter(Mandatory=$true)]
                 [string] $DatabaseName,
                 [Parameter(Mandatory=$true)]
-                [string] $DatabaseServer,
+                [string] $DatabaseServerInstance,
                 [Parameter(Mandatory=$false)]
                 [PSCredential] $sqlCredential = $null
             )
 
             Write-Host "Checking Entitlements"
-            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServerInstance }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
 
             'Membership Entitlement', 'Entitlement Set', 'Entitlement' | % {
-                $result = Invoke-Sqlcmd -query "USE [$DatabaseName] select count(*) from [dbo].[$_]"
+                $result = Invoke-Sqlcmd -query "USE [$DatabaseName] select count(*) from [dbo].[$_]" -ServerInstance $databaseServerInstance
                 if (($result) -and ($result.Column1 -eq 0)) {
                     throw "Entitlements are missing in table $_. Add -doNotCheckEntitlements to dismiss this error and create .bacpac files, that cannot be used for Cloud deployments."
                 }
@@ -148,31 +148,31 @@ function Export-NavContainerDatabasesAsBacpac {
                 [Parameter(Mandatory=$true)]
                 [string] $DatabaseName,
                 [Parameter(Mandatory=$true)]
-                [string] $DatabaseServer,
+                [string] $DatabaseServerInstance,
                 [Parameter(Mandatory=$false)]
                 [PSCredential] $sqlCredential = $null
             )
          
-            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServerInstance }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove data from System Tables database $DatabaseName"
             'Server Instance','$ndo$cachesync','$ndo$tenants','Object Tracking' | % {
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" -ServerInstance $databaseServerInstance
             }
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[`$ndo`$dbproperty] SET [license] = NULL"
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[`$ndo`$dbproperty] SET [license] = NULL" -ServerInstance $databaseServerInstance
         
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
               IF EXISTS ( SELECT 'X' FROM [sys].[tables] WHERE name = 'Active Session' AND type = 'U' )
-                BEGIN Delete from dbo.[Active Session] END" 
+                BEGIN Delete from dbo.[Active Session] END" -ServerInstance $databaseServerInstance
             
             Invoke-Sqlcmd @params -Query "USE [$DatabaseName]
               IF EXISTS ( SELECT 'X' FROM [sys].[tables] WHERE name = 'Session Event' AND type = 'U' )
-                BEGIN Delete from dbo.[Session Event] END" 
+                BEGIN Delete from dbo.[Session Event] END" -ServerInstance $databaseServerInstance
         
-            Remove-NetworkServiceUser -DatabaseServer $DatabaseServer -DatabaseName $DatabaseName -sqlCredential $sqlCredential
+            Remove-NetworkServiceUser -DatabaseServerInstance $DatabaseServerInstance -DatabaseName $DatabaseName -sqlCredential $sqlCredential
         }
         
         function Remove-NavTenantDatabaseUserData {
@@ -180,13 +180,13 @@ function Export-NavContainerDatabasesAsBacpac {
                 [Parameter(Mandatory=$true)]
                 [string] $DatabaseName,
                 [Parameter(Mandatory=$true)]
-                [string] $DatabaseServer,
+                [string] $DatabaseServerInstance,
                 [Parameter(Mandatory=$false)]
                 [PSCredential] $sqlCredential = $null,
                 [switch] $KeepUserData
             )
 
-            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServerInstance }
             if ($sqlCredential) {
                 $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
@@ -202,32 +202,32 @@ function Export-NavContainerDatabasesAsBacpac {
                 'User Group Member',
                 'User Group Access Control',
                 'User Plan' | % {
-                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" -ServerInstance $databaseServerInstance
                 }
 
-                $tables = Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM sysobjects WHERE (xtype = 'U' ) AND (name LIKE '%User Login')"
+                $tables = Invoke-Sqlcmd @params -Query "USE [$DatabaseName] SELECT name FROM sysobjects WHERE (xtype = 'U' ) AND (name LIKE '%User Login')" -ServerInstance $databaseServerInstance
                 $tables | % {
                     Write-Host "DELETE FROM dbo.[$($_.Name)]"
-                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]"
+                    Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$($_.Name)]" -ServerInstance $databaseServerInstance
                 }
             }
 
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")tenantproperty] SET [license] = NULL"
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] UPDATE [dbo].[$("$")ndo$("$")tenantproperty] SET [license] = NULL" -ServerInstance $databaseServerInstance
 
             'Tenant License State',
             'Active Session',
             'Session Event' | % {
-                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]"
+                Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DELETE FROM dbo.[$_]" -ServerInstance $databaseServerInstance
             }
         
             Write-Host "Drop triggers from $DatabaseName"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[RemoveOnLogoutActiveSession]" 
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[DeleteActiveSession]" 
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[RemoveOnLogoutActiveSession]" -ServerInstance $databaseServerInstance
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] DROP TRIGGER [dbo].[DeleteActiveSession]" -ServerInstance $databaseServerInstance
             
             Write-Host "Drop Views from $DatabaseName"
-            Invoke-Sqlcmd @Params -Query "USE [$DatabaseName] DROP VIEW IF EXISTS [dbo].[deadlock_report_ring_buffer_view]"
+            Invoke-Sqlcmd @Params -Query "USE [$DatabaseName] DROP VIEW IF EXISTS [dbo].[deadlock_report_ring_buffer_view]" -ServerInstance $databaseServerInstance
         
-            Remove-NetworkServiceUser -DatabaseServer $DatabaseServer -DatabaseName $DatabaseName -sqlCredential $sqlCredential
+            Remove-NetworkServiceUser -DatabaseServerInstance $DatabaseServerInstance -DatabaseName $DatabaseName -sqlCredential $sqlCredential
         }
 
         function Do-Export {
@@ -298,10 +298,10 @@ function Export-NavContainerDatabasesAsBacpac {
             $appBacpacFileName = Join-Path $bacpacFolder "app.bacpac"
             Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempAppDatabaseName
             if (!$doNotCheckEntitlements) {
-                Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
+                Check-Entitlements -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             }
-            Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Remove-NavDatabaseSystemTableData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
+            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
             $tenant | ForEach-Object {
                 $sourceDatabase = $_
@@ -315,19 +315,19 @@ function Export-NavContainerDatabasesAsBacpac {
                 $tempTenantDatabaseName = "tempTenant"
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
                 Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $tempTenantDatabaseName
-                Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+                Remove-NavTenantDatabaseUserData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
+                Do-Export -DatabaseServer $databaseServer -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
             $bacpacFileName = Join-Path $bacpacFolder "database.bacpac"
             Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $DatabaseName -DestinationDatabaseName $tempDatabaseName
             if (!$doNotCheckEntitlements) {
-                Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+                Check-Entitlements -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             }
-            Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Remove-NavDatabaseSystemTableData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+            Remove-NavTenantDatabaseUserData -DatabaseServerInstance $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
+            Do-Export -DatabaseServer $databaseServer -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
