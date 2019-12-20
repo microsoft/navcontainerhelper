@@ -92,7 +92,7 @@ function Clean-BcContainerDatabase {
             }
 
             if (!$doNotCopyEntitlements) {
-                Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb"
+                Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb" -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance
             }
             Remove-NavDatabase -databasename $databaseName -databaseserver $databaseServer -databaseInstance $databaseInstance
 
