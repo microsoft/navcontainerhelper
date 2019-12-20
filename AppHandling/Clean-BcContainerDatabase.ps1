@@ -120,7 +120,7 @@ function Clean-BcContainerDatabase {
                     Invoke-Sqlcmd -Query "Drop table [$databaseName].[dbo].[$_]" -ServerInstance $databaseServerInstance
                     Invoke-Sqlcmd -Query "Select * into [$databaseName].[dbo].[$_] from [mytempdb].[dbo].[$_]" -ServerInstance $databaseServerInstance
                 }
-                Remove-NavDatabase -databaseName "mytempdb"
+                Remove-NavDatabase -databaseName "mytempdb" -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance
             }
             
             Write-Host "Starting Service Tier"
