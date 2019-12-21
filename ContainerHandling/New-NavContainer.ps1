@@ -119,6 +119,10 @@
   Add this switch if you want to uninstall all extensions and remove the base app from the container
  .Parameter useNewDatabase
   Add this switch if you want to create a new and empty database in the container
+ .Parameter doNotCopyEntitlements
+  Specify this parameter to avoid copying entitlements when using -useNewDatabase
+ .Parameter copyTables
+  Array if table names to copy from original database when using -useNewDatabase
  .Parameter dumpEventLog
   Add this switch if you want the container to dump new entries in the eventlog to the output (docker logs) every 2 seconds
  .Parameter doNotCheckHealth
@@ -208,6 +212,8 @@ function New-NavContainer {
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
+        [switch] $doNotCopyEntitlements,
+        [string[]] $copyTables = @(),
         [switch] $dumpEventLog,
         [switch] $doNotCheckHealth,
         [switch] $doNotUseRuntimePackages = $true,
@@ -1526,7 +1532,7 @@ if (-not `$restartingInstance) {
     }
 
     if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
-        Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential
+        Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential -doNotCopyEntitlements:$doNotCopyEntitlements -copyTables $copyTables
         if ($multitenant) {
             Write-Host "Switching to multitenant"
             

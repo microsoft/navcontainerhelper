@@ -17,6 +17,8 @@
   This switch (or useCleanDatabase) is needed when turning a C/AL container into an AL Container.
  .Parameter doNotCopyEntitlements
   Specify this parameter to avoid copying entitlements when using -useNewDatabase
+ .Parameter copyTables
+  Array if table names to copy from original database when using -useNewDatabase
  .Parameter companyName
   CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter credential
@@ -32,6 +34,7 @@ function Clean-BcContainerDatabase {
         [switch] $doNotUnpublish,
         [switch] $useNewDatabase,
         [switch] $doNotCopyEntitlements,
+        [string[]] $copyTables = @(),
         [string] $companyName = "My Company",
         [PSCredential] $credential
     )
@@ -77,23 +80,28 @@ function Clean-BcContainerDatabase {
             $SystemApplicationFile = ":C:\Applications\System Application\Source\Microsoft_System Application.app"
         }
 
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $doNotCopyEntitlements)
+        if (!$doNotCopyEntitlements) {
+            $copyTables += @("Entitlement", "Entitlement Set", "Membership Entitlement")
+        }
+
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables)
         
             Write-Host "Stopping ServiceTier in order to replace database"
             Set-NavServerInstance -ServerInstance $ServerInstance -stop
         
-            if ($platformVersion.Major -ge 15) {
-                $dbproperties = Invoke-Sqlcmd -Query "SELECT [applicationversion],[applicationfamily] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]"
-            }
-
-            if (!$doNotCopyEntitlements) {
-                Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb"
-            }
-            Remove-NavDatabase -databasename $databaseName -databaseserver $databaseServer -databaseInstance $databaseInstance
             $databaseServerInstance = $databaseServer
             if ($databaseInstance) {
                 $databaseServerInstance += "\$databaseInstance"
             }
+
+            if ($platformVersion.Major -ge 15) {
+                $dbproperties = Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "SELECT [applicationversion],[applicationfamily] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]"
+            }
+
+            if ($copyTables) {
+                Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb" -DatabaseServer $databaseServer -databaseInstance $databaseInstance
+            }
+            Remove-NavDatabase -databasename $databaseName -databaseserver $databaseServer -databaseInstance $databaseInstance
             $CollationParam = @{}
             if (Test-Path "c:\run\Collation.txt") {
                 $Collation = Get-Content "c:\run\Collation.txt"
@@ -106,19 +114,22 @@ function Clean-BcContainerDatabase {
 
             if ($platformVersion.Major -ge 15) {
                 New-NAVApplicationDatabase -DatabaseServer $databaseServerInstance -DatabaseName $databaseName @CollationParam | Out-Null
-                Invoke-Sqlcmd -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)', [applicationversion] = '$($dbproperties.applicationversion)'"
+                Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "UPDATE [$databaseName].[dbo].[`$ndo`$dbproperty] SET [applicationfamily] = '$($dbproperties.applicationfamily)', [applicationversion] = '$($dbproperties.applicationversion)'"
             }
             else {
                 Create-NAVDatabase -databasename $databaseName -databaseserver $databaseServerInstance @CollationParam | Out-Null
             }
 
-            if (!$doNotCopyEntitlements) {
-                Write-Host "Copying entitlements from original database"
-                "Entitlement","Entitlement Set","Membership Entitlement" | % {
-                    Invoke-Sqlcmd -Query "Drop table [$databaseName].[dbo].[$_]"
-                    Invoke-Sqlcmd -Query "Select * into [$databaseName].[dbo].[$_] from [mytempdb].[dbo].[$_]"
+            if ($copyTables) {
+                $copyTables | % {
+                    Write-Host "Copying table [$_] from original database"
+
+                    $fields = Invoke-Sqlcmd -ServerInstance $databaseServerInstance -database "mytempdb" -query "SELECT * FROM INFORMATION_SCHEMA.COLUMNS where TABLE_SCHEMA = 'dbo' AND TABLE_NAME = '$_'" | Where-Object { $_.Column_Name -ne "timestamp" } | % { """$($_.Column_Name)""" }
+
+                    Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "Delete From [$databaseName].[dbo].[$_]"
+                    Invoke-Sqlcmd -ServerInstance $databaseServerInstance -Query "Insert Into [$databaseName].[dbo].[$_] ($($([String]::Join(',',$fields)))) Select $([String]::Join(',',$fields)) from [mytempdb].[dbo].[$_]"
                 }
-                Remove-NavDatabase -databaseName "mytempdb"
+                Remove-NavDatabase -databaseName "mytempdb" -databaseserver $databaseServer -databaseInstance $databaseInstance
             }
             
             Write-Host "Starting Service Tier"
@@ -127,7 +138,7 @@ function Clean-BcContainerDatabase {
             Write-Host "Synchronizing"
             Sync-NavTenant -ServerInstance $ServerInstance -Force
         
-        } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $doNotCopyEntitlements
+        } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables
         
         Import-NavContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
