@@ -1,5 +1,7 @@
 0.6.4.24
 Regression: UpdateHosts did overwrite the hostname variable, which is used in navstart (only for display purposes only)
+Issue #794: Added parameter -copyTables to allow copying tables from original database when using -useNewDatabase
+Issue #791: Support foreign database server when using -useNewDatabase and -useCleanDatabase (also Export-BcContainerDatabasesAsBacpac)
 
 0.6.4.23
 Copy entitlements from previous database when using -useNewDatabase on Publish-NewApplicationToBcContainer/Clean-BcContainerDatabase (unless -doNotCopyEntitlements is specified)
