@@ -28,7 +28,7 @@ function Remove-NavContainer {
         $updateHostsScript = Join-Path $containerFolder "my\updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
-            . $updateHostsScript -hostsFile "c:\windows\system32\drivers\etc\hosts" -hostname $containerName -ipAddress ""
+            . $updateHostsScript -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $containerName -theIpAddress ""
         }
 
         Remove-DesktopShortcut -Name "$containerName Web Client"
