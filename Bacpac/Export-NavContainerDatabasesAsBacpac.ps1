@@ -136,7 +136,7 @@ function Export-NavContainerDatabasesAsBacpac {
             }
 
             'Membership Entitlement', 'Entitlement Set', 'Entitlement' | % {
-                $result = Invoke-Sqlcmd -query "USE [$DatabaseName] select count(*) from [dbo].[$_]"
+                $result = Invoke-Sqlcmd @params -query "USE [$DatabaseName] select count(*) from [dbo].[$_]"
                 if (($result) -and ($result.Column1 -eq 0)) {
                     throw "Entitlements are missing in table $_. Add -doNotCheckEntitlements to dismiss this error and create .bacpac files, that cannot be used for Cloud deployments."
                 }

@@ -1,14 +1,14 @@
 ﻿Param(
     [string] $hostsFile = "c:\driversetc\hosts",
-    [string] $hostname = "",
-    [string] $ipAddress = ""
+    [string] $theHostname = "",
+    [string] $theIpAddress = ""
 )
 
 function UpdateHostsFile {
     Param(
         [string] $hostsFile,
-        [string] $hostname,
-        [string] $ipAddress
+        [string] $theHostname,
+        [string] $theIpAddress
     )
     
     new-item -Path $hostsFile -ItemType File -ErrorAction Ignore | Out-Null
@@ -27,8 +27,8 @@ function UpdateHostsFile {
         $file.Read($content, 0, $file.Length) | Out-Null
         [System.Collections.ArrayList]$hosts = ([System.Text.Encoding]::ASCII.GetString($content)).Replace("`r`n","`n").Split("`n")
     
-        if ($hostname) {
-            $hostname = $hostname.ToLowerInvariant()
+        if ($theHostname) {
+            $theHostname = $theHostname.ToLowerInvariant()
             $ln = 0
             while ($ln -lt $hosts.Count) {
                 $line = $hosts[$ln]
@@ -36,15 +36,15 @@ function UpdateHostsFile {
                 if ($idx -ge 0) {
                     $line = $line.Substring(0,$idx)
                 }
-                $hidx = ("$line ".Replace("`t"," ")).ToLowerInvariant().IndexOf(" $hostName ")
+                $hidx = ("$line ".Replace("`t"," ")).ToLowerInvariant().IndexOf(" $theHostname ")
                 if ($hidx -ge 0 -or $line -eq "") {
                     $hosts.RemoveAt($ln) | Out-Null
                 } else {
                     $ln++
                 }
             }
-            if ("$ipAddress" -ne "") {
-                $hosts.Add("$ipAddress $hostName") | Out-Null
+            if ("$theIpAddress" -ne "") {
+                $hosts.Add("$theIpAddress $theHostname") | Out-Null
             }
         
             $content = [System.Text.Encoding]::ASCII.GetBytes($($hosts -join [Environment]::NewLine)+[Environment]::NewLine)
@@ -64,14 +64,14 @@ function UpdateHostsFile {
     }
 }
 
-if ($hostname) {
-    if ($ipAddress) {
-        Write-Host "Setting $hostname to $ipAddress in host hosts file"
+if ($theHostname) {
+    if ($theIpAddress) {
+        Write-Host "Setting $theHostname to $theIpAddress in host hosts file"
     }
     else {
-        Write-Host "Removing $hostname from host hosts file"
+        Write-Host "Removing $theHostname from host hosts file"
     }
-    $hosts = UpdateHostsFile -hostsFile $hostsFile -hostname $hostname -ipAddress $ipAddress
+    $hosts = UpdateHostsFile -hostsFile $hostsFile -theHostname $theHostname -theIpAddress $theIpAddress
 }
 else {
     $myhostsFile = "c:\windows\system32\drivers\etc\hosts"
@@ -82,7 +82,7 @@ else {
         $aHostname = $_.Split(" ")[1]
         $anIp = $_.Split(" ")[0]
         Write-Host "Setting $aHostname to $anIp in container hosts file (copy from host hosts file)"
-        UpdateHostsFile -hostsFile $myhostsFile -ipAddress $anIp -hostname $aHostname | Out-Null
+        UpdateHostsFile -hostsFile $myhostsFile -theHostname $aHostname -theIpAddress $anIp | Out-Null
         if ($aHostname -eq "host.containerhelper.internal") {
             $sethost = $false
         }
@@ -91,7 +91,7 @@ else {
         $gateway = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } )
         if ($gateway -and ($gateway -is [string])) {
             Write-Host "Setting host.containerhelper.internal to $($gateway.Trim()) in container hosts file"
-            UpdateHostsFile -hostsFile $myhostsFile -ipAddress $gateway.Trim() -hostname "host.containerhelper.internal" | Out-Null
+            UpdateHostsFile -hostsFile $myhostsFile -theHostname "host.containerhelper.internal" -theIpAddress $gateway.Trim() | Out-Null
         }
     }
 }
