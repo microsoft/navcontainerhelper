@@ -23,15 +23,16 @@ function Get-NavContainerTenants {
         [Parameter(Mandatory = $true, ParameterSetName = 'ForceRefreshTenantState')]
         [switch] $ForceRefresh,
 
-        [Parameter(ParameterSetName = 'UseContainerName')]
-        [Parameter(Mandatory = $true, ParameterSetName = 'ForceRefreshTenantState')]
-        [string] $Tenant,
+        [string] $Tenant = "",
 
         [switch] $Force
     )
     $Params = @{ "Force" = $Force }
     If ($ForceRefresh) {
         $Params += @{ "ForceRefresh" = $ForceRefresh }
+        if (-not $tenant -or '' -eq $tenant) {
+            $tenant = "Default"
+        }
     }
     if ($Tenant) {
         $Params += @{ "Tenant" = $Tenant }
