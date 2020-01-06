@@ -30,7 +30,7 @@ function Get-NavContainerTenants {
     $Params = @{ "Force" = $Force }
     If ($ForceRefresh) {
         $Params += @{ "ForceRefresh" = $ForceRefresh }
-        if (-not $tenant -or '' -eq $tenant) {
+        if (-not $tenant) {
             $tenant = "Default"
         }
     }
