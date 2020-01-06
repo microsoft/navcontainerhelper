@@ -1,12 +1,12 @@
 ﻿<# 
  .Synopsis
-  Retrieve all Tenants in a multitenant NAV/BC Container
+  Retrieve Tenants in a multitenant NAV/BC Container
  .Description
-  Get information about all tenants in the Container
+  Get information about tenants in the Container
  .Parameter containerName
   Name of the container from which you want to get the tenant information
  .Parameter Tenant
-  Specifies the ID of the specific tenant that you want to get information about, such as Tenant1.
+  Specifies the ID of the specific tenant that you want to get information about, such as Tenant1. Shows all if not specified.
  .Parameter forceRefresh
   Specifies to update a tenant's state and data version based, in part, on the data version of the tenant database that contains the tenant. 
  .Parameter force
@@ -17,24 +17,25 @@
 function Get-NavContainerTenants {
     [CmdletBinding(DefaultParameterSetName = 'UseContainerName')]
     Param (
-        [Parameter(Mandatory = $false)]
+        [ValidateNotNullorEmpty()]
         [string] $containerName = "navserver",
 
         [Parameter(Mandatory = $true, ParameterSetName = 'ForceRefreshTenantState')]
         [switch] $ForceRefresh,
 
-        [Parameter(Mandatory = $false, ParameterSetName = 'ForceRefreshTenantState')]
-        [ValidateNotNullorEmpty()]
-        [string] $Tenant = 'default',
+        [string] $Tenant = "",
 
         [switch] $Force
     )
     $Params = @{ "Force" = $Force }
     If ($ForceRefresh) {
-        $Params += @{
-            "ForceRefresh" = $ForceRefresh
-            "Tenant"       = $Tenant
+        $Params += @{ "ForceRefresh" = $ForceRefresh }
+        if (-not $tenant) {
+            $tenant = "Default"
         }
+    }
+    if ($Tenant) {
+        $Params += @{ "Tenant" = $Tenant }
     }
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
         Param( [PsCustomObject] $Params)
