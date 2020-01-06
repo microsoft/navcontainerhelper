@@ -1536,7 +1536,7 @@ if (-not `$restartingInstance) {
         if ($multitenant) {
             Write-Host "Switching to multitenant"
             
-            Invoke-ScriptInBCContainer -containerName test -scriptblock {
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
             
                 $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
                 [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -1555,7 +1555,7 @@ if (-not `$restartingInstance) {
                 Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 Set-NavserverInstance -ServerInstance $serverInstance -start
             }
-            New-NavContainerTenant -containerName test -tenantId default
+            New-NavContainerTenant -containerName $containerName -tenantId default
         }
     }
 
