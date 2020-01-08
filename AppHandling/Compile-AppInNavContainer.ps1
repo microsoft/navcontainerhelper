@@ -164,6 +164,15 @@ function Compile-AppInNavContainer {
         }
     }
 
+    # unpack compiler
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+        if (!(Test-Path "c:\build" -PathType Container)) {
+            $tempZip = Join-Path $env:TEMP "alc.zip"
+            Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
+            Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
+        }
+    }
+
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
     $dependencies = @()
@@ -270,12 +279,13 @@ function Compile-AppInNavContainer {
         $webClient.Headers.Add("Authorization", $basicAuthValue)
     }
 
-    $dependencies | ForEach-Object {
-        $dependency = $_
+    $depidx = 0
+    while ($depidx -lt $dependencies.Count) {
+        $dependency = $dependencies[$depidx]
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
-            $publisher = $_.publisher
-            $name = $_.name
-            $version = $_.version
+            $publisher = $dependency.publisher
+            $name = $dependency.name
+            $version = $dependency.version
             $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($version).app"
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
                 $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($_.version).app"
@@ -288,12 +298,57 @@ function Compile-AppInNavContainer {
             Write-Host "Url : $Url"
             $webClient.DownloadFile($url, $symbolsFile)
             if (Test-Path -Path $symbolsFile) {
-                Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile)
+                $addDependencies = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile)
                     # Wait for file to be accessible in container
                     While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
+
+                    $alcPath = 'C:\build\vsix\extension\bin'
+                    Add-Type -AssemblyName System.IO.Compression.FileSystem
+                    Add-Type -AssemblyName System.Text.Encoding
+    
+                    # Import types needed to invoke the compiler
+                    Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                    Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+
+                    try {
+                        $packageStream = [System.IO.File]::OpenRead($symbolsFile)
+                        $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                        $manifest = $package.ReadNavAppManifest()
+    
+                        if ($manifest.application) {
+                            @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                        }
+    
+                        foreach ($dependency in $manifest.dependencies) {
+                            @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                        }
+                    }
+                    finally {
+                        if ($package) {
+                            $package.Dispose()
+                        }
+                        if ($packageStream) {
+                            $packageStream.Dispose()
+                        }
+                    }
                 } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile)
+
+                $addDependencies | % {
+                    $addDependency = $_
+                    $found = $false
+                    $dependencies | % {
+                        if ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name) {
+                            $found = $true
+                        }
+                    }
+                    if (!$found) {
+                        Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
+                        $dependencies += $addDependency
+                    }
+                }
             }
         }
+        $depidx++
     }
  
     if ($sslverificationdisabled) {
@@ -303,11 +358,6 @@ function Compile-AppInNavContainer {
 
     $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
-        if (!(Test-Path "c:\build" -PathType Container)) {
-            $tempZip = Join-Path $env:TEMP "alc.zip"
-            Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
-            Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
-        }
         $alcPath = 'C:\build\vsix\extension\bin'
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
