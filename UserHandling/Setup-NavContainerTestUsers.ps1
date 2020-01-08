@@ -101,7 +101,7 @@ function Setup-NavContainerTestUsers {
         Invoke-NavContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
 
         UnPublish-NavContainerApp -containerName $containerName -appName "CreateTestUsers" -unInstall
-        if (!($systemAppTestLibrary)) {
+        if ((([System.Version]$version).Major -ge 15) -and (!($systemAppTestLibrary))) {
             UnPublish-NavContainerApp -containerName $containerName -appName "System Application Test Library" -unInstall
         }
     }
