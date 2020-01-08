@@ -298,40 +298,42 @@ function Compile-AppInNavContainer {
             Write-Host "Url : $Url"
             $webClient.DownloadFile($url, $symbolsFile)
             if (Test-Path -Path $symbolsFile) {
-                $addDependencies = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile)
+                $addDependencies = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                     # Wait for file to be accessible in container
                     While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
 
-                    $alcPath = 'C:\build\vsix\extension\bin'
-                    Add-Type -AssemblyName System.IO.Compression.FileSystem
-                    Add-Type -AssemblyName System.Text.Encoding
+                    if ($platformversion.Major -ge 15) {
+                        $alcPath = 'C:\build\vsix\extension\bin'
+                        Add-Type -AssemblyName System.IO.Compression.FileSystem
+                        Add-Type -AssemblyName System.Text.Encoding
+        
+                        # Import types needed to invoke the compiler
+                        Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                        Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
     
-                    # Import types needed to invoke the compiler
-                    Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
-                    Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-
-                    try {
-                        $packageStream = [System.IO.File]::OpenRead($symbolsFile)
-                        $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
-                        $manifest = $package.ReadNavAppManifest()
-    
-                        if ($manifest.application) {
-                            @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                        try {
+                            $packageStream = [System.IO.File]::OpenRead($symbolsFile)
+                            $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                            $manifest = $package.ReadNavAppManifest()
+        
+                            if ($manifest.application) {
+                                @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                            }
+        
+                            foreach ($dependency in $manifest.dependencies) {
+                                @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                            }
                         }
-    
-                        foreach ($dependency in $manifest.dependencies) {
-                            @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                        finally {
+                            if ($package) {
+                                $package.Dispose()
+                            }
+                            if ($packageStream) {
+                                $packageStream.Dispose()
+                            }
                         }
                     }
-                    finally {
-                        if ($package) {
-                            $package.Dispose()
-                        }
-                        if ($packageStream) {
-                            $packageStream.Dispose()
-                        }
-                    }
-                } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile)
+                } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile), $platformversion
 
                 $addDependencies | % {
                     $addDependency = $_
