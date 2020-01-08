@@ -1,5 +1,8 @@
 0.6.4.25
 Regression: Calling the container version of updatehosts might have different parameters and lead to missing cleanup of hosts file and ipconfig call on host
+Add parameter force to Install-NavContainerApp
+Add tenant parameter to Get-NavContainerTenants (without -forceRefresh)
+Compile-AppInBCContainer now has support for dependency propagation and application property in 15.3
 
 0.6.4.24
 Regression: UpdateHosts did overwrite the hostname variable, which is used in navstart (only for display purposes only)

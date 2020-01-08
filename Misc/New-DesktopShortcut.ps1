@@ -81,13 +81,14 @@ function New-DesktopShortcut {
                 $Shortcut.IconLocation = $IconLocation
             }
             $Shortcut.save()
-            Move-Item -Path $tempfilename -Destination $filename -ErrorAction SilentlyContinue
 
             if ($RunAsAdministrator) {
-                $bytes = [System.IO.File]::ReadAllBytes($filename)
+                $bytes = [System.IO.File]::ReadAllBytes($tempfilename)
                 $bytes[0x15] = $bytes[0x15] -bor 0x20 #set byte 21 (0x15) bit 6 (0x20) ON
-                [System.IO.File]::WriteAllBytes($filename, $bytes)
+                [System.IO.File]::WriteAllBytes($tempfilename, $bytes)
             }
+
+            Move-Item -Path $tempfilename -Destination $filename -ErrorAction SilentlyContinue
         }
     }
 }
