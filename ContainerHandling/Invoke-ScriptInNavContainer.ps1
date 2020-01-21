@@ -103,6 +103,9 @@ Set-Location $runPath
             '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
             'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
             docker exec $containerName powershell $file
+            if($LASTEXITCODE -ne 0) {
+                throw
+            }
             if (Test-Path -Path $outputFile -PathType Leaf) {
                 [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
             }
