@@ -23,6 +23,8 @@
   CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter credential
   Credentials of the container super user if using NavUserPassword authentication
+ .Parameter evaluationCompany
+  Specifies whether the company that you want to create is an evaluation company when using -useNewDatabase
  .Example
   Clean-BcContainerDatabase -containerName test
 #>
@@ -36,7 +38,8 @@ function Clean-BcContainerDatabase {
         [switch] $doNotCopyEntitlements,
         [string[]] $copyTables = @(),
         [string] $companyName = "My Company",
-        [PSCredential] $credential
+        [PSCredential] $credential,
+        [switch] $evaluationCompany
     )
 
     $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
@@ -154,7 +157,7 @@ function Clean-BcContainerDatabase {
         
         Publish-NavContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
 
-        New-CompanyInBCContainer -containerName $containerName -companyName $companyName
+        New-CompanyInBCContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
         
         if ($SystemApplicationFile) {
             Publish-NavContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync
