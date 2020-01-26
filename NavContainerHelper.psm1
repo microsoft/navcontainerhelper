@@ -14,7 +14,8 @@ $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Pri
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 try {
     $myUsername = $currentPrincipal.Identity.Name
-} catch {
+}
+catch {
     $myUsername = (whoami)
 }
 
@@ -25,10 +26,10 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
 
     if (!$isAdministrator) {
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername, 'FullControl', 3, 'InheritOnly', 'Allow')
         $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
         $acl.AddAccessRule($rule)
-        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
+        [System.IO.Directory]::SetAccessControl($hostHelperFolder, $acl)
     }
 }
 
@@ -36,7 +37,7 @@ $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
 $NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
-$sessions = @{}
+$sessions = @{ }
 
 $usePsSession = $isAdministrator
 
@@ -178,3 +179,18 @@ Check-NavContainerHelperPermissions -Silent
 
 # Symbol Handling
 . (Join-Path $PSScriptRoot "SymbolHandling\Generate-SymbolsInNavContainer.ps1")
+
+# Business Central Container Script
+$bccsFolder = Join-Path $env:APPDATA ".bccs"
+if (!(Test-Path -Path $bccsFolder -PathType Container)) {
+    New-Item -Path $bccsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+}
+
+. (Join-Path $PSScriptRoot "BCCS\BCCS-FileManagement.ps1")
+. (Join-Path $PSScriptRoot "BCCS\New-BCCSTemplate.ps1")
+. (Join-Path $PSScriptRoot "BCCS\Remove-BCCSTemplate.ps1")
+#. (Join-Path $PSScriptRoot "BCCS\New-BCCSContainerFromTemplate.ps1")
+#. (Join-Path $PSScriptRoot "BCCS\Remove-BCCSContainer.ps1")
+#. (Join-Path $PSScriptRoot "BCCS\Get-BCCSTemplates.ps1")
+#. (Join-Path $PSScriptRoot "BCCS\Get-BCCSContainers.ps1")
+#. (Join-Path $PSScriptRoot "BCCS\Get-BCCSImages.ps1")
