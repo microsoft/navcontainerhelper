@@ -33,14 +33,44 @@ function UpdateHostsFile {
             while ($ln -lt $hosts.Count) {
                 $line = $hosts[$ln]
                 $idx = $line.IndexOf("#")
-                if ($idx -ge 0) {
-                    $line = $line.Substring(0,$idx)
-                }
-                $hidx = ("$line ".Replace("`t"," ")).ToLowerInvariant().IndexOf(" $theHostname ")
-                if ($hidx -ge 0 -or $line -eq "") {
-                    $hosts.RemoveAt($ln) | Out-Null
-                } else {
+                if ($idx -eq 0) {
                     $ln++
+                }
+                else {
+                    if ($idx -gt 0) {
+                        $line = $line.Substring(0,$idx)
+                    }
+                    $hidx = ("$line ".Replace("`t"," ")).ToLowerInvariant().IndexOf(" $theHostname ")
+                    if ($hidx -ge 0 -or $line -eq "") {
+                        $hosts.RemoveAt($ln) | Out-Null
+                    } else {
+                        $existsLater = $false
+
+                        # Check wether the same hostname exists later
+                        $line = $line.Replace("`t"," ").Trim().ToLowerInvariant()
+                        $idx = $line.LastIndexOf(' ')
+                        if ($idx -ge 0) {
+                            $thisHostName = $line.SubString($idx + 1)
+                            $chkln = $ln+1
+                            while ($chkln -lt $hosts.Count) {
+                                $line = $hosts[$chkln]
+                                $idx = $line.IndexOf("#")
+                                if ($idx -ge 0) {
+                                    $line = $line.Substring(0,$idx)
+                                }
+                                if (("$line ".Replace("`t"," ")).ToLowerInvariant().IndexOf(" $thisHostname ") -ge 0) {
+                                    $existsLater = $true
+                                }
+                                $chkln++
+                            }
+                        }
+                        if ($existsLater) {
+                            $hosts.RemoveAt($ln) | Out-Null
+                        }
+                        else {
+                            $ln++
+                        }
+                    }
                 }
             }
             if ("$theIpAddress" -ne "") {
