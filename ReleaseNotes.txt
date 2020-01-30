@@ -1,3 +1,7 @@
+0.6.4.26
+Added Parameter -DoNotWriteToHost to function Convert-ALCOutputToAzureDevOps to return the result instead of outputting to Host
+Added Parameter -OutputTo for specifying a scriptblock in order to override the output of the Compiler result
+
 0.6.4.25
 Regression: Calling the container version of updatehosts might have different parameters and lead to missing cleanup of hosts file and ipconfig call on host
 Add parameter force to Install-NavContainerApp

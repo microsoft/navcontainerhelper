@@ -8,6 +8,8 @@
   One or more lines of outout from the AL Compiler
  .Parameter Failon
   Specify if you want the AzureDevOps output to fail on Error or Warning
+ .Parameter DoNotWriteToHost
+  Include this switch to return the converted result instead of outputting the result to the Host
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -AzureDevOps
  .Example
@@ -19,7 +21,8 @@ Function Convert-AlcOutputToAzureDevOps {
         $AlcOutput,
         [Parameter(Position=1)]
         [ValidateSet('none','error','warning')]
-        [string] $FailOn
+        [string] $FailOn,
+        [switch] $doNotWriteToHost
     )
 
     Process {
@@ -30,9 +33,9 @@ Function Convert-AlcOutputToAzureDevOps {
             switch -regex ($line) {
                 "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                     if ($null -ne $Matches[3]) {
-                        Write-Host "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);code=$($Matches[1]);]$($Matches[2])"
+                        $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);code=$($Matches[1]);]$($Matches[2])"
                     } else {
-                        Write-Host "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
+                        $newLine = "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
                     }
             
                     $hasWarning = $true
@@ -40,30 +43,42 @@ Function Convert-AlcOutputToAzureDevOps {
                 "^(.*)\((\d+),(\d+)\): error (\w{2,3}\d{4}): (.*)$"
                 #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
                 {
-                    Write-Host "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                     $hasError = $true
                 }
                 "^(.*)error (\w{2}\d{4}): (.*)$"
                 #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
                 {
-                    Write-Host "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
+                    $newLine = "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
                     $hasError = $true
                 }
                 "^(.*)\((\d+),(\d+)\): warning (\w{2}\d{4}): (.*)$"
                 #Prepared for unified warning format
                 #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
                 {
-                    Write-Host "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                     $hasWarning = $true
                 }
                 default {
-                    Write-Host $line
+                    $newLine = $line
                 }
+            }
+            if ($doNotWriteToHost) {
+                $newLine
+            }
+            else {
+                Write-Host $newLine
             }
         }
 
         if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
-            Write-Host "##vso[task.complete result=Failed;]Failed."
+            $errLine = "##vso[task.complete result=Failed;]Failed."
+            if ($doNotWriteToHost) {
+                $errLine
+            }
+            else {
+                Write-Host $errLine
+            }
         }
     }
 }
