@@ -781,15 +781,27 @@ function New-NavContainer {
     }
 
     if ($includeAL -and ($version.Major -lt 14)) {
-        throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
+        #start BCCS
+        #throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
+        Write-Host("IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x). Disabling switch...")
+        $includeAL = !$includeAL;
+        #end BCCS
     }
 
     if ($includeCSide -and ($version.Major -ge 15)) {
-        throw "IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
+        #start BCCS
+        #throw "IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
+        Write-Host("IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x). Disabling switch...")
+        $includeCSide = !$includeCSide;
+        #end BCCS
     }
 
     if ($enableSymbolLoading -and ($version.Major -ge 15)) {
-        throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
+        #start BCCS
+        #throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
+        Write-Host("EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x). Disabling switch...")
+        $enableSymbolLoading = !$enableSymbolLoading;
+        #end BCCS
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
