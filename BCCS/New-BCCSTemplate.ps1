@@ -14,13 +14,11 @@
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
  .Parameter auth
-  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
+  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use (defaults to Windows)
  .Parameter addinFile
-  Path of a .zip archive containing service add-ins to be copied into the container
+  Path of a .zip archive containing service add-ins to be copied into the container (not working yet!)
  .Example
   New-BCCSTemplate -prefix BC365 -name "Business Central" -image "mcr.microsoft.com/businesscentral/onprem"
- .Example"
-  Backup-NavContainerDatabases -containerName test -bakfolder "c:\programdata\navcontainerhelper\extensions\test"
 #>
 
 function New-BCCSTemplate {
@@ -38,7 +36,7 @@ function New-BCCSTemplate {
         [string] $auth = "Windows"
     )
 
-    $file = Get-BCCSTemplateFile
+    $file = Get-BCCSTemplateFile $file
 
     if (Test-Path $file) {
         $jsonData = Get-Content -Path $file -Raw | ConvertFrom-Json

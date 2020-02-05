@@ -11,11 +11,9 @@
   New-BCCSTemplate -prefix BC365 -name "Business Central" -image "mcr.microsoft.com/businesscentral/onprem"
 #>
 
-function Remove-BCCSTemplate {
+function Get-BCCSTemplate {
     Param (
-        [string] $file = "", 
-        [Parameter(mandatory = $true)]
-        [string] $prefix
+        [string] $file = ""
     )
 
     $file = Get-BCCSTemplateFile $file
@@ -27,21 +25,24 @@ function Remove-BCCSTemplate {
         throw "$($file) could not be read as a json file"
     }
 
-    if ($jsonData -ne "[]" -ne " ") {
-        if ($jsonData.prefix -notcontains $prefix) {
-            throw "Could not find any template with prefix $($prefix)"
-        }
+    if (($jsonData -eq "[]") -or ($jsonData -eq " ")) {
+        throw "$($file) does not contain any templates"
     }
 
-    try {
-        $jsonData = $jsonData | Where-Object prefix -ne $prefix
-        ConvertTo-Json @($jsonData) | Out-File -FilePath $file
-        Write-Host ""
-        Write-Host "Removed template $($prefix)"
+    $jsonEntries = $jsonData | ForEach-Object { $_ }
+    $tempList = @()
+    foreach ($jsonEntry in $jsonEntries) {
+        $temp = [PSCustomObject]@{
+            Prefix          = $jsonEntry.prefix;
+            Name            = $jsonEntry.name;
+            ImageName       = $jsonEntry.imageName;
+            LicenseFile     = $jsonEntry.licenseFile;
+            ServiceAddinZip = $jsonEntry.serviceAddinZip;
+            Auth            = $jsonEntry.auth;
+        }
+        $tempList += $temp
     }
-    catch {
-        throw "Could not remove template $($prefix)"
-    }
+    return $tempList
 }
 
-Export-ModuleMember -Function Remove-BCCSTemplate
+Export-ModuleMember -Function Get-BCCSTemplate
