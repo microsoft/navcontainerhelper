@@ -149,7 +149,7 @@ function New-NavContainer {
     Param (
         [switch] $accept_eula,
         [switch] $accept_outdated,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $containerName, 
         [string] $imageName = "", 
         [Alias('navDvdPath')]
@@ -165,7 +165,7 @@ function New-NavContainer {
         [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
         [string] $memoryLimit = "",
-        [ValidateSet('','process','hyperv')]
+        [ValidateSet('', 'process', 'hyperv')]
         [string] $isolation = "",
         [string] $databaseServer = "",
         [string] $databaseInstance = "",
@@ -173,8 +173,8 @@ function New-NavContainer {
         [string] $bakFile = "",
         [string] $bakFolder = "",
         [PSCredential] $databaseCredential = $null,
-        [ValidateSet('None','Desktop','StartMenu','CommonStartMenu','CommonDesktop','DesktopFolder','CommonDesktopFolder')]
-        [string] $shortcuts='Desktop',
+        [ValidateSet('None', 'Desktop', 'StartMenu', 'CommonStartMenu', 'CommonDesktop', 'DesktopFolder', 'CommonDesktopFolder')]
+        [string] $shortcuts = 'Desktop',
         [switch] $updateHosts,
         [switch] $useSSL,
         [switch] $includeAL,
@@ -191,10 +191,10 @@ function New-NavContainer {
         [switch] $clickonce,
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
-        [ValidateSet('no','on-failure','unless-stopped','always')]
-        [string] $restart='unless-stopped',
-        [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
-        [string] $auth='Windows',
+        [ValidateSet('no', 'on-failure', 'unless-stopped', 'always')]
+        [string] $restart = 'unless-stopped',
+        [ValidateSet('Windows', 'NavUserPassword', 'UserPassword', 'AAD')]
+        [string] $auth = 'Windows',
         [int] $timeout = 1800,
         [string[]] $additionalParameters = @(),
         $myScripts = @(),
@@ -230,7 +230,8 @@ function New-NavContainer {
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
         if ($auth -eq "Windows") {
             $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
-        } else {
+        }
+        else {
             $credential = get-credential -Message "Using $auth Authentication. Please enter username/password for the Containter."
         }
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
@@ -259,10 +260,12 @@ function New-NavContainer {
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
-            } elseif (!(Test-Path $_)) {
+            }
+            elseif (!(Test-Path $_)) {
                 throw "Script directory or file $_ does not exist"
             }
-        } elseif ($_ -isnot [Hashtable]) {
+        }
+        elseif ($_ -isnot [Hashtable]) {
             throw "Illegal value in myScripts"
         }
     }
@@ -385,7 +388,8 @@ function New-NavContainer {
         if ($forceHttpWithTraefik) {
             Write-Host "Disabling SSL on the container as you have configured -forceHttpWithTraefik"
             $useSSL = $false
-        } else {
+        }
+        else {
             Write-Host "Enabling SSL as otherwise all clients will see mixed HTTP / HTTPS request, which will cause problems e.g. on the mobile and modern windows clients"
             $useSSL = $true
         }
@@ -412,9 +416,11 @@ function New-NavContainer {
             else {
                 $imageName = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
             }
-        } elseif (Test-NavContainer -containerName navserver) {
+        }
+        elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
-        } else {
+        }
+        else {
             $imageName = "mcr.microsoft.com/businesscentral/onprem"
             $alwaysPull = $true
         }
@@ -443,9 +449,11 @@ function New-NavContainer {
 
         if ($bestImageExists) {
             $imageName = $bestImageName
-        } elseif ($imageExists) {
+        }
+        elseif ($imageExists) {
             Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
-        } else {
+        }
+        else {
             $pullit = $true
         }
     }
@@ -455,7 +463,8 @@ function New-NavContainer {
             Write-Host "Pulling image $bestImageName"
             DockerDo -command pull -imageName $bestImageName | Out-Null
             $imageName = $bestImageName
-        } catch {
+        }
+        catch {
             if ($imageName -eq $bestImageName) {
                 throw
             }
@@ -570,11 +579,11 @@ function New-NavContainer {
         }
 
         $parameters += @(
-                       "--label nav=$navtag",
-                       "--label version=$navversion",
-                       "--label country=$devCountry",
-                       "--label cu="
-                       )
+            "--label nav=$navtag",
+            "--label version=$navversion",
+            "--label country=$devCountry",
+            "--label cu="
+        )
 
         if ($dvdPlatform) {
             $parameters += @( "--label platform=$dvdPlatform" )
@@ -582,7 +591,8 @@ function New-NavContainer {
 
         $navVersion += "-$devCountry"
 
-    } elseif ($devCountry -eq "") {
+    }
+    elseif ($devCountry -eq "") {
         $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
     }
 
@@ -647,10 +657,11 @@ function New-NavContainer {
 
         throw "The container operating system is newer than the host operating system, cannot use image"
     
-    } elseif ("$useGenericImage" -eq "" -and
-              ($hostOsVersion.Major -ne $containerOsversion.Major -or 
-               $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
-               $hostOsVersion.Build -ne $containerOsversion.Build)) {
+    }
+    elseif ("$useGenericImage" -eq "" -and
+        ($hostOsVersion.Major -ne $containerOsversion.Major -or 
+            $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
+            $hostOsVersion.Build -ne $containerOsversion.Build)) {
 
         if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
             
@@ -677,11 +688,11 @@ function New-NavContainer {
             $inspect = docker inspect $imageName | ConvertFrom-Json
 
             $parameters += @(
-                           "--label nav=$($inspect.Config.Labels.nav)",
-                           "--label version=$($inspect.Config.Labels.version)",
-                           "--label country=$($inspect.Config.Labels.country)",
-                           "--label cu=$($inspect.Config.Labels.cu)"
-                           )
+                "--label nav=$($inspect.Config.Labels.nav)",
+                "--label version=$($inspect.Config.Labels.version)",
+                "--label country=$($inspect.Config.Labels.country)",
+                "--label cu=$($inspect.Config.Labels.cu)"
+            )
 
             if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
                 $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
@@ -797,14 +808,16 @@ function New-NavContainer {
 
         if ($isServerHost) {
             $isolation = "process"
-        } else {
+        }
+        else {
             $isolation = "hyperv"
             if ($dockerClientVersion.StartsWith("master-dockerproject-") -and ($dockerClientVersion -gt "master-dockerproject-2018-12-01")) {
                 $isolation = "process"
-            } else {
+            }
+            else {
                 [System.Version]$ver = $null
-                if ([System.Version]::TryParse($dockerClientVersion.Split('-')[0],[ref]$ver)) {
-                    if ($ver -gt [System.Version]::new(18,9,0)) {
+                if ([System.Version]::TryParse($dockerClientVersion.Split('-')[0], [ref]$ver)) {
+                    if ($ver -gt [System.Version]::new(18, 9, 0)) {
                         $isolation = "process"
                     }
                 }
@@ -830,7 +843,7 @@ function New-NavContainer {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
                 $uri = [System.Uri]::new($_)
-                $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
+                $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count - 1])
                 $destinationFile = Join-Path $myFolder $filename
                 Download-File -sourceUrl $_ -destinationFile $destinationFile
                 if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
@@ -838,16 +851,20 @@ function New-NavContainer {
                     Expand-Archive -Path $destinationFile -DestinationPath $myFolder
                     Remove-Item -Path $destinationFile -Force
                 }
-            } elseif (Test-Path $_ -PathType Container) {
+            }
+            elseif (Test-Path $_ -PathType Container) {
                 Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
-            } else {
+            }
+            else {
                 if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
                     Expand-Archive -Path $_ -DestinationPath $myFolder
-                } else {
+                }
+                else {
                     Copy-Item -Path $_ -Destination $myFolder -Force
                 }
             }
-        } else {
+        }
+        else {
             $hashtable = $_
             $hashtable.Keys | ForEach-Object {
                 Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
@@ -913,7 +930,8 @@ function New-NavContainer {
                 throw "You must specify a license file when creating a AL Development container with this version."
             }
             $containerlicenseFile = ""
-        } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+        }
+        elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
             Write-Host "Using license file $licenseFile"
             $licensefileUri = $licensefile
             $licenseFile = "$myFolder\license.flf"
@@ -925,7 +943,8 @@ function New-NavContainer {
                 throw "Specified license file Uri isn't a direct download Uri"
             }
             $containerLicenseFile = "c:\run\my\license.flf"
-        } else {
+        }
+        else {
             Write-Host "Using license file $licenseFile"
             Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
             $containerLicenseFile = "c:\run\my\license.flf"
@@ -935,25 +954,26 @@ function New-NavContainer {
 
 
     $parameters += @(
-                    "--name $containerName",
-                    "--hostname $containerName",
-                    "--env auth=$auth"
-                    "--env username=""$($credential.UserName)""",
-                    "--env ExitOnError=N",
-                    "--env locale=$locale",
-                    "--env databaseServer=""$databaseServer""",
-                    "--env databaseInstance=""$databaseInstance""",
-                    "--volume ""$($hostHelperFolder):$containerHelperFolder""",
-                    "--volume ""$($myFolder):C:\Run\my""",
-                    "--isolation $isolation",
-                    "--restart $restart"
-                   )
+        "--name $containerName",
+        "--hostname $containerName",
+        "--env auth=$auth"
+        "--env username=""$($credential.UserName)""",
+        "--env ExitOnError=N",
+        "--env locale=$locale",
+        "--env databaseServer=""$databaseServer""",
+        "--env databaseInstance=""$databaseInstance""",
+        "--volume ""$($hostHelperFolder):$containerHelperFolder""",
+        "--volume ""$($myFolder):C:\Run\my""",
+        "--isolation $isolation",
+        "--restart $restart"
+    )
 
     if ("$memoryLimit" -eq "") {
         if ($isolation -eq "hyperv") {
             $parameters += "--memory 4G"
         }
-    } else {
+    }
+    else {
         $parameters += "--memory $memoryLimit"
     }
 
@@ -1009,7 +1029,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
     $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
     $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
     [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "'+$winclientServer+'"
+    $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "' + $winclientServer + '"
     $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value=$ServerInstance
     if ($multitenant) {
         $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value="$TenantId"
@@ -1050,7 +1070,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
         New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
     }
 }
-'+$setupWebClientContent
+' + $setupWebClientContent
 
         $setupWebClientContent | Set-Content -path $setupWebClientFile
     }
@@ -1091,7 +1111,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     if ($multitenant) {
         $dbName = $TenantId
     }
-    $userPlanTableName = '''+$userPlanTableName+'''
+    $userPlanTableName = ''' + $userPlanTableName + '''
     Invoke-Sqlcmd -ErrorAction Ignore -ServerInstance ''localhost\SQLEXPRESS'' -Query "USE [$DbName]
     INSERT INTO [dbo].[$userPlanTableName] ([Plan ID],[User Security ID]) VALUES (''{8e9002c0-a1d8-4465-b952-817d2948e6e2}'',''$userId'')"
 }
@@ -1100,7 +1120,8 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
     if ($useSSL) {
         $parameters += "--env useSSL=Y"
-    } else {
+    }
+    else {
         $parameters += "--env useSSL=N"
     }
 
@@ -1116,16 +1137,16 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
         ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname '+$containername+' -theIpAddress $ip
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname ' + $containername + ' -theIpAddress $ip
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
-    if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
-        ('# Invoke default behavior
+        if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
+            ('# Invoke default behavior
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
-    }
+        }
 
-    ('
+        ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts"
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
@@ -1154,16 +1175,16 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             $ServerInstance = "NAV"
         }
 
-        $webclientRule="PathPrefix:$webclientPart"
-        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
-        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
-        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
-        $dlRule="PathPrefixStrip:${dlPart}"
+        $webclientRule = "PathPrefix:$webclientPart"
+        $soapRule = "PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
+        $restRule = "PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
+        $devRule = "PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
+        $dlRule = "PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Split(".")[0]
 
         $added = $false
-        $cnt = $additionalParameters.Count-1
+        $cnt = $additionalParameters.Count - 1
         if ($cnt -ge 0) {
             0..$cnt | % {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
@@ -1187,22 +1208,22 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         }
 
         $additionalParameters += @("--hostname $traefikHostname",
-                                   "-e webserverinstance=$containerName",
-                                   "-e publicdnsname=$publicDnsName", 
-                                   "-l `"traefik.protocol=$traefikProtocol`"",
-                                   "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                                   "-l `"traefik.web.port=$webPort`"",
-                                   "-l `"traefik.soap.frontend.rule=$soapRule`"", 
-                                   "-l `"traefik.soap.port=7047`"",
-                                   "-l `"traefik.rest.frontend.rule=$restRule`"", 
-                                   "-l `"traefik.rest.port=7048`"",
-                                   "-l `"traefik.dev.frontend.rule=$devRule`"", 
-                                   "-l `"traefik.dev.port=7049`"",
-                                   "-l `"traefik.dl.frontend.rule=$dlRule`"", 
-                                   "-l `"traefik.dl.port=8080`"",
-                                   "-l `"traefik.dl.protocol=http`"",
-                                   "-l `"traefik.enable=true`"",
-                                   "-l `"traefik.frontend.entryPoints=https`""
+            "-e webserverinstance=$containerName",
+            "-e publicdnsname=$publicDnsName", 
+            "-l `"traefik.protocol=$traefikProtocol`"",
+            "-l `"traefik.web.frontend.rule=$webclientRule`"", 
+            "-l `"traefik.web.port=$webPort`"",
+            "-l `"traefik.soap.frontend.rule=$soapRule`"", 
+            "-l `"traefik.soap.port=7047`"",
+            "-l `"traefik.rest.frontend.rule=$restRule`"", 
+            "-l `"traefik.rest.port=7048`"",
+            "-l `"traefik.dev.frontend.rule=$devRule`"", 
+            "-l `"traefik.dev.port=7049`"",
+            "-l `"traefik.dl.frontend.rule=$dlRule`"", 
+            "-l `"traefik.dl.port=8080`"",
+            "-l `"traefik.dl.protocol=http`"",
+            "-l `"traefik.enable=true`"",
+            "-l `"traefik.frontend.entryPoints=https`""
         )
 
         ("
@@ -1244,19 +1265,19 @@ if (-not `$restartingInstance) {
             $encPassword = ConvertFrom-SecureString -SecureString $credential.Password -Key $passwordKey
             
             $parameters += @(
-                             "--env securePassword=$encPassword",
-                             "--env passwordKeyFile=""$containerPasswordKeyFile""",
-                             "--env removePasswordKeyFile=Y"
-                            )
+                "--env securePassword=$encPassword",
+                "--env passwordKeyFile=""$containerPasswordKeyFile""",
+                "--env removePasswordKeyFile=Y"
+            )
 
             if ($databaseCredential -ne $null -and $databaseCredential -ne [System.Management.Automation.PSCredential]::Empty) {
 
                 $encDatabasePassword = ConvertFrom-SecureString -SecureString $databaseCredential.Password -Key $passwordKey
                 $parameters += @(
-                                 "--env databaseUsername=$($databaseCredential.UserName)",
-                                 "--env databaseSecurePassword=$encDatabasePassword"
-                                 "--env encryptionSecurePassword=$encDatabasePassword"
-                                )
+                    "--env databaseUsername=$($databaseCredential.UserName)",
+                    "--env databaseSecurePassword=$encDatabasePassword"
+                    "--env encryptionSecurePassword=$encDatabasePassword"
+                )
             }
             
             $parameters += $additionalParameters
@@ -1265,10 +1286,12 @@ if (-not `$restartingInstance) {
                 return
             }
             Wait-NavContainerReady $containerName -timeout $timeout
-        } finally {
+        }
+        finally {
             Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
         }
-    } else {
+    }
+    else {
         $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
         $parameters += "--env password=""$plainPassword"""
         $parameters += $additionalParameters
@@ -1314,7 +1337,8 @@ if (-not `$restartingInstance) {
 
                 if ($webClientUrl.Contains('?')) {
                     $webClientUrl += "&page=$pageno"
-                } else {
+                }
+                else {
                     $webClientUrl += "?page=$pageno"
                 }
                 New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
@@ -1386,9 +1410,10 @@ if (-not `$restartingInstance) {
         }
 
         if ($auth -eq "Windows") {
-            $ntauth="1"
-        } else {
-            $ntauth="0"
+            $ntauth = "1"
+        }
+        else {
+            $ntauth = "0"
         }
         if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
@@ -1410,10 +1435,10 @@ if (-not `$restartingInstance) {
             if (!(Test-Path $originalFolder)) {
                 # Export base objects
                 Export-NavContainerObjects -containerName $containerName `
-                                           -objectsFolder $originalFolder `
-                                           -filter "" `
-                                           -sqlCredential $sqlCredential `
-                                           -ExportTo 'txt folder'
+                    -objectsFolder $originalFolder `
+                    -filter "" `
+                    -sqlCredential $sqlCredential `
+                    -ExportTo 'txt folder'
             }
         }
 
@@ -1446,15 +1471,15 @@ if (-not `$restartingInstance) {
                         $appName = "BaseApp"
                     }
                     Get-NavContainerApp -containerName $containerName `
-                                        -publisher Microsoft `
-                                        -appName $appName `
-                                        -appFile $appFile `
-                                        -credential $credential
+                        -publisher Microsoft `
+                        -appName $appName `
+                        -appFile $appFile `
+                        -credential $credential
     
                     $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
                     Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
     
-                    'layout','src','translations' | ForEach-Object {
+                    'layout', 'src', 'translations' | ForEach-Object {
                         if (Test-Path (Join-Path $appFolder $_)) {
                             Copy-Item -Path (Join-Path $appFolder $_) -Destination $alFolder -Recurse -Force
                         }
@@ -1470,10 +1495,10 @@ if (-not `$restartingInstance) {
             if (!(Test-Path $originalFolder)) {
                 # Export base objects as new syntax
                 Export-NavContainerObjects -containerName $containerName `
-                                           -objectsFolder $originalFolder `
-                                           -filter "" `
-                                           -sqlCredential $sqlCredential `
-                                           -ExportTo 'txt folder (new syntax)'
+                    -objectsFolder $originalFolder `
+                    -filter "" `
+                    -sqlCredential $sqlCredential `
+                    -ExportTo 'txt folder (new syntax)'
             }
             if ($version.Major -ge 14 -and $includeAL) {
                 $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
