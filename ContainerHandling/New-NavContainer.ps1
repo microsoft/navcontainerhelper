@@ -306,13 +306,13 @@ function New-NavContainer {
         if ($os.BuildNumber -eq 17134) { 
             $hostOs = "1803"
         }
-        $bestGenericContainerOs = "1803"
+        $bestGenericContainerOs = "ltsc2016"
     }
     elseif ($os.BuildNumber -ge 16299) {
         if ($os.BuildNumber -eq 16299) { 
             $hostOs = "1709"
         }
-        $bestGenericContainerOs = "1709"
+        $bestGenericContainerOs = "ltsc2016"
     }
     elseif ($os.BuildNumber -eq 15063) {
         $hostOs = "1703"
