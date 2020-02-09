@@ -25,14 +25,14 @@
 
 function New-BCCSContainerFromTemplate {
     Param (
-        [string] $file = "",
         [Parameter(mandatory = $true)]
         [string] $prefix,
         [Parameter(mandatory = $true)]
         [string] $containerName,
         [string] $databaseBackup = "",
         [string] $imageName = "",
-        [string] $licenseFile = ""
+        [string] $licenseFile = "",
+        [string] $file = ""
     )
 
     $file = Get-BCCSTemplateFile $file
@@ -47,6 +47,8 @@ function New-BCCSContainerFromTemplate {
     if ($jsonData.prefix -notcontains $prefix) {
         throw "Could not find template with prefix $($prefix)"
     }
+
+    $fullContainerName = $prefix + "-" + $containerName
 
     Check-NavContainerName -containerName $fullContainerName
 
@@ -87,7 +89,12 @@ function New-BCCSContainerFromTemplate {
         Write-Host "Successfully copied database backup"
     }
 
-    New-NavContainer @params
+    try {
+        New-NavContainer @params
+    }
+    catch {
+        throw "Could not create $($fullContainerName)"
+    }
 
     if ($databaseBackup) {
         Remove-Item "C:\temp\navdbfiles\dbFile.bak"

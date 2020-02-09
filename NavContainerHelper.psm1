@@ -187,11 +187,15 @@ if (!(Test-Path -Path $bccsFolder -PathType Container)) {
 }
 
 . (Join-Path $PSScriptRoot "BCCS\BCCS-FileManagement.ps1")
+
 . (Join-Path $PSScriptRoot "BCCS\New-BCCSTemplate.ps1")
 . (Join-Path $PSScriptRoot "BCCS\Remove-BCCSTemplate.ps1")
-. (Join-Path $PSScriptRoot "BCCS\New-BCCSContainerFromTemplate.ps1")
-#. (Join-Path $PSScriptRoot "BCCS\Remove-BCCSContainer.ps1")
 . (Join-Path $PSScriptRoot "BCCS\Get-BCCSTemplate.ps1")
-#. (Join-Path $PSScriptRoot "BCCS\Get-BCCSContainers.ps1")
-#. (Join-Path $PSScriptRoot "BCCS\Get-BCCSImages.ps1")
-#. (Join-Path $PSScriptRoot "BCCS\Show-BCCSGUI.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\New-BCCSContainerFromTemplate.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\Get-BCCSRepository.ps1")
+. (Join-Path $PSScriptRoot "BCCS\Get-BCCSImage.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\Show-BCCSGUI.ps1")
+. (Join-Path $PSScriptRoot "BCCS\Show-BCCSAssistant.ps1")

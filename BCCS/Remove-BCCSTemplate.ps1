@@ -13,9 +13,9 @@
 
 function Remove-BCCSTemplate {
     Param (
-        [string] $file = "", 
         [Parameter(mandatory = $true)]
-        [string] $prefix
+        [string] $prefix,
+        [string] $file = ""
     )
 
     $file = Get-BCCSTemplateFile $file

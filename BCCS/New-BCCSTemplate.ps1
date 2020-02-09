@@ -23,17 +23,17 @@
 
 function New-BCCSTemplate {
     Param (
-        [string] $file = "", 
         [Parameter(mandatory = $true)]
         [string] $prefix,
         [Parameter(mandatory = $true)]
         [string] $name,
-        [Parameter(mandatory = $true)]
+        [Parameter(mandatory = $true, ValueFromPipeline = $true)]
         [string] $imageName,
         [string] $licenseFile = "",
         [string] $serviceAddinZip = "",
         [ValidateSet('Windows', 'NavUserPassword', 'UserPassword', 'AAD')]
-        [string] $auth = "Windows"
+        [string] $auth = "Windows",
+        [string] $file = ""
     )
 
     $file = Get-BCCSTemplateFile $file
@@ -50,11 +50,12 @@ function New-BCCSTemplate {
             throw "Template $($prefix) already exists"
         }
     }
-
+    
     $template = [PSCustomObject]@{prefix = $prefix; name = $name; imageName = $imageName; licenseFile = $licenseFile; serviceAddinZip = $serviceAddinZip; auth = $auth }
     $jsonData += $template
 
     try {
+        ConvertTo-Json @($jsonData) | Out-File -FilePath $file
         Write-Host ""
         Write-Host "Saved the following template to $($file)"
         Write-Host "Prefix = " -NoNewline
@@ -69,7 +70,6 @@ function New-BCCSTemplate {
         Write-Host $serviceAddinZip -ForegroundColor Yellow
         Write-Host "Authentication Type = " -NoNewline
         Write-Host $auth -ForegroundColor Yellow
-        ConvertTo-Json @($jsonData) | Out-File -FilePath $file
     }
     catch {
         throw "Could not save template $($prefix)"
