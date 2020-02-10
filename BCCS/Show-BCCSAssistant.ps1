@@ -97,7 +97,7 @@ function Menu-CreateTemplate {
 
         $licenseFile = $null
         if (!$licenseFile) {
-                $licenseFile = Get-OpenFile "Pick license file for $($prefix)" "License files (*.flf)|*.flf" $1ScriptRoot
+                $licenseFile = Get-OpenFile "Pick license file for $($prefix)" "License files (*.flf)|*.flf" $PSScriptRoot
         }
 
         $imageName = $null
