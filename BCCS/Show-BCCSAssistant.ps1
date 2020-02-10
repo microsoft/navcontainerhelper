@@ -1,6 +1,6 @@
 
 function Write-Log($message) {
-        $time = "[" + (Get-Date).Hour + ":" + (Get-Date).Minute + ":" + (Get-Date).Second + "]"
+        $time = Get-Date -Format "[HH:mm:ss]"
         Write-Host $time $message -ForegroundColor Yellow
 }
 
@@ -25,11 +25,12 @@ Function GetAllContainersFromDocker {
         $contObjList = @()
         foreach ($container in $containers) {
                 $splitName = $container.Name.Split("-")
-                $contObj = New-Object Container
-                $contObj.template = $splitName[0]
-                $contObj.name = $splitName[1]
-                $contObj.fullName = $container.Name
-                $contObj.status = $container.Status
+                $contObj = [PSCustomObject]@{
+                        template = $splitName[0];
+                        name     = $splitName[1];
+                        fullName = $container.Name;
+                        status   = $container.Status;
+                }
                 $contObjList += $contObj
         }
         return $contObjList
@@ -66,7 +67,9 @@ function Show-BCCSAssistant {
         param (
                 [string]$Title = 'Business Central Container Script'
         )
+        Clear-Host
         Config-UpdateAllModules
+        Write-Host ""
         $menuList = @(
                 $(New-MenuItem -DisplayName "create a new template" -Script { Menu-CreateTemplate }),
                 $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate }),
@@ -94,7 +97,7 @@ function Menu-CreateTemplate {
 
         $licenseFile = $null
         if (!$licenseFile) {
-                $licenseFile = Get-OpenFile "Pick license file for $($prefix)" "License files (*.flf)|*.flf" $PSScriptRoot
+                $licenseFile = Get-OpenFile "Pick license file for $($prefix)" "License files (*.flf)|*.flf" $1ScriptRoot
         }
 
         $imageName = $null
@@ -166,7 +169,7 @@ function Menu-UpdateLicense() {
         if ($selection) {
                 $newLicense = Get-OpenFile "Pick new license file to upload" "License files (*.flf)|*.flf" $PSScriptRoot
                 if (Test-Path -path $newLicense) {
-                        Import-NavContainerLicense -containerName $selection.Name -licenseFile $newLicense
+                        Import-NavContainerLicense -containerName $selection.fullName -licenseFile $newLicense
                 }
                 else {
                         throw "Not a valid license file"
