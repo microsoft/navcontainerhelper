@@ -18,7 +18,7 @@ function Get-BCCSImage {
     )
 
     if (!$repositoryObject) {
-        Write-Host "No repository in parameter set. Showing repository list..."
+        Write-Log "No repository in parameter set. Showing repository list..."
         $repositoryObject = Get-BCCSRepository | Out-GridView -Title "Select a repository" -OutputMode Single
     }
 

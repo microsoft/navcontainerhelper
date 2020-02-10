@@ -2,17 +2,19 @@ function Get-BCCSTemplateFile() {
     Param (
         [string] $file = ""
     )
-    Write-Host ""
 
     if ($file -eq "") {
         $file = Join-Path $bccsFolder "templates.json"
         if (!(Test-Path $file)) {
-            Write-Host "No file specified. Creating $($file)"
+            Write-Log "No file specified. Creating $($file)"
             New-Item $file -ItemType File | Out-Null
         }
         else {
-            Write-Host "No file specified. Using $($file)"            
+            Write-Log "No file specified. Using $($file)"            
         }
+    }
+    else {
+        Write-Log "Using $($file)"
     }
 
     $jsonFile = Get-Item $file
@@ -21,4 +23,9 @@ function Get-BCCSTemplateFile() {
     }
 
     $file
+}
+
+function Write-Log($message) {
+    $time = Get-Date -Format "[HH:mm:ss]"
+    Write-Host $time $message -ForegroundColor Yellow
 }

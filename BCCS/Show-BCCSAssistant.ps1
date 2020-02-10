@@ -1,9 +1,3 @@
-
-function Write-Log($message) {
-        $time = Get-Date -Format "[HH:mm:ss]"
-        Write-Host $time $message -ForegroundColor Yellow
-}
-
 function Config-UpdateModule([string]$moduleName) {
         if (Get-Module -ListAvailable -Name $moduleName) {
                 Write-Log "Checking for Updates [$($moduleName)]..."
@@ -65,22 +59,23 @@ function New-MenuItem([String]$DisplayName, [ScriptBlock]$Script) {
 }
 function Show-BCCSAssistant {
         param (
-                [string]$Title = 'Business Central Container Script'
+                [string]$file = ""
         )
+
         Clear-Host
         Config-UpdateAllModules
+        $file = Get-BCCSTemplateFile $file
         Write-Host ""
         $menuList = @(
-                $(New-MenuItem -DisplayName "create a new template" -Script { Menu-CreateTemplate }),
-                $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate }),
+                $(New-MenuItem -DisplayName "create a new template" -Script { Menu-CreateTemplate $file }),
+                $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate $file }),
                 $(Get-MenuSeparator),
-                $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer }),
-                $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense })
+                $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file }),
+                $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file })
         )    
-        #Clear-Host
         do {
                 Write-Host ""
-                Write-Host "================ $Title ================"
+                Write-Host "================ Business Central Container Script ================"
                 Write-Host "Press 'Esc' to quit.`n"
                 $Chosen = Show-Menu -MenuItems $menuList
                 if ($chosen) {
@@ -91,6 +86,10 @@ function Show-BCCSAssistant {
 }
 
 function Menu-CreateTemplate {
+        param (
+                [string]$file
+        )
+
         Write-Host ""
         $prefix = Read-Host "Prefix [e.g.: 'BC365']"
         $name = Read-Host "Name [e.g. 'Business Central']"
@@ -112,13 +111,13 @@ function Menu-CreateTemplate {
         Write-Host ""
         Write-Log "Save the following template? (defaults to yes)"
         Write-Host ""
-        Write-Host "Prefix = " -NoNewline
+        Write-Host "Prefix`t`t" -NoNewline
         Write-Host $prefix -ForegroundColor Yellow
-        Write-Host "Name = " -NoNewline
+        Write-Host "Name`t`t" -NoNewline
         Write-Host $name -ForegroundColor Yellow
-        Write-Host "License File = " -NoNewline
+        Write-Host "License File`t" -NoNewline
         Write-Host $licenseFile -ForegroundColor Yellow
-        Write-Host "Image = " -NoNewline
+        Write-Host "Image`t`t" -NoNewline
         Write-Host $imageName -ForegroundColor Yellow
         Write-Host ""
     
@@ -129,20 +128,28 @@ function Menu-CreateTemplate {
                 Default { $Save = $false }
         }
         if ($Save) {
-                New-BCCSTemplate $prefix $name $imageName $licenseFile
+                New-BCCSTemplate $prefix $name $imageName $licenseFile -file $file
         }
 }
 
 function Menu-RemoveTemplate {
-        $template = Get-BCCSTemplate | Out-GridView -Title "Select a template to delete" -OutputMode Single
+        param (
+                [string]$file
+        )
+
+        $template = Get-BCCSTemplate -file $file | Out-GridView -Title "Select a template to delete" -OutputMode Single
         if (!$template) {
                 throw "No template selected"
         }
-        Remove-BCCSTemplate $template.prefix
+        Remove-BCCSTemplate $template.prefix -file $file
 }
 
 function Menu-CreateContainer {
-        $template = Get-BCCSTemplate | Out-GridView -Title "Select a template to use" -OutputMode Single
+        param (
+                [string]$file
+        )
+
+        $template = Get-BCCSTemplate -file $file | Out-GridView -Title "Select a template to use" -OutputMode Single
         if (!$template) {
                 throw "No template selected"
         }
@@ -158,13 +165,17 @@ function Menu-CreateContainer {
         }
         if ($UseBackup) { 
                 $dbFile = Get-OpenFile "Pick database backup for $($containerName)" "Database Backup files (*.bak)|*.bak" $PSScriptRoot
-                New-BCCSContainerFromTemplate $template.prefix $containerName $dbFile
+                New-BCCSContainerFromTemplate $template.prefix $containerName $dbFile -file $file
         }
         else {
-                New-BCCSContainerFromTemplate $template.prefix $containerName 
+                New-BCCSContainerFromTemplate $template.prefix $containerName -file $file
         }
 }
 function Menu-UpdateLicense() {
+        param (
+                [string]$file
+        )
+
         $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to update its license" -OutputMode Single
         if ($selection) {
                 $newLicense = Get-OpenFile "Pick new license file to upload" "License files (*.flf)|*.flf" $PSScriptRoot

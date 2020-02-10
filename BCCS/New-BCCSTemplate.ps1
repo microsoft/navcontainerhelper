@@ -56,19 +56,19 @@ function New-BCCSTemplate {
 
     try {
         ConvertTo-Json @($jsonData) | Out-File -FilePath $file
+        Write-Log "Saved the following template to $($file)"
         Write-Host ""
-        Write-Host "Saved the following template to $($file)"
-        Write-Host "Prefix = " -NoNewline
+        Write-Host "Prefix`t`t`t`t`t" -NoNewline
         Write-Host $prefix -ForegroundColor Yellow
-        Write-Host "Name = " -NoNewline
+        Write-Host "Name`t`t`t`t`t" -NoNewline
         Write-Host $name -ForegroundColor Yellow
-        Write-Host "Image Name = " -NoNewline
+        Write-Host "Image Name`t`t`t`t" -NoNewline
         Write-Host $imageName -ForegroundColor Yellow
-        Write-Host "License File = " -NoNewline
+        Write-Host "License File`t`t`t" -NoNewline
         Write-Host $licenseFile -ForegroundColor Yellow
-        Write-Host "Add-In .zip File = " -NoNewline
+        Write-Host "Add-In .zip File`t`t" -NoNewline
         Write-Host $serviceAddinZip -ForegroundColor Yellow
-        Write-Host "Authentication Type = " -NoNewline
+        Write-Host "Authentication Type`t`t" -NoNewline
         Write-Host $auth -ForegroundColor Yellow
     }
     catch {

@@ -36,8 +36,7 @@ function Remove-BCCSTemplate {
     try {
         $jsonData = $jsonData | Where-Object prefix -ne $prefix
         ConvertTo-Json @($jsonData) | Out-File -FilePath $file
-        Write-Host ""
-        Write-Host "Removed template $($prefix)"
+        Write-Log "Removed template $($prefix)"
     }
     catch {
         throw "Could not remove template $($prefix)"

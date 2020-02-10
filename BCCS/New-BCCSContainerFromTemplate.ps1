@@ -83,10 +83,10 @@ function New-BCCSContainerFromTemplate {
     if ($databaseBackup) {
         if (!(Test-Path -path "C:\temp")) { New-Item "C:\temp" -Type Directory }
         if (!(Test-Path -path "C:\temp\navdbfiles")) { New-Item "C:\temp\navdbfiles" -Type Directory }
-        Write-Host "Copying database backup to C:\temp\navdbfiles\dbFile.bak ..."
+        Write-Log "Copying database backup to C:\temp\navdbfiles\dbFile.bak ..."
         Copy-Item $databaseBackup "C:\temp\navdbfiles\dbFile.bak"
         $params += @{'additionalParameters' = @('--volume c:\temp\navdbfiles:c:\temp', '--env bakfile="c:\temp\dbFile.bak"') }
-        Write-Host "Successfully copied database backup"
+        Write-Log "Successfully copied database backup"
     }
 
     try {
@@ -98,10 +98,8 @@ function New-BCCSContainerFromTemplate {
 
     if ($databaseBackup) {
         Remove-Item "C:\temp\navdbfiles\dbFile.bak"
-        Write-Host "Successfully removed C:\temp\navdbfiles\dbFile.bak"
+        Write-Log "Successfully removed C:\temp\navdbfiles\dbFile.bak"
     }
-
-    Write-Host ""
 }
 
 Export-ModuleMember -Function New-BCCSContainerFromTemplate
