@@ -13,7 +13,7 @@ The BCCSAssistant is adding the following functions to the NavContainerHelper:
 | Function                      | Description                                  |
 |-------------------------------|----------------------------------------------|
 | Get-BCCSImage                 | Returns all available images in a repository |
-| Get-BCCSRepository            | Returns all templates                        |
+| Get-BCCSTemplate              | Returns all templates                        |
 | New-BCCSContainerFromTemplate | Creates a container from a template          |
 | New-BCCSTemplate              | Creates a new template                       |
 | Remove-BCCSTemplate           | Removes an existing template                 |
