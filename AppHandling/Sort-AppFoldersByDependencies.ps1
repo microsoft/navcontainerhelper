@@ -93,8 +93,9 @@ function Sort-AppFoldersByDependencies {
         ($folders[$_.id]).SubString($baseFolder.Length)
     }
     if ($unknownDependencies) {
-        $appFileName = "$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-        $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { "$($_.appId):$appFileName" } })
+        $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
+			"$($_.appId):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
+		} })
     }
 }
 Export-ModuleMember -Function Sort-AppFoldersByDependencies
