@@ -79,9 +79,6 @@ function New-BCCSContainerFromTemplate {
         if (!(Test-Path -path $template.licenseFile)) {
             throw "Could not open license file at $($template.licenseFile)"
         }
-        else {
-            $params += @{'licenseFile' = $licenseFile }
-        }
     }
 
     if ($databaseBackup) {
@@ -94,7 +91,14 @@ function New-BCCSContainerFromTemplate {
     }
 
     try {
+        Write-Log "Creating container..."
         New-NavContainer @params
+        if ($template.licenseFile -ne "") {
+            Write-Log "Importing license file..."
+            Import-NavContainerLicense -containerName $fullContainerName -licenseFile $template.licenseFile
+        }
+        Write-Log "Adding fonts to container..."
+        Add-FontsToNavContainer -containerName $fullContainerName 
     }
     catch {
         throw "Could not create $($fullContainerName)"
