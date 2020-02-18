@@ -72,7 +72,7 @@ function New-BCCSContainerFromTemplate {
 
     if ($template.auth -match "UserPassword") {
         $credential = $host.ui.PromptForCredential("Enter credentials to use for the container", "Please enter a user name and password.", "admin", "")
-        params += @{'credential' = $credential }
+        $params += @{'credential' = $credential }
     }
 
     if ($template.licenseFile -ne "") {
