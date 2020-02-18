@@ -53,7 +53,7 @@ function New-BCCSContainerFromTemplate {
     Check-NavContainerName -containerName $fullContainerName
 
     $template = $jsonData | Where-Object prefix -eq $prefix
-    
+
     $params = @{
         'containerName'            = $fullContainerName;
         'imageName'                = $template.imageName;
@@ -70,8 +70,12 @@ function New-BCCSContainerFromTemplate {
         'enableSymbolLoading'      = $true;
     }
 
+    if ($template.auth -match "UserPassword") {
+        $credential = $host.ui.PromptForCredential("Enter credentials to use for the container", "Please enter a user name and password.", "admin", "")
+        params += @{'credential' = $credential }
+    }
+
     if ($template.licenseFile -ne "") {
-        0
         if (!(Test-Path -path $template.licenseFile)) {
             throw "Could not open license file at $($template.licenseFile)"
         }
