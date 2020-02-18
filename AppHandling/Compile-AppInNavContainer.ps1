@@ -150,7 +150,7 @@ function Compile-AppInNavContainer {
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     if ("$appName" -eq "") {
-        $appName = "$($appJsonObject.Publisher.Replace('/',''))_$($appJsonObject.Name.Replace('/',''))_$($appJsonObject.Version).app"
+        $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
     }
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
@@ -290,9 +290,9 @@ function Compile-AppInNavContainer {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $version = $dependency.version
-            $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($version).app"
+            $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
-                $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($_.version).app"
+                $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
             Write-Host "Downloading symbols: $symbolsName"
