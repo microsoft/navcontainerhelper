@@ -1,5 +1,6 @@
 0.6.4.27
 Copy-AlSourceFiles didn't support interface files
+Issue #858 Get/Run-Tests doesn't work when running Windows Server 2019 images in hyperv mode (support for timezone)
 
 0.6.4.26
 Added Parameter -DoNotWriteToHost to function Convert-ALCOutputToAzureDevOps to return the result instead of outputting to Host
