@@ -1342,6 +1342,16 @@ if (-not `$restartingInstance) {
         Copy-FileToNavContainer -containerName $containerName -localPath $wifdll -containerPath $containerWifDll
     }
 
+    if ($version -eq [System.Version]"14.10.40471.0") {
+        Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
+        $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
+        Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($idepsm)
+            Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
+        } -argumentList $idepsm
+        Remove-NavContainerSession -containerName $containerName
+    }
+
     $sqlCredential = $databaseCredential
     if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
         $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)

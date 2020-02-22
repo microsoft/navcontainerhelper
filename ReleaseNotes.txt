@@ -1,3 +1,6 @@
+0.6.4.28
+Issue #859 Import-NavApplicationObject, Export-NavApplicationObject, Compile-NavApplicationObject etc. doesn't work in 14.10
+
 0.6.4.27
 Copy-AlSourceFiles didn't support interface files
 Issue #858 Get/Run-Tests doesn't work when running Windows Server 2019 images in hyperv mode (support for timezone)
