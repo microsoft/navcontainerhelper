@@ -1,3 +1,6 @@
+0.6.4.29
+Issue #863 Clean-BCContainerDatabase doesn't work with current insider master images
+
 0.6.4.28
 Issue #859 Import-NavApplicationObject, Export-NavApplicationObject, Compile-NavApplicationObject etc. doesn't work in 14.10
 
