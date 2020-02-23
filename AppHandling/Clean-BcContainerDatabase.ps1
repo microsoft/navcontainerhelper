@@ -154,35 +154,35 @@ function Clean-BcContainerDatabase {
         
         } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables, ($customconfig.Multitenant -eq "True")
         
-        Write-Host "Import license file"
+        Write-Host "Importing license file"
         Import-NavContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
         if ($customconfig.ClientServicesCredentialType -eq "Windows") {
-            Write-Host "Create user $($env:USERNAME)"
+            Write-Host "Creating user $($env:USERNAME)"
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($username)
                 New-NavServerUser -ServerInstance $ServerInstance -WindowsAccount $username
                 New-NavServerUserPermissionSet -ServerInstance $ServerInstance -WindowsAccount $username -PermissionSetId SUPER
             } -argumentList $env:USERNAME
         }
         else {
-            Write-Host "Create user $($credential.UserName)"
+            Write-Host "Creating user $($credential.UserName)"
             New-NavContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
         }
         
-        Write-Host "Publish System Symbols"
+        Write-Host "Publishing System Symbols"
         Publish-NavContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
 
-        Write-Host "Create Company"
+        Write-Host "Creating Company"
         New-CompanyInBCContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
         
         if ($SystemApplicationFile) {
-            Write-Host "Publish System Application"
+            Write-Host "Publishing System Application"
             Publish-NavContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync
         }
 
         if ($customconfig.Multitenant -eq "True") {
             
-            Write-Host "Switch to multitenancy"
+            Write-Host "Switching to multitenancy"
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($databaseName, $databaseServer, $databaseInstance)
                 $databaseServerInstance = $databaseServer
                 if ($databaseInstance) {
@@ -204,10 +204,10 @@ function Clean-BcContainerDatabase {
 
                 Set-NavServerInstance -ServerInstance $ServerInstance -start
 
-                Write-Host "Copy tenant to default db"
+                Write-Host "Copying tenant to default db"
                 Copy-NavDatabase -SourceDatabaseName "tenant" -DestinationDatabaseName "default"
 
-                Write-Host "Mount default tenant"
+                Write-Host "Mounting default tenant"
                 Mount-NavDatabase -ServerInstance $ServerInstance -TenantId "default" -DatabaseName "default"
 
             } -argumentList $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance
