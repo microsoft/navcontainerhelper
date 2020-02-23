@@ -87,7 +87,7 @@ function Clean-BcContainerDatabase {
             $copyTables += @("Entitlement", "Entitlement Set", "Membership Entitlement")
         }
 
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables)
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables, $multitenant)
         
             Write-Host "Stopping ServiceTier in order to replace database"
             Set-NavServerInstance -ServerInstance $ServerInstance -stop
@@ -105,6 +105,17 @@ function Clean-BcContainerDatabase {
                 Copy-NavDatabase -sourceDatabaseName $databaseName -destinationDatabaseName "mytempdb" -DatabaseServer $databaseServer -databaseInstance $databaseInstance
             }
             Remove-NavDatabase -databasename $databaseName -databaseserver $databaseServer -databaseInstance $databaseInstance
+
+            if ($multitenant) {
+                Write-Host "Multitenant setup. Creating Single Tenant Database and switching to multitenancy later"
+                Set-NavServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "False" -WarningAction SilentlyContinue
+                Set-NavServerConfiguration -ServerInstance $ServerInstance -KeyName "DatabaseName" -KeyValue "tenant" -WarningAction SilentlyContinue
+                $databaseName = "tenant"
+
+                Remove-NavDatabase -databasename "tenant" -databaseserver $databaseServer -databaseInstance $databaseInstance
+                Remove-NavDatabase -databasename "default" -databaseserver $databaseServer -databaseInstance $databaseInstance
+            }
+
             $CollationParam = @{}
             if (Test-Path "c:\run\Collation.txt") {
                 $Collation = Get-Content "c:\run\Collation.txt"
@@ -141,26 +152,65 @@ function Clean-BcContainerDatabase {
             Write-Host "Synchronizing"
             Sync-NavTenant -ServerInstance $ServerInstance -Force
         
-        } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables
+        } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables, ($customconfig.Multitenant -eq "True")
         
+        Write-Host "Import license file"
         Import-NavContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
         if ($customconfig.ClientServicesCredentialType -eq "Windows") {
+            Write-Host "Create user $($env:USERNAME)"
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($username)
                 New-NavServerUser -ServerInstance $ServerInstance -WindowsAccount $username
                 New-NavServerUserPermissionSet -ServerInstance $ServerInstance -WindowsAccount $username -PermissionSetId SUPER
             } -argumentList $env:USERNAME
         }
         else {
+            Write-Host "Create user $($credential.UserName)"
             New-NavContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
         }
         
+        Write-Host "Publish System Symbols"
         Publish-NavContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
 
+        Write-Host "Create Company"
         New-CompanyInBCContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
         
         if ($SystemApplicationFile) {
+            Write-Host "Publish System Application"
             Publish-NavContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync
+        }
+
+        if ($customconfig.Multitenant -eq "True") {
+            
+            Write-Host "Switch to multitenancy"
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($databaseName, $databaseServer, $databaseInstance)
+                $databaseServerInstance = $databaseServer
+                if ($databaseInstance) {
+                    $databaseServerInstance += "\$databaseInstance"
+                }
+
+                Write-Host "Stopping ServiceTier"
+                Set-NavServerInstance -ServerInstance $ServerInstance -stop
+
+                Set-NavServerConfiguration -ServerInstance $ServerInstance -KeyName "DatabaseName" -KeyValue "$databaseName" -WarningAction SilentlyContinue
+        
+                Invoke-sqlcmd -serverinstance $databaseServerInstance -Database "tenant" -query 'CREATE USER "NT AUTHORITY\SYSTEM" FOR LOGIN "NT AUTHORITY\SYSTEM";'
+                Export-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -DestinationDatabaseName $databaseName -Force -ServiceAccount 'NT AUTHORITY\SYSTEM' | Out-Null
+                Write-Host "Removing Application from tenant"
+                Remove-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -Force | Out-Null
+
+                Set-NavServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "True" -WarningAction SilentlyContinue
+                Write-Host "Starting ServiceTier"
+
+                Set-NavServerInstance -ServerInstance $ServerInstance -start
+
+                Write-Host "Copy tenant to default db"
+                Copy-NavDatabase -SourceDatabaseName "tenant" -DestinationDatabaseName "default"
+
+                Write-Host "Mount default tenant"
+                Mount-NavDatabase -ServerInstance $ServerInstance -TenantId "default" -DatabaseName "default"
+
+            } -argumentList $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance
         }
 
     }
@@ -172,7 +222,12 @@ function Clean-BcContainerDatabase {
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData, $onlySaveBaseAppData)
                 if ($app.IsInstalled) {
                     Write-Host "Uninstalling $($app.Name)"
-                    $app | Uninstall-NavApp -Force -doNotSaveData:(!$SaveData -or ($Name -ne "BaseApp" -and $Name -ne "Base Application" -and $onlySaveBaseAppData))
+                    $tenant = "Default"
+                    if ($app.Tenant)
+                    {
+                      $tenant = $app.Tenant
+                    }
+                    $app | Uninstall-NavApp -tenant $tenant -Force -doNotSaveData:(!$SaveData -or ($Name -ne "BaseApp" -and $Name -ne "Base Application" -and $onlySaveBaseAppData))
                 }
             } -argumentList $app, $SaveData, $onlySaveBaseAppData
         }
