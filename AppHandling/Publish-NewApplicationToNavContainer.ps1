@@ -114,24 +114,31 @@ function Publish-NewApplicationToNavContainer {
         if ($restoreApps -eq "AsRuntimePackages" -and ($replaceDependencies)) {
             Write-Warning "ReplaceDependencies will not work with apps restored as runtime packages"
         }
-        $warninggiven = $false
-        $installedApps | ForEach-Object {
-            if ($_.Scope -eq "Global" -and !$doNotUseDevEndpoint) {
-                if (!$warninggiven) {
-                    Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
-                    $warninggiven = $true
-                }
+    }
+    else {
+        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties | Where-Object { $_.Name -eq "Application" }
+    }
+    $applicationApp = $installedApps | Where-Object { $_.Name -eq "Application" }
+    if ($applicationApp) {
+        Write-Host "Application App Exists"
+    }
+    $warninggiven = $false
+    $installedApps | ForEach-Object {
+        if ($_.Scope -eq "Global" -and !$doNotUseDevEndpoint) {
+            if (!$warninggiven) {
+                Write-Warning "Restoring apps to global scope might not work when publishing base app to dev endpoint. You might need to specify -doNotUseDevEndpoint"
+                $warninggiven = $true
             }
         }
-        $installedApps | ForEach-Object {
-            $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
-            if ($restoreApps -eq "AsRuntimePackages") {
-                Write-Host "Downloading app $($_.Name) as runtime package"
-                Get-BCContainerAppRuntimePackage -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default | Out-Null
-            }
-            else {
-                Get-BCContainerApp -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default -credential $credential | Out-Null
-            }
+    }
+    $installedApps | ForEach-Object {
+        $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
+        if ($restoreApps -eq "AsRuntimePackages") {
+            Write-Host "Downloading app $($_.Name) as runtime package"
+            Get-BCContainerAppRuntimePackage -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default | Out-Null
+        }
+        else {
+            Get-BCContainerApp -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default -credential $credential | Out-Null
         }
     }
     if ($useCleanDatabase -or $useNewDatabase) {
@@ -148,10 +155,25 @@ function Publish-NewApplicationToNavContainer {
         $installedApps | ForEach-Object {
             $installedApp = $_
             $installedAppFile = Join-Path $appsFolder "$($installedApp.Publisher.Replace('/',''))_$($installedApp.Name.Replace('/',''))_$($installedApp.Version).app"
+
+            if ($applicationApp) {
+                if ($installedApp -eq $applicationApp) {
+                    $replaceDeps = $replaceDependencies
+                }
+                elseif ($installedApp.Name -like "* language (*)" -and $installedApp.Publisher -eq "Microsoft") {
+                    $replaceDeps = $replaceDependencies
+                }
+                else {
+                    $replaceDeps = $null
+                }
+            }
+            else {
+                $replaceDeps = $replaceDependencies
+            }
+
             if ($_.IsPublished) {
                 try {
-                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential -ShowMyCode "Check"
-                }
+                    Publish-BCContainerApp -containerName $containerName -appFile $installedAppFile -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDeps -credential $credential -ShowMyCode "Check"                }
                 catch {
                     $appFile = Invoke-ScriptInBCContainer -containerName $containername -scriptblock { Param($installedApp)
                         $filename = ""
@@ -176,7 +198,7 @@ function Publish-NewApplicationToNavContainer {
                     } -argumentlist $installedapp
                     if ($appfile) {
                         try {
-                            Publish-BCContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDependencies -credential $credential
+                            Publish-BCContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install:($installedApp.IsInstalled) -scope $Scope -useDevEndpoint:(!$doNotUseDevEndpoint) -replaceDependencies $replaceDeps -credential $credential
                         }
                         catch {
                             Write-Warning "Could not publish :$([System.IO.Path]::GetFileName($appFile)) - $($_.Exception.Message)"
