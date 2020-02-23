@@ -46,22 +46,26 @@
         #TODO
     }
     It 'Extract-AppFileToFolder (nav app)' {
-        $navAppFile = Join-Path $navContainerPath "nav-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
+        $navAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+        $navAppFile = Join-Path $navContainerPath "nav-app\output\$navAppFileName"
         Extract-AppFileToFolder $navAppFile -appFolder (Join-Path $navContainerPath "nav-app2")
         (Get-ChildItem -Path (Join-Path $navContainerPath "nav-app2\*.al") -Recurse).Count | Should -Be (Get-ChildItem -Path (Join-Path $navContainerPath "nav-app\*.al") -Recurse).Count
     }
     It 'Extract-AppFileToFolder (bc app)' {
-        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
+        $bcAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$bcAppFileName"
         Extract-AppFileToFolder $bcAppFile -appFolder (Join-Path $bcContainerPath "bc-app2")
         (Get-ChildItem -Path (Join-Path $bcContainerPath "bc-app\*.al") -Recurse).Count | Should -Be (Get-ChildItem -Path (Join-Path $bcContainerPath "bc-app2\*.al") -Recurse).Count
 
     }
     It 'Publish-NavContainerApp' {
-        $navAppFile = Join-Path $navContainerPath "nav-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
+        $navAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+        $navAppFile = Join-Path $navContainerPath "nav-app\output\$navAppFileName"
         Publish-NavContainerApp -containerName $navContainerName -appFile $navAppFile -skipVerification
     }
     It 'Publish-BcContainerApp' {
-        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$($appPublisher.Replace('/',''))_$($appName.Replace('/',''))_$($appVersion).app"
+        $bcAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$bcAppFileName"
         Publish-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -skipVerification
     }
     It 'Sync-NavContainerApp' {

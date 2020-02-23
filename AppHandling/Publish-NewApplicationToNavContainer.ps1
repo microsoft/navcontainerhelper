@@ -132,7 +132,7 @@ function Publish-NewApplicationToNavContainer {
         }
     }
     $installedApps | ForEach-Object {
-        $installedAppFile = Join-Path $appsFolder "$($_.Publisher.Replace('/',''))_$($_.Name.Replace('/',''))_$($_.Version).app"
+        $installedAppFile = Join-Path $appsFolder $("$($_.Publisher)_$($_.Name)_$($_.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
         if ($restoreApps -eq "AsRuntimePackages") {
             Write-Host "Downloading app $($_.Name) as runtime package"
             Get-BCContainerAppRuntimePackage -containerName $containerName -appName $_.Name -publisher $_.Publisher -appVersion $_.Version -appFile $installedAppFile -Tenant default | Out-Null
@@ -154,7 +154,7 @@ function Publish-NewApplicationToNavContainer {
     if ($restoreApps -ne "No") {
         $installedApps | ForEach-Object {
             $installedApp = $_
-            $installedAppFile = Join-Path $appsFolder "$($installedApp.Publisher.Replace('/',''))_$($installedApp.Name.Replace('/',''))_$($installedApp.Version).app"
+            $installedAppFile = Join-Path $appsFolder $("$($installedApp.Publisher)_$($installedApp.Name)_$($installedApp.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
 
             if ($applicationApp) {
                 if ($installedApp -eq $applicationApp) {
