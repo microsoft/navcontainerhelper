@@ -1,3 +1,7 @@
+0.6.4.30
+Add multitenancy support for useNewDatabase in Clean-BcContainerDatabase
+Add support for indirect dependencies when replacing dependencies (if Application exists - only replace dependencies in this + language apps)
+
 0.6.4.29
 Issue #863 Clean-BCContainerDatabase doesn't work with current insider master images
 
