@@ -217,7 +217,8 @@
                             -licenseFile $licenseFile `
                             -includeTestToolkit `
                             -includeCSide `
-                            -doNotExportObjectsToText
+                            -doNotExportObjectsToText `
+                            -useBestContainerOS
 
             if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
                 Import-ObjectsToNavContainer -containerName $runTestsContainerName -objectsFile (Join-Path $PSScriptRoot "inserttests.txt") -sqlCredential $credential
