@@ -276,48 +276,27 @@ function New-NavContainer {
     
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
-    $bestContainerOs = "ltsc2016"
-    $bestGenericContainerOs = "ltsc2016"
+    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
 
-    if ($os.BuildNumber -ge 18363) { 
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
-        if ($os.BuildNumber -eq 18363) { 
-            $hostOs = "1909"
-            $bestGenericContainerOs = "1909"
-        }
+    if ($os.BuildNumber -eq 18363) { 
+        $hostOs = "1909"
     }
-    elseif ($os.BuildNumber -ge 18362) { 
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
-        if ($os.BuildNumber -eq 18362) { 
-            $hostOs = "1903"
-            $bestGenericContainerOs = "1903"
-        }
+    elseif ($os.BuildNumber -eq 18362) { 
+        $hostOs = "1903"
     }
-    elseif ($os.BuildNumber -ge 17763) { 
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
-        if ($os.BuildNumber -eq 17763) { 
-            $hostOs = "ltsc2019"
-        }
+    elseif ($os.BuildNumber -eq 17763) { 
+        $hostOs = "ltsc2019"
     }
-    elseif ($os.BuildNumber -ge 17134) { 
-        if ($os.BuildNumber -eq 17134) { 
-            $hostOs = "1803"
-        }
-        $bestGenericContainerOs = "ltsc2016"
+    elseif ($os.BuildNumber -eq 17134) { 
+        $hostOs = "1803"
     }
-    elseif ($os.BuildNumber -ge 16299) {
-        if ($os.BuildNumber -eq 16299) { 
-            $hostOs = "1709"
-        }
-        $bestGenericContainerOs = "ltsc2016"
+    elseif ($os.BuildNumber -eq 16299) { 
+        $hostOs = "1709"
     }
     elseif ($os.BuildNumber -eq 15063) {
         $hostOs = "1703"
     }
-    elseif ($os.BuildNumber -ge 14393) {
+    elseif ($os.BuildNumber -eq 14393) {
         $hostOs = "ltsc2016"
     }
     
@@ -410,7 +389,7 @@ function New-NavContainer {
                 $imageName = $useGenericImage
             }
             else {
-                $imageName = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
+                $imageName = Get-BestGenericImageName
             }
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
@@ -652,11 +631,11 @@ function New-NavContainer {
                $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
                $hostOsVersion.Build -ne $containerOsversion.Build)) {
 
-        if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
+        if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$bestGenericImageName" -ne "") {
             
             # There is a generic image, which is better than the selected image
-            Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
-            $useGenericImage = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
+            Write-Host "A better Generic Container OS exists for your host ($bestGenericImageName)"
+            $useGenericImage = $bestGenericImageName
 
         }
     }
