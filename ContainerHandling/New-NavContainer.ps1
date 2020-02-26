@@ -630,7 +630,7 @@ function New-NavContainer {
               ($hostOsVersion.Major -ne $containerOsversion.Major -or 
                $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
                $hostOsVersion.Build -ne $containerOsversion.Build -or 
-               $hostOsVersion.Release -ne $containerOsversion.Release)) {
+               $hostOsVersion.Revision -ne $containerOsversion.Revision)) {
 
         if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$bestGenericImageName" -ne "") {
             
