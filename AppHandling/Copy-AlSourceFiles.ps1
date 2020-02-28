@@ -56,6 +56,7 @@ function Copy-AlSourceFiles {
                             }
                             if ($types.Contains($type)) {
                                 $found = $true
+                                {return} #break from te ForEach-Object loop
                             }
                         } 
                     }
