@@ -14,4 +14,5 @@ New-BCContainer -accept_eula `
                 -licenseFile $licenseFile `
                 -includeAL `
                 -includeTestToolkit `
-                -includeTestLibrariesOnly
+                -includeTestLibrariesOnly `
+                -useBestContainerOS

@@ -74,7 +74,8 @@ function Sort-AppFoldersByDependencies {
         }
         else {
             if (-not ($script:unresolvedDependencies | Where-Object { $_ -and $_.AppId -eq $dependency.AppId })) {
-                Write-Warning "Dependency $($dependency.appId):$($dependency.publisher.Replace('/',''))_$($dependency.name.Replace('/',''))_$($dependency.version)).app not found"
+                $appFileName = "$($dependency.publisher)_$($dependency.name)_$($dependency.version)).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+                Write-Warning "Dependency $($dependency.appId):$appFileName not found"
                 $script:unresolvedDependencies += @($dependency)
             }
         }
@@ -92,7 +93,9 @@ function Sort-AppFoldersByDependencies {
         ($folders[$_.id]).SubString($baseFolder.Length)
     }
     if ($unknownDependencies) {
-        $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { "$($_.appId):$($_.publisher.Replace('/',''))_$($_.name.Replace('/',''))_$($_.version).app" } })
+        $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
+			"$($_.appId):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
+		} })
     }
 }
 Export-ModuleMember -Function Sort-AppFoldersByDependencies

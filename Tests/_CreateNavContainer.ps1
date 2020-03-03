@@ -14,4 +14,5 @@ New-NavContainer -accept_eula `
                  -licenseFile $licenseFile `
                  -includeCSide `
                  -includeTestToolkit `
-                 -includeTestLibrariesOnly
+                 -includeTestLibrariesOnly `
+                 -useBestContainerOS

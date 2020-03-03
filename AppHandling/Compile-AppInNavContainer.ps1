@@ -40,11 +40,14 @@
   Specify a nowarn parameter for the compiler
  .Parameter assemblyProbingPaths
   Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
+ .Parameter OutputTo
+  Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
   Compile-AppInNavContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
-
+ .Example
+  Compile-AppInNavContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
 #>
 function Compile-AppInNavContainer {
     Param (
@@ -78,7 +81,8 @@ function Compile-AppInNavContainer {
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
         [Parameter(Mandatory=$false)]
-        [string] $assemblyProbingPaths
+        [string] $assemblyProbingPaths,
+        [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
     $startTime = [DateTime]::Now
@@ -146,7 +150,7 @@ function Compile-AppInNavContainer {
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     if ("$appName" -eq "") {
-        $appName = "$($appJsonObject.Publisher.Replace('/',''))_$($appJsonObject.Name.Replace('/',''))_$($appJsonObject.Version).app"
+        $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
     }
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
@@ -161,6 +165,15 @@ function Compile-AppInNavContainer {
         }
         else {
             $GenerateReportLayoutParam = "/GenerateReportLayout-"
+        }
+    }
+
+    # unpack compiler
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+        if (!(Test-Path "c:\build" -PathType Container)) {
+            $tempZip = Join-Path $env:TEMP "alc.zip"
+            Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
+            Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }
     }
 
@@ -270,15 +283,16 @@ function Compile-AppInNavContainer {
         $webClient.Headers.Add("Authorization", $basicAuthValue)
     }
 
-    $dependencies | ForEach-Object {
-        $dependency = $_
+    $depidx = 0
+    while ($depidx -lt $dependencies.Count) {
+        $dependency = $dependencies[$depidx]
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
-            $publisher = $_.publisher
-            $name = $_.name
-            $version = $_.version
-            $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($version).app"
+            $publisher = $dependency.publisher
+            $name = $dependency.name
+            $version = $dependency.version
+            $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
-                $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($_.version).app"
+                $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
             Write-Host "Downloading symbols: $symbolsName"
@@ -288,12 +302,59 @@ function Compile-AppInNavContainer {
             Write-Host "Url : $Url"
             $webClient.DownloadFile($url, $symbolsFile)
             if (Test-Path -Path $symbolsFile) {
-                Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile)
+                $addDependencies = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                     # Wait for file to be accessible in container
                     While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
-                } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile)
+
+                    if ($platformversion.Major -ge 15) {
+                        $alcPath = 'C:\build\vsix\extension\bin'
+                        Add-Type -AssemblyName System.IO.Compression.FileSystem
+                        Add-Type -AssemblyName System.Text.Encoding
+        
+                        # Import types needed to invoke the compiler
+                        Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                        Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+    
+                        try {
+                            $packageStream = [System.IO.File]::OpenRead($symbolsFile)
+                            $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                            $manifest = $package.ReadNavAppManifest()
+        
+                            if ($manifest.application) {
+                                @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                            }
+        
+                            foreach ($dependency in $manifest.dependencies) {
+                                @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                            }
+                        }
+                        finally {
+                            if ($package) {
+                                $package.Dispose()
+                            }
+                            if ($packageStream) {
+                                $packageStream.Dispose()
+                            }
+                        }
+                    }
+                } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile), $platformversion
+
+                $addDependencies | % {
+                    $addDependency = $_
+                    $found = $false
+                    $dependencies | % {
+                        if ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name) {
+                            $found = $true
+                        }
+                    }
+                    if (!$found) {
+                        Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
+                        $dependencies += $addDependency
+                    }
+                }
             }
         }
+        $depidx++
     }
  
     if ($sslverificationdisabled) {
@@ -303,11 +364,6 @@ function Compile-AppInNavContainer {
 
     $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
-        if (!(Test-Path "c:\build" -PathType Container)) {
-            $tempZip = Join-Path $env:TEMP "alc.zip"
-            Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
-            Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
-        }
         $alcPath = 'C:\build\vsix\extension\bin'
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
@@ -353,11 +409,9 @@ function Compile-AppInNavContainer {
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
     
     if ($AzureDevOps) {
-        $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
+        $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
     }
-    else {
-        $result | Write-Host
-    }
+    $result | % { $outputTo.Invoke($_) }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName

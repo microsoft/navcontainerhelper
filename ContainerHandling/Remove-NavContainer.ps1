@@ -28,7 +28,7 @@ function Remove-NavContainer {
         $updateHostsScript = Join-Path $containerFolder "my\updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
-            . $updateHostsScript -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $containerName -theIpAddress ""
+            . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $containerName -theIpAddress ""
         }
 
         Remove-DesktopShortcut -Name "$containerName Web Client"
@@ -41,7 +41,7 @@ function Remove-NavContainer {
 
         $wait = 10
         $attempts = 0
-        while (Test-Path -Path $containerFolder -PathType Container) {
+        while (Test-Path -Path $containerFolder -PathType Container -ErrorAction SilentlyContinue) {
             Write-Host "Removing $containerFolder"
             try {
                 Remove-Item -Path $containerFolder -Force -Recurse

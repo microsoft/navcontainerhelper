@@ -276,48 +276,27 @@ function New-NavContainer {
     
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
-    $bestContainerOs = "ltsc2016"
-    $bestGenericContainerOs = "ltsc2016"
+    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
 
-    if ($os.BuildNumber -ge 18363) { 
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
-        if ($os.BuildNumber -eq 18363) { 
-            $hostOs = "1909"
-            $bestGenericContainerOs = "1909"
-        }
+    if ($os.BuildNumber -eq 18363) { 
+        $hostOs = "1909"
     }
-    elseif ($os.BuildNumber -ge 18362) { 
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
-        if ($os.BuildNumber -eq 18362) { 
-            $hostOs = "1903"
-            $bestGenericContainerOs = "1903"
-        }
+    elseif ($os.BuildNumber -eq 18362) { 
+        $hostOs = "1903"
     }
-    elseif ($os.BuildNumber -ge 17763) { 
-        $bestContainerOs = "ltsc2019"
-        $bestGenericContainerOs = "ltsc2019"
-        if ($os.BuildNumber -eq 17763) { 
-            $hostOs = "ltsc2019"
-        }
+    elseif ($os.BuildNumber -eq 17763) { 
+        $hostOs = "ltsc2019"
     }
-    elseif ($os.BuildNumber -ge 17134) { 
-        if ($os.BuildNumber -eq 17134) { 
-            $hostOs = "1803"
-        }
-        $bestGenericContainerOs = "1803"
+    elseif ($os.BuildNumber -eq 17134) { 
+        $hostOs = "1803"
     }
-    elseif ($os.BuildNumber -ge 16299) {
-        if ($os.BuildNumber -eq 16299) { 
-            $hostOs = "1709"
-        }
-        $bestGenericContainerOs = "1709"
+    elseif ($os.BuildNumber -eq 16299) { 
+        $hostOs = "1709"
     }
     elseif ($os.BuildNumber -eq 15063) {
         $hostOs = "1703"
     }
-    elseif ($os.BuildNumber -ge 14393) {
+    elseif ($os.BuildNumber -eq 14393) {
         $hostOs = "ltsc2016"
     }
     
@@ -360,7 +339,7 @@ function New-NavContainer {
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
-            Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:$false if you do NOT want to use Traefik."
+            Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
             $useTraefik = $true
         }
     }
@@ -410,7 +389,7 @@ function New-NavContainer {
                 $imageName = $useGenericImage
             }
             else {
-                $imageName = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
+                $imageName = Get-BestGenericImageName
             }
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
@@ -650,13 +629,14 @@ function New-NavContainer {
     } elseif ("$useGenericImage" -eq "" -and
               ($hostOsVersion.Major -ne $containerOsversion.Major -or 
                $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
-               $hostOsVersion.Build -ne $containerOsversion.Build)) {
+               $hostOsVersion.Build -ne $containerOsversion.Build -or 
+               $hostOsVersion.Revision -ne $containerOsversion.Revision)) {
 
-        if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$containerOs" -ne "$bestGenericContainerOs") {
+        if ("$dvdPath" -eq "" -and $useBestContainerOS -and "$bestGenericImageName" -ne "") {
             
             # There is a generic image, which is better than the selected image
-            Write-Host "A better Generic Container OS exists for your host ($bestGenericContainerOs)"
-            $useGenericImage = "mcr.microsoft.com/dynamicsnav:generic-$bestGenericContainerOs"
+            Write-Host "A better Generic Container OS exists for your host ($bestGenericImageName)"
+            $useGenericImage = $bestGenericImageName
 
         }
     }
@@ -1340,6 +1320,16 @@ if (-not `$restartingInstance) {
         $ps = 'Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "Microsoft.IdentityModel.dll"'
         $containerWifDll = docker exec $containerName powershell $ps
         Copy-FileToNavContainer -containerName $containerName -localPath $wifdll -containerPath $containerWifDll
+    }
+
+    if ($version -eq [System.Version]"14.10.40471.0") {
+        Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
+        $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
+        Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($idepsm)
+            Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
+        } -argumentList $idepsm
+        Remove-NavContainerSession -containerName $containerName
     }
 
     $sqlCredential = $databaseCredential
