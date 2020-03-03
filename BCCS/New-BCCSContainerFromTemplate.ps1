@@ -68,7 +68,6 @@ function New-BCCSContainerFromTemplate {
         'useBestContainerOS'       = $true;
         'includeCSide'             = $true;
         'enableSymbolLoading'      = $true;
-        'isolation'                = 'hyperv';
     }
 
     if ($template.auth -match "UserPassword") {
