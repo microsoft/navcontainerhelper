@@ -18,7 +18,8 @@
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -bakFile $bakFile
+                         -bakFile $bakFile `
+                         -useBestContainerOS
 
         Remove-NavContainer $testContainerName
         Remove-Item -Path $bakFolder -Recurse -Force
@@ -43,7 +44,8 @@
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -multitenant
+                         -multitenant `
+                         -useBestContainerOS
 
         $bacpacFolder = "C:\programdata\NavContainerHelper\bacpac"
         $appBacpacFile = "$bacpacFolder\app.bacpac"
@@ -61,7 +63,8 @@
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -additionalParameters @("--env appBacpac=$appBacpacFile","--env tenantBacpac=$tenantBacpacFile")
+                         -additionalParameters @("--env appBacpac=$appBacpacFile","--env tenantBacpac=$tenantBacpacFile") `
+                         -useBestContainerOS
 
         New-NavContainerTenant -containerName $testContainerName -tenantId "test"
 

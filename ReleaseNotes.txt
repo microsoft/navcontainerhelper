@@ -1,3 +1,29 @@
+0.6.5.0
+February 2020 bug fix - -useBestContainerOS will now select between all published generic images. Generic images have been built for all supported Windows 10 versions.
+
+0.6.4.30
+Add multitenancy support for useNewDatabase in Clean-BcContainerDatabase
+Add support for indirect dependencies when replacing dependencies (if Application exists - only replace dependencies in this + language apps)
+
+0.6.4.29
+Issue #863 Clean-BCContainerDatabase doesn't work with current insider master images
+
+0.6.4.28
+Issue #859 Import-NavApplicationObject, Export-NavApplicationObject, Compile-NavApplicationObject etc. doesn't work in 14.10
+
+0.6.4.27
+Copy-AlSourceFiles didn't support interface files
+Issue #858 Get/Run-Tests doesn't work when running Windows Server 2019 images in hyperv mode (support for timezone)
+
+0.6.4.26
+Added Parameter -DoNotWriteToHost to function Convert-ALCOutputToAzureDevOps to return the result instead of outputting to Host
+Added Parameter -OutputTo for specifying a scriptblock in order to override the output of the Compiler result
+Regression: -updateHosts will remove comments and cause docker to insert multiple lines of the same host name, causing DNS resolution to fail sometimes
+Bugfix: Missing escape for warning message when using Traefik (thanks Tino-T)
+Added parameter -evaluationCompany to Clean-BcContainerDatabase (thanks ChrisBlankDe)
+Bugfix: Invoke-ScriptInNavContainer should throw if the script in the container fails when running unelevated (thanks marknitek)
+Remove support for 1803 generic image as this is no longer being updated/supported
+
 0.6.4.25
 Regression: Calling the container version of updatehosts might have different parameters and lead to missing cleanup of hosts file and ipconfig call on host
 Add parameter force to Install-NavContainerApp
