@@ -40,11 +40,14 @@
   Specify a nowarn parameter for the compiler
  .Parameter assemblyProbingPaths
   Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
+ .Parameter OutputTo
+  Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
   Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
   Compile-AppInNavContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
-
+ .Example
+  Compile-AppInNavContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
 #>
 function Compile-AppInNavContainer {
     Param (
@@ -78,7 +81,8 @@ function Compile-AppInNavContainer {
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
         [Parameter(Mandatory=$false)]
-        [string] $assemblyProbingPaths
+        [string] $assemblyProbingPaths,
+        [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
     $startTime = [DateTime]::Now
@@ -146,7 +150,7 @@ function Compile-AppInNavContainer {
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     if ("$appName" -eq "") {
-        $appName = "$($appJsonObject.Publisher.Replace('/',''))_$($appJsonObject.Name.Replace('/',''))_$($appJsonObject.Version).app"
+        $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
     }
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
@@ -286,9 +290,9 @@ function Compile-AppInNavContainer {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $version = $dependency.version
-            $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($version).app"
+            $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
-                $symbolsName = "$($publisher.Replace('/',''))_$($name.Replace('/',''))_$($_.version).app"
+                $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
             $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
             Write-Host "Downloading symbols: $symbolsName"
@@ -405,11 +409,9 @@ function Compile-AppInNavContainer {
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
     
     if ($AzureDevOps) {
-        $result | Convert-ALCOutputToAzureDevOps -FailOn $FailOn
+        $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
     }
-    else {
-        $result | Write-Host
-    }
+    $result | % { $outputTo.Invoke($_) }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName

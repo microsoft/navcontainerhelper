@@ -26,17 +26,18 @@ function New-ClientContext {
         [pscredential] $credential,
         [timespan] $interactionTimeout = [timespan]::FromMinutes(10),
         [string] $culture = "en-US",
+        [string] $timezone = "",
         [switch] $debugMode
     )
 
     if ($auth -eq "Windows") {
-        $clientContext = [ClientContext]::new($serviceUrl, $interactionTimeout, $culture)
+        $clientContext = [ClientContext]::new($serviceUrl, $interactionTimeout, $culture, $timezone)
     }
     elseif ($auth -eq "NavUserPassword") {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials if using NavUserPassword authentication"
         }
-        $clientContext = [ClientContext]::new($serviceUrl, $credential, $interactionTimeout, $culture)
+        $clientContext = [ClientContext]::new($serviceUrl, $credential, $interactionTimeout, $culture, $timezone)
     }
     elseif ($auth -eq "AAD") {
 
@@ -44,7 +45,7 @@ function New-ClientContext {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
         $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
-        $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture)
+        $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
         throw "Unsupported authentication setting"
@@ -147,6 +148,10 @@ function Get-Tests {
         if ($extensionId) {
             throw "Specifying extensionId is not supported when using the C/AL test runner"
         }
+    }
+
+    if ($debugMode) {
+        Write-Host "Open form"
     }
 
     $form = $clientContext.OpenForm($testPage)
