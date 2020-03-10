@@ -223,6 +223,7 @@ function Import-TestToolkitToNavContainer {
         } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
     
         if ($generateSymbols) {
+            Write-Host "Generating symbols"
             Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
