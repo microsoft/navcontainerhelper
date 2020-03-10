@@ -71,7 +71,8 @@ function Show-BCCSAssistant {
                 $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate $file }),
                 $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file }),
-                $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file })
+                $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file }),
+                $(New-MenuItem -DisplayName "backup database" -Script { Menu-BackupDatabase $file })
         )    
         do {
                 Write-Host ""
@@ -172,10 +173,6 @@ function Menu-CreateContainer {
         }
 }
 function Menu-UpdateLicense() {
-        param (
-                [string]$file
-        )
-
         $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to update its license" -OutputMode Single
         if ($selection) {
                 $newLicense = Get-OpenFile "Pick new license file to upload" "License files (*.flf)|*.flf" $PSScriptRoot
@@ -186,6 +183,23 @@ function Menu-UpdateLicense() {
                         throw "Not a valid license file"
                 }
         }
+}
+
+function Menu-BackupDatabase() {
+        $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to backup its database" -OutputMode Single
+        if ($selection) {
+                Backup-NavContainerDatabases -containerName $selection.fullName
+
+                $containerFolder = Join-Path $ExtensionsFolder $selection.fullName
+                $bakFolder = $containerFolder
+                $containerBakFolder = Get-NavContainerPath -containerName $selection.fullName -path $bakFolder -throw
+                if (Test-Path -path $containerBakFolder) {
+                        Invoke-Item -Path $containerBakFolder
+                }
+                else {
+                        throw "Could not find extension folder"
+                }
+        }       
 }
 
 Export-ModuleMember -Function Show-BCCSAssistant
