@@ -19,6 +19,8 @@ The BCCSAssistant is adding the following functions to the NavContainerHelper:
 | Remove-BCCSTemplate           | Removes an existing template                 |
 | Show-BCCSAssistant            | Shows a wizard to use the above commands      |
 
-The currently most important command to know for this script is **Show-BCCSAssistant** which basically opens up a wizard that allows you to **create/remove templates**, **create containers** from those templates and and **update licenses**. This command also accepts an existing *templates.json* as a parameter to be used.
+To use all new and existing commands you have to **`Import-Module .\NavContainerHelper.psm1`**
+
+The currently most important command to know for this script is **`Show-BCCSAssistant`** which basically opens up a wizard that allows you to **create/remove templates**, **create containers** from those templates and and **update licenses**. This command also accepts an existing *templates.json* as a parameter to be used.
 
 By default your *templates.json* will be created in *%AppData%\\.bccs\templates.json*
