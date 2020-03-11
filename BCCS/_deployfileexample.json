@@ -1,0 +1,11 @@
+[
+    {
+        "prefix": "BC",
+        "imageName": "mcr.microsoft.com/businesscentral/onprem",
+		"appFilePaths": ["..\\src"],
+		"licenseFilePath": "..\\license.flf",
+		"fontPaths": [".\\fonts"],
+		"addinPaths": [".\\addins"],
+		"rapidstartPaths": [".\\rapidstart"]
+    }
+]

@@ -194,6 +194,7 @@ if (!(Test-Path -Path $bccsFolder -PathType Container)) {
 . (Join-Path $PSScriptRoot "BCCS\Get-BCCSTemplate.ps1")
 
 . (Join-Path $PSScriptRoot "BCCS\New-BCCSContainerFromTemplate.ps1")
+. (Join-Path $PSScriptRoot "BCCS\New-NavContainerFromDeployFile.ps1")
 
 . (Join-Path $PSScriptRoot "BCCS\Get-BCCSRepository.ps1")
 . (Join-Path $PSScriptRoot "BCCS\Get-BCCSImage.ps1")
