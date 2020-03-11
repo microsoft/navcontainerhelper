@@ -1,26 +1,22 @@
 <# 
  .Synopsis
-  Create a new template to be used with the Business Central Container Script
+  Create a new NAV/BC container from a JSON file
  .Description
-  This command will create a new template entry in a JSON file. If no file is specified it will be created in the user's appdata folder.
+  This command will create a new container from a JSON file.
  .Parameter file
-  Name of the container in which you want to backup databases
- .Parameter prefix
-  Prefix of the template to use
- .Parameter name
-  Name for this container. Is added to the prefix (PREFIX-NAME)
- .Parameter imageName
-  Name of the image you want to use for your Container
+  Path to the JSON file to use
+ .Parameter containerSuffix
+  Suffix to be used for the container (prefix is defined in JSON)
+ .Parameter databaseBackup
+  Path to a backup file you want to use
  .Parameter licenseFile
-  Path or Secure Url of the licenseFile you want to use
+  Path or Secure Url of the licenseFile you want to use (override license file defined in JSON)
  .Parameter auth
-  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
- .Parameter addinFile
-  Path of a .zip archive containing service add-ins to be copied into the container (not working yet!)
+  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use (defaults to NavUserPassword)
  .Example
-  New-BCCSContainerFromTemplate -prefix BC365 -name DEV
+  New-NavContainerFromDeployFile -file "C:\temp\git\project\.docker\deploy.json" -containerSuffix DEV
  .Example
-  New-BCCSContainerFromTemplate -prefix BC365 -name TEST -licenseFile "C:\Files\license.flf"
+  New-NavContainerFromDeployFile -file "C:\temp\git\project\.docker\deploy.json" -containerSuffix DEV -auth Windows -databaseBackup "C:\Workspace\backup.bak"
 #>
 
 function New-NavContainerFromDeployFile {
@@ -43,7 +39,6 @@ function New-NavContainerFromDeployFile {
     }
 
     $deploy_Prefix = $jsonData.prefix
-    $deploy_Name = $jsonData.name
     $deploy_imageName = $jsonData.imageName
     $deploy_appFilePaths = $jsonData.appFilePaths
     $deploy_fontPaths = $jsonData.fontPaths
