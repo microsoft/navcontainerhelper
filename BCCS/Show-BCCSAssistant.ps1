@@ -95,7 +95,7 @@ function Menu-CreateTemplate {
         $prefix = Read-Host "Prefix [e.g.: 'BC365']"
         $name = Read-Host "Name [e.g. 'Business Central']"
         $authType = Read-Host "Auth Type [Windows or NavUserPassword]"
-        if (($authType -notmatch "Windows") -or ($authType -notmatch "NavUserPassword")) {
+        if (($authType -notmatch "Windows") -and ($authType -notmatch "NavUserPassword")) {
                 throw "Auth Type must be Windows or NavUserPassword"
         }
 
