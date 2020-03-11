@@ -94,6 +94,10 @@ function Menu-CreateTemplate {
         Write-Host ""
         $prefix = Read-Host "Prefix [e.g.: 'BC365']"
         $name = Read-Host "Name [e.g. 'Business Central']"
+        $authType = Read-Host "Auth Type [Windows or NavUserPassword]"
+        if (($authType -notmatch "Windows") -or ($authType -notmatch "NavUserPassword")) {
+                throw "Auth Type must be Windows or NavUserPassword"
+        }
 
         $licenseFile = $null
         if (!$licenseFile) {
@@ -120,6 +124,8 @@ function Menu-CreateTemplate {
         Write-Host $licenseFile -ForegroundColor Yellow
         Write-Host "Image`t`t" -NoNewline
         Write-Host $imageName -ForegroundColor Yellow
+        Write-Host "Auth Type`t`t" -NoNewline
+        Write-Host $authType -ForegroundColor Yellow
         Write-Host ""
     
         $ReadHost = Read-Host " ( y / n ) "
@@ -129,7 +135,7 @@ function Menu-CreateTemplate {
                 Default { $Save = $false }
         }
         if ($Save) {
-                New-BCCSTemplate $prefix $name $imageName $licenseFile -file $file
+                New-BCCSTemplate $prefix $name $imageName $licenseFile -file $file -auth $authType
         }
 }
 
