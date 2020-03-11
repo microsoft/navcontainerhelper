@@ -28,10 +28,11 @@ function New-NavContainerFromDeployFile {
         [Parameter(mandatory = $true, ValueFromPipeline = $true)]
         [string] $file,
         [Parameter(mandatory = $true)]
-        [string] $containerName,
+        [string] $containerSuffix,
+        [string] $licenseFile = "",
         [string] $databaseBackup = "",
-        [string] $imageName = "",
-        [string] $licenseFile = ""
+        [ValidateSet('Windows', 'NavUserPassword', 'UserPassword', 'AAD')]
+        [string] $auth = "NavUserPassword"
     )
 
     if (Test-Path $file) {
@@ -45,27 +46,58 @@ function New-NavContainerFromDeployFile {
     $deploy_Name = $jsonData.name
     $deploy_imageName = $jsonData.imageName
     $deploy_appFilePaths = $jsonData.appFilePaths
-    $deploy_licenseFile = $jsonData.licenseFile
+    $deploy_fontPaths = $jsonData.fontPaths
+    $deploy_addinPaths = $jsonData.addinPaths
+    $deploy_rapidstartPaths = $jsonData.rapidstartPaths
+    $deploy_licenseFile = $jsonData.licenseFilePath
 
+    $appFilePaths = @()
+    $deploy_appFilePaths | ForEach-Object { $appFilePaths = $appFilePaths + (Join-Path ((Get-Item $file).Directory.FullName) -ChildPath $_ -Resolve) }
     
-
-    # use this for appFilePaths -> Join-Path ((Get-Item $path).Directory.FullName) -ChildPath "..\\" -Resolve
-    # use this for licenseFile -> Join-Path ((Get-Item $path).Directory.FullName) -ChildPath "..\\license.flf" -Resolve
-
-    if (Test-Path $file) {
-        $jsonData = Get-Content -Path $file -Raw | ConvertFrom-Json
+    $appFiles = @()
+    $appFilePaths | ForEach-Object {
+        Get-ChildItem (Join-Path -Path $_ -ChildPath "\*") -Include '*.app' -File | ForEach-Object {
+            $appFiles += $_.FullName
+        }
     }
 
-    $fullContainerName = $prefix + "-" + $containerName
+    $fontPaths = @()
+    $fontFiles = @()
+    $deploy_fontPaths | ForEach-Object { $fontPaths = $fontPaths + (Join-Path ((Get-Item $file).Directory.FullName) -ChildPath $_ -Resolve) }
+    $fontPaths | ForEach-Object {
+        Get-ChildItem (Join-Path -Path $_ -ChildPath "\*") -Include ('*.fon', '*.ttf', '*.ttc', '*.otf', '*.fnt') -File | ForEach-Object {
+            $fontFiles += $_.FullName
+        }
+    }
+
+    $rapidstartPaths = @()
+    $rapidstartFiles = @()
+    $deploy_rapidstartPaths | ForEach-Object { $rapidstartPaths = $rapidstartPaths + (Join-Path ((Get-Item $file).Directory.FullName) -ChildPath $_ -Resolve) }
+    $rapidstartPaths | ForEach-Object {
+        Get-ChildItem (Join-Path -Path $_ -ChildPath "\*") -Include ('*.rapidstart') -File | ForEach-Object {
+            $rapidstartFiles += $_.FullName
+        }
+    }
+
+    $appFilesSelected = @()
+    if ($appFiles.Count -gt 0) {
+        $appFiles | Out-GridView -OutputMode Multiple | ForEach-Object { 
+            $appFilesSelected += $_ 
+        }
+    }
+    
+    if ($licenseFile -eq "") {
+        $licenseFile = Join-Path ((Get-Item $file).Directory.FullName) -ChildPath $deploy_licenseFile -Resolve
+    }
+
+    $fullContainerName = $deploy_Prefix + "-" + $containerSuffix
 
     Check-NavContainerName -containerName $fullContainerName
 
-    $template = $jsonData | Where-Object prefix -eq $prefix
-
     $params = @{
         'containerName'            = $fullContainerName;
-        'imageName'                = $template.imageName;
-        'auth'                     = $template.auth;
+        'imageName'                = $deploy_imageName;
+        'auth'                     = $auth;
         'shortcuts'                = 'StartMenu';
         'accept_eula'              = $true;
         'accept_outdated'          = $true;
@@ -78,14 +110,9 @@ function New-NavContainerFromDeployFile {
         'enableSymbolLoading'      = $true;
     }
 
-    if ($template.auth -match "UserPassword") {
-        $credential = $host.ui.PromptForCredential("Enter credentials to use for the container", "Please enter a user name and password.", "admin", "")
-        $params += @{'credential' = $credential }
-    }
-
-    if ($template.licenseFile -ne "") {
-        if (!(Test-Path -path $template.licenseFile)) {
-            throw "Could not open license file at $($template.licenseFile)"
+    if ($licenseFile -ne "") {
+        if (!(Test-Path -path $licenseFile)) {
+            throw "Could not open license file at $($licenseFile)"
         }
     }
 
@@ -99,23 +126,58 @@ function New-NavContainerFromDeployFile {
     }
 
     try {
+        $startDTM = (Get-Date)
         Write-Log "Creating container..."
         New-NavContainer @params
-        if ($template.licenseFile -ne "") {
+        if ($licenseFile -ne "") {
             Write-Log "Importing license file..."
-            Import-NavContainerLicense -containerName $fullContainerName -licenseFile $template.licenseFile
+            try {
+                Import-NavContainerLicense -containerName $fullContainerName -licenseFile $licenseFile
+            }
+            finally {
+                Write-Log "License import finished."
+            }
         }
-        Write-Log "Adding fonts to container..."
-        Add-FontsToNavContainer -containerName $fullContainerName 
+        if ($appFilesSelected.Count -gt 0) {
+            Write-Log "Publishing apps to container..."
+            try {
+                $appFilesSelected | ForEach-Object { Publish-NavContainerApp -containerName $fullContainerName -appFile $_ -skipVerification }
+            }
+            finally {
+                Write-Log "App publishing finished."
+            }
+        }
+        if ($rapidstartFiles.Count -gt 0) {
+            Write-Log "Adding configuration packages to container..."
+            try {
+                $rapidstartFiles | ForEach-Object { Import-ConfigPackageInNavContainer -containerName $fullContainerName -configPackage $_ }
+            }
+            finally {
+                Write-Log "Configuration package import finished."
+            }
+        }
+        if ($fontFiles.Count -gt 0) {
+            Write-Log "Adding fonts to container..."
+            try {
+                $fontFiles | ForEach-Object { Add-FontsToNavContainer -containerName $fullContainerName -path $_ }
+            }
+            finally {
+                Write-Log "Font installation finished."
+            }
+        }
+        if ($databaseBackup) {
+            Remove-Item "C:\temp\navdbfiles\dbFile.bak"
+            Write-Log "Successfully removed C:\temp\navdbfiles\dbFile.bak"
+        }
     }
     catch {
         throw "Could not create $($fullContainerName)"
     }
-
-    if ($databaseBackup) {
-        Remove-Item "C:\temp\navdbfiles\dbFile.bak"
-        Write-Log "Successfully removed C:\temp\navdbfiles\dbFile.bak"
+    finally {
+        Write-Log "Successfully created container $($fullContainerName) in $([timespan]::fromseconds(((Get-Date)-$startDTM).Totalseconds).ToString("hh\:mm\:ss"))"
+        Write-Host "Shortcuts can be found in the start menu (e.g. $($fullContainerName) Web Client)."
+        Write-Host "You can download the correct AL language extension by opening 'http://$($fullContainerName):8080'."
     }
 }
 
-Export-ModuleMember -Function New-BCCSContainerFromTemplate
+Export-ModuleMember -Function New-NavContainerFromDeployFile
