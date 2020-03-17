@@ -26,6 +26,13 @@ function Get-BCCSTemplateFile() {
 }
 
 function Write-Log($message) {
+    $currDate = Get-Date -Format "yyyy-MM-dd"
+    $logFile = Join-Path $bccsFolder "$($currDate).log"
+    if (!(Test-Path $logFile)) {
+        New-Item $logFile -ItemType File | Out-Null
+    }
+
     $time = Get-Date -Format "[HH:mm:ss]"
     Write-Host $time $message -ForegroundColor Yellow
+    Add-Content $logFile -value "$($time) $($message)"
 }

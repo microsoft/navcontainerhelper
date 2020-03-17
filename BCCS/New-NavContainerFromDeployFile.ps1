@@ -82,7 +82,9 @@ function New-NavContainerFromDeployFile {
     }
     
     if ($licenseFile -eq "") {
-        $licenseFile = Join-Path ((Get-Item $file).Directory.FullName) -ChildPath $deploy_licenseFile -Resolve
+        if ($deploy_licenseFile -ne "") {
+            $licenseFile = Join-Path ((Get-Item $file).Directory.FullName) -ChildPath $deploy_licenseFile -Resolve
+        }
     }
 
     $fullContainerName = $deploy_Prefix + "-" + $containerSuffix
@@ -122,56 +124,114 @@ function New-NavContainerFromDeployFile {
 
     try {
         $startDTM = (Get-Date)
-        Write-Log "Creating container..."
+        $totalErrorCount = 0
+        Write-Log "Creating container $($fullContainerName)..."
         New-NavContainer @params
         if ($licenseFile -ne "") {
             Write-Log "Importing license file..."
             try {
+                $errorCount = 0
                 Import-NavContainerLicense -containerName $fullContainerName -licenseFile $licenseFile
+                Write-Log "Import of license file $licenseFile finished."
+            }
+            catch {
+                $errorCount++
+                Write-Log "Error on import of license $licenseFile"
+                Write-Log $_
             }
             finally {
-                Write-Log "License import finished."
+                $totalErrorCount += $errorCount
             }
         }
         if ($appFilesSelected.Count -gt 0) {
-            Write-Log "Publishing apps to container..."
+            Write-Log "Publishing apps to container $($fullContainerName)..."
             try {
-                $appFilesSelected | ForEach-Object { Publish-NavContainerApp -containerName $fullContainerName -appFile $_ -skipVerification }
+                $errorCount = 0
+                $appFilesSelected | ForEach-Object { 
+                    try {
+                        $current = $_
+                        Publish-NavContainerApp -containerName $fullContainerName -appFile $_ -skipVerification 
+                        Write-Log "Import of app file $_ finished."
+                    }
+                    catch {
+                        $errorCount++
+                        Write-Log "Error on publishing of app file $current"
+                        Write-Log $_                       
+                    }
+                }
+                Write-Log "App publishing finished with $errorCount errors."
+            }
+            catch {
+                Write-Log "Error on app publishing."
+                Write-Log $_
             }
             finally {
-                Write-Log "App publishing finished."
+                $totalErrorCount += $errorCount
             }
         }
         if ($rapidstartFiles.Count -gt 0) {
-            Write-Log "Adding configuration packages to container..."
+            Write-Log "Adding configuration packages to container $($fullContainerName)..."
             try {
-                $rapidstartFiles | ForEach-Object { Import-ConfigPackageInNavContainer -containerName $fullContainerName -configPackage $_ }
+                $errorCount = 0
+                $rapidstartFiles | ForEach-Object { 
+                    try {
+                        $current = $_
+                        Import-ConfigPackageInNavContainer -containerName $fullContainerName -configPackage $_ 
+                        Write-Log "Import of configuration package $_ finished."
+                    }
+                    catch {
+                        $errorCount++
+                        Write-Log "Error on import of configuration package $current"
+                        Write-Log $_                        
+                    }
+                }
+                Write-Log "Configuration package import finished with $errorCount errors."
+            }
+            catch {
+                Write-Log "Error on import of configuration packages."
+                Write-Log "`t$($_)"                
             }
             finally {
-                Write-Log "Configuration package import finished."
+                $totalErrorCount += $errorCount
             }
         }
         if ($fontFiles.Count -gt 0) {
-            Write-Log "Adding fonts to container..."
+            Write-Log "Adding fonts to container $($fullContainerName)..."
             try {
-                $fontFiles | ForEach-Object { Add-FontsToNavContainer -containerName $fullContainerName -path $_ }
+                $errorCount = 0
+                $fontFiles | ForEach-Object {
+                    try {
+                        $current = $_
+                        Add-FontsToNavContainer -containerName $fullContainerName -path $_ 
+                        Write-Log "Import of font $_ finished."
+                    }
+                    catch {
+                        $errorCount++
+                        Write-Log "Error on installation of font $current"
+                        Write-Log $_
+                    }
+                }
+                Write-Log "Font installation finished with $errorCount errors."
+            }
+            catch {
+                Write-Log "Error on font installation."
+                Write-Log $_
             }
             finally {
-                Write-Log "Font installation finished."
+                $totalErrorCount += $errorCount
             }
         }
         if ($databaseBackup) {
             Remove-Item "C:\temp\navdbfiles\dbFile.bak"
             Write-Log "Successfully removed C:\temp\navdbfiles\dbFile.bak"
         }
-    }
-    catch {
-        throw "Could not create $($fullContainerName)"
-    }
-    finally {
-        Write-Log "Successfully created container $($fullContainerName) in $([timespan]::fromseconds(((Get-Date)-$startDTM).Totalseconds).ToString("hh\:mm\:ss"))"
+        Write-Log "Created container $($fullContainerName) in $([timespan]::fromseconds(((Get-Date)-$startDTM).Totalseconds).ToString("hh\:mm\:ss")) with $($totalErrorCount) errors."
         Write-Host "Shortcuts can be found in the start menu (e.g. $($fullContainerName) Web Client)."
         Write-Host "You can download the correct AL language extension by opening 'http://$($fullContainerName):8080'."
+    }
+    catch {
+        Write-Log "Error on creation of container $($fullContainerName)"
+        Write-Log $_
     }
 }
 
