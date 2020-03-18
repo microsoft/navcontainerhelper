@@ -105,6 +105,7 @@ function New-NavContainerFromDeployFile {
         'useBestContainerOS'       = $true;
         'includeCSide'             = $true;
         'enableSymbolLoading'      = $true;
+		'isolation'                = 'hyperv';
     }
 
     if ($licenseFile -ne "") {
