@@ -72,7 +72,8 @@ function Show-BCCSAssistant {
                 $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file }),
                 $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file }),
-                $(New-MenuItem -DisplayName "backup database" -Script { Menu-BackupDatabase $file })
+                $(New-MenuItem -DisplayName "backup database" -Script { Menu-BackupDatabase $file }),
+                $(New-MenuItem -DisplayName "change windows password" -Script { Menu-ChangePWD $file })
         )    
         do {
                 Write-Host ""
