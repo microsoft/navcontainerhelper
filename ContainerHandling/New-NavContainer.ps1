@@ -1364,6 +1364,10 @@ if (-not `$restartingInstance) {
     }
 
     if ($includeCSide) {
+        # Ensure, that the RTC folder exists
+        while ($null -eq (Get-Item "$programFilesFolder\*\RoleTailored Client")) {
+            Start-Sleep -Seconds 1
+        }
         $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
         New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
         New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
