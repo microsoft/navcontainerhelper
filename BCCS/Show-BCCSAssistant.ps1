@@ -208,4 +208,17 @@ function Menu-BackupDatabase() {
         }       
 }
 
+function Menu-ChangePWD() {
+        $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to backup its database" -OutputMode Single
+        if ($selection) {
+                Invoke-ScriptInBCContainer -containerName $selection.fullName -scriptblock {
+                        Param($Username)
+                        $Password = Read-Host "Enter the new password" -AsSecureString
+                        Get-LocalUser -Name $Username -ErrorAction Stop | Set-LocalUser -Password $Password -ErrorAction Stop
+                        Write-Host "Password changed for user $Username!" -ForegroundColor Green
+                } -argumentList $env:USERNAME
+        }       
+}
+
+
 Export-ModuleMember -Function Show-BCCSAssistant
