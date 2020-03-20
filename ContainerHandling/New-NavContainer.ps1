@@ -311,11 +311,6 @@ function New-NavContainer {
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
-    $dockerOS = docker version -f "{{.Server.Os}}"
-    if ($dockerOS -ne "Windows") {
-        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
-    }
-
     $dockerService = (Get-Service docker -ErrorAction Ignore)
     if (!($dockerService)) {
         throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
@@ -324,6 +319,11 @@ function New-NavContainer {
     if ($dockerService.Status -ne "Running") {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
     }
+
+   	$dockerOS = docker version -f "{{.Server.Os}}"
+    if ($dockerOS -ne "Windows") {
+        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
+   	}
 
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
