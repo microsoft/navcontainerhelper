@@ -19,6 +19,7 @@ endpoint = "npipe:////./pipe/docker_engine"
   [entryPoints.https]
   address = ":443"
   [entryPoints.https.tls]
+  minVersion = "VersionTLS12"
 
 [acme]
 email = "$ContactEMailForLetsEncrypt"

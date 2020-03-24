@@ -51,6 +51,8 @@
   Include this switch if you want to update the hosts file with the IP address of the container
  .Parameter useSSL
   Include this switch if you want to use SSL (https) with a self-signed certificate
+ .Parameter installCertificateOnHost
+  Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter includeCSide
   Include this switch if you want to have Windows Client and CSide development environment available on the host. This switch will also export all objects as txt for object handling functions unless doNotExportObjectsAsText is set.
  .Parameter includeAL
@@ -177,6 +179,7 @@ function New-NavContainer {
         [string] $shortcuts='Desktop',
         [switch] $updateHosts,
         [switch] $useSSL,
+        [switch] $installCertificateOnHost,
         [switch] $includeAL,
         [string] $runTxt2AlInContainer = $containerName,
         [switch] $includeCSide,
@@ -394,20 +397,22 @@ function New-NavContainer {
         } elseif (Test-NavContainer -containerName navserver) {
             $imageName = Get-NavContainerImageName -containerName navserver
         } else {
-            $imageName = "mcr.microsoft.com/businesscentral/onprem"
+            $imageName = Get-BestNavContainerImageName -imageName "mcr.microsoft.com/businesscentral/onprem"
             $alwaysPull = $true
         }
+        $bestImageName = $imageName
     }
-
-    if (!$imageName.Contains(':')) {
-        $imageName += ":latest"
-    }
-
-    # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
-    $bestImageName = Get-BestNavContainerImageName -imageName $imageName
-
-    if ($useBestContainerOS) {
-        $imageName = $bestImageName
+    else {
+        if (!$imageName.Contains(':')) {
+            $imageName += ":latest"
+        }
+    
+        # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
+        $bestImageName = Get-BestNavContainerImageName -imageName $imageName
+    
+        if ($useBestContainerOS) {
+            $imageName = $bestImageName
+        }
     }
     
     $pullit = $alwaysPull
@@ -874,7 +879,7 @@ function New-NavContainer {
     if ($vsixFile) {
         if ($vsixFile.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixFile.StartsWith("http://", "OrdinalIgnoreCase")) {
             $uri = [Uri]::new($vsixFile)
-            Download-File -sourceUrl $vsixFile -destinationFile "$containerFolder\$($uri.Segments[$uri.Segments.Count-1])"
+            Download-File -sourceUrl $vsixFile -destinationFile "$containerFolder\$($uri.Segments[$uri.Segments.Count-1]).vsix"
         }
         elseif (Test-Path $vsixFile -PathType Leaf) {
             Copy-Item -Path $vsixFile -Destination $containerFolder
@@ -1205,6 +1210,7 @@ if (-not `$restartingInstance) {
     else {
         Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerFolder"" -force
     }
+    Copy-Item -Path 'C:\Run\*.cer' -Destination ""$containerFolder"" -force
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
@@ -1271,6 +1277,17 @@ if (-not `$restartingInstance) {
                 Write-Host "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
             }
         } -argumentList $TimeZoneId
+    }
+
+    if ($useSSL -and $installCertificateOnHost) {
+        $certPath = Join-Path $containerFolder "certificate.cer"
+        if (Test-Path $certPath) {
+            $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\localMachine\Root"
+            if ($cert) {
+                Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
+                Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
+            }
+        }
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
