@@ -39,13 +39,15 @@ function Sort-AppFoldersByDependencies {
             $appJson = Get-Content -Path $appJsonFile | ConvertFrom-Json
             
             # replace id with appid
-            if ($appJson.dependencies) {
-                $appJson.dependencies = $appJson.dependencies | % {
-                    if ($_.psobject.Members | where-object membertype -like 'noteproperty' | Where-Object name -eq "id") {
-                        New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version })
-                    }
-                    else {
-                        $_
+            if ($appJson.psobject.Members | Where-Object name -eq "dependencies") {
+                if ($appJson.dependencies) {
+                    $appJson.dependencies = $appJson.dependencies | % {
+                        if ($_.psobject.Members | where-object membertype -like 'noteproperty' | Where-Object name -eq "id") {
+                            New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version })
+                        }
+                        else {
+                            $_
+                        }
                     }
                 }
             }
@@ -82,8 +84,12 @@ function Sort-AppFoldersByDependencies {
     }
     
     function AddDependencies { Param($anApp)
-        if (($anApp) -and ($anApp.Dependencies)) {
-            $anApp.Dependencies | ForEach-Object { AddDependency -Dependency $_ }
+        if ($anApp) {
+            if ($anApp.psobject.Members | Where-Object name -eq "dependencies") {
+                if ($anApp.Dependencies) {
+                    $anApp.Dependencies | ForEach-Object { AddDependency -Dependency $_ }
+                }
+            }
         }
     }
     

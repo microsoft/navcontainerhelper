@@ -4,6 +4,8 @@ New function Get-LatestAlLanguageExtensionUrl for getting the Url to the latest 
 Added parameter -installCertificateOnHost to New-NavContainer to automatically install the self-signed certificate on the host
 Avoid double download of best generic image
 First check "Docker is running" before checking "Windows Container" (PR #904 Thanks Tino-T)
+Issue #901 - Sort-AppFoldersByDependencies fails if an app.json doesn't have a dependencies section
+Issue #907 - Local 14.x onpremises images cannot be started with -useBestContainerOS
 
 0.6.5.0
 February 2020 bug fix - -useBestContainerOS will now select between all published generic images. Generic images have been built for all supported Windows 10 versions.
