@@ -676,6 +676,12 @@ function New-NavContainer {
             }
         }
 
+        $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
+        if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
+            Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
+            $myscripts += @("https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/130/navinstall.ps1")
+        }
+
         $imageName = $useGenericImage
         Write-Host "Using generic image $imageName"
 
