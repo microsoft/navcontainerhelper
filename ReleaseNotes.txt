@@ -1,3 +1,6 @@
+0.6.5.2
+Regression - Issue #914 getting generic tag before the image has been pulled
+
 0.6.5.1
 Force tls1.2 when using Setup-TraefikContainerForBcContainers
 New function Get-LatestAlLanguageExtensionUrl for getting the Url to the latest AL Extension from the marketplace
