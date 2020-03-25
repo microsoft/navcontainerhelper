@@ -676,12 +676,6 @@ function New-NavContainer {
             }
         }
 
-        $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
-        if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
-            Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
-            $myscripts += @("https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/130/navinstall.ps1")
-        }
-
         $imageName = $useGenericImage
         Write-Host "Using generic image $imageName"
 
@@ -695,6 +689,12 @@ function New-NavContainer {
         if ($alwaysPull) {
             Write-Host "Pulling image $imageName"
             DockerDo -command pull -imageName $imageName | Out-Null
+        }
+
+        $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
+        if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
+            Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
+            $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
         }
 
         $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
