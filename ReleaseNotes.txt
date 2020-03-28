@@ -1,3 +1,6 @@
+0.6.5.3
+Issue #918 - Migration of Legacy VeriSign and Symantec Time Stamping Services
+
 0.6.5.2
 Regression - Issue #914 getting generic tag before the image has been pulled
 
