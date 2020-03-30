@@ -105,12 +105,15 @@ function New-NavContainerFromDeployFile {
         'useBestContainerOS'       = $true;
         'includeCSide'             = $true;
         'enableSymbolLoading'      = $true;
-		'isolation'                = 'hyperv';
+        'isolation'                = 'hyperv';
     }
 
     if ($licenseFile -ne "") {
         if (!(Test-Path -path $licenseFile)) {
             throw "Could not open license file at $($licenseFile)"
+        }
+        else {
+            $params += @{'licenseFile' = $licenseFile }
         }
     }
 
