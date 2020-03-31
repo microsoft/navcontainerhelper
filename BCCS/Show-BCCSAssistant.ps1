@@ -67,7 +67,7 @@ function Show-BCCSAssistant {
         $file = Get-BCCSTemplateFile $file
         Write-Host ""
         $menuList = @(
-                $(New-MenuItem -DisplayName "create a new container from a deployment file" -Script { Menu-CreateContainerFromDeployFile $file }), 
+                $(New-MenuItem -DisplayName "create a new container from a deployment file" -Script { Menu-CreateContainerFromDeployFile }), 
                 $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file }),
                 $(New-MenuItem -DisplayName "backup database" -Script { Menu-BackupDatabase $file }),
@@ -76,7 +76,9 @@ function Show-BCCSAssistant {
                 $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "create a new template" -Script { Menu-CreateTemplate $file }),
                 $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate $file }),
-                $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file })
+                $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file }),
+                $(Get-MenuSeparator),
+                $(New-MenuItem -DisplayName "create desktop shortcut for the assistant" -Script { Menu-CreateDesktopShortcut })
         )    
         do {
                 Write-Host ""
@@ -153,6 +155,11 @@ function Menu-RemoveTemplate {
                 throw "No template selected"
         }
         Remove-BCCSTemplate $template.prefix -file $file
+}
+
+function Menu-CreateDesktopShortcut {
+        New-DesktopShortcut -Name "BCCS Assistant" -TargetPath "PowerShell.exe" -Arguments '-NoExit -Command "& { Import-Module C:\NavObjEdit\git\bccs\NavContainerHelper.psm1; Show-BCCSAssistant }"' -Shortcuts Desktop -RunAsAdministrator
+        Write-Log "Created desktop shortcut 'BCCS Assistant'"
 }
 
 function Menu-CreateContainerFromDeployFile {
