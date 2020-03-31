@@ -67,15 +67,16 @@ function Show-BCCSAssistant {
         $file = Get-BCCSTemplateFile $file
         Write-Host ""
         $menuList = @(
-                $(New-MenuItem -DisplayName "create a new template" -Script { Menu-CreateTemplate $file }),
-                $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate $file }),
-                $(Get-MenuSeparator),
-                $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file }),
+                $(New-MenuItem -DisplayName "create a new container from a deployment file" -Script { Menu-CreateContainerFromDeployFile $file }), 
                 $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file }),
                 $(New-MenuItem -DisplayName "backup database" -Script { Menu-BackupDatabase $file }),
-                $(New-MenuItem -DisplayName "change windows password" -Script { Menu-ChangePWD $file })
-                $(New-MenuItem -DisplayName "add current Windows user" -Script { Menu-AddCurrentUser $file })
+                $(New-MenuItem -DisplayName "change windows password" -Script { Menu-ChangePWD $file }),
+                $(New-MenuItem -DisplayName "add current Windows user" -Script { Menu-AddCurrentUser $file }),
+                $(Get-MenuSeparator),
+                $(New-MenuItem -DisplayName "create a new template" -Script { Menu-CreateTemplate $file }),
+                $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate $file }),
+                $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file })
         )    
         do {
                 Write-Host ""
@@ -152,6 +153,64 @@ function Menu-RemoveTemplate {
                 throw "No template selected"
         }
         Remove-BCCSTemplate $template.prefix -file $file
+}
+
+function Menu-CreateContainerFromDeployFile {
+        $deployFile = Get-OpenFile "Choose a deployment file to create a container from" "Deployment file (deploy.json)|deploy.json" $PSScriptRoot
+        if (!$deployFile) {
+                throw "No deployment file selected"
+        }
+
+        $params = @{
+                'file' = $deployFile;
+        }
+
+        Write-host "Windows or NavUserPassword? (defaults to Windows)" -ForegroundColor Yellow
+        $ReadHost = Read-Host " ( w / n ) "
+        Switch ($ReadHost) {
+                W { $params += @{'auth' = 'Windows' } }
+                N { $params += @{'auth' = 'NavUserPassword' } }
+                Default { $params += @{'auth' = 'Windows' } }
+        }
+
+        Write-host "Use database backup? (defaults to no)" -ForegroundColor Yellow
+        $ReadHost = Read-Host " ( y / n ) "
+        Switch ($ReadHost) {
+                Y { $UseBackup = $true }
+                N { $UseBackup = $false }
+                Default { $UseBackup = $false }
+        }
+
+        Write-host "Use license file for creation? (defaults to no)" -ForegroundColor Yellow
+        $ReadHost = Read-Host " ( y / n ) "
+        Switch ($ReadHost) {
+                Y { $UseLicense = $true }
+                N { $UseLicense = $false }
+                Default { $UseLicense = $false }
+        }
+        
+        Write-Host ""
+        $suffix = Read-Host "Please enter a suffix (e.g. 'TEST' or 'DEV' -> added to the prefix defined in the deploy file)"
+        if ($suffix) {
+                $params += @{'containerSuffix' = $suffix }
+        }
+                
+        if ($UseBackup) {
+                $dbFile = Get-OpenFile "Pick database backup" "Database Backup files (*.bak)|*.bak" $PSScriptRoot
+                if ($dbFile) {
+                        $params += @{'databaseBackup' = $dbFile }
+                }
+        }
+
+        if ($UseLicense) {
+                $licenseFile = Get-OpenFile "Pick database license" "License files (*.flf)|*.flf" $PSScriptRoot
+                if ($licenseFile) {
+                        $params += @{'licenseFile' = $licenseFile }
+                }
+        }
+
+        Write-Log "Creating container from assistant..."
+        New-NavContainerFromDeployFile @params
 }
 
 function Menu-CreateContainer {
