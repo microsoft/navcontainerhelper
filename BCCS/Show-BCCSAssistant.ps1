@@ -71,9 +71,11 @@ function Show-BCCSAssistant {
                 $(New-MenuItem -DisplayName "remove a template" -Script { Menu-RemoveTemplate $file }),
                 $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "create a new container" -Script { Menu-CreateContainer $file }),
+                $(Get-MenuSeparator),
                 $(New-MenuItem -DisplayName "update license" -Script { Menu-UpdateLicense $file }),
                 $(New-MenuItem -DisplayName "backup database" -Script { Menu-BackupDatabase $file }),
                 $(New-MenuItem -DisplayName "change windows password" -Script { Menu-ChangePWD $file })
+                $(New-MenuItem -DisplayName "add current Windows user" -Script { Menu-AddCurrentUser $file })
         )    
         do {
                 Write-Host ""
@@ -210,7 +212,7 @@ function Menu-BackupDatabase() {
 }
 
 function Menu-ChangePWD() {
-        $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to backup its database" -OutputMode Single
+        $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to change your password in it" -OutputMode Single
         if ($selection) {
                 Invoke-ScriptInBCContainer -containerName $selection.fullName -scriptblock {
                         Param($Username)
@@ -218,6 +220,14 @@ function Menu-ChangePWD() {
                         Get-LocalUser -Name $Username -ErrorAction Stop | Set-LocalUser -Password $Password -ErrorAction Stop
                         Write-Host "Password changed for user $Username!" -ForegroundColor Green
                 } -argumentList $env:USERNAME
+        }       
+}
+
+function Menu-AddCurrentUser() {
+        $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to add your User to its NAV/BC service" -OutputMode Single
+        if ($selection) {
+                New-NavContainerNavUser -WindowsAccount $env:USERNAME -containerName $selection.FullName -PermissionSetId SUPER 
+                Write-Log "Added user $env:USERNAME to $($selection.FullName)!"
         }       
 }
 
