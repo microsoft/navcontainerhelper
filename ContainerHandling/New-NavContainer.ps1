@@ -1363,7 +1363,7 @@ if (-not `$restartingInstance) {
         Expand-Archive "$zipName.zip" -DestinationPath $zipname -Force
         Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
-            Copy-Item -Path (Join-Path $zipName "*.app") -Destination "c:\Applications\BaseApp\Test" -Force
+            Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
         } -argumentList $zipName, $devcountry
     }
 
