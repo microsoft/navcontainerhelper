@@ -1,5 +1,6 @@
 0.6.5.3
 Issue #918 - Migration of Legacy VeriSign and Symantec Time Stamping Services
+Issue #925 - Path Test Apps for 16.0 onprem rtm version
 
 0.6.5.2
 Regression - Issue #914 getting generic tag before the image has been pulled

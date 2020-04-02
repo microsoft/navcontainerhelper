@@ -1355,6 +1355,18 @@ if (-not `$restartingInstance) {
         Remove-NavContainerSession -containerName $containerName
     }
 
+    if ($version -eq [System.Version]"16.0.11240.12076" -and $devCountry -ne "W1") {
+        $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
+        Write-Host "Downloading new test apps for this version from $url"
+        $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
+        Download-File -sourceUrl $url -destinationFile "$zipName.zip"
+        Expand-Archive "$zipName.zip" -DestinationPath $zipname -Force
+        Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
+            Copy-Item -Path (Join-Path $zipName "*.app") -Destination "c:\Applications\BaseApp\Test" -Force
+        } -argumentList $zipName, $devcountry
+    }
+
     $sqlCredential = $databaseCredential
     if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
         $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
