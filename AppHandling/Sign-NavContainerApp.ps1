@@ -73,7 +73,7 @@ function Sign-NavContainerApp {
 
         Write-Host "Signing $appFile"
         $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
-        & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "http://timestamp.digicert.com?alg=sha1", "$appFile") | Write-Host
+        & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "http://timestamp.verisign.com/scripts/timestamp.dll", "$appFile") | Write-Host
 
         if ($copied) { 
             Remove-Item $pfxFile -Force
