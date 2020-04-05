@@ -31,6 +31,19 @@ function Remove-NavContainer {
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $containerName -theIpAddress ""
         }
 
+        $thumbprintFile = Join-Path $containerFolder "thumbprint.txt"
+        if (Test-Path -Path $thumbprintFile) {
+            $thumbprint = Get-Content -Path $thumbprintFile
+            $cert = Get-ChildItem "cert:\localMachine\Root" | Where-Object { $_.Thumbprint -eq $thumbprint }
+            if ($cert) {
+                $cert | Remove-Item
+                Write-Host "Certificate with thumbprint $thumbprint removed successfully"
+            }
+            else {
+                Write-Host "Certificate with thumbprint $thumbprint not found in store"
+            }
+        }
+
         Remove-DesktopShortcut -Name "$containerName Web Client"
         Remove-DesktopShortcut -Name "$containerName Test Tool"
         Remove-DesktopShortcut -Name "$containerName Windows Client"
