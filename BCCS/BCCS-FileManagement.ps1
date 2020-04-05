@@ -1,3 +1,10 @@
+try {
+    git -C $PSScriptRoot pull
+}
+catch {
+    Write-Log "Could not pull latest version"
+}
+
 function Get-BCCSTemplateFile() {
     Param (
         [string] $file = ""
