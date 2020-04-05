@@ -110,10 +110,10 @@ function Publish-NewApplicationToNavContainer {
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     $appsFolder = Join-Path $containerFolder "Extensions"
+    if (!(Test-Path $appsFolder)) {
+        New-Item -Path $appsFolder -ItemType Directory | Out-Null
+    }
     if ($restoreApps -ne "No") {
-        if (!(Test-Path $appsFolder)) {
-            New-Item -Path $appsFolder -ItemType Directory | Out-Null
-        }
         $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
         if ($restoreApps -eq "AsRuntimePackages" -and ($replaceDependencies)) {
             Write-Warning "ReplaceDependencies will not work with apps restored as runtime packages"
