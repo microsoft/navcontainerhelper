@@ -1,4 +1,4 @@
-﻿<# 
+﻿<# -
  .Synopsis
   Create or refresh a NAV/BC Container
  .Description
@@ -50,6 +50,8 @@
  .Parameter updateHosts
   Include this switch if you want to update the hosts file with the IP address of the container
  .Parameter useSSL
+  Include this switch if you want to use SSL (https) with a self-signed certificate
+ .Parameter installCertificateOnHost
   Include this switch if you want to use SSL (https) with a self-signed certificate
  .Parameter includeCSide
   Include this switch if you want to have Windows Client and CSide development environment available on the host. This switch will also export all objects as txt for object handling functions unless doNotExportObjectsAsText is set.
@@ -177,6 +179,7 @@ function New-NavContainer {
         [string] $shortcuts = 'Desktop',
         [switch] $updateHosts,
         [switch] $useSSL,
+        [switch] $installCertificateOnHost,
         [switch] $includeAL,
         [string] $runTxt2AlInContainer = $containerName,
         [switch] $includeCSide,
@@ -314,11 +317,6 @@ function New-NavContainer {
     $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
-    $dockerOS = docker version -f "{{.Server.Os}}"
-    if ($dockerOS -ne "Windows") {
-        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
-    }
-
     $dockerService = (Get-Service docker -ErrorAction Ignore)
     if (!($dockerService)) {
         throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
@@ -327,6 +325,11 @@ function New-NavContainer {
     if ($dockerService.Status -ne "Running") {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
     }
+
+   	$dockerOS = docker version -f "{{.Server.Os}}"
+    if ($dockerOS -ne "Windows") {
+        throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
+   	}
 
     $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
@@ -400,20 +403,22 @@ function New-NavContainer {
             $imageName = Get-NavContainerImageName -containerName navserver
         }
         else {
-            $imageName = "mcr.microsoft.com/businesscentral/onprem"
+            $imageName = Get-BestNavContainerImageName -imageName "mcr.microsoft.com/businesscentral/onprem"
             $alwaysPull = $true
         }
+        $bestImageName = $imageName
     }
-
-    if (!$imageName.Contains(':')) {
-        $imageName += ":latest"
-    }
-
-    # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
-    $bestImageName = Get-BestNavContainerImageName -imageName $imageName
-
-    if ($useBestContainerOS) {
-        $imageName = $bestImageName
+    else {
+        if (!$imageName.Contains(':')) {
+            $imageName += ":latest"
+        }
+    
+        # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
+        $bestImageName = Get-BestNavContainerImageName -imageName $imageName
+    
+        if ($useBestContainerOS) {
+            $imageName = $bestImageName
+        }
     }
     
     $pullit = $alwaysPull
@@ -696,6 +701,12 @@ function New-NavContainer {
             DockerDo -command pull -imageName $imageName | Out-Null
         }
 
+        $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
+        if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
+            Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
+            $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
+        }
+
         $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
     
         if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -902,7 +913,7 @@ function New-NavContainer {
     if ($vsixFile) {
         if ($vsixFile.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixFile.StartsWith("http://", "OrdinalIgnoreCase")) {
             $uri = [Uri]::new($vsixFile)
-            Download-File -sourceUrl $vsixFile -destinationFile "$containerFolder\$($uri.Segments[$uri.Segments.Count-1])"
+            Download-File -sourceUrl $vsixFile -destinationFile "$containerFolder\$($uri.Segments[$uri.Segments.Count-1]).vsix"
         }
         elseif (Test-Path $vsixFile -PathType Leaf) {
             Copy-Item -Path $vsixFile -Destination $containerFolder
@@ -1237,6 +1248,7 @@ if (-not `$restartingInstance) {
     else {
         Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerFolder"" -force
     }
+    Copy-Item -Path 'C:\Run\*.cer' -Destination ""$containerFolder"" -force
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
@@ -1307,6 +1319,17 @@ if (-not `$restartingInstance) {
         } -argumentList $TimeZoneId
     }
 
+    if ($useSSL -and $installCertificateOnHost) {
+        $certPath = Join-Path $containerFolder "certificate.cer"
+        if (Test-Path $certPath) {
+            $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\localMachine\Root"
+            if ($cert) {
+                Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
+                Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
+            }
+        }
+    }
+
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
@@ -1365,6 +1388,18 @@ if (-not `$restartingInstance) {
             Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
         } -argumentList $idepsm
         Remove-NavContainerSession -containerName $containerName
+    }
+
+    if ($version -eq [System.Version]"16.0.11240.12076" -and $devCountry -ne "W1") {
+        $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
+        Write-Host "Downloading new test apps for this version from $url"
+        $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
+        Download-File -sourceUrl $url -destinationFile "$zipName.zip"
+        Expand-Archive "$zipName.zip" -DestinationPath $zipname -Force
+        Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
+        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
+            Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
+        } -argumentList $zipName, $devcountry
     }
 
     $sqlCredential = $databaseCredential
