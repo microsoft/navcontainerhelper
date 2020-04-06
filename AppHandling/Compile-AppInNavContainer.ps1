@@ -364,7 +364,10 @@ function Compile-AppInNavContainer {
 
     $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
-        $alcPath = 'C:\build\vsix\extension\bin'
+        $alcPath = 'C:\build\vsix\extension\bin\win32'
+        if (-not (Test-Path $alcPath)) {
+            $alcPath = 'C:\build\vsix\extension\bin'
+        }
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
             Remove-Item -Path $appOutputFile -Force
