@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Use NAV/BC Container to Compile App
  .Description
@@ -92,7 +92,7 @@ function Compile-AppInNavContainer {
         $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
     }
     [System.Version]$platformversion = $platform
-    
+
     $containerProjectFolder = Get-NavContainerPath -containerName $containerName -path $appProjectFolder
     if ("$containerProjectFolder" -eq "") {
         throw "The appProjectFolder ($appProjectFolder) is not shared with the container."
@@ -265,7 +265,7 @@ function Compile-AppInNavContainer {
         Write-Host "Disabling SSL Verification"
         [SslVerification]::Disable()
     }
-    
+
 
     $webClient = [System.Net.WebClient]::new()
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
@@ -275,7 +275,7 @@ function Compile-AppInNavContainer {
         if (!($credential)) {
             throw "You need to specify credentials when you are not using Windows Authentication"
         }
-        
+
         $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
         $base64 = [System.Convert]::ToBase64String($bytes)
@@ -307,23 +307,27 @@ function Compile-AppInNavContainer {
                     While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
 
                     if ($platformversion.Major -ge 15) {
-                        $alcPath = 'C:\build\vsix\extension\bin'
+                        $alcPath = 'C:\build\vsix\extension\bin\win32'
+                        if (-not (Test-Path $alcPath)) {
+                            $alcPath = 'C:\build\vsix\extension\bin'
+                        }
+
                         Add-Type -AssemblyName System.IO.Compression.FileSystem
                         Add-Type -AssemblyName System.Text.Encoding
-        
+
                         # Import types needed to invoke the compiler
                         Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
                         Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-    
+
                         try {
                             $packageStream = [System.IO.File]::OpenRead($symbolsFile)
                             $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                             $manifest = $package.ReadNavAppManifest()
-        
+
                             if ($manifest.application) {
                                 @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
                             }
-        
+
                             foreach ($dependency in $manifest.dependencies) {
                                 @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
                             }
@@ -356,7 +360,7 @@ function Compile-AppInNavContainer {
         }
         $depidx++
     }
- 
+
     if ($sslverificationdisabled) {
         Write-Host "Re-enabling SSL Verification"
         [SslVerification]::Enable()
@@ -364,7 +368,10 @@ function Compile-AppInNavContainer {
 
     $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
-        $alcPath = 'C:\build\vsix\extension\bin'
+        $alcPath = 'C:\build\vsix\extension\bin\win32'
+        if (-not (Test-Path $alcPath)) {
+            $alcPath = 'C:\build\vsix\extension\bin'
+        }
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
             Remove-Item -Path $appOutputFile -Force
@@ -407,7 +414,7 @@ function Compile-AppInNavContainer {
         & .\alc.exe $alcParameters
 
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
-    
+
     if ($AzureDevOps) {
         $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
     }
