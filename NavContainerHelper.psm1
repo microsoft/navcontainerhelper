@@ -188,6 +188,8 @@ if (!(Test-Path -Path $bccsFolder -PathType Container)) {
     New-Item -Path $bccsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
 }
 
+$bccsScriptFolder = $PSScriptRoot
+
 . (Join-Path $PSScriptRoot "BCCS\BCCS-FileManagement.ps1")
 
 . (Join-Path $PSScriptRoot "BCCS\New-BCCSTemplate.ps1")

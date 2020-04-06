@@ -1,5 +1,5 @@
 try {
-    git -C $PSScriptRoot pull
+    git -C $bccsScriptFolder pull
 }
 catch {
     Write-Log "Could not pull latest version"

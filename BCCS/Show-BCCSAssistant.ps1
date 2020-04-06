@@ -158,7 +158,9 @@ function Menu-RemoveTemplate {
 }
 
 function Menu-CreateDesktopShortcut {
-        New-DesktopShortcut -Name "BCCS Assistant" -TargetPath "PowerShell.exe" -Arguments '-NoExit -Command "& { Import-Module C:\NavObjEdit\git\bccs\NavContainerHelper.psm1; Show-BCCSAssistant }"' -Shortcuts Desktop -RunAsAdministrator
+        $module = Join-Path $bccsScriptFolder -ChildPath NavContainerHelper.psm1
+        $module = "`'$module`'"
+        New-DesktopShortcut -Name "BCCS Assistant" -TargetPath "PowerShell.exe" -Arguments "-NoExit -Command `"& { Import-Module $module; Show-BCCSAssistant }`"" -Shortcuts Desktop -RunAsAdministrator
         Write-Log "Created desktop shortcut 'BCCS Assistant'"
 }
 
