@@ -1,3 +1,6 @@
+0.6.5.5
+Use .net core version of alc.exe if available
+
 0.6.5.4
 Regression - Issue #930 - Revert fix for #918
 
