@@ -1,3 +1,6 @@
+0.6.5.6
+Issue #929 - Get-NavContainerSharedFolders doesn't support :rw or :ro on volumes
+
 0.6.5.5
 Use .net core version of alc.exe if available
 
