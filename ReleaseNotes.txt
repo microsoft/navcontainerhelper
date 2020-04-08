@@ -1,5 +1,7 @@
 0.6.5.6
 Issue #929 - Get-NavContainerSharedFolders doesn't support :rw or :ro on volumes
+Issue #934 - Restart instance after creation of new symbolic link
+Issue #924 - Compile App failed - AlcOutput is null
 
 0.6.5.5
 Use .net core version of alc.exe if available

@@ -412,7 +412,9 @@ function Compile-AppInNavContainer {
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
     
     if ($AzureDevOps) {
-        $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        if ($result) {
+            $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        }
     }
     $result | % { $outputTo.Invoke($_) }
 
