@@ -2,6 +2,7 @@
 Issue #929 - Get-NavContainerSharedFolders doesn't support :rw or :ro on volumes
 Issue #934 - Restart instance after creation of new symbolic link
 Issue #924 - Compile App failed - AlcOutput is null
+Issue #940 - Vsix analyzer DLLs are not under Win32
 
 0.6.5.5
 Use .net core version of alc.exe if available
