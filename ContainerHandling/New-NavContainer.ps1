@@ -696,6 +696,11 @@ function New-NavContainer {
             Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
             $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
         }
+        elseif ($useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
+            Write-Host "Patching navinstall.ps1 to stop the Service Tier for reconfiguration"
+            $myscripts += @( @{ "navinstall.ps1" = '. "c:\run\navinstall.ps1"; Stop-Service -Name $NavServiceName -WarningAction Ignore' } )
+        }
+
 
         $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
     
