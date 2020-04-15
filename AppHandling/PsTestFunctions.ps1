@@ -169,6 +169,7 @@ function Get-Tests {
     $index = 0
     $repeaterCount = [int]$repeater.DefaultViewport.Count
 	$repeaterOffset = [int]$repeater.Offset
+	$originalRepeaterOffset = [int]$repeater.Offset
 	if ($repeaterOffset -gt 0) {
 		$repeaterCount = $repeaterCount + $repeaterOffset
 		$repeaterOffset = 0
