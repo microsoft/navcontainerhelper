@@ -167,25 +167,68 @@ function Get-Tests {
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
-    $repeaterCount = [int]$repeater.DefaultViewport.Count
+	$repeaterCount = [int]$repeater.DefaultViewport.Count
 	$repeaterOffset = [int]$repeater.Offset
 	$originalRepeaterOffset = [int]$repeater.Offset
+	if ($debugMode) {	
+		Write-Debug "No. of Records: $repeaterCount"
+		Write-Debug "Repeater Offset: $repeaterOffset"
+	}
+	if ($repeaterOffset -gt 0) {
+		$repeaterCount = $repeaterCount + $repeaterOffset
+		$repeaterOffset = 0
+		Write-Debug "-1 Scroll Repeater."
+		$clientContext.ScrollRepeater($repeater, -1)		
+	}
+	
+	if ($debugMode) {	
+		Write-Debug "Iterate through Repeater control..."	
+		while ($true)
+		{
+			$rowIndex = $index - $repeaterOffset
+			$index++
+			if ($index -ge $repeaterCount)
+			{
+				Write-Debug $("[Row Index: " + $rowIndex + " (Index: " + $index + ", Offset: " + $repeaterOffset + ") ] Repeater finished.")
+				break 
+			}
+			$row = $repeater.DefaultViewport[$rowIndex]
+			$lineTypeControl = $clientContext.GetControlByName($row, "LineType")
+			$lineType = "$(([int]$lineTypeControl.StringValue) + $lineTypeAdjust)"
+			$name = $clientContext.GetControlByName($row, "Name").StringValue
+			$codeUnitId = $clientContext.GetControlByName($row, "TestCodeunit").StringValue
+
+			if ($name) {
+				Write-Debug $("[Row Index: " + $rowIndex + " (Index: " + $index + ", Offset: " + $repeaterOffset + ") ] " + $name + " (Line Type: " + $linetype + ")")
+			} else {
+				Write-Debug $("[Row Index: " + $rowIndex + " (Index: " + $index + ", Offset: " + $repeaterOffset + ") ] Nothing found.")
+			}
+			
+			if ($rowIndex -ge ($originalRepeaterOffset - 1))
+			{
+				Write-Debug "+1 Scroll Repeater ."
+				$clientContext.ScrollRepeater($repeater, 1)
+				$repeaterOffset = $repeaterOffset + $originalRepeaterOffset
+			}
+		}
+	}
+
+    $index = 0
 	if ($repeaterOffset -gt 0) {
 		$repeaterCount = $repeaterCount + $repeaterOffset
 		$repeaterOffset = 0
 		$clientContext.ScrollRepeater($repeater, -1)		
 	}
-
     $Tests = @()
     $group = $null
     while ($true)
     {
 		$rowIndex = $index - $repeaterOffset
-        $index++
+		$index++
 		if ($index -ge $repeaterCount)
-        {
-            break 
-        }
+		{
+			break 
+		}
         $row = $repeater.DefaultViewport[$rowIndex]
         $lineTypeControl = $clientContext.GetControlByName($row, "LineType")
         $lineType = "$(([int]$lineTypeControl.StringValue) + $lineTypeAdjust)"
@@ -229,7 +272,7 @@ function Get-Tests {
                     }
                 }
             }
-        }
+		}
 		
 		if ($rowIndex -ge ($originalRepeaterOffset - 1))
 		{
