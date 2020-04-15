@@ -151,7 +151,7 @@ function Get-Tests {
     }
 
     if ($debugMode) {
-        Write-Host "Open form"
+        Write-Host "Open test page Id $testpage"
     }
 
     $form = $clientContext.OpenForm($testPage)
@@ -167,18 +167,21 @@ function Get-Tests {
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
+    $repeaterCount = [int]$repeater.DefaultViewport.Count
+	$repeaterOffset = [int]$repeater.Offset
+	if ($repeaterOffset -gt 0) {
+		$repeaterCount = $repeaterCount + $repeaterOffset
+		$repeaterOffset = 0
+		$clientContext.ScrollRepeater($repeater, -1)		
+	}
 
     $Tests = @()
     $group = $null
     while ($true)
     {
-        if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count))
-        {
-            $clientContext.ScrollRepeater($repeater, 1)
-        }
-        $rowIndex = $index - $repeater.Offset
+		$rowIndex = $index - $repeaterOffset
         $index++
-        if ($rowIndex -ge $repeater.DefaultViewport.Count)
+		if ($index -ge $repeaterCount)
         {
             break 
         }
@@ -190,7 +193,7 @@ function Get-Tests {
         if ($testPage -eq 130455) {
             $run = $clientContext.GetControlByName($row, "Run").StringValue
         }
-        else{
+        else {
             $run = $true
         }
 
@@ -201,6 +204,9 @@ function Get-Tests {
                             
             } elseif ($linetype -eq "1") {
                 $codeUnitName = $name
+                if ($debugMode) {
+                    Write-Host "Adding Codeunit $codeunitId $codeUnitName"
+                }
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
                     $codeunit = @{ "Id" = "$codeunitId"; "Name" = $codeUnitName; "Tests" = @() }
                     if ($group) {
@@ -216,10 +222,19 @@ function Get-Tests {
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
                     if ($run) {
                         $codeunit.Tests += $name
+                        if ($debugMode) {
+                            Write-Host "Adding procedure $name"
+                        }
                     }
                 }
             }
         }
+		
+		if ($rowIndex -ge ($originalRepeaterOffset - 1))
+		{
+			$clientContext.ScrollRepeater($repeater, 1)
+			$repeaterOffset = $repeaterOffset + $originalRepeaterOffset
+		}
     }
     $clientContext.CloseForm($form)
     $Tests | ConvertTo-Json
