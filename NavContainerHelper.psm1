@@ -1,6 +1,4 @@
-﻿#Requires -PSEdition Desktop 
-
-Set-StrictMode -Version 2.0
+﻿Set-StrictMode -Version 2.0
 
 $verbosePreference = "SilentlyContinue"
 $warningPreference = 'Continue'
