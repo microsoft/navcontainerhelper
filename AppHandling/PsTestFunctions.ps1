@@ -204,7 +204,7 @@ function Get-Tests {
 				Write-Debug $("[Row Index: " + $rowIndex + " (Index: " + $index + ", Offset: " + $repeaterOffset + ") ] Nothing found.")
 			}
 			
-			if ($rowIndex -ge ($originalRepeaterOffset - 1))
+			if (($rowIndex -ge ($originalRepeaterOffset - 1)) -and ($originalRepeaterOffset -ne 0))
 			{
 				Write-Debug "+1 Scroll Repeater ."
 				$clientContext.ScrollRepeater($repeater, 1)
@@ -214,6 +214,7 @@ function Get-Tests {
 	}
 
     $index = 0
+	$repeaterCount = [int]$repeater.DefaultViewport.Count
 	if ($repeaterOffset -gt 0) {
 		$repeaterCount = $repeaterCount + $repeaterOffset
 		$repeaterOffset = 0
@@ -274,7 +275,7 @@ function Get-Tests {
             }
 		}
 		
-		if ($rowIndex -ge ($originalRepeaterOffset - 1))
+		if (($rowIndex -ge ($originalRepeaterOffset - 1)) -and ($originalRepeaterOffset -ne 0))
 		{
 			$clientContext.ScrollRepeater($repeater, 1)
 			$repeaterOffset = $repeaterOffset + $originalRepeaterOffset
