@@ -51,36 +51,36 @@
 #>
 function Compile-AppInNavContainer {
     Param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $containerName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [PSCredential] $credential = $null,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $appProjectFolder,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $appOutputFolder = (Join-Path $appProjectFolder "output"),
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $appName = "",
         [switch] $UpdateSymbols,
         [switch] $CopyAppToSymbolsFolder,
-        [ValidateSet('Yes','No','NotSpecified')]
+        [ValidateSet('Yes', 'No', 'NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
         [switch] $AzureDevOps,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
         [switch] $EnableUICop,
-        [ValidateSet('none','error','warning')]
+        [ValidateSet('none', 'error', 'warning')]
         [string] $FailOn = 'none',
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $rulesetFile,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $nowarn,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $assemblyProbingPaths,
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
@@ -181,26 +181,22 @@ function Compile-AppInNavContainer {
 
     $dependencies = @()
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "application")) -and $appJsonObject.application)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
         $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "platform")) -and $appJsonObject.platform)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
         $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
-    {
-        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test) {
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
         if (([bool]($customConfig.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
             throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
         }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
         $appJsonObject.dependencies | ForEach-Object {
             $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
         }
@@ -250,8 +246,7 @@ function Compile-AppInNavContainer {
 
     $sslVerificationDisabled = ($protocol -eq "https://")
     if ($sslVerificationDisabled) {
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-        {
+        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
             Add-Type -TypeDefinition "
                 using System.Net.Security;
                 using System.Security.Cryptography.X509Certificates;
@@ -276,7 +271,7 @@ function Compile-AppInNavContainer {
             throw "You need to specify credentials when you are not using Windows Authentication"
         }
         
-        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+        $pair = ("$($Credential.UserName):" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
         $base64 = [System.Convert]::ToBase64String($bytes)
         $basicAuthValue = "Basic $base64"
@@ -286,7 +281,7 @@ function Compile-AppInNavContainer {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
+        if ($updateSymbols -or !($existingApps | Where-Object { ($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher) })) {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $version = $dependency.version
