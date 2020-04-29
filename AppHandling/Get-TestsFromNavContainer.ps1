@@ -8,6 +8,8 @@
   tenant to use if container is multitenant
  .Parameter companyName
   company to use
+ .Parameter profile
+  profile to use
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter accesstoken
@@ -40,6 +42,8 @@ function Get-TestsFromNavContainer {
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
         [string] $companyName = "",
+        [Parameter(Mandatory=$false)]
+        [string] $profile = "",
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
@@ -153,7 +157,7 @@ function Get-TestsFromNavContainer {
         }
     } -argumentList "01:00:00"
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+    $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
         $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -193,6 +197,10 @@ function Get-TestsFromNavContainer {
             $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
         }
 
+        if ($profile) {
+            $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))"
+        }
+
         . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
         $clientContext = $null
@@ -229,7 +237,7 @@ function Get-TestsFromNavContainer {
             }
         }
 
-    } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+    } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.
