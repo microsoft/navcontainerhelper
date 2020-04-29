@@ -40,7 +40,9 @@ function Get-NavContainerSharedFolders {
             $inspect.Mounts | ForEach-Object {
                 $src = $_.Source
                 $dst = $_.Destination
-                $sharedFolders += @{ $src = $dst }
+                if (-not ($sharedFolders[$src])) {
+                    $sharedFolders += @{ $src = $dst }
+                }
             }
         }
         return $sharedFolders
