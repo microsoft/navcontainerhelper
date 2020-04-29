@@ -8,6 +8,8 @@
   tenant to use if container is multitenant
  .Parameter companyName
   company to use
+ .Parameter profile
+  profile to use
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
  .Parameter accesstoken
@@ -61,6 +63,8 @@ function Run-TestsInNavContainer {
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
         [string] $companyName = "",
+        [Parameter(Mandatory=$false)]
+        [string] $profile = "",
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
@@ -233,6 +237,10 @@ function Run-TestsInNavContainer {
                 if ($companyName) {
                     $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
                 }
+
+                if ($profile) {
+                    $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))"
+                }
     
                 . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
         
@@ -277,7 +285,7 @@ function Run-TestsInNavContainer {
                     }
                 }
 
-                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -316,6 +324,10 @@ function Run-TestsInNavContainer {
             
                     if ($companyName) {
                         $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))"
+                    }
+
+                    if ($profile) {
+                        $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))"
                     }
             
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
@@ -360,7 +372,7 @@ function Run-TestsInNavContainer {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, $PsTestFunctionsPath, $ClientContextPath, $containerXUnitResultFileName, $AppendToXUnitResultFile, $ReRun, $AzureDevOps, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }
