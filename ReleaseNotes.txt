@@ -1,3 +1,7 @@
+0.6.5.7
+Issue #921 - Using -useBestContainerOS with foreign database specification fails
+Issue #959 - Specifying applicationinsights in app.json without application property throws exception
+
 0.6.5.6
 Issue #929 - Get-NavContainerSharedFolders doesn't support :rw or :ro on volumes
 Issue #934 - Restart instance after creation of new symbolic link
