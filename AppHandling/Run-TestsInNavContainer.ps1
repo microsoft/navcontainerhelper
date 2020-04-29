@@ -111,7 +111,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-5"
+    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-6"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"

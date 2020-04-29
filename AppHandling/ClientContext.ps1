@@ -397,6 +397,10 @@ class ClientContext {
         $this.InvokeInteraction((New-Object SaveValueInteraction -ArgumentList $control, $newValue))
     }
     
+    SelectFirstRow([ClientRepeaterControl] $repeater) {
+        $this.InvokeInteraction((New-Object InvokeActionInteraction -ArgumentList $repeater, SelectFirstRow))
+    }
+
     ScrollRepeater([ClientRepeaterControl] $repeater, [int] $by) {
         $this.InvokeInteraction((New-Object ScrollRepeaterInteraction -ArgumentList $repeater, $by))
     }

@@ -151,7 +151,7 @@ function Get-Tests {
     }
 
     if ($debugMode) {
-        Write-Host "Open form"
+        Write-Host "Open page $testpage"
     }
 
     $form = $clientContext.OpenForm($testPage)
@@ -167,6 +167,7 @@ function Get-Tests {
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
+    $clientContext.SelectFirstRow($repeater)
 
     $Tests = @()
     $group = $null
@@ -264,6 +265,10 @@ function Run-Tests {
     }
     $allPassed = $true
 
+    if ($debugMode) {
+        Write-Host "Open page $testpage"
+    }
+
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
@@ -277,6 +282,7 @@ function Run-Tests {
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
+    $clientContext.SelectFirstRow($repeater)
 
     $i = 0
     if ([int]::TryParse($testCodeunit, [ref] $i) -and ($testCodeunit -eq $i)) {
