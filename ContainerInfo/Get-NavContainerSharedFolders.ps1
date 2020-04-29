@@ -35,6 +35,14 @@ function Get-NavContainerSharedFolders {
                 $sharedFolders += @{ $src = $dst }
             }
         }
+        
+        if ($inspect.Mounts) {
+            $inspect.Mounts | ForEach-Object {
+                $src = $_.Source
+                $dst = $_.Destination
+                $sharedFolders += @{ $src = $dst }
+            }
+        }
         return $sharedFolders
     }
 }
