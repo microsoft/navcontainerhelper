@@ -167,7 +167,9 @@ function Get-Tests {
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
-    $clientContext.SelectFirstRow($repeater)
+    if ($testPage -eq 130455) {
+        $clientContext.SelectFirstRow($repeater)
+    }
 
     $Tests = @()
     $group = $null
@@ -282,7 +284,9 @@ function Run-Tests {
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
-    $clientContext.SelectFirstRow($repeater)
+    if ($testPage -eq 130455) {
+        $clientContext.SelectFirstRow($repeater)
+    }
 
     $i = 0
     if ([int]::TryParse($testCodeunit, [ref] $i) -and ($testCodeunit -eq $i)) {
