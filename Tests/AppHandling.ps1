@@ -223,24 +223,33 @@
                             -includeTestToolkit `
                             -useBestContainerOS
 
+            $useCALTestFwk = $false
             if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
                 Import-ObjectsToNavContainer -containerName $runTestsContainerName -objectsFile (Join-Path $PSScriptRoot "inserttests.txt") -sqlCredential $credential
                 Compile-ObjectsInNavContainer -containerName $runTestsContainerName
                 Invoke-NavContainerCodeunit -containerName $runTestsContainerName -Codeunitid 50000 -CompanyName "CRONUS International Ltd."
+                $useCALTestFwk = $true
             }
-            else {
+            elseif ($runTestsInVersion -eq 1810 -or $runTestsInVersion -eq 1904) {
                 Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
                 $appProjectFolder = Join-Path "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" "inserttests"
                 Compile-AppInBCContainer -containerName $runTestsContainerName -credential $credential -appProjectFolder $appProjectFolder -appOutputFolder $appProjectFolder -appName "inserttests.app" -UpdateSymbols
                 Publish-NavContainerApp -containerName $runTestsContainerName -appFile (Join-Path $appProjectFolder "inserttests.app") -skipVerification -sync -install
+                $useCALTestFwk = $true
             }
-            
-            $tests = Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential
-            $tests.Codeunits.Count | Should -be 2
+
+            if ($useCALTestFwk) {
+                $tests = Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential -extensionId "fa3e2564-a39e-417f-9be6-c0dbe3d94069" | Where-Object { $_.id -eq 134006 -or $_.id -eq 134007 }
+            }
+            else {
+                $tests = (Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential).Codeunits
+            }
+
+            $tests.Count | Should -be 2
         
             $first = $true
             $resultsFile = "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName\result.xml"
-            $tests.Codeunits | % {
+            $tests | % {
                 $allpassed = Run-TestsInBcContainer -containerName $runTestsContainerName `
                                                     -credential $credential `
                                                     -XUnitResultFileName $resultsFile `
