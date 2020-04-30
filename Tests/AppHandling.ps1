@@ -197,7 +197,7 @@
     It 'Get/RunTests for all versions' {
         $runTestsContainerName = "runtests"
 
-        2016,2017,2018,1810,1904 | % {
+        2016,2017,2018,1810,1904,1910,2004 | % {
 
             $runTestsInVersion  = $_
             if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
