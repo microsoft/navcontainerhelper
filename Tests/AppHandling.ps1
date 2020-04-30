@@ -202,12 +202,17 @@
             $runTestsInVersion  = $_
             if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
                 $imageName = "mcr.microsoft.com/dynamicsnav:$runTestsInVersion"
+                $containerParams = @{ 
+                    "includeCSIDE" = $true
+                    "doNotExportObjectsToText" = $true
+                }
             }
             else {
                 $imageName = "mcr.microsoft.com/businesscentral/onprem:$runTestsInVersion"
+                $containerParams = @{ }
             }
 
-            New-BcContainer -accept_eula `
+            New-BcContainer @containerParams -accept_eula `
                             -accept_outdated `
                             -containerName $runTestsContainerName `
                             -imageName $imageName `
@@ -216,8 +221,6 @@
                             -updateHosts `
                             -licenseFile $licenseFile `
                             -includeTestToolkit `
-                            -includeCSide `
-                            -doNotExportObjectsToText `
                             -useBestContainerOS
 
             if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
