@@ -168,21 +168,39 @@ function Get-Tests {
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
     if ($testPage -eq 130455) {
+        if ($debugMode) {
+            Write-Host "Offset: $($repeater.offset)"
+        }
         $clientContext.SelectFirstRow($repeater)
+        if ($debugMode) {
+            Write-Host "Offset: $($repeater.offset)"
+        }
     }
 
     $Tests = @()
     $group = $null
     while ($true)
     {
+        if ($debugMode) {
+            Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
+        }        
         if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count))
         {
+            if ($debugMode) {
+                Write-Host "Scroll"
+            }
             $clientContext.ScrollRepeater($repeater, 1)
+            if ($debugMode) {
+                Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
+            }        
         }
         $rowIndex = $index - $repeater.Offset
         $index++
         if ($rowIndex -ge $repeater.DefaultViewport.Count)
         {
+            if ($debugMode) {
+                Write-Host "Breaking - rowIndex: $rowIndex"
+            }
             break 
         }
         $row = $repeater.DefaultViewport[$rowIndex]
@@ -197,6 +215,10 @@ function Get-Tests {
             $run = $true
         }
 
+        if ($debugMode) {
+            Write-Host "Row - lineType = $linetype, run = $run, CodeunitId = $codeUnitId, codeunitName = '$codeunitName', name = '$name'"
+        }
+
         if ($name) {
             if ($linetype -eq "0" -and !$ignoreGroups) {
                 $group = @{ "Group" = $name; "Codeunits" = @() }
@@ -205,12 +227,18 @@ function Get-Tests {
             } elseif ($linetype -eq "1") {
                 $codeUnitName = $name
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
+                    if ($debugMode) { 
+                        Write-Host "Initialize Codeunit"
+                    }
                     $codeunit = @{ "Id" = "$codeunitId"; "Name" = $codeUnitName; "Tests" = @() }
                     if ($group) {
                         $group.Codeunits += $codeunit
                     }
                     else {
                         if ($run) {
+                            if ($debugMode) { 
+                                Write-Host "Add codeunit to tests"
+                            }
                             $Tests += $codeunit
                         }
                     }
@@ -218,6 +246,9 @@ function Get-Tests {
             } elseif ($lineType -eq "2") {
                 if ($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) {
                     if ($run) {
+                        if ($debugMode) { 
+                            Write-Host "Add test $name"
+                        }
                         $codeunit.Tests += $name
                     }
                 }

@@ -242,6 +242,7 @@ function Get-TestsFromNavContainer {
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.
     if ($result -is [array]) {
+        0..($result.Count-2) | % { Write-Host $result[$_] }
         $result[$result.Count-1] | ConvertFrom-Json
     }
     else {
