@@ -1,9 +1,10 @@
 ---
 name: Issue
-about: Open an issue if something doesn't work like expected
+about: Please follow the template and include as much information as possible. Use
+  Preview to see that your scripts are readable.
 title: ''
 labels: ''
-assignees: ''
+assignees: freddydk
 
 ---
 
