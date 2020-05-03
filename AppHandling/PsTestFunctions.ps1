@@ -171,9 +171,11 @@ function Get-Tests {
         if ($debugMode) {
             Write-Host "Offset: $($repeater.offset)"
         }
-        $clientContext.SelectFirstRow($repeater)
-        if ($debugMode) {
-            Write-Host "Offset: $($repeater.offset)"
+        while ($repeater.offset -gt 0) {
+            $clientContext.ScrollRepeater($repeater, -1)
+            if ($debugMode) {
+                Write-Host "After Scroll, offset: $($repeater.offset)"
+            }
         }
     }
 
@@ -316,7 +318,15 @@ function Run-Tests {
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
     if ($testPage -eq 130455) {
-        $clientContext.SelectFirstRow($repeater)
+        if ($debugMode) {
+            Write-Host "Offset: $($repeater.offset)"
+        }
+        while ($repeater.offset -gt 0) {
+            $clientContext.ScrollRepeater($repeater, -1)
+            if ($debugMode) {
+                Write-Host "After Scroll, offset: $($repeater.offset)"
+            }
+        }
     }
 
     $i = 0
@@ -373,15 +383,29 @@ function Run-Tests {
         }
 
         do {
+
+            if ($debugMode) {
+                Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
+            }        
+
             if ($index -ge ($repeater.Offset + $repeater.DefaultViewport.Count))
             {
+                if ($debugMode) {
+                    Write-Host "Scroll"
+                }
                 $clientContext.ScrollRepeater($repeater, 1)
+                if ($debugMode) {
+                    Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
+                }        
             }
             $rowIndex = $index - $repeater.Offset
             $index++
             if ($rowIndex -ge $repeater.DefaultViewport.Count)
             {
-                break 
+                if ($debugMode) {
+                    Write-Host "Breaking - rowIndex: $rowIndex"
+                }
+                break
             }
             $row = $repeater.DefaultViewport[$rowIndex]
             $lineTypeControl = $clientContext.GetControlByName($row, "LineType")
@@ -393,6 +417,10 @@ function Run-Tests {
             }
             else{
                 $run = $true
+            }
+
+            if ($debugMode) {
+                Write-Host "Row - lineType = $linetype, run = $run, CodeunitId = $codeUnitId, codeunitName = '$codeunitName', name = '$name'"
             }
 
             if ($name) {
@@ -411,22 +439,14 @@ function Run-Tests {
             }
         } while (!(($codeunitId -like $testCodeunit -or $codeunitName -like $testCodeunit) -and ($linetype -eq "1" -or $name -like $testFunction)))
 
-        #Write-Host "Index $Index"
-        #Write-Host "RowIndex $rowIndex"
-        #Write-Host "CodeunitId $codeunitId"
-        #Write-Host "CodeunitName $codeunitName"
-        #Write-Host "Name $Name"
-        #Write-Host "LineType $lineType"
+        if ($debugMode) {
+            Write-Host "Found Row - index = $index, rowIndex = $($rowIndex)/$($repeater.DefaultViewport.Count), lineType = $linetype, run = $run, CodeunitId = $codeUnitId, codeunitName = '$codeunitName', name = '$name'"
+        }
 
         if ($rowIndex -ge $repeater.DefaultViewport.Count -or !($name))
         {
             break 
         }
-
-        #Write-Host "Bookmark $($row.Bookmark)"
-        #Write-Host "Offset $($repeater.Offset)"
-        #Write-Host "Viewport count $($repeater.DefaultViewPort.Count)"
-        #Write-Host "Bookmark of first row $($repeater.DefaultViewPort[0].Bookmark)"
 
         if ($groupName -like $testGroup) {
             switch ($linetype) {
