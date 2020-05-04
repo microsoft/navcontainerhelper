@@ -114,13 +114,13 @@ function Set-RunFalseOnDisabledTests
         return
     }
 
+    $removeTestMethodControl = $ClientContext.GetControlByName($Form, "DisableTestMethod")
     foreach($disabledTestMethod in $DisabledTests)
     {
         if ($debugMode) {
             Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$($disabledTestMethod.method)"
         }
         $testKey = $disabledTestMethod.codeunitName + "," + $disabledTestMethod.method
-        $removeTestMethodControl = $ClientContext.GetControlByName($Form, "DisableTestMethod")
         $ClientContext.SaveValue($removeTestMethodControl, $testKey)
     }
 }
@@ -162,8 +162,11 @@ function Get-Tests {
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
 
-    Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
-    Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
+    if ($testPage -eq 130455) {
+        Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
+    }
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
@@ -171,11 +174,10 @@ function Get-Tests {
         if ($debugMode) {
             Write-Host "Offset: $($repeater.offset)"
         }
-        while ($repeater.offset -gt 0) {
-            $clientContext.ScrollRepeater($repeater, -1)
-            if ($debugMode) {
-                Write-Host "After Scroll, offset: $($repeater.offset)"
-            }
+        $clientContext.SelectFirstRow($repeater)
+        $clientContext.Refresh($repeater)
+        if ($debugMode) {
+            Write-Host "Offset: $($repeater.offset)"
         }
     }
 
@@ -312,8 +314,11 @@ function Run-Tests {
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
 
-    Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
-    Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
+    if ($testPage -eq 130455) {
+        Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
+    }
 
     $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
     $index = 0
@@ -321,11 +326,10 @@ function Run-Tests {
         if ($debugMode) {
             Write-Host "Offset: $($repeater.offset)"
         }
-        while ($repeater.offset -gt 0) {
-            $clientContext.ScrollRepeater($repeater, -1)
-            if ($debugMode) {
-                Write-Host "After Scroll, offset: $($repeater.offset)"
-            }
+        $clientContext.SelectFirstRow($repeater)
+        $clientContext.Refresh($repeater)
+        if ($debugMode) {
+            Write-Host "Offset: $($repeater.offset)"
         }
     }
 
