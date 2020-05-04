@@ -37,6 +37,10 @@ function Copy-FileToNavContainer {
                 if (Test-Path $containerPath -PathType Container) {
                     throw "ContainerPath ($containerPath) already exists as a folder. Cannot copy file, ContainerPath needs to specify a filename."
                 }
+                $directory = [System.IO.Path]::GetDirectoryName($containerPath)
+                if (-not (Test-Path $directory -PathType Container)) {
+                    New-Item -Path $directory -ItemType Directory | Out-Null
+                }
                 Move-Item -Path $tempFile -Destination $containerPath -Force
             } -argumentList $tempFile, $containerPath
         } finally {
