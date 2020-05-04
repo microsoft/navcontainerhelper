@@ -242,7 +242,7 @@
                 $tests = (Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential).Codeunits
             }
             else {
-                $tests = Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential -extensionId "fa3e2564-a39e-417f-9be6-c0dbe3d94069" | Where-Object { $_.id -eq 134006 -or $_.id -eq 134007 }
+                $tests = (Get-TestsFromBCContainer -containerName $runTestsContainerName -credential $credential -extensionId "fa3e2564-a39e-417f-9be6-c0dbe3d94069") | Where-Object { $_.id -eq 134006 -or $_.id -eq 134007 }
             }
 
             $tests.Count | Should -be 2
