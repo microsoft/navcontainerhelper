@@ -281,7 +281,10 @@ function New-NavContainer {
     $hostOs = "Unknown/Insider build"
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
 
-    if ($os.BuildNumber -eq 18363) { 
+    if ($os.BuildNumber -eq 19041) { 
+        $hostOs = "2004"
+    }
+    elseif ($os.BuildNumber -eq 18363) { 
         $hostOs = "1909"
     }
     elseif ($os.BuildNumber -eq 18362) { 
@@ -619,6 +622,9 @@ function New-NavContainer {
     elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
         $containerOs = "1909"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+        $containerOs = "2004"
+    }
     else {
         $containerOs = "unknown"
     }
@@ -724,6 +730,9 @@ function New-NavContainer {
         }
         elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
             $containerOs = "1909"
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+            $containerOs = "2004"
         }
         else {
             $containerOs = "unknown"
