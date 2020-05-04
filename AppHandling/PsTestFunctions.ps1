@@ -151,7 +151,7 @@ function Get-Tests {
     }
 
     if ($debugMode) {
-        Write-Host "Open page $testpage"
+        Write-Host "Get-Tests, open page $testpage"
     }
 
     $form = $clientContext.OpenForm($testPage)
@@ -301,7 +301,7 @@ function Run-Tests {
     $allPassed = $true
 
     if ($debugMode) {
-        Write-Host "Open page $testpage"
+        Write-Host "Run-Tests, open page $testpage"
     }
 
     $form = $clientContext.OpenForm($testPage)
