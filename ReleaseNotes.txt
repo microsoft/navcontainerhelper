@@ -5,6 +5,7 @@ PR #949 - support swarm services (Thanks Tobias Fenster)
 Add parameter profile to Get-Tests and Run-Tests to be able to run tests as a specific profile
 Issue #944 - reset position in repeater
 Support Windows 10 2004
+Issue #971 - Implicit creation of destination folder in Copy-FileToBcContainer
 
 0.6.5.6
 Issue #929 - Get-NavContainerSharedFolders doesn't support :rw or :ro on volumes
