@@ -1,3 +1,6 @@
+0.6.5.8
+Add Parameter -includeTestFrameworkOnly to install the Test Framework without the Test Libraries
+
 0.6.5.7
 Issue #921 - Using -useBestContainerOS with foreign database specification fails
 Issue #959 - Specifying applicationinsights in app.json without application property throws exception
