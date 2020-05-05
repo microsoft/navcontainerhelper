@@ -79,6 +79,8 @@
   Specify this parameter to add the test toolkit and the standard tests to the container
  .Parameter includeTestLibrariesOnly
   Specify this parameter to avoid including the standard tests when adding includeTestToolkit
+ .Parameter includeTestFrameworkOnly
+  Only import TestFramework (do not import Test Codeunits nor TestLibraries)
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
@@ -194,6 +196,7 @@ function New-NavContainer {
         [switch] $clickonce,
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
+        [switch] $includeTestFrameworkOnly,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string] $restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
@@ -1408,7 +1411,7 @@ if (-not `$restartingInstance) {
         }
     
         if ($includeTestToolkit) {
-            Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
+            Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
         }
     }
 
