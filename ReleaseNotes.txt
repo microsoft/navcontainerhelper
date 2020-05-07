@@ -1,5 +1,6 @@
 0.6.5.8
 Add Parameter -includeTestFrameworkOnly to install the Test Framework without the Test Libraries
+Issue #978 - do not use local docker.ico when creating shortcuts
 
 0.6.5.7
 Issue #921 - Using -useBestContainerOS with foreign database specification fails

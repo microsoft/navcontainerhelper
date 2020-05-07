@@ -1342,9 +1342,20 @@ if (-not `$restartingInstance) {
             
         }
         
-        $dockerIco = Join-Path $PSScriptRoot "docker.ico"
-        New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -IconLocation $dockerIco -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
-        New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -IconLocation $dockerIco -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
+
+        $dockerIco = "c:\Program Files\docker\docker.exe"
+        if (!(Test-Path $dockerIco)) {
+            $dockerIco = "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+            if (!(Test-Path $dockerIco)) {
+                $dockerIco = ""
+            }
+        }
+        $iconLocation = @{}
+        if ($dockerIco) {
+            $iconLocation = @{ "IconLocation" = "$dockerIco, 0" }
+        }
+        New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts @IconLocation
+        New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts @IconLocation
     }
 
     if ([System.Version]$genericTag -lt [System.Version]"0.0.4.4") {
