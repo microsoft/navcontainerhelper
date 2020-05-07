@@ -28,7 +28,6 @@ Write-Host $VersionReleaseNotes
 Write-Host "Update Module Manifest"
 Update-ModuleManifest -Path (Join-Path $path "NavContainerHelper.psd1") `
                       -RootModule "NavContainerHelper.psm1" `
-                      -FileList @() `
                       -ModuleVersion $version `
                       -Author "Freddy Kristiansen" `
                       -FunctionsToExport $functionsToExport `
