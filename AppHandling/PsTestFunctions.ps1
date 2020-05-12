@@ -379,22 +379,26 @@ function Run-Tests {
                     $XUnitDoc.assemblies.RemoveChild($LastResult) | Out-Null
                 }
             }
-        
-            $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
-            $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
-            $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
-            $XUnitAssembly.SetAttribute("run-date", [DateTime]::Parse($result.startTime).ToString("yyyy-MM-dd"))
-            $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH:mm:ss"))
-            $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
-            $XUnitCollection = $XUnitDoc.CreateElement("collection")
-            $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
-            $XUnitCollection.SetAttribute("name", $result.name)
-            $XUnitCollection.SetAttribute("total", $result.testResults.Count)
+
+            if ($XUnitResultFileName) {        
+                $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
+                $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
+                $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
+                $XUnitAssembly.SetAttribute("run-date", [DateTime]::Parse($result.startTime).ToString("yyyy-MM-dd"))
+                $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH:mm:ss"))
+                $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
+                $XUnitCollection = $XUnitDoc.CreateElement("collection")
+                $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
+                $XUnitCollection.SetAttribute("name", $result.name)
+                $XUnitCollection.SetAttribute("total", $result.testResults.Count)
+            }
         
             $totalduration = [Timespan]::Zero
-            $result.testResults | % {
-                $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
-                $totalduration += $testduration
+            if ($result.PSobject.Properties.name -eq "testResults") {
+                $result.testResults | % {
+                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                    $totalduration += $testduration
+                }
             }
         
             if ($result.result -eq "2") {
@@ -412,73 +416,86 @@ function Run-Tests {
             $failed = 0
             $skipped = 0
         
-            $result.testResults | % {
+            if ($result.PSobject.Properties.name -eq "testResults") {
+                $result.testResults | % {
+                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
         
-                $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
-        
-                if ($XUnitAssembly.ParentNode -eq $null) {
-                    $XUnitAssemblies.AppendChild($XUnitAssembly) | Out-Null
-                }
-        
-                $XUnitTest = $XUnitDoc.CreateElement("test")
-                $XUnitCollection.AppendChild($XUnitTest) | Out-Null
-                $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name")+':'+$_.method)
-                $XUnitTest.SetAttribute("method", $_.method)
-                $XUnitTest.SetAttribute("time", [Math]::Round($testduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
-                if ($_.result -eq 2) {
-                    if ($detailed) {
-                        Write-Host -ForegroundColor Green "    Testfunction $($_.method) Success ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
-                    }
-                    $XUnitTest.SetAttribute("result", "Pass")
-                    $passed++
-                }
-                elseif ($_.result -eq 1) {
-                    if ($AzureDevOps -ne 'no') {
-                        Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$($_.method);]$($_.message)"
-                    }
-                    Write-Host -ForegroundColor Red "    Testfunction $($_.method) Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
-                    $XUnitTest.SetAttribute("result", "Fail")
-                    $failed++
-        
-                    if ($detailed) {
-                        $stacktrace = $_.stacktrace
-                        if ($stacktrace.EndsWith(';')) {
-                            $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
+                    if ($XUnitResultFileName) {
+                        if ($XUnitAssembly.ParentNode -eq $null) {
+                            $XUnitAssemblies.AppendChild($XUnitAssembly) | Out-Null
                         }
-                        Write-Host -ForegroundColor Red "      Error:"
-                        Write-Host -ForegroundColor Red "        $($_.message)"
-                        Write-Host -ForegroundColor Red "      Call Stack:"
-                        Write-Host -ForegroundColor Red "        $($stacktrace.Replace(";","`n        "))"
+            
+                        $XUnitTest = $XUnitDoc.CreateElement("test")
+                        $XUnitCollection.AppendChild($XUnitTest) | Out-Null
+                        $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name")+':'+$_.method)
+                        $XUnitTest.SetAttribute("method", $_.method)
+                        $XUnitTest.SetAttribute("time", [Math]::Round($testduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                     }
-        
-                    $XUnitFailure = $XUnitDoc.CreateElement("failure")
-                    $XUnitMessage = $XUnitDoc.CreateElement("message")
-                    $XUnitMessage.InnerText = $_.message
-                    $XUnitFailure.AppendChild($XUnitMessage) | Out-Null
-                    $XUnitStacktrace = $XUnitDoc.CreateElement("stack-trace")
-                    $XUnitStacktrace.InnerText = $_.stacktrace.Replace(";","`n")
-                    $XUnitFailure.AppendChild($XUnitStacktrace) | Out-Null
-                    $XUnitTest.AppendChild($XUnitFailure) | Out-Null
-                }
-                else {
-                    if ($detailed) {
-                        Write-Host -ForegroundColor Yellow "    Testfunction $($_.method) Skipped"
+                    if ($_.result -eq 2) {
+                        if ($detailed) {
+                            Write-Host -ForegroundColor Green "    Testfunction $($_.method) Success ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
+                        }
+                        if ($XUnitResultFileName) {
+                            $XUnitTest.SetAttribute("result", "Pass")
+                        }
+                        $passed++
                     }
-        
-                    $XUnitTest.SetAttribute("result", "Skip")
-                    $skipped++
+                    elseif ($_.result -eq 1) {
+                        if ($AzureDevOps -ne 'no') {
+                            Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$($_.method);]$($_.message)"
+                        }
+                        Write-Host -ForegroundColor Red "    Testfunction $($_.method) Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
+                        if ($XUnitResultFileName) {
+                            $XUnitTest.SetAttribute("result", "Fail")
+                        }
+                        $failed++
+            
+                        if ($detailed) {
+                            $stacktrace = $_.stacktrace
+                            if ($stacktrace.EndsWith(';')) {
+                                $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
+                            }
+                            Write-Host -ForegroundColor Red "      Error:"
+                            Write-Host -ForegroundColor Red "        $($_.message)"
+                            Write-Host -ForegroundColor Red "      Call Stack:"
+                            Write-Host -ForegroundColor Red "        $($stacktrace.Replace(";","`n        "))"
+                        }
+            
+                        if ($XUnitResultFileName) {
+                            $XUnitFailure = $XUnitDoc.CreateElement("failure")
+                            $XUnitMessage = $XUnitDoc.CreateElement("message")
+                            $XUnitMessage.InnerText = $_.message
+                            $XUnitFailure.AppendChild($XUnitMessage) | Out-Null
+                            $XUnitStacktrace = $XUnitDoc.CreateElement("stack-trace")
+                            $XUnitStacktrace.InnerText = $_.stacktrace.Replace(";","`n")
+                            $XUnitFailure.AppendChild($XUnitStacktrace) | Out-Null
+                            $XUnitTest.AppendChild($XUnitFailure) | Out-Null
+                        }
+                    }
+                    else {
+                        if ($detailed) {
+                            Write-Host -ForegroundColor Yellow "    Testfunction $($_.method) Skipped"
+                        }
+            
+                        if ($XUnitResultFileName) {
+                            $XUnitTest.SetAttribute("result", "Skip")
+                        }
+                        $skipped++
+                    }
                 }
             }
         
-            $XUnitAssembly.SetAttribute("passed", $Passed)
-            $XUnitAssembly.SetAttribute("failed", $failed)
-            $XUnitAssembly.SetAttribute("skipped", $skipped)
-            $XUnitAssembly.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+            if ($XUnitResultFileName) {
+                $XUnitAssembly.SetAttribute("passed", $Passed)
+                $XUnitAssembly.SetAttribute("failed", $failed)
+                $XUnitAssembly.SetAttribute("skipped", $skipped)
+                $XUnitAssembly.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
         
-            $XUnitCollection.SetAttribute("passed", $Passed)
-            $XUnitCollection.SetAttribute("failed", $failed)
-            $XUnitCollection.SetAttribute("skipped", $skipped)
-            $XUnitCollection.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                $XUnitCollection.SetAttribute("passed", $Passed)
+                $XUnitCollection.SetAttribute("failed", $failed)
+                $XUnitCollection.SetAttribute("skipped", $skipped)
+                $XUnitCollection.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+            }
         }
 
     }
@@ -515,6 +532,10 @@ function Run-Tests {
                 $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
                 $filterInteraction.FilterValue = $testCodeunit
                 $clientContext.InvokeInteraction($filterInteraction)
+                if ($testPage -eq 130455) {
+                    $clientContext.SelectFirstRow($repeater)
+                    $clientContext.Refresh($repeater)
+                }
             }
         }
     
@@ -608,13 +629,13 @@ function Run-Tests {
 
                             $prevoffset = $repeater.Offset
 
-                            if ($testPage -eq 130455) {
+                            if ($testPage -eq 130455 -and $testCodeunit -eq "*") {
                                 $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.FilterInteraction -ArgumentList $filterControl
                                 $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
                                 $filterInteraction.FilterValue = $codeUnitId
                                 $clientContext.InvokeInteraction($filterInteraction)
                                 $clientContext.SelectFirstRow($repeater)
-                                #$clientContext.Refresh($repeater)
+                                $clientContext.Refresh($repeater)
                             }
                             else {
                                 $clientContext.ActivateControl($lineTypeControl)
@@ -623,12 +644,14 @@ function Run-Tests {
                             $clientContext.InvokeAction($clientContext.GetActionByName($form, $runSelectedName))
             
                             if ($testPage -eq 130455) {
-                                $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.FilterInteraction -ArgumentList $filterControl
-                                $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
-                                $filterInteraction.FilterValue = ''
-                                $clientContext.InvokeInteraction($filterInteraction)
+                                if ($testCodeunit -eq "*") {
+                                    $filterInteraction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.FilterInteraction -ArgumentList $filterControl
+                                    $filterInteraction.FilterColumnId = $filterControl.FilterColumns[0].Id
+                                    $filterInteraction.FilterValue = ''
+                                    $clientContext.InvokeInteraction($filterInteraction)
+                                }
                                 $clientContext.SelectFirstRow($repeater)
-                                #$clientContext.Refresh($repeater)
+                                $clientContext.Refresh($repeater)
                             
                                 while ($repeater.Offset -lt $prevoffset) {
                                     $clientContext.ScrollRepeater($repeater, 1)
