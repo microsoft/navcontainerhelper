@@ -1,3 +1,6 @@
+0.6.5.10
+Issue #985 Tests report failure wrongly
+
 0.6.5.9
 Issue #981 Run-Tests fail on 16.x containers
 Issue #974 Compile of app fails when using customized application.app
