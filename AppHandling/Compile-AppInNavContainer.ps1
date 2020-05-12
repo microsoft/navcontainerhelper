@@ -286,7 +286,7 @@ function Compile-AppInNavContainer {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
+        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or $_.Publisher -eq $dependency.publisher)})) {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $version = $dependency.version

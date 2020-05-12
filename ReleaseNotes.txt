@@ -1,3 +1,7 @@
+0.6.5.9
+Issue #981 Run-Tests fail on 16.x containers
+Issue #974 Compile of app fails when using customized application.app
+
 0.6.5.8
 Add Parameter -includeTestFrameworkOnly to install the Test Framework without the Test Libraries
 Issue #978 - do not use local docker.ico when creating shortcuts
