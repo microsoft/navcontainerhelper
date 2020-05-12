@@ -143,6 +143,13 @@ function Run-TestsInNavContainer {
         }
     }
 
+    if ($testPage -eq 130455) {
+        if ($testgroup -ne "*" -and $testgroup -ne "") {
+            Write-Host -ForegroundColor Red "WARNING: TestGroups are not supported in Business Central 15.x and later"
+        }
+    }
+
+
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         try {
             New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
