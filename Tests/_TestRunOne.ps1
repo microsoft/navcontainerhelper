@@ -1,5 +1,5 @@
 ﻿Param(
-    [string] $licenseFile = "c:\temp\build.flf"
+    [string] $licenseFile = "C:\Users\freddyk\Dropbox\Shared\nchbuildlicense.flf"
 )
 
 . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
@@ -13,4 +13,4 @@ $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText 
 . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
 . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
 
-. (Join-Path $PSScriptRoot "bacpac.ps1")
+. (Join-Path $PSScriptRoot "AppHandling.ps1")

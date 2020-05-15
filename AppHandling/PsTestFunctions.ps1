@@ -185,6 +185,11 @@ function Get-Tests {
     $group = $null
     while ($true)
     {
+        $validationResults = $form.validationResults
+        if ($validationResults) {
+            throw "Validation errors occured. Error is: $($validationResults | ConvertTo-Json -Depth 99)"
+        }
+
         if ($debugMode) {
             Write-Host "Index:  $index, Offset: $($repeater.Offset), Count:  $($repeater.DefaultViewport.Count)"
         }        
