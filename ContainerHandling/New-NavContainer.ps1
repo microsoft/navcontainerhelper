@@ -152,7 +152,7 @@
 function New-NavContainer {
     Param (
         [switch] $accept_eula,
-        [switch] $accept_outdated,
+        [switch] $accept_outdated = $true,
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [string] $imageName = "", 
@@ -388,8 +388,8 @@ function New-NavContainer {
 
     $parameters = @()
 
-    $devCountry = ""
-    $navVersion = ""
+    $devCountry = $dvdCountry
+    $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
     if ($imageName -eq "") {
@@ -581,7 +581,7 @@ function New-NavContainer {
     if ($navVersion -eq "") {
         $inspect = docker inspect $imageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV/BC container"
+            throw "Container $imageName is not a NAV/BC container"
         }
         $navversion = "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
         if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
