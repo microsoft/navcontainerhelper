@@ -1,6 +1,7 @@
 0.6.5.11
 Set Accept_Outdated to $true as default value to accomodate that images are built on pre-february update WindowsServerCore imageName
 Check validationResults in Get-Tests loop
+Windows Defender acuses New-NavContainer of containing a virus
 
 0.6.5.10
 Issue #985 Tests report failure wrongly
