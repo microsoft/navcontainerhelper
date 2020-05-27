@@ -33,7 +33,7 @@ function Test-NavContainer {
         }
         if ($id) {
             $inspect = docker inspect $id | ConvertFrom-Json
-            ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB")
+            ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
         } else {
             $false
         }
