@@ -407,6 +407,9 @@ function New-NavContainer {
         if (!($imageName.Contains(':'))) {
             $imageName += ":latest"
         }
+        if ($imageName.EndsWith('-ltsc2019') -or $imageName.EndsWith('-ltsc2016')) {
+            $imageName = $imageName.Substring(0,$imageName.Length-9)
+        }
         $artifactUrl = "https://bcartifacts1.blob.core.windows.net/$($imageName.Substring('mcr.microsoft.com/'.Length).Replace(':','/'))"
         $imageName = ''
         $redirUri = [Uri]::new($artifactUrl)
