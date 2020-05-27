@@ -12,6 +12,10 @@
   Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
   Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
+ .Parameter useArtifacts
+  Url for application artifact to use
+ .Parameter artifactUrl
+  Url for application artifact to use
  .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter dvdCountry
@@ -156,6 +160,8 @@ function New-NavContainer {
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [string] $imageName = "", 
+        [string] $artifactUrl = "", 
+        [switch] $useArtifacts = $true,
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -392,8 +398,34 @@ function New-NavContainer {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
+    $downloadsPath = Join-Path $containerHelperFolder "Downloads"
+    if (!(Test-Path $downloadsPath)) {
+        New-Item $downloadsPath -ItemType Directory | Out-Null
+    }
+
+    if ($useArtifacts -and ($imageName.StartsWith('mcr.microsoft.com/'))) {
+        if (!($imageName.Contains(':'))) {
+            $imageName += ":latest"
+        }
+        $artifactUrl = "https://bcartifacts1.blob.core.windows.net/$($imageName.Substring('mcr.microsoft.com/'.Length).Replace(':','/'))"
+        $imageName = ''
+        $redirUri = [Uri]::new($artifactUrl)
+        $redirArtifactPath = Join-Path $downloadsPath $redirUri.AbsolutePath
+        if (Test-Path $redirArtifactPath) {
+            Remove-Item $redirArtifactPath -Recurse -Force
+        }
+    }
+
     if ($imageName -eq "") {
-        if ("$dvdPath" -ne "") {
+        if ($artifactUrl) {
+            if ($useGenericImage) {
+                $imageName = $useGenericImage
+            }
+            else {
+                $imageName = Get-BestGenericImageName
+            }
+        }
+        elseif ("$dvdPath" -ne "") {
             if ($useGenericImage) {
                 $imageName = $useGenericImage
             }
@@ -532,7 +564,61 @@ function New-NavContainer {
         $dvdPath = $temp
     }
 
-    if ("$dvdPath" -ne "") {
+    if ($artifactUrl) {
+
+        $parameters += "--volume $($downloadsPath):c:\dl"
+
+        do {
+            $redir = $false
+            $appUri = [Uri]::new($artifactUrl)
+
+            $appArtifactPath = Join-Path $downloadsPath $appUri.AbsolutePath
+            if (-not (Test-Path $appArtifactPath)) {
+                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
+                $appZip = Join-Path $containerFolder "app.zip"
+                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+                Write-Host "Unpacking application artifact"
+                Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
+            }
+
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                $redir = $true
+                $artifactUrl = $appManifest.ApplicationUrl
+            }
+
+        } while ($redir)
+
+        $platformUrl = $appManifest.platformUrl
+        $platformUri = [Uri]::new($platformUrl)
+
+        if ($appManifest.PSObject.Properties.name -eq "Nav") {
+            $parameters += @("--label nav=$($appManifest.Nav)")
+        }
+        else {
+            $parameters += @("--label nav=")
+        }
+        if ($appManifest.PSObject.Properties.name -eq "Cu") {
+            $parameters += @("--label cu=$($appManifest.Cu)")
+        }
+
+        $dvdVersion = $appmanifest.Version
+        $dvdCountry = $appManifest.Country
+        $dvdPlatform = $appManifest.Platform
+
+        $devCountry = $dvdCountry
+        $navVersion = "$dvdVersion-$dvdCountry"
+
+        $parameters += @(
+                       "--label version=$dvdVersion"
+                       "--label platform=$dvdPlatform"
+                       "--label country=$dvdCountry"
+                       "--env artifactUrl=$artifactUrl"
+                       )
+    }
+    elseif ("$dvdPath" -ne "") {
         if ("$dvdVersion" -eq "" -and (Test-Path "$dvdPath\version.txt")) {
             $dvdVersion = Get-Content "$dvdPath\version.txt"
         }
