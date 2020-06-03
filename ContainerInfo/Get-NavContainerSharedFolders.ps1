@@ -26,7 +26,7 @@ function Get-NavContainerSharedFolders {
         if ($inspect.HostConfig.Binds) {
             $inspect.HostConfig.Binds | ForEach-Object {
                 $idx = $_.IndexOf(':', $_.IndexOf(':') + 1)
-                $src = $_.Substring(0, $idx)
+                $src = $_.Substring(0, $idx).TrimEnd('\')
                 $dst = $_.SubString($idx+1)
                 $idx = $dst.IndexOf(':', $_.IndexOf(':') + 1)
                 if ($idx -gt 0) {
