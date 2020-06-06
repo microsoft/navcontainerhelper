@@ -1,3 +1,8 @@
+0.7.0.0
+Add new function New-BcImage to create an image based on artifacts
+Add artifacts support for New-BcContainer
+Add downloads cleanup for Flush-ContainerHelperCache
+
 0.6.5.11
 Set Accept_Outdated to $true as default value to accomodate that images are built on pre-february update WindowsServerCore imageName
 Check validationResults in Get-Tests loop
