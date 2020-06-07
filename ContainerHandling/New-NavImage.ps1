@@ -80,8 +80,8 @@ function New-NavImage {
 
     $genericTag = [Version](Get-NavContainerGenericTag -containerOrImageName $baseImage)
     Write-Host "Generic Tag: $genericTag"
-    if ($genericTag -lt [Version]"0.1.0.0") {
-        throw "Generic tag must be higher than 0.1.0.0. Cannot build container based on this generic image"
+    if ($genericTag -lt [Version]"0.1.0.1") {
+        throw "Generic tag must be at least 0.1.0.1. Cannot build image based on $genericTag"
     }
 
     $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $baseImage)
@@ -280,8 +280,15 @@ function New-NavImage {
         $navDvdPath = Join-Path $buildFolder "NAVDVD"
         New-Item $navDvdPath -ItemType Directory | Out-Null
 
-        Write-Host "Copying Platform Artifact"
-        Copy-Item -Path "$platformArtifactPath\*" -Destination $navDvdPath -Force -Recurse
+        Write-Host "Copying Platform Artifacts"
+        Get-ChildItem -Path $platformArtifactPath | % {
+            if ($_.PSIsContainer) {
+                Copy-Item -Path $_.FullName -Destination $navDvdPath -Recurse
+            }
+            else {
+                Copy-Item -Path $_.FullName -Destination $navDvdPath
+            }
+        }
 
         Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
         

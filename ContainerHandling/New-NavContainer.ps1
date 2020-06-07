@@ -493,6 +493,13 @@ function New-NavContainer {
 
         if ($bestImageExists) {
             $imageName = $bestImageName
+            if ($artifactUrl) {
+                $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
+                if ($genericTagVersion -lt [Version]"0.1.0.1") {
+                    Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
+                    $pullit = $true
+                }
+            }
         } elseif ($imageExists) {
             Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
