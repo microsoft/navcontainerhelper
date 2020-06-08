@@ -16,7 +16,7 @@
 function Flush-ContainerHelperCache {
     [CmdletBinding()]
     Param (
-        [ValidateSet('all','calSourceCache','alSourceCache','applicationCache','bakFolderCache','filesCache')]
+        [ValidateSet('all','calSourceCache','alSourceCache','applicationCache','bakFolderCache','filesCache','downloadsCache')]
         [string] $cache = 'all'
     )
 
@@ -27,6 +27,10 @@ function Flush-ContainerHelperCache {
 
     if ($cache -eq 'all' -or $cache -eq 'filesCache') {
         $folders += @("*-??-files")
+    }
+
+    if ($cache -eq 'all' -or $cache -eq 'downloadsCache') {
+        $folders += @("downloads")
     }
 
     if ($cache -eq 'all' -or $cache -eq 'alSourceCache') {

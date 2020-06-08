@@ -12,6 +12,10 @@
   Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
   Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
+ .Parameter useArtifacts
+  Url for application artifact to use
+ .Parameter artifactUrl
+  Url for application artifact to use
  .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter dvdCountry
@@ -156,6 +160,8 @@ function New-NavContainer {
         [Parameter(Mandatory=$true)]
         [string] $containerName, 
         [string] $imageName = "", 
+        [string] $artifactUrl = "", 
+        [string] $useArtifacts = "",
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -232,6 +238,11 @@ function New-NavContainer {
     }
 
     Check-NavContainerName -ContainerName $containerName
+
+    if ($imageName.StartsWith('microsoft/dynamics-nav','InvariantCultureIgnoreCase')) {
+        Write-Host 'WARNING: using old docker hub name for NAV image. Replacing with mcr.microsoft.com/dynamicsnav'
+        $imageName = "mcr.microsoft.com/dynamicsnav$($imageName.Substring('microsoft/dynamics-nav'.Length))"
+    }
 
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
         if ($auth -eq "Windows") {
@@ -392,8 +403,57 @@ function New-NavContainer {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
+    $downloadsPath = Join-Path $containerHelperFolder "Downloads"
+    if (!(Test-Path $downloadsPath)) {
+        New-Item $downloadsPath -ItemType Directory | Out-Null
+    }
+
+
+    if ("$useArtifacts" -ne "") {
+        Write-Host "WARNING: -useArtifacts is a temporary solution for translating legacy imagenames to artifact urls, not a permanent solution."
+        Write-Host "WARNING: please change your code to use -artifactUrl instead."
+
+        if (!($imageName.Contains(':'))) {
+            $imageName += ":latest"
+        }
+        if ($imageName.EndsWith('-ltsc2019') -or $imageName.EndsWith('-ltsc2016')) {
+            $imageName = $imageName.Substring(0,$imageName.Length-9)
+        }
+
+        if ($imageName.StartsWith('mcr.microsoft.com/','InvariantCultureIgnoreCase')) {
+            $imageName = $imageName.Substring('mcr.microsoft.com/'.Length)
+        }
+        elseif ($imageName.StartsWith('bcinsider.azurecr.io/','InvariantCultureIgnoreCase')) {
+            $imageName = $imageName.Substring('bcinsider.azurecr.io/'.Length)
+        }
+        else {
+            throw "useArtifacts can only be used with images from mcr.microsoft.com or bcinsider.azurecr.io"
+        }
+
+        $redirArtifactUri = [Uri]::new($useArtifacts)
+        $redirArtifactUri = ([UriBuilder]::new($redirArtifactUri.Scheme, $redirArtifactUri.Host, $redirArtifactUri.Port, $imageName.Replace(':','/'), $redirArtifactUri.Query)).Uri
+
+        $artifactUrl = $redirArtifactUri.AbsoluteUri
+        $imageName = ''
+
+        $redirArtifactPath = Join-Path $downloadsPath $redirArtifactUri.AbsolutePath
+        if (Test-Path $redirArtifactPath) {
+            Remove-Item $redirArtifactPath -Recurse -Force
+        }
+
+        Write-Host "Using Artifact Url $($artifactUrl.Split('?')[0])"
+    }
+
     if ($imageName -eq "") {
-        if ("$dvdPath" -ne "") {
+        if ($artifactUrl) {
+            if ($useGenericImage) {
+                $imageName = $useGenericImage
+            }
+            else {
+                $imageName = Get-BestGenericImageName
+            }
+        }
+        elseif ("$dvdPath" -ne "") {
             if ($useGenericImage) {
                 $imageName = $useGenericImage
             }
@@ -433,6 +493,13 @@ function New-NavContainer {
 
         if ($bestImageExists) {
             $imageName = $bestImageName
+            if ($artifactUrl) {
+                $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
+                if ($genericTagVersion -lt [Version]"0.1.0.1") {
+                    Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
+                    $pullit = $true
+                }
+            }
         } elseif ($imageExists) {
             Write-Host "NOTE: Add -alwaysPull or -useBestContainerOS if you want to use $bestImageName instead of $imageName."
         } else {
@@ -532,7 +599,70 @@ function New-NavContainer {
         $dvdPath = $temp
     }
 
-    if ("$dvdPath" -ne "") {
+    if ($artifactUrl) {
+
+        $parameters += "--volume $($downloadsPath):c:\dl"
+
+        do {
+            $redir = $false
+            $appUri = [Uri]::new($artifactUrl)
+
+            $appArtifactPath = Join-Path $downloadsPath $appUri.AbsolutePath
+            if (-not (Test-Path $appArtifactPath)) {
+                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
+                $appZip = Join-Path $containerFolder "app.zip"
+                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+                Write-Host "Unpacking application artifact"
+                Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
+            }
+
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+            if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+                if ($appManifest.isBcSandbox) {
+                    $bcStyle = "sandbox"
+                }
+            }
+
+            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                $redir = $true
+                $artifactUrl = $appManifest.ApplicationUrl
+                if ($artifactUrl -notlike 'https://*') {
+                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
+                }
+            }
+
+        } while ($redir)
+
+        if ($appManifest.PSObject.Properties.name -eq "Nav") {
+            $parameters += @("--label nav=$($appManifest.Nav)")
+        }
+        else {
+            $parameters += @("--label nav=")
+        }
+        if ($appManifest.PSObject.Properties.name -eq "Cu") {
+            $parameters += @("--label cu=$($appManifest.Cu)")
+        }
+        if ($bcStyle -eq "sandbox") {
+            $parameters += @("--env isBcSandbox=Y")
+        }
+
+        $dvdVersion = $appmanifest.Version
+        $dvdCountry = $appManifest.Country
+        $dvdPlatform = $appManifest.Platform
+
+        $devCountry = $dvdCountry
+        $navVersion = "$dvdVersion-$dvdCountry"
+
+        $parameters += @(
+                       "--label version=$dvdVersion"
+                       "--label platform=$dvdPlatform"
+                       "--label country=$dvdCountry"
+                       "--env artifactUrl=$artifactUrl"
+                       )
+    }
+    elseif ("$dvdPath" -ne "") {
         if ("$dvdVersion" -eq "" -and (Test-Path "$dvdPath\version.txt")) {
             $dvdVersion = Get-Content "$dvdPath\version.txt"
         }
@@ -580,7 +710,7 @@ function New-NavContainer {
     
     if ($navVersion -eq "") {
         $inspect = docker inspect $imageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
             throw "Container $imageName is not a NAV/BC container"
         }
         $navversion = "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
@@ -657,7 +787,7 @@ function New-NavContainer {
 
     if ($useGenericImage) {
 
-        if ("$dvdPath" -eq "") {
+        if ("$dvdPath" -eq "" -and "$artifactUrl" -eq "") {
             # Extract files from image if not already done
             $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
 
@@ -700,6 +830,14 @@ function New-NavContainer {
             DockerDo -command pull -imageName $imageName | Out-Null
         }
 
+        if ($artifactUrl) {
+            $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
+            if ($useGenericImageTagVersion -lt [System.Version]"0.0.9.103") {
+                Write-Host "Generic Tag is $useGenericImageTagVersion - pulling updated generic image to use artifacts"
+                DockerDo -command pull -imageName $imageName | Out-Null
+            }
+        }
+
         $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
         if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
             Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
@@ -709,7 +847,6 @@ function New-NavContainer {
             Write-Host "Patching navinstall.ps1 to stop the Service Tier for reconfiguration"
             $myscripts += @( @{ "navinstall.ps1" = '. "c:\run\navinstall.ps1"; Stop-Service -Name $NavServiceName -WarningAction Ignore' } )
         }
-
 
         $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
     

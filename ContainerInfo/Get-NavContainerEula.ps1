@@ -20,7 +20,7 @@ function Get-NavContainerEula {
 
     Process {
         $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
             throw "Container $containerOrImageName is not a NAV/BC container"
         }
         return "$($inspect.Config.Labels.Eula)"
