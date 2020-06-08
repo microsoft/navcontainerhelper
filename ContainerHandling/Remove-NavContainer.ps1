@@ -54,21 +54,38 @@ function Remove-NavContainer {
 
         $wait = 10
         $attempts = 0
-        while (Test-Path -Path $containerFolder -PathType Container -ErrorAction SilentlyContinue) {
-            Write-Host "Removing $containerFolder"
-            try {
-                Remove-Item -Path $containerFolder -Force -Recurse
-            } catch {
+        $filesLeft = $true
+        Write-Host "Removing $containerFolder"
+        while ($filesLeft) {
+            $files = @()
+            Get-ChildItem $containerfolder -Recurse -File | % {
+                $file = $_.FullName
+                try {
+                    Remove-Item $file -Force -ErrorAction stop
+                }
+                catch {
+                    $files += $file
+                }
+            }
+            if ($files.count -eq 0) {
+                $filesLeft = $false
+            }
+            else {
                 $attempts++
                 if ($attempts -gt 10) {
                     throw "Could not remove $containerFolder"
                 }
                 Write-Host "Error removing $containerFolder (attempts: $attempts)"
-                Write-Host "Please close any apps, prompts or files using this folder"
+                Write-Host "The following files could not be removed:"
+                $files | % { 
+                    Write-Host "- $_"
+                }
+                Write-Host "Please close any apps, prompts or files using these files"
                 Write-Host "Retrying in $wait seconds"
                 Start-Sleep -Seconds $wait
             }
         }
+        Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
 Set-Alias -Name Remove-BCContainer -Value Remove-NavContainer
