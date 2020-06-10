@@ -3,6 +3,8 @@ New-BcContainer will automatically build anc cache an image if ImageName and Art
 Add environment variable ArtifactUrl to image in New-BcImage
 new-BcImage deletes the image if it already exists
 New function Get-BCContainerArtifactUrl to get the ArtifactUrl used to create a container
+Move Artfacts cache to c:\bcartifacts.cache due to filename lengths above 260
+Pre-download platform artifact in containerHelper before starting container to avoid dns problems
 
 0.7.0.0
 Add new function New-BcImage to create an image based on artifacts

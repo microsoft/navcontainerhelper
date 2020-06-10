@@ -254,7 +254,7 @@ function New-NavImage {
         Write-Host "Using Platform Artifacts from $platformArtifactPath"
         
         if (-not (Test-Path $platformArtifactPath)) {
-            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath) - $platformUrl"
+            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
             $platformZip = Join-Path $buildFolder "platform.zip"
             Download-File -sourceUrl $platformUrl -destinationFile $platformZip
             Write-Host "Unpacking platform artifact"
@@ -274,7 +274,6 @@ function New-NavImage {
                             New-Item -Path $dirName -ItemType Directory | Out-Null
                         }
                         $url = $_.Value
-                        Write-Host "Downloading $filename from $url"
                         Download-File -sourceUrl $url -destinationFile $path
                     }
                 }

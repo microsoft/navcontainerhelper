@@ -16,7 +16,7 @@
 function Flush-ContainerHelperCache {
     [CmdletBinding()]
     Param (
-        [ValidateSet('all','calSourceCache','alSourceCache','applicationCache','bakFolderCache','filesCache','downloadsCache')]
+        [ValidateSet('all','calSourceCache','alSourceCache','applicationCache','bakFolderCache','filesCache','bcartifacts')]
         [string] $cache = 'all'
     )
 
@@ -29,8 +29,11 @@ function Flush-ContainerHelperCache {
         $folders += @("*-??-files")
     }
 
-    if ($cache -eq 'all' -or $cache -eq 'downloadsCache') {
-        $folders += @("downloads")
+    if ($cache -eq 'all' -or $cache -eq 'bcartifacts') {
+        Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
+            Write-Host "Removing Cache $($_.FullName)"
+            [System.IO.Directory]::Delete($_.FullName, $true)
+        }
     }
 
     if ($cache -eq 'all' -or $cache -eq 'alSourceCache') {
@@ -47,9 +50,9 @@ function Flush-ContainerHelperCache {
 
     $folders | ForEach-Object {
         $folder = Join-Path $hostHelperFolder $_
-        Get-Item $folder | ?{ $_.PSIsContainer } | ForEach-Object {
+        Get-Item $folder -ErrorAction SilentlyContinue | ?{ $_.PSIsContainer } | ForEach-Object {
             Write-Host "Removing Cache $($_.FullName)"
-            Remove-Item -Path $_.FullName -Recurse -Force
+            [System.IO.Directory]::Delete($_.FullName, $true)
         }
     }
 }
