@@ -19,9 +19,13 @@ function New-NavImage {
         [string] $baseImage = "",
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
-        [string] $memory = "8G",
+        [string] $memory = "",
         $myScripts = @()
     )
+
+    if ($memory -eq "") {
+        $memory = "4G"
+    }
 
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
@@ -313,10 +317,17 @@ function New-NavImage {
             }
         }
     
+        docker images --format "{{.Repository}}:{{.Tag}}" | % { 
+            if ($_ -eq $imageName) 
+            {
+                docker rmi $imageName -f
+            }
+        }
+
 @"
 FROM $baseimage
 
-ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsBcSandbox=$isBcSandbox
+ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsBcSandbox=$isBcSandbox artifactUrl=$artifactUrl
 
 COPY my /run/my/
 COPY NAVDVD /NAVDVD/

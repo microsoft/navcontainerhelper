@@ -13,9 +13,9 @@
  .Parameter imageName
   Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
  .Parameter useArtifacts
-  Url for application artifact to use
+  Temporary parameter, in which you can specify a storage account url, in which build artifacts are expected to live. ImageName is translated to an artifact Url if you specify this.
  .Parameter artifactUrl
-  Url for application artifact to use
+  Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
  .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter dvdCountry
@@ -356,6 +356,21 @@ function New-NavContainer {
     $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerServerVersion"
 
+    # Remove if it already exists
+    Remove-NavContainer $containerName
+
+    if ($imageName -ne "" -and $artifactUrl -ne "") {
+        if ($alwaysPull -or (-not (Get-BcContainerGenericTag -containerOrImageName $imageName -ErrorAction SilentlyContinue))) {
+            Write-Host "ArtifactUrl and ImageName specified, building $imageName based on $($artifactUrl.Split('?')[0])"
+            New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
+        }
+        else {
+            Write-Host "ArtifactUrl and ImageName specified, $imageName already exists."
+        }
+        $artifactUrl = ""
+        $alwaysPull = $false
+    }
+
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
         $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
@@ -407,7 +422,6 @@ function New-NavContainer {
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
-
 
     if ("$useArtifacts" -ne "") {
         Write-Host "WARNING: -useArtifacts is a temporary solution for translating legacy imagenames to artifact urls, not a permanent solution."
@@ -573,9 +587,6 @@ function New-NavContainer {
         Write-Host "Disabling Health Check (always report healthy)"
         $parameters += '--no-healthcheck'
     }
-
-    # Remove if it already exists
-    Remove-NavContainer $containerName
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
