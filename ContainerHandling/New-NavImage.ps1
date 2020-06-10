@@ -142,7 +142,7 @@ function New-NavImage {
         }
     }
 
-    $downloadsPath = Join-Path $containerHelperFolder "Downloads"
+    $downloadsPath = "c:\bcartifacts.cache"
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }

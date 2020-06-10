@@ -1,5 +1,6 @@
 0.7.0.2
 Regression - Flush-ContainerHelperCache fails if c:\bcartifacts.cache doesn't exist
+Regression - New-BcImage disn't use the new artifacts cache path
 
 0.7.0.1
 New-BcContainer will automatically build anc cache an image if ImageName and ArtifactUrl are specified
