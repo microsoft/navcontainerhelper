@@ -1,3 +1,6 @@
+0.7.0.2
+Regression - Flush-ContainerHelperCache fails if c:\bcartifacts.cache doesn't exist
+
 0.7.0.1
 New-BcContainer will automatically build anc cache an image if ImageName and ArtifactUrl are specified
 Add environment variable ArtifactUrl to image in New-BcImage

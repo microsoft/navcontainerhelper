@@ -30,9 +30,11 @@ function Flush-ContainerHelperCache {
     }
 
     if ($cache -eq 'all' -or $cache -eq 'bcartifacts') {
-        Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
-            Write-Host "Removing Cache $($_.FullName)"
-            [System.IO.Directory]::Delete($_.FullName, $true)
+        if (Test-Path "c:\bcartifacts.cache") {
+            Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
+                Write-Host "Removing Cache $($_.FullName)"
+                [System.IO.Directory]::Delete($_.FullName, $true)
+            }
         }
     }
 
