@@ -418,7 +418,7 @@ function New-NavContainer {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
-    $downloadsPath = Join-Path $containerHelperFolder "Downloads"
+    $downloadsPath = "c:\bcartifacts.cache"
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
@@ -625,6 +625,7 @@ function New-NavContainer {
                 Download-File -sourceUrl $artifactUrl -destinationFile $appZip
                 Write-Host "Unpacking application artifact"
                 Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
+                Remove-Item -Path $appZip -Force
             }
 
             $appManifestPath = Join-Path $appArtifactPath "manifest.json"
@@ -645,6 +646,47 @@ function New-NavContainer {
             }
 
         } while ($redir)
+
+        if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
+            $platformUrl = $appManifest.platformUrl
+        }
+        else {
+            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)"
+        }
+
+        if ($platformUrl -notlike 'https://*') {
+            $platformUrl = "https://$($appUri.Host)/$platformUrl$($appUri.Query)"
+        }
+        $platformUri = [Uri]::new($platformUrl)
+         
+        $platformArtifactPath = Join-Path $downloadsPath $platformUri.AbsolutePath
+       
+        if (-not (Test-Path $platformArtifactPath)) {
+            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
+            $platformZip = Join-Path $containerFolder "platform.zip"
+            Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+            Write-Host "Unpacking platform artifact"
+            Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
+            Remove-Item $platformZip -Force
+    
+            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
+            if (Test-Path $prerequisiteComponentsFile) {
+                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
+                Write-Host "Downloading Prerequisite Components"
+                $prerequisiteComponents.PSObject.Properties | % {
+                    $path = Join-Path $platformArtifactPath $_.Name
+                    if (-not (Test-Path $path)) {
+                        $dirName = [System.IO.Path]::GetDirectoryName($path)
+                        $filename = [System.IO.Path]::GetFileName($path)
+                        if (-not (Test-Path $dirName)) {
+                            New-Item -Path $dirName -ItemType Directory | Out-Null
+                        }
+                        $url = $_.Value
+                        Download-File -sourceUrl $url -destinationFile $path
+                    }
+                }
+            }
+        }
 
         if ($appManifest.PSObject.Properties.name -eq "Nav") {
             $parameters += @("--label nav=$($appManifest.Nav)")
