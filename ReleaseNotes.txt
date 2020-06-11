@@ -1,3 +1,7 @@
+0.7.0.3
+New-BcContainer - support blank platform in app artifact
+Replace-BcServerContainer supports ArtifactUrl
+
 0.7.0.2
 Regression - Flush-ContainerHelperCache fails if c:\bcartifacts.cache doesn't exist
 Regression - New-BcImage disn't use the new artifacts cache path
