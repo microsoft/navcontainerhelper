@@ -360,7 +360,13 @@ function New-NavContainer {
     Remove-NavContainer $containerName
 
     if ($imageName -ne "" -and $artifactUrl -ne "") {
-        if ($alwaysPull -or (-not (Get-BcContainerGenericTag -containerOrImageName $imageName -ErrorAction SilentlyContinue))) {
+        try {
+            $tag = Get-BcContainerGenericTag -containerOrImageName $imageName
+        }
+        catch {
+            $tag = ""
+        }
+        if ($alwaysPull -or ($tag -eq "")) {
             Write-Host "ArtifactUrl and ImageName specified, building $imageName based on $($artifactUrl.Split('?')[0])"
             New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
         }
