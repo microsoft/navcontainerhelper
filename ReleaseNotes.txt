@@ -1,6 +1,7 @@
 0.7.0.3
 New-BcContainer - support blank platform in app artifact
 Replace-BcServerContainer supports ArtifactUrl
+Move temporary build folder for New-BcImage to c:\$TMP$-<imagename> (due to filename lengths of more 260)
 
 0.7.0.2
 Regression - Flush-ContainerHelperCache fails if c:\bcartifacts.cache doesn't exist

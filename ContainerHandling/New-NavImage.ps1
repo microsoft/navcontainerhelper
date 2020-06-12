@@ -147,42 +147,45 @@ function New-NavImage {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
 
-    $buildFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+    $buildFolder = "c:\$('$TMP$')-$($imageName -replace '[:/]', '-')"
+    if (Test-Path $buildFolder) {
+        Remove-Item $buildFolder -Force -Recurse
+    }
     New-Item $buildFolder -ItemType Directory | Out-Null
 
-    $myFolder = Join-Path $buildFolder "my"
-    new-Item -Path $myFolder -ItemType Directory | Out-Null
+    try {
 
-    $myScripts | ForEach-Object {
-        if ($_ -is [string]) {
-            if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
-                $uri = [System.Uri]::new($_)
-                $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
-                $destinationFile = Join-Path $myFolder $filename
-                Download-File -sourceUrl $_ -destinationFile $destinationFile
-                if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Write-Host "Extracting .zip file"
-                    Expand-Archive -Path $destinationFile -DestinationPath $myFolder
-                    Remove-Item -Path $destinationFile -Force
-                }
-            } elseif (Test-Path $_ -PathType Container) {
-                Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
-            } else {
-                if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Expand-Archive -Path $_ -DestinationPath $myFolder
+        $myFolder = Join-Path $buildFolder "my"
+        new-Item -Path $myFolder -ItemType Directory | Out-Null
+    
+        $myScripts | ForEach-Object {
+            if ($_ -is [string]) {
+                if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
+                    $uri = [System.Uri]::new($_)
+                    $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
+                    $destinationFile = Join-Path $myFolder $filename
+                    Download-File -sourceUrl $_ -destinationFile $destinationFile
+                    if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                        Write-Host "Extracting .zip file"
+                        Expand-Archive -Path $destinationFile -DestinationPath $myFolder
+                        Remove-Item -Path $destinationFile -Force
+                    }
+                } elseif (Test-Path $_ -PathType Container) {
+                    Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
                 } else {
-                    Copy-Item -Path $_ -Destination $myFolder -Force
+                    if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                        Expand-Archive -Path $_ -DestinationPath $myFolder
+                    } else {
+                        Copy-Item -Path $_ -Destination $myFolder -Force
+                    }
                 }
-            }
-        } else {
-            $hashtable = $_
-            $hashtable.Keys | ForEach-Object {
-                Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
+            } else {
+                $hashtable = $_
+                $hashtable.Keys | ForEach-Object {
+                    Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
+                }
             }
         }
-    }
-
-    try {
 
         $isBcSandbox = "N"
         do {
