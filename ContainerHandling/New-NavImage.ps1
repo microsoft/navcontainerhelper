@@ -187,7 +187,9 @@ function New-NavImage {
             }
         }
 
-        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $appArtifactPath = $artifactPaths[0]
+        $platformArtifactPath = $artifactPaths[1]
 
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
@@ -216,7 +218,6 @@ function New-NavImage {
         if ($appManifest.PSObject.Properties.name -eq "Cu") {
             $cu = $appManifest.Cu
         }
-        $platformArtifactPath = Join-Path $appArtifactPath "..\platform"
     
         $navDvdPath = Join-Path $buildFolder "NAVDVD"
         New-Item $navDvdPath -ItemType Directory | Out-Null
@@ -231,8 +232,6 @@ function New-NavImage {
             }
         }
 
-        Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
-        
         $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
         New-Item $dbPath -ItemType Directory | Out-Null
         Write-Host "Copy Database"

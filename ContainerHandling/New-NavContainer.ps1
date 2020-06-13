@@ -620,7 +620,9 @@ function New-NavContainer {
 
         $parameters += "--volume $($downloadsPath):c:\dl"
 
-        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $appArtifactPath = $artifactPaths[0]
+        $platformArtifactPath = $artifactPaths[1]
 
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
@@ -631,17 +633,6 @@ function New-NavContainer {
                 $bcstyle = "sandbox"
             }
         }
-
-        $database = $appManifest.database
-        $databasePath = Join-Path $appArtifactPath $database
-        $licenseFile = ""
-        if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
-            $licenseFile = $appManifest.licenseFile
-            if ($licenseFile) {
-                $licenseFilePath = Join-Path $appArtifactPath $licenseFile
-            }
-        }
-        $platformArtifactPath = Join-Path $appArtifactPath "..\platform"
 
         if ($appManifest.PSObject.Properties.name -eq "Nav") {
             $parameters += @("--label nav=$($appManifest.Nav)")

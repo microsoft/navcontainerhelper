@@ -12,7 +12,11 @@
  .Parameter basePath
   Load the artifacts into a file structure below this path. (default is c:\bcartifacts.cache)
  .Example
-  Download-Artifacts -artifactUrl "https://bcartifacts.azureedge.net/businesscentral/onprem/w1" -destinationFile "c:\temp\file.zip" -dontOverwrite
+  $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+  $appArtifactPath = $artifactPaths[0]
+  $platformArtifactPath = $artifactPaths[1]
+ .Example
+  $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl
 #>
 function Download-Artifacts {
     Param (
@@ -45,6 +49,7 @@ function Download-Artifacts {
             Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
             Remove-Item -path $appZip -force
         }
+        Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
 
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
@@ -58,6 +63,8 @@ function Download-Artifacts {
         }
 
     } while ($redir)
+
+    $appArtifactPath
 
     if ($includePlatform) {
         if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
@@ -104,7 +111,8 @@ function Download-Artifacts {
                 }
             }
         }
+        Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
+        $platformArtifactPath
     }
-    $appArtifactPath
 }
 Export-ModuleMember -Function Download-Artifacts
