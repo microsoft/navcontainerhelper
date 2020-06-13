@@ -360,7 +360,13 @@ function New-NavContainer {
     Remove-NavContainer $containerName
 
     if ($imageName -ne "" -and $artifactUrl -ne "") {
-        if ($alwaysPull -or (-not (Get-BcContainerGenericTag -containerOrImageName $imageName -ErrorAction SilentlyContinue))) {
+        try {
+            $tag = Get-BcContainerGenericTag -containerOrImageName $imageName
+        }
+        catch {
+            $tag = ""
+        }
+        if ($alwaysPull -or ($tag -eq "")) {
             Write-Host "ArtifactUrl and ImageName specified, building $imageName based on $($artifactUrl.Split('?')[0])"
             New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
         }
@@ -614,77 +620,17 @@ function New-NavContainer {
 
         $parameters += "--volume $($downloadsPath):c:\dl"
 
-        do {
-            $redir = $false
-            $appUri = [Uri]::new($artifactUrl)
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $appArtifactPath = $artifactPaths[0]
+        $platformArtifactPath = $artifactPaths[1]
 
-            $appArtifactPath = Join-Path $downloadsPath $appUri.AbsolutePath
-            if (-not (Test-Path $appArtifactPath)) {
-                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
-                $appZip = Join-Path $containerFolder "app.zip"
-                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
-                Write-Host "Unpacking application artifact"
-                Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
-                Remove-Item -Path $appZip -Force
-            }
+        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-
-            if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
-                if ($appManifest.isBcSandbox) {
-                    $bcStyle = "sandbox"
-                }
-            }
-
-            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-                $redir = $true
-                $artifactUrl = $appManifest.ApplicationUrl
-                if ($artifactUrl -notlike 'https://*') {
-                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
-                }
-            }
-
-        } while ($redir)
-
-        if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
-            $platformUrl = $appManifest.platformUrl
-        }
-        else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)"
-        }
-
-        if ($platformUrl -notlike 'https://*') {
-            $platformUrl = "https://$($appUri.Host)/$platformUrl$($appUri.Query)"
-        }
-        $platformUri = [Uri]::new($platformUrl)
-         
-        $platformArtifactPath = Join-Path $downloadsPath $platformUri.AbsolutePath
-       
-        if (-not (Test-Path $platformArtifactPath)) {
-            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-            $platformZip = Join-Path $containerFolder "platform.zip"
-            Download-File -sourceUrl $platformUrl -destinationFile $platformZip
-            Write-Host "Unpacking platform artifact"
-            Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
-            Remove-Item $platformZip -Force
-    
-            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-            if (Test-Path $prerequisiteComponentsFile) {
-                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                Write-Host "Downloading Prerequisite Components"
-                $prerequisiteComponents.PSObject.Properties | % {
-                    $path = Join-Path $platformArtifactPath $_.Name
-                    if (-not (Test-Path $path)) {
-                        $dirName = [System.IO.Path]::GetDirectoryName($path)
-                        $filename = [System.IO.Path]::GetFileName($path)
-                        if (-not (Test-Path $dirName)) {
-                            New-Item -Path $dirName -ItemType Directory | Out-Null
-                        }
-                        $url = $_.Value
-                        Download-File -sourceUrl $url -destinationFile $path
-                    }
-                }
+        $bcstyle = "onprem"
+        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+            if ($appManifest.isBcSandbox) {
+                $bcstyle = "sandbox"
             }
         }
 

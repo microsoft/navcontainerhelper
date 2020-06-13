@@ -147,76 +147,59 @@ function New-NavImage {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
 
-    $buildFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
-    New-Item $buildFolder -ItemType Directory | Out-Null
-
-    $myFolder = Join-Path $buildFolder "my"
-    new-Item -Path $myFolder -ItemType Directory | Out-Null
-
-    $myScripts | ForEach-Object {
-        if ($_ -is [string]) {
-            if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
-                $uri = [System.Uri]::new($_)
-                $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
-                $destinationFile = Join-Path $myFolder $filename
-                Download-File -sourceUrl $_ -destinationFile $destinationFile
-                if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Write-Host "Extracting .zip file"
-                    Expand-Archive -Path $destinationFile -DestinationPath $myFolder
-                    Remove-Item -Path $destinationFile -Force
-                }
-            } elseif (Test-Path $_ -PathType Container) {
-                Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
-            } else {
-                if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Expand-Archive -Path $_ -DestinationPath $myFolder
-                } else {
-                    Copy-Item -Path $_ -Destination $myFolder -Force
-                }
-            }
-        } else {
-            $hashtable = $_
-            $hashtable.Keys | ForEach-Object {
-                Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
-            }
-        }
+    $buildFolder = "c:\$('$TMP$')-$($imageName -replace '[:/]', '-')"
+    if (Test-Path $buildFolder) {
+        Remove-Item $buildFolder -Force -Recurse
     }
+    New-Item $buildFolder -ItemType Directory | Out-Null
 
     try {
 
+        $myFolder = Join-Path $buildFolder "my"
+        new-Item -Path $myFolder -ItemType Directory | Out-Null
+    
+        $myScripts | ForEach-Object {
+            if ($_ -is [string]) {
+                if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
+                    $uri = [System.Uri]::new($_)
+                    $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
+                    $destinationFile = Join-Path $myFolder $filename
+                    Download-File -sourceUrl $_ -destinationFile $destinationFile
+                    if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                        Write-Host "Extracting .zip file"
+                        Expand-Archive -Path $destinationFile -DestinationPath $myFolder
+                        Remove-Item -Path $destinationFile -Force
+                    }
+                } elseif (Test-Path $_ -PathType Container) {
+                    Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
+                } else {
+                    if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                        Expand-Archive -Path $_ -DestinationPath $myFolder
+                    } else {
+                        Copy-Item -Path $_ -Destination $myFolder -Force
+                    }
+                }
+            } else {
+                $hashtable = $_
+                $hashtable.Keys | ForEach-Object {
+                    Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
+                }
+            }
+        }
+
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $appArtifactPath = $artifactPaths[0]
+        $platformArtifactPath = $artifactPaths[1]
+
+        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
         $isBcSandbox = "N"
-        do {
-            $redir = $false
-            $appUri = [Uri]::new($artifactUrl)
-    
-            $appArtifactPath = Join-Path $downloadsPath $appUri.AbsolutePath
-            if (-not (Test-Path $appArtifactPath)) {
-                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
-                $appZip = Join-Path $buildFolder "app.zip"
-                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
-                Write-Host "Unpacking application artifact"
-                Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
-                Remove-Item -path $appZip -force
+        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+            if ($appManifest.isBcSandbox) {
+                $IsBcSandbox = "Y"
             }
-    
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-    
-            if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
-                if ($appManifest.isBcSandbox) {
-                    $IsBcSandbox = "Y"
-                }
-            }
-    
-            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-                $redir = $true
-                $artifactUrl = $appManifest.ApplicationUrl
-                if ($artifactUrl -notlike 'https://*') {
-                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
-                }
-            }
-    
-        } while ($redir)
+        }
 
         $database = $appManifest.database
         $databasePath = Join-Path $appArtifactPath $database
@@ -227,57 +210,13 @@ function New-NavImage {
                 $licenseFilePath = Join-Path $appArtifactPath $licenseFile
             }
         }
-    
         $nav = ""
         if ($appManifest.PSObject.Properties.name -eq "Nav") {
             $nav = $appManifest.Nav
         }
-    
         $cu = ""
         if ($appManifest.PSObject.Properties.name -eq "Cu") {
             $cu = $appManifest.Cu
-        }
-
-        if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
-            $platformUrl = $appManifest.platformUrl
-        }
-        else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)"
-        }
-
-        if ($platformUrl -notlike 'https://*') {
-            $platformUrl = "https://$($appUri.Host)/$platformUrl$($appUri.Query)"
-        }
-        $platformUri = [Uri]::new($platformUrl)
-         
-        $platformArtifactPath = Join-Path $downloadsPath $platformUri.AbsolutePath
-        Write-Host "Using Platform Artifacts from $platformArtifactPath"
-        
-        if (-not (Test-Path $platformArtifactPath)) {
-            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-            $platformZip = Join-Path $buildFolder "platform.zip"
-            Download-File -sourceUrl $platformUrl -destinationFile $platformZip
-            Write-Host "Unpacking platform artifact"
-            Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
-            Remove-Item -path $platformZip -force
-    
-            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-            if (Test-Path $prerequisiteComponentsFile) {
-                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                Write-Host "Downloading Prerequisite Components"
-                $prerequisiteComponents.PSObject.Properties | % {
-                    $path = Join-Path $platformArtifactPath $_.Name
-                    if (-not (Test-Path $path)) {
-                        $dirName = [System.IO.Path]::GetDirectoryName($path)
-                        $filename = [System.IO.Path]::GetFileName($path)
-                        if (-not (Test-Path $dirName)) {
-                            New-Item -Path $dirName -ItemType Directory | Out-Null
-                        }
-                        $url = $_.Value
-                        Download-File -sourceUrl $url -destinationFile $path
-                    }
-                }
-            }
         }
     
         $navDvdPath = Join-Path $buildFolder "NAVDVD"
@@ -293,8 +232,6 @@ function New-NavImage {
             }
         }
 
-        Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
-        
         $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
         New-Item $dbPath -ItemType Directory | Out-Null
         Write-Host "Copy Database"
