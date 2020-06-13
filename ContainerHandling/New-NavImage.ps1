@@ -187,39 +187,17 @@ function New-NavImage {
             }
         }
 
+        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+
+        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
         $isBcSandbox = "N"
-        do {
-            $redir = $false
-            $appUri = [Uri]::new($artifactUrl)
-    
-            $appArtifactPath = Join-Path $downloadsPath $appUri.AbsolutePath
-            if (-not (Test-Path $appArtifactPath)) {
-                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
-                $appZip = Join-Path $buildFolder "app.zip"
-                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
-                Write-Host "Unpacking application artifact"
-                Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
-                Remove-Item -path $appZip -force
+        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+            if ($appManifest.isBcSandbox) {
+                $IsBcSandbox = "Y"
             }
-    
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-    
-            if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
-                if ($appManifest.isBcSandbox) {
-                    $IsBcSandbox = "Y"
-                }
-            }
-    
-            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-                $redir = $true
-                $artifactUrl = $appManifest.ApplicationUrl
-                if ($artifactUrl -notlike 'https://*') {
-                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
-                }
-            }
-    
-        } while ($redir)
+        }
 
         $database = $appManifest.database
         $databasePath = Join-Path $appArtifactPath $database
@@ -230,58 +208,15 @@ function New-NavImage {
                 $licenseFilePath = Join-Path $appArtifactPath $licenseFile
             }
         }
-    
         $nav = ""
         if ($appManifest.PSObject.Properties.name -eq "Nav") {
             $nav = $appManifest.Nav
         }
-    
         $cu = ""
         if ($appManifest.PSObject.Properties.name -eq "Cu") {
             $cu = $appManifest.Cu
         }
-
-        if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
-            $platformUrl = $appManifest.platformUrl
-        }
-        else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)"
-        }
-
-        if ($platformUrl -notlike 'https://*') {
-            $platformUrl = "https://$($appUri.Host)/$platformUrl$($appUri.Query)"
-        }
-        $platformUri = [Uri]::new($platformUrl)
-         
-        $platformArtifactPath = Join-Path $downloadsPath $platformUri.AbsolutePath
-        Write-Host "Using Platform Artifacts from $platformArtifactPath"
-        
-        if (-not (Test-Path $platformArtifactPath)) {
-            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-            $platformZip = Join-Path $buildFolder "platform.zip"
-            Download-File -sourceUrl $platformUrl -destinationFile $platformZip
-            Write-Host "Unpacking platform artifact"
-            Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
-            Remove-Item -path $platformZip -force
-    
-            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-            if (Test-Path $prerequisiteComponentsFile) {
-                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                Write-Host "Downloading Prerequisite Components"
-                $prerequisiteComponents.PSObject.Properties | % {
-                    $path = Join-Path $platformArtifactPath $_.Name
-                    if (-not (Test-Path $path)) {
-                        $dirName = [System.IO.Path]::GetDirectoryName($path)
-                        $filename = [System.IO.Path]::GetFileName($path)
-                        if (-not (Test-Path $dirName)) {
-                            New-Item -Path $dirName -ItemType Directory | Out-Null
-                        }
-                        $url = $_.Value
-                        Download-File -sourceUrl $url -destinationFile $path
-                    }
-                }
-            }
-        }
+        $platformArtifactPath = Join-Path $appArtifactPath "..\platform"
     
         $navDvdPath = Join-Path $buildFolder "NAVDVD"
         New-Item $navDvdPath -ItemType Directory | Out-Null
