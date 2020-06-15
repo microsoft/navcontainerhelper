@@ -419,6 +419,7 @@ function New-NavContainer {
     }
 
     $parameters = @()
+    $customNavSettings = @()
 
     $devCountry = $dvdCountry
     $navVersion = $dvdVersion
@@ -1114,7 +1115,7 @@ function New-NavContainer {
     }
 
     if ($PSBoundParameters.ContainsKey('enableTaskScheduler')) {
-        $parameters += "--env customNavSettings=EnableTaskScheduler=$enableTaskScheduler"
+        $customNavSettings += @("EnableTaskScheduler=$enableTaskScheduler")
     }
 
     if ($enableSymbolLoading -and $version.Major -ge 11 -and $version.Major -lt 15) {
@@ -1289,7 +1290,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $devUrl = $baseUrl + $devPart
         $dlUrl = $baseUrl + $dlPart
 
-        $customNavSettings = "PublicODataBaseUrl=$restUrl/odata,PublicSOAPBaseUrl=$soapUrl/ws,PublicWebBaseUrl=$webclientUrl"
+        $customNavSettings += @("PublicODataBaseUrl=$restUrl/odata","PublicSOAPBaseUrl=$soapUrl/ws","PublicWebBaseUrl=$webclientUrl")
 
         if ($version.Major -ge 15) {
             $ServerInstance = "BC"
@@ -1305,21 +1306,6 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $dlRule="PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Split(".")[0]
-
-        $added = $false
-        $cnt = $additionalParameters.Count-1
-        if ($cnt -ge 0) {
-            0..$cnt | % {
-                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
-                if ($idx -gt 0) {
-                    $additionalParameters[$_] = "$($additionalParameters[$_]),$customNavSettings"
-                    $added = $true
-                }
-            }
-        }
-        if (-not $added) {
-            $additionalParameters += @("-e customNavSettings=$customNavSettings")
-        }
 
         $webPort = "443"
         if ($forceHttpWithTraefik) {
@@ -1373,6 +1359,22 @@ if (-not `$restartingInstance) {
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
+    if ($customNavSettings) {
+        $customNavSettingsAdded = $false
+        $cnt = $additionalParameters.Count-1
+        if ($cnt -ge 0) {
+            0..$cnt | % {
+                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
+                if ($idx -gt 0) {
+                    $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customNavSettings))"
+                    $customNavSettingsAdded = $true
+                }
+            }
+        }
+        if (-not $customNavSettingsAdded) {
+            $additionalParameters += @("-e customNavSettings=$([string]::Join(',',$customNavSettings))")
+        }
+    }
 
     Write-Host "Files in $($myfolder):"
     get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
