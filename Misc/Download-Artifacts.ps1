@@ -71,11 +71,11 @@ function Download-Artifacts {
             $platformUrl = $appManifest.platformUrl
         }
         else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)"
+            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)".TrimStart('/')
         }
     
         if ($platformUrl -notlike 'https://*') {
-            $platformUrl = "https://$($appUri.Host)/$platformUrl$($appUri.Query)"
+            $platformUrl = "https://$($appUri.Host.TrimEnd('/'))/$platformUrl$($appUri.Query)"
         }
         $platformUri = [Uri]::new($platformUrl)
          
