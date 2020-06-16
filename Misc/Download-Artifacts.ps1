@@ -44,7 +44,16 @@ function Download-Artifacts {
         if (-not $exists) {
             Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
             $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-            Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+            try {
+                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+            }
+            catch {
+                if ($artifactUrl.Contains('.azureedge.net/')) {
+                    $artifactUrl = $artifactUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
+                    Write-Host "Retrying download..."
+                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+                }
+            }
             Write-Host "Unpacking application artifact"
             Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
             Remove-Item -path $appZip -force
@@ -88,7 +97,16 @@ function Download-Artifacts {
         if (-not $exists) {
             Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
             $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-            Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+            try {
+                Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+            }
+            catch {
+                if ($platformUrl.Contains('.azureedge.net/')) {
+                    $platformUrl = $platformUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
+                    Write-Host "Retrying download..."
+                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+                }
+            }
             Write-Host "Unpacking platform artifact"
             Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
             Remove-Item -path $platformZip -force
