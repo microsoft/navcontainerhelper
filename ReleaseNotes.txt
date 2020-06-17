@@ -3,6 +3,7 @@ Issue #1016 EnableTaskScheduler parameter is ignored when using traefik
 Fix regression - New-BcContainer - support blank platform in app artifact
 Add retry algorithm to Download-Artifacts
 Dump Additional Parameters during start
+Add parameter keepDays to Flush-ContainerHelperCache to indicate that cache used during this number of days should be kept (Only implemented for artifacts)
 
 0.7.0.3
 New-BcContainer - support blank platform in app artifact
