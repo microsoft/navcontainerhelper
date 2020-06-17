@@ -1372,8 +1372,13 @@ if (-not `$restartingInstance) {
             }
         }
         if (-not $customNavSettingsAdded) {
-            $additionalParameters += @("-e customNavSettings=$([string]::Join(',',$customNavSettings))")
+            $additionalParameters += @("--env customNavSettings=$([string]::Join(',',$customNavSettings))")
         }
+    }
+
+    if ($additionalParameters) {
+        Write-Host "Additional Parameters:"
+        $additionalParameters | % { if ($_) { Write-Host "$_" } }
     }
 
     Write-Host "Files in $($myfolder):"
