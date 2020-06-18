@@ -4,6 +4,8 @@ Fix regression - New-BcContainer - support blank platform in app artifact
 Add retry algorithm to Download-Artifacts
 Dump Additional Parameters during start
 Add parameter keepDays to Flush-ContainerHelperCache to indicate that cache used during this number of days should be kept (Only implemented for artifacts)
+Download-Artifacts will always download new redirect artifacts
+-alwaysPull are transferred to Download-Artifacts (-Force) to re-download all artifacts
 
 0.7.0.3
 New-BcContainer - support blank platform in app artifact
