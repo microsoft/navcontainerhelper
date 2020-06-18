@@ -360,21 +360,47 @@ function New-NavContainer {
     Remove-NavContainer $containerName
 
     if ($imageName -ne "" -and $artifactUrl -ne "") {
+
+        Write-Host "ArtifactUrl and ImageName specified"
+
+        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
+        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+        $rebuild = $false
         try {
-            $tag = Get-BcContainerGenericTag -containerOrImageName $imageName
+            $inspect = docker inspect $imageName | ConvertFrom-Json
+
+            Write-Host "Image $imageName already exists"
+            if ($useGenericImage -eq "") {
+                $useGenericImage = Get-BestGenericImageName
+            }
+
+            $labels = Get-NavContainerImageLabels -imageName $useGenericImage
+
+            if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                $rebuild = $true
+            }
+            elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                $rebuild = $true
+            }
+            elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                $rebuild = $true
+            }
         }
         catch {
-            $tag = ""
+            $rebuild = $true
         }
-        if ($alwaysPull -or ($tag -eq "")) {
-            Write-Host "ArtifactUrl and ImageName specified, building $imageName based on $($artifactUrl.Split('?')[0])"
+        if ($rebuild) {
+            Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
             New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
-        }
-        else {
-            Write-Host "ArtifactUrl and ImageName specified, $imageName already exists."
         }
         $artifactUrl = ""
         $alwaysPull = $false
+        $useGenericImage = ""
     }
 
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
