@@ -6,6 +6,7 @@ Dump Additional Parameters during start
 Add parameter keepDays to Flush-ContainerHelperCache to indicate that cache used during this number of days should be kept (Only implemented for artifacts)
 Add parameter forceRedirection to Download-Artifacts to force download redirection artifacts
 -alwaysPull are transferred to Download-Artifacts (-ForceRedirection) to re-download redirection artifacts
+Do not rebuild images based on -alwaysPull, instead compare version, osversion and generic tag and rebuild only if different
 
 0.7.0.3
 New-BcContainer - support blank platform in app artifact
