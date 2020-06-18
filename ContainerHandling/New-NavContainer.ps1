@@ -360,21 +360,47 @@ function New-NavContainer {
     Remove-NavContainer $containerName
 
     if ($imageName -ne "" -and $artifactUrl -ne "") {
+
+        Write-Host "ArtifactUrl and ImageName specified"
+
+        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
+        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+        $rebuild = $false
         try {
-            $tag = Get-BcContainerGenericTag -containerOrImageName $imageName
+            $inspect = docker inspect $imageName | ConvertFrom-Json
+
+            Write-Host "Image $imageName already exists"
+            if ($useGenericImage -eq "") {
+                $useGenericImage = Get-BestGenericImageName
+            }
+
+            $labels = Get-NavContainerImageLabels -imageName $useGenericImage
+
+            if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                $rebuild = $true
+            }
+            elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                $rebuild = $true
+            }
+            elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                $rebuild = $true
+            }
         }
         catch {
-            $tag = ""
+            $rebuild = $true
         }
-        if ($alwaysPull -or ($tag -eq "")) {
-            Write-Host "ArtifactUrl and ImageName specified, building $imageName based on $($artifactUrl.Split('?')[0])"
+        if ($rebuild) {
+            Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
             New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
-        }
-        else {
-            Write-Host "ArtifactUrl and ImageName specified, $imageName already exists."
         }
         $artifactUrl = ""
         $alwaysPull = $false
+        $useGenericImage = ""
     }
 
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
@@ -419,6 +445,7 @@ function New-NavContainer {
     }
 
     $parameters = @()
+    $customNavSettings = @()
 
     $devCountry = $dvdCountry
     $navVersion = $dvdVersion
@@ -455,11 +482,6 @@ function New-NavContainer {
 
         $artifactUrl = $redirArtifactUri.AbsoluteUri
         $imageName = ''
-
-        $redirArtifactPath = Join-Path $downloadsPath $redirArtifactUri.AbsolutePath
-        if (Test-Path $redirArtifactPath) {
-            Remove-Item $redirArtifactPath -Recurse -Force
-        }
 
         Write-Host "Using Artifact Url $($artifactUrl.Split('?')[0])"
     }
@@ -620,7 +642,7 @@ function New-NavContainer {
 
         $parameters += "--volume $($downloadsPath):c:\dl"
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
@@ -1114,7 +1136,7 @@ function New-NavContainer {
     }
 
     if ($PSBoundParameters.ContainsKey('enableTaskScheduler')) {
-        $parameters += "--env customNavSettings=EnableTaskScheduler=$enableTaskScheduler"
+        $customNavSettings += @("EnableTaskScheduler=$enableTaskScheduler")
     }
 
     if ($enableSymbolLoading -and $version.Major -ge 11 -and $version.Major -lt 15) {
@@ -1289,7 +1311,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $devUrl = $baseUrl + $devPart
         $dlUrl = $baseUrl + $dlPart
 
-        $customNavSettings = "PublicODataBaseUrl=$restUrl/odata,PublicSOAPBaseUrl=$soapUrl/ws,PublicWebBaseUrl=$webclientUrl"
+        $customNavSettings += @("PublicODataBaseUrl=$restUrl/odata","PublicSOAPBaseUrl=$soapUrl/ws","PublicWebBaseUrl=$webclientUrl")
 
         if ($version.Major -ge 15) {
             $ServerInstance = "BC"
@@ -1305,21 +1327,6 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $dlRule="PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Split(".")[0]
-
-        $added = $false
-        $cnt = $additionalParameters.Count-1
-        if ($cnt -ge 0) {
-            0..$cnt | % {
-                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
-                if ($idx -gt 0) {
-                    $additionalParameters[$_] = "$($additionalParameters[$_]),$customNavSettings"
-                    $added = $true
-                }
-            }
-        }
-        if (-not $added) {
-            $additionalParameters += @("-e customNavSettings=$customNavSettings")
-        }
 
         $webPort = "443"
         if ($forceHttpWithTraefik) {
@@ -1373,6 +1380,27 @@ if (-not `$restartingInstance) {
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
+    if ($customNavSettings) {
+        $customNavSettingsAdded = $false
+        $cnt = $additionalParameters.Count-1
+        if ($cnt -ge 0) {
+            0..$cnt | % {
+                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
+                if ($idx -gt 0) {
+                    $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customNavSettings))"
+                    $customNavSettingsAdded = $true
+                }
+            }
+        }
+        if (-not $customNavSettingsAdded) {
+            $additionalParameters += @("--env customNavSettings=$([string]::Join(',',$customNavSettings))")
+        }
+    }
+
+    if ($additionalParameters) {
+        Write-Host "Additional Parameters:"
+        $additionalParameters | % { if ($_) { Write-Host "$_" } }
+    }
 
     Write-Host "Files in $($myfolder):"
     get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }

@@ -9,6 +9,8 @@
   Add this switch to include the platform artifact in the download
  .Parameter force
   Add this switch to force download artifacts even though they already exists
+ .Parameter forceRedirection
+  Add this switch to force download redirection artifacts even though they already exists
  .Parameter basePath
   Load the artifacts into a file structure below this path. (default is c:\bcartifacts.cache)
  .Example
@@ -24,6 +26,7 @@ function Download-Artifacts {
         [string] $artifactUrl,
         [switch] $includePlatform,
         [switch] $force,
+        [switch] $forceRedirection,
         [string] $basePath = 'c:\bcartifacts.cache'
     )
 
@@ -41,10 +44,28 @@ function Download-Artifacts {
             Remove-Item $appArtifactPath -Recurse -Force
             $exists = $false
         }
+        if ($exists -and $forceRedirection) {
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                # redirect artifacts are always downloaded
+                Remove-Item $appArtifactPath -Recurse -Force
+                $exists = $false
+            }
+        }
         if (-not $exists) {
             Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
             $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-            Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+            try {
+                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+            }
+            catch {
+                if ($artifactUrl.Contains('.azureedge.net/')) {
+                    $artifactUrl = $artifactUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
+                    Write-Host "Retrying download..."
+                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+                }
+            }
             Write-Host "Unpacking application artifact"
             Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
             Remove-Item -path $appZip -force
@@ -71,11 +92,11 @@ function Download-Artifacts {
             $platformUrl = $appManifest.platformUrl
         }
         else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)"
+            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)".TrimStart('/')
         }
     
         if ($platformUrl -notlike 'https://*') {
-            $platformUrl = "https://$($appUri.Host)/$platformUrl$($appUri.Query)"
+            $platformUrl = "https://$($appUri.Host.TrimEnd('/'))/$platformUrl$($appUri.Query)"
         }
         $platformUri = [Uri]::new($platformUrl)
          
@@ -88,7 +109,16 @@ function Download-Artifacts {
         if (-not $exists) {
             Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
             $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-            Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+            try {
+                Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+            }
+            catch {
+                if ($platformUrl.Contains('.azureedge.net/')) {
+                    $platformUrl = $platformUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
+                    Write-Host "Retrying download..."
+                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+                }
+            }
             Write-Host "Unpacking platform artifact"
             Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
             Remove-Item -path $platformZip -force
