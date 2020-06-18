@@ -9,6 +9,8 @@
   Add this switch to include the platform artifact in the download
  .Parameter force
   Add this switch to force download artifacts even though they already exists
+ .Parameter forceRedirection
+  Add this switch to force download redirection artifacts even though they already exists
  .Parameter basePath
   Load the artifacts into a file structure below this path. (default is c:\bcartifacts.cache)
  .Example
@@ -24,6 +26,7 @@ function Download-Artifacts {
         [string] $artifactUrl,
         [switch] $includePlatform,
         [switch] $force,
+        [switch] $forceRedirection,
         [string] $basePath = 'c:\bcartifacts.cache'
     )
 
@@ -41,7 +44,7 @@ function Download-Artifacts {
             Remove-Item $appArtifactPath -Recurse -Force
             $exists = $false
         }
-        if ($exists) {
+        if ($exists -and $forceRedirection) {
             $appManifestPath = Join-Path $appArtifactPath "manifest.json"
             $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
             if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
