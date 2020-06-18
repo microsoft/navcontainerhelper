@@ -457,11 +457,6 @@ function New-NavContainer {
         $artifactUrl = $redirArtifactUri.AbsoluteUri
         $imageName = ''
 
-        $redirArtifactPath = Join-Path $downloadsPath $redirArtifactUri.AbsolutePath
-        if (Test-Path $redirArtifactPath) {
-            Remove-Item $redirArtifactPath -Recurse -Force
-        }
-
         Write-Host "Using Artifact Url $($artifactUrl.Split('?')[0])"
     }
 
