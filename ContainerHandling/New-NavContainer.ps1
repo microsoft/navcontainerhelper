@@ -621,7 +621,7 @@ function New-NavContainer {
 
         $parameters += "--volume $($downloadsPath):c:\dl"
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -Force:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
