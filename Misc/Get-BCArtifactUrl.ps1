@@ -10,7 +10,9 @@
  .Parameter Version
   The version of Business Central (will search for entries where the version starts with this value of the parameter)
  .Parameter Select
-  All or only the latest (Default All)
+  All or only the latest (Default All):
+    - All: will return all possible urls in the selection
+    - Latest: will sort on version, and return latest version
  .Parameter StorageAccountName
   The StorageAccount that is being used where artifacts are stored (Usually should not be changed).
   .Example
@@ -32,7 +34,7 @@ function Get-BCArtifactUrl {
         [String] $StorageAccountName = 'bcartifacts'
     )
     
-    $BaseUrl = "https://$($StorageAccountName.ToLower()).azureedge.net/$($Type.ToLower())/?comp=list&limit=10"
+    $BaseUrl = "https://$($StorageAccountName.ToLower()).azureedge.net/$($Type.ToLower())/?comp=list"
     
     if (!([string]::IsNullOrEmpty($version))) {
         $BaseUrl += "&prefix=$($Version)"
