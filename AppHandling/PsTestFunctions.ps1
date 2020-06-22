@@ -390,7 +390,7 @@ function Run-Tests {
                 $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
                 $XUnitAssembly.SetAttribute("run-date", [DateTime]::Parse($result.startTime).ToString("yyyy-MM-dd"))
-                $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH:mm:ss"))
+                $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH':'mm':'ss"))
                 $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
                 $XUnitCollection = $XUnitDoc.CreateElement("collection")
                 $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
@@ -696,7 +696,7 @@ function Run-Tests {
                             $XUnitAssembly.SetAttribute("name","$codeunitId $Name")
                             $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
                             $XUnitAssembly.SetAttribute("run-date", $startTime.ToString("yyyy-MM-dd"))
-                            $XUnitAssembly.SetAttribute("run-time", $startTime.ToString("HH:mm:ss"))
+                            $XUnitAssembly.SetAttribute("run-time", $startTime.ToString("HH':'mm':'ss"))
                             $XUnitAssembly.SetAttribute("total",0)
                             $XUnitAssembly.SetAttribute("passed",0)
                             $XUnitAssembly.SetAttribute("failed",0)

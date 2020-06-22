@@ -11,7 +11,7 @@
   Download-File -SourceUrl (Get-LatestAlLanguageExtensionUrl) -DestinationFile "c:\temp\al.vsix"
 #>
 function Get-LatestAlLanguageExtensionUrl {
-    $listing = Invoke-WebRequest -Method POST  `
+    $listing = Invoke-WebRequest -Method POST -UseBasicParsing `
                       -Uri https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=3.0-preview.1 `
                       -Body '{"filters":[{"criteria":[{"filterType":8,"value":"Microsoft.VisualStudio.Code"},{"filterType":12,"value":"4096"},{"filterType":7,"value":"ms-dynamics-smb.al"}],"pageNumber":1,"pageSize":50,"sortBy":0,"sortOrder":0}],"assetTypes":[],"flags":914}' `
                       -ContentType application/json | ConvertFrom-Json 
