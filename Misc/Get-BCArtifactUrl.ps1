@@ -3,20 +3,20 @@
   Get a list of available artifact URLs
  .Description
   Get a list of available artifact URLs.  It can be used to create a new instance of a Container.
- .Parameter Type
+ .Parameter type
   OnPrem or Sandbox
  .Parameter language
   the requested localization of Business Central
- .Parameter Version
+ .Parameter version
   The version of Business Central (will search for entries where the version starts with this value of the parameter)
- .Parameter Select
+ .Parameter select
   All or only the latest (Default All):
     - All: will return all possible urls in the selection
     - Latest: will sort on version, and return latest version
- .Parameter StorageAccountName
-  The StorageAccount that is being used where artifacts are stored (Usually should not be changed).
+ .Parameter storageAccount
+  The storageAccount that is being used where artifacts are stored (Usually should not be changed).
  .Parameter sasToken
-  The token that for accessing protected Azure Blob Storage (like insider builds)
+  The token that for accessing protected Azure Blob Storage (like insider builds).  Make sure to set the right storageAccount!
  .Example
   Get the latest URL for Belgium: 
   Get-BCArtifactUrl -Type OnPrem -Select Latest -language be
@@ -28,16 +28,16 @@ function Get-BCArtifactUrl {
     [CmdletBinding()]
     param (
         [ValidateSet('OnPrem', 'Sandbox')]
-        [String] $Type = 'Sandbox',
+        [String] $type = 'Sandbox',
         [String] $language,
-        [String] $Version,
+        [String] $version,
         [ValidateSet('All', 'Latest')]
-        [String] $Select = 'All',
-        [String] $StorageAccount = 'bcartifacts',
+        [String] $select = 'All',
+        [String] $storageAccount = 'bcartifacts',
         [String] $sasToken 
     )
     
-    $BaseUrl = "https://$($StorageAccount.ToLower().TrimEnd(".").TrimStart(".")).azureedge.net/$($Type.ToLower())/"
+    $BaseUrl = "https://$($storageAccount.ToLower().TrimEnd(".").TrimStart(".")).azureedge.net/$($Type.ToLower())/"
     
     $GetListUrl = $BaseUrl
     if (!([string]::IsNullOrEmpty($sasToken))) {
