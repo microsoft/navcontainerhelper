@@ -15,7 +15,9 @@
     - Latest: will sort on version, and return latest version
  .Parameter StorageAccountName
   The StorageAccount that is being used where artifacts are stored (Usually should not be changed).
-  .Example
+ .Parameter sasToken
+  The token that for accessing protected Azure Blob Storage (like insider builds)
+ .Example
   Get the latest URL for Belgium: 
   Get-BCArtifactUrl -Type OnPrem -Select Latest -language be
   
@@ -31,18 +33,28 @@ function Get-BCArtifactUrl {
         [String] $Version,
         [ValidateSet('All', 'Latest')]
         [String] $Select = 'All',
-        [String] $StorageAccountName = 'bcartifacts'
+        [String] $StorageAccount = 'bcartifacts',
+        [String] $sasToken 
     )
     
-    $BaseUrl = "https://$($StorageAccountName.ToLower()).azureedge.net/$($Type.ToLower())/?comp=list"
+    $BaseUrl = "https://$($StorageAccount.ToLower().TrimEnd(".").TrimStart(".")).azureedge.net/$($Type.ToLower())/"
     
-    if (!([string]::IsNullOrEmpty($version))) {
-        $BaseUrl += "&prefix=$($Version)"
+    $GetListUrl = $BaseUrl
+    if (!([string]::IsNullOrEmpty($sasToken))) {
+        $GetListUrl += $sasToken + "&comp=list&restype=container"
+    }
+    else {
+        $GetListUrl += "?comp=list&restype=container"
     }
     
-    $Response = Invoke-RestMethod -Method Get -Uri $BaseUrl
+    if (!([string]::IsNullOrEmpty($version))) {
+        $GetListUrl += "&prefix=$($Version)"
+    }
+
+    Write-verbose "Invoke-RestMethod -Method Get -Uri $GetListUrl"
+
+    $Response = Invoke-RestMethod -Method Get -Uri $GetListUrl
     $Artifacts = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults.Blobs.Blob
- 
 
     if (!([string]::IsNullOrEmpty($language))) {
         $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith($language) }
@@ -63,10 +75,16 @@ function Get-BCArtifactUrl {
         }
     }
 
-    $Artifacts.Url
-    
+    if ($Artifacts[0].Url) {
+        return $Artifacts.Url
+    }
+    else {
+        foreach ($Artifact in $Artifacts) {
+            $DownloadUrl = $BaseUrl + $Artifact.Name + $sasToken
+            $DownloadUrl            
+        }
+    }
 }
 
- 
 Set-Alias -Name Get-BCArtifactUrl -Value Get-NAVArtifactUrl
 Export-ModuleMember -Function Get-NAVArtifactUrl -Alias Get-BCArtifactUrl
