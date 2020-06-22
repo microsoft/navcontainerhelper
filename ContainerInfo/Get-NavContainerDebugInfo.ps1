@@ -50,7 +50,7 @@ function Get-NavContainerDebugInfo {
         $debugInfo = @{}
         $inspect = docker inspect $containerName | ConvertFrom-Json
 
-        if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
             throw "Container $containerName is not a NAV/BC container"
         }
         

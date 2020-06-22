@@ -181,25 +181,25 @@ function Compile-AppInNavContainer {
 
     $dependencies = @()
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "application")) -and $appJsonObject.application)
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
     {
         $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "platform")) -and $appJsonObject.platform)
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
     {
         $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "test")) -and $appJsonObject.test)
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test)
     {
         $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
-        if (([bool]($customConfig.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
+        if (([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
             throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
         }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -match "dependencies")) -and $appJsonObject.dependencies)
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
     {
         $appJsonObject.dependencies | ForEach-Object {
             $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
@@ -286,7 +286,7 @@ function Compile-AppInNavContainer {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Publisher -eq $dependency.publisher)})) {
+        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or $_.Publisher -eq $dependency.publisher)})) {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $version = $dependency.version
@@ -364,7 +364,11 @@ function Compile-AppInNavContainer {
 
     $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
-        $alcPath = 'C:\build\vsix\extension\bin'
+        $binPath = 'C:\build\vsix\extension\bin'
+        $alcPath = Join-Path $binPath 'win32'
+        if (-not (Test-Path $alcPath)) {
+            $alcPath = $binPath
+        }
 
         if (Test-Path -Path $appOutputFile -PathType Leaf) {
             Remove-Item -Path $appOutputFile -Force
@@ -378,16 +382,16 @@ function Compile-AppInNavContainer {
             $alcParameters += @($GenerateReportLayoutParam)
         }
         if ($EnableCodeCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.CodeCop.dll')")
         }
         if ($EnableAppSourceCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.AppSourceCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.AppSourceCop.dll')")
         }
         if ($EnablePerTenantExtensionCop) {
-            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.PerTenantExtensionCop.dll')")
         }
         if ($EnableUICop) {
-            $alcParameters += @("/analyzer:$(Join-Path $alcPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
+            $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
         if ($rulesetFile) {
@@ -409,7 +413,9 @@ function Compile-AppInNavContainer {
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
     
     if ($AzureDevOps) {
-        $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        if ($result) {
+            $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        }
     }
     $result | % { $outputTo.Invoke($_) }
 
