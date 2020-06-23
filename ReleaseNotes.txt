@@ -1,3 +1,91 @@
+0.7.0.4
+Issue #1016 EnableTaskScheduler parameter is ignored when using traefik
+Fix regression - New-BcContainer - support blank platform in app artifact
+Add retry algorithm to Download-Artifacts
+Dump Additional Parameters during start
+Add parameter keepDays to Flush-ContainerHelperCache to indicate that cache used during this number of days should be kept (Only implemented for artifacts)
+Add parameter forceRedirection to Download-Artifacts to force download redirection artifacts
+-alwaysPull are transferred to Download-Artifacts (-ForceRedirection) to re-download redirection artifacts
+Do not rebuild images based on -alwaysPull, instead compare version, osversion and generic tag and rebuild only if different
+
+0.7.0.3
+New-BcContainer - support blank platform in app artifact
+Replace-BcServerContainer supports ArtifactUrl
+Move temporary build folder for New-BcImage to c:\$TMP$-<imagename> (due to filename lengths of more 260)
+Add new function Download-Artifacts to download artifacts from ArtifactUrl
+
+0.7.0.2
+Regression - Flush-ContainerHelperCache fails if c:\bcartifacts.cache doesn't exist
+Regression - New-BcImage disn't use the new artifacts cache path
+
+0.7.0.1
+New-BcContainer will automatically build anc cache an image if ImageName and ArtifactUrl are specified
+Add environment variable ArtifactUrl to image in New-BcImage
+new-BcImage deletes the image if it already exists
+New function Get-BCContainerArtifactUrl to get the ArtifactUrl used to create a container
+Move Artfacts cache to c:\bcartifacts.cache due to filename lengths above 260
+Pre-download platform artifact in containerHelper before starting container to avoid dns problems
+
+0.7.0.0
+Add new function New-BcImage to create an image based on artifacts
+Add artifacts support for New-BcContainer
+Add downloads cleanup for Flush-ContainerHelperCache
+Issue #1006 - remove files instead of folder (if a lock is on the folder)
+Exit waiting for container to be ready if the container exits
+
+0.6.5.11
+Set Accept_Outdated to $true as default value to accomodate that images are built on pre-february update WindowsServerCore imageName
+Check validationResults in Get-Tests loop
+Windows Defender acuses New-NavContainer of containing a virus
+
+0.6.5.10
+Issue #985 Tests report failure wrongly
+
+0.6.5.9
+Issue #981 Run-Tests fail on 16.x containers
+Issue #974 Compile of app fails when using customized application.app
+
+0.6.5.8
+Add Parameter -includeTestFrameworkOnly to install the Test Framework without the Test Libraries
+Issue #978 - do not use local docker.ico when creating shortcuts
+
+0.6.5.7
+Issue #921 - Using -useBestContainerOS with foreign database specification fails
+Issue #959 - Specifying applicationinsights in app.json without application property throws exception
+PR #949 - support swarm services (Thanks Tobias Fenster)
+Add parameter profile to Get-Tests and Run-Tests to be able to run tests as a specific profile
+Issue #944 - reset position in repeater
+Support Windows 10 2004
+Issue #971 - Implicit creation of destination folder in Copy-FileToBcContainer
+
+0.6.5.6
+Issue #929 - Get-NavContainerSharedFolders doesn't support :rw or :ro on volumes
+Issue #934 - Restart instance after creation of new symbolic link
+Issue #924 - Compile App failed - AlcOutput is null
+Issue #940 - Vsix analyzer DLLs are not under Win32
+
+0.6.5.5
+Use .net core version of alc.exe if available
+
+0.6.5.4
+Regression - Issue #930 - Revert fix for #918
+
+0.6.5.3
+Issue #918 - Migration of Legacy VeriSign and Symantec Time Stamping Services
+Issue #925 - Path Test Apps for 16.0 onprem rtm version
+
+0.6.5.2
+Regression - Issue #914 getting generic tag before the image has been pulled
+
+0.6.5.1
+Force tls1.2 when using Setup-TraefikContainerForBcContainers
+New function Get-LatestAlLanguageExtensionUrl for getting the Url to the latest AL Extension from the marketplace
+Added parameter -installCertificateOnHost to New-NavContainer to automatically install the self-signed certificate on the host
+Avoid double download of best generic image
+First check "Docker is running" before checking "Windows Container" (PR #904 Thanks Tino-T)
+Issue #901 - Sort-AppFoldersByDependencies fails if an app.json doesn't have a dependencies section
+Issue #907 - Local 14.x onpremises images cannot be started with -useBestContainerOS
+
 0.6.5.0
 February 2020 bug fix - -useBestContainerOS will now select between all published generic images. Generic images have been built for all supported Windows 10 versions.
 

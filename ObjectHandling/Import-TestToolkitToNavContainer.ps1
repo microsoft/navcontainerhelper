@@ -12,6 +12,8 @@
   For 15.x containers and later. Credentials for the admin user if using NavUserPassword authentication. User will be prompted if not provided
  .Parameter includeTestLibrariesOnly
   Only import TestLibraries (do not import Test Codeunits)
+ .Parameter includeTestFrameworkOnly
+  Only import TestFramework (do not import Test Codeunits nor TestLibraries)
  .Parameter testToolkitCountry
   Only import TestToolkit objects for a specific country.
   You must specify the country code that is used in the TestToolkit object name (e.g. CA, US, MX, etc.).
@@ -42,6 +44,7 @@ function Import-TestToolkitToNavContainer {
         [PSCredential] $sqlCredential = $null,
         [PSCredential] $credential = $null,
         [switch] $includeTestLibrariesOnly,
+        [switch] $includeTestFrameworkOnly,
         [string] $testToolkitCountry,
         [switch] $doNotUpdateSymbols,
         [ValidateSet("Overwrite","Skip")]
@@ -67,14 +70,14 @@ function Import-TestToolkitToNavContainer {
     }
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
-    if ($inspect.Config.Labels.psobject.Properties.Match('nav').Count -eq 0) {
+    if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
         throw "Container $containerName is not a NAV container"
     }
     [System.Version]$version = $inspect.Config.Labels.version
     $country = $inspect.Config.Labels.country
 
     $config = Get-NavContainerServerConfiguration -ContainerName $containerName
-    $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -match "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
+    $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
 
     $generateSymbols = $false
     if ($version.Major -eq 14 -and !$doNotUpdateSymbols -and $config.ClientServicesCredentialType -ne "Windows") {
@@ -87,11 +90,13 @@ function Import-TestToolkitToNavContainer {
             throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
         }
 
-        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly)
+        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly)
 
-            $apps = "Microsoft_Any.app", "Microsoft_Library Assert.app", "Microsoft_Test Runner.app" | % {
-                @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
-            }
+
+            # Add Test Framework
+            $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+
             $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
             if (Test-Path $mockAssembliesPath) {
                 $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
@@ -102,12 +107,19 @@ function Import-TestToolkitToNavContainer {
                         Start-Sleep -Seconds 1
                     }
                 }
-                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
-                    @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
-                }
 
-                if (!$includeTestLibrariesOnly) {
-                    $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                if (!$includeTestFrameworkOnly) {
+                    
+                    # Add Test Libraries
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                        @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+                    }
+
+                    if (!$includeTestLibrariesOnly) {
+
+                        # Add Tests
+                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                    }
                 }
             }
 
@@ -118,7 +130,7 @@ function Import-TestToolkitToNavContainer {
                 }
                 $appFile
             }
-        } -argumentList $includeTestLibrariesOnly
+        } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly
 
         if (!$doNotUseRuntimePackages) {
             $folderPrefix = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
@@ -220,7 +232,7 @@ function Import-TestToolkitToNavContainer {
             # Sync after all objects hav been imported
             Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
     
-        } -ArgumentList $sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
+        } -ArgumentList $sqlCredential, ($includeTestLibrariesOnly -or $includeTestFrameworkOnly), $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
     
         if ($generateSymbols) {
             Write-Host "Generating symbols"

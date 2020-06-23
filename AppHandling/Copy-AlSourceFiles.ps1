@@ -44,9 +44,9 @@ function Copy-AlSourceFiles {
                 } 
                 else {
                     $found = $false
-                    $content | ForEach-Object {
+                    foreach($Line in $content) {
                         if (-not $found) {
-                            $line = $_.Trim()
+                            $line = $Line.Trim()
                             $idx = $line.IndexOf(' ')
                             if ($idx -lt 0) {
                                 $type = $line
@@ -56,6 +56,7 @@ function Copy-AlSourceFiles {
                             }
                             if ($types.Contains($type)) {
                                 $found = $true
+                                break
                             }
                         } 
                     }

@@ -26,7 +26,23 @@ function Get-NavContainerSharedFolders {
         if ($inspect.HostConfig.Binds) {
             $inspect.HostConfig.Binds | ForEach-Object {
                 $idx = $_.IndexOf(':', $_.IndexOf(':') + 1)
-                $sharedFolders += @{$_.Substring(0, $idx) = $_.SubString($idx+1) }
+                $src = $_.Substring(0, $idx)
+                $dst = $_.SubString($idx+1)
+                $idx = $dst.IndexOf(':', $_.IndexOf(':') + 1)
+                if ($idx -gt 0) {
+                    $dst = $dst.SubString(0,$idx)
+                }
+                $sharedFolders += @{ $src = $dst }
+            }
+        }
+        
+        if ($inspect.Mounts) {
+            $inspect.Mounts | ForEach-Object {
+                $src = $_.Source
+                $dst = $_.Destination
+                if (-not ($sharedFolders[$src])) {
+                    $sharedFolders += @{ $src = $dst }
+                }
             }
         }
         return $sharedFolders

@@ -43,6 +43,16 @@ function Wait-NavContainerReady {
                 Write-Host $log
                 throw "Initialization of container $containerName failed"
             }
+
+            if ($cnt % 5 -eq 0) {
+                $inspect = docker inspect $containerName | ConvertFrom-Json
+                if ($inspect.State.Status -eq "exited") {
+                    Write-Host "Error"
+                    Write-Host "Container Exited, ExitCode $($inspect.State.ExitCode)"
+                    throw "Initialization of container $containerName failed"
+                }
+            }
+
         } while (!($log.Contains("Ready for connections!")))
         Write-Host
     }
