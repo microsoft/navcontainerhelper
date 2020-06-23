@@ -1,4 +1,4 @@
-﻿#Requires -PSEdition Desktop 
+#Requires -PSEdition Desktop 
 
 Set-StrictMode -Version 2.0
 
@@ -50,6 +50,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerPlatformVersion.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageName.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerArtifactUrl.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerGenericTag.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerOsVersion.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEula.ps1")
@@ -78,6 +79,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Enter-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\New-NavImage.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Restart-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Stop-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Start-NavContainer.ps1")
@@ -162,6 +164,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "Misc\Remove-DesktopShortcut.ps1")
 . (Join-Path $PSScriptRoot "Misc\Write-NavContainerHelperWelcomeText.ps1")
 . (Join-Path $PSScriptRoot "Misc\Download-File.ps1")
+. (Join-Path $PSScriptRoot "Misc\Download-Artifacts.ps1")
 . (Join-Path $PSScriptRoot "Misc\Get-LocaleFromCountry.ps1")
 . (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")

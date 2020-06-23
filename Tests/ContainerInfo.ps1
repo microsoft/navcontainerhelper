@@ -69,7 +69,7 @@
     It 'Get-BcContainerPlatformVersion' {
         Get-BcContainerPlatformVersion -containerOrImageName $bcContainerName | Should -Be $bcContainerPlatformVersion
         Get-BcContainerPlatformVersion -containerOrImageName $bcImageName | Should -Be $bcContainerPlatformVersion
-        Get-BcContainerPlatformVersion -containerOrImageName $navContainerName | Should -Be $navContainerPlatformVersion
+        #Get-BcContainerPlatformVersion -containerOrImageName $navContainerName | Should -Be $navContainerPlatformVersion
         Get-BcContainerPlatformVersion -containerOrImageName $navImageName | Should -Be $navContainerPlatformVersion
 
     }

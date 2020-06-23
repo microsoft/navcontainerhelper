@@ -65,19 +65,21 @@ function Replace-NavServerContainer {
         . $settingsScript
     }
 
-    if ("$imageName" -eq "") {
-        $imageName = $navDockerImage.Split(',')[0]
-    }
-    if ("$imageName" -ne "$navDockerImage") {
-        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
-        $settings += '$navDockerImage = "'+$imageName + '"'
-        Set-Content -Path $settingsScript -Value $settings
-    }
-
-    $imageName = Get-BestNavContainerImageName -imageName $imageName
-    if ($alwaysPull) {
-        Write-Host "Pulling docker Image $imageName"
-        docker pull $imageName
+    if ($artifactUrl -eq "") {
+        if ("$imageName" -eq "") {
+            $imageName = $navDockerImage.Split(',')[0]
+        }
+        if ("$imageName" -ne "$navDockerImage") {
+            $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
+            $settings += '$navDockerImage = "'+$imageName + '"'
+            Set-Content -Path $settingsScript -Value $settings
+        }
+    
+        $imageName = Get-BestNavContainerImageName -imageName $imageName
+        if ($alwaysPull) {
+            Write-Host "Pulling docker Image $imageName"
+            docker pull $imageName
+        }
     }
 
     Write-Host -ForegroundColor Green "Setup new Container"

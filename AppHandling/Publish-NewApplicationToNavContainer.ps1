@@ -100,16 +100,20 @@ function Publish-NewApplicationToNavContainer {
         }
         if ($appDotNetPackagesFolder) {
             new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "ProjectDotNetPackages" -value $appDotNetPackagesFolder | Out-Null
+            Set-NavServerInstance $serverInstance -restart
+            while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
+                Start-Sleep -Seconds 1
+            }
         }
 
     } -argumentList $containerAppDotNetPackagesFolder
 
+    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    $appsFolder = Join-Path $containerFolder "Extensions"
+    if (!(Test-Path $appsFolder)) {
+        New-Item -Path $appsFolder -ItemType Directory | Out-Null
+    }
     if ($restoreApps -ne "No") {
-        $containerFolder = Join-Path $ExtensionsFolder $containerName
-        $appsFolder = Join-Path $containerFolder "Extensions"
-        if (!(Test-Path $appsFolder)) {
-            New-Item -Path $appsFolder -ItemType Directory | Out-Null
-        }
         $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
         if ($restoreApps -eq "AsRuntimePackages" -and ($replaceDependencies)) {
             Write-Warning "ReplaceDependencies will not work with apps restored as runtime packages"
