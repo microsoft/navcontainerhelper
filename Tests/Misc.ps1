@@ -27,7 +27,7 @@
     }
     It 'Get-NavArtifactUrl' {
         (Get-NavArtifactUrl -nav 2017 -country 'dk' -select all).count | Should -BeGreaterThan 43
-        Get-NavArtifactUrl -nav 2018 -cu 20 -country de | Should -Be 'https://bcartifacts.azureedge.net/onprem/11.0.43274.0/w1'
+        Get-NavArtifactUrl -nav 2018 -cu 30 -country de | Should -Be 'https://bcartifacts.azureedge.net/onprem/11.0.43274.0/de'
     }
     It 'Download-File' {
         #TODO
