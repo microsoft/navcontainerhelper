@@ -1,6 +1,8 @@
 0.7.0.5
 Check country and artifactUrl on determining whether or not to rebuild images
 Get-NavContainerImageLabels now supports getting labels from an local image (without registry)
+Added new function Get-BcArtifactUrl to get artifact Urls for Business Central builds (thanks Waldo)
+Added new function Get-NavArtifactUrl to get artifact Urls for Dynamics NAV builds (using Get-BcArtifactUrl)
 
 0.7.0.4
 Issue #1016 EnableTaskScheduler parameter is ignored when using traefik
