@@ -378,7 +378,16 @@ function New-NavContainer {
 
             $labels = Get-NavContainerImageLabels -imageName $useGenericImage
 
+            $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
+            if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
+                $rebuild = $true
+            }
             if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                $rebuild = $true
+            }
+            elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
                 Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
                 $rebuild = $true
             }

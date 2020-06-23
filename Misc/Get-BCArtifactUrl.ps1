@@ -5,21 +5,23 @@
   Get a list of available artifact URLs.  It can be used to create a new instance of a Container.
  .Parameter type
   OnPrem or Sandbox
- .Parameter language
+ .Parameter country
   the requested localization of Business Central
  .Parameter version
   The version of Business Central (will search for entries where the version starts with this value of the parameter)
  .Parameter select
-  All or only the latest (Default All):
+  All or only the latest (Default Latest):
     - All: will return all possible urls in the selection
     - Latest: will sort on version, and return latest version
+    - Closest: will return the closest version to the version specified in version (must be a full version number)
+    - SecondToLastMajor: will return the latest version where Major version number is second to Last (used to get Next Minor version from insider)
  .Parameter storageAccount
   The storageAccount that is being used where artifacts are stored (Usually should not be changed).
  .Parameter sasToken
   The token that for accessing protected Azure Blob Storage (like insider builds).  Make sure to set the right storageAccount!
  .Example
   Get the latest URL for Belgium: 
-  Get-BCArtifactUrl -Type OnPrem -Select Latest -language be
+  Get-BCArtifactUrl -Type OnPrem -Select Latest -country be
   
   Get all available Artifact URLs for BC SaaS:
   Get-BCArtifactUrl -Type Sandbox -Select All
@@ -29,15 +31,18 @@ function Get-BCArtifactUrl {
     param (
         [ValidateSet('OnPrem', 'Sandbox')]
         [String] $type = 'Sandbox',
-        [String] $language,
+        [String] $country,
         [String] $version,
-        [ValidateSet('All', 'Latest')]
-        [String] $select = 'All',
+        [ValidateSet('Latest', 'All', 'Closest', 'SecondToLastMajor')]
+        [String] $select = 'Latest',
         [String] $storageAccount = 'bcartifacts',
-        [String] $sasToken 
+        [String] $sasToken
     )
     
-    $BaseUrl = "https://$($storageAccount.ToLower().TrimEnd(".").TrimStart(".")).azureedge.net/$($Type.ToLower())/"
+    if (-not $storageAccount.Contains('.')) {
+        $storageAccount += ".azureedge.net"
+    }
+    $BaseUrl = "https://$storageAccount/$($Type.ToLower())/"
     
     $GetListUrl = $BaseUrl
     if (!([string]::IsNullOrEmpty($sasToken))) {
@@ -46,45 +51,93 @@ function Get-BCArtifactUrl {
     else {
         $GetListUrl += "?comp=list&restype=container"
     }
-    
-    if (!([string]::IsNullOrEmpty($version))) {
+
+    if ($select -eq 'SecondToLastMajor') {
+        if ($version) {
+            throw "You cannot specify a version when asking for the Second To Lst Major version"
+        }
+    }
+    elseif ($select -eq 'Closest') {
+        if (!($version)) {
+            throw "You must specify a version number when you want to get the closest artifact Url"
+        }
+        $dots = ($version.ToCharArray() -eq '.').Count
+        $closestToVersion = [Version]"0.0.0.0"
+        if ($dots -ne 3 -or !([Version]::TryParse($version, [ref] $closestToVersion))) {
+            throw "Version number must be in the format 1.2.3.4 when you want to get the closes artifact Url"
+        }
+        $GetListUrl += "&prefix=$($closestToVersion.Major).$($closestToVersion.Minor)."
+    }
+    elseif (!([string]::IsNullOrEmpty($version))) {
+        $dots = ($version.ToCharArray() -eq '.').Count
+        if ($dots -lt 3) {
+            # avoid 14.1 returning 14.10, 14.11 etc.
+            $version = "$($version.TrimEnd('.'))."
+        }
         $GetListUrl += "&prefix=$($Version)"
     }
 
-    Write-verbose "Invoke-RestMethod -Method Get -Uri $GetListUrl"
+    $Artifacts = @()
+    $nextMarker = ""
+    do {
+        Write-verbose "Invoke-RestMethod -Method Get -Uri $GetListUrl$nextMarker"
+        $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker"
+        $enumerationResults = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults
+        if ($enumerationResults.Blobs) {
+            $Artifacts += $enumerationResults.Blobs.Blob
+        }
+        $nextMarker = $enumerationResults.NextMarker
+        if ($nextMarker) {
+            $nextMarker = "&marker=$nextMarker"
+        }
+    } while ($nextMarker)
 
-    $Response = Invoke-RestMethod -Method Get -Uri $GetListUrl
-    $Artifacts = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults.Blobs.Blob
-
-    if (!([string]::IsNullOrEmpty($language))) {
-        $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith($language) }
+    if (!([string]::IsNullOrEmpty($country))) {
+        # avoid confusion between base and se
+        $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith("/$country") }
     }
+
+    $Artifacts = $Artifacts | Sort-Object { [Version]($_.name.Split('/')[0]) }
 
     switch ($Select) {
         'All' {  
-            $Artifacts = $Artifacts
+            $Artifacts = $Artifacts |
+                Sort-Object { [Version]($_.name.Split('/')[0]) }
         }
         'Latest' { 
-            $Artifacts = $Artifacts | 
-            Sort-Object { [Version]($_.name.Split('/')[0]) } | 
-            Select-Object -Last 1   
+            $Artifacts = $Artifacts |
+                Sort-Object { [Version]($_.name.Split('/')[0]) } |
+                Select-Object -Last 1
         }
-        Default {
-            Write-Error "Unknown value for parameter 'Select'."
-            return
+        'SecondToLastMajor' { 
+            $Artifacts = $Artifacts |
+                Sort-Object -Descending { [Version]($_.name.Split('/')[0]) }
+            $latest = $Artifacts | Select-Object -First 1
+            if ($latest) {
+                $latestversion = [Version]($latest.name.Split('/')[0])
+                $artifacts = $Artifacts |
+                    Where-Object { ([Version]($_.name.Split('/')[0])).Major -ne $latestversion.Major } |
+                    Select-Object -First 1
+            }
+            else {
+                $Artifacts = @()
+            }
+        }
+        'Closest' {
+            $Artifacts = $Artifacts |
+                Sort-Object { [Version]($_.name.Split('/')[0]) }
+            $closest = $artifacts |
+                Where-Object { [Version]($_.name.Split('/')[0]) -ge $closestToVersion } |
+                Select-Object -First 1
+            if (-not $closest) {
+                $closest = $Artifacts | Select-Object -Last 1
+            }
+            $Artifacts = $closest           
         }
     }
 
-    if ($Artifacts[0].Url) {
-        return $Artifacts.Url
-    }
-    else {
-        foreach ($Artifact in $Artifacts) {
-            $DownloadUrl = $BaseUrl + $Artifact.Name + $sasToken
-            $DownloadUrl            
-        }
+    foreach ($Artifact in $Artifacts) {
+        "$BaseUrl$($Artifact.Name)$sasToken"
     }
 }
-
-Set-Alias -Name Get-BCArtifactUrl -Value Get-NAVArtifactUrl
-Export-ModuleMember -Function Get-NAVArtifactUrl -Alias Get-BCArtifactUrl
+Export-ModuleMember -Function Get-BCArtifactUrl
