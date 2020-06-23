@@ -29,8 +29,7 @@ function Get-NavContainerImageLabels {
     }
 
     $registry = $imageName.Split("/")[0]
-    $imageName.Substring($registry.Length+1)
-    $repository = $imageName.Split(":")[0]
+    $repository = $imageName.Substring($registry.Length+1).Split(":")[0]
     $tag = $imageName.Split(":")[1]
     if ("$tag" -eq "") {
         $tag = "w1"
