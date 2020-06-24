@@ -7,8 +7,10 @@
   Name of the container in which you want to import a license
  .Parameter licenseFile
   Path or secure url to the licensefile to upload
+ .Parameter restart
+  Include this switch to restart the service tier after importing the license file
  .Example
-  Import-NavContainerLicense -containerName test -licenseFile c:\temp\mylicense.flf
+  Import-NavContainerLicense -containerName test -licenseFile c:\temp\mylicense.flf -restart
  .Example
   Import-NavContainerLicense -containerName test -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1"
 #>
@@ -16,7 +18,8 @@ function Import-NavContainerLicense {
     Param (
         [string] $containerName = "navserver", 
         [Parameter(Mandatory=$true)]
-        [string] $licenseFile
+        [string] $licenseFile,
+        [switch] $restart
     )
 
     $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license.flf"
@@ -36,12 +39,17 @@ function Import-NavContainerLicense {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($licensefile)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($licensefile, $restart)
 
         Write-Host "Importing License $licensefile"
         Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance $ServerInstance -Database NavDatabase -WarningAction SilentlyContinue
+        
+        if ($restart) {
+            Write-Host "Restarting Service Tier"
+            Set-NavServerInstance ServerInstance $ServerInstance -restart
+        }
     
-    }  -ArgumentList (Get-NavContainerPath -ContainerName $containerName -Path $containerLicenseFile)
+    }  -ArgumentList (Get-NavContainerPath -ContainerName $containerName -Path $containerLicenseFile), $restart
 }
 Set-Alias -Name Import-BCContainerLicense -Value Import-NavContainerLicense
 Export-ModuleMember -Function Import-NavContainerLicense -Alias Import-BCContainerLicense
