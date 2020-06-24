@@ -57,6 +57,7 @@ function Download-Artifacts {
             Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
             $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
             try {
+                TestSasToken -sasToken $artifactUrl
                 Download-File -sourceUrl $artifactUrl -destinationFile $appZip
             }
             catch {
@@ -110,6 +111,7 @@ function Download-Artifacts {
             Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
             $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
             try {
+                TestSasToken -sasToken $artifactUrl
                 Download-File -sourceUrl $platformUrl -destinationFile $platformZip
             }
             catch {
