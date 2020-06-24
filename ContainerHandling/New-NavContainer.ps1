@@ -161,7 +161,6 @@ function New-NavContainer {
         [string] $containerName, 
         [string] $imageName = "", 
         [string] $artifactUrl = "", 
-        [string] $useArtifacts = "",
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -465,36 +464,6 @@ function New-NavContainer {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
 
-    if ("$useArtifacts" -ne "") {
-        Write-Host "WARNING: -useArtifacts is a temporary solution for translating legacy imagenames to artifact urls, not a permanent solution."
-        Write-Host "WARNING: please change your code to use -artifactUrl instead."
-
-        if (!($imageName.Contains(':'))) {
-            $imageName += ":latest"
-        }
-        if ($imageName.EndsWith('-ltsc2019') -or $imageName.EndsWith('-ltsc2016')) {
-            $imageName = $imageName.Substring(0,$imageName.Length-9)
-        }
-
-        if ($imageName.StartsWith('mcr.microsoft.com/','InvariantCultureIgnoreCase')) {
-            $imageName = $imageName.Substring('mcr.microsoft.com/'.Length)
-        }
-        elseif ($imageName.StartsWith('bcinsider.azurecr.io/','InvariantCultureIgnoreCase')) {
-            $imageName = $imageName.Substring('bcinsider.azurecr.io/'.Length)
-        }
-        else {
-            throw "useArtifacts can only be used with images from mcr.microsoft.com or bcinsider.azurecr.io"
-        }
-
-        $redirArtifactUri = [Uri]::new($useArtifacts)
-        $redirArtifactUri = ([UriBuilder]::new($redirArtifactUri.Scheme, $redirArtifactUri.Host, $redirArtifactUri.Port, $imageName.Replace(':','/'), $redirArtifactUri.Query)).Uri
-
-        $artifactUrl = $redirArtifactUri.AbsoluteUri
-        $imageName = ''
-
-        Write-Host "Using Artifact Url $($artifactUrl.Split('?')[0])"
-    }
-
     if ($imageName -eq "") {
         if ($artifactUrl) {
             if ($useGenericImage) {
@@ -546,7 +515,7 @@ function New-NavContainer {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"0.1.0.1") {
+                if ($genericTagVersion -lt [Version]"0.1.0.4") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -1597,6 +1566,14 @@ if (-not `$restartingInstance) {
         $databaseServer = $customConfig.DatabaseServer
         if ($databaseServer -eq "localhost") {
             $databaseServer = "$containerName"
+            if (("$databaseInstance" -ne "") -and ("$databaseInstance" -ne "SQLEXPRESS")) {
+                $databaseServer += "\$databaseInstance"
+            }
+        }
+        else {
+            if ($databaseInstance) {
+                $databaseServer += "\$databaseInstance"
+            }
         }
 
         if ($auth -eq "Windows") {
@@ -1604,7 +1581,6 @@ if (-not `$restartingInstance) {
         } else {
             $ntauth="0"
         }
-        if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
 
         if ($enableSymbolLoading) {

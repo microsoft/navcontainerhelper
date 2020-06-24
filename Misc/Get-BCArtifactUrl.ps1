@@ -39,6 +39,8 @@ function Get-BCArtifactUrl {
         [String] $sasToken
     )
     
+    TestSasToken -sasToken $sasToken
+
     if (-not $storageAccount.Contains('.')) {
         $storageAccount += ".azureedge.net"
     }
