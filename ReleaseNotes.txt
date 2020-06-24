@@ -1,3 +1,7 @@
+0.7.0.7
+Require generic 0.1.0.5 to support unexpected restarts during artifact copy
+Write out time spend during image build
+
 0.7.0.6
 Remove parameter UseArtifacts from New-NavContainer
 Add a test in Download-Artifacts to check the validity of Sas Token

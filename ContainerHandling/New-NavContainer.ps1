@@ -404,7 +404,10 @@ function New-NavContainer {
         }
         if ($rebuild) {
             Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
+            $startTime = [DateTime]::Now
             New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
+            $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+            Write-Host "Building image took $timespend seconds"
         }
         $artifactUrl = ""
         $alwaysPull = $false
@@ -515,7 +518,7 @@ function New-NavContainer {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"0.1.0.4") {
+                if ($genericTagVersion -lt [Version]"0.1.0.5") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
