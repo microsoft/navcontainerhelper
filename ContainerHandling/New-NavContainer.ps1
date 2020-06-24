@@ -1566,6 +1566,14 @@ if (-not `$restartingInstance) {
         $databaseServer = $customConfig.DatabaseServer
         if ($databaseServer -eq "localhost") {
             $databaseServer = "$containerName"
+            if (("$databaseInstance" -ne "") -and ("$databaseInstance" -ne "SQLEXPRESS")) {
+                $databaseServer += "\$databaseInstance"
+            }
+        }
+        else {
+            if ($databaseInstance) {
+                $databaseServer += "\$databaseInstance"
+            }
         }
 
         if ($auth -eq "Windows") {
@@ -1573,7 +1581,6 @@ if (-not `$restartingInstance) {
         } else {
             $ntauth="0"
         }
-        if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
 
         if ($enableSymbolLoading) {
