@@ -1,3 +1,9 @@
+0.7.0.6
+Remove parameter UseArtifacts from New-NavContainer
+Add a test in Download-Artifacts to check the validity of Sas Token
+Force download new generic if generic version is lower than 0.1.0.4 in New-BcContainer
+Issue #1033 grab collation.txt from the my folder when using Clean-BcContainerDatabase with -useNewDatabase
+
 0.7.0.5
 Check country and artifactUrl on determining whether or not to rebuild images
 Get-NavContainerImageLabels now supports getting labels from an local image (without registry)
