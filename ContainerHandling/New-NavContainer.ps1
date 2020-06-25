@@ -361,6 +361,10 @@ function New-NavContainer {
     if ($imageName -ne "" -and $artifactUrl -ne "") {
 
         Write-Host "ArtifactUrl and ImageName specified"
+        if (!$imageName.Contains(':')) {
+            $appUri = [Uri]::new($artifactUrl)
+            $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+        }
 
         $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
