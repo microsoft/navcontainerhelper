@@ -1,6 +1,7 @@
 0.7.0.7
 Require generic 0.1.0.5 to support unexpected restarts during artifact copy
 Write out time spend during image build
+If tag isn't specified when auto-building image, add a tag corresponding to the bC version instead of :latest
 
 0.7.0.6
 Remove parameter UseArtifacts from New-NavContainer
