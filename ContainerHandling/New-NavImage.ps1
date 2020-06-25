@@ -76,11 +76,11 @@ function New-NavImage {
     if ("$baseImage" -eq "") {
         $baseImage = $bestGenericImageName
         if ("$baseImage" -eq "") {
-            throw "Unable to find matching generic image for your host O. You must pull and specify baseImage manually."
+            throw "Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
         }
-        Write-Host "Pulling latest image $baseImage"
-        DockerDo -command pull -imageName $baseImage | Out-Null
     }
+    Write-Host "Pulling latest image $baseImage"
+    DockerDo -command pull -imageName $baseImage | Out-Null
 
     $genericTag = [Version](Get-NavContainerGenericTag -containerOrImageName $baseImage)
     Write-Host "Generic Tag: $genericTag"
@@ -260,12 +260,14 @@ function New-NavImage {
             }
         }
 
+        Write-Host $buildFolder
+
 @"
 FROM $baseimage
 
 ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsBcSandbox=$isBcSandbox artifactUrl=$artifactUrl
 
-COPY my /run/my/
+COPY my /run/
 COPY NAVDVD /NAVDVD/
 
 RUN \Run\start.ps1 -installOnly
