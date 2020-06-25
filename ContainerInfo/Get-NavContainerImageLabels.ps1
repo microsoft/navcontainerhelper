@@ -19,6 +19,15 @@ function Get-NavContainerImageLabels {
 
     $webclient = New-Object System.Net.WebClient
 
+    if ($imageName.IndexOf("/") -lt 0) {
+        try {
+            return (docker inspect $usegenericimage | ConvertFrom-Json).Config.Labels
+        }
+        catch {
+            return
+        }
+    }
+
     $registry = $imageName.Split("/")[0]
     $repository = $imageName.Substring($registry.Length+1).Split(":")[0]
     $tag = $imageName.Split(":")[1]

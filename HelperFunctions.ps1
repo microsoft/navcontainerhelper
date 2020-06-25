@@ -201,3 +201,29 @@ function AssumeNavContainer {
         throw "Container $containerOrImageName does not support the function $functionName"
     }
 }
+
+function TestSasToken {
+    Param
+    (
+        [string] $sasToken
+    )
+
+    if ($sasToken.Contains('?')) {
+        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
+        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
+        if ($st) {
+            if ([DateTime]::Now -lt [DateTime]$st) {
+                Write-Host "ERROR: The sas token provided isn't valid before $(([DateTime]$st).ToString())"
+            }
+        }
+        if ($se) {
+            if ([DateTime]::Now -gt [DateTime]$se) {
+                Write-Host "ERROR: The sas token provided expired on $(([DateTime]$se).ToString())"
+            }
+            elseif ([DateTime]::Now.AddDays(7) -gt [DateTime]$se) {
+                $span = ([DateTime]$se).Subtract([DateTime]::Now)
+                Write-Host "WARNING: The sas token provided will expire on $(([DateTime]$se).ToString())"
+            }
+        }
+    }
+}

@@ -1,3 +1,23 @@
+0.7.0.7
+Require generic 0.1.0.5 to support unexpected restarts during artifact copy
+Write out time spend during image build
+If tag isn't specified when auto-building image, add a tag corresponding to the bC version instead of :latest
+Bugfix: Download-Artifacts couldn't download insider artifacts without a platform tag (build 17.0.14185.0 and later)
+
+0.7.0.6
+Remove parameter UseArtifacts from New-NavContainer
+Add a test in Download-Artifacts to check the validity of Sas Token
+Force download new generic if generic version is lower than 0.1.0.4 in New-BcContainer
+Issue #1033 grab collation.txt from the my folder when using Clean-BcContainerDatabase with -useNewDatabase
+Issue #997 Cside cannot connect to containername\SQLEXPRESS on some machines
+Issue #1027 add parameter -restart to Import-NavContainerLicense in order to restart the service tier after importing the license
+
+0.7.0.5
+Check country and artifactUrl on determining whether or not to rebuild images
+Get-NavContainerImageLabels now supports getting labels from an local image (without registry)
+Added new function Get-BcArtifactUrl to get artifact Urls for Business Central builds (thanks Waldo)
+Added new function Get-NavArtifactUrl to get artifact Urls for Dynamics NAV builds (using Get-BcArtifactUrl)
+
 0.7.0.4
 Issue #1016 EnableTaskScheduler parameter is ignored when using traefik
 Fix regression - New-BcContainer - support blank platform in app artifact

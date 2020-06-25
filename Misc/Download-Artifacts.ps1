@@ -57,6 +57,7 @@ function Download-Artifacts {
             Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
             $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
             try {
+                TestSasToken -sasToken $artifactUrl
                 Download-File -sourceUrl $artifactUrl -destinationFile $appZip
             }
             catch {
@@ -92,7 +93,7 @@ function Download-Artifacts {
             $platformUrl = $appManifest.platformUrl
         }
         else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform$($appUri.Query)".TrimStart('/')
+            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform".TrimStart('/')
         }
     
         if ($platformUrl -notlike 'https://*') {
@@ -110,6 +111,7 @@ function Download-Artifacts {
             Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
             $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
             try {
+                TestSasToken -sasToken $artifactUrl
                 Download-File -sourceUrl $platformUrl -destinationFile $platformZip
             }
             catch {

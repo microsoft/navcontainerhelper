@@ -117,8 +117,12 @@ function Clean-BcContainerDatabase {
             }
 
             $CollationParam = @{}
-            if (Test-Path "c:\run\Collation.txt") {
-                $Collation = Get-Content "c:\run\Collation.txt"
+            $collationFile = "c:\run\my\Collation.txt"
+            if (!(Test-Path $collationfile)) {
+                $collationFile = "c:\run\Collation.txt"
+            }
+            if (Test-Path $collationFile) {
+                $Collation = Get-Content $collationFile
                 $CollationParam = @{ "Collation" = $collation }
                 Write-Host "Creating new database $databaseName on $databaseServerInstance with Collation $Collation"
             }
