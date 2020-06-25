@@ -2,6 +2,7 @@
 Require generic 0.1.0.5 to support unexpected restarts during artifact copy
 Write out time spend during image build
 If tag isn't specified when auto-building image, add a tag corresponding to the bC version instead of :latest
+Bugfix: Download-Artifacts couldn't download insider artifacts without a platform tag (build 17.0.14185.0 and later)
 
 0.7.0.6
 Remove parameter UseArtifacts from New-NavContainer
