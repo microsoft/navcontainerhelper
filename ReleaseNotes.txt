@@ -1,3 +1,8 @@
+0.7.0.8
+Issue #1038 Ensure that Download-Artifacts is more resilient towards exceptions or user cancellations during artifact expansion.
+Avoid returning platform artifacts as localizations (if you don't specify country)
+Ensure that the latest generic image is pulled when building an image with New-BcImage
+
 0.7.0.7
 Require generic 0.1.0.5 to support unexpected restarts during artifact copy
 Write out time spend during image build
