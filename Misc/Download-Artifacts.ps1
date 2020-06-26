@@ -157,6 +157,11 @@ function Download-Artifacts {
                         Download-File -sourceUrl $url -destinationFile $path
                     }
                 }
+                $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
+                if (!(Test-Path $dotnetCoreFolder)) {
+                    New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
+                    Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe")
+                }
             }
         }
         Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"

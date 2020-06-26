@@ -1,3 +1,6 @@
+0.7.0.9
+Issue #1042 Ensure that dotnetcore prerequisite is downloaded before starting the container
+
 0.7.0.8
 Issue #1038 Ensure that Download-Artifacts is more resilient towards exceptions or user cancellations during artifact expansion.
 Avoid returning platform artifacts as localizations (if you don't specify country)
