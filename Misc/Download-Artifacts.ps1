@@ -68,8 +68,16 @@ function Download-Artifacts {
                 }
             }
             Write-Host "Unpacking application artifact"
-            Expand-Archive -Path $appZip -DestinationPath $appArtifactPath -Force
-            Remove-Item -path $appZip -force
+            try {
+                if (Test-Path "$appArtifactPath-tmp") {
+                    Remove-Item -Path "$appArtifactPath-tmp" -Recurse -Force
+                }
+                Expand-Archive -Path $appZip -DestinationPath "$appArtifactPath-tmp" -Force
+                Rename-Item -Path "$appArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
+            }
+            finally {
+                Remove-Item -path $appZip -force
+            }
         }
         Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
 
@@ -122,8 +130,16 @@ function Download-Artifacts {
                 }
             }
             Write-Host "Unpacking platform artifact"
-            Expand-Archive -Path $platformZip -DestinationPath $platformArtifactPath -Force
-            Remove-Item -path $platformZip -force
+            try {
+                if (Test-Path "$platformArtifactPath-tmp") {
+                    Remove-Item -Path "$platformArtifactPath-tmp" -Recurse -Force
+                }
+                Expand-Archive -Path $platformZip -DestinationPath "$platformArtifactPath-tmp" -Force
+                Rename-Item -Path "$platformArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
+            }
+            finally {
+                Remove-Item -path $platformZip -force
+            }
     
             $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
             if (Test-Path $prerequisiteComponentsFile) {

@@ -98,6 +98,9 @@ function Get-BCArtifactUrl {
         # avoid confusion between base and se
         $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith("/$country") }
     }
+    else {
+        $Artifacts = $Artifacts | Where-Object { !($_.Name.EndsWith("/platform")) }
+    }
 
     $Artifacts = $Artifacts | Sort-Object { [Version]($_.name.Split('/')[0]) }
 
