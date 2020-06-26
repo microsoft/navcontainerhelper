@@ -9,6 +9,8 @@
   Destinatin for the downloaded file
  .Parameter dontOverwrite
   Specify dontOverwrite if you want top skip downloading if the file already exists
+ .Parameter timeout
+  Timeout in seconds for the download
  .Example
   Download-File -sourceUrl "https://myurl/file.zip" -destinationFile "c:\temp\file.zip" -dontOverwrite
 #>
@@ -18,8 +20,35 @@ function Download-File {
         [string] $sourceUrl,
         [Parameter(Mandatory=$true)]
         [string] $destinationFile,
-        [switch] $dontOverwrite
+        [switch] $dontOverwrite,
+        [int]    $timeout = 100
     )
+
+$Source = @"
+	using System.Net;
+ 
+	public class TimeoutWebClient : WebClient
+	{
+        int theTimeout;
+
+        public TimeoutWebClient(int timeout)
+        {
+            theTimeout = timeout;
+        }
+
+		protected override WebRequest GetWebRequest(System.Uri address)
+		{
+			WebRequest request = base.GetWebRequest(address);
+			if (request != null)
+			{
+				request.Timeout = theTimeout;
+			}
+			return request;
+		}
+ 	}
+"@;
+ 
+    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
 
     if (Test-Path $destinationFile -PathType Leaf) {
         if ($dontOverwrite) { 
@@ -33,6 +62,6 @@ function Download-File {
     }
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     Write-Host "Downloading $destinationFile"
-    (New-Object System.Net.WebClient).DownloadFile($sourceUrl, $destinationFile)
+    (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($sourceUrl, $destinationFile)
 }
 Export-ModuleMember -Function Download-File

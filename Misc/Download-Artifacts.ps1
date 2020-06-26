@@ -13,6 +13,8 @@
   Add this switch to force download redirection artifacts even though they already exists
  .Parameter basePath
   Load the artifacts into a file structure below this path. (default is c:\bcartifacts.cache)
+ .Parameter timeout
+  Timeout in seconds for each file download.
  .Example
   $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
   $appArtifactPath = $artifactPaths[0]
@@ -27,7 +29,8 @@ function Download-Artifacts {
         [switch] $includePlatform,
         [switch] $force,
         [switch] $forceRedirection,
-        [string] $basePath = 'c:\bcartifacts.cache'
+        [string] $basePath = 'c:\bcartifacts.cache',
+        [int]    $timeout = 300
     )
 
     if (-not (Test-Path $basePath)) {
@@ -58,13 +61,13 @@ function Download-Artifacts {
             $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
             try {
                 TestSasToken -sasToken $artifactUrl
-                Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+                Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
             }
             catch {
                 if ($artifactUrl.Contains('.azureedge.net/')) {
                     $artifactUrl = $artifactUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
                     Write-Host "Retrying download..."
-                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip
+                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
                 }
             }
             Write-Host "Unpacking application artifact"
@@ -120,13 +123,13 @@ function Download-Artifacts {
             $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
             try {
                 TestSasToken -sasToken $artifactUrl
-                Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+                Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
             }
             catch {
                 if ($platformUrl.Contains('.azureedge.net/')) {
                     $platformUrl = $platformUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
                     Write-Host "Retrying download..."
-                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip
+                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
                 }
             }
             Write-Host "Unpacking platform artifact"
@@ -154,8 +157,13 @@ function Download-Artifacts {
                             New-Item -Path $dirName -ItemType Directory | Out-Null
                         }
                         $url = $_.Value
-                        Download-File -sourceUrl $url -destinationFile $path
+                        Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
                     }
+                }
+                $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
+                if (!(Test-Path $dotnetCoreFolder)) {
+                    New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
+                    Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
                 }
             }
         }
