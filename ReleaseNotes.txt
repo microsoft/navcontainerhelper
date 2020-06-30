@@ -1,5 +1,6 @@
 0.7.0.10
 Issue #1043 Removal of AAD application needs to use case insensitive search
+Check that artifactUrl exists as a variable before using it when replacing NavServerContainer
 
 0.7.0.9
 Issue #1042 Ensure that dotnetcore prerequisite is downloaded before starting the container
