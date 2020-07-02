@@ -65,7 +65,8 @@ function Replace-NavServerContainer {
         . $settingsScript
     }
 
-    if ($artifactUrl -eq "") {
+    $artifactUrlRef = get-variable -Name artifactUrl -ErrorAction SilentlyContinue
+    if (($artifactUrlRef) -and "$artifactUrl" -eq "") {
         if ("$imageName" -eq "") {
             $imageName = $navDockerImage.Split(',')[0]
         }
