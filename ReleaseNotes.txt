@@ -1,6 +1,7 @@
 0.7.0.10
 Issue #1043 Removal of AAD application needs to use case insensitive search
 Check that artifactUrl exists as a variable before using it when replacing NavServerContainer
+Add parameter SkipDatabase to New-BcImage to create an image without a database (faster if the image is always used with a .bak file or foreign database server)
 
 0.7.0.9
 Issue #1042 Ensure that dotnetcore prerequisite is downloaded before starting the container
