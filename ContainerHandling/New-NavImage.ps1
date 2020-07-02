@@ -11,6 +11,8 @@
   Memory allocated for building image. 8G is default.
  .Parameter myScripts
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
+ .Parameter skipDatabase
+  Adding this parameter creates an image without a database
 #>
 function New-NavImage {
     Param (
@@ -20,7 +22,8 @@ function New-NavImage {
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
         [string] $memory = "",
-        $myScripts = @()
+        $myScripts = @(),
+        [switch] $skipDatabase
     )
 
     if ($memory -eq "") {
@@ -201,15 +204,18 @@ function New-NavImage {
             }
         }
 
-        $database = $appManifest.database
-        $databasePath = Join-Path $appArtifactPath $database
-        $licenseFile = ""
-        if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
-            $licenseFile = $appManifest.licenseFile
-            if ($licenseFile) {
-                $licenseFilePath = Join-Path $appArtifactPath $licenseFile
+        if (!$skipDatabase){
+            $database = $appManifest.database
+            $databasePath = Join-Path $appArtifactPath $database
+            $licenseFile = ""
+            if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
+                $licenseFile = $appManifest.licenseFile
+                if ($licenseFile) {
+                    $licenseFilePath = Join-Path $appArtifactPath $licenseFile
+                }
             }
         }
+
         $nav = ""
         if ($appManifest.PSObject.Properties.name -eq "Nav") {
             $nav = $appManifest.Nav
@@ -232,13 +238,15 @@ function New-NavImage {
             }
         }
 
-        $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
-        New-Item $dbPath -ItemType Directory | Out-Null
-        Write-Host "Copy Database"
-        Copy-Item -path $databasePath -Destination $dbPath -Force
-        if ($licenseFile) {
-            Write-Host "Copy Licensefile"
-            Copy-Item -path $licenseFilePath -Destination $dbPath -Force
+        if (!$skipDatabase) {
+            $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
+            New-Item $dbPath -ItemType Directory | Out-Null
+            Write-Host "Copy Database"
+            Copy-Item -path $databasePath -Destination $dbPath -Force
+            if ($licenseFile) {
+                Write-Host "Copy Licensefile"
+                Copy-Item -path $licenseFilePath -Destination $dbPath -Force
+            }
         }
 
         "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | % {
@@ -261,6 +269,11 @@ function New-NavImage {
         }
 
         Write-Host $buildFolder
+        
+        $skipDatabaseLabel = ""
+        if ($skipDatabase) {
+            $skipDatabaseLabel = "skipdatabase=""Y"" \`n"
+        }
 
 @"
 FROM $baseimage
@@ -276,7 +289,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       created="$([DateTime]::Now.ToUniversalTime().ToString("yyyyMMddHHmm"))" \
       nav="$nav" \
       cu="$cu" \
-      country="$($appManifest.Country)" \
+      $($skipDatabaseLabel)country="$($appManifest.Country)" \
       version="$($appmanifest.Version)" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")

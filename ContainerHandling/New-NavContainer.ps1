@@ -358,12 +358,21 @@ function New-NavContainer {
     # Remove if it already exists
     Remove-NavContainer $containerName
 
+    $skipDatabase = $false
+
     if ($imageName -ne "" -and $artifactUrl -ne "") {
+
+        if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
+            $skipDatabase = $true
+        }
 
         Write-Host "ArtifactUrl and ImageName specified"
         if (!$imageName.Contains(':')) {
             $appUri = [Uri]::new($artifactUrl)
             $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+            if ($skipDatabase) {
+                $imageName += "-nodb"
+            }
         }
 
         $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
@@ -402,6 +411,16 @@ function New-NavContainer {
                 Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
                 $rebuild = $true
             }
+
+            if ($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") {
+                if (!$skipdatabase) {
+                    Write-Host "Image $imageName was build without a database, should have a database"
+                    $rebuild = $true
+                }
+            }
+            else {
+                # Do not rebuild if database is there, just don't use it
+            }
         }
         catch {
             $rebuild = $true
@@ -409,7 +428,7 @@ function New-NavContainer {
         if ($rebuild) {
             Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
             $startTime = [DateTime]::Now
-            New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
+            New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
             $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
             Write-Host "Building image took $timespend seconds"
         }
