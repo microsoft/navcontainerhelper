@@ -1,22 +1,30 @@
 ﻿function Select-Value {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string] $title,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string] $description,
         [Parameter(Mandatory=$true)]
         $options,
-        [string] $default,
+        [Parameter(Mandatory=$false)]
+        [string] $default = "",
         [Parameter(Mandatory=$true)]
-        [string] $question
+        [string] $question,
+        [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
+        [switch] $writeAnswer = ($host.name -ne "ConsoleHost")
     )
 
-    Clear-Host
-    Clear-Host
-    Write-Host -ForegroundColor Yellow $title
-    Write-Host
-    Write-Host $description
-    Write-Host
+    if (!$doNotClearHost) {
+        Clear-Host
+    }
+    if ($title) {
+        Write-Host -ForegroundColor Yellow $title
+        Write-Host
+    }
+    if ($description) {
+        Write-Host $description
+        Write-Host
+    }
     $offset = 0
     $defaultChr = -1
     $keys = @()
@@ -68,39 +76,47 @@
         }
     } while ($answer -eq -1)
 
-    Write-Host
-    Write-Host -ForegroundColor Green "$($values[$answer]) selected"
-    Write-Host
-    Write-Host
+    if ($writeAnswer) {
+        Write-Host
+        Write-Host -ForegroundColor Green "$($values[$answer]) selected"
+        Write-Host
+    }
     $keys[$answer]
 }
 
 function Enter-Value {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string] $title,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string] $description,
         [Parameter(Mandatory=$false)]
         $options,
+        [Parameter(Mandatory=$false)]
         [string] $default = "",
         [Parameter(Mandatory=$true)]
-        [string] $question
+        [string] $question,
+        [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
+        [switch] $writeAnswer = ($host.name -ne "ConsoleHost")
     )
 
-    Clear-Host
-    Clear-Host
-    Write-Host -ForegroundColor Yellow $title
-    Write-Host
-    Write-Host $description
-    Write-Host
-    if ($options) {
-        Write-Host "$([string]::Join(', ', $options))"
+    if (!$doNotClearHost) {
+        Clear-Host
+    }
+    if ($title) {
+        Write-Host -ForegroundColor Yellow $title
+        Write-Host
+    }
+    if ($description) {
+        Write-Host $description
         Write-Host
     }
     $answer = ""
     do {
         Write-Host "$question " -NoNewline
+        if ($options) {
+            Write-Host "($([string]::Join(', ', $options))) " -NoNewline
+        }
         if ($default) {
             Write-Host "(default $default) " -NoNewline
         }
@@ -110,14 +126,19 @@ function Enter-Value {
                 $answer = $default
             }
             else {
-                Write-Host -ForegroundColor Red "No default value exists. " -NoNewline
+                Write-Host -ForegroundColor Red "No default value exists. "
             }
         }
         else {
             if ($options) {
-                $answer = $options | Where-Object { $_ -eq $selection }
+                $answer = $options | Where-Object { $_ -like "$selection*" }
                 if (-not ($answer)) {
-                    Write-Host -ForegroundColor Red "Illegal answer. Please answer one of the options"
+                    Write-Host -ForegroundColor Red "Illegal answer. Please answer one of the options."
+                }
+                elseif ($answer -is [Array]) {
+                    Write-Host -ForegroundColor Red "Multiple options match the answer. Please answer one of the options that matched the previous selection."
+                    $options = $answer
+                    $answer = $null
                 }
             }
             else {
@@ -126,22 +147,34 @@ function Enter-Value {
         }
     } while (-not ($answer))
 
-    Write-Host
-    Write-Host -ForegroundColor Green "$answer selected"
-    Write-Host
-    Write-Host
+    if ($writeAnswer) {
+        Write-Host
+        Write-Host -ForegroundColor Green "$answer selected"
+        Write-Host
+    }
     $answer
 }
 
-cls
+function Test-ValidFileName {
+    param(
+        [string] $fileName
+    )
 
-$acceptEula = Select-Value `
+    return $fileName.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -eq -1
+}
+
+Clear-Host
+
+
+# TODO: Check ContainerHelper
+
+$acceptEula = Enter-Value `
     -title "Accept Eula" `
-    -Description "The supplemental license terms for running Business Central and NAV on Docker can be found here: https://go.microsoft.com/fwlink/?linkid=861843`n`nPlease select" `
-    -options ([ordered]@{"Yes" = "Accept eula"; "No" = "Do not accept eula"}) `
-    -question "Select a to accept eula or b if you don't"
+    -Description "The supplemental license terms for running Business Central and NAV on Docker can be found here: https://go.microsoft.com/fwlink/?linkid=861843" `
+    -options @("Y","N") `
+    -question "Please enter Y if you accept the eula"
 
-if ($acceptEula -ne "Yes") {
+if ($acceptEula -ne "Y") {
 
     Write-Host -ForegroundColor Red "Eula not accepted, aborting..."
 
@@ -152,7 +185,7 @@ $licenserequired = $false
 
 $hosting = Select-Value `
     -title "Local or Azure VM" `
-    -description "Specify where you want to host your Business Central container?`n`nSelecting Local will create a script that needs to run on a computer, which have Docker installed.`nSelecting Azure VM requires an Azure Subscription." `
+    -description "Specify where you want to host your Business Central container?`n`nSelecting Local will create a script that needs to run on a computer, which have Docker installed.`nSelecting Azure VM shows a Url with which you can create a VM. This requires an Azure Subscription." `
     -options ([ordered]@{"Local" = "Local docker container"; "AzureVM" = "Docker container in an Azure VM"}) `
     -question "Hosting" `
     -default "Local"
@@ -160,7 +193,7 @@ $hosting = Select-Value `
 if ($hosting -eq "Local") {
     $auth = Select-Value `
         -title "Authentication" `
-        -description "Select desired authentication mechanism.`nSelecting predefined credentials means that you will the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain. You cannot use Windows authentication when offline." `
+        -description "Select desired authentication mechanism.`nSelecting predefined credentials means that the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain while running the container. You cannot use containers with Windows authentication when offline." `
         -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (with predefined credentials)"; "Windows" = "Windows authentication"}) `
         -question "Authentication" `
         -default "Credential"
@@ -171,42 +204,137 @@ if ($hosting -eq "Local") {
         -question "Container name" `
         -default "my"
 
-    $predef = Select-Value `
-        -title "Version" `
-        -description "Specify version" `
-        -options ([ordered]@{"LatestSandbox" = "Latest Business Central Sandbox"; "LatestOnPrem" = "Latest Business Central OnPrem"; "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"; "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"}) `
-        -question "Version" `
-        -default "LatestSandbox"
+}
+else {
+    $auth = "UserPassword"
+    $containerName = "navserver"
+}
 
-    if ($predef -like "Latest*") {
-        $type = $predef.Substring(6)
-        $version = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
+$predef = Select-Value `
+    -title "Version" `
+    -description "What version of Business Central do you need?`nIf you are developing a Per Tenant Extension for a Business Central Saas tenant, you need a Business Central Sandbox environment" `
+    -options ([ordered]@{"LatestSandbox" = "Latest Business Central Sandbox"; "LatestOnPrem" = "Latest Business Central OnPrem"; "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"; "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"}) `
+    -question "Version" `
+    -default "LatestSandbox" `
+    -writeAnswer
 
-        $countries = @()
-        Get-BCArtifactUrl -type $type -version $version -select All | ForEach-Object {
-            $countries += $_.SubString($_.LastIndexOf('/')+1)
-        }
+if ($type -eq "Sandbox") {
+    $default = "us"
+    $description = "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
+}
+else {
+    $default = "w1"
+    $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
+}
 
-        if ($type -eq "Sandbox") {
-            $default = "us"
-            $description = "Please select which localization you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
+$select = "Latest"
+if ($predef -like "Latest*") {
+    $type = $predef.Substring(6)
+    $version = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
+
+    $countries = @()
+    Get-BCArtifactUrl -type $type -version $version -select All | ForEach-Object {
+        $countries += $_.SubString($_.LastIndexOf('/')+1)
+    }
+
+    $country = Enter-Value `
+        -description $description `
+        -options $countries `
+        -default $default `
+        -question "Country" `
+        -doNotClearHost
+    $version = ""
+}
+elseif ($predef -like "specific*") {
+    $type = $predef.Substring(8)
+    $ok = $false
+    do {
+        $version = Enter-Value `
+            -description "Specify version number.`nIf you specify a full version number (like 15.4.41023.41345), you will get the closest version.`nIf multiple versions matches the entered value, you will be asked to select" `
+            -question "Enter version number (format major[.minor[.build[.release]]])" `
+            -doNotClearHost -writeAnswer
+
+        if ($version.indexOf('.') -eq -1) {
+            $verno = 0
+            $ok = [int32]::TryParse($version, [ref]$verno)
+            if (!$ok) {
+                Write-Host -ForegroundColor Red "Illegal version number"
+            }
+            $fullVersionNo = $false
         }
         else {
-            $default = "w1"
-            $description = "Please select which localization you want to use.`n`nNote: NA contains US, CA and MX."
+            $verno = [Version]"0.0.0.0"
+            $ok = [Version]::TryParse($version, [ref]$verno)
+            if (!$ok) {
+                Write-Host -ForegroundColor Red "Illegal version number"
+            }
+            $fullVersionNo = $verno.Revision -ne -1
         }
 
-        $country = Enter-Value -title "Localization" -description $description -options $countries -default $default -question "Country"
-        $select = "Latest"
-        $version = ""
-    }
-    elseif ($predef -like "specific*") {
-        $type = $predef.Substring(8)
-        $version = Read-Host -Prompt "Version"
+        if ($ok) {
+            if ($fullVersionNo) {
+                $select = "Closest"
+                $artifactUrl = Get-BCArtifactUrl -type $type -version $version -country 'w1' -select 'Closest'
+                if ($artifactUrl) {
+                    $foundVersion = $artifactUrl.split('/')[4]
+                    if ($foundVersion -ne $version) {
+                        Write-Host -ForegroundColor Yellow "The specific version doesn't exist, closest version is $foundVersion"
+                    }
+                    $countries = @()
+                    Get-BCArtifactUrl -type $type -version $foundVersion -select All | ForEach-Object {
+                        $countries += $_.SubString($_.LastIndexOf('/')+1)
+                    }
 
-        #TODO
-    }
+                    $country = Enter-Value -description $description `
+                        -options $countries `
+                        -default $default `
+                        -question "Country" `
+                        -doNotClearHost `
+                        -writeAnswer
 
+                }
+                else {
+                    Write-Host -ForegroundColor Red "Unable to find a version close to the specified version"
+                    $ok = $false
+                }
+            }
+            else {
+                $versions = @()
+                Get-BCArtifactUrl -type $type -version $version -country 'w1' -select All | ForEach-Object {
+                    $versions += $_.Split('/')[4]
+                }
+                if ($versions.Count -eq 0) {
+                    Write-Host -ForegroundColor Red "Unable to find a version matching the specified version"
+                    $ok = $false
+                }
+                elseif ($versions.Count -gt 1) {
+                    $version = Enter-Value `
+                        -options $versions `
+                        -question "Select specific version" `
+                        -doNotClearHost `
+                        -writeAnswer
+                }
+
+                if ($ok) {
+                    $countries = @()
+                    Get-BCArtifactUrl -type $type -version $version -select All | ForEach-Object {
+                        $countries += $_.SubString($_.LastIndexOf('/')+1)
+                    }
+                    $country = Enter-Value `
+                        -description $description `
+                        -options $countries `
+                        -default $default `
+                        -question "Country" `
+                        -doNotClearHost `
+                        -writeAnswer
+                }
+            }
+        }
+
+    } while (!$ok)
+}
+
+if ($hosting -eq "Local") {
     $testtoolkit = Select-Value `
         -title "Test Toolkit" `
         -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
@@ -214,49 +342,83 @@ if ($hosting -eq "Local") {
         -question "Test Toolkit" `
         -default "No"
     if ($testtoolkit -ne "No") { $licenserequired = $true }
+}
 
-    if ($licenserequired) {
-        $description = "Please specify a license file url.`nDue to other selections, you need to specify a license file."
-        $default = ""
-    }
-    else {
-        $description = "Please specify a license file url.`nIf you do not specify a license file, you will use the default Cronus Demo License."
-        $default = "blank"
-    }
-    if ($hosting -eq "Local") {
-        $description += "`n`nThis can be a local file or a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
-    }
-    else {
-        $description += "`n`nThis needs to be a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
-    }
-     
-    $licenseFile = Enter-Value `
-        -title "License File" `
-        -description $description `
-        -question "License File" `
-        -default $default
+$assignPremiumPlan = "N"
+$createTestUsers = "N"
 
-    if ($licenseFile -eq "blank") {
-        $licenseFile = ""
+if ($type -eq "Sandbox") {
+
+    $assignPremiumPlan = Enter-Value `
+        -title "Assign Premium Plan" `
+        -Description "When running sandbox, you can select to assign premium plan to the users." `
+        -options @("Y","N") `
+        -question "Please enter Y if you want to assign premium plan" `
+        -default "N"
+
+    $createTestUsers = Enter-Value `
+        -title "Create Tets Users" `
+        -Description "When running sandbox, you can select to add test users with special entitlements.`nThe users created are: ExternalAccountant, Premium, Essential, InternalAdmin, TeamMember and DelegatedAdmin.`n`nNote: This requires a license file to be specified." `
+        -options @("Y","N") `
+        -question "Please enter Y if you want to create test users" `
+        -default "N"
+
+    if ($createTestUsers -eq "Y") {
+        $licenserequired = $true
     }
+}
 
-
+if ($licenserequired) {
+    $description = "Please specify a license file url.`nDue to other selections, you need to specify a license file."
+    $default = ""
 }
 else {
-    $auth = "UserPassword"
+    $description = "Please specify a license file url.`nIf you do not specify a license file, you will use the default Cronus Demo License."
+    $default = "blank"
+}
+if ($hosting -eq "Local") {
+    $description += "`n`nThis can be a local file or a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
+}
+else {
+    $description += "`n`nThis needs to be a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
+}
+ 
+$licenseFile = Enter-Value `
+    -title "License File" `
+    -description $description `
+    -question "License File" `
+    -default $default
+
+if ($licenseFile -eq "blank") {
+    $licenseFile = ""
 }
 
-$parameters = @()
-$script = @()
 if ($hosting -eq "Local") {
-    $script += "Install-Module NavContainerHelper -Force"
-    $script += ""
+
+    # TODO: Check Generic and set isolation
+
+    # TODO: Select Database
+
+}
+
+
+if ($hosting -eq "Local") {
+    $parameters = @()
+    $script = @()
+    
     $script += "`$containerName = '$containerName'"
     if ($auth -eq "Credential") {
         $script += "`$credential = New-Object pscredential 'admin', (ConvertTo-SecureString -String 'P@ssword1' -AsPlainText -Force)"
         $auth = "UserPassword"
-        $parameters += "-credential `$credential"
     }
+    elseif ($auth -eq "UserPassword") {
+        $script += "`$credential = Get-Credential -Message 'Using UserPassword authentication. Please enter credentials for the container."
+    }
+    else {
+        $script += "`$credential = Get-Credential -Message 'Using Windows authentication. Please enter your Windows credentials for the host computer."
+    }
+    $parameters += "-credential `$credential"
+
     $script += "`$auth = '$auth'"
     $parameters += "-auth `$auth"
 
@@ -273,6 +435,10 @@ if ($hosting -eq "Local") {
         }
     }
 
+    if ($assignPremiumPlan -eq "Y") {
+        $parameters += "-assignPremiumPlan"
+    }
+
     if ($licenseFile) {
         $script += "`$licenseFile = '$licenseFile'"
         $parameters += "-licenseFile `$licenseFile"
@@ -284,13 +450,72 @@ if ($hosting -eq "Local") {
     $parameters | ForEach-Object { $script += "    $_ ``" }
     $script += "    -updateHosts"
 
-    $script | Out-Host
+    if ($createTestUsers -eq "Y") {
+        $script += "Setup-BcContainerTestUsers -containerName `$containerName -Password `$credential.Password -credential `$credential"
+    }
+
+    $filename = Enter-Value `
+        -title "Save script" `
+        -description ([string]::Join("`n", $script)) `
+        -question "Filename (or blank to skip saving)" `
+        -default "blank"
+
+    while ($filename -ne "" -and !(Test-ValidFileName $filename)) {
+        Write-Host -ForegroundColor Red "Filename is not valid"
+        $filename = Enter-Value `
+            -question "Filename (or blank to skip saving)" `
+            -default "blank" `
+            -doNotClearHost
+    }
+
+    if ($filename) {
+        $script | Out-File $filename
+    }
+
+    $executeScript = Enter-Value `
+        -options @("Y","N") `
+        -question "Execute Script" `
+        -doNotClearHost
+
+    if ($executeScript -eq "Y") {
+        Invoke-Expression -Command ([string]::Join("`n", $script))
+    }
 
 }
 else {
-    Write-Host "http://aka.ms/getbc"
-}
 
+    $emailforletsencrypt = Enter-Value `
+        -title "Azure VM - Self Signed or Lets Encrypt Certificate" `
+        -description "Your Azure VM can be secured by a Self-Signed Certificate, meaning that you need to install this certificate on any machine connecting to the VM.`nYou can also select to use LetsEncrypt by specifying an email address of the person accepting subscriber agreement for LetsEncrypt (https://letsencrypt.org/repository/).`n`nNote: The LetsEncrypt certificate needs to be renewed after 90 days." `
+        -question "Contact EMail for LetsEncrypt (blank to use Self Signed)" `
+        -default "blank"
+
+    $artifactUrl = [Uri]::EscapeDataString("bcartifacts/$type/$version/$country/$select".ToLowerInvariant())
+
+    $url = "http://aka.ms/getbc?accepteula=Yes&artifacturl=$artifactUrl$licenseFileParameter"
+    if ($licenseFile) {
+        $url += "&licenseFileUri=$([Uri]::EscapeDataString($licenseFile))"
+    }
+    if ($assignPremiumPlan -eq "Y") {
+        $url += "&AssignPremiumPlan=Yes"
+    }
+    if ($createTestUsers -eq "Y") {
+        $url += "&CreateTestUsers=Yes"
+    }
+    if ($emailforletsencrypt -ne "blank") {
+        $url += "&contactemailforletsencrypt=$([Uri]::EscapeDataString($emailforletsencrypt))"
+    }
+
+    $launchUrl = Enter-Value `
+        -title "URL" `
+        -description $url `
+        -options @("Y","N") `
+        -question "Launch Url"
+
+    if ($launchUrl -eq "Y") {
+        Start-Process $Url
+    }
+}
 
 
 }
