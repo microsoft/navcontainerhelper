@@ -456,7 +456,7 @@ if ($hosting -eq "Local") {
         -question "Filename (or blank to skip saving)" `
         -default "blank"
 
-    if ($filename) {
+    if ($filename -ne "blank") {
         $script | Out-File $filename
     }
 
