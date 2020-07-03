@@ -29,6 +29,8 @@ function Get-NavContainerAppRuntimePackage {
         [Parameter(Mandatory=$false)]
         [string] $Tenant,
         [Parameter(Mandatory=$false)]
+        [Boolean] $showMyCode,
+        [Parameter(Mandatory=$false)]
         [string] $appFile = (Join-Path $extensionsFolder ("$containerName\$appName.app" -replace '[~#%&*{}|:<>?/|"]', '_'))
     )
 
@@ -37,7 +39,9 @@ function Get-NavContainerAppRuntimePackage {
         throw "The app filename ($appFile)needs to be in a folder, which is shared with the container $containerName"
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $appFile)
+    $showMyCodeExists = ($PSBoundParameters.ContainsKey(‘showMyCode’))
+
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $appFile, $showMyCodeExists, $showMyCode)
 
         $parameters = @{ 
             "ServerInstance" = $ServerInstance
@@ -52,6 +56,10 @@ function Get-NavContainerAppRuntimePackage {
         {
             $parameters += @{ "Version" = $appVersion }
         }
+        if ($showMyCodeExists)
+        {
+            $parameters += @{ "showMyCode" = $showMyCode }
+        }
         if ($tenant)
         {
             $parameters += @{ "Tenant" = $tenant }
@@ -61,7 +69,7 @@ function Get-NavContainerAppRuntimePackage {
 
         $appFile
 
-    } -ArgumentList $appName, $appVersion, $tenant, $containerAppFile
+    } -ArgumentList $appName, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode
 }
 Set-Alias -Name Get-BCContainerAppRuntimePackage -Value Get-NavContainerAppRuntimePackage
 Export-ModuleMember -Function Get-NavContainerAppRuntimePackage -Alias Get-BCContainerAppRuntimePackage
