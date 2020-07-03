@@ -408,10 +408,10 @@ if ($hosting -eq "Local") {
         $auth = "UserPassword"
     }
     elseif ($auth -eq "UserPassword") {
-        $script += "`$credential = Get-Credential -Message 'Using UserPassword authentication. Please enter credentials for the container."
+        $script += "`$credential = Get-Credential -Message 'Using UserPassword authentication. Please enter credentials for the container.'"
     }
     else {
-        $script += "`$credential = Get-Credential -Message 'Using Windows authentication. Please enter your Windows credentials for the host computer."
+        $script += "`$credential = Get-Credential -Message 'Using Windows authentication. Please enter your Windows credentials for the host computer.'"
     }
     $parameters += "-credential `$credential"
 
