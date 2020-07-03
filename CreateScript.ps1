@@ -395,6 +395,8 @@ if ($hosting -eq "Local") {
 
     # TODO: Select Database
 
+    # TODO: DNS
+
 }
 
 
