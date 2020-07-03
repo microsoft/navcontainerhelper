@@ -159,14 +159,6 @@ function Enter-Value {
     $answer
 }
 
-function Test-ValidFileName {
-    param(
-        [string] $fileName
-    )
-
-    return $fileName.IndexOfAny([System.IO.Path]::GetInvalidFileNameChars()) -eq -1
-}
-
 Clear-Host
 
 
@@ -463,14 +455,6 @@ if ($hosting -eq "Local") {
         -description ([string]::Join("`n", $script)) `
         -question "Filename (or blank to skip saving)" `
         -default "blank"
-
-    while ($filename -ne "" -and !(Test-ValidFileName $filename)) {
-        Write-Host -ForegroundColor Red "Filename is not valid"
-        $filename = Enter-Value `
-            -question "Filename (or blank to skip saving)" `
-            -default "blank" `
-            -doNotClearHost
-    }
 
     if ($filename) {
         $script | Out-File $filename
