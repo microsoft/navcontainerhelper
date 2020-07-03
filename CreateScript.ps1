@@ -1,4 +1,8 @@
-﻿function Select-Value {
+﻿# create script for running docker
+
+$ErrorActionPreference = "stop"
+
+function Select-Value {
     Param(
         [Parameter(Mandatory=$false)]
         [string] $title,
