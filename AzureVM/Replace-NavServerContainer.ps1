@@ -77,18 +77,18 @@ function Replace-NavServerContainer {
     if (-not ($artifactUrlRef)) { $artifactUrl = "" }
 
     if ($newArtifactUrl) {
-        if ($newAtifactUrl -ne $artifactUrl) {
-            $settings = Get-Content -path $settingsScript | Where-Object { (!$_.Startswith('$navDockerImage = ')) -and (!$_.Startswith('$artifactUrl = ')) }
+        if ($newArtifactUrl -ne $artifactUrl) {
+            $settings = Get-Content -path $settingsScript | Where-Object { ($_.Trim() -notlike '$navDockerImage = *') -and ($_.Trim() -notlike '$artifactUrl = *') }
             $settings += '$navDockerImage = ""'
-            $settings += '$ArtifactUrl = "'+$newArtifactUrl+'"'
+            $settings += '$artifactUrl = "'+$newArtifactUrl+'"'
             Set-Content -Path $settingsScript -Value $settings
         }
     }
     elseif ($imageName) {
         if ("$imageName" -ne "$navDockerImage") {
-            $settings = Get-Content -path $settingsScript | Where-Object { (!$_.Startswith('$navDockerImage = ')) -and (!$_.Startswith('$artifactUrl = ')) }
+            $settings = Get-Content -path $settingsScript | Where-Object { ($_.Trim() -notlike '$navDockerImage = *') -and ($_.Trim() -notlike '$artifactUrl = *') }
             $settings += '$navDockerImage = "'+$imageName + '"'
-            $settings += '$ArtifactUrl = ""'
+            $settings += '$artifactUrl = ""'
             Set-Content -Path $settingsScript -Value $settings
         }
         $imageName = Get-BestNavContainerImageName -imageName $imageName
