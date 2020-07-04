@@ -160,9 +160,34 @@ function Enter-Value {
 }
 
 Clear-Host
+$ErrorActionPreference = "STOP"
 
-
-# TODO: Check ContainerHelper
+$module = Get-Module -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+if (!($module)) {
+    Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module NavContainerHelper."
+    Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/navcontainerhelper"
+    Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
+    return
+}
+elseif ($module.Version -eq [Version]"0.0") {
+    $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
+    if (!($function)) {
+        Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
+        Write-Host -ForegroundColor Red "Please pull a new version of the sources or install the module using: Install-Module NavContainerHelper -force"
+        return
+    }
+    Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
+    Write-Host
+}
+elseif ($module.Version -lt [Version]"0.7.0.9") {
+     Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
+     Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
+     return
+}
+else {
+    Write-Host -ForegroundColor Green "Running NavContainerHelper $($module.Version.ToString())"
+    Write-Host
+}
 
 $acceptEula = Enter-Value `
     -title "Accept Eula" `
@@ -171,11 +196,9 @@ $acceptEula = Enter-Value `
     -question "Please enter Y if you accept the eula"
 
 if ($acceptEula -ne "Y") {
-
     Write-Host -ForegroundColor Red "Eula not accepted, aborting..."
-
+    return
 }
-else {
 
 $licenserequired = $false
 
@@ -353,7 +376,7 @@ if ($type -eq "Sandbox") {
         -default "N"
 
     $createTestUsers = Enter-Value `
-        -title "Create Tets Users" `
+        -title "Create Test Users" `
         -Description "When running sandbox, you can select to add test users with special entitlements.`nThe users created are: ExternalAccountant, Premium, Essential, InternalAdmin, TeamMember and DelegatedAdmin.`n`nNote: This requires a license file to be specified." `
         -options @("Y","N") `
         -question "Please enter Y if you want to create test users" `
@@ -391,12 +414,27 @@ if ($licenseFile -eq "blank") {
 
 if ($hosting -eq "Local") {
 
+    $options = [ordered]@{"standard" = "Use standard DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google publis dns (8.8.8.8) as DNS to the container" }
+    $hostDNS = Get-DnsClientServerAddress | Select-Object –ExpandProperty ServerAddresses | Where-Object { "$_".indexOf(':') -eq -1 } | Select -first 1
+    if ($hostDNS) {
+        $options += @{ "usehostdns" = "Add your hosts primary DNS server ($hostDNS) as DNS to the container" }
+    }
+    $dns = Select-Value `
+        -title "DNS" `
+        -description "On some networks, standard DNS resolution does not work inside containers.`nWhen this is the case, you will see a warning during start saying:`n`nWARNING: DNS resolution not working from within the container.`n`nSome times, this can be fixed by choosing a different DNS server. Some times you have to reconfigure your antivirus protection program to allow this." `
+        -options $options `
+        -question "Use DNS" `
+        -default "standard"
+
+
+    
     # TODO: Check Generic and set isolation
+
+
 
     # TODO: Select Database
 
-    # TODO: DNS
-
+    
 }
 
 
@@ -440,6 +478,13 @@ if ($hosting -eq "Local") {
     if ($licenseFile) {
         $script += "`$licenseFile = '$licenseFile'"
         $parameters += "-licenseFile `$licenseFile"
+    }
+
+    if ($dns -eq "usegoogledns") {
+        $parameters += "-dns '8.8.8.8'"
+    }
+    elseif ($dns -eq "usehostdns") {
+        $parameters += "-dns '$hostDNS'"
     }
 
     $script += "New-BcContainer ``"
@@ -505,7 +550,4 @@ else {
     if ($launchUrl -eq "Y") {
         Start-Process $Url
     }
-}
-
-
 }
