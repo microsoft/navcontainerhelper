@@ -517,6 +517,9 @@ $licenseFile = Enter-Value `
 if ($licenseFile -eq "blank") {
     $licenseFile = ""
 }
+else {
+    $licenseFile = $licenseFile.Trim(@('"'))
+}
 
 if ($hosting -eq "Local") {
 
