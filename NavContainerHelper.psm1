@@ -77,6 +77,7 @@ Check-NavContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainerSession.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Enter-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainerWizard.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavImage.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Restart-NavContainer.ps1")

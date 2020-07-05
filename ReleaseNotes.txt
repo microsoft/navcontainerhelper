@@ -4,6 +4,7 @@ Check that artifactUrl exists as a variable before using it when replacing NavSe
 Add parameter SkipDatabase to New-BcImage to create an image without a database (faster if the image is always used with a .bak file or foreign database server)
 Issue 1057 add parameter ShowMyCode to Get-NavContainerRuntimePackage
 Add artifactUrl parameter to Replace-NavServerContainer
+Add function New-BcContainerWizard to invoke script generator script
 
 0.7.0.9
 Issue #1042 Ensure that dotnetcore prerequisite is downloaded before starting the container

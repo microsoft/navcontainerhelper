@@ -1,4 +1,8 @@
-﻿# create script for running docker
+﻿Param(
+    $predefinedpw = 'P@ssword'
+)
+
+# create script for running docker
 
 $ErrorActionPreference = "stop"
 
@@ -159,6 +163,27 @@ function Enter-Value {
     $answer
 }
 
+function randomchar([string]$str)
+{
+    $rnd = Get-Random -Maximum $str.length
+    [string]$str[$rnd]
+}
+
+function Get-RandomPassword {
+    $cons = 'bcdfghjklmnpqrstvwxz'
+    $voc = 'aeiouy'
+    $numbers = '0123456789'
+
+    ((randomchar $cons).ToUpper() + `
+     (randomchar $voc) + `
+     (randomchar $cons) + `
+     (randomchar $voc) + `
+     (randomchar $numbers) + `
+     (randomchar $numbers) + `
+     (randomchar $numbers) + `
+     (randomchar $numbers))
+}
+
 Clear-Host
 $ErrorActionPreference = "STOP"
 $licenserequired = $false
@@ -253,7 +278,7 @@ if ($hosting -eq "Local") {
     $auth = Select-Value `
         -title "Authentication" `
         -description "Select desired authentication mechanism.`nSelecting predefined credentials means that the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain while running the container. You cannot use containers with Windows authentication when offline." `
-        -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (with predefined credentials)"; "Windows" = "Windows authentication"}) `
+        -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password)"; "Random" = "Username/Password authentication (admin with random password)"; "Windows" = "Windows authentication"}) `
         -question "Authentication" `
         -default "Credential"
 
@@ -589,17 +614,25 @@ if ($hosting -eq "Local") {
     #                                               |_|        
     $parameters = @()
     $script = @()
-    
+
     $script += "`$containerName = '$containerName'"
-    if ($auth -eq "Credential") {
-        $script += "`$credential = New-Object pscredential 'admin', (ConvertTo-SecureString -String 'P@ssword1' -AsPlainText -Force)"
-        $auth = "UserPassword"
-    }
-    elseif ($auth -eq "UserPassword") {
+    if ($auth -eq "UserPassword") {
         $script += "`$credential = Get-Credential -Message 'Using UserPassword authentication. Please enter credentials for the container.'"
     }
-    else {
+    elseif ($auth -eq "Windows") {
         $script += "`$credential = Get-Credential -Message 'Using Windows authentication. Please enter your Windows credentials for the host computer.'"
+    }
+    else
+    {
+        if ($auth -eq "Credential") {
+            $script += "`$password = '$predefinedpw'"
+        }
+        else {
+            $script += "`$password = '$(Get-RandomPassword)'"
+        }
+        $script += "`$securePassword = ConvertTo-SecureString -String `$password -AsPlainText -Force"
+        $script += "`$credential = New-Object pscredential 'admin', `$securePassword"
+        $auth = "UserPassword"
     }
     $parameters += "-credential `$credential"
 
