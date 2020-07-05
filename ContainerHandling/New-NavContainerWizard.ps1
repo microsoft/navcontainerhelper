@@ -5,7 +5,7 @@
   Ask a number of questions to determine the parameters for a new container
 #>
 function New-NavContainerWizard {
-    . (Join-Path $PSScriptRoot "..\CreateScript.ps1")
+    . (Join-Path $PSScriptRoot "..\CreateScript.ps1") -skipContainerHelperCheck
 }
 Set-Alias -Name New-BCContainerWizard -Value New-NavContainerWizard
 Export-ModuleMember -Function New-NavContainerWizard -Alias New-BCContainerWizard

@@ -1,5 +1,6 @@
 ﻿Param(
-    $predefinedpw = 'P@ssword'
+    [switch] $skipContainerHelperCheck,
+    [string] $predefinedpw = 'P@ssword'
 )
 
 # create script for running docker
@@ -195,42 +196,44 @@ $licenserequired = $false
 #    | |\  | (_| |\ V /| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
 #    |_| \_|\__,_| \_/  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
 #                                                                                 | |              
-#                                                                                 |_|              
-$module = Get-InstalledModule -Name "NavContainerHelper" -ErrorAction SilentlyContinue
-if (!($module)) {
-    $module = Get-Module -Name "NavContainerHelper" -ErrorAction SilentlyContinue
-}
-if (!($module)) {
-    Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module NavContainerHelper."
-    Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/navcontainerhelper"
-    Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
-    return
-}
-elseif ($module.Version -eq [Version]"0.0") {
-    $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
-    if (!($function)) {
-        Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
-        Write-Host -ForegroundColor Red "Please pull a new version of the sources or install the module using: Install-Module NavContainerHelper -force"
+#                                     
+if (!$skipContainerHelperCheck) {
+    $module = Get-InstalledModule -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+    if (!($module)) {
+        $module = Get-Module -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+    }
+    if (!($module)) {
+        Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module NavContainerHelper."
+        Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/navcontainerhelper"
+        Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
         return
     }
-    Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
-    Write-Host
-}
-elseif ($module.Version -lt [Version]"0.7.0.9") {
-     Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
-     Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
-     return
-}
-else {
-    $latestVersion = (Find-Module -Name navcontainerhelper).Version
-    $myVersion = $module.Version.ToString()
-    if ($latestVersion -eq $myVersion) {
-        Write-Host -ForegroundColor Green "You are running NavContainerHelper $myVersion (which is the latest version)"
+    elseif ($module.Version -eq [Version]"0.0") {
+        $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
+        if (!($function)) {
+            Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
+            Write-Host -ForegroundColor Red "Please pull a new version of the sources or install the module using: Install-Module NavContainerHelper -force"
+            return
+        }
+        Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
+        Write-Host
+    }
+    elseif ($module.Version -lt [Version]"0.7.0.9") {
+         Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
+         Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
+         return
     }
     else {
-        Write-Host -ForegroundColor Yellow "You are running NavContainerHelper $myVersion. A newer version ($latestVersion) exists, please consider updating."
+        $latestVersion = (Find-Module -Name navcontainerhelper).Version
+        $myVersion = $module.Version.ToString()
+        if ($latestVersion -eq $myVersion) {
+            Write-Host -ForegroundColor Green "You are running NavContainerHelper $myVersion (which is the latest version)"
+        }
+        else {
+            Write-Host -ForegroundColor Yellow "You are running NavContainerHelper $myVersion. A newer version ($latestVersion) exists, please consider updating."
+        }
+        Write-Host
     }
-    Write-Host
 }
 
 #     ______      _       
@@ -316,20 +319,20 @@ $predef = Select-Value `
     -default "LatestSandbox" `
     -writeAnswer
 
-if ($type -eq "Sandbox") {
-    $default = "us"
-    $description = "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
-}
-else {
-    $default = "w1"
-    $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
-}
-
 $select = "Latest"
 if ($predef -like "Latest*") {
     $type = $predef.Substring(6)
-    $version = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
 
+    if ($type -eq "Sandbox") {
+        $default = "us"
+        $description = "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
+    }
+    else {
+        $default = "w1"
+        $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
+    }
+
+    $version = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
     $countries = @()
     Get-BCArtifactUrl -type $type -version $version -select All | ForEach-Object {
         $countries += $_.SubString($_.LastIndexOf('/')+1)
@@ -345,6 +348,16 @@ if ($predef -like "Latest*") {
 }
 elseif ($predef -like "specific*") {
     $type = $predef.Substring(8)
+
+    if ($type -eq "Sandbox") {
+        $default = "us"
+        $description = "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
+    }
+    else {
+        $default = "w1"
+        $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
+    }
+
     $ok = $false
     do {
         $version = Enter-Value `
@@ -696,6 +709,7 @@ if ($hosting -eq "Local") {
         -default "blank"
 
     if ($filename -ne "blank") {
+        $filename = $filename.Trim('"')
         if ($filename -notlike "*.ps1") {
             $filename += ".ps1"
         }
@@ -730,7 +744,7 @@ else {
 
     $artifactUrl = [Uri]::EscapeDataString("bcartifacts/$type/$version/$country/$select".ToLowerInvariant())
 
-    $url = "http://aka.ms/getbc?accepteula=Yes&artifacturl=$artifactUrl$licenseFileParameter"
+    $url = "http://aka.ms/getbc?accepteula=Yes&artifacturl=$artifactUrl"
     if ($licenseFile) {
         $url += "&licenseFileUri=$([Uri]::EscapeDataString($licenseFile))"
     }
