@@ -29,9 +29,13 @@ function Download-Artifacts {
         [switch] $includePlatform,
         [switch] $force,
         [switch] $forceRedirection,
-        [string] $basePath = 'c:\bcartifacts.cache',
+        [string] $basePath,
         [int]    $timeout = 300
     )
+
+    if (-not $basePath) {
+        $basePath = 'c:\bcartifacts.cache'
+    }
 
     if (-not (Test-Path $basePath)) {
         New-Item $basePath -ItemType Directory | Out-Null

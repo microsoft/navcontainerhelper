@@ -16,6 +16,8 @@
   Temporary parameter, in which you can specify a storage account url, in which build artifacts are expected to live. ImageName is translated to an artifact Url if you specify this.
  .Parameter artifactUrl
   Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
+ .Parameter artifactCachePath
+  If this is specified, the given path is used to cache downloaded artifacts, the default path is used otherwise.
  .Parameter dvdPath
   When you are spinning up a Generic image, you need to specify the DVD path
  .Parameter dvdCountry
@@ -161,6 +163,7 @@ function New-NavContainer {
         [string] $containerName, 
         [string] $imageName = "", 
         [string] $artifactUrl = "", 
+        [string] $artifactCachePath = "",
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -375,7 +378,7 @@ function New-NavContainer {
             }
         }
 
-        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
+        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull -basePath $artifactCachePath
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
@@ -646,7 +649,7 @@ function New-NavContainer {
 
         $parameters += "--volume $($downloadsPath):c:\dl"
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull -basePath $artifactCachePath
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 

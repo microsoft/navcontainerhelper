@@ -13,6 +13,8 @@
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
  .Parameter skipDatabase
   Adding this parameter creates an image without a database
+ .Parameter artifactCachePath
+  If this is specified, the given path is used to cache downloaded artifacts, the default path is used otherwise.
 #>
 function New-NavImage {
     Param (
@@ -23,7 +25,8 @@ function New-NavImage {
         [string] $isolation = "",
         [string] $memory = "",
         $myScripts = @(),
-        [switch] $skipDatabase
+        [switch] $skipDatabase,
+        [string] $artifactCachePath = ""
     )
 
     if ($memory -eq "") {
@@ -190,7 +193,7 @@ function New-NavImage {
             }
         }
 
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -basePath $artifactCachePath
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
 
