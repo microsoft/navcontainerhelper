@@ -34,7 +34,7 @@ function Download-Artifacts {
     )
 
     if ($basePath -eq "") {
-        $basePath = $bcartifactsCacheFolder
+        $basePath = $navcontainerhelperConfig.bcartifactsCacheFolder
     }
 
     if (-not (Test-Path $basePath)) {
