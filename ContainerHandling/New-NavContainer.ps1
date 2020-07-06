@@ -363,81 +363,87 @@ function New-NavContainer {
 
     $skipDatabase = $false
 
-    if ($imageName -ne "" -and $artifactUrl -ne "") {
-
-        if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
-            $skipDatabase = $true
-        }
-
-        Write-Host "ArtifactUrl and ImageName specified"
-        if (!$imageName.Contains(':')) {
-            $appUri = [Uri]::new($artifactUrl)
-            $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
-            if ($skipDatabase) {
-                $imageName += "-nodb"
+    if ($imageName -ne "") {
+        if ($artifactUrl -eq "") {
+            if ($imageName -like "mcr.microsoft.com/*") {
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images Microsoft container registries. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
         }
-
-        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull -basePath $artifactCachePath
-        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-
-        $rebuild = $false
-        try {
-            $inspect = docker inspect $imageName | ConvertFrom-Json
-
-            Write-Host "Image $imageName already exists"
-            if ($useGenericImage -eq "") {
-                $useGenericImage = Get-BestGenericImageName
+        else {
+            if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
+                $skipDatabase = $true
             }
-
-            $labels = Get-NavContainerImageLabels -imageName $useGenericImage
-
-            $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-            if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
-                Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
-                $rebuild = $true
-            }
-            if ($inspect.Config.Labels.version -ne $appManifest.Version) {
-                Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                $rebuild = $true
-            }
-            elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                $rebuild = $true
-            }
-            elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
-                Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
-                $rebuild = $true
-            }
-            elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
-                Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
-                $rebuild = $true
-            }
-
-            if ($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") {
-                if (!$skipdatabase) {
-                    Write-Host "Image $imageName was build without a database, should have a database"
-                    $rebuild = $true
+    
+            Write-Host "ArtifactUrl and ImageName specified"
+            if (!$imageName.Contains(':')) {
+                $appUri = [Uri]::new($artifactUrl)
+                $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+                if ($skipDatabase) {
+                    $imageName += "-nodb"
                 }
             }
-            else {
-                # Do not rebuild if database is there, just don't use it
+    
+            $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull -basePath $artifactCachePath
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+    
+            $rebuild = $false
+            try {
+                $inspect = docker inspect $imageName | ConvertFrom-Json
+    
+                Write-Host "Image $imageName already exists"
+                if ($useGenericImage -eq "") {
+                    $useGenericImage = Get-BestGenericImageName
+                }
+    
+                $labels = Get-NavContainerImageLabels -imageName $useGenericImage
+    
+                $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
+                if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                    Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
+                    $rebuild = $true
+                }
+                if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                    Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                    $rebuild = $true
+                }
+                elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
+                    Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                    $rebuild = $true
+                }
+                elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                    Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                    $rebuild = $true
+                }
+                elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                    Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                    $rebuild = $true
+                }
+    
+                if ($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") {
+                    if (!$skipdatabase) {
+                        Write-Host "Image $imageName was build without a database, should have a database"
+                        $rebuild = $true
+                    }
+                }
+                else {
+                    # Do not rebuild if database is there, just don't use it
+                }
             }
+            catch {
+                $rebuild = $true
+            }
+            if ($rebuild) {
+                Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
+                $startTime = [DateTime]::Now
+                New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
+                $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+                Write-Host "Building image took $timespend seconds"
+            }
+            $artifactUrl = ""
+            $alwaysPull = $false
+            $useGenericImage = ""
         }
-        catch {
-            $rebuild = $true
-        }
-        if ($rebuild) {
-            Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
-            $startTime = [DateTime]::Now
-            New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
-            $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
-            Write-Host "Building image took $timespend seconds"
-        }
-        $artifactUrl = ""
-        $alwaysPull = $false
-        $useGenericImage = ""
     }
 
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {

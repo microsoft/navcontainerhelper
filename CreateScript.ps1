@@ -106,7 +106,8 @@ function Enter-Value {
         [Parameter(Mandatory=$true)]
         [string] $question,
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
-        [switch] $writeAnswer = ($host.name -ne "ConsoleHost")
+        [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
+        [switch] $doNotConvertToLower
     )
 
     if (!$doNotClearHost) {
@@ -129,7 +130,12 @@ function Enter-Value {
         if ($default) {
             Write-Host "(default $default) " -NoNewline
         }
-        $selection = (Read-Host).ToLowerInvariant()
+        if ($doNotConvertToLower) {
+            $selection = Read-Host
+        }
+        else {
+            $selection = (Read-Host).ToLowerInvariant()
+        }
         if ($selection -eq "") {
             if ($default) {
                 $answer = $default
@@ -186,6 +192,7 @@ function Get-RandomPassword {
 }
 
 Clear-Host
+$randompw = Get-RandomPassword
 $ErrorActionPreference = "STOP"
 $licenserequired = $false
 
@@ -281,7 +288,7 @@ if ($hosting -eq "Local") {
     $auth = Select-Value `
         -title "Authentication" `
         -description "Select desired authentication mechanism.`nSelecting predefined credentials means that the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain while running the container. You cannot use containers with Windows authentication when offline." `
-        -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password)"; "Random" = "Username/Password authentication (admin with random password)"; "Windows" = "Windows authentication"}) `
+        -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password - $predefinedpw)"; "Random" = "Username/Password authentication (admin with random password - $randompw)"; "Windows" = "Windows authentication"}) `
         -question "Authentication" `
         -default "Credential"
 
@@ -363,7 +370,8 @@ elseif ($predef -like "specific*") {
         $version = Enter-Value `
             -description "Specify version number.`nIf you specify a full version number (like 15.4.41023.41345), you will get the closest version.`nIf multiple versions matches the entered value, you will be asked to select" `
             -question "Enter version number (format major[.minor[.build[.release]]])" `
-            -doNotClearHost -writeAnswer
+            -doNotClearHost `
+            -writeAnswer
 
         if ($version.indexOf('.') -eq -1) {
             $verno = 0
@@ -534,6 +542,67 @@ else {
     $licenseFile = $licenseFile.Trim(@('"'))
 }
 
+#     _____        _        _                    
+#    |  __ \      | |      | |                   
+#    | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
+#    | |  | |/ _` | __/ _` | '_ \ / _` / __|/ _ \
+#    | |__| | (_| | |_ (_| | |_) | (_| \__ \  __/
+#    |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
+#   
+
+$database = Select-Value `
+    -title "Database" `
+    -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
+    -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
+    -question "Database" `
+    -default "default"
+
+if ($database -eq "bakfile") {
+    $bakFile = Enter-Value `
+        -title "Database Backup" `
+        -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
+        -question "Database Backup"
+    $bakFile = $bakFile.Trim(@('"'))
+}
+elseif ($database -eq "connect") {
+
+    $err = $false
+    do {
+        $params = @{}
+        if ($err) {
+            $params = @{ "doNotClearHost" = $true }
+        }
+        $connectionString = Enter-Value @params `
+            -title "Database Connection String" `
+            -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
+            -question "Database Connection String" `
+            -doNotConvertToLower
+    
+        $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
+        $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
+        $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
+        $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
+    
+        $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
+        if ($err) {
+            Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
+            Write-Host
+        }
+    } while ($err)
+    $idx = $databaseServer.IndexOf('\')
+    if ($idx -ge 0) {
+        $databaseInstance = $databaseServer.Substring($idx+1)
+        $databaseServer = $databaseServer.Substring(0,$idx)
+    }
+    else {
+        $databaseInstance = ""
+    }
+    if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
+        $databaseServer = "host.containerhelper.internal"
+    }
+    $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
+} 
+
 if ($hosting -eq "Local") {
 
     #     _____  _   _  _____ 
@@ -612,9 +681,16 @@ if ($hosting -eq "Local") {
         -question "Image name (or blank to skip saving)" `
         -default "blank"
 
-    # TODO: Check Generic and set isolation
 
-    # TODO: Select Database
+
+    # TODO: SSL / .pdx+password
+
+    # TODO: Vsix
+
+    # TODO: Publish ports
+
+    # TODO: Options like CheckHealth, Restart, Locale, TimeZoneId, Timeout, Multitenant
+
 
     
 }
@@ -644,7 +720,7 @@ if ($hosting -eq "Local") {
             $script += "`$password = '$predefinedpw'"
         }
         else {
-            $script += "`$password = '$(Get-RandomPassword)'"
+            $script += "`$password = '$randompw'"
         }
         $script += "`$securePassword = ConvertTo-SecureString -String `$password -AsPlainText -Force"
         $script += "`$credential = New-Object pscredential 'admin', `$securePassword"
@@ -659,7 +735,23 @@ if ($hosting -eq "Local") {
     $parameters += "-artifactUrl `$artifactUrl"
 
     if ($imageName -ne "blank") {
-        $parameters += "-imagename '$($imageName.ToLowerInvariant())'"
+        $parameters += "-imageName '$($imageName.ToLowerInvariant())'"
+    }
+
+    if ($database -eq "bakfile") {
+        $script += "`$bakFile = '$bakFile'"
+        $parameters += "-bakFile `$bakFile"
+    }
+    elseif ($database -eq "connect") {
+        $script += "`$databaseServer = '$databaseServer'"
+        $script += "`$databaseInstance = '$databaseInstance'"
+        $script += "`$databaseName = '$databaseName'"
+        $script += "`$databaseUsername = '$databaseUsername'"
+        $script += "`$databasePassword = '$databasePassword'"
+        $script += "`$databaseSecurePassword = ConvertTo-SecureString -String `$databasePassword -AsPlainText -Force"
+        $script += "`$databaseCredential = New-Object pscredential `$databaseUsername, `$databaseSecurePassword"
+        $parameters += "-databaseServer `$databaseServer -databaseInstance `$databaseInstance -databaseName `$databaseName"
+        $parameters += "-databaseCredential `$databaseCredential"
     }
 
     if ($testtoolkit -ne "No") {

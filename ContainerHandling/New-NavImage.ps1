@@ -97,9 +97,6 @@ function New-NavImage {
     $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $baseImage)
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
         $containerOs = "ltsc2016"
-        if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
-            $timeZoneId = (Get-TimeZone).Id
-        }
     }
     elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
         $containerOs = "1703"

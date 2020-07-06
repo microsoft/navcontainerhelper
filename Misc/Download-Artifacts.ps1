@@ -74,16 +74,25 @@ function Download-Artifacts {
                     Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
                 }
             }
-            Write-Host "Unpacking application artifact"
+            Write-Host "Unpacking application artifact to tmp folder"
             try {
                 if (Test-Path "$appArtifactPath-tmp") {
                     Remove-Item -Path "$appArtifactPath-tmp" -Recurse -Force
                 }
                 Expand-Archive -Path $appZip -DestinationPath "$appArtifactPath-tmp" -Force
-                Rename-Item -Path "$appArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
             }
             finally {
                 Remove-Item -path $appZip -force
+            }
+            while (Test-Path "$appArtifactPath-tmp") {
+                try {
+                    Write-Host "Renaming tmp folder"
+                    Rename-Item -Path "$appArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
+                }
+                catch {
+                    Write-Host "Trying to get exclusive access to $appArtifactPath-tmp - waiting 10 seconds and retrying..."
+                    Start-Sleep -Seconds 10
+                }
             }
         }
         Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
@@ -136,16 +145,26 @@ function Download-Artifacts {
                     Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
                 }
             }
-            Write-Host "Unpacking platform artifact"
+            Write-Host "Unpacking platform artifact to tmp folder"
             try {
                 if (Test-Path "$platformArtifactPath-tmp") {
                     Remove-Item -Path "$platformArtifactPath-tmp" -Recurse -Force
                 }
                 Expand-Archive -Path $platformZip -DestinationPath "$platformArtifactPath-tmp" -Force
-                Rename-Item -Path "$platformArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
             }
             finally {
-                Remove-Item -path $platformZip -force
+                Remove-Item -path $platformZip -force -ErrorAction SilentlyContinue
+            }
+
+            while (Test-Path "$platformArtifactPath-tmp") {
+                try {
+                    Write-Host "Renaming tmp folder"
+                    Rename-Item -Path "$platformArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
+                }
+                catch {
+                    Write-Host "Trying to get exclusive access to $platformArtifactPath-tmp - waiting 10 seconds and retrying..."
+                    Start-Sleep -Seconds 10
+                }
             }
     
             $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
