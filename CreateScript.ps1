@@ -659,7 +659,7 @@ if ($hosting -eq "Local") {
     $parameters += "-artifactUrl `$artifactUrl"
 
     if ($imageName -ne "blank") {
-        $parameters += "-imagename '$($imageName.ToLowerInvariant())'"
+        $parameters += "-imageName '$($imageName.ToLowerInvariant())'"
     }
 
     if ($testtoolkit -ne "No") {
