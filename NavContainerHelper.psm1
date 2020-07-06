@@ -40,14 +40,21 @@ $sessions = @{}
 
 $usePsSession = $isAdministrator
 
-$bcartifactsCacheFolder = "c:\bcartifacts.cache"
+$navContainerHelperConfig = @{
+    "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
+}
+
 $navContainerHelperConfigFile = Join-Path $containerHelperFolder "NavContainerHelper.config.json"
 if (Test-Path $navContainerHelperConfigFile) {
-    $navContainerHelperConfig = Get-Content $navContainerHelperConfigFile | ConvertFrom-Json
-    if ($navContainerHelperConfig.PSObject.Properties.Name -eq "bcartifactsCacheFolder") {
-        $bcartifactsCacheFolder = $navContainerHelperConfig.bcartifactsCacheFolder
+    $savedConfig = Get-Content $navContainerHelperConfigFile | ConvertFrom-Json
+
+    if ($savedConfig.PSObject.Properties.Name -eq "bcartifactsCacheFolder") {
+        $navContainerHelperConfig.bcartifactsCacheFolder = $savedConfig.bcartifactsCacheFolder
     }
+
 }
+
+Export-ModuleMember -Variable navContainerHelperConfig
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")

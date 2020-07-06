@@ -491,7 +491,7 @@ function New-NavContainer {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
-    $downloadsPath = $bcartifactsCacheFolder
+    $downloadsPath = $navcontainerhelperConfig.bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }

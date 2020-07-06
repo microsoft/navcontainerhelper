@@ -4,6 +4,7 @@ Write Warning when creating new container based on imagename without artifacts
 Issue #1047 Download-Artifacts folder rename fails as folder is probably blocked by anti virus - add retry
 Added Database options to CreateScript / New-BcContainerWizard
 Add support for configuration file C:\ProgramData\NavContainerHelper\NavContainerHelper.config.json to allow for global configurations (bcartifactsCacheFolder for now)
+Add support for configuration hashtable $navContainerHelperConfig - with runtime settings defaulted from code and from config file
 
 0.7.0.10
 Issue #1043 Removal of AAD application needs to use case insensitive search
