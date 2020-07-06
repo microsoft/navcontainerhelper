@@ -142,7 +142,7 @@ function New-NavImage {
         }
     }
 
-    $downloadsPath = "c:\bcartifacts.cache"
+    $downloadsPath = $bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }

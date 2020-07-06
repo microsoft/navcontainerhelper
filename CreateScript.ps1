@@ -682,6 +682,7 @@ if ($hosting -eq "Local") {
         -default "blank"
 
 
+    # TODO: Memorylimit based on what you are using it for
 
     # TODO: SSL / .pdx+password
 

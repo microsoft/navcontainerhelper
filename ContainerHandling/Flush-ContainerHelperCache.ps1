@@ -34,10 +34,10 @@ function Flush-ContainerHelperCache {
     }
 
     if ($cache -eq 'all' -or $cache -eq 'bcartifacts') {
-        if (Test-Path "c:\bcartifacts.cache") {
+        if (Test-Path $bcartifactsCacheFolder) {
             if ($keepDays) {
                 $removeBefore = [DateTime]::Now.Subtract([timespan]::FromDays($keepDays))
-                Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer } | ForEach-Object {
                     $level1 = $_.FullName
                     Get-ChildItem -Path $level1 | ?{ $_.PSIsContainer } | ForEach-Object {
                         $level2 = $_.FullName
@@ -62,7 +62,7 @@ function Flush-ContainerHelperCache {
                 }
             }
             else {
-                Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer } | ForEach-Object {
                     Write-Host "Removing Cache $($_.FullName)"
                     [System.IO.Directory]::Delete($_.FullName, $true)
                 }
