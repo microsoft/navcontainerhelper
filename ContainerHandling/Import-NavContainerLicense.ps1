@@ -46,7 +46,7 @@ function Import-NavContainerLicense {
         
         if ($restart) {
             Write-Host "Restarting Service Tier"
-            Set-NavServerInstance ServerInstance $ServerInstance -restart
+            Set-NavServerInstance -ServerInstance $ServerInstance -restart
         }
     
     }  -ArgumentList (Get-NavContainerPath -ContainerName $containerName -Path $containerLicenseFile), $restart
