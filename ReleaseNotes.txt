@@ -1,3 +1,6 @@
+0.7.0.12
+Ensure that host.containerhelper.internal is set inside the container even if -updatehosts isn't used
+
 0.7.0.11
 Issue #1068 New-BcImage doesn't run on Windows Server 2016
 Write Warning when creating new container based on imagename without artifacts
