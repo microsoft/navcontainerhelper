@@ -1,6 +1,7 @@
 0.7.0.12
 Ensure that host.containerhelper.internal is set inside the container even if -updatehosts isn't used
 Do not use docker pull when calling New-BcImage with a BaseImage
+Issue #1077 Increase timeout for downloading symbols
 
 0.7.0.11
 Issue #1068 New-BcImage doesn't run on Windows Server 2016
