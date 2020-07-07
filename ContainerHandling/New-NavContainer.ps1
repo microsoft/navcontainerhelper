@@ -363,7 +363,10 @@ function New-NavContainer {
     if ($imageName -ne "") {
         if ($artifactUrl -eq "") {
             if ($imageName -like "mcr.microsoft.com/*") {
-                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images Microsoft container registries. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from mcr.microsoft.com. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
+            }
+            if ($imageName -like "bcinsider.azurecr.io/*") {
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from bcinsider.azurecr.io. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
         }
         else {
