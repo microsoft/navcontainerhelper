@@ -1288,21 +1288,28 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $parameters += "--volume ""$($dvdPath):c:\NAVDVD"""
     }
 
-    if ($updateHosts) {
-        $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
-        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
-        ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname '+$containername+' -theIpAddress $ip
-') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
-
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
         ('# Invoke default behavior
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
+    Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
+
+    if ($updateHosts) {
+        $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
+        ('
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname '+$containername+' -theIpAddress $ip
+') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
     ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts"
+') | Add-Content -Path "$myfolder\SetupVariables.ps1"
+
+    }
+    else {
+
+    ('
+. (Join-Path $PSScriptRoot "updatehosts.ps1")
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }

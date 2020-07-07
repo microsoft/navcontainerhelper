@@ -7,8 +7,6 @@
   Name of the container you want to remove
  .Example
   Remove-NavContainer -containerName devServer
- .Example
-  Remove-NavContainer -containerName test -updateHosts
 #>
 function Remove-NavContainer {
     [CmdletBinding()]

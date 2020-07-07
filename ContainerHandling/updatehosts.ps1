@@ -1,5 +1,5 @@
 ﻿Param(
-    [string] $hostsFile = "c:\driversetc\hosts",
+    [string] $hostsFile = "",
     [string] $theHostname = "",
     [string] $theIpAddress = ""
 )
@@ -106,15 +106,17 @@ if ($theHostname) {
 else {
     $myhostsFile = "c:\windows\system32\drivers\etc\hosts"
     new-item -Path $myhostsFile -ItemType File -ErrorAction Ignore | Out-Null
-    $hosts = UpdateHostsFile -hostsFile $hostsFile
     $sethost = $true
-    $hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.internal') -and $_.Split(" ").Count -eq 2 } | % {
-        $aHostname = $_.Split(" ")[1]
-        $anIp = $_.Split(" ")[0]
-        Write-Host "Setting $aHostname to $anIp in container hosts file (copy from host hosts file)"
-        UpdateHostsFile -hostsFile $myhostsFile -theHostname $aHostname -theIpAddress $anIp | Out-Null
-        if ($aHostname -eq "host.containerhelper.internal") {
-            $sethost = $false
+    if ($hostsFile) {
+        $hosts = UpdateHostsFile -hostsFile $hostsFile
+        $hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.internal') -and $_.Split(" ").Count -eq 2 } | % {
+            $aHostname = $_.Split(" ")[1]
+            $anIp = $_.Split(" ")[0]
+            Write-Host "Setting $aHostname to $anIp in container hosts file (copy from host hosts file)"
+            UpdateHostsFile -hostsFile $myhostsFile -theHostname $aHostname -theIpAddress $anIp | Out-Null
+            if ($aHostname -eq "host.containerhelper.internal") {
+                $sethost = $false
+            }
         }
     }
     if ($sethost) {
