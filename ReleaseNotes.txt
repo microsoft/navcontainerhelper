@@ -1,3 +1,6 @@
+0.7.0.14
+Issue #1088 Concurrency issues in NavContainerHelper
+
 0.7.0.13
 Get-BestNavContainerImageName didn't work in 0.7.0.12
 
