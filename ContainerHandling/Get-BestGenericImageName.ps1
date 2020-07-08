@@ -25,7 +25,8 @@ function Get-BestGenericImageName {
     $imagetags = Get-NavContainerImageTags -imageName $repo
     $versions = @()
     if ($imagetags) {
-        $versions = $imagetags.tags | Where-Object { $_ -like $tag } | % { [System.Version]($_.SubString($tag.indexOf('*'), $_.length-$tag.length+1)) }
+        $ver = [Version]"0.0.0.0"
+        $versions = $imagetags.tags | Where-Object { $_ -like $tag -and [System.Version]::TryParse($_.SubString($tag.indexOf('*'), $_.length-$tag.length+1), [ref]$ver) } | % { [System.Version]($_.SubString($tag.indexOf('*'), $_.length-$tag.length+1)) }
     }
     if (-not $versions) {
 
