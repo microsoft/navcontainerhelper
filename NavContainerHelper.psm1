@@ -50,7 +50,9 @@ if (Test-Path $navContainerHelperConfigFile) {
     $keys = $navContainerHelperConfig.Keys | % { $_ }
     $keys | % {
         if ($savedConfig.PSObject.Properties.Name -eq "$_") {
+            Write-Host "Setting $_ = $($savedConfig."$_")"
             $navContainerHelperConfig."$_" = $savedConfig."$_"
+
         }
     }
 }
