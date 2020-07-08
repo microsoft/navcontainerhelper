@@ -75,27 +75,21 @@ function Download-Artifacts {
                 }
             }
             Write-Host "Unpacking application artifact to tmp folder"
+            $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
             try {
-                if (Test-Path "$appArtifactPath-tmp") {
-                    Remove-Item -Path "$appArtifactPath-tmp" -Recurse -Force
+                Expand-Archive -Path $appZip -DestinationPath $tmpFolder -Force
+                if (!(Test-Path "$appArtifactPath")) {
+                    Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force -ErrorAction SilentlyContinue
                 }
-                Expand-Archive -Path $appZip -DestinationPath "$appArtifactPath-tmp" -Force
             }
             finally {
                 Remove-Item -path $appZip -force
-            }
-            while (Test-Path "$appArtifactPath-tmp") {
-                try {
-                    Write-Host "Renaming tmp folder"
-                    Rename-Item -Path "$appArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
-                }
-                catch {
-                    Write-Host "Trying to get exclusive access to $appArtifactPath-tmp - waiting 10 seconds and retrying..."
-                    Start-Sleep -Seconds 10
+                if (Test-Path $tmpFolder) {
+                    Remove-Item $tmpFolder -Recurse -Force
                 }
             }
         }
-        Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
+        Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
 
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
@@ -146,51 +140,44 @@ function Download-Artifacts {
                 }
             }
             Write-Host "Unpacking platform artifact to tmp folder"
+            $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
             try {
-                if (Test-Path "$platformArtifactPath-tmp") {
-                    Remove-Item -Path "$platformArtifactPath-tmp" -Recurse -Force
+                Expand-Archive -Path $platformZip -DestinationPath $tmpFolder -Force
+                if (!(Test-Path "$platformArtifactPath")) {
+                    Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force -ErrorAction SilentlyContinue
+                    $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
+                    if (Test-Path $prerequisiteComponentsFile) {
+                        $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
+                        Write-Host "Downloading Prerequisite Components"
+                        $prerequisiteComponents.PSObject.Properties | % {
+                            $path = Join-Path $platformArtifactPath $_.Name
+                            if (-not (Test-Path $path)) {
+                                $dirName = [System.IO.Path]::GetDirectoryName($path)
+                                $filename = [System.IO.Path]::GetFileName($path)
+                                if (-not (Test-Path $dirName)) {
+                                    New-Item -Path $dirName -ItemType Directory | Out-Null
+                                }
+                                $url = $_.Value
+                                Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
+                            }
+                        }
+                        $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
+                        if (!(Test-Path $dotnetCoreFolder)) {
+                            New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
+                            Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
+                        }
+                    }
                 }
-                Expand-Archive -Path $platformZip -DestinationPath "$platformArtifactPath-tmp" -Force
             }
             finally {
-                Remove-Item -path $platformZip -force -ErrorAction SilentlyContinue
-            }
-
-            while (Test-Path "$platformArtifactPath-tmp") {
-                try {
-                    Write-Host "Renaming tmp folder"
-                    Rename-Item -Path "$platformArtifactPath-tmp" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
-                }
-                catch {
-                    Write-Host "Trying to get exclusive access to $platformArtifactPath-tmp - waiting 10 seconds and retrying..."
-                    Start-Sleep -Seconds 10
+                Remove-Item -path $platformZip -force
+                if (Test-Path $tmpFolder) {
+                    Remove-Item $tmpFolder -Recurse -Force
                 }
             }
     
-            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-            if (Test-Path $prerequisiteComponentsFile) {
-                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                Write-Host "Downloading Prerequisite Components"
-                $prerequisiteComponents.PSObject.Properties | % {
-                    $path = Join-Path $platformArtifactPath $_.Name
-                    if (-not (Test-Path $path)) {
-                        $dirName = [System.IO.Path]::GetDirectoryName($path)
-                        $filename = [System.IO.Path]::GetFileName($path)
-                        if (-not (Test-Path $dirName)) {
-                            New-Item -Path $dirName -ItemType Directory | Out-Null
-                        }
-                        $url = $_.Value
-                        Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
-                    }
-                }
-                $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
-                if (!(Test-Path $dotnetCoreFolder)) {
-                    New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
-                    Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
-                }
-            }
         }
-        Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)"
+        Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
         $platformArtifactPath
     }
 }

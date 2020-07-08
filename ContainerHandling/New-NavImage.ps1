@@ -147,10 +147,7 @@ function New-NavImage {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
 
-    $buildFolder = "c:\$('$TMP$')-$($imageName -replace '[:/]', '-')"
-    if (Test-Path $buildFolder) {
-        Remove-Item $buildFolder -Force -Recurse
-    }
+    $buildFolder = Join-Path $navcontainerhelperConfig.bcartifactsCacheFolder "tmp$(([datetime]::Now).Ticks)"
     New-Item $buildFolder -ItemType Directory | Out-Null
 
     try {
