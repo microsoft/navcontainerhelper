@@ -612,7 +612,7 @@ if ($hosting -eq "Local") {
     #    | |__| | |\  |____) |
     #    |_____/|_| \_|_____/ 
     #   
-    $options = [ordered]@{"default" = "Use default DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google publis dns (8.8.8.8) as DNS to the container" }
+    $options = [ordered]@{"default" = "Use default DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google public dns (8.8.8.8) as DNS to the container" }
     $hostDNS = Get-DnsClientServerAddress | Select-Object –ExpandProperty ServerAddresses | Where-Object { "$_".indexOf(':') -eq -1 } | Select -first 1
     if ($hostDNS) {
         $options += @{ "usehostdns" = "Add your hosts primary DNS server ($hostDNS) as DNS to the container" }
