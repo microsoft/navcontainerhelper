@@ -38,20 +38,21 @@ $NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
 $sessions = @{}
 
-$usePsSession = $isAdministrator
-
 $navContainerHelperConfig = @{
     "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
+    "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
+    "usePsSession" = $isAdministrator
 }
 
 $navContainerHelperConfigFile = Join-Path $containerHelperFolder "NavContainerHelper.config.json"
 if (Test-Path $navContainerHelperConfigFile) {
     $savedConfig = Get-Content $navContainerHelperConfigFile | ConvertFrom-Json
-
-    if ($savedConfig.PSObject.Properties.Name -eq "bcartifactsCacheFolder") {
-        $navContainerHelperConfig.bcartifactsCacheFolder = $savedConfig.bcartifactsCacheFolder
+    $keys = $navContainerHelperConfig.Keys | % { $_ }
+    $keys | % {
+        if ($savedConfig.PSObject.Properties.Name -eq "$_") {
+            $navContainerHelperConfig."$_" = $savedConfig."$_"
+        }
     }
-
 }
 
 Export-ModuleMember -Variable navContainerHelperConfig
