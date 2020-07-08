@@ -1131,6 +1131,7 @@ function New-NavContainer {
     if ("$memoryLimit" -eq "") {
         if ($isolation -eq "hyperv") {
             $parameters += "--memory 4G"
+            $memoryLimit = "4G"
         }
     } else {
         $parameters += "--memory $memoryLimit"
@@ -1469,6 +1470,35 @@ if (-not `$restartingInstance) {
             return
         }
         Wait-NavContainerReady $containerName -timeout $timeout
+    }
+
+    if ("$memoryLimit" -ne "") {
+        $SQLServerMemoryLimit = ""
+
+        if ($memoryLimit.ToUpper() -like '*M') {
+            $SQLServerMemoryLimit = $memoryLimit.ToUpper().Replace('M','')
+        }
+        
+        if ($memoryLimit.ToUpper() -like '*G') {
+            $SQLServerMemoryLimit = $memoryLimit.ToUpper().Replace('G','') 
+            $SQLServerMemoryLimit = ($SQLServerMemoryLimit -as [int]) * 1024
+        }
+
+        if ($SQLServerMemoryLimit -ne "") {
+            $SQLServerMemoryLimit = $SQLServerMemoryLimit / 2
+
+            # More than 10G of memory should not be needed for SQL Server
+            if ($SQLServerMemoryLimit -gt 10240) {
+                $SQLServerMemoryLimit = 10240
+            }
+            
+            Write-Host "Set SQL Server memory limit to $($SQLServerMemoryLimit) MB"
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SQLServerMemoryLimit)
+                Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
+                Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SQLServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
+                Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
+            } -argumentList ($SQLServerMemoryLimit)       
+        }
     }
 
     if ("$TimeZoneId" -ne "") {
