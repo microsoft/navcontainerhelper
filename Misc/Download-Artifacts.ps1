@@ -125,7 +125,15 @@ function Download-Artifacts {
             $platformUrl = "https://$($appUri.Host.TrimEnd('/'))/$platformUrl$($appUri.Query)"
         }
         $platformUri = [Uri]::new($platformUrl)
-         
+
+        $PlatformMutexName = "dl-$($platformUrl.Split('?')[0])"
+        $PlatformMutex = New-Object System.Threading.Mutex($false, $PlatformMutexName)
+        Write-Host "Waiting for exclusive access to check and download platform artifacts from '$($platformUrl.Split('?')[0])'"
+        if (!($PlatformMutex.WaitOne())) {
+            throw "Could not obtain exclusive access to download platform artifacts"
+         }    
+        Write-Host "Got exclusive access to check and download platform artifacts from '$($platformUrl.Split('?')[0])'"
+
         $platformArtifactPath = Join-Path $basePath $platformUri.AbsolutePath
         $exists = Test-Path $platformArtifactPath
         if ($exists -and $force) {
@@ -186,6 +194,7 @@ function Download-Artifacts {
         }
         Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
         $platformArtifactPath
+        $PlatformMutex.ReleaseMutex()
     }
     $mtx.ReleaseMutex()
 }
