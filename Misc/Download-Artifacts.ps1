@@ -41,6 +41,13 @@ function Download-Artifacts {
         New-Item $basePath -ItemType Directory | Out-Null
     }
 
+    $MutexName = "dl-$($artifactUrl.Split('?')[0])"
+    $mtx = New-Object System.Threading.Mutex($false, $MutexName)
+    Write-Host "Waiting for exclusive access to check and download artifacts from '$($artifactUrl.Split('?')[0])'"
+    if (!($mtx.WaitOne())) {
+        throw "Could not obtain exclusive access"
+     }    
+    Write-Host "Got exclusive access to check and download artifacts from '$($artifactUrl.Split('?')[0])'"
     do {
         $redir = $false
         $appUri = [Uri]::new($artifactUrl)
@@ -180,5 +187,6 @@ function Download-Artifacts {
         Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
         $platformArtifactPath
     }
+    $mtx.ReleaseMutex()
 }
 Export-ModuleMember -Function Download-Artifacts

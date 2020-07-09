@@ -393,6 +393,14 @@ function New-NavContainer {
             $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
             $appManifestPath = Join-Path $appArtifactPath "manifest.json"
             $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+            $MutexName = "img-$($artifactUrl.Split('?')[0])-$imageName"
+            $mtx = New-Object System.Threading.Mutex($false, $MutexName)
+            Write-Host "Waiting for exclusive access to check if image '$imageName' needs to be built or rebuilt"
+            if (!($mtx.WaitOne())) {
+                throw "Could not obtain exclusive access"
+             }
+            Write-Host "Got exclusive access to image '$imageName'"
     
             $rebuild = $false
             try {
@@ -450,6 +458,7 @@ function New-NavContainer {
             $artifactUrl = ""
             $alwaysPull = $false
             $useGenericImage = ""
+            $mtx.ReleaseMutex()
         }
     }
 
