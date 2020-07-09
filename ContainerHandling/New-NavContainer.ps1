@@ -232,7 +232,7 @@ function New-NavContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
-    $navcontainerhelperConfig.defaultContainerParameters.GetEnumerator() | % {
+    $navcontainerhelperConfig.defaultNewContainerParameters.GetEnumerator() | % {
         if (!($PSBoundParameters.ContainsKey($_.Name))) {
             Write-Host "Default parameter $($_.Name) = $($_.Value)"
             Set-Variable -name $_.Name -Value $_.Value
