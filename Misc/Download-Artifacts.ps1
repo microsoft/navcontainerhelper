@@ -44,9 +44,12 @@ function Download-Artifacts {
     $MutexName = "dl-$($artifactUrl.Split('?')[0])"
     $mtx = New-Object System.Threading.Mutex($false, $MutexName)
     Write-Host "Waiting for exclusive access to check and download artifacts from '$($artifactUrl.Split('?')[0])'"
-    if (!($mtx.WaitOne())) {
-        throw "Could not obtain exclusive access"
-     }    
+    try {
+        $mtx.WaitOne() | Out-Null
+    }
+    catch [System.Threading.AbandonedMutexException] {
+        Write-Host "Other thread terminated without releasing mutex, we can proceed with exclusive access"
+    }
     Write-Host "Got exclusive access to check and download artifacts from '$($artifactUrl.Split('?')[0])'"
     do {
         $redir = $false
@@ -129,9 +132,12 @@ function Download-Artifacts {
         $PlatformMutexName = "dl-$($platformUrl.Split('?')[0])"
         $PlatformMutex = New-Object System.Threading.Mutex($false, $PlatformMutexName)
         Write-Host "Waiting for exclusive access to check and download platform artifacts from '$($platformUrl.Split('?')[0])'"
-        if (!($PlatformMutex.WaitOne())) {
-            throw "Could not obtain exclusive access to download platform artifacts"
-         }    
+        try {
+            $PlatformMutex.WaitOne() | Out-Null
+        }
+        catch [System.Threading.AbandonedMutexException] {
+            Write-Host "Other thread terminated without releasing mutex, we can proceed with exclusive access"
+        }
         Write-Host "Got exclusive access to check and download platform artifacts from '$($platformUrl.Split('?')[0])'"
 
         $platformArtifactPath = Join-Path $basePath $platformUri.AbsolutePath
