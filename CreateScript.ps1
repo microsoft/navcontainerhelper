@@ -806,6 +806,9 @@ if ($hosting -eq "Local") {
         if ($filename -notlike "*.ps1") {
             $filename += ".ps1"
         }
+        if ($filename.indexOf('\') -eq -1) {
+            $filename = Join-Path ([environment]::getfolderpath(“mydocuments”)) $filename
+        }
         $script | Out-File $filename
         start -Verb Edit $filename
     }
