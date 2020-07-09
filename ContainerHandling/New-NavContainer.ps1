@@ -232,6 +232,13 @@ function New-NavContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
+    $navcontainerhelperConfig.defaultContainerParameters.GetEnumerator() | % {
+        if (!($PSBoundParameters.ContainsKey($_.Name))) {
+            Write-Host "Default parameter $($_.Name) = $($_.Value)"
+            Set-Variable -name $_.Name -Value $_.Value
+        }        
+    }
+
     if (!$accept_eula) {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
     }
