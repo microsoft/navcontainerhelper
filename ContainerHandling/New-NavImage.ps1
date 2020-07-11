@@ -142,12 +142,12 @@ function New-NavImage {
         }
     }
 
-    $downloadsPath = $navcontainerhelperConfig.bcartifactsCacheFolder
+    $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
 
-    $buildFolder = Join-Path $navcontainerhelperConfig.bcartifactsCacheFolder "tmp$(([datetime]::Now).Ticks)"
+    $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder "tmp$(([datetime]::Now).Ticks)"
     New-Item $buildFolder -ItemType Directory | Out-Null
 
     try {

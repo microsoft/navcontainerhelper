@@ -232,7 +232,7 @@ function New-NavContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
-    $navcontainerhelperConfig.defaultNewContainerParameters.GetEnumerator() | % {
+    (Get-ContainerHelperConfig).defaultNewContainerParameters.GetEnumerator() | % {
         if (!($PSBoundParameters.ContainsKey($_.Name))) {
             Write-Host "Default parameter $($_.Name) = $($_.Value)"
             Set-Variable -name $_.Name -Value $_.Value
@@ -507,7 +507,7 @@ function New-NavContainer {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
-    $downloadsPath = $navcontainerhelperConfig.bcartifactsCacheFolder
+    $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }

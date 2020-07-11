@@ -19,8 +19,9 @@ function Get-BestGenericImageName {
     $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
 
-    $repo = $navContainerHelperConfig.genericImageName.Split(':')[0]
-    $tag = $navContainerHelperConfig.genericImageName.Split(':')[1].Replace('{0}','*')
+    $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageName
+    $repo = $genericImageNameSetting.Split(':')[0]
+    $tag = $genericImageNameSetting.Split(':')[1].Replace('{0}','*')
 
     $imagetags = Get-NavContainerImageTags -imageName $repo
     $versions = @()
@@ -84,7 +85,7 @@ function Get-BestGenericImageName {
         "10.0.18363.900"
         "10.0.19041.264"
         "10.0.19041.329"
-        ) | % { [System.Version]$_ }
+        ) | % { [System.Version]$_ } | Sort-Object
     }
     
     $genericImageName = ""
@@ -99,7 +100,7 @@ function Get-BestGenericImageName {
         if (-not $version) {
             $version = $myversions | Select-Object -Last 1
         }
-        $genericImageName = [string]::format($navContainerHelperConfig.genericImageName, $version.ToString())
+        $genericImageName = [string]::format($genericImageNameSetting, $version.ToString())
     }
     $genericImageName
 }
