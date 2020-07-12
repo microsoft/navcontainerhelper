@@ -38,27 +38,32 @@ $NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
 $sessions = @{}
 
-$navContainerHelperConfig = @{
-    "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
-    "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
-    "usePsSession" = $isAdministrator
-    "defaultNewContainerParameters" = @{ }
-}
-
-$navContainerHelperConfigFile = Join-Path $containerHelperFolder "NavContainerHelper.config.json"
-if (Test-Path $navContainerHelperConfigFile) {
-    $savedConfig = Get-Content $navContainerHelperConfigFile | ConvertFrom-Json
-    $keys = $navContainerHelperConfig.Keys | % { $_ }
-    $keys | % {
-        if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-            Write-Host "Setting $_ = $($savedConfig."$_")"
-            $navContainerHelperConfig."$_" = $savedConfig."$_"
-
+function Get-ContainerHelperConfig {
+    if (!((Get-Variable -scope Script navContainerHelperConfig -ErrorAction SilentlyContinue) -and $navContainerHelperConfig)) {
+        Set-Variable -scope Script -Name navContainerHelperConfig -Value @{
+            "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
+            "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
+            "usePsSession" = $isAdministrator
+            "defaultNewContainerParameters" = @{ }
         }
+        $navContainerHelperConfigFile = Join-Path $containerHelperFolder "NavContainerHelper.config.json"
+        if (Test-Path $navContainerHelperConfigFile) {
+            $savedConfig = Get-Content $navContainerHelperConfigFile | ConvertFrom-Json
+            $keys = $navContainerHelperConfig.Keys | % { $_ }
+            $keys | % {
+                if ($savedConfig.PSObject.Properties.Name -eq "$_") {
+                    Write-Host "Setting $_ = $($savedConfig."$_")"
+                    $navContainerHelperConfig."$_" = $savedConfig."$_"
+        
+                }
+            }
+        }
+        Export-ModuleMember -Variable navContainerHelperConfig
     }
+    return $navContainerHelperConfig
 }
 
-Export-ModuleMember -Variable navContainerHelperConfig
+Get-ContainerHelperConfig | Out-Null
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")

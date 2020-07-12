@@ -24,7 +24,7 @@ function Invoke-ScriptInNavContainer {
         [Object[]] $argumentList
     )
 
-    $useSession = $navContainerHelperConfig.usePsSession
+    $useSession = (Get-ContainerHelperConfig).usePsSession
 
     if ($useSession) {
         try {

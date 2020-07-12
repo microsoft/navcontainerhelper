@@ -18,7 +18,7 @@ function Enter-NavContainer {
     )
 
     Process {
-        if ($navContainerHelperConfig.usePsSession) {
+        if ((Get-ContainerHelperConfig).usePsSession) {
             $session = Get-NavContainerSession $containerName
             Enter-PSSession -Session $session
             Invoke-Command -Session $session -ScriptBlock {

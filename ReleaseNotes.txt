@@ -2,6 +2,10 @@
 Issue #1088 Concurrency issues in NavContainerHelper
 Added default path to filename in New-BcContainerWizard
 Added default parameters for NewContainer (example $navContainerHelperConfig.defaultNewContainerParameters = @{ "updatehosts" = $true })
+Issue #1100 docker inspect displays shows error if image doesn't exist
+Issue #1094 make navcontainerHelper run even if somebody removes the configuration variable
+Compile-AppInBCcContainer didn't work for baseApp compilation using Windows 10.0.19041.x containers
+Add Memorylimit support for New-BcContainerWizard
 
 0.7.0.13
 Get-BestNavContainerImageName didn't work in 0.7.0.12
