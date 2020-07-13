@@ -20,7 +20,9 @@ function Select-Value {
         [Parameter(Mandatory=$true)]
         [string] $question,
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
-        [switch] $writeAnswer = ($host.name -ne "ConsoleHost")
+        [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
+        [switch] $includeExit,
+        [int] $includeBack = -1
     )
 
     if (!$doNotClearHost) {
@@ -38,6 +40,7 @@ function Select-Value {
     $defaultChr = -1
     $keys = @()
     $values = @()
+
     $options.GetEnumerator() | ForEach-Object {
         Write-Host -ForegroundColor Yellow "$([char]($offset+97)) " -NoNewline
         $keys += @($_.Key)
@@ -52,6 +55,17 @@ function Select-Value {
         $offset++     
     }
     Write-Host
+    if ($includeExit -or $includeBack -ge 0) {
+        if ($includeExit) {
+            Write-Host -ForegroundColor Yellow "x " -NoNewline
+            Write-Host "Exit"
+        }
+        if ($includeBack -ge 0) {
+            Write-Host -ForegroundColor Yellow "z " -NoNewline
+            Write-Host "Go back to previous step"
+        }
+        Write-Host
+    }
     $answer = -1
     do {
         Write-Host "$question " -NoNewline
@@ -59,6 +73,24 @@ function Select-Value {
             Write-Host "(default $([char]($defaultAnswer + 97))) " -NoNewline
         }
         $selection = (Read-Host).ToLowerInvariant()
+        if ($includeExit -and $selection -eq "x") {
+            if ($writeAnswer) {
+                Write-Host
+                Write-Host -ForegroundColor Green "Exit selected"
+                Write-Host
+            }
+            $script:wizardStep = 1000
+            return "Exit"
+        }
+        if ($includeBack -ge 0 -and $selection -eq "z") {
+            if ($writeAnswer) {
+                Write-Host
+                Write-Host -ForegroundColor Green "Back selected"
+                Write-Host
+            }
+            $script:wizardStep = $includeBack
+            return "Back"
+        }
         if ($selection -eq "") {
             if ($defaultAnswer -ge 0) {
                 $answer = $defaultAnswer
@@ -107,7 +139,9 @@ function Enter-Value {
         [string] $question,
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
         [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
-        [switch] $doNotConvertToLower
+        [switch] $doNotConvertToLower,
+        [switch] $includeExit,
+        [int] $includeBack = -1
     )
 
     if (!$doNotClearHost) {
@@ -119,6 +153,19 @@ function Enter-Value {
     }
     if ($description) {
         Write-Host $description
+        Write-Host
+    }
+    if ($includeExit -or $includeBack -ge 0) {
+        if ($includeExit) {
+            Write-Host "Enter " -NoNewline
+            Write-Host -ForegroundColor Yellow "x" -NoNewline
+            Write-Host " to exit"
+        }
+        if ($includeBack -ge 0) {
+            Write-Host "Enter " -NoNewline
+            Write-Host -ForegroundColor Yellow "z" -NoNewline
+            Write-Host " to go back to previous step"
+        }
         Write-Host
     }
     $answer = ""
@@ -143,6 +190,24 @@ function Enter-Value {
             else {
                 Write-Host -ForegroundColor Red "No default value exists. "
             }
+        }
+        elseif ($selection -eq "x" -and $includeExit) {
+            if ($writeAnswer) {
+                Write-Host
+                Write-Host -ForegroundColor Green "Exit selected"
+                Write-Host
+            }
+            $script:wizardStep = 1000
+            return "exit"
+        }
+        elseif ($selection -eq "z" -and $includeBack -ge 0) {
+            if ($writeAnswer) {
+                Write-Host
+                Write-Host -ForegroundColor Green "Back selected"
+                Write-Host
+            }
+            $script:wizardStep = $includeBack
+            return "back"
         }
         else {
             if ($options) {
@@ -192,143 +257,271 @@ function Get-RandomPassword {
 }
 
 Clear-Host
+$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+$isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $randompw = Get-RandomPassword
 $ErrorActionPreference = "STOP"
-$licenserequired = $false
+$wizardStep = 0
 
-#     _   _              _____            _        _                 _    _      _                 
-#    | \ | |            / ____|          | |      (_)               | |  | |    | |                
-#    |  \| | __ ___   __ |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
-#    | . ` |/ _` \ \ / / |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  __  |/ _ \ | '_ \ / _ \ '__|
-#    | |\  | (_| |\ V /| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
-#    |_| \_|\__,_| \_/  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
-#                                                                                 | |              
-#                                     
-if (!$skipContainerHelperCheck) {
-    $module = Get-InstalledModule -Name "NavContainerHelper" -ErrorAction SilentlyContinue
-    if (!($module)) {
-        $module = Get-Module -Name "NavContainerHelper" -ErrorAction SilentlyContinue
-    }
-    if (!($module)) {
-        Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module NavContainerHelper."
-        Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/navcontainerhelper"
-        Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
-        return
-    }
-    elseif ($module.Version -eq [Version]"0.0") {
-        $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
-        if (!($function)) {
-            Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
-            Write-Host -ForegroundColor Red "Please pull a new version of the sources or install the module using: Install-Module NavContainerHelper -force"
+while ($wizardStep -le 100) {
+
+#Write-Host -ForegroundColor Red $wizardStep
+
+$thisStep = $wizardStep
+$wizardStep++
+
+switch ($thisStep) {
+0 {
+    #     _   _              _____            _        _                 _    _      _                 
+    #    | \ | |            / ____|          | |      (_)               | |  | |    | |                
+    #    |  \| | __ ___   __ |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
+    #    | . ` |/ _` \ \ / / |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  __  |/ _ \ | '_ \ / _ \ '__|
+    #    | |\  | (_| |\ V /| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
+    #    |_| \_|\__,_| \_/  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
+    #                                                                                 | |              
+    #                                     
+    if (!$skipContainerHelperCheck) {
+        $module = Get-InstalledModule -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+        if (!($module)) {
+            $module = Get-Module -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+        }
+        if (!($module)) {
+            Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module NavContainerHelper."
+            Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/navcontainerhelper"
+            Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
             return
         }
-        Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
-        Write-Host
-    }
-    elseif ($module.Version -lt [Version]"0.7.0.9") {
-         Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
-         Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
-         return
-    }
-    else {
-        $latestVersion = (Find-Module -Name navcontainerhelper).Version
-        $myVersion = $module.Version.ToString()
-        if ($latestVersion -eq $myVersion) {
-            Write-Host -ForegroundColor Green "You are running NavContainerHelper $myVersion (which is the latest version)"
+        elseif ($module.Version -eq [Version]"0.0") {
+            $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
+            if (!($function)) {
+                Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
+                Write-Host -ForegroundColor Red "Please pull a new version of the sources or install the module using: Install-Module NavContainerHelper -force"
+                return
+            }
+            Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
+            Write-Host
+        }
+        elseif ($module.Version -lt [Version]"0.7.0.9") {
+             Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
+             Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
+             return
         }
         else {
-            Write-Host -ForegroundColor Yellow "You are running NavContainerHelper $myVersion. A newer version ($latestVersion) exists, please consider updating."
+            $latestVersion = (Find-Module -Name navcontainerhelper).Version
+            $myVersion = $module.Version.ToString()
+            if ($latestVersion -eq $myVersion) {
+                Write-Host -ForegroundColor Green "You are running NavContainerHelper $myVersion (which is the latest version)"
+            }
+            else {
+                Write-Host -ForegroundColor Yellow "You are running NavContainerHelper $myVersion. A newer version ($latestVersion) exists, please consider updating."
+            }
+            Write-Host
         }
-        Write-Host
     }
 }
 
-#     ______      _       
-#    |  ____|    | |      
-#    | |__  _   _| | __ _ 
-#    |  __|| | | | |/ _` |
-#    | |____ |_| | | (_| |
-#    |______\__,_|_|\__,_|
-#   
-$acceptEula = Enter-Value `
-    -title "Accept Eula" `
-    -Description "This script will generate a script, which can be used to run Business Central in Docker on your computer.`nYou will be asked a number of questions and the generated script should create a container, which matches your needs.`n`nIn order to run Business Central in Docker, you will need to accept the eula.`nThe supplemental license terms for running Business Central and NAV on Docker can be found here: https://go.microsoft.com/fwlink/?linkid=861843" `
-    -options @("Y","N") `
-    -question "Please enter Y if you accept the eula"
-if ($acceptEula -ne "Y") {
-    Write-Host -ForegroundColor Red "Eula not accepted, aborting..."
-    return
+1 {
+    #     ______      _       
+    #    |  ____|    | |      
+    #    | |__  _   _| | __ _ 
+    #    |  __|| | | | |/ _` |
+    #    | |____ |_| | | (_| |
+    #    |______\__,_|_|\__,_|
+    #   
+    $acceptEula = Enter-Value `
+        -title "Accept Eula" `
+        -Description "This script will generate a script, which can be used to run Business Central in Docker on your computer.`nYou will be asked a number of questions and the generated script should create a container, which matches your needs.`n`nIn order to run Business Central in Docker, you will need to accept the eula.`nThe supplemental license terms for running Business Central and NAV on Docker can be found here: https://go.microsoft.com/fwlink/?linkid=861843" `
+        -options @("Y","N") `
+        -question "Please enter Y if you accept the eula"
+    if ($acceptEula -ne "Y") {
+        Write-Host -ForegroundColor Red "Eula not accepted, aborting..."
+        return
+    }
 }
 
-#     _    _           _   _             
-#    | |  | |         | | (_)            
-#    | |__| | ___  ___| |_ _ _ __   __ _ 
-#    |  __  |/ _ \/ __| __| | '_ \ / _` |
-#    | |  | | (_) \__ \ |_| | | | | (_| |
-#    |_|  |_|\___/|___/\__|_|_| |_|\__, |
-#                                   __/ |
-#                                  |___/ 
-$hosting = Select-Value `
-    -title "Local or Azure VM" `
-    -description "Specify where you want to host your Business Central container?`n`nSelecting Local will create a script that needs to run on a computer, which have Docker installed.`nSelecting Azure VM shows a Url with which you can create a VM. This requires an Azure Subscription." `
-    -options ([ordered]@{"Local" = "Local docker container"; "AzureVM" = "Docker container in an Azure VM"}) `
-    -question "Hosting" `
-    -default "Local"
+2 {
+    #     _    _           _   _             
+    #    | |  | |         | | (_)            
+    #    | |__| | ___  ___| |_ _ _ __   __ _ 
+    #    |  __  |/ _ \/ __| __| | '_ \ / _` |
+    #    | |  | | (_) \__ \ |_| | | | | (_| |
+    #    |_|  |_|\___/|___/\__|_|_| |_|\__, |
+    #                                   __/ |
+    #                                  |___/ 
+    $hosting = Select-Value `
+        -title "Local or Azure VM" `
+        -description "Specify where you want to host your Business Central container?`n`nSelecting Local will create a script that needs to run on a computer, which have Docker installed.`nSelecting Azure VM shows a Url with which you can create a VM. This requires an Azure Subscription." `
+        -options ([ordered]@{"Local" = "Local docker container"; "AzureVM" = "Docker container in an Azure VM"}) `
+        -question "Hosting" `
+        -default "Local" `
+        -includeExit `
+        -includeBack 1
+}
 
-if ($hosting -eq "Local") {
+3 {
+    if ($hosting -eq "Local") {
+        #                   _   _                _   _           _   _             
+        #        /\        | | | |              | | (_)         | | (_)            
+        #       /  \  _   _| |_| |__   ___ _ __ | |_ _  ___ __ _| |_ _  ___  _ __  
+        #      / /\ \| | | | __| '_ \ / _ \ '_ \| __| |/ __/ _` | __| |/ _ \| '_ \ 
+        #     / ____ \ |_| | |_| | | |  __/ | | | |_| | (__ (_| | |_| | (_) | | | |
+        #    /_/    \_\__,_|\__|_| |_|\___|_| |_|\__|_|\___\__,_|\__|_|\___/|_| |_|
+        #
+        $auth = Select-Value `
+            -title "Authentication" `
+            -description "Select desired authentication mechanism.`nSelecting predefined credentials means that the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain while running the container. You cannot use containers with Windows authentication when offline." `
+            -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password - $predefinedpw)"; "Random" = "Username/Password authentication (admin with random password - $randompw)"; "Windows" = "Windows authentication"}) `
+            -question "Authentication" `
+            -default "Credential" `
+            -includeExit `
+            -includeBack 2
+    }
+    else {
+        $auth = "UserPassword"
+    }
+}
 
+4 {
+    if ($hosting -eq "Local") {
+        #      _____            _        _                 _   _                      
+        #     / ____|          | |      (_)               | \ | |                     
+        #    | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __|  \| | __ _ _ __ ___   ___ 
+        #    | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__| . ` |/ _` | '_ ` _ \ / _ \
+        #    | |____ (_) | | | | |_ (_| | | | | |  __/ |  | |\  | (_| | | | | | |  __/
+        #     \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_| \_|\__,_|_| |_| |_|\___|
+        #
+        $containerName = Enter-Value `
+            -title "Container Name" `
+            -description "Enter the name of the container.`nContainer names are case sensitive and must start with a letter.`n`nNote: We recommend short lower case names as container names." `
+            -question "Container name" `
+            -default "my" `
+            -includeExit `
+            -includeBack 3
+    }
+    else {
+        $containerName = "navserver"
+    }
+}
 
-    #                   _   _                _   _           _   _             
-    #        /\        | | | |              | | (_)         | | (_)            
-    #       /  \  _   _| |_| |__   ___ _ __ | |_ _  ___ __ _| |_ _  ___  _ __  
-    #      / /\ \| | | | __| '_ \ / _ \ '_ \| __| |/ __/ _` | __| |/ _ \| '_ \ 
-    #     / ____ \ |_| | |_| | | |  __/ | | | |_| | (__ (_| | |_| | (_) | | | |
-    #    /_/    \_\__,_|\__|_| |_|\___|_| |_|\__|_|\___\__,_|\__|_|\___/|_| |_|
+5 {
+    #    __      __           _             
+    #    \ \    / /          (_)            
+    #     \ \  / /__ _ __ ___ _  ___  _ __  
+    #      \ \/ / _ \ '__/ __| |/ _ \| '_ \ 
+    #       \  /  __/ |  \__ \ | (_) | | | |
+    #        \/ \___|_|  |___/_|\___/|_| |_|
+    #   
+    if ($hosting -eq "local") { $back = 4 } else { $back = 2 }
+    $predef = Select-Value `
+        -title "Version" `
+        -description "What version of Business Central do you need?`nIf you are developing a Per Tenant Extension for a Business Central Saas tenant, you need a Business Central Sandbox environment" `
+        -options ([ordered]@{"LatestSandbox" = "Latest Business Central Sandbox"; "LatestOnPrem" = "Latest Business Central OnPrem"; "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"; "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"}) `
+        -question "Version" `
+        -default "LatestSandbox" `
+        -writeAnswer `
+        -includeExit `
+        -includeBack $back
+}
+
+6 {
+    #    __      __           _             
+    #    \ \    / /          (_)            
+    #     \ \  / /__ _ __ ___ _  ___  _ __  
+    #      \ \/ / _ \ '__/ __| |/ _ \| '_ \ 
+    #       \  /  __/ |  \__ \ | (_) | | | |
+    #        \/ \___|_|  |___/_|\___/|_| |_|
     #
-    $auth = Select-Value `
-        -title "Authentication" `
-        -description "Select desired authentication mechanism.`nSelecting predefined credentials means that the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain while running the container. You cannot use containers with Windows authentication when offline." `
-        -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password - $predefinedpw)"; "Random" = "Username/Password authentication (admin with random password - $randompw)"; "Windows" = "Windows authentication"}) `
-        -question "Authentication" `
-        -default "Credential"
+    $fullVersionNo = $false
+    $select = "Latest"
+    if ($predef -like "latest*") {
+        $type = $predef.Substring(6)
+        $version = ''
+    }
+    elseif ($predef -like "specific*") {
+        $type = $predef.Substring(8)
+        $ok = $false
+        do {
+            $version = Enter-Value `
+                -description "Specify version number.`nIf you specify a full version number (like 15.4.41023.41345), you will get the closest version.`nIf multiple versions matches the entered value, you will be asked to select" `
+                -question "Enter version number (format major[.minor[.build[.release]]])" `
+                -doNotClearHost `
+                -writeAnswer `
+                -includeExit `
+                -includeBack 5
+            
+            if ($version -eq "exit" -or $version -eq "back") {
+                $ok = $true
+            }
+            else {
+                if ($version.indexOf('.') -eq -1) {
+                    $verno = 0
+                    $ok = [int32]::TryParse($version, [ref]$verno)
+                    if (!$ok) {
+                        Write-Host -ForegroundColor Red "Illegal version number"
+                    }
+                }
+                else {
+                    $verno = [Version]"0.0.0.0"
+                    $ok = [Version]::TryParse($version, [ref]$verno)
+                    if (!$ok) {
+                        Write-Host -ForegroundColor Red "Illegal version number"
+                    }
+                    $fullVersionNo = $verno.Revision -ne -1
+                }
+    
+                if ($ok) {
 
-    #      _____            _        _                 _   _                      
-    #     / ____|          | |      (_)               | \ | |                     
-    #    | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __|  \| | __ _ _ __ ___   ___ 
-    #    | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__| . ` |/ _` | '_ ` _ \ / _ \
-    #    | |____ (_) | | | | |_ (_| | | | | |  __/ |  | |\  | (_| | | | | | |  __/
-    #     \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_| \_|\__,_|_| |_| |_|\___|
-    #
-    $containerName = Enter-Value `
-        -title "Container Name" `
-        -description "Enter the name of the container.`nContainer names are case sensitive and must start with a letter.`n`nNote: We recommend short lower case names as container names." `
-        -question "Container name" `
-        -default "my"
-
+                    if ($fullVersionNo) {
+                        $select = "Closest"
+                        $artifactUrl = Get-BCArtifactUrl -type $type -version $version -country 'w1' -select 'Closest'
+                        if ($artifactUrl) {
+                            $foundVersion = $artifactUrl.split('/')[4]
+                            if ($foundVersion -ne $version) {
+                                Write-Host -ForegroundColor Yellow "The specific version doesn't exist, closest version is $foundVersion"
+                            }
+                        }
+                    }
+                    else {
+                        $versions = @()
+                        Get-BCArtifactUrl -type $type -version $version -country 'w1' -select All | ForEach-Object {
+                            $versions += $_.Split('/')[4]
+                        }
+                        if ($versions.Count -eq 0) {
+                            Write-Host -ForegroundColor Red "Unable to find a version matching the specified version"
+                            $ok = $false
+                        }
+                        elseif ($versions.Count -gt 1) {
+                            $version = Enter-Value `
+                                -options $versions `
+                                -question "Select specific version" `
+                                -doNotClearHost `
+                                -writeAnswer `
+                                -includeExit `
+                                -includeBack 5
+    
+                            if ($version -eq "exit" -or $version -eq "back") {
+                                $ok = $true
+                            }
+                            else {
+                                $fullVersionNo = $true
+                            }
+                        }
+                    }
+                }
+            }
+        } while (!$ok)
+    }
 }
-else {
-    $auth = "UserPassword"
-    $containerName = "navserver"
-}
 
-#    __      __           _             
-#    \ \    / /          (_)            
-#     \ \  / /__ _ __ ___ _  ___  _ __  
-#      \ \/ / _ \ '__/ __| |/ _ \| '_ \ 
-#       \  /  __/ |  \__ \ | (_) | | | |
-#        \/ \___|_|  |___/_|\___/|_| |_|
-#   
-$predef = Select-Value `
-    -title "Version" `
-    -description "What version of Business Central do you need?`nIf you are developing a Per Tenant Extension for a Business Central Saas tenant, you need a Business Central Sandbox environment" `
-    -options ([ordered]@{"LatestSandbox" = "Latest Business Central Sandbox"; "LatestOnPrem" = "Latest Business Central OnPrem"; "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"; "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"}) `
-    -question "Version" `
-    -default "LatestSandbox" `
-    -writeAnswer
-
-$select = "Latest"
-if ($predef -like "Latest*") {
-    $type = $predef.Substring(6)
+7 {
+    #      _____                  _              
+    #     / ____|                | |             
+    #    | |     ___  _   _ _ __ | |_ _ __ _   _ 
+    #    | |    / _ \| | | | '_ \| __| '__| | | |
+    #    | |____ (_) | |_| | | | | |_| |  | |_| |
+    #     \_____\___/ \__,_|_| |_|\__|_|   \__, |
+    #                                       __/ |
+    #                                      |___/ 
 
     if ($type -eq "Sandbox") {
         $default = "us"
@@ -339,612 +532,572 @@ if ($predef -like "Latest*") {
         $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
     }
 
-    $version = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
+    $vno = $version
+    if ($vno -eq "") {
+        $vno = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
+    }
     $countries = @()
-    Get-BCArtifactUrl -type $type -version $version -select All | ForEach-Object {
+    Get-BCArtifactUrl -type $type -version $vno -select All | ForEach-Object {
         $countries += $_.SubString($_.LastIndexOf('/')+1)
     }
-
+ 
     $country = Enter-Value `
         -description $description `
         -options $countries `
         -default $default `
         -question "Country" `
-        -doNotClearHost
-    $version = ""
+        -doNotClearHost `
+        -includeExit `
+        -includeBack 5
 }
-elseif ($predef -like "specific*") {
-    $type = $predef.Substring(8)
 
+8 {
+    #     _______       _     _______          _ _    _ _   
+    #    |__   __|     | |   |__   __|        | | |  (_) |  
+    #       | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
+    #       | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
+    #       | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
+    #       |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
+    #       
+    $testtoolkit = "No"                                                
+    if ($hosting -eq "Local") {
+        $testtoolkit = Select-Value `
+            -title "Test Toolkit" `
+            -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
+            -options ([ordered]@{"Full" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
+            -question "Test Toolkit" `
+            -default "No" `
+            -includeExit `
+            -includeBack 7
+    }
+}
+
+9 {
+    $assignPremiumPlan = "N"
     if ($type -eq "Sandbox") {
-        $default = "us"
-        $description = "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
-    }
-    else {
-        $default = "w1"
-        $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
-    }
-
-    $ok = $false
-    do {
-        $version = Enter-Value `
-            -description "Specify version number.`nIf you specify a full version number (like 15.4.41023.41345), you will get the closest version.`nIf multiple versions matches the entered value, you will be asked to select" `
-            -question "Enter version number (format major[.minor[.build[.release]]])" `
-            -doNotClearHost `
-            -writeAnswer
-
-        if ($version.indexOf('.') -eq -1) {
-            $verno = 0
-            $ok = [int32]::TryParse($version, [ref]$verno)
-            if (!$ok) {
-                Write-Host -ForegroundColor Red "Illegal version number"
-            }
-            $fullVersionNo = $false
-        }
-        else {
-            $verno = [Version]"0.0.0.0"
-            $ok = [Version]::TryParse($version, [ref]$verno)
-            if (!$ok) {
-                Write-Host -ForegroundColor Red "Illegal version number"
-            }
-            $fullVersionNo = $verno.Revision -ne -1
-        }
-
-        if ($ok) {
-            if ($fullVersionNo) {
-                $select = "Closest"
-                $artifactUrl = Get-BCArtifactUrl -type $type -version $version -country 'w1' -select 'Closest'
-                if ($artifactUrl) {
-                    $foundVersion = $artifactUrl.split('/')[4]
-                    if ($foundVersion -ne $version) {
-                        Write-Host -ForegroundColor Yellow "The specific version doesn't exist, closest version is $foundVersion"
-                    }
-                    $countries = @()
-                    Get-BCArtifactUrl -type $type -version $foundVersion -select All | ForEach-Object {
-                        $countries += $_.SubString($_.LastIndexOf('/')+1)
-                    }
-
-                    $country = Enter-Value -description $description `
-                        -options $countries `
-                        -default $default `
-                        -question "Country" `
-                        -doNotClearHost `
-                        -writeAnswer
-
-                }
-                else {
-                    Write-Host -ForegroundColor Red "Unable to find a version close to the specified version"
-                    $ok = $false
-                }
-            }
-            else {
-                $versions = @()
-                Get-BCArtifactUrl -type $type -version $version -country 'w1' -select All | ForEach-Object {
-                    $versions += $_.Split('/')[4]
-                }
-                if ($versions.Count -eq 0) {
-                    Write-Host -ForegroundColor Red "Unable to find a version matching the specified version"
-                    $ok = $false
-                }
-                elseif ($versions.Count -gt 1) {
-                    $version = Enter-Value `
-                        -options $versions `
-                        -question "Select specific version" `
-                        -doNotClearHost `
-                        -writeAnswer
-                }
-
-                if ($ok) {
-                    $countries = @()
-                    Get-BCArtifactUrl -type $type -version $version -select All | ForEach-Object {
-                        $countries += $_.SubString($_.LastIndexOf('/')+1)
-                    }
-                    $country = Enter-Value `
-                        -description $description `
-                        -options $countries `
-                        -default $default `
-                        -question "Country" `
-                        -doNotClearHost `
-                        -writeAnswer
-                }
-            }
-        }
-
-    } while (!$ok)
-}
-
-#     _______       _     _______          _ _    _ _   
-#    |__   __|     | |   |__   __|        | | |  (_) |  
-#       | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
-#       | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
-#       | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
-#       |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
-#                                                       
-if ($hosting -eq "Local") {
-    $testtoolkit = Select-Value `
-        -title "Test Toolkit" `
-        -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
-        -options ([ordered]@{"Full" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
-        -question "Test Toolkit" `
-        -default "No"
-    if ($testtoolkit -ne "No") { $licenserequired = $true }
-}
-
-$assignPremiumPlan = "N"
-$createTestUsers = "N"
-
-if ($type -eq "Sandbox") {
-
-    #     _____                    _                   _____  _             
-    #    |  __ \                  (_)                 |  __ \| |            
-    #    | |__) | __ ___ _ __ ___  _ _   _ _ __ ___   | |__) | | __ _ _ __  
-    #    |  ___/ '__/ _ \ '_ ` _ \| | | | | '_ ` _ \  |  ___/| |/ _` | '_ \ 
-    #    | |   | | |  __/ | | | | | | |_| | | | | | | | |    | | (_| | | | |
-    #    |_|   |_|  \___|_| |_| |_|_|\__,_|_| |_| |_| |_|    |_|\__,_|_| |_|
-    #
-    $assignPremiumPlan = Enter-Value `
-        -title "Assign Premium Plan" `
-        -Description "When running sandbox, you can select to assign premium plan to the users." `
-        -options @("Y","N") `
-        -question "Please enter Y if you want to assign premium plan" `
-        -default "N"
-
-    #     _______       _     _    _                   
-    #    |__   __|     | |   | |  | |                  
-    #       | | ___ ___| |_  | |  | |___  ___ _ __ ___ 
-    #       | |/ _ \ __| __| | |  | / __|/ _ \ '__/ __|
-    #       | |  __\__ \ |_  | |__| \__ \  __/ |  \__ \
-    #       |_|\___|___/\__|  \____/|___/\___|_|  |___/
-    #   
-    $createTestUsers = Enter-Value `
-        -title "Create Test Users" `
-        -Description "When running sandbox, you can select to add test users with special entitlements.`nThe users created are: ExternalAccountant, Premium, Essential, InternalAdmin, TeamMember and DelegatedAdmin.`n`nNote: This requires a license file to be specified." `
-        -options @("Y","N") `
-        -question "Please enter Y if you want to create test users" `
-        -default "N"
-    if ($createTestUsers -eq "Y") {
-        $licenserequired = $true
-    }
-}
-
-#    _      _                         
-#   | |    (_)                        
-#   | |     _  ___ ___ _ __  ___  ___ 
-#   | |    | |/ __/ _ \ '_ \/ __|/ _ \
-#   | |____| | (__  __/ | | \__ \  __/
-#   |______|_|\___\___|_| |_|___/\___|
-#  
-if ($licenserequired) {
-    $description = "Please specify a license file url.`nDue to other selections, you need to specify a license file."
-    $default = ""
-}
-else {
-    $description = "Please specify a license file url.`nIf you do not specify a license file, you will use the default Cronus Demo License."
-    $default = "blank"
-}
-if ($hosting -eq "Local") {
-    $description += "`n`nThis can be a local file or a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
-}
-else {
-    $description += "`n`nThis needs to be a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
-}
- 
-$licenseFile = Enter-Value `
-    -title "License File" `
-    -description $description `
-    -question "License File" `
-    -default $default
-
-if ($licenseFile -eq "blank") {
-    $licenseFile = ""
-}
-else {
-    $licenseFile = $licenseFile.Trim(@('"'))
-}
-
-#     _____        _        _                    
-#    |  __ \      | |      | |                   
-#    | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
-#    | |  | |/ _` | __/ _` | '_ \ / _` / __|/ _ \
-#    | |__| | (_| | |_ (_| | |_) | (_| \__ \  __/
-#    |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
-#   
-
-$database = Select-Value `
-    -title "Database" `
-    -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
-    -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
-    -question "Database" `
-    -default "default"
-
-if ($database -eq "bakfile") {
-    $bakFile = Enter-Value `
-        -title "Database Backup" `
-        -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
-        -question "Database Backup"
-    $bakFile = $bakFile.Trim(@('"'))
-}
-elseif ($database -eq "connect") {
-
-    $err = $false
-    do {
-        $params = @{}
-        if ($err) {
-            $params = @{ "doNotClearHost" = $true }
-        }
-        $connectionString = Enter-Value @params `
-            -title "Database Connection String" `
-            -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
-            -question "Database Connection String" `
-            -doNotConvertToLower
     
-        $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
-        $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
-        $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
-        $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
-    
-        $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
-        if ($err) {
-            Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
-            Write-Host
-        }
-    } while ($err)
-    $idx = $databaseServer.IndexOf('\')
-    if ($idx -ge 0) {
-        $databaseInstance = $databaseServer.Substring($idx+1)
-        $databaseServer = $databaseServer.Substring(0,$idx)
+        #     _____                    _                   _____  _             
+        #    |  __ \                  (_)                 |  __ \| |            
+        #    | |__) | __ ___ _ __ ___  _ _   _ _ __ ___   | |__) | | __ _ _ __  
+        #    |  ___/ '__/ _ \ '_ ` _ \| | | | | '_ ` _ \  |  ___/| |/ _` | '_ \ 
+        #    | |   | | |  __/ | | | | | | |_| | | | | | | | |    | | (_| | | | |
+        #    |_|   |_|  \___|_| |_| |_|_|\__,_|_| |_| |_| |_|    |_|\__,_|_| |_|
+        #
+        if ($hosting -eq "local") { $back = 8 } else { $back = 7 }
+        $assignPremiumPlan = Enter-Value `
+            -title "Assign Premium Plan" `
+            -Description "When running sandbox, you can select to assign premium plan to the users." `
+            -options @("Y","N") `
+            -question "Please enter Y if you want to assign premium plan" `
+            -default "N" `
+            -includeExit `
+            -includeBack $back
+    }
+}
+
+10 {
+    $createTestUsers = "N"
+    if ($type -eq "Sandbox") {
+        #     _______       _     _    _                   
+        #    |__   __|     | |   | |  | |                  
+        #       | | ___ ___| |_  | |  | |___  ___ _ __ ___ 
+        #       | |/ _ \ __| __| | |  | / __|/ _ \ '__/ __|
+        #       | |  __\__ \ |_  | |__| \__ \  __/ |  \__ \
+        #       |_|\___|___/\__|  \____/|___/\___|_|  |___/
+        #   
+        $createTestUsers = Enter-Value `
+            -title "Create Test Users" `
+            -Description "When running sandbox, you can select to add test users with special entitlements.`nThe users created are: ExternalAccountant, Premium, Essential, InternalAdmin, TeamMember and DelegatedAdmin.`n`nNote: This requires a license file to be specified." `
+            -options @("Y","N") `
+            -question "Please enter Y if you want to create test users" `
+            -default "N" `
+            -includeExit `
+            -includeBack 9
+    }
+}
+
+11 {
+    #    _      _                         
+    #   | |    (_)                        
+    #   | |     _  ___ ___ _ __  ___  ___ 
+    #   | |    | |/ __/ _ \ '_ \/ __|/ _ \
+    #   | |____| | (__  __/ | | \__ \  __/
+    #   |______|_|\___\___|_| |_|___/\___|
+    #  
+    $licenserequired = ($testtoolkit -ne "No" -or $createTestUsers -eq "Y")
+    if ($licenserequired) {
+        $description = "Please specify a license file url.`nDue to other selections, you need to specify a license file."
+        $default = ""
     }
     else {
-        $databaseInstance = ""
+        $description = "Please specify a license file url.`nIf you do not specify a license file, you will use the default Cronus Demo License."
+        $default = "blank"
     }
-    if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
-        $databaseServer = "host.containerhelper.internal"
-    }
-    $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
-} 
-
-if ($hosting -eq "Local") {
-
-    #     _____  _   _  _____ 
-    #    |  __ \| \ | |/ ____|
-    #    | |  | |  \| | (___  
-    #    | |  | | . ` |\___ \ 
-    #    | |__| | |\  |____) |
-    #    |_____/|_| \_|_____/ 
-    #   
-    $options = [ordered]@{"default" = "Use default DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google public dns (8.8.8.8) as DNS to the container" }
-    $hostDNS = Get-DnsClientServerAddress | Select-Object –ExpandProperty ServerAddresses | Where-Object { "$_".indexOf(':') -eq -1 } | Select -first 1
-    if ($hostDNS) {
-        $options += @{ "usehostdns" = "Add your hosts primary DNS server ($hostDNS) as DNS to the container" }
-    }
-    $dns = Select-Value `
-        -title "DNS" `
-        -description "On some networks, default DNS resolution does not work inside a running container.`nWhen this is the case, you will see a warning during start saying:`n`nWARNING: DNS resolution not working from within the container.`n`nSome times, this can be fixed by choosing a different DNS server. Some times you have to reconfigure your network or antivirus settings to allow this." `
-        -options $options `
-        -question "Use DNS" `
-        -default "default"
-
-    #      _____           _       _   _             
-    #     |_   _|         | |     | | (_)            
-    #       | |  ___  ___ | | __ _| |_ _  ___  _ __  
-    #       | | / __|/ _ \| |/ _` | __| |/ _ \| '_ \ 
-    #      _| |_\__ \ (_) | | (_| | |_| | (_) | | | |
-    #     |_____|___/\___/|_|\__,_|\__|_|\___/|_| |_|
-    #
-    $os = (Get-CimInstance Win32_OperatingSystem)
-    if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
-        throw "Unknown Host Operating System"
-    }
-
-    $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
-    $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
-
-    try {
-        $bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
-        $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
-        if ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
-            $defaultIsolation = "Process"
-        }
-        else {
-            $defaultIsolation = "Hyper-V"
-        }
-    }
-    catch {
-        $bestContainerOsVersion = [System.Version]"0.0.0.0"
-        $bestContainerOS = "Unable to determine the image which matches your OS best"
-        $defaultIsolation = "Hyper-V"
-    }
-
-    $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
-
-    $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf an image with a matching OS is found, Process isolation will be favoured, else Hyper-V will be selected.`n`nYour host OS is Windows $($hostOSVersion.ToString())`n$bestContainerOS`n"
-
-    if ($hyperv) {
-        $description += "Hyper-V is enabled"
+    if ($hosting -eq "Local") {
+        $description += "`n`nThis can be a local file or a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
     }
     else {
-        $description += "Hyper-V is NOT enabled (you will not be able to use Hyper-V isolation on this host)"
-        $defaultIsolation = "Process"
+        $description += "`n`nThis needs to be a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
     }
-    $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use (on this host, this will be $defaultIsolation isolation)"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
-
-    $isolation = Select-Value `
-        -title "Isolation" `
+     
+    if ($type -eq "Sandbox") { $back = 10 } else { $back = 8 }
+    $licenseFile = Enter-Value `
+        -title "License File" `
         -description $description `
-        -options $options `
-        -question "Isolation" `
-        -default "default"
-
-    #     __  __                                 
-    #    |  \/  |                                
-    #    | \  / | ___ _ __ ___   ___  _ __ _   _ 
-    #    | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | |
-    #    | |  | |  __/ | | | | | (_) | |  | |_| |
-    #    |_|  |_|\___|_| |_| |_|\___/|_|   \__, |
-    #                                       __/ |
-    #                                      |___/ 
-
-    if ($version -ne "") {
-        $majorVersion = [int]($version.Split('.')[0])
-    }
-
-
-    $demo = 4
-    $development = 8
-    if ($version -eq "" -or $majorVersion -ge 16) {
-        $newBaseApp = 16
-    }
-    elseif ($majorVersion -eq 15) {
-        $newBaseApp = 12
-    }
-    else {
-        $newBaseApp = 0
-    }
-
-    $description = "The amount of memory needed by the container depends on what you are going to use it for.`n`nTypical memory consumption for this version of Business Central are:`n- $($demo)G for demo/test usage of Business Central`n- $($demo)G-$($development)G for app development`n"
-    if ($newBaseApp) {
-        $description += "- $($newBaseApp)G for base app development`n"
-    }
-    if ($isolation -eq "process" -or ($isolation -eq "default" -and $defaultIsolation -eq "Process")) {
-        $description += "`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host.`nMemory no longer needed by the processes in the container are given back to the host`nYou can set a limit to the amount of memory, the container is allowed to use."
-        $defaultDescription = "blank means no limit"
-    }
-    else {
-        $description += "`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container.`n"
-        if ($hostOsVersion.Build -ge 17763) {
-            $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed.`nMemory no longer needed will be freed from physical memory again.`n"
-            try {
-                $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
-                if ($CompSysResults.AutomaticManagedPagefile) {
-                    $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file.`n"
-                }
-            }
-            catch {}
-        }
-        else {
-            $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool.`n"
-        }
-        $defaultDescription = "blank will use ContainerHelper default which is 4G"
-    }
-
-    $memoryLimit = Enter-Value `
-        -title "Memorylimit" `
-        -description $description `
-        -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
-        -default ''
-
-    if ($memoryLimit -eq "blank") {
-        $memoryLimit = ""
-    }
-    else {
-        $memoryLimit = "$($memoryLimit.Trim().ToLowerInvariant().TrimEnd('gb').TrimEnd('g'))G"
-    }
-
-    #      _____                   _                            
-    #     / ____|                 (_)                           
-    #    | (___   __ ___   _____   _ _ __ ___   __ _  __ _  ___ 
-    #     \___ \ / _` \ \ / / _ \ | | '_ ` _ \ / _` |/ _` |/ _ \
-    #     ____) | (_| |\ V /  __/ | | | | | | | (_| | (_| |  __/
-    #    |_____/ \__,_| \_/ \___| |_|_| |_| |_|\__,_|\__, |\___|
-    #                                                 __/ |     
-    #                                                |___/      
-    $imageName = Enter-Value `
-        -title "Save image" `
-        -description "If you are planning on running the same script multiple times, it will save time on subsequent runs to save the image`nThe ContainerHelper will automatically generate an image tag, matching the version number and country of the requested version and on every run it will check whether the image needs to be rebuild.`n`nRecommendation is to use a short name (like mybcimage) if you want to save the image." `
-        -question "Image name (or blank to skip saving)" `
-        -default "blank"
-
-    #      _____                 _       _                          
-    #     / ____|               (_)     | |                         
-    #    | (___  _ __   ___  ___ _  __ _| |   ___ __ _ ___  ___ ___ 
-    #     \___ \| '_ \ / _ \/ __| |/ _` | |  / __/ _` / __|/ _ \ __|
-    #     ____) | |_) |  __/ (__| | (_| | | | (__ (_| \__ \  __\__ \
-    #    |_____/| .__/ \___|\___|_|\__,_|_|  \___\__,_|___/\___|___/
-    #           | |                                                 
-    #           |_|                                                 
-
+        -question "License File" `
+        -default $default `
+        -includeExit `
+        -includeBack $back
     
-
-    # TODO: SSL / .pdx+password
-
-    # TODO: Vsix
-
-    # TODO: Publish ports
-
-    # TODO: Options like CheckHealth, Restart, Locale, TimeZoneId, Timeout, Multitenant
-
-
-    
+    if ($licenseFile -eq "blank") {
+        $licenseFile = ""
+    }
+    else {
+        $licenseFile = $licenseFile.Trim(@('"'))
+    }
 }
 
-if ($hosting -eq "Local") {
-    #     ____        _ _     _    _____           _       _   
-    #    |  _ \      (_) |   | |  / ____|         (_)     | |  
-    #    | |_) |_   _ _| | __| | | (___   ___ _ __ _ _ __ | |_ 
-    #    |  _ <| | | | | |/ _` |  \___ \ / __| '__| | '_ \| __|
-    #    | |_) | |_| | | | (_| |  ____) | (__| |  | | |_) | |_ 
-    #    |____/ \__,_|_|_|\__,_| |_____/ \___|_|  |_| .__/ \__|
-    #                                               | |        
-    #                                               |_|        
-    $parameters = @()
-    $script = @()
-
-    $script += "`$containerName = '$containerName'"
-    if ($auth -eq "UserPassword") {
-        $script += "`$credential = Get-Credential -Message 'Using UserPassword authentication. Please enter credentials for the container.'"
-    }
-    elseif ($auth -eq "Windows") {
-        $script += "`$credential = Get-Credential -Message 'Using Windows authentication. Please enter your Windows credentials for the host computer.'"
-    }
-    else
-    {
-        if ($auth -eq "Credential") {
-            $script += "`$password = '$predefinedpw'"
-        }
-        else {
-            $script += "`$password = '$randompw'"
-        }
-        $script += "`$securePassword = ConvertTo-SecureString -String `$password -AsPlainText -Force"
-        $script += "`$credential = New-Object pscredential 'admin', `$securePassword"
-        $auth = "UserPassword"
-    }
-    $parameters += "-credential `$credential"
-
-    $script += "`$auth = '$auth'"
-    $parameters += "-auth `$auth"
-
-    $script += "`$artifactUrl = Get-BcArtifactUrl -type '$type' -version '$version' -country '$country' -select '$select'"
-    $parameters += "-artifactUrl `$artifactUrl"
-
-    if ($imageName -ne "blank") {
-        $parameters += "-imageName '$($imageName.ToLowerInvariant())'"
-    }
-
+12 {
+    #     _____        _        _                    
+    #    |  __ \      | |      | |                   
+    #    | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
+    #    | |  | |/ _` | __/ _` | '_ \ / _` / __|/ _ \
+    #    | |__| | (_| | |_ (_| | |_) | (_| \__ \  __/
+    #    |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
+    #   
+    
+    $database = Select-Value `
+        -title "Database" `
+        -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
+        -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
+        -question "Database" `
+        -default "default" `
+        -includeExit `
+        -includeBack 11
+    
     if ($database -eq "bakfile") {
-        $script += "`$bakFile = '$bakFile'"
-        $parameters += "-bakFile `$bakFile"
+        $bakFile = Enter-Value `
+            -title "Database Backup" `
+            -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
+            -question "Database Backup"
+        $bakFile = $bakFile.Trim(@('"'))
     }
     elseif ($database -eq "connect") {
-        $script += "`$databaseServer = '$databaseServer'"
-        $script += "`$databaseInstance = '$databaseInstance'"
-        $script += "`$databaseName = '$databaseName'"
-        $script += "`$databaseUsername = '$databaseUsername'"
-        $script += "`$databasePassword = '$databasePassword'"
-        $script += "`$databaseSecurePassword = ConvertTo-SecureString -String `$databasePassword -AsPlainText -Force"
-        $script += "`$databaseCredential = New-Object pscredential `$databaseUsername, `$databaseSecurePassword"
-        $parameters += "-databaseServer `$databaseServer -databaseInstance `$databaseInstance -databaseName `$databaseName"
-        $parameters += "-databaseCredential `$databaseCredential"
-    }
-
-    if ($testtoolkit -ne "No") {
-        $parameters += "-includeTestToolkit"
-        if ($testtoolkit -eq "Framework") {
-            $parameters += "-includeTestFrameworkOnly"
-        }
-        elseif ($testtoolkit -eq "Libraries") {
-            $parameters += "-includeTestLibrariesOnly"
-        }
-    }
-
-    if ($assignPremiumPlan -eq "Y") {
-        $parameters += "-assignPremiumPlan"
-    }
-
-    if ($licenseFile) {
-        $script += "`$licenseFile = '$licenseFile'"
-        $parameters += "-licenseFile `$licenseFile"
-    }
-
-    if ($dns -eq "usegoogledns") {
-        $parameters += "-dns '8.8.8.8'"
-    }
-    elseif ($dns -eq "usehostdns") {
-        $parameters += "-dns '$hostDNS'"
-    }
-
-    if ($isolation -ne "default") {
-        $parameters += "-isolation '$isolation'"
-    }
-    if ($memoryLimit) {
-        $parameters += "-memoryLimit $memoryLimit"
-    }
-
-    $script += "New-BcContainer ``"
-    $script += "    -accept_eula ``"
-    $script += "    -containerName `$containerName ``"
-    $parameters | ForEach-Object { $script += "    $_ ``" }
-    $script += "    -updateHosts"
-
-    if ($createTestUsers -eq "Y") {
-        $script += "Setup-BcContainerTestUsers -containerName `$containerName -Password `$credential.Password -credential `$credential"
-    }
-
-    $filename = Enter-Value `
-        -title "Save and Edit script" `
-        -description ([string]::Join("`n", $script)) `
-        -question "Filename (or blank to skip saving)" `
-        -default "blank"
-
-    if ($filename -ne "blank") {
-        $filename = $filename.Trim('"')
-        if ($filename -notlike "*.ps1") {
-            $filename += ".ps1"
-        }
-        if ($filename.indexOf('\') -eq -1) {
-            $filename = Join-Path ([environment]::getfolderpath(“mydocuments”)) $filename
-        }
-        $script | Out-File $filename
-        start -Verb Edit $filename
-    }
-    else {
     
-        $executeScript = Enter-Value `
-            -options @("Y","N") `
-            -question "Execute Script" `
-            -doNotClearHost
+        $err = $false
+        do {
+            $params = @{}
+            if ($err) {
+                $params = @{ "doNotClearHost" = $true }
+            }
+            $connectionString = Enter-Value @params `
+                -title "Database Connection String" `
+                -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
+                -question "Database Connection String" `
+                -doNotConvertToLower `
+                -includeExit `
+                -includeBack 12
+            if ($connectionString -eq "exit" -or $connectionString -eq "back") {
+                $err = $false
+            }
+            else {
+                $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
+            
+                $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
+                if ($err) {
+                    Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
+                    Write-Host
+                }
+            }
+        } while ($err)
+        $idx = $databaseServer.IndexOf('\')
+        if ($idx -ge 0) {
+            $databaseInstance = $databaseServer.Substring($idx+1)
+            $databaseServer = $databaseServer.Substring(0,$idx)
+        }
+        else {
+            $databaseInstance = ""
+        }
+        if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
+            $databaseServer = "host.containerhelper.internal"
+        }
+        $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
+    }
+}
+
+13 {
+    if ($hosting -eq "Local") {
+        #     _____  _   _  _____ 
+        #    |  __ \| \ | |/ ____|
+        #    | |  | |  \| | (___  
+        #    | |  | | . ` |\___ \ 
+        #    | |__| | |\  |____) |
+        #    |_____/|_| \_|_____/ 
+        #   
+        $options = [ordered]@{"default" = "Use default DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google public dns (8.8.8.8) as DNS to the container" }
+        $hostDNS = Get-DnsClientServerAddress | Select-Object –ExpandProperty ServerAddresses | Where-Object { "$_".indexOf(':') -eq -1 } | Select -first 1
+        if ($hostDNS) {
+            $options += @{ "usehostdns" = "Add your hosts primary DNS server ($hostDNS) as DNS to the container" }
+        }
+        $dns = Select-Value `
+            -title "DNS" `
+            -description "On some networks, default DNS resolution does not work inside a running container.`nWhen this is the case, you will see a warning during start saying:`n`nWARNING: DNS resolution not working from within the container.`n`nSome times, this can be fixed by choosing a different DNS server. Some times you have to reconfigure your network or antivirus settings to allow this." `
+            -options $options `
+            -question "Use DNS" `
+            -default "default" `
+            -includeExit `
+            -includeBack 12
+    }
+}
+
+14 {
+    if ($hosting -eq "Local") {
+        #      _____           _       _   _             
+        #     |_   _|         | |     | | (_)            
+        #       | |  ___  ___ | | __ _| |_ _  ___  _ __  
+        #       | | / __|/ _ \| |/ _` | __| |/ _ \| '_ \ 
+        #      _| |_\__ \ (_) | | (_| | |_| | (_) | | | |
+        #     |_____|___/\___/|_|\__,_|\__|_|\___/|_| |_|
+        #
+        $os = (Get-CimInstance Win32_OperatingSystem)
+        if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
+            throw "Unknown Host Operating System"
+        }
     
-        if ($executeScript -eq "Y") {
-            Invoke-Expression -Command ([string]::Join("`n", $script))
+        $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
+        $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
+    
+        try {
+            $bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
+            $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
+            if ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
+                $defaultIsolation = "Process"
+            }
+            else {
+                $defaultIsolation = "Hyper-V"
+            }
+        }
+        catch {
+            $bestContainerOsVersion = [System.Version]"0.0.0.0"
+            $bestContainerOS = "Unable to determine the image which matches your OS best"
+            $defaultIsolation = "Hyper-V"
+        }
+    
+        $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf an image with a matching OS is found, Process isolation will be favoured, else Hyper-V will be selected.`n`nYour host OS is Windows $($hostOSVersion.ToString())`n$bestContainerOS`n"
+
+        if ($isAdministrator) {
+            $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
+            if ($hyperv) {
+                $description += "Hyper-V is enabled"
+            }
+            else {
+                $description += "Hyper-V is NOT enabled (you will not be able to use Hyper-V isolation on this host)"
+                $defaultIsolation = "Process"
+            }
+        }
+        $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use (on this host, this will be $defaultIsolation isolation)"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
+    
+        $isolation = Select-Value `
+            -title "Isolation" `
+            -description $description `
+            -options $options `
+            -question "Isolation" `
+            -default "default" `
+            -includeExit `
+            -includeBack 13
+    }
+}
+
+15 {
+    if ($hosting -eq "Local") {
+        #     __  __                                 
+        #    |  \/  |                                
+        #    | \  / | ___ _ __ ___   ___  _ __ _   _ 
+        #    | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | |
+        #    | |  | |  __/ | | | | | (_) | |  | |_| |
+        #    |_|  |_|\___|_| |_| |_|\___/|_|   \__, |
+        #                                       __/ |
+        #                                      |___/ 
+    
+        if ($version -ne "") {
+            $majorVersion = [int]($version.Split('.')[0])
+        }
+    
+    
+        $demo = 4
+        $development = 8
+        if ($version -eq "" -or $majorVersion -ge 16) {
+            $newBaseApp = 16
+        }
+        elseif ($majorVersion -eq 15) {
+            $newBaseApp = 12
+        }
+        else {
+            $newBaseApp = 0
+        }
+    
+        $description = "The amount of memory needed by the container depends on what you are going to use it for.`n`nTypical memory consumption for this version of Business Central are:`n- $($demo)G for demo/test usage of Business Central`n- $($demo)G-$($development)G for app development`n"
+        if ($newBaseApp) {
+            $description += "- $($newBaseApp)G for base app development`n"
+        }
+        if ($isolation -eq "process" -or ($isolation -eq "default" -and $defaultIsolation -eq "Process")) {
+            $description += "`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host.`nMemory no longer needed by the processes in the container are given back to the host`nYou can set a limit to the amount of memory, the container is allowed to use."
+            $defaultDescription = "blank means no limit"
+        }
+        else {
+            $description += "`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container.`n"
+            if ($hostOsVersion.Build -ge 17763) {
+                $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed.`nMemory no longer needed will be freed from physical memory again.`n"
+                try {
+                    $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
+                    if ($CompSysResults.AutomaticManagedPagefile) {
+                        $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file.`n"
+                    }
+                }
+                catch {}
+            }
+            else {
+                $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool.`n"
+            }
+            $defaultDescription = "blank will use ContainerHelper default which is 4G"
+        }
+    
+        $memoryLimit = Enter-Value `
+            -title "Memorylimit" `
+            -description $description `
+            -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
+            -default 'blank' `
+            -includeExit `
+            -includeBack 14
+    
+        if ($memoryLimit -eq "blank") {
+            $memoryLimit = ""
+        }
+        else {
+            $memoryLimit = "$($memoryLimit.Trim().ToLowerInvariant().TrimEnd('gb').TrimEnd('g'))G"
         }
     }
 }
-else {
-    #     ____        _ _     _   _    _      _ 
-    #    |  _ \      (_) |   | | | |  | |    | |
-    #    | |_) |_   _ _| | __| | | |  | |_ __| |
-    #    |  _ <| | | | | |/ _` | | |  | | '__| |
-    #    | |_) | |_| | | | (_| | | |__| | |  | |
-    #    |____/ \__,_|_|_|\__,_|  \____/|_|  |_|
-    #   
-    $emailforletsencrypt = Enter-Value `
-        -title "Azure VM - Self Signed or Lets Encrypt Certificate" `
-        -description "Your Azure VM can be secured by a Self-Signed Certificate, meaning that you need to install this certificate on any machine connecting to the VM.`nYou can also select to use LetsEncrypt by specifying an email address of the person accepting subscriber agreement for LetsEncrypt (https://letsencrypt.org/repository/).`n`nNote: The LetsEncrypt certificate needs to be renewed after 90 days." `
-        -question "Contact EMail for LetsEncrypt (blank to use Self Signed)" `
-        -default "blank"
 
-    $artifactUrl = [Uri]::EscapeDataString("bcartifacts/$type/$version/$country/$select".ToLowerInvariant())
+16  {
+    if ($hosting -eq "Local") {
+        #      _____                   _                            
+        #     / ____|                 (_)                           
+        #    | (___   __ ___   _____   _ _ __ ___   __ _  __ _  ___ 
+        #     \___ \ / _` \ \ / / _ \ | | '_ ` _ \ / _` |/ _` |/ _ \
+        #     ____) | (_| |\ V /  __/ | | | | | | | (_| | (_| |  __/
+        #    |_____/ \__,_| \_/ \___| |_|_| |_| |_|\__,_|\__, |\___|
+        #                                                 __/ |     
+        #                                                |___/      
+        $imageName = Enter-Value `
+            -title "Save image" `
+            -description "If you are planning on running the same script multiple times, it will save time on subsequent runs to save the image`nThe ContainerHelper will automatically generate an image tag, matching the version number and country of the requested version and on every run it will check whether the image needs to be rebuild.`n`nRecommendation is to use a short name (like mybcimage) if you want to save the image." `
+            -question "Image name (or blank to skip saving)" `
+            -default "blank" `
+            -includeExit `
+            -includeBack 15
+    }
+}
 
-    $url = "http://aka.ms/getbc?accepteula=Yes&artifacturl=$artifactUrl"
-    if ($licenseFile) {
-        $url += "&licenseFileUri=$([Uri]::EscapeDataString($licenseFile))"
+17 {
+    if ($hosting -eq "Local") {
+        #      _____                 _       _                          
+        #     / ____|               (_)     | |                         
+        #    | (___  _ __   ___  ___ _  __ _| |   ___ __ _ ___  ___ ___ 
+        #     \___ \| '_ \ / _ \/ __| |/ _` | |  / __/ _` / __|/ _ \ __|
+        #     ____) | |_) |  __/ (__| | (_| | | | (__ (_| \__ \  __\__ \
+        #    |_____/| .__/ \___|\___|_|\__,_|_|  \___\__,_|___/\___|___/
+        #           | |                                                 
+        #           |_|                                                 
+    
+        
+    
+        # TODO: SSL / .pdx+password
+    
+        # TODO: Vsix
+    
+        # TODO: Publish ports
+    
+        # TODO: Options like CheckHealth, Restart, Locale, TimeZoneId, Timeout, Multitenant
+    
     }
-    if ($assignPremiumPlan -eq "Y") {
-        $url += "&AssignPremiumPlan=Yes"
-    }
-    if ($createTestUsers -eq "Y") {
-        $url += "&CreateTestUsers=Yes"
-    }
-    if ($emailforletsencrypt -ne "blank") {
-        $url += "&contactemailforletsencrypt=$([Uri]::EscapeDataString($emailforletsencrypt))"
-    }
+   
+}
 
-    $launchUrl = Enter-Value `
-        -title "URL" `
-        -description $url `
-        -options @("Y","N") `
-        -question "Launch Url"
-
-    if ($launchUrl -eq "Y") {
-        Start-Process $Url
+100 {
+    if ($hosting -eq "Local") {
+        #     ____        _ _     _    _____           _       _   
+        #    |  _ \      (_) |   | |  / ____|         (_)     | |  
+        #    | |_) |_   _ _| | __| | | (___   ___ _ __ _ _ __ | |_ 
+        #    |  _ <| | | | | |/ _` |  \___ \ / __| '__| | '_ \| __|
+        #    | |_) | |_| | | | (_| |  ____) | (__| |  | | |_) | |_ 
+        #    |____/ \__,_|_|_|\__,_| |_____/ \___|_|  |_| .__/ \__|
+        #                                               | |        
+        #                                               |_|        
+        $parameters = @()
+        $script = @()
+    
+        $script += "`$containerName = '$containerName'"
+        if ($auth -eq "UserPassword") {
+            $script += "`$credential = Get-Credential -Message 'Using UserPassword authentication. Please enter credentials for the container.'"
+        }
+        elseif ($auth -eq "Windows") {
+            $script += "`$credential = Get-Credential -Message 'Using Windows authentication. Please enter your Windows credentials for the host computer.'"
+        }
+        else
+        {
+            if ($auth -eq "Credential") {
+                $script += "`$password = '$predefinedpw'"
+            }
+            else {
+                $script += "`$password = '$randompw'"
+            }
+            $script += "`$securePassword = ConvertTo-SecureString -String `$password -AsPlainText -Force"
+            $script += "`$credential = New-Object pscredential 'admin', `$securePassword"
+            $auth = "UserPassword"
+        }
+        $parameters += "-credential `$credential"
+    
+        $script += "`$auth = '$auth'"
+        $parameters += "-auth `$auth"
+    
+        $script += "`$artifactUrl = Get-BcArtifactUrl -type '$type' -version '$version' -country '$country' -select '$select'"
+        $parameters += "-artifactUrl `$artifactUrl"
+    
+        if ($imageName -ne "blank") {
+            $parameters += "-imageName '$($imageName.ToLowerInvariant())'"
+        }
+    
+        if ($database -eq "bakfile") {
+            $script += "`$bakFile = '$bakFile'"
+            $parameters += "-bakFile `$bakFile"
+        }
+        elseif ($database -eq "connect") {
+            $script += "`$databaseServer = '$databaseServer'"
+            $script += "`$databaseInstance = '$databaseInstance'"
+            $script += "`$databaseName = '$databaseName'"
+            $script += "`$databaseUsername = '$databaseUsername'"
+            $script += "`$databasePassword = '$databasePassword'"
+            $script += "`$databaseSecurePassword = ConvertTo-SecureString -String `$databasePassword -AsPlainText -Force"
+            $script += "`$databaseCredential = New-Object pscredential `$databaseUsername, `$databaseSecurePassword"
+            $parameters += "-databaseServer `$databaseServer -databaseInstance `$databaseInstance -databaseName `$databaseName"
+            $parameters += "-databaseCredential `$databaseCredential"
+        }
+    
+        if ($testtoolkit -ne "No") {
+            $parameters += "-includeTestToolkit"
+            if ($testtoolkit -eq "Framework") {
+                $parameters += "-includeTestFrameworkOnly"
+            }
+            elseif ($testtoolkit -eq "Libraries") {
+                $parameters += "-includeTestLibrariesOnly"
+            }
+        }
+    
+        if ($assignPremiumPlan -eq "Y") {
+            $parameters += "-assignPremiumPlan"
+        }
+    
+        if ($licenseFile) {
+            $script += "`$licenseFile = '$licenseFile'"
+            $parameters += "-licenseFile `$licenseFile"
+        }
+    
+        if ($dns -eq "usegoogledns") {
+            $parameters += "-dns '8.8.8.8'"
+        }
+        elseif ($dns -eq "usehostdns") {
+            $parameters += "-dns '$hostDNS'"
+        }
+    
+        if ($isolation -ne "default") {
+            $parameters += "-isolation '$isolation'"
+        }
+        if ($memoryLimit) {
+            $parameters += "-memoryLimit $memoryLimit"
+        }
+    
+        $script += "New-BcContainer ``"
+        $script += "    -accept_eula ``"
+        $script += "    -containerName `$containerName ``"
+        $parameters | ForEach-Object { $script += "    $_ ``" }
+        $script += "    -updateHosts"
+    
+        if ($createTestUsers -eq "Y") {
+            $script += "Setup-BcContainerTestUsers -containerName `$containerName -Password `$credential.Password -credential `$credential"
+        }
+    
+        $filename = Enter-Value `
+            -title "Save and Edit script" `
+            -description ([string]::Join("`n", $script)) `
+            -question "Filename (or blank to skip saving)" `
+            -default "blank"
+    
+        if ($filename -ne "blank") {
+            $filename = $filename.Trim('"')
+            if ($filename -notlike "*.ps1") {
+                $filename += ".ps1"
+            }
+            if ($filename.indexOf('\') -eq -1) {
+                $filename = Join-Path ([environment]::getfolderpath(“mydocuments”)) $filename
+            }
+            $script | Out-File $filename
+            start -Verb Edit $filename
+        }
+        else {
+            $executeScript = Enter-Value `
+                -options @("Y","N") `
+                -question "Execute Script" `
+                -doNotClearHost
+        
+            if ($executeScript -eq "Y") {
+                Invoke-Expression -Command ([string]::Join("`n", $script))
+            }
+        }
     }
+    else {
+        #     ____        _ _     _   _    _      _ 
+        #    |  _ \      (_) |   | | | |  | |    | |
+        #    | |_) |_   _ _| | __| | | |  | |_ __| |
+        #    |  _ <| | | | | |/ _` | | |  | | '__| |
+        #    | |_) | |_| | | | (_| | | |__| | |  | |
+        #    |____/ \__,_|_|_|\__,_|  \____/|_|  |_|
+        #   
+        $emailforletsencrypt = Enter-Value `
+            -title "Azure VM - Self Signed or Lets Encrypt Certificate" `
+            -description "Your Azure VM can be secured by a Self-Signed Certificate, meaning that you need to install this certificate on any machine connecting to the VM.`nYou can also select to use LetsEncrypt by specifying an email address of the person accepting subscriber agreement for LetsEncrypt (https://letsencrypt.org/repository/).`n`nNote: The LetsEncrypt certificate needs to be renewed after 90 days." `
+            -question "Contact EMail for LetsEncrypt (blank to use Self Signed)" `
+            -default "blank"
+    
+        $artifactUrl = [Uri]::EscapeDataString("bcartifacts/$type/$version/$country/$select".ToLowerInvariant())
+    
+        $url = "http://aka.ms/getbc?accepteula=Yes&artifacturl=$artifactUrl"
+        if ($licenseFile) {
+            $url += "&licenseFileUri=$([Uri]::EscapeDataString($licenseFile))"
+        }
+        if ($assignPremiumPlan -eq "Y") {
+            $url += "&AssignPremiumPlan=Yes"
+        }
+        if ($createTestUsers -eq "Y") {
+            $url += "&CreateTestUsers=Yes"
+        }
+        if ($emailforletsencrypt -ne "blank") {
+            $url += "&contactemailforletsencrypt=$([Uri]::EscapeDataString($emailforletsencrypt))"
+        }
+    
+        $launchUrl = Enter-Value `
+            -title "URL" `
+            -description $url `
+            -options @("Y","N") `
+            -question "Launch Url"
+    
+        if ($launchUrl -eq "Y") {
+            Start-Process $Url
+        }
+    }
+}
+}
 }

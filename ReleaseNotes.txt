@@ -6,6 +6,9 @@ Issue #1100 docker inspect displays shows error if image doesn't exist
 Issue #1094 make navcontainerHelper run even if somebody removes the configuration variable
 Compile-AppInBCcContainer didn't work for baseApp compilation using Windows 10.0.19041.x containers
 Add Memorylimit support for New-BcContainerWizard
+Add exit and back support for New-BcContainerWizard
+New-BcContainer with imageName and artifactUrl fails if the generic image doesn't exist (it should pull it)
+Issue #1105 shortcuts are not always removed
 
 0.7.0.13
 Get-BestNavContainerImageName didn't work in 0.7.0.12
