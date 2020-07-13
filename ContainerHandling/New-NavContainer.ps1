@@ -389,6 +389,17 @@ function New-NavContainer {
                     $imageName += "-nodb"
                 }
             }
+
+            $MutexName = "img-$($artifactUrl.Split('?')[0])-$imageName"
+            $mtx = New-Object System.Threading.Mutex($false, $MutexName)
+            Write-Host "Waiting for exclusive access to check if image '$imageName' needs to be built or rebuilt"
+            try {
+                $mtx.WaitOne() | Out-Null
+            }
+            catch [System.Threading.AbandonedMutexException] {
+                Write-Host "Other thread terminated without releasing mutex, we can proceed with exclusive access"
+            }
+            Write-Host "Got exclusive access to image '$imageName'"
     
             $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
             $appManifestPath = Join-Path $appArtifactPath "manifest.json"
@@ -456,6 +467,7 @@ function New-NavContainer {
             $artifactUrl = ""
             $alwaysPull = $false
             $useGenericImage = ""
+            $mtx.ReleaseMutex()
         }
     }
 

@@ -41,6 +41,16 @@ function Download-Artifacts {
         New-Item $basePath -ItemType Directory | Out-Null
     }
 
+    $MutexName = "dl-$($artifactUrl.Split('?')[0])"
+    $mtx = New-Object System.Threading.Mutex($false, $MutexName)
+    Write-Host "Waiting for exclusive access to check and download artifacts from '$($artifactUrl.Split('?')[0])'"
+    try {
+        $mtx.WaitOne() | Out-Null
+    }
+    catch [System.Threading.AbandonedMutexException] {
+        Write-Host "Other thread terminated without releasing mutex, we can proceed with exclusive access"
+    }
+    Write-Host "Got exclusive access to check and download artifacts from '$($artifactUrl.Split('?')[0])'"
     do {
         $redir = $false
         $appUri = [Uri]::new($artifactUrl)
@@ -118,7 +128,18 @@ function Download-Artifacts {
             $platformUrl = "https://$($appUri.Host.TrimEnd('/'))/$platformUrl$($appUri.Query)"
         }
         $platformUri = [Uri]::new($platformUrl)
-         
+
+        $PlatformMutexName = "dl-$($platformUrl.Split('?')[0])"
+        $PlatformMutex = New-Object System.Threading.Mutex($false, $PlatformMutexName)
+        Write-Host "Waiting for exclusive access to check and download platform artifacts from '$($platformUrl.Split('?')[0])'"
+        try {
+            $PlatformMutex.WaitOne() | Out-Null
+        }
+        catch [System.Threading.AbandonedMutexException] {
+            Write-Host "Other thread terminated without releasing mutex, we can proceed with exclusive access"
+        }
+        Write-Host "Got exclusive access to check and download platform artifacts from '$($platformUrl.Split('?')[0])'"
+
         $platformArtifactPath = Join-Path $basePath $platformUri.AbsolutePath
         $exists = Test-Path $platformArtifactPath
         if ($exists -and $force) {
@@ -179,6 +200,8 @@ function Download-Artifacts {
         }
         Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
         $platformArtifactPath
+        $PlatformMutex.ReleaseMutex()
     }
+    $mtx.ReleaseMutex()
 }
 Export-ModuleMember -Function Download-Artifacts
