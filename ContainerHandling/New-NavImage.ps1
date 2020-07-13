@@ -81,8 +81,17 @@ function New-NavImage {
         if ("$baseImage" -eq "") {
             throw "Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
         }
+    }
+    if ($baseImage -eq $bestGenericImageName) {
         Write-Host "Pulling latest image $baseImage"
         DockerDo -command pull -imageName $baseImage | Out-Null
+    }
+    else {
+        $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
+        if (!($baseImageExists)) {
+            Write-Host "Pulling non-existing base image $baseImage"
+            DockerDo -command pull -imageName $baseImage | Out-Null
+        }
     }
 
     $genericTag = [Version](Get-NavContainerGenericTag -containerOrImageName $baseImage)
