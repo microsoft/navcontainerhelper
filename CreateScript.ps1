@@ -640,11 +640,19 @@ if ($hosting -eq "Local") {
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
 
     try {
-        $bestContainerOS = "The image, which matches your host OS best is $(((Get-BestGenericImageName).Split(':')[1]).Split('-')[0])"
-
+        $bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
+        $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
+        if ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
+            $defaultIsolation = "Process"
+        }
+        else {
+            $defaultIsolation = "Hyper-V"
+        }
     }
     catch {
+        $bestContainerOsVersion = [System.Version]"0.0.0.0"
         $bestContainerOS = "Unable to determine the image which matches your OS best"
+        $defaultIsolation = "Hyper-V"
     }
 
     $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
@@ -656,8 +664,9 @@ if ($hosting -eq "Local") {
     }
     else {
         $description += "Hyper-V is NOT enabled (you will not be able to use Hyper-V isolation on this host)"
+        $defaultIsolation = "Process"
     }
-    $options = [ordered]@{"default" = "Allow the ContainerHelper decide which isolation mode to use"; "process" = "Use Process isolation"; "hyperv" = "Use Hyper-V isolation" }
+    $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use (on this host, this will be $defaultIsolation isolation)"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
 
     $isolation = Select-Value `
         -title "Isolation" `
@@ -665,6 +674,71 @@ if ($hosting -eq "Local") {
         -options $options `
         -question "Isolation" `
         -default "default"
+
+    #     __  __                                 
+    #    |  \/  |                                
+    #    | \  / | ___ _ __ ___   ___  _ __ _   _ 
+    #    | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | |
+    #    | |  | |  __/ | | | | | (_) | |  | |_| |
+    #    |_|  |_|\___|_| |_| |_|\___/|_|   \__, |
+    #                                       __/ |
+    #                                      |___/ 
+
+    if ($version -ne "") {
+        $majorVersion = [int]($version.Split('.')[0])
+    }
+
+
+    $demo = 4
+    $development = 8
+    if ($version -eq "" -or $majorVersion -ge 16) {
+        $newBaseApp = 16
+    }
+    elseif ($majorVersion -eq 15) {
+        $newBaseApp = 12
+    }
+    else {
+        $newBaseApp = 0
+    }
+
+    $description = "The amount of memory needed by the container depends on what you are going to use it for.`n`nTypical memory consumption for this version of Business Central are:`n- $($demo)G for demo/test usage of Business Central`n- $($demo)G-$($development)G for app development`n"
+    if ($newBaseApp) {
+        $description += "- $($newBaseApp)G for base app development`n"
+    }
+    if ($isolation -eq "process" -or ($isolation -eq "default" -and $defaultIsolation -eq "Process")) {
+        $description += "`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host.`nMemory no longer needed by the processes in the container are given back to the host`nYou can set a limit to the amount of memory, the container is allowed to use."
+        $defaultDescription = "blank means no limit"
+    }
+    else {
+        $description += "`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container.`n"
+        if ($hostOsVersion.Build -ge 17763) {
+            $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed.`nMemory no longer needed will be freed from physical memory again.`n"
+            try {
+                $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
+                if ($CompSysResults.AutomaticManagedPagefile) {
+                    $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file.`n"
+                }
+            }
+            catch {}
+        }
+        else {
+            $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool.`n"
+        }
+        $defaultDescription = "blank will use ContainerHelper default which is 4G"
+    }
+
+    $memoryLimit = Enter-Value `
+        -title "Memorylimit" `
+        -description $description `
+        -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
+        -default ''
+
+    if ($memoryLimit -eq "blank") {
+        $memoryLimit = ""
+    }
+    else {
+        $memoryLimit = "$($memoryLimit.Trim().ToLowerInvariant().TrimEnd('gb').TrimEnd('g'))G"
+    }
 
     #      _____                   _                            
     #     / ____|                 (_)                           
@@ -674,15 +748,22 @@ if ($hosting -eq "Local") {
     #    |_____/ \__,_| \_/ \___| |_|_| |_| |_|\__,_|\__, |\___|
     #                                                 __/ |     
     #                                                |___/      
-
     $imageName = Enter-Value `
         -title "Save image" `
         -description "If you are planning on running the same script multiple times, it will save time on subsequent runs to save the image`nThe ContainerHelper will automatically generate an image tag, matching the version number and country of the requested version and on every run it will check whether the image needs to be rebuild.`n`nRecommendation is to use a short name (like mybcimage) if you want to save the image." `
         -question "Image name (or blank to skip saving)" `
         -default "blank"
 
+    #      _____                 _       _                          
+    #     / ____|               (_)     | |                         
+    #    | (___  _ __   ___  ___ _  __ _| |   ___ __ _ ___  ___ ___ 
+    #     \___ \| '_ \ / _ \/ __| |/ _` | |  / __/ _` / __|/ _ \ __|
+    #     ____) | |_) |  __/ (__| | (_| | | | (__ (_| \__ \  __\__ \
+    #    |_____/| .__/ \___|\___|_|\__,_|_|  \___\__,_|___/\___|___/
+    #           | |                                                 
+    #           |_|                                                 
 
-    # TODO: Memorylimit based on what you are using it for
+    
 
     # TODO: SSL / .pdx+password
 
@@ -783,6 +864,9 @@ if ($hosting -eq "Local") {
 
     if ($isolation -ne "default") {
         $parameters += "-isolation '$isolation'"
+    }
+    if ($memoryLimit) {
+        $parameters += "-memoryLimit $memoryLimit"
     }
 
     $script += "New-BcContainer ``"

@@ -41,105 +41,117 @@ function Get-BCArtifactUrl {
     
     TestSasToken -sasToken $sasToken
 
-    if (-not $storageAccount.Contains('.')) {
-        $storageAccount += ".azureedge.net"
-    }
-    $BaseUrl = "https://$storageAccount/$($Type.ToLower())/"
-    
-    $GetListUrl = $BaseUrl
-    if (!([string]::IsNullOrEmpty($sasToken))) {
-        $GetListUrl += $sasToken + "&comp=list&restype=container"
-    }
-    else {
-        $GetListUrl += "?comp=list&restype=container"
-    }
-
-    if ($select -eq 'SecondToLastMajor') {
-        if ($version) {
-            throw "You cannot specify a version when asking for the Second To Lst Major version"
-        }
-    }
-    elseif ($select -eq 'Closest') {
-        if (!($version)) {
-            throw "You must specify a version number when you want to get the closest artifact Url"
-        }
-        $dots = ($version.ToCharArray() -eq '.').Count
-        $closestToVersion = [Version]"0.0.0.0"
-        if ($dots -ne 3 -or !([Version]::TryParse($version, [ref] $closestToVersion))) {
-            throw "Version number must be in the format 1.2.3.4 when you want to get the closes artifact Url"
-        }
-        $GetListUrl += "&prefix=$($closestToVersion.Major).$($closestToVersion.Minor)."
-    }
-    elseif (!([string]::IsNullOrEmpty($version))) {
-        $dots = ($version.ToCharArray() -eq '.').Count
-        if ($dots -lt 3) {
-            # avoid 14.1 returning 14.10, 14.11 etc.
-            $version = "$($version.TrimEnd('.'))."
-        }
-        $GetListUrl += "&prefix=$($Version)"
-    }
-
-    $Artifacts = @()
-    $nextMarker = ""
     do {
-        Write-verbose "Invoke-RestMethod -Method Get -Uri $GetListUrl$nextMarker"
-        $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker"
-        $enumerationResults = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults
-        if ($enumerationResults.Blobs) {
-            $Artifacts += $enumerationResults.Blobs.Blob
-        }
-        $nextMarker = $enumerationResults.NextMarker
-        if ($nextMarker) {
-            $nextMarker = "&marker=$nextMarker"
-        }
-    } while ($nextMarker)
-
-    if (!([string]::IsNullOrEmpty($country))) {
-        # avoid confusion between base and se
-        $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith("/$country") }
-    }
-    else {
-        $Artifacts = $Artifacts | Where-Object { !($_.Name.EndsWith("/platform")) }
-    }
-
-    $Artifacts = $Artifacts | Sort-Object { [Version]($_.name.Split('/')[0]) }
-
-    switch ($Select) {
-        'All' {  
-            $Artifacts = $Artifacts |
-                Sort-Object { [Version]($_.name.Split('/')[0]) }
-        }
-        'Latest' { 
-            $Artifacts = $Artifacts |
-                Sort-Object { [Version]($_.name.Split('/')[0]) } |
-                Select-Object -Last 1
-        }
-        'SecondToLastMajor' { 
-            $Artifacts = $Artifacts |
-                Sort-Object -Descending { [Version]($_.name.Split('/')[0]) }
-            $latest = $Artifacts | Select-Object -First 1
-            if ($latest) {
-                $latestversion = [Version]($latest.name.Split('/')[0])
-                $artifacts = $Artifacts |
-                    Where-Object { ([Version]($_.name.Split('/')[0])).Major -ne $latestversion.Major } |
-                    Select-Object -First 1
+        $retry = $false
+        try {
+            if (-not $storageAccount.Contains('.')) {
+                $storageAccount += ".azureedge.net"
+            }
+            $BaseUrl = "https://$storageAccount/$($Type.ToLower())/"
+            
+            $GetListUrl = $BaseUrl
+            if (!([string]::IsNullOrEmpty($sasToken))) {
+                $GetListUrl += $sasToken + "&comp=list&restype=container"
             }
             else {
-                $Artifacts = @()
+                $GetListUrl += "?comp=list&restype=container"
+            }
+        
+            if ($select -eq 'SecondToLastMajor') {
+                if ($version) {
+                    throw "You cannot specify a version when asking for the Second To Lst Major version"
+                }
+            }
+            elseif ($select -eq 'Closest') {
+                if (!($version)) {
+                    throw "You must specify a version number when you want to get the closest artifact Url"
+                }
+                $dots = ($version.ToCharArray() -eq '.').Count
+                $closestToVersion = [Version]"0.0.0.0"
+                if ($dots -ne 3 -or !([Version]::TryParse($version, [ref] $closestToVersion))) {
+                    throw "Version number must be in the format 1.2.3.4 when you want to get the closes artifact Url"
+                }
+                $GetListUrl += "&prefix=$($closestToVersion.Major).$($closestToVersion.Minor)."
+            }
+            elseif (!([string]::IsNullOrEmpty($version))) {
+                $dots = ($version.ToCharArray() -eq '.').Count
+                if ($dots -lt 3) {
+                    # avoid 14.1 returning 14.10, 14.11 etc.
+                    $version = "$($version.TrimEnd('.'))."
+                }
+                $GetListUrl += "&prefix=$($Version)"
+            }
+        
+            $Artifacts = @()
+            $nextMarker = ""
+            do {
+                Write-verbose "Invoke-RestMethod -Method Get -Uri $GetListUrl$nextMarker"
+                $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker"
+                $enumerationResults = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults
+                if ($enumerationResults.Blobs) {
+                    $Artifacts += $enumerationResults.Blobs.Blob
+                }
+                $nextMarker = $enumerationResults.NextMarker
+                if ($nextMarker) {
+                    $nextMarker = "&marker=$nextMarker"
+                }
+            } while ($nextMarker)
+        
+            if (!([string]::IsNullOrEmpty($country))) {
+                # avoid confusion between base and se
+                $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith("/$country") }
+            }
+            else {
+                $Artifacts = $Artifacts | Where-Object { !($_.Name.EndsWith("/platform")) }
+            }
+        
+            $Artifacts = $Artifacts | Sort-Object { [Version]($_.name.Split('/')[0]) }
+        
+            switch ($Select) {
+                'All' {  
+                    $Artifacts = $Artifacts |
+                        Sort-Object { [Version]($_.name.Split('/')[0]) }
+                }
+                'Latest' { 
+                    $Artifacts = $Artifacts |
+                        Sort-Object { [Version]($_.name.Split('/')[0]) } |
+                        Select-Object -Last 1
+                }
+                'SecondToLastMajor' { 
+                    $Artifacts = $Artifacts |
+                        Sort-Object -Descending { [Version]($_.name.Split('/')[0]) }
+                    $latest = $Artifacts | Select-Object -First 1
+                    if ($latest) {
+                        $latestversion = [Version]($latest.name.Split('/')[0])
+                        $artifacts = $Artifacts |
+                            Where-Object { ([Version]($_.name.Split('/')[0])).Major -ne $latestversion.Major } |
+                            Select-Object -First 1
+                    }
+                    else {
+                        $Artifacts = @()
+                    }
+                }
+                'Closest' {
+                    $Artifacts = $Artifacts |
+                        Sort-Object { [Version]($_.name.Split('/')[0]) }
+                    $closest = $artifacts |
+                        Where-Object { [Version]($_.name.Split('/')[0]) -ge $closestToVersion } |
+                        Select-Object -First 1
+                    if (-not $closest) {
+                        $closest = $Artifacts | Select-Object -Last 1
+                    }
+                    $Artifacts = $closest           
+                }
             }
         }
-        'Closest' {
-            $Artifacts = $Artifacts |
-                Sort-Object { [Version]($_.name.Split('/')[0]) }
-            $closest = $artifacts |
-                Where-Object { [Version]($_.name.Split('/')[0]) -ge $closestToVersion } |
-                Select-Object -First 1
-            if (-not $closest) {
-                $closest = $Artifacts | Select-Object -Last 1
+        catch {
+            if ($storageAccount -notlike "*.azureedge.net") {
+                throw
             }
-            $Artifacts = $closest           
+            $storageAccount = $storageAccount -replace ".azureedge.net", ".blob.core.windows.net"
+            $retry = $true
         }
-    }
+    } while ($retry)
 
     foreach ($Artifact in $Artifacts) {
         "$BaseUrl$($Artifact.Name)$sasToken"
