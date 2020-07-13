@@ -41,144 +41,179 @@ function Download-Artifacts {
         New-Item $basePath -ItemType Directory | Out-Null
     }
 
-    do {
-        $redir = $false
-        $appUri = [Uri]::new($artifactUrl)
-
-        $appArtifactPath = Join-Path $basePath $appUri.AbsolutePath
-        $exists = Test-Path $appArtifactPath
-        if ($exists -and $force) {
-            Remove-Item $appArtifactPath -Recurse -Force
-            $exists = $false
+    $appMutexName = "dl-$($artifactUrl.Split('?')[0])"
+    $appMutex = New-Object System.Threading.Mutex($false, $appMutexName)
+    try {
+        try {
+            if (!$appMutex.WaitOne(1000)) {
+                Write-Host "Waiting for other process downloading application artifact '$($artifactUrl.Split('?')[0])'"
+                $appMutex.WaitOne() | Out-Null
+                Write-Host "Other process completed download"
+            }
         }
-        if ($exists -and $forceRedirection) {
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-                # redirect artifacts are always downloaded
+        catch [System.Threading.AbandonedMutexException] {
+           Write-Host "Other process terminated abnormally"
+        }
+        do {
+            $redir = $false
+            $appUri = [Uri]::new($artifactUrl)
+    
+            $appArtifactPath = Join-Path $basePath $appUri.AbsolutePath
+            $exists = Test-Path $appArtifactPath
+            if ($exists -and $force) {
                 Remove-Item $appArtifactPath -Recurse -Force
                 $exists = $false
             }
-        }
-        if (-not $exists) {
-            Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
-            $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-            try {
-                TestSasToken -sasToken $artifactUrl
-                Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
+            if ($exists -and $forceRedirection) {
+                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+                $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+                if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                    # redirect artifacts are always downloaded
+                    Remove-Item $appArtifactPath -Recurse -Force
+                    $exists = $false
+                }
             }
-            catch {
-                if ($artifactUrl.Contains('.azureedge.net/')) {
-                    $artifactUrl = $artifactUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
-                    Write-Host "Retrying download..."
+            if (-not $exists) {
+                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
+                $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+                try {
+                    TestSasToken -sasToken $artifactUrl
                     Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
                 }
-            }
-            Write-Host "Unpacking application artifact to tmp folder"
-            $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
-            try {
-                Expand-Archive -Path $appZip -DestinationPath $tmpFolder -Force
-                if (!(Test-Path "$appArtifactPath")) {
-                    Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force -ErrorAction SilentlyContinue
+                catch {
+                    if ($artifactUrl.Contains('.azureedge.net/')) {
+                        $artifactUrl = $artifactUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
+                        Write-Host "Retrying download..."
+                        Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
+                    }
                 }
-            }
-            finally {
-                Remove-Item -path $appZip -force
-                if (Test-Path $tmpFolder) {
-                    Remove-Item $tmpFolder -Recurse -Force
+                Write-Host "Unpacking application artifact to tmp folder"
+                $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
+                try {
+                    Expand-Archive -Path $appZip -DestinationPath $tmpFolder -Force
+                    if (!(Test-Path "$appArtifactPath")) {
+                        Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force -ErrorAction SilentlyContinue
+                    }
                 }
-            }
-        }
-        Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
-
-        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-
-        if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-            $redir = $true
-            $artifactUrl = $appManifest.ApplicationUrl
-            if ($artifactUrl -notlike 'https://*') {
-                $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
-            }
-        }
-
-    } while ($redir)
-
-    $appArtifactPath
-
-    if ($includePlatform) {
-        if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
-            $platformUrl = $appManifest.platformUrl
-        }
-        else {
-            $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform".TrimStart('/')
-        }
-    
-        if ($platformUrl -notlike 'https://*') {
-            $platformUrl = "https://$($appUri.Host.TrimEnd('/'))/$platformUrl$($appUri.Query)"
-        }
-        $platformUri = [Uri]::new($platformUrl)
-         
-        $platformArtifactPath = Join-Path $basePath $platformUri.AbsolutePath
-        $exists = Test-Path $platformArtifactPath
-        if ($exists -and $force) {
-            Remove-Item $platformArtifactPath -Recurse -Force
-            $exists = $false
-        }
-        if (-not $exists) {
-            Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-            $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-            try {
-                TestSasToken -sasToken $artifactUrl
-                Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
-            }
-            catch {
-                if ($platformUrl.Contains('.azureedge.net/')) {
-                    $platformUrl = $platformUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
-                    Write-Host "Retrying download..."
-                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
-                }
-            }
-            Write-Host "Unpacking platform artifact to tmp folder"
-            $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
-            try {
-                Expand-Archive -Path $platformZip -DestinationPath $tmpFolder -Force
-                if (!(Test-Path "$platformArtifactPath")) {
-                    Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force -ErrorAction SilentlyContinue
-                    $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-                    if (Test-Path $prerequisiteComponentsFile) {
-                        $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                        Write-Host "Downloading Prerequisite Components"
-                        $prerequisiteComponents.PSObject.Properties | % {
-                            $path = Join-Path $platformArtifactPath $_.Name
-                            if (-not (Test-Path $path)) {
-                                $dirName = [System.IO.Path]::GetDirectoryName($path)
-                                $filename = [System.IO.Path]::GetFileName($path)
-                                if (-not (Test-Path $dirName)) {
-                                    New-Item -Path $dirName -ItemType Directory | Out-Null
-                                }
-                                $url = $_.Value
-                                Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
-                            }
-                        }
-                        $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
-                        if (!(Test-Path $dotnetCoreFolder)) {
-                            New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
-                            Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
-                        }
+                finally {
+                    Remove-Item -path $appZip -force
+                    if (Test-Path $tmpFolder) {
+                        Remove-Item $tmpFolder -Recurse -Force
                     }
                 }
             }
-            finally {
-                Remove-Item -path $platformZip -force
-                if (Test-Path $tmpFolder) {
-                    Remove-Item $tmpFolder -Recurse -Force
+            Set-Content -Path (Join-Path $appArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
+    
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+    
+            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                $redir = $true
+                $artifactUrl = $appManifest.ApplicationUrl
+                if ($artifactUrl -notlike 'https://*') {
+                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
                 }
             }
     
+        } while ($redir)
+    
+        $appArtifactPath
+    
+        if ($includePlatform) {
+            if ($appManifest.PSObject.Properties.name -eq "platformUrl") {
+                $platformUrl = $appManifest.platformUrl
+            }
+            else {
+                $platformUrl = "$($appUri.AbsolutePath.Substring(0,$appUri.AbsolutePath.LastIndexOf('/')))/platform".TrimStart('/')
+            }
+        
+            if ($platformUrl -notlike 'https://*') {
+                $platformUrl = "https://$($appUri.Host.TrimEnd('/'))/$platformUrl$($appUri.Query)"
+            }
+            $platformUri = [Uri]::new($platformUrl)
+    
+            $PlatformMutexName = "dl-$($platformUrl.Split('?')[0])"
+            $PlatformMutex = New-Object System.Threading.Mutex($false, $PlatformMutexName)
+            try {
+                try {
+                    if (!$PlatformMutex.WaitOne(1000)) {
+                        Write-Host "Waiting for other process downloading platform artifact '$($platformUrl.Split('?')[0])'"
+                        $PlatformMutex.WaitOne() | Out-Null
+                        Write-Host "Other process completed download"
+                    }
+                }
+                catch [System.Threading.AbandonedMutexException] {
+                   Write-Host "Other process terminated abnormally"
+                }
+    
+                $platformArtifactPath = Join-Path $basePath $platformUri.AbsolutePath
+                $exists = Test-Path $platformArtifactPath
+                if ($exists -and $force) {
+                    Remove-Item $platformArtifactPath -Recurse -Force
+                    $exists = $false
+                }
+                if (-not $exists) {
+                    Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
+                    $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+                    try {
+                        TestSasToken -sasToken $artifactUrl
+                        Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
+                    }
+                    catch {
+                        if ($platformUrl.Contains('.azureedge.net/')) {
+                            $platformUrl = $platformUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
+                            Write-Host "Retrying download..."
+                            Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
+                        }
+                    }
+                    Write-Host "Unpacking platform artifact to tmp folder"
+                    $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
+                    try {
+                        Expand-Archive -Path $platformZip -DestinationPath $tmpFolder -Force
+                        if (!(Test-Path "$platformArtifactPath")) {
+                            Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force -ErrorAction SilentlyContinue
+                            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
+                            if (Test-Path $prerequisiteComponentsFile) {
+                                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
+                                Write-Host "Downloading Prerequisite Components"
+                                $prerequisiteComponents.PSObject.Properties | % {
+                                    $path = Join-Path $platformArtifactPath $_.Name
+                                    if (-not (Test-Path $path)) {
+                                        $dirName = [System.IO.Path]::GetDirectoryName($path)
+                                        $filename = [System.IO.Path]::GetFileName($path)
+                                        if (-not (Test-Path $dirName)) {
+                                            New-Item -Path $dirName -ItemType Directory | Out-Null
+                                        }
+                                        $url = $_.Value
+                                        Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
+                                    }
+                                }
+                                $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
+                                if (!(Test-Path $dotnetCoreFolder)) {
+                                    New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
+                                    Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
+                                }
+                            }
+                        }
+                    }
+                    finally {
+                        Remove-Item -path $platformZip -force
+                        if (Test-Path $tmpFolder) {
+                            Remove-Item $tmpFolder -Recurse -Force
+                        }
+                    }
+        
+                }
+                Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
+                $platformArtifactPath
+            }
+            finally {
+                $platformMutex.ReleaseMutex()
+            }
         }
-        Set-Content -Path (Join-Path $platformArtifactPath 'lastused') -Value "$([datetime]::UtcNow.Ticks)" -ErrorAction SilentlyContinue
-        $platformArtifactPath
+    }
+    finally {
+        $appMutex.ReleaseMutex()
     }
 }
 Export-ModuleMember -Function Download-Artifacts

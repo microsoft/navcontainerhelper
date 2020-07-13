@@ -389,73 +389,91 @@ function New-NavContainer {
                     $imageName += "-nodb"
                 }
             }
-    
-            $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-    
-            $rebuild = $false
-            if (docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq $imageName }) {
+
+            $buildMutexName = "img-$imageName"
+            $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+            try {
                 try {
-                    Write-Host "Image $imageName already exists"
-                    $inspect = docker inspect $imageName | ConvertFrom-Json
+                    if (!$buildMutex.WaitOne(1000)) {
+                        Write-Host "Waiting for other process building image $imageName"
+                        $buildMutex.WaitOne() | Out-Null
+                        Write-Host "Other process completed download"
+                    }
+                }
+                catch [System.Threading.AbandonedMutexException] {
+                   Write-Host "Other process terminated abnormally"
+                }
+    
+                $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
+                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+                $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
         
-                    if ($useGenericImage -eq "") {
-                        $useGenericImage = Get-BestGenericImageName
-                    }
-        
-                    $labels = Get-NavContainerImageLabels -imageName $useGenericImage
-        
-                    $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                    if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
-                        Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
-                        $rebuild = $true
-                    }
-                    if ($inspect.Config.Labels.version -ne $appManifest.Version) {
-                        Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                        $rebuild = $true
-                    }
-                    elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                        Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                        $rebuild = $true
-                    }
-                    elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
-                        Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
-                        $rebuild = $true
-                    }
-                    elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
-                        Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
-                        $rebuild = $true
-                    }
-        
-                    if ($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") {
-                        if (!$skipdatabase) {
-                            Write-Host "Image $imageName was build without a database, should have a database"
+                $rebuild = $false
+                if (docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq $imageName }) {
+                    try {
+                        Write-Host "Image $imageName already exists"
+                        $inspect = docker inspect $imageName | ConvertFrom-Json
+            
+                        if ($useGenericImage -eq "") {
+                            $useGenericImage = Get-BestGenericImageName
+                        }
+            
+                        $labels = Get-NavContainerImageLabels -imageName $useGenericImage
+            
+                        $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
+                        if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                            Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
                             $rebuild = $true
                         }
+                        if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                            Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                            $rebuild = $true
+                        }
+                        elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
+                            Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                            $rebuild = $true
+                        }
+                        elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                            Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                            $rebuild = $true
+                        }
+                        elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                            Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                            $rebuild = $true
+                        }
+            
+                        if ($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") {
+                            if (!$skipdatabase) {
+                                Write-Host "Image $imageName was build without a database, should have a database"
+                                $rebuild = $true
+                            }
+                        }
+                        else {
+                            # Do not rebuild if database is there, just don't use it
+                        }
                     }
-                    else {
-                        # Do not rebuild if database is there, just don't use it
+                    catch {
+                        $rebuild = $true
                     }
                 }
-                catch {
+                else {
+                    Write-Host "Image $imageName doesn't exist"
                     $rebuild = $true
                 }
+                if ($rebuild) {
+                    Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
+                    $startTime = [DateTime]::Now
+                    New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
+                    $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+                    Write-Host "Building image took $timespend seconds"
+                }
+                $artifactUrl = ""
+                $alwaysPull = $false
+                $useGenericImage = ""
             }
-            else {
-                Write-Host "Image $imageName doesn't exist"
-                $rebuild = $true
+            finally {
+                $buildMutex.ReleaseMutex()
             }
-            if ($rebuild) {
-                Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
-                $startTime = [DateTime]::Now
-                New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
-                $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
-                Write-Host "Building image took $timespend seconds"
-            }
-            $artifactUrl = ""
-            $alwaysPull = $false
-            $useGenericImage = ""
         }
     }
 
