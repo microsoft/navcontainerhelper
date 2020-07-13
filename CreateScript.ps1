@@ -21,8 +21,7 @@ function Select-Value {
         [string] $question,
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
         [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
-        [switch] $includeExit,
-        [int] $includeBack = -1
+        [int] $previousStep = -1
     )
 
     if (!$doNotClearHost) {
@@ -55,15 +54,11 @@ function Select-Value {
         $offset++     
     }
     Write-Host
-    if ($includeExit -or $includeBack -ge 0) {
-        if ($includeExit) {
-            Write-Host -ForegroundColor Yellow "x " -NoNewline
-            Write-Host "Exit"
-        }
-        if ($includeBack -ge 0) {
-            Write-Host -ForegroundColor Yellow "z " -NoNewline
-            Write-Host "Go back to previous step"
-        }
+    if ($previousStep -ge 0) {
+        Write-Host -ForegroundColor Yellow "x " -NoNewline
+        Write-Host "Start over"
+        Write-Host -ForegroundColor Yellow "z " -NoNewline
+        Write-Host "Go back to previous step"
         Write-Host
     }
     $answer = -1
@@ -73,23 +68,25 @@ function Select-Value {
             Write-Host "(default $([char]($defaultAnswer + 97))) " -NoNewline
         }
         $selection = (Read-Host).ToLowerInvariant()
-        if ($includeExit -and $selection -eq "x") {
-            if ($writeAnswer) {
-                Write-Host
-                Write-Host -ForegroundColor Green "Exit selected"
-                Write-Host
+        if ($previousStep -ge 0) {
+            if ($selection -eq "x") {
+                if ($writeAnswer) {
+                    Write-Host
+                    Write-Host -ForegroundColor Green "Start over selected"
+                    Write-Host
+                }
+                $script:wizardStep = 0
+                return "Back"
             }
-            $script:wizardStep = 1000
-            return "Exit"
-        }
-        if ($includeBack -ge 0 -and $selection -eq "z") {
-            if ($writeAnswer) {
-                Write-Host
-                Write-Host -ForegroundColor Green "Back selected"
-                Write-Host
+            if ($selection -eq "z") {
+                if ($writeAnswer) {
+                    Write-Host
+                    Write-Host -ForegroundColor Green "Back selected"
+                    Write-Host
+                }
+                $script:wizardStep = $previousStep
+                return "Back"
             }
-            $script:wizardStep = $includeBack
-            return "Back"
         }
         if ($selection -eq "") {
             if ($defaultAnswer -ge 0) {
@@ -140,8 +137,7 @@ function Enter-Value {
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
         [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
         [switch] $doNotConvertToLower,
-        [switch] $includeExit,
-        [int] $includeBack = -1
+        [int] $previousStep = -1
     )
 
     if (!$doNotClearHost) {
@@ -155,17 +151,13 @@ function Enter-Value {
         Write-Host $description
         Write-Host
     }
-    if ($includeExit -or $includeBack -ge 0) {
-        if ($includeExit) {
-            Write-Host "Enter " -NoNewline
-            Write-Host -ForegroundColor Yellow "x" -NoNewline
-            Write-Host " to exit"
-        }
-        if ($includeBack -ge 0) {
-            Write-Host "Enter " -NoNewline
-            Write-Host -ForegroundColor Yellow "z" -NoNewline
-            Write-Host " to go back to previous step"
-        }
+    if ($previousStep -ge 0) {
+        Write-Host "Enter " -NoNewline
+        Write-Host -ForegroundColor Yellow "x" -NoNewline
+        Write-Host " to start over"
+        Write-Host "Enter " -NoNewline
+        Write-Host -ForegroundColor Yellow "z" -NoNewline
+        Write-Host " to go back to previous step"
         Write-Host
     }
     $answer = ""
@@ -191,22 +183,22 @@ function Enter-Value {
                 Write-Host -ForegroundColor Red "No default value exists. "
             }
         }
-        elseif ($selection -eq "x" -and $includeExit) {
+        elseif ($selection -eq "x" -and $previousStep -ge 0) {
             if ($writeAnswer) {
                 Write-Host
                 Write-Host -ForegroundColor Green "Exit selected"
                 Write-Host
             }
-            $script:wizardStep = 1000
-            return "exit"
+            $script:wizardStep = 0
+            return "back"
         }
-        elseif ($selection -eq "z" -and $includeBack -ge 0) {
+        elseif ($selection -eq "z" -and $previousStep -ge 0) {
             if ($writeAnswer) {
                 Write-Host
                 Write-Host -ForegroundColor Green "Back selected"
                 Write-Host
             }
-            $script:wizardStep = $includeBack
+            $script:wizardStep = $previousStep
             return "back"
         }
         else {
@@ -354,8 +346,7 @@ switch ($thisStep) {
         -options ([ordered]@{"Local" = "Local docker container"; "AzureVM" = "Docker container in an Azure VM"}) `
         -question "Hosting" `
         -default "Local" `
-        -includeExit `
-        -includeBack 1
+        -previousStep 1
 }
 
 3 {
@@ -373,8 +364,7 @@ switch ($thisStep) {
             -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password - $predefinedpw)"; "Random" = "Username/Password authentication (admin with random password - $randompw)"; "Windows" = "Windows authentication"}) `
             -question "Authentication" `
             -default "Credential" `
-            -includeExit `
-            -includeBack 2
+            -previousStep 2
     }
     else {
         $auth = "UserPassword"
@@ -395,8 +385,7 @@ switch ($thisStep) {
             -description "Enter the name of the container.`nContainer names are case sensitive and must start with a letter.`n`nNote: We recommend short lower case names as container names." `
             -question "Container name" `
             -default "my" `
-            -includeExit `
-            -includeBack 3
+            -previousStep 3
     }
     else {
         $containerName = "navserver"
@@ -419,8 +408,7 @@ switch ($thisStep) {
         -question "Version" `
         -default "LatestSandbox" `
         -writeAnswer `
-        -includeExit `
-        -includeBack $back
+        -previousStep $back
 }
 
 6 {
@@ -446,10 +434,9 @@ switch ($thisStep) {
                 -question "Enter version number (format major[.minor[.build[.release]]])" `
                 -doNotClearHost `
                 -writeAnswer `
-                -includeExit `
-                -includeBack 5
+                -previousStep 5
             
-            if ($version -eq "exit" -or $version -eq "back") {
+            if ($version -eq "back") {
                 $ok = $true
             }
             else {
@@ -496,10 +483,9 @@ switch ($thisStep) {
                                 -question "Select specific version" `
                                 -doNotClearHost `
                                 -writeAnswer `
-                                -includeExit `
-                                -includeBack 5
+                                -previousStep 5
     
-                            if ($version -eq "exit" -or $version -eq "back") {
+                            if ($version -eq "back") {
                                 $ok = $true
                             }
                             else {
@@ -547,8 +533,7 @@ switch ($thisStep) {
         -default $default `
         -question "Country" `
         -doNotClearHost `
-        -includeExit `
-        -includeBack 5
+        -previousStep 5
 }
 
 8 {
@@ -567,8 +552,7 @@ switch ($thisStep) {
             -options ([ordered]@{"Full" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
             -question "Test Toolkit" `
             -default "No" `
-            -includeExit `
-            -includeBack 7
+            -previousStep 7
     }
 }
 
@@ -590,8 +574,7 @@ switch ($thisStep) {
             -options @("Y","N") `
             -question "Please enter Y if you want to assign premium plan" `
             -default "N" `
-            -includeExit `
-            -includeBack $back
+            -previousStep $back
     }
 }
 
@@ -611,8 +594,7 @@ switch ($thisStep) {
             -options @("Y","N") `
             -question "Please enter Y if you want to create test users" `
             -default "N" `
-            -includeExit `
-            -includeBack 9
+            -previousStep 9
     }
 }
 
@@ -646,8 +628,7 @@ switch ($thisStep) {
         -description $description `
         -question "License File" `
         -default $default `
-        -includeExit `
-        -includeBack $back
+        -previousStep $back
     
     if ($licenseFile -eq "blank") {
         $licenseFile = ""
@@ -672,8 +653,7 @@ switch ($thisStep) {
         -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
         -question "Database" `
         -default "default" `
-        -includeExit `
-        -includeBack 11
+        -previousStep 11
     
     if ($database -eq "bakfile") {
         $bakFile = Enter-Value `
@@ -695,9 +675,8 @@ switch ($thisStep) {
                 -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
                 -question "Database Connection String" `
                 -doNotConvertToLower `
-                -includeExit `
-                -includeBack 12
-            if ($connectionString -eq "exit" -or $connectionString -eq "back") {
+                -previousStep 12
+            if ($connectionString -eq "back") {
                 $err = $false
             }
             else {
@@ -748,8 +727,7 @@ switch ($thisStep) {
             -options $options `
             -question "Use DNS" `
             -default "default" `
-            -includeExit `
-            -includeBack 12
+            -previousStep 12
     }
 }
 
@@ -806,8 +784,7 @@ switch ($thisStep) {
             -options $options `
             -question "Isolation" `
             -default "default" `
-            -includeExit `
-            -includeBack 13
+            -previousStep 13
     }
 }
 
@@ -870,8 +847,7 @@ switch ($thisStep) {
             -description $description `
             -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
             -default 'blank' `
-            -includeExit `
-            -includeBack 14
+            -previousStep 14
     
         if ($memoryLimit -eq "blank") {
             $memoryLimit = ""
@@ -897,8 +873,7 @@ switch ($thisStep) {
             -description "If you are planning on running the same script multiple times, it will save time on subsequent runs to save the image`nThe ContainerHelper will automatically generate an image tag, matching the version number and country of the requested version and on every run it will check whether the image needs to be rebuild.`n`nRecommendation is to use a short name (like mybcimage) if you want to save the image." `
             -question "Image name (or blank to skip saving)" `
             -default "blank" `
-            -includeExit `
-            -includeBack 15
+            -previousStep 15
     }
 }
 
