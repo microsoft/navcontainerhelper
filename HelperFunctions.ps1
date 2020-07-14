@@ -227,3 +227,22 @@ function TestSasToken {
         }
     }
 }
+
+function Expand-7zipArchive {
+    Param (
+        [Parameter(Mandatory=$true)]
+        [string] $Path,
+        [string] $DestinationPath
+    )
+
+    $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
+
+    if (-not (Test-Path -Path $7zipPath -PathType Leaf)) {
+        Write-Host "7zip tool not found, continue using Expand-Archive"
+        Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
+    } else {
+        Set-Alias -Name 7z -Value $7zipPath
+        $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
+        Invoke-Expression -Command $command
+    }
+}
