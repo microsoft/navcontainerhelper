@@ -670,7 +670,7 @@ function New-NavContainer {
         $tempFile = "$tempFolder.zip"
         Download-File -sourceUrl $dvdPath -destinationFile $tempFile
         Write-Host "Extracting DVD .zip file"
-        Expand-Archive -Path $tempFile -DestinationPath $tempFolder
+        Expand-7zipArchive -Path $tempFile -DestinationPath $tempFolder
         Remove-Item -Path $tempFile
         $dvdPath = $tempFolder
     }
@@ -678,7 +678,7 @@ function New-NavContainer {
         $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
         Write-Host "Extracting DVD .zip file"
-        Expand-Archive -Path $dvdPath -DestinationPath $temp
+        Expand-7zipArchive -Path $dvdPath -DestinationPath $temp
         $dvdPath = $temp
     }
 
@@ -1045,14 +1045,14 @@ function New-NavContainer {
                 Download-File -sourceUrl $_ -destinationFile $destinationFile
                 if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
                     Write-Host "Extracting .zip file"
-                    Expand-Archive -Path $destinationFile -DestinationPath $myFolder
+                    Expand-7zipArchive -Path $destinationFile -DestinationPath $myFolder
                     Remove-Item -Path $destinationFile -Force
                 }
             } elseif (Test-Path $_ -PathType Container) {
                 Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
             } else {
                 if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Expand-Archive -Path $_ -DestinationPath $myFolder
+                    Expand-7zipArchive -Path $_ -DestinationPath $myFolder
                 } else {
                     Copy-Item -Path $_ -Destination $myFolder -Force
                 }
@@ -1591,7 +1591,7 @@ if (-not `$restartingInstance) {
         Write-Host "Downloading new test apps for this version from $url"
         $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
         Download-File -sourceUrl $url -destinationFile "$zipName.zip"
-        Expand-Archive "$zipName.zip" -DestinationPath $zipname -Force
+        Expand-7zipArchive -Path "$zipName.zip" -DestinationPath $zipname
         Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
             Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
