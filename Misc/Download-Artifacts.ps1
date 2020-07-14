@@ -90,7 +90,7 @@ function Download-Artifacts {
                 Write-Host "Unpacking application artifact to tmp folder"
                 $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
                 try {
-                    Expand-Archive -Path $appZip -DestinationPath $tmpFolder -Force
+                    Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
                     if (!(Test-Path "$appArtifactPath")) {
                         Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force -ErrorAction SilentlyContinue
                     }
@@ -169,7 +169,7 @@ function Download-Artifacts {
                     Write-Host "Unpacking platform artifact to tmp folder"
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
                     try {
-                        Expand-Archive -Path $platformZip -DestinationPath $tmpFolder -Force
+                        Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder
                         if (!(Test-Path "$platformArtifactPath")) {
                             Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force -ErrorAction SilentlyContinue
                             $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"

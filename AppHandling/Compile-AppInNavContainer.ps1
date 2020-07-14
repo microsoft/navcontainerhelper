@@ -173,7 +173,7 @@ function Compile-AppInNavContainer {
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
-            Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
+            Expand-7zipArchive -Path $tempZip -DestinationPath "c:\build\vsix"
         }
     }
 

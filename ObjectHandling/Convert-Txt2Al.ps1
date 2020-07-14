@@ -80,7 +80,7 @@ function Convert-Txt2Al {
                     if (!(Test-Path "c:\build" -PathType Container)) {
                         $tempZip = Join-Path $env:TEMP "alc.zip"
                         Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
-                        Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
+                        Expand-7zipArchive -Path $tempZip -DestinationPath "c:\build\vsix"
                     }
                     $alcPath = 'C:\build\vsix\extension\bin'
                     Copy-Item -Path (Join-Path $alcPath "Microsoft.Dynamics.Nav.CodeAnalysis.Workspaces.dll") -Destination ([System.IO.Path]::GetDirectoryName($txt2al))
