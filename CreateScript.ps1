@@ -253,14 +253,14 @@ $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Pri
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $randompw = Get-RandomPassword
 $ErrorActionPreference = "STOP"
-$wizardStep = 0
+$script:wizardStep = 0
 
-while ($wizardStep -le 100) {
+while ($script:wizardStep -le 100) {
 
-#Write-Host -ForegroundColor Red $wizardStep
+#Write-Host -ForegroundColor Red $script:wizardStep
 
-$thisStep = $wizardStep
-$wizardStep++
+$thisStep = $script:wizardStep
+$script:wizardStep++
 
 switch ($thisStep) {
 0 {
