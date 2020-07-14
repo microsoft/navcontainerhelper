@@ -172,7 +172,7 @@ function New-NavImage {
                     $destinationFile = Join-Path $myFolder $filename
                     Download-File -sourceUrl $_ -destinationFile $destinationFile
                     if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                        Write-Host "Extracting .zip file"
+                        Write-Host "Extracting .zip file " -NoNewline
                         Expand-7zipArchive -Path $destinationFile -DestinationPath $myFolder
                         Remove-Item -Path $destinationFile -Force
                     }
@@ -180,6 +180,7 @@ function New-NavImage {
                     Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
                 } else {
                     if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                        Write-Host "Extracting .zip file " -NoNewline
                         Expand-7zipArchive -Path $_ -DestinationPath $myFolder
                     } else {
                         Copy-Item -Path $_ -Destination $myFolder -Force
