@@ -87,7 +87,7 @@ function Download-Artifacts {
                         Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
                     }
                 }
-                Write-Host "Unpacking application artifact to tmp folder"
+                Write-Host "Unpacking application artifact to tmp folder " -NoNewline
                 $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
                 try {
                     Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
@@ -166,7 +166,7 @@ function Download-Artifacts {
                             Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
                         }
                     }
-                    Write-Host "Unpacking platform artifact to tmp folder"
+                    Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
                     try {
                         Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder

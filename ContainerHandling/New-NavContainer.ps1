@@ -669,7 +669,7 @@ function New-NavContainer {
         new-item -type directory -Path $tempFolder | Out-Null
         $tempFile = "$tempFolder.zip"
         Download-File -sourceUrl $dvdPath -destinationFile $tempFile
-        Write-Host "Extracting DVD .zip file"
+        Write-Host "Extracting DVD .zip file " -NoNewline
         Expand-7zipArchive -Path $tempFile -DestinationPath $tempFolder
         Remove-Item -Path $tempFile
         $dvdPath = $tempFolder
@@ -677,7 +677,7 @@ function New-NavContainer {
     elseif ($dvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
         $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
-        Write-Host "Extracting DVD .zip file"
+        Write-Host "Extracting DVD .zip file " -NoNewline
         Expand-7zipArchive -Path $dvdPath -DestinationPath $temp
         $dvdPath = $temp
     }
@@ -1044,7 +1044,7 @@ function New-NavContainer {
                 $destinationFile = Join-Path $myFolder $filename
                 Download-File -sourceUrl $_ -destinationFile $destinationFile
                 if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Write-Host "Extracting .zip file"
+                    Write-Host "Extracting .zip file " -NoNewline
                     Expand-7zipArchive -Path $destinationFile -DestinationPath $myFolder
                     Remove-Item -Path $destinationFile -Force
                 }
@@ -1052,6 +1052,7 @@ function New-NavContainer {
                 Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
             } else {
                 if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                    Write-Host "Extracting .zip file " -NoNewline
                     Expand-7zipArchive -Path $_ -DestinationPath $myFolder
                 } else {
                     Copy-Item -Path $_ -Destination $myFolder -Force
@@ -1591,6 +1592,7 @@ if (-not `$restartingInstance) {
         Write-Host "Downloading new test apps for this version from $url"
         $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
         Download-File -sourceUrl $url -destinationFile "$zipName.zip"
+        Write-Host "Extracting new test apps for this version " -NoNewline
         Expand-7zipArchive -Path "$zipName.zip" -DestinationPath $zipname
         Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)

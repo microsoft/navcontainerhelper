@@ -1,6 +1,7 @@
 0.7.0.16
 Issue #1107 Add hostOsVersion parameter to Get-BestGenericImageName
 Back on ConnectionString or bakfile question doesn't work in New-BcContainerWizard
+Use 7zip if available to expand archives on host
 
 0.7.0.15
 Back and Start Over doesn't work when running New-BcContainerWizard
