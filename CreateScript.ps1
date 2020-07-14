@@ -286,6 +286,7 @@ Clear-Host
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $randompw = Get-RandomPassword
+$bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
 $ErrorActionPreference = "STOP"
 $script:wizardStep = 0
 $script:acceptDefaults = $false
@@ -784,7 +785,6 @@ switch ($thisStep) {
         $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     
         try {
-            $bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
             $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
             if ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
                 $defaultIsolation = "Process"
