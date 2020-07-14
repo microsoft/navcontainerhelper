@@ -54,11 +54,17 @@ function Select-Value {
         $offset++     
     }
     Write-Host
+    if (($default) -and !$script:acceptDefaults) {
+        Write-Host -ForegroundColor Yellow "!" -NoNewline
+        Write-Host " accept default answers for the remaining questions"
+    }
     if ($previousStep -ge 0) {
-        Write-Host -ForegroundColor Yellow "x " -NoNewline
-        Write-Host "Start over"
-        Write-Host -ForegroundColor Yellow "z " -NoNewline
-        Write-Host "Go back to previous step"
+        Write-Host -ForegroundColor Yellow "x" -NoNewline
+        Write-Host " start over"
+        Write-Host -ForegroundColor Yellow "z" -NoNewline
+        Write-Host " go back to previous step"
+    }
+    if (($default) -or ($previousStep -ge 0)) {
         Write-Host
     }
     $answer = -1
@@ -67,7 +73,17 @@ function Select-Value {
         if ($defaultAnswer -ge 0) {
             Write-Host "(default $([char]($defaultAnswer + 97))) " -NoNewline
         }
-        $selection = (Read-Host).ToLowerInvariant()
+        if ($script:acceptDefaults -and $defaultAnswer -ge 0) {
+            $selection = ""
+        }
+        else {
+            $selection = (Read-Host).ToLowerInvariant()
+        }
+        if ($selection -eq "!" -and ($default)) {
+            $selection = ""
+            $script:acceptDefaults = $true
+            Write-Host $defaultAnswer
+        }
         if ($previousStep -ge 0) {
             if ($selection -eq "x") {
                 if ($writeAnswer) {
@@ -75,6 +91,7 @@ function Select-Value {
                     Write-Host -ForegroundColor Green "Start over selected"
                     Write-Host
                 }
+                $script:acceptDefaults = $false
                 $script:wizardStep = 0
                 return "Back"
             }
@@ -84,6 +101,7 @@ function Select-Value {
                     Write-Host -ForegroundColor Green "Back selected"
                     Write-Host
                 }
+                $script:acceptDefaults = $false
                 $script:wizardStep = $previousStep
                 return "Back"
             }
@@ -151,6 +169,10 @@ function Enter-Value {
         Write-Host $description
         Write-Host
     }
+    if (($default) -and !$script:acceptDefaults) {
+        Write-Host -ForegroundColor Yellow "!" -NoNewline
+        Write-Host " accept default answers for the remaining questions"
+    }
     if ($previousStep -ge 0) {
         Write-Host "Enter " -NoNewline
         Write-Host -ForegroundColor Yellow "x" -NoNewline
@@ -158,6 +180,8 @@ function Enter-Value {
         Write-Host "Enter " -NoNewline
         Write-Host -ForegroundColor Yellow "z" -NoNewline
         Write-Host " to go back to previous step"
+    }
+    if (($default) -or ($previousStep -ge 0)) {
         Write-Host
     }
     $answer = ""
@@ -169,11 +193,19 @@ function Enter-Value {
         if ($default) {
             Write-Host "(default $default) " -NoNewline
         }
-        if ($doNotConvertToLower) {
+        if ($script:acceptDefaults -and ($default)) {
+            $selection = ""
+            Write-Host $default
+        }
+        elseif ($doNotConvertToLower) {
             $selection = Read-Host
         }
         else {
             $selection = (Read-Host).ToLowerInvariant()
+        }
+        if ($selection -eq "!" -and ($default)) {
+            $selection = ""
+            $script:acceptDefaults = $true
         }
         if ($selection -eq "") {
             if ($default) {
@@ -189,6 +221,7 @@ function Enter-Value {
                 Write-Host -ForegroundColor Green "Exit selected"
                 Write-Host
             }
+            $script:acceptDefaults = $false
             $script:wizardStep = 0
             return "back"
         }
@@ -198,6 +231,7 @@ function Enter-Value {
                 Write-Host -ForegroundColor Green "Back selected"
                 Write-Host
             }
+            $script:acceptDefaults = $false
             $script:wizardStep = $previousStep
             return "back"
         }
@@ -254,6 +288,7 @@ $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltIn
 $randompw = Get-RandomPassword
 $ErrorActionPreference = "STOP"
 $script:wizardStep = 0
+$script:acceptDefaults = $false
 
 while ($script:wizardStep -le 100) {
 
@@ -544,16 +579,13 @@ switch ($thisStep) {
     #       | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
     #       |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
     #       
-    $testtoolkit = "No"                                                
-    if ($hosting -eq "Local") {
-        $testtoolkit = Select-Value `
-            -title "Test Toolkit" `
-            -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
-            -options ([ordered]@{"Full" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
-            -question "Test Toolkit" `
-            -default "No" `
-            -previousStep 7
-    }
+    $testtoolkit = Select-Value `
+        -title "Test Toolkit" `
+        -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
+        -options ([ordered]@{"All" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
+        -question "Test Toolkit" `
+        -default "No" `
+        -previousStep 7
 }
 
 9 {
@@ -1055,6 +1087,9 @@ switch ($thisStep) {
         $url = "http://aka.ms/getbc?accepteula=Yes&artifacturl=$artifactUrl"
         if ($licenseFile) {
             $url += "&licenseFileUri=$([Uri]::EscapeDataString($licenseFile))"
+        }
+        if ($testToolkit -ne "No") {
+            $url += "&TestToolkit=$testToolkit"
         }
         if ($assignPremiumPlan -eq "Y") {
             $url += "&AssignPremiumPlan=Yes"
