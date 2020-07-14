@@ -1,3 +1,6 @@
+0.7.0.15
+Back and Start Over doesn't work when running New-BcContainerWizard
+
 0.7.0.14
 Issue #1088 Concurrency issues in NavContainerHelper
 Added default path to filename in New-BcContainerWizard
