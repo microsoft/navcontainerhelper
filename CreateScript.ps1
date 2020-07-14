@@ -659,7 +659,8 @@ switch ($thisStep) {
         $bakFile = Enter-Value `
             -title "Database Backup" `
             -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
-            -question "Database Backup"
+            -question "Database Backup" `
+            -previousStep 12
         $bakFile = $bakFile.Trim(@('"'))
     }
     elseif ($database -eq "connect") {
@@ -692,18 +693,20 @@ switch ($thisStep) {
                 }
             }
         } while ($err)
-        $idx = $databaseServer.IndexOf('\')
-        if ($idx -ge 0) {
-            $databaseInstance = $databaseServer.Substring($idx+1)
-            $databaseServer = $databaseServer.Substring(0,$idx)
+        if ($connectionString -ne "back") {
+            $idx = $databaseServer.IndexOf('\')
+            if ($idx -ge 0) {
+                $databaseInstance = $databaseServer.Substring($idx+1)
+                $databaseServer = $databaseServer.Substring(0,$idx)
+            }
+            else {
+                $databaseInstance = ""
+            }
+            if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
+                $databaseServer = "host.containerhelper.internal"
+            }
+            $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
         }
-        else {
-            $databaseInstance = ""
-        }
-        if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
-            $databaseServer = "host.containerhelper.internal"
-        }
-        $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
     }
 }
 

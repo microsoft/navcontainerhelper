@@ -8,16 +8,26 @@
 #>
 function Get-BestGenericImageName {
     Param (
-        [switch] $onlyMatchingBuilds
+        [switch] $onlyMatchingBuilds,
+        [Version] $hostOsVersion = $null
     )
 
-    $os = (Get-CimInstance Win32_OperatingSystem)
-    if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
-        throw "Unknown Host Operating System"
+    if ($hostOsVersion -eq $null) {
+        $os = (Get-CimInstance Win32_OperatingSystem)
+        if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
+            throw "Unknown Host Operating System"
+        }
+    
+        $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
+        $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     }
-
-    $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
-    $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
+    else {
+        $revision = $hostOsVersion.Revision
+        if ($revision -eq -1) { $revision = [int32]::MaxValue }
+        $build = $hostOsVersion.Build
+        if ($build -eq -1) { $build = [int32]::MaxValue }
+        $hostOsVersion = [System.Version]::new($hostOsVersion.Major, $hostOsVersion.Minor, $build, $revision)
+    }
 
     $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageName
     $repo = $genericImageNameSetting.Split(':')[0]
