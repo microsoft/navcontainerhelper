@@ -1,6 +1,6 @@
 ﻿Param(
     [switch] $skipContainerHelperCheck,
-    [string] $predefinedpw = 'P@ssword'
+    [string] $predefinedpw = 'P@ssw0rd'
 )
 
 # create script for running docker
@@ -54,18 +54,20 @@ function Select-Value {
         $offset++     
     }
     Write-Host
-    if (($default) -and !$script:acceptDefaults) {
-        Write-Host -ForegroundColor Yellow "!" -NoNewline
-        Write-Host " accept default answers for the remaining questions"
-    }
-    if ($previousStep -ge 0) {
-        Write-Host -ForegroundColor Yellow "x" -NoNewline
-        Write-Host " start over"
-        Write-Host -ForegroundColor Yellow "z" -NoNewline
-        Write-Host " go back to previous step"
-    }
-    if (($default) -or ($previousStep -ge 0)) {
-        Write-Host
+    if ($thisStep -lt 100) {
+        if (($default) -and !$script:acceptDefaults) {
+            Write-Host -ForegroundColor Yellow "!" -NoNewline
+            Write-Host " accept default answers for the remaining questions"
+        }
+        if ($previousStep -ge 0) {
+            Write-Host -ForegroundColor Yellow "x" -NoNewline
+            Write-Host " start over"
+            Write-Host -ForegroundColor Yellow "z" -NoNewline
+            Write-Host " go back to previous step"
+        }
+        if (($default) -or ($previousStep -ge 0)) {
+            Write-Host
+        }
     }
     $answer = -1
     do {
@@ -169,20 +171,22 @@ function Enter-Value {
         Write-Host $description
         Write-Host
     }
-    if (($default) -and !$script:acceptDefaults) {
-        Write-Host -ForegroundColor Yellow "!" -NoNewline
-        Write-Host " accept default answers for the remaining questions"
-    }
-    if ($previousStep -ge 0) {
-        Write-Host "Enter " -NoNewline
-        Write-Host -ForegroundColor Yellow "x" -NoNewline
-        Write-Host " to start over"
-        Write-Host "Enter " -NoNewline
-        Write-Host -ForegroundColor Yellow "z" -NoNewline
-        Write-Host " to go back to previous step"
-    }
-    if (($default) -or ($previousStep -ge 0)) {
-        Write-Host
+    if ($thisStep -lt 100) {
+        if (($default) -and !$script:acceptDefaults) {
+            Write-Host -ForegroundColor Yellow "!" -NoNewline
+            Write-Host " accept default answers for the remaining questions"
+        }
+        if ($previousStep -ge 0) {
+            Write-Host "Enter " -NoNewline
+            Write-Host -ForegroundColor Yellow "x" -NoNewline
+            Write-Host " to start over"
+            Write-Host "Enter " -NoNewline
+            Write-Host -ForegroundColor Yellow "z" -NoNewline
+            Write-Host " to go back to previous step"
+        }
+        if (($default) -or ($previousStep -ge 0)) {
+            Write-Host
+        }
     }
     $answer = ""
     do {
@@ -938,6 +942,7 @@ switch ($thisStep) {
 }
 
 100 {
+    $script:acceptDefaults = $false
     if ($hosting -eq "Local") {
         #     ____        _ _     _    _____           _       _   
         #    |  _ \      (_) |   | |  / ____|         (_)     | |  
@@ -1037,7 +1042,12 @@ switch ($thisStep) {
         $script += "    -updateHosts"
     
         if ($createTestUsers -eq "Y") {
-            $script += "Setup-BcContainerTestUsers -containerName `$containerName -Password `$credential.Password -credential `$credential"
+            if ($auth -eq "Windows") {
+                $script += "Setup-BcContainerTestUsers -containerName `$containerName -Password `$credential.Password"
+            }
+            else {
+                $script += "Setup-BcContainerTestUsers -containerName `$containerName -Password `$credential.Password -credential `$credential"
+            }
         }
     
         $filename = Enter-Value `

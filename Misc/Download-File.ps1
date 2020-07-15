@@ -48,7 +48,9 @@ $Source = @"
  	}
 "@;
  
-    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | % { $_.GetTypes() | where {$_.Name -eq 'TimeoutWebClientx'})) {
+        Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    }
 
     if (Test-Path $destinationFile -PathType Leaf) {
         if ($dontOverwrite) { 
