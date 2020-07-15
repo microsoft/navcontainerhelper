@@ -244,6 +244,6 @@ function Expand-7zipArchive {
         Write-Host "using 7zip"
         Set-Alias -Name 7z -Value $7zipPath
         $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
-        Invoke-Expression -Command $command
+        Invoke-Expression -Command $command | Out-Null
     }
 }
