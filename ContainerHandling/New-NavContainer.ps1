@@ -788,7 +788,12 @@ function New-NavContainer {
     Write-Host "Style: $bcStyle"
 
     $version = [System.Version]($navversion.split('-')[0])
-    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
+    if ($dvdPlatform) {
+        $platformVersion = $dvdPlatform
+    }
+    else {
+        $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
+    }
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
     }
