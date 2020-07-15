@@ -290,7 +290,7 @@ $Source = @"
  	}
 "@;
  
-    if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | % { $_.GetTypes() | where {$_.Name -eq 'TimeoutWebClientx'})) {
+    if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object { $_.GetTypes() | Where-Object {$_.Name -eq 'TimeoutWebClient'}})) {
         Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
     }
 
