@@ -10,7 +10,8 @@ Import-Module $modulePath -DisableNameChecking
 
 $credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
 
-Flush-ContainerHelperCache
+Get-BcContainers | Remove-BCContainer
+Flush-ContainerHelperCache -cache bcartifacts
 
 . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
 . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
