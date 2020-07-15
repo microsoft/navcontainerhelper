@@ -290,9 +290,10 @@ $Source = @"
  	}
 "@;
  
-    if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object { $_.GetTypes() | Where-Object {$_.Name -eq 'TimeoutWebClient'}})) {
+    try {
         Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
     }
+    catch {}
 
     $webClient = [TimeoutWebClient]::new(300000)
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {

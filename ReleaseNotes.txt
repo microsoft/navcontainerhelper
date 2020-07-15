@@ -1,3 +1,6 @@
+0.7.0.17
+Issue #1130 Regression in download-file
+
 0.7.0.16
 Issue #1107 Add hostOsVersion parameter to Get-BestGenericImageName
 Back on ConnectionString or bakfile question doesn't work in New-BcContainerWizard
