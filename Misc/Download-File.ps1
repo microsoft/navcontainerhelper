@@ -48,9 +48,10 @@ $Source = @"
  	}
 "@;
  
-    if (!([System.AppDomain]::CurrentDomain.GetAssemblies() | ForEach-Object { $_.GetTypes() | Where-Object {$_.Name -eq 'TimeoutWebClient'}})) {
+    try {
         Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
     }
+    catch {}
 
     if (Test-Path $destinationFile -PathType Leaf) {
         if ($dontOverwrite) { 
