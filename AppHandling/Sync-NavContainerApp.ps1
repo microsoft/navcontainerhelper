@@ -28,9 +28,10 @@ function Sync-NavContainerApp {
         [string] $appVersion,
         [Parameter(Mandatory = $false)]
         [ValidateSet('Add','Clean')]
-        [string] $Mode
+        [string] $Mode,
+        [switch] $Force
     )
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode,$force)
         Write-Host "Synchronizing $appName on $tenant"
         Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
         $parameters = @{
@@ -46,8 +47,12 @@ function Sync-NavContainerApp {
         {
             $parameters += @{ "Mode" = $mode }
         }
+        if ($force)
+        {
+            $parameters += @{ "Force" = $true }
+        }
         Sync-NavApp @parameters
-    } -ArgumentList $appName, $appVersion, $tenant, $Mode
+    } -ArgumentList $appName, $appVersion, $tenant, $Mode,$force
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
 Set-Alias -Name Sync-BCContainerApp -Value Sync-NavContainerApp
