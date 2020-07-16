@@ -65,6 +65,32 @@ function Get-ContainerHelperConfig {
 
 Get-ContainerHelperConfig | Out-Null
 
+$Source = @"
+	using System.Net;
+ 
+	public class TimeoutWebClient : WebClient
+	{
+        int theTimeout;
+
+        public TimeoutWebClient(int timeout)
+        {
+            theTimeout = timeout;
+        }
+
+		protected override WebRequest GetWebRequest(System.Uri address)
+		{
+			WebRequest request = base.GetWebRequest(address);
+			if (request != null)
+			{
+				request.Timeout = theTimeout;
+			}
+			return request;
+		}
+ 	}
+"@;
+ 
+Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")
 

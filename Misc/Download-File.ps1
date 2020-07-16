@@ -24,35 +24,6 @@ function Download-File {
         [int]    $timeout = 100
     )
 
-$Source = @"
-	using System.Net;
- 
-	public class TimeoutWebClient : WebClient
-	{
-        int theTimeout;
-
-        public TimeoutWebClient(int timeout)
-        {
-            theTimeout = timeout;
-        }
-
-		protected override WebRequest GetWebRequest(System.Uri address)
-		{
-			WebRequest request = base.GetWebRequest(address);
-			if (request != null)
-			{
-				request.Timeout = theTimeout;
-			}
-			return request;
-		}
- 	}
-"@;
- 
-    try {
-        Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
-    }
-    catch {}
-
     if (Test-Path $destinationFile -PathType Leaf) {
         if ($dontOverwrite) { 
             return
