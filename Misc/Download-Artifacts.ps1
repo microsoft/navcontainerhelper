@@ -91,8 +91,15 @@ function Download-Artifacts {
                 $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
                 try {
                     Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
-                    if (!(Test-Path "$appArtifactPath")) {
-                        Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force -ErrorAction SilentlyContinue
+                    while (!(Test-Path "$appArtifactPath")) {
+                        try {
+                            Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
+                        }
+                        catch {
+                            Write-Host "Could not rename '$tmpFolder' retrying in 5 seconds."
+                            Start-Sleep -Seconds 5
+                            Write-Host "Retrying..."
+                        }
                     }
                 }
                 finally {
@@ -170,28 +177,40 @@ function Download-Artifacts {
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
                     try {
                         Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder
-                        if (!(Test-Path "$platformArtifactPath")) {
-                            Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force -ErrorAction SilentlyContinue
-                            $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-                            if (Test-Path $prerequisiteComponentsFile) {
-                                $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                                Write-Host "Downloading Prerequisite Components"
-                                $prerequisiteComponents.PSObject.Properties | % {
-                                    $path = Join-Path $platformArtifactPath $_.Name
-                                    if (-not (Test-Path $path)) {
-                                        $dirName = [System.IO.Path]::GetDirectoryName($path)
-                                        $filename = [System.IO.Path]::GetFileName($path)
-                                        if (-not (Test-Path $dirName)) {
-                                            New-Item -Path $dirName -ItemType Directory | Out-Null
+                        $downloadprereqs = $false
+                        while (!(Test-Path "$platformArtifactPath")) {
+                            try {
+                                Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
+                                $downloadprereqs = $true
+                            }
+                            catch {
+                                Write-Host "Could not rename '$tmpFolder' retrying in 5 seconds."
+                                Start-Sleep -Seconds 5
+                                Write-Host "Retrying..."
+                            }
+
+                            if ($downloadprereqs) {
+                                $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
+                                if (Test-Path $prerequisiteComponentsFile) {
+                                    $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
+                                    Write-Host "Downloading Prerequisite Components"
+                                    $prerequisiteComponents.PSObject.Properties | % {
+                                        $path = Join-Path $platformArtifactPath $_.Name
+                                        if (-not (Test-Path $path)) {
+                                            $dirName = [System.IO.Path]::GetDirectoryName($path)
+                                            $filename = [System.IO.Path]::GetFileName($path)
+                                            if (-not (Test-Path $dirName)) {
+                                                New-Item -Path $dirName -ItemType Directory | Out-Null
+                                            }
+                                            $url = $_.Value
+                                            Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
                                         }
-                                        $url = $_.Value
-                                        Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
                                     }
-                                }
-                                $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
-                                if (!(Test-Path $dotnetCoreFolder)) {
-                                    New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
-                                    Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
+                                    $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
+                                    if (!(Test-Path $dotnetCoreFolder)) {
+                                        New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
+                                        Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
+                                    }
                                 }
                             }
                         }
