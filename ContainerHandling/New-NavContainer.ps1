@@ -806,7 +806,8 @@ function New-NavContainer {
         Write-Host "Platform: $platformversion"
     }
 
-    Write-Host "Generic Tag: $($inspect.Config.Labels.tag)"
+    $genericTag = $inspect.Config.Labels.tag
+    Write-Host "Generic Tag: $genericTag"
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
