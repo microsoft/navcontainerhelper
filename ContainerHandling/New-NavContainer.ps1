@@ -892,7 +892,6 @@ function New-NavContainer {
         }
 
         $imageName = $useGenericImage
-        $inspect = docker inspect $imageName | ConvertFrom-Json
         Write-Host "Using generic image $imageName"
 
         if (!$alwaysPull) {
@@ -907,6 +906,7 @@ function New-NavContainer {
             DockerDo -command pull -imageName $imageName | Out-Null
         }
 
+        $inspect = docker inspect $imageName | ConvertFrom-Json
         $useGenericImageTagVersion = [System.Version]"$($inspect.Config.Labels.tag)"
 
         if ($artifactUrl) {
