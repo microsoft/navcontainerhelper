@@ -346,12 +346,14 @@ function New-NavContainer {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
     }
 
-   	$dockerOS = docker version -f "{{.Server.Os}}"
+    $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
+    $dockerOS = $dockerVersion.Split('/')[0]
+    $dockerClientVersion = $dockerVersion.Split('/')[1]
+    $dockerServerVersion = $dockerVersion.Split('/')[2]
+
     if ($dockerOS -ne "Windows") {
         throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
    	}
-
-    $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
 
     $myClientVersion = [System.Version]"0.0.0"
@@ -359,11 +361,13 @@ function New-NavContainer {
         Write-Host -ForegroundColor Red "WARNING: Microsoft container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
     }
 
-    $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerServerVersion"
 
     # Remove if it already exists
     Remove-NavContainer $containerName
+
+    Write-Host "Fetching all docker images"
+    $allImages = docker images --format "{{.Repository}}:{{.Tag}}"
 
     $skipDatabase = $false
 
@@ -409,7 +413,7 @@ function New-NavContainer {
                 $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
         
                 $rebuild = $false
-                if (docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq $imageName }) {
+                if ($allImages | Where-Object { $_ -eq $imageName }) {
                     try {
                         Write-Host "Image $imageName already exists"
                         $inspect = docker inspect $imageName | ConvertFrom-Json
@@ -572,7 +576,7 @@ function New-NavContainer {
 
         $imageExists = $false
         $bestImageExists = $false
-        docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+        $allImages | ForEach-Object {
             if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $imageExists = $true }
             if ("$_" -eq "$bestImageName") { $bestImageExists = $true }
         }
@@ -608,6 +612,7 @@ function New-NavContainer {
     }
 
     Write-Host "Using image $imageName"
+    $inspect = docker inspect $imageName | ConvertFrom-Json
 
     if ($clickonce) {
         $parameters += "--env clickonce=Y"
@@ -768,13 +773,12 @@ function New-NavContainer {
         $navVersion += "-$devCountry"
 
     } elseif ($devCountry -eq "") {
-        $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
+        $devCountry = $inspect.Config.Labels.country
     }
 
     Write-Host "Creating Container $containerName"
     
     if ($navVersion -eq "") {
-        $inspect = docker inspect $imageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
             throw "Container $imageName is not a NAV/BC container"
         }
@@ -792,15 +796,19 @@ function New-NavContainer {
         $platformVersion = $dvdPlatform
     }
     else {
-        $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
+        if ($inspect.Config.Labels.psobject.Properties.Name -eq 'platform') {
+            $platformVersion = $inspect.Config.Labels.platform
+        } else {
+            $platformVersion = ""
+        }
     }
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
     }
-    $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
-    Write-Host "Generic Tag: $genericTag"
 
-    $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+    Write-Host "Generic Tag: $($inspect.Config.Labels.tag)"
+
+    $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
         $containerOs = "ltsc2016"
         if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
@@ -855,7 +863,7 @@ function New-NavContainer {
         }
     }
 
-    if ($useGenericImage) {
+    if ($useGenericImage -and $useGenericImage -ne $imageName) {
 
         if ("$dvdPath" -eq "" -and "$artifactUrl" -eq "") {
             # Extract files from image if not already done
@@ -868,8 +876,6 @@ function New-NavContainer {
                 }
             }
 
-            $inspect = docker inspect $imageName | ConvertFrom-Json
-
             $parameters += @(
                            "--label nav=$($inspect.Config.Labels.nav)",
                            "--label version=$($inspect.Config.Labels.version)",
@@ -877,7 +883,7 @@ function New-NavContainer {
                            "--label cu=$($inspect.Config.Labels.cu)"
                            )
 
-            if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
+            if ($inspect.Config.Labels.psobject.Properties.Name -eq 'platform') {
                 $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
             }
             if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
@@ -886,11 +892,12 @@ function New-NavContainer {
         }
 
         $imageName = $useGenericImage
+        $inspect = docker inspect $imageName | ConvertFrom-Json
         Write-Host "Using generic image $imageName"
 
         if (!$alwaysPull) {
             $alwaysPull = $true
-            docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+            $allImages | ForEach-Object {
                 if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $alwaysPull = $false }
             }
         }
@@ -900,15 +907,15 @@ function New-NavContainer {
             DockerDo -command pull -imageName $imageName | Out-Null
         }
 
+        $useGenericImageTagVersion = [System.Version]"$($inspect.Config.Labels.tag)"
+
         if ($artifactUrl) {
-            $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
             if ($useGenericImageTagVersion -lt [System.Version]"0.0.9.103") {
                 Write-Host "Generic Tag is $useGenericImageTagVersion - pulling updated generic image to use artifacts"
                 DockerDo -command pull -imageName $imageName | Out-Null
             }
         }
 
-        $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
         if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
             Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
             $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
@@ -918,7 +925,7 @@ function New-NavContainer {
             $myscripts += @( @{ "navinstall.ps1" = '. "c:\run\navinstall.ps1"; Stop-Service -Name $NavServiceName -WarningAction Ignore' } )
         }
 
-        $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+        $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     
         if ("$containerOsVersion".StartsWith('10.0.14393.')) {
             $containerOs = "ltsc2016"
@@ -950,7 +957,7 @@ function New-NavContainer {
     
         Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
 
-        $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
+        $genericTagVersion = [Version]"$($inspect.Config.Labels.tag)"
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 

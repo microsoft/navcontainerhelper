@@ -18,18 +18,14 @@ function Test-NavContainer {
         [switch] $doNotIncludeStoppedContainers
     )
     Process {
-        $name = Get-NavContainerName $containerName
-        if ($name) { $containerName = $name }
         $id = ""
         $a = "-a"
         if ($doNotIncludeStoppedContainers) {
             $a = ""
         }
-        docker ps $a -q --no-trunc | ForEach-Object {
-            $name = Get-NavContainerName -containerId $_
-            if ($name -eq $containerName) {
-                $id = $_
-            }
+        $id = docker ps $a -q --no-trunc --filter "name=$containerName"
+        if (!($id)) {
+            $id = docker ps $a -q --no-trunc --filter "id=$containerName"
         }
         if ($id) {
             $inspect = docker inspect $id | ConvertFrom-Json
