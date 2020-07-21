@@ -1,3 +1,8 @@
+0.7.0.18
+Optimizations in New-BcContainer - avoid multople docker command invokes
+New-BcContainerWizard opens PowerShell prompt for wizard
+Refactor code behind New-BcContainerWizard to be more "wizard"-like
+
 0.7.0.17
 Issue #1130 Regression in download-file
 
