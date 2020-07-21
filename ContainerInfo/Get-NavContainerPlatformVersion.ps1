@@ -23,10 +23,10 @@ function Get-NavContainerPlatformVersion {
         if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
             throw "Container $containerOrImageName is not a NAV/BC container"
         }
-        if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -eq 0) {
-            return ""
-        } else {
+        if ($inspect.Config.Labels.psobject.Properties.Name -eq 'platform') {
             return "$($inspect.Config.Labels.platform)"
+        } else {
+            return ""
         }
     }
 }

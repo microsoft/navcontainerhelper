@@ -21,12 +21,13 @@ function Select-Value {
         [string] $question,
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
         [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
-        [int] $previousStep = -1
+        [switch] $previousStep
     )
 
     if (!$doNotClearHost) {
         Clear-Host
     }
+
     if ($title) {
         Write-Host -ForegroundColor Yellow $title
         Write-Host
@@ -54,18 +55,18 @@ function Select-Value {
         $offset++     
     }
     Write-Host
-    if ($thisStep -lt 100) {
+    if ($script:thisStep -lt 100) {
         if (($default) -and !$script:acceptDefaults) {
             Write-Host -ForegroundColor Yellow "!" -NoNewline
             Write-Host " accept default answers for the remaining questions"
         }
-        if ($previousStep -ge 0) {
+        if ($previousStep) {
             Write-Host -ForegroundColor Yellow "x" -NoNewline
             Write-Host " start over"
             Write-Host -ForegroundColor Yellow "z" -NoNewline
-            Write-Host " go back to previous step"
+            Write-Host " go back"
         }
-        if (($default) -or ($previousStep -ge 0)) {
+        if (($default) -or ($previousStep)) {
             Write-Host
         }
     }
@@ -86,7 +87,7 @@ function Select-Value {
             $script:acceptDefaults = $true
             Write-Host $defaultAnswer
         }
-        if ($previousStep -ge 0) {
+        if ($previousStep) {
             if ($selection -eq "x") {
                 if ($writeAnswer) {
                     Write-Host
@@ -95,6 +96,8 @@ function Select-Value {
                 }
                 $script:acceptDefaults = $false
                 $script:wizardStep = 0
+                $script:prevSteps = New-Object System.Collections.Stack
+                $script:prevSteps.Push(1)
                 return "Back"
             }
             if ($selection -eq "z") {
@@ -104,7 +107,7 @@ function Select-Value {
                     Write-Host
                 }
                 $script:acceptDefaults = $false
-                $script:wizardStep = $previousStep
+                $script:wizardStep = $script:prevSteps.Pop()
                 return "Back"
             }
         }
@@ -157,12 +160,13 @@ function Enter-Value {
         [switch] $doNotClearHost = ($host.name -ne "ConsoleHost"),
         [switch] $writeAnswer = ($host.name -ne "ConsoleHost"),
         [switch] $doNotConvertToLower,
-        [int] $previousStep = -1
+        [switch] $previousStep
     )
 
     if (!$doNotClearHost) {
         Clear-Host
     }
+
     if ($title) {
         Write-Host -ForegroundColor Yellow $title
         Write-Host
@@ -171,20 +175,20 @@ function Enter-Value {
         Write-Host $description
         Write-Host
     }
-    if ($thisStep -lt 100) {
+    if ($script:thisStep -lt 100) {
         if (($default) -and !$script:acceptDefaults) {
             Write-Host -ForegroundColor Yellow "!" -NoNewline
             Write-Host " accept default answers for the remaining questions"
         }
-        if ($previousStep -ge 0) {
+        if ($previousStep) {
             Write-Host "Enter " -NoNewline
             Write-Host -ForegroundColor Yellow "x" -NoNewline
             Write-Host " to start over"
             Write-Host "Enter " -NoNewline
             Write-Host -ForegroundColor Yellow "z" -NoNewline
-            Write-Host " to go back to previous step"
+            Write-Host " to go back"
         }
-        if (($default) -or ($previousStep -ge 0)) {
+        if (($default) -or ($previousStep)) {
             Write-Host
         }
     }
@@ -219,7 +223,7 @@ function Enter-Value {
                 Write-Host -ForegroundColor Red "No default value exists. "
             }
         }
-        elseif ($selection -eq "x" -and $previousStep -ge 0) {
+        elseif ($selection -eq "x" -and $previousStep) {
             if ($writeAnswer) {
                 Write-Host
                 Write-Host -ForegroundColor Green "Exit selected"
@@ -227,16 +231,18 @@ function Enter-Value {
             }
             $script:acceptDefaults = $false
             $script:wizardStep = 0
+            $script:prevSteps = New-Object System.Collections.Stack
+            $script:prevSteps.Push(1)
             return "back"
         }
-        elseif ($selection -eq "z" -and $previousStep -ge 0) {
+        elseif ($selection -eq "z" -and $previousStep) {
             if ($writeAnswer) {
                 Write-Host
                 Write-Host -ForegroundColor Green "Back selected"
                 Write-Host
             }
             $script:acceptDefaults = $false
-            $script:wizardStep = $previousStep
+            $script:wizardStep = $script:prevSteps.Pop()
             return "back"
         }
         else {
@@ -287,23 +293,63 @@ function Get-RandomPassword {
 }
 
 Clear-Host
+
+$pshost = Get-Host
+$pswindow = $pshost.UI.RawUI
+$minWidth = 150
+
+if (($pswindow.BufferSize) -and ($pswindow.WindowSize) -and ($pswindow.WindowSize.Width -lt $minWidth)) {
+    $buffersize = $pswindow.BufferSize
+    $buffersize.width = $minWidth
+    $pswindow.buffersize = $buffersize
+    
+    $newsize = $pswindow.windowsize
+    $newsize.width = $minWidth
+    $pswindow.windowsize = $newsize
+}
+
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $randompw = Get-RandomPassword
 $bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
 $ErrorActionPreference = "STOP"
+
 $script:wizardStep = 0
 $script:acceptDefaults = $false
 
+$Step = @{
+    "NavContainerHelper" = 0
+    "AcceptEula"         = 1
+    "Hosting"            = 2
+    "Authentication"     = 3
+    "ContainerName"      = 4
+    "Version"            = 5
+    "Version2"           = 6
+    "Country"            = 7
+    "Toolkit"            = 8
+    "PremiumPlan"        = 9
+    "CreateTestUsers"    = 10
+    "License"            = 11
+    "Database"           = 12
+    "DNS"                = 13
+    "Isolation"          = 14
+    "Memory"             = 15
+    "IncludeCSIDE"       = 40
+    "SaveImage"          = 50
+    "Special"            = 60
+    "Final"              = 100
+}
+
+$script:prevSteps = New-Object System.Collections.Stack
+$script:prevSteps.Push(1)
+
 while ($script:wizardStep -le 100) {
 
-#Write-Host -ForegroundColor Red $script:wizardStep
-
-$thisStep = $script:wizardStep
+$script:thisStep = $script:wizardStep
 $script:wizardStep++
 
-switch ($thisStep) {
-0 {
+switch ($script:thisStep) {
+$Step.NavContainerHelper {
     #     _   _              _____            _        _                 _    _      _                 
     #    | \ | |            / ____|          | |      (_)               | |  | |    | |                
     #    |  \| | __ ___   __ |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
@@ -352,16 +398,19 @@ switch ($thisStep) {
     }
 }
 
-1 {
-    #     ______      _       
-    #    |  ____|    | |      
-    #    | |__  _   _| | __ _ 
-    #    |  __|| | | | |/ _` |
-    #    | |____ |_| | | (_| |
-    #    |______\__,_|_|\__,_|
-    #   
+$Step.AcceptEula {
+    
     $acceptEula = Enter-Value `
-        -title "Accept Eula" `
+        -title @'
+                             _     ______      _       
+     /\                     | |   |  ____|    | |      
+    /  \   ___ ___ ___ _ __ | |_  | |__  _   _| | __ _ 
+   / /\ \ / __/ __/ _ \ '_ \| __| |  __|| | | | |/ _` |
+  / ____ \ (__ (__  __/ |_) | |_  | |____ |_| | | (_| |
+ /_/    \_\___\___\___| .__/ \__| |______\__,_|_|\__,_|
+                      | |                              
+                      |_|                              
+'@ `
         -Description "This script will generate a script, which can be used to run Business Central in Docker on your computer.`nYou will be asked a number of questions and the generated script should create a container, which matches your needs.`n`nIn order to run Business Central in Docker, you will need to accept the eula.`nThe supplemental license terms for running Business Central and NAV on Docker can be found here: https://go.microsoft.com/fwlink/?linkid=861843" `
         -options @("Y","N") `
         -question "Please enter Y if you accept the eula"
@@ -369,96 +418,112 @@ switch ($thisStep) {
         Write-Host -ForegroundColor Red "Eula not accepted, aborting..."
         return
     }
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
 }
 
-2 {
-    #     _    _           _   _             
-    #    | |  | |         | | (_)            
-    #    | |__| | ___  ___| |_ _ _ __   __ _ 
-    #    |  __  |/ _ \/ __| __| | '_ \ / _` |
-    #    | |  | | (_) \__ \ |_| | | | | (_| |
-    #    |_|  |_|\___/|___/\__|_|_| |_|\__, |
-    #                                   __/ |
-    #                                  |___/ 
+$Step.Hosting {
+
     $hosting = Select-Value `
-        -title "Local or Azure VM" `
+        -title @'
+  _                     _    _____            _        _                                                             __      ____  __ 
+ | |                   | |  / ____|          | |      (_)                                  /\                        \ \    / /  \/  |
+ | |     ___   ___ __ _| | | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __    ___  _ __     /  \   _____   _ _ __ ___   \ \  / /| \  / |
+ | |    / _ \ / __/ _` | | | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  / _ \| '__|   / /\ \ |_  / | | | '__/ _ \   \ \/ / | |\/| |
+ | |____ (_) | (__ (_| | | | |____ (_) | | | | |_ (_| | | | | |  __/ |    | (_) | |     / ____ \ / /| |_| | | |  __/    \  /  | |  | |
+ |______\___/ \___\__,_|_|  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|     \___/|_|    /_/    \_\___|\__,_|_|  \___|     \/   |_|  |_|
+                                                                                                                                      
+'@ `
         -description "Specify where you want to host your Business Central container?`n`nSelecting Local will create a script that needs to run on a computer, which have Docker installed.`nSelecting Azure VM shows a Url with which you can create a VM. This requires an Azure Subscription." `
         -options ([ordered]@{"Local" = "Local docker container"; "AzureVM" = "Docker container in an Azure VM"}) `
         -question "Hosting" `
         -default "Local" `
-        -previousStep 1
+        -previousStep
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
 }
 
-3 {
+$Step.Authentication {
     if ($hosting -eq "Local") {
-        #                   _   _                _   _           _   _             
-        #        /\        | | | |              | | (_)         | | (_)            
-        #       /  \  _   _| |_| |__   ___ _ __ | |_ _  ___ __ _| |_ _  ___  _ __  
-        #      / /\ \| | | | __| '_ \ / _ \ '_ \| __| |/ __/ _` | __| |/ _ \| '_ \ 
-        #     / ____ \ |_| | |_| | | |  __/ | | | |_| | (__ (_| | |_| | (_) | | | |
-        #    /_/    \_\__,_|\__|_| |_|\___|_| |_|\__|_|\___\__,_|\__|_|\___/|_| |_|
-        #
+
         $auth = Select-Value `
-            -title "Authentication" `
+            -title @'
+                _   _                _   _           _   _             
+     /\        | | | |              | | (_)         | | (_)            
+    /  \  _   _| |_| |__   ___ _ __ | |_ _  ___ __ _| |_ _  ___  _ __  
+   / /\ \| | | | __| '_ \ / _ \ '_ \| __| |/ __/ _` | __| |/ _ \| '_ \ 
+  / ____ \ |_| | |_| | | |  __/ | | | |_| | (__ (_| | |_| | (_) | | | |
+ /_/    \_\__,_|\__|_| |_|\___|_| |_|\__|_|\___\__,_|\__|_|\___/|_| |_|
+
+'@ `
             -description "Select desired authentication mechanism.`nSelecting predefined credentials means that the script will use hardcoded credentials.`n`nNote: When using Windows authentication, you need to use your Windows Credentials from the host computer and if the computer is domain joined, you will need to be connected to the domain while running the container. You cannot use containers with Windows authentication when offline." `
             -options ([ordered]@{"UserPassword" = "Username/Password authentication"; "Credential" = "Username/Password authentication (admin with predefined password - $predefinedpw)"; "Random" = "Username/Password authentication (admin with random password - $randompw)"; "Windows" = "Windows authentication"}) `
             -question "Authentication" `
             -default "Credential" `
-            -previousStep 2
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
     else {
         $auth = "UserPassword"
     }
 }
 
-4 {
+$Step.ContainerName {
     if ($hosting -eq "Local") {
-        #      _____            _        _                 _   _                      
-        #     / ____|          | |      (_)               | \ | |                     
-        #    | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __|  \| | __ _ _ __ ___   ___ 
-        #    | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__| . ` |/ _` | '_ ` _ \ / _ \
-        #    | |____ (_) | | | | |_ (_| | | | | |  __/ |  | |\  | (_| | | | | | |  __/
-        #     \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_| \_|\__,_|_| |_| |_|\___|
-        #
+
         $containerName = Enter-Value `
-            -title "Container Name" `
+            -title @'
+   _____            _        _                   _   _                      
+  / ____|          | |      (_)                 | \ | |                     
+ | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __  |  \| | __ _ _ __ ___   ___ 
+ | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__| | . ` |/ _` | '_ ` _ \ / _ \
+ | |____ (_) | | | | |_ (_| | | | | |  __/ |    | |\  | (_| | | | | | |  __/
+  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|    |_| \_|\__,_|_| |_| |_|\___|
+                                                                            
+'@ `
             -description "Enter the name of the container.`nContainer names are case sensitive and must start with a letter.`n`nNote: We recommend short lower case names as container names." `
             -question "Container name" `
             -default "my" `
-            -previousStep 3
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
     else {
         $containerName = "navserver"
     }
 }
 
-5 {
-    #    __      __           _             
-    #    \ \    / /          (_)            
-    #     \ \  / /__ _ __ ___ _  ___  _ __  
-    #      \ \/ / _ \ '__/ __| |/ _ \| '_ \ 
-    #       \  /  __/ |  \__ \ | (_) | | | |
-    #        \/ \___|_|  |___/_|\___/|_| |_|
-    #   
+$Step.Version {
+
     if ($hosting -eq "local") { $back = 4 } else { $back = 2 }
     $predef = Select-Value `
-        -title "Version" `
+        -title @'
+ __      __           _             
+ \ \    / /          (_)            
+  \ \  / /__ _ __ ___ _  ___  _ __  
+   \ \/ / _ \ '__/ __| |/ _ \| '_ \ 
+    \  /  __/ |  \__ \ | (_) | | | |
+     \/ \___|_|  |___/_|\___/|_| |_|
+
+'@ `
         -description "What version of Business Central do you need?`nIf you are developing a Per Tenant Extension for a Business Central Saas tenant, you need a Business Central Sandbox environment" `
         -options ([ordered]@{"LatestSandbox" = "Latest Business Central Sandbox"; "LatestOnPrem" = "Latest Business Central OnPrem"; "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"; "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"}) `
         -question "Version" `
         -default "LatestSandbox" `
         -writeAnswer `
-        -previousStep $back
+        -previousStep
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
 }
 
-6 {
-    #    __      __           _             
-    #    \ \    / /          (_)            
-    #     \ \  / /__ _ __ ___ _  ___  _ __  
-    #      \ \/ / _ \ '__/ __| |/ _ \| '_ \ 
-    #       \  /  __/ |  \__ \ | (_) | | | |
-    #        \/ \___|_|  |___/_|\___/|_| |_|
-    #
+$Step.Version2 {
+
     $fullVersionNo = $false
     $select = "Latest"
     if ($predef -like "latest*") {
@@ -474,7 +539,7 @@ switch ($thisStep) {
                 -question "Enter version number (format major[.minor[.build[.release]]])" `
                 -doNotClearHost `
                 -writeAnswer `
-                -previousStep 5
+                -previousStep
             
             if ($version -eq "back") {
                 $ok = $true
@@ -523,7 +588,7 @@ switch ($thisStep) {
                                 -question "Select specific version" `
                                 -doNotClearHost `
                                 -writeAnswer `
-                                -previousStep 5
+                                -previousStep
     
                             if ($version -eq "back") {
                                 $ok = $true
@@ -536,26 +601,25 @@ switch ($thisStep) {
                 }
             }
         } while (!$ok)
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
 }
 
-7 {
-    #      _____                  _              
-    #     / ____|                | |             
-    #    | |     ___  _   _ _ __ | |_ _ __ _   _ 
-    #    | |    / _ \| | | | '_ \| __| '__| | | |
-    #    | |____ (_) | |_| | | | | |_| |  | |_| |
-    #     \_____\___/ \__,_|_| |_|\__|_|   \__, |
-    #                                       __/ |
-    #                                      |___/ 
+$Step.Country {
 
+    $description = ""
+    if ($version -ne "") {
+        $description += "Version $version selected`n`n"
+    }
     if ($type -eq "Sandbox") {
         $default = "us"
-        $description = "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
+        $description += "Please select which country version you want to use.`n`nNote: base is the onprem w1 demodata running in sandbox mode."
     }
     else {
         $default = "w1"
-        $description = "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
+        $description += "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
     }
 
     $vno = $version
@@ -568,81 +632,101 @@ switch ($thisStep) {
     }
  
     $country = Enter-Value `
+        -title @'
+   _____                  _              
+  / ____|                | |             
+ | |     ___  _   _ _ __ | |_ _ __ _   _ 
+ | |    / _ \| | | | '_ \| __| '__| | | |
+ | |____ (_) | |_| | | | | |_| |  | |_| |
+  \_____\___/ \__,_|_| |_|\__|_|   \__, |
+                                    __/ |
+                                   |___/ 
+'@ `
         -description $description `
         -options $countries `
         -default $default `
         -question "Country" `
-        -doNotClearHost `
-        -previousStep 5
+        -previousStep
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
 }
 
-8 {
-    #     _______       _     _______          _ _    _ _   
-    #    |__   __|     | |   |__   __|        | | |  (_) |  
-    #       | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
-    #       | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
-    #       | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
-    #       |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
-    #       
+$Step.Toolkit {
+
     $testtoolkit = Select-Value `
-        -title "Test Toolkit" `
+        -title @'
+  _______       _     _______          _ _    _ _   
+ |__   __|     | |   |__   __|        | | |  (_) |  
+    | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
+    | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
+    | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
+    |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
+
+'@ `
         -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
         -options ([ordered]@{"All" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
         -question "Test Toolkit" `
         -default "No" `
-        -previousStep 7
+        -previousStep
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
 }
 
-9 {
+$Step.PremiumPlan {
     $assignPremiumPlan = "N"
     if ($type -eq "Sandbox") {
     
-        #     _____                    _                   _____  _             
-        #    |  __ \                  (_)                 |  __ \| |            
-        #    | |__) | __ ___ _ __ ___  _ _   _ _ __ ___   | |__) | | __ _ _ __  
-        #    |  ___/ '__/ _ \ '_ ` _ \| | | | | '_ ` _ \  |  ___/| |/ _` | '_ \ 
-        #    | |   | | |  __/ | | | | | | |_| | | | | | | | |    | | (_| | | | |
-        #    |_|   |_|  \___|_| |_| |_|_|\__,_|_| |_| |_| |_|    |_|\__,_|_| |_|
-        #
         if ($hosting -eq "local") { $back = 8 } else { $back = 7 }
         $assignPremiumPlan = Enter-Value `
-            -title "Assign Premium Plan" `
+            -title @'
+  _____                    _                   _____  _             
+ |  __ \                  (_)                 |  __ \| |            
+ | |__) | __ ___ _ __ ___  _ _   _ _ __ ___   | |__) | | __ _ _ __  
+ |  ___/ '__/ _ \ '_ ` _ \| | | | | '_ ` _ \  |  ___/| |/ _` | '_ \ 
+ | |   | | |  __/ | | | | | | |_| | | | | | | | |    | | (_| | | | |
+ |_|   |_|  \___|_| |_| |_|_|\__,_|_| |_| |_| |_|    |_|\__,_|_| |_|
+
+'@ `
             -Description "When running sandbox, you can select to assign premium plan to the users." `
             -options @("Y","N") `
             -question "Please enter Y if you want to assign premium plan" `
             -default "N" `
-            -previousStep $back
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
 }
 
-10 {
+$Step.CreateTestUsers {
     $createTestUsers = "N"
     if ($type -eq "Sandbox") {
-        #     _______       _     _    _                   
-        #    |__   __|     | |   | |  | |                  
-        #       | | ___ ___| |_  | |  | |___  ___ _ __ ___ 
-        #       | |/ _ \ __| __| | |  | / __|/ _ \ '__/ __|
-        #       | |  __\__ \ |_  | |__| \__ \  __/ |  \__ \
-        #       |_|\___|___/\__|  \____/|___/\___|_|  |___/
-        #   
+
         $createTestUsers = Enter-Value `
-            -title "Create Test Users" `
+            -title @'
+   _____                _         _______       _     _    _                   
+  / ____|              | |       |__   __|     | |   | |  | |                  
+ | |     _ __ ___  __ _| |_ ___     | | ___ ___| |_  | |  | |___  ___ _ __ ___ 
+ | |    | '__/ _ \/ _` | __/ _ \    | |/ _ \ __| __| | |  | / __|/ _ \ '__/ __|
+ | |____| | |  __/ (_| | |_  __/    | |  __\__ \ |_  | |__| \__ \  __/ |  \__ \
+  \_____|_|  \___|\__,_|\__\___|    |_|\___|___/\__|  \____/|___/\___|_|  |___/
+
+'@ `
             -Description "When running sandbox, you can select to add test users with special entitlements.`nThe users created are: ExternalAccountant, Premium, Essential, InternalAdmin, TeamMember and DelegatedAdmin.`n`nNote: This requires a license file to be specified." `
             -options @("Y","N") `
             -question "Please enter Y if you want to create test users" `
             -default "N" `
-            -previousStep 9
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
 }
 
-11 {
-    #    _      _                         
-    #   | |    (_)                        
-    #   | |     _  ___ ___ _ __  ___  ___ 
-    #   | |    | |/ __/ _ \ '_ \/ __|/ _ \
-    #   | |____| | (__  __/ | | \__ \  __/
-    #   |______|_|\___\___|_| |_|___/\___|
-    #  
+$Step.License {
+
     $licenserequired = ($testtoolkit -ne "No" -or $createTestUsers -eq "Y")
     if ($licenserequired) {
         $description = "Please specify a license file url.`nDue to other selections, you need to specify a license file."
@@ -659,13 +743,23 @@ switch ($thisStep) {
         $description += "`n`nThis needs to be a secure direct download url (see https://freddysblog.com/2017/02/26/create-a-secure-url-to-a-file/)"
     }
      
-    if ($type -eq "Sandbox") { $back = 10 } else { $back = 8 }
     $licenseFile = Enter-Value `
-        -title "License File" `
+        -title @'
+  _      _                         
+ | |    (_)                        
+ | |     _  ___ ___ _ __  ___  ___ 
+ | |    | |/ __/ _ \ '_ \/ __|/ _ \
+ | |____| | (__  __/ | | \__ \  __/
+ |______|_|\___\___|_| |_|___/\___|
+
+'@ `
         -description $description `
         -question "License File" `
         -default $default `
-        -previousStep $back
+        -previousStep
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
     
     if ($licenseFile -eq "blank") {
         $licenseFile = ""
@@ -675,29 +769,33 @@ switch ($thisStep) {
     }
 }
 
-12 {
-    #     _____        _        _                    
-    #    |  __ \      | |      | |                   
-    #    | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
-    #    | |  | |/ _` | __/ _` | '_ \ / _` / __|/ _ \
-    #    | |__| | (_| | |_ (_| | |_) | (_| \__ \  __/
-    #    |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
-    #   
-    
+$Step.Database {
+   
     $database = Select-Value `
-        -title "Database" `
+        -title @'
+  _____        _        _                    
+ |  __ \      | |      | |                   
+ | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
+ | |  | |/ _` | __/ _` | '_ \ / _` / __|/ _ \
+ | |__| | (_| | |_ (_| | |_) | (_| \__ \  __/
+ |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
+
+'@ `
         -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
         -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
         -question "Database" `
         -default "default" `
-        -previousStep 11
+        -previousStep
+    if ($script:wizardStep -eq $script:thisStep+1) {
+        $script:prevSteps.Push($script:thisStep)
+    }
     
     if ($database -eq "bakfile") {
         $bakFile = Enter-Value `
             -title "Database Backup" `
             -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
             -question "Database Backup" `
-            -previousStep 12
+            -previousStep
         $bakFile = $bakFile.Trim(@('"'))
     }
     elseif ($database -eq "connect") {
@@ -713,7 +811,7 @@ switch ($thisStep) {
                 -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
                 -question "Database Connection String" `
                 -doNotConvertToLower `
-                -previousStep 12
+                -previousStep
             if ($connectionString -eq "back") {
                 $err = $false
             }
@@ -747,39 +845,38 @@ switch ($thisStep) {
     }
 }
 
-13 {
+$Step.DNS {
     if ($hosting -eq "Local") {
-        #     _____  _   _  _____ 
-        #    |  __ \| \ | |/ ____|
-        #    | |  | |  \| | (___  
-        #    | |  | | . ` |\___ \ 
-        #    | |__| | |\  |____) |
-        #    |_____/|_| \_|_____/ 
-        #   
+
         $options = [ordered]@{"default" = "Use default DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google public dns (8.8.8.8) as DNS to the container" }
         $hostDNS = Get-DnsClientServerAddress | Select-Object –ExpandProperty ServerAddresses | Where-Object { "$_".indexOf(':') -eq -1 } | Select -first 1
         if ($hostDNS) {
             $options += @{ "usehostdns" = "Add your hosts primary DNS server ($hostDNS) as DNS to the container" }
         }
         $dns = Select-Value `
-            -title "DNS" `
+            -title @'
+  _____  _   _  _____ 
+ |  __ \| \ | |/ ____|
+ | |  | |  \| | (___  
+ | |  | | . ` |\___ \ 
+ | |__| | |\  |____) |
+ |_____/|_| \_|_____/ 
+
+'@ `
             -description "On some networks, default DNS resolution does not work inside a running container.`nWhen this is the case, you will see a warning during start saying:`n`nWARNING: DNS resolution not working from within the container.`n`nSome times, this can be fixed by choosing a different DNS server. Some times you have to reconfigure your network or antivirus settings to allow this." `
             -options $options `
             -question "Use DNS" `
             -default "default" `
-            -previousStep 12
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
 }
 
-14 {
+$Step.Isolation {
     if ($hosting -eq "Local") {
-        #      _____           _       _   _             
-        #     |_   _|         | |     | | (_)            
-        #       | |  ___  ___ | | __ _| |_ _  ___  _ __  
-        #       | | / __|/ _ \| |/ _` | __| |/ _ \| '_ \ 
-        #      _| |_\__ \ (_) | | (_| | |_| | (_) | | | |
-        #     |_____|___/\___/|_|\__,_|\__|_|\___/|_| |_|
-        #
+
         $os = (Get-CimInstance Win32_OperatingSystem)
         if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
             throw "Unknown Host Operating System"
@@ -818,26 +915,29 @@ switch ($thisStep) {
         $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use (on this host, this will be $defaultIsolation isolation)"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
     
         $isolation = Select-Value `
-            -title "Isolation" `
+            -title @'
+  _____           _       _   _             
+ |_   _|         | |     | | (_)            
+   | |  ___  ___ | | __ _| |_ _  ___  _ __  
+   | | / __|/ _ \| |/ _` | __| |/ _ \| '_ \ 
+  _| |_\__ \ (_) | | (_| | |_| | (_) | | | |
+ |_____|___/\___/|_|\__,_|\__|_|\___/|_| |_|
+
+'@ `
             -description $description `
             -options $options `
             -question "Isolation" `
             -default "default" `
-            -previousStep 13
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
 }
 
-15 {
+$Step.Memory {
     if ($hosting -eq "Local") {
-        #     __  __                                 
-        #    |  \/  |                                
-        #    | \  / | ___ _ __ ___   ___  _ __ _   _ 
-        #    | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | |
-        #    | |  | |  __/ | | | | | (_) | |  | |_| |
-        #    |_|  |_|\___|_| |_| |_|\___/|_|   \__, |
-        #                                       __/ |
-        #                                      |___/ 
-    
+
         if ($version -ne "") {
             $majorVersion = [int]($version.Split('.')[0])
         }
@@ -882,11 +982,23 @@ switch ($thisStep) {
         }
     
         $memoryLimit = Enter-Value `
-            -title "Memorylimit" `
+            -title @'
+  __  __                                   _      _           _ _   
+ |  \/  |                                 | |    (_)         (_) |  
+ | \  / | ___ _ __ ___   ___  _ __ _   _  | |     _ _ __ ___  _| |_ 
+ | |\/| |/ _ \ '_ ` _ \ / _ \| '__| | | | | |    | | '_ ` _ \| | __|
+ | |  | |  __/ | | | | | (_) | |  | |_| | | |____| | | | | | | | |_ 
+ |_|  |_|\___|_| |_| |_|\___/|_|   \__, | |______|_|_| |_| |_|_|\__|
+                                    __/ |                           
+                                   |___/                            
+'@ `
             -description $description `
             -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
             -default 'blank' `
-            -previousStep 14
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     
         if ($memoryLimit -eq "blank") {
             $memoryLimit = ""
@@ -897,37 +1009,66 @@ switch ($thisStep) {
     }
 }
 
-16  {
-    if ($hosting -eq "Local") {
-        #      _____                   _                            
-        #     / ____|                 (_)                           
-        #    | (___   __ ___   _____   _ _ __ ___   __ _  __ _  ___ 
-        #     \___ \ / _` \ \ / / _ \ | | '_ ` _ \ / _` |/ _` |/ _ \
-        #     ____) | (_| |\ V /  __/ | | | | | | | (_| | (_| |  __/
-        #    |_____/ \__,_| \_/ \___| |_|_| |_| |_|\__,_|\__, |\___|
-        #                                                 __/ |     
-        #                                                |___/      
-        $imageName = Enter-Value `
-            -title "Save image" `
-            -description "If you are planning on running the same script multiple times, it will save time on subsequent runs to save the image`nThe ContainerHelper will automatically generate an image tag, matching the version number and country of the requested version and on every run it will check whether the image needs to be rebuild.`n`nRecommendation is to use a short name (like mybcimage) if you want to save the image." `
-            -question "Image name (or blank to skip saving)" `
-            -default "blank" `
-            -previousStep 15
+$step.IncludeCSIDE {
+    $includeCSIDE = "N"
+    if ($version -ne "") {
+        $majorVersion = [int]($version.Split('.')[0])
+        if ($majorVersion -le 14) {
+
+            if ($majorVersion -lt 14) {
+                $product = "NAV"
+            }
+            else {
+                $product = "Business Central"
+            }
+            $includeCSIDE = Enter-Value `
+                -title @'
+   _____     __     _        _____                 _                                  _   
+  / ____|   / /\   | |      |  __ \               | |                                | |  
+ | |       / /  \  | |      | |  | | _____   _____| | ___  _ __  _ __ ___   ___ _ __ | |_ 
+ | |      / / /\ \ | |      | |  | |/ _ \ \ / / _ \ |/ _ \| '_ \| '_ ` _ \ / _ \ '_ \| __|
+ | |____ / / ____ \| |____  | |__| |  __/\ V /  __/ | (_) | |_) | | | | | |  __/ | | | |_ 
+  \_____/_/_/    \_\______| |_____/ \___| \_/ \___|_|\___/| .__/|_| |_| |_|\___|_| |_|\__|
+                                                          | |                             
+                                                          |_|                             
+'@ `
+                -Description "You are running a version of $product, which includes the legacy Windows Client and legacy C/AL development.`nIf you are going to use the Windows Client or C/AL development, you will need to use an option called -includeCSIDE." `
+                -options @("Y","N") `
+                -question "Please enter Y if you need CSIDE or Windows Client" `
+                -default "N" `
+                -previousStep
+            if ($script:wizardStep -eq $script:thisStep+1) {
+                $script:prevSteps.Push($script:thisStep)
+            }
+        }
     }
 }
 
-17 {
+$Step.SaveImage  {
     if ($hosting -eq "Local") {
-        #      _____                 _       _                          
-        #     / ____|               (_)     | |                         
-        #    | (___  _ __   ___  ___ _  __ _| |   ___ __ _ ___  ___ ___ 
-        #     \___ \| '_ \ / _ \/ __| |/ _` | |  / __/ _` / __|/ _ \ __|
-        #     ____) | |_) |  __/ (__| | (_| | | | (__ (_| \__ \  __\__ \
-        #    |_____/| .__/ \___|\___|_|\__,_|_|  \___\__,_|___/\___|___/
-        #           | |                                                 
-        #           |_|                                                 
-    
-        
+        $imageName = Enter-Value `
+            -title @'
+   _____                   _                            
+  / ____|                 (_)                           
+ | (___   __ ___   _____   _ _ __ ___   __ _  __ _  ___ 
+  \___ \ / _` \ \ / / _ \ | | '_ ` _ \ / _` |/ _` |/ _ \
+  ____) | (_| |\ V /  __/ | | | | | | | (_| | (_| |  __/
+ |_____/ \__,_| \_/ \___| |_|_| |_| |_|\__,_|\__, |\___|
+                                              __/ |     
+                                             |___/      
+'@ `
+            -description "If you are planning on running the same script multiple times, it will save time on subsequent runs to save the image`nThe ContainerHelper will automatically generate an image tag, matching the version number and country of the requested version and on every run it will check whether the image needs to be rebuild.`n`nRecommendation is to use a short name (like mybcimage) if you want to save the image." `
+            -question "Image name (or blank to skip saving)" `
+            -default "blank" `
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
+    }
+}
+
+$Step.Special {
+    if ($hosting -eq "Local") {
     
         # TODO: SSL / .pdx+password
     
@@ -941,17 +1082,17 @@ switch ($thisStep) {
    
 }
 
-100 {
+#  ______ _             _ 
+# |  ____(_)           | |
+# | |__   _ _ __   __ _| |
+# |  __| | | '_ \ / _` | |
+# | |    | | | | | (_| | |
+# |_|    |_|_| |_|\__,_|_|
+#                         
+$step.Final {
     $script:acceptDefaults = $false
     if ($hosting -eq "Local") {
-        #     ____        _ _     _    _____           _       _   
-        #    |  _ \      (_) |   | |  / ____|         (_)     | |  
-        #    | |_) |_   _ _| | __| | | (___   ___ _ __ _ _ __ | |_ 
-        #    |  _ <| | | | | |/ _` |  \___ \ / __| '__| | '_ \| __|
-        #    | |_) | |_| | | | (_| |  ____) | (__| |  | | |_) | |_ 
-        #    |____/ \__,_|_|_|\__,_| |_____/ \___|_|  |_| .__/ \__|
-        #                                               | |        
-        #                                               |_|        
+
         $parameters = @()
         $script = @()
     
@@ -1034,6 +1175,9 @@ switch ($thisStep) {
         if ($memoryLimit) {
             $parameters += "-memoryLimit $memoryLimit"
         }
+        if ($includeCSIDE -eq "Y") {
+            $parameters += "-includeCSIDE"
+        }
     
         $script += "New-BcContainer ``"
         $script += "    -accept_eula ``"
@@ -1051,9 +1195,18 @@ switch ($thisStep) {
         }
     
         $filename = Enter-Value `
-            -title "Save and Edit script" `
-            -description ([string]::Join("`n", $script)) `
-            -question "Filename (or blank to skip saving)" `
+            -title @'
+  _____                       _____ _          _ _     _____           _       _   
+ |  __ \                     / ____| |        | | |   / ____|         (_)     | |  
+ | |__) |____      _____ _ __ (___ | |__   ___| | |  | (___   ___ _ __ _ _ __ | |_ 
+ |  ___/ _ \ \ /\ / / _ \ '__\___ \| '_ \ / _ \ | |   \___ \ / __| '__| | '_ \| __|
+ | |  | (_) \ V  V /  __/ |  ____) | | | |  __/ | |   ____) | (__| |  | | |_) | |_ 
+ |_|   \___/ \_/\_/ \___|_| |_____/|_| |_|\___|_|_|  |_____/ \___|_|  |_| .__/ \__|
+                                                                        | |        
+                                                                        |_|        
+'@ `
+            -description "The below script will create a container with the requested settings:`n`n$([string]::Join("`n", $script))" `
+            -question "Enter filename to save and edit script (or blank to skip saving)" `
             -default "blank"
     
         if ($filename -ne "blank") {
@@ -1079,15 +1232,17 @@ switch ($thisStep) {
         }
     }
     else {
-        #     ____        _ _     _   _    _      _ 
-        #    |  _ \      (_) |   | | | |  | |    | |
-        #    | |_) |_   _ _| | __| | | |  | |_ __| |
-        #    |  _ <| | | | | |/ _` | | |  | | '__| |
-        #    | |_) | |_| | | | (_| | | |__| | |  | |
-        #    |____/ \__,_|_|_|\__,_|  \____/|_|  |_|
-        #   
+
         $emailforletsencrypt = Enter-Value `
-            -title "Azure VM - Self Signed or Lets Encrypt Certificate" `
+            -title @'
+                               __      ____  __     _____          _   _  __ _           _       
+     /\                        \ \    / /  \/  |   / ____|        | | (_)/ _(_)         | |      
+    /  \   _____   _ _ __ ___   \ \  / /| \  / |  | |     ___ _ __| |_ _| |_ _  ___ __ _| |_ ___ 
+   / /\ \ |_  / | | | '__/ _ \   \ \/ / | |\/| |  | |    / _ \ '__| __| |  _| |/ __/ _` | __/ _ \
+  / ____ \ / /| |_| | | |  __/    \  /  | |  | |  | |____  __/ |  | |_| | | | | (__ (_| | |_  __/
+ /_/    \_\___|\__,_|_|  \___|     \/   |_|  |_|   \_____\___|_|   \__|_|_| |_|\___\__,_|\__\___|
+
+'@ `
             -description "Your Azure VM can be secured by a Self-Signed Certificate, meaning that you need to install this certificate on any machine connecting to the VM.`nYou can also select to use LetsEncrypt by specifying an email address of the person accepting subscriber agreement for LetsEncrypt (https://letsencrypt.org/repository/).`n`nNote: The LetsEncrypt certificate needs to be renewed after 90 days." `
             -question "Contact EMail for LetsEncrypt (blank to use Self Signed)" `
             -default "blank"
@@ -1112,8 +1267,16 @@ switch ($thisStep) {
         }
     
         $launchUrl = Enter-Value `
-            -title "URL" `
-            -description $url `
+            -title @'
+                               __      ____  __    _    _ _____  _      
+     /\                        \ \    / /  \/  |  | |  | |  __ \| |     
+    /  \   _____   _ _ __ ___   \ \  / /| \  / |  | |  | | |__) | |     
+   / /\ \ |_  / | | | '__/ _ \   \ \/ / | |\/| |  | |  | |  _  /| |     
+  / ____ \ / /| |_| | | |  __/    \  /  | |  | |  | |__| | | \ \| |____ 
+ /_/    \_\___|\__,_|_|  \___|     \/   |_|  |_|   \____/|_|  \_\______|
+                                                                        
+'@ `
+            -description "The URL below will launch the Azure Portal with an ARM template, which will create your VM:`n`n$url" `
             -options @("Y","N") `
             -question "Launch Url"
     

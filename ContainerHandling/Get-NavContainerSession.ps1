@@ -20,52 +20,50 @@ function Get-NavContainerSession {
     )
 
     Process {
-        $containerId = Get-NavContainerId -containerName $containerName
-
-        if ($sessions.ContainsKey($containerId)) {
-            $session = $sessions[$containerId]
+        if ($sessions.ContainsKey($containerName)) {
+            $session = $sessions[$containerName]
             try {
                 $ok = Invoke-Command -Session $session -ScriptBlock { $true }
+                return $session
             }
             catch {
                 Remove-PSSession -Session $session
-                $sessions.Remove($containerId)
+                $sessions.Remove($containerName)
             }
         }
-        if (!($sessions.ContainsKey($containerId))) {
-            $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
-            Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
+        $containerId = Get-NavContainerId -containerName $containerName
+        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+        Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
-                $ErrorActionPreference = 'Stop'
-                $runPath = "c:\Run"
-                $myPath = Join-Path $runPath "my"
+            $ErrorActionPreference = 'Stop'
+            $runPath = "c:\Run"
+            $myPath = Join-Path $runPath "my"
 
-                function Get-MyFilePath([string]$FileName)
-                {
-                    if ((Test-Path $myPath -PathType Container) -and (Test-Path (Join-Path $myPath $FileName) -PathType Leaf)) {
-                        (Join-Path $myPath $FileName)
-                    } else {
-                        (Join-Path $runPath $FileName)
-                    }
+            function Get-MyFilePath([string]$FileName)
+            {
+                if ((Test-Path $myPath -PathType Container) -and (Test-Path (Join-Path $myPath $FileName) -PathType Leaf)) {
+                    (Join-Path $myPath $FileName)
+                } else {
+                    (Join-Path $runPath $FileName)
                 }
+            }
 
-                . (Get-MyFilePath "prompt.ps1") -silent:$silent | Out-Null
-                . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
-                . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
+            . (Get-MyFilePath "prompt.ps1") -silent:$silent | Out-Null
+            . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
+            . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
 
-                $txt2al = ""
-                if ($roleTailoredClientFolder) {
-                    $txt2al = Join-Path $roleTailoredClientFolder "txt2al.exe"
-                    if (!(Test-Path $txt2al)) {
-                        $txt2al = ""
-                    }
+            $txt2al = ""
+            if ($roleTailoredClientFolder) {
+                $txt2al = Join-Path $roleTailoredClientFolder "txt2al.exe"
+                if (!(Test-Path $txt2al)) {
+                    $txt2al = ""
                 }
+            }
 
-                Set-Location $runPath
-            } -ArgumentList $silent
-            $sessions.Add($containerId, $session)
-        }
-        $sessions[$containerId]
+            Set-Location $runPath
+        } -ArgumentList $silent
+        $sessions.Add($containerName, $session)
+        return $session
     }
 }
 Set-Alias -Name Get-BCContainerSession -Value Get-NavContainerSession

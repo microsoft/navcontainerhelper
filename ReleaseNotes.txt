@@ -1,3 +1,10 @@
+0.7.0.18
+Optimizations in New-BcContainer - avoid multople docker command invokes
+New-BcContainerWizard opens PowerShell prompt for wizard
+Refactor code behind New-BcContainerWizard to be more "wizard"-like
+Only use 7zip if newer than version 19
+Add global config option use7zipIfAvailable to bypass 7zip
+
 0.7.0.17
 Issue #1130 Regression in download-file
 
