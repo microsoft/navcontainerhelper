@@ -44,6 +44,7 @@ function Get-ContainerHelperConfig {
             "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
             "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
             "usePsSession" = $isAdministrator
+            "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
         }
         $navContainerHelperConfigFile = Join-Path $containerHelperFolder "NavContainerHelper.config.json"
