@@ -1,3 +1,6 @@
+0.7.0.19
+Issue #1150 alc fails if project path ends in a \
+
 0.7.0.18
 Optimizations in New-BcContainer - avoid multople docker command invokes
 New-BcContainerWizard opens PowerShell prompt for wizard
