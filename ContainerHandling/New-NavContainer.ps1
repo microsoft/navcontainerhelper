@@ -501,6 +501,9 @@ function New-NavContainer {
                     New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                     Write-Host "Building image took $timespend seconds"
+                    if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
+                        $allImages += $imageName
+                    }
                 }
                 $artifactUrl = ""
                 $alwaysPull = $false

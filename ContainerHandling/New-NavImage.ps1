@@ -233,22 +233,15 @@ function New-NavImage {
         New-Item $navDvdPath -ItemType Directory | Out-Null
 
         Write-Host "Copying Platform Artifacts"
-        Get-ChildItem -Path $platformArtifactPath | % {
-            if ($_.PSIsContainer) {
-                Copy-Item -Path $_.FullName -Destination $navDvdPath -Recurse
-            }
-            else {
-                Copy-Item -Path $_.FullName -Destination $navDvdPath
-            }
-        }
+        Robocopy "$platformArtifactPath" "$navDvdPath" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
 
         if (!$skipDatabase) {
             $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
             New-Item $dbPath -ItemType Directory | Out-Null
-            Write-Host "Copy Database"
+            Write-Host "Copying Database"
             Copy-Item -path $databasePath -Destination $dbPath -Force
             if ($licenseFile) {
-                Write-Host "Copy Licensefile"
+                Write-Host "Copying Licensefile"
                 Copy-Item -path $licenseFilePath -Destination $dbPath -Force
             }
         }
@@ -260,8 +253,8 @@ function New-NavImage {
                 if (Test-Path $destFolder) {
                     Remove-Item -path $destFolder -Recurse -Force
                 }
-                Write-Host "Copy $_"
-                Copy-Item -Path "$appSubFolder" -Destination $navDvdPath -Recurse
+                Write-Host "Copying $_"
+                RoboCopy "$appSubFolder" "$(Join-Path $navDvdPath $_)" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
             }
         }
     
