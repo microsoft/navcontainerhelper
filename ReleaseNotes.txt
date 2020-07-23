@@ -1,3 +1,8 @@
+0.7.0.19
+Issue #1150 alc fails if project path ends in a \
+Issue #1153 regression - Test-BcContainer fails due to container name clashes
+Adding parameter sqlMemoryLimit to New-BcContainer (can be set like 50%, 1.5G or 1500M)
+
 0.7.0.18
 Optimizations in New-BcContainer - avoid multople docker command invokes
 New-BcContainerWizard opens PowerShell prompt for wizard

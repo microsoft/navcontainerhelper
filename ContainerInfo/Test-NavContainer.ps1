@@ -23,7 +23,8 @@ function Test-NavContainer {
         if ($doNotIncludeStoppedContainers) {
             $a = ""
         }
-        $id = docker ps $a -q --no-trunc --filter "name=$containerName"
+
+        $id = docker ps $a -q --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
         if (!($id)) {
             $id = docker ps $a -q --no-trunc --filter "id=$containerName"
         }

@@ -376,7 +376,7 @@ function Compile-AppInNavContainer {
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
 
-        $alcParameters = @("/project:""$appProjectFolder""", "/packagecachepath:""$appSymbolsFolder""", "/out:""$appOutputFile""")
+        $alcParameters = @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
         if ($GenerateReportLayoutParam) {
             $alcParameters += @($GenerateReportLayoutParam)
         }
