@@ -34,6 +34,9 @@
   AuthenticationEmail of the admin user
  .Parameter memoryLimit
   Memory limit for the container (default is unlimited for Windows Server host else 4G)
+ .Parameter sqlMemoryLimit
+  Memory limit for the SQL inside the container (default is no limit)
+  Value can be specified as 50%, 1.5G, 1500M
  .Parameter isolation
   Isolation mode for the container (default is process for Windows Server host else hyperv)
  .Parameter databaseServer
@@ -174,6 +177,7 @@ function New-NavContainer {
         [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
         [string] $memoryLimit = "",
+        [string] $sqlMemoryLimit = "",
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
         [string] $databaseServer = "",
@@ -363,13 +367,40 @@ function New-NavContainer {
 
     Write-Host "Docker Server Version is $dockerServerVersion"
 
-    # Remove if it already exists
-    Remove-NavContainer $containerName
-
     Write-Host "Fetching all docker images"
     $allImages = docker images --format "{{.Repository}}:{{.Tag}}"
 
     $skipDatabase = $false
+
+    if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
+        $memoryLimit = "4G"
+    }
+
+    $SqlServerMemoryLimit = 0
+    if ($SqlMemoryLimit) {
+        if ($SqlMemoryLimit.EndsWith('%')) {
+            if ($memoryLimit -ne "") {
+                if ($memoryLimit -like '*M') {
+                    $mbytes = [int]($memoryLimit.TrimEnd('mM'))
+                }
+                else {
+                    $mbytes = [int](1024*([double]($memoryLimit.TrimEnd('gG'))))
+                }
+                $sqlServerMemoryLimit = [int]($mbytes * ([int]$SqlMemoryLimit.TrimEnd('%')) / 100)
+            }
+        }
+        else {
+            if ($SqlMemoryLimit -like '*M') {
+                $SqlServerMemoryLimit = [int]($SqlMemoryLimit.TrimEnd('mM'))
+            }
+            else {
+                $SqlServerMemoryLimit = [int](1024*([double]($SqlMemoryLimit.TrimEnd('gG'))))
+            }
+        }
+    }
+
+    # Remove if it already exists
+    Remove-NavContainer $containerName
 
     if ($imageName -ne "") {
         if ($artifactUrl -eq "") {
@@ -1173,11 +1204,7 @@ function New-NavContainer {
                     "--restart $restart"
                    )
 
-    if ("$memoryLimit" -eq "") {
-        if ($isolation -eq "hyperv") {
-            $parameters += "--memory 4G"
-        }
-    } else {
+    if ($memoryLimit) {
         $parameters += "--memory $memoryLimit"
     }
 
@@ -1516,6 +1543,18 @@ if (-not `$restartingInstance) {
         Wait-NavContainerReady $containerName -timeout $timeout
     }
 
+    Write-Host "Reading CustomSettings.config from $containerName"
+    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+
+    if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
+        Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
+            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
+            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
+            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
+        } -argumentList ($SqlServerMemoryLimit)
+    }
+
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
         Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
@@ -1541,9 +1580,6 @@ if (-not `$restartingInstance) {
             }
         }
     }
-
-    Write-Host "Reading CustomSettings.config from $containerName"
-    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
 
     if ($shortcuts -ne "None") {
         Write-Host "Creating Desktop Shortcuts for $containerName"
