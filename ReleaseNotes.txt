@@ -1,3 +1,6 @@
+0.7.0.20
+Issue #1156 Add mode ForceSync to Sync-BcContainerApp
+
 0.7.0.19
 Issue #1150 alc fails if project path ends in a \
 Issue #1153 regression - Test-BcContainer fails due to container name clashes
