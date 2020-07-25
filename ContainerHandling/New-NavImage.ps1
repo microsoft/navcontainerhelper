@@ -248,13 +248,15 @@ function New-NavImage {
 
         "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | % {
             $appSubFolder = Join-Path $appArtifactPath $_
-            if (Test-Path "$appSubFolder" -PathType Container) {
-                $destFolder = Join-Path $navDvdPath $_
+            if (Test-Path $appSubFolder -PathType Container) {
+                $appSubFolder = (Get-Item $appSubFolder).FullName
+                $name = [System.IO.Path]::GetFileName($appSubFolder)
+                $destFolder = Join-Path $navDvdPath $name
                 if (Test-Path $destFolder) {
                     Remove-Item -path $destFolder -Recurse -Force
                 }
-                Write-Host "Copying $_"
-                RoboCopy "$appSubFolder" "$(Join-Path $navDvdPath $_)" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+                Write-Host "Copying $name"
+                RoboCopy "$appSubFolder" "$destFolder" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
             }
         }
     
