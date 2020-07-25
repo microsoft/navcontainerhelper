@@ -27,7 +27,7 @@ function Sync-NavContainerApp {
         [Parameter()]
         [string] $appVersion,
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Add','Clean')]
+        [ValidateSet('Add','Clean','ForceSync')]
         [string] $Mode,
         [switch] $Force
     )
