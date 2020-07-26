@@ -368,7 +368,7 @@ function New-NavContainer {
     Write-Host "Docker Server Version is $dockerServerVersion"
 
     Write-Host "Fetching all docker images"
-    $allImages = docker images --format "{{.Repository}}:{{.Tag}}"
+    $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
 
     $skipDatabase = $false
 
