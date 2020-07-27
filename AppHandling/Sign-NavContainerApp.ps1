@@ -14,9 +14,9 @@
  .Parameter pfxPassword
   Password of the certificate pfx file
  .Example
-  Sign-NavContainerApp -appFile c:\programdata\navcontainerhelper\myapp.app -pfxFile http://my.secure.url/mycert.pfx -pfxPassword $securePassword
+  Sign-NavContainerApp -appFile c:\programdata\bccontainerhelper\myapp.app -pfxFile http://my.secure.url/mycert.pfx -pfxPassword $securePassword
  .Example
-  Sign-NavContainerApp -appFile c:\programdata\navcontainerhelper\myapp.app -pfxFile c:\programdata\navcontainerhelper\mycert.pfx -pfxPassword $securePassword
+  Sign-NavContainerApp -appFile c:\programdata\bccontainerhelper\myapp.app -pfxFile c:\programdata\bccontainerhelper\mycert.pfx -pfxPassword $securePassword
 #>
 function Sign-NavContainerApp {
     Param (

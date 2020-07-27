@@ -35,7 +35,7 @@ function New-LetsEncryptCertificate {
         [string] $dnsAlias = "dnsAlias"
     )
 
-    $stateDir = "c:\programdata\navcontainerhelper\acmeState"
+    $stateDir = Join-Path $hostHelperFolder "acmeState"
     Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
     Import-Module ACME-PS
 

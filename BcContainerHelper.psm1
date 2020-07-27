@@ -18,7 +18,7 @@ try {
     $myUsername = (whoami)
 }
 
-$hostHelperFolder = "C:\ProgramData\NavContainerHelper"
+$hostHelperFolder = "C:\ProgramData\BcContainerHelper"
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
@@ -32,7 +32,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     }
 }
 
-$containerHelperFolder = "C:\ProgramData\NavContainerHelper"
+$containerHelperFolder = "C:\ProgramData\BcContainerHelper"
 
 $NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
@@ -93,7 +93,7 @@ $Source = @"
 Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "Check-NavContainerHelperPermissions.ps1")
+. (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
 
 Check-NavContainerHelperPermissions -Silent
 

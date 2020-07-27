@@ -7,7 +7,7 @@
  .Parameter containerName
   Name of the container in which you want to restore databases
  .Parameter bakFolder
-  The folder to which the bak files are exported (default is the container folder c:\programdata\navcontainerhelper\extensions\<containername>)
+  The folder to which the bak files are exported (default is the container folder c:\programdata\bccontainerhelper\extensions\<containername>)
  .Parameter tenant
   The tenant database(s) to restore, only applies to multi-tenant containers. Omit to restore all tenants
  .Example
@@ -15,7 +15,7 @@
  .Example
   Restore-DatabasesInNavContainer -containerName test -tenant @("default")
  .Example
-  Restore-DatabasesInBCContainer -containerName test -bakFile C:\ProgramData\NavContainerHelper\mydb.bak -databaseFolder "c:\databases\mydb"
+  Restore-DatabasesInBCContainer -containerName test -bakFile C:\ProgramData\bccontainerhelper\mydb.bak -databaseFolder "c:\databases\mydb"
 #>
 function Restore-DatabasesInNavContainer {
     Param(
@@ -129,8 +129,8 @@ function Restore-DatabasesInNavContainer {
     
     } -argumentList $containerBakFolder, $containerBakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout
 
-    if (Test-Path -Path "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-*") {
-        Get-Item -Path "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-*" | % {
+    if (Test-Path -Path "C:\ProgramData\BcContainerHelper\Extensions\$containerName\PsTestTool-*") {
+        Get-Item -Path "C:\ProgramData\BcContainerHelper\Extensions\$containerName\PsTestTool-*" | % {
             Remove-Item -Path $_.FullName -Force -Recurse
         }
     }

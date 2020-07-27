@@ -15,7 +15,7 @@
  .Parameter useNewSyntax
   Include the useNewSyntax switch to use new syntax
  .Example
-  Create-MyDeltaFolder -containerName test -modifiedFolder c:\programdata\navcontainerhelper\myobjects -myoriginalFolder c:\programdata\navcontainerhelper\myoriginalobjects -mydeltaFolder c:\programdata\navcontainerhelper\mydeltafiles
+  Create-MyDeltaFolder -containerName test -modifiedFolder c:\programdata\bccontainerhelper\myobjects -myoriginalFolder c:\programdata\bccontainerhelper\myoriginalobjects -mydeltaFolder c:\programdata\bccontainerhelper\mydeltafiles
 #>
 function Create-MyDeltaFolder {
     Param (

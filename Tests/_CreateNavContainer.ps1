@@ -1,7 +1,7 @@
 ﻿$navImageName = Get-BestBCContainerImageName -ImageName "mcr.microsoft.com/dynamicsnav:2018-cu17-w1"
 $navContainerName = 'nav'
 $navContainerPlatformVersion = ''
-$navContainerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $navContainerName
+$navContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $navContainerName
 $navMyPath = Join-Path $navContainerPath "my"
 New-NavContainer -accept_eula `
                  -accept_outdated `

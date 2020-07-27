@@ -229,8 +229,8 @@
                 $useCALTestFwk = $true
             }
             elseif ($runTestsInVersion -eq 14) {
-                Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
-                $appProjectFolder = Join-Path "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" "inserttests"
+                Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\bccontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
+                $appProjectFolder = Join-Path "c:\programdata\bccontainerhelper\Extensions\$runTestsContainerName" "inserttests"
                 Compile-AppInBCContainer -containerName $runTestsContainerName -credential $credential -appProjectFolder $appProjectFolder -appOutputFolder $appProjectFolder -appName "inserttests.app" -UpdateSymbols
                 Publish-NavContainerApp -containerName $runTestsContainerName -appFile (Join-Path $appProjectFolder "inserttests.app") -skipVerification -sync -install
                 $useCALTestFwk = $true
@@ -246,7 +246,7 @@
             $tests.Count | Should -be 2
         
             $first = $true
-            $resultsFile = "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName\result.xml"
+            $resultsFile = "c:\programdata\bccontainerhelper\Extensions\$runTestsContainerName\result.xml"
             $tests | % {
                 $allpassed = Run-TestsInBcContainer -containerName $runTestsContainerName `
                                                     -credential $credential `

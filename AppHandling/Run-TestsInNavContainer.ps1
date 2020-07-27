@@ -54,7 +54,7 @@
  .Example
   Run-TestsInNavContainer -contatinerName test -credential $credential
  .Example
-  Run-TestsInNavContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\NavContainerHelper\$containername.results.xml" -AzureDevOps "warning"
+  Run-TestsInNavContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\BcContainerHelper\$containername.results.xml" -AzureDevOps "warning"
 #>
 function Run-TestsInNavContainer {
     Param (
@@ -111,7 +111,7 @@ function Run-TestsInNavContainer {
         }
     }
 
-    $PsTestToolFolder = "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-6"
+    $PsTestToolFolder = Join-Path $extensionsFolder "$containerName\PsTestTool-6"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
