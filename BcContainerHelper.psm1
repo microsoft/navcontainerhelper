@@ -95,7 +95,7 @@ Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinu
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
 
-Check-NavContainerHelperPermissions -Silent
+Check-BcContainerHelperPermissions -Silent
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
