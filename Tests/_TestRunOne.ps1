@@ -4,7 +4,7 @@
 
 . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
 
-$modulePath = Join-Path $PSScriptRoot "..\NavContainerHelper.psm1"
+$modulePath = Join-Path $PSScriptRoot "..\BcContainerHelper.psm1"
 Remove-Module NavContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
