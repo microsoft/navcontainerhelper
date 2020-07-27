@@ -7,7 +7,7 @@ $warningPreference = 'Continue'
 $errorActionPreference = 'Stop'
 
 if ([intptr]::Size -eq 4) {
-    throw "NavContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
+    throw "ContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
 }
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
