@@ -4,7 +4,7 @@ This repository contains a module, which makes it easier to work with Business C
 The module is work in progress and feel free to submit pull requests and contribute with good ideas.
 Documentation will be on the wiki.
 
-¤ Branches
+# Branches
 
 **NavContainerHelper** is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery
 **master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery
