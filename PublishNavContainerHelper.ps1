@@ -40,5 +40,4 @@ Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
                       -ReleaseNotes $versionReleaseNotes
 
 Write-Host "Publishing Module"
-$nugetKey = "oy2fbjlbkxrcx6mi4i2qk4kt2pvnggouromoeemmyanlwm"
-Publish-Module -Path $path -NuGetApiKey $(nugetkey)
+#Publish-Module -Path $path -NuGetApiKey $(nugetkey)
