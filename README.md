@@ -4,13 +4,13 @@ This repository contains a module, which makes it easier to work with Business C
 The module is work in progress and feel free to submit pull requests and contribute with good ideas.
 Documentation will be on the wiki.
 
-Branches:
+¤ Branches
 
-NavContainerHelper is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery
-master is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery
+**NavContainerHelper** is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery
+**master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery
 
-NavContainerHelper will as of August 1st 2020 only receive bug fixes
-BcContainerHelper will be from August 1st 2020 both as release and pre-release.
+**NavContainerHelper** will as of August 1st 2020 only receive bug fixes
+**BcContainerHelper** will be from August 1st 2020 both as release and pre-release.
 
 Please report issues in the issues list.
 
