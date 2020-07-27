@@ -8,7 +8,7 @@ Documentation will be on the wiki.
 
 **NavContainerHelper** is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery. **NavContainerHelper** will as of August 1st 2020 only receive bug fixes.
 
-**master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery. **BcContainerHelper** will be from August 1st 2020 both as release and pre-release.
+**master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery. **BcContainerHelper** will from August 1st 2020 ship as release and pre-release.
 
 Please report issues in the issues list.
 
