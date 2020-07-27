@@ -367,9 +367,6 @@ function New-NavContainer {
 
     Write-Host "Docker Server Version is $dockerServerVersion"
 
-    Write-Host "Fetching all docker images"
-    $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
-
     $skipDatabase = $false
 
     if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
@@ -402,8 +399,16 @@ function New-NavContainer {
     # Remove if it already exists
     Remove-NavContainer $containerName
 
-    if ($imageName -ne "") {
+    if ($imageName -eq "") {
+        Write-Host "Fetching all docker images"
+        $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+    }
+    else {
         if ($artifactUrl -eq "") {
+
+            Write-Host "Fetching all docker images"
+            $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+
             if ($imageName -like "mcr.microsoft.com/*") {
                 Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from mcr.microsoft.com. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
@@ -439,6 +444,9 @@ function New-NavContainer {
                    Write-Host "Other process terminated abnormally"
                 }
     
+                Write-Host "Fetching all docker images"
+                $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+
                 $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
                 $appManifestPath = Join-Path $appArtifactPath "manifest.json"
                 $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
