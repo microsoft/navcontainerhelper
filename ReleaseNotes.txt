@@ -1,3 +1,6 @@
+0.7.0.21
+Issue #1160 autobuilding image fails if there is only one image on the machine before building
+
 0.7.0.20
 Issue #1156 Add mode ForceSync to Sync-BcContainerApp
 Issue #1157 Regression: autobuilding of some local images will fail on installing test toolkit subsequently
