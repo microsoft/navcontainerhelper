@@ -31,7 +31,7 @@ function Remove-DesktopShortcut {
     "StartMenu","CommonStartMenu" | % {
         $environmentPath = [Environment]::GetFolderPath($_)
         if ($environmentPath -ne "") {
-            $filename = Join-Path $environmentPath "NavContainerHelper\$Name.lnk"
+            $filename = Join-Path $environmentPath "BcContainerHelper\$Name.lnk"
             if (Test-Path -Path $filename) {
                 Remove-Item $filename -force
             }

@@ -48,7 +48,7 @@
         Remove-DesktopShortcut -Name 'mynotepad'
         Join-Path ([Environment]::GetFolderPath('Desktop')) 'mynotepad.lnk' | Should -Not -Exist
     }
-    It 'Write-NavContainerHelperWelcomeText' {
+    It 'Write-BcContainerHelperWelcomeText' {
         #TODO
     }
 

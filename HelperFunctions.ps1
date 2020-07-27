@@ -238,7 +238,7 @@ function Expand-7zipArchive {
     $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
 
     $use7zip = $false
-    if ($navContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
+    if ($bcContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
         try {
             $use7zip = [decimal]::Parse([System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileVersion, [System.Globalization.CultureInfo]::InvariantCulture) -ge 19
         }

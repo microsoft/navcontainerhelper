@@ -22,7 +22,7 @@
   Specify 
  .Parameter useBaseLine
   Specify this switch if you want to use the AL BaseLine, which was created when creating the container with -includeAL.
-  The baseline AL objects are added to "C:\ProgramData\NavContainerHelper\Extensions\Original-<version>-<country>-al" and will contain AL files for the C/AL objects in the container at create time.
+  The baseline AL objects are added to "C:\ProgramData\BcContainerHelper\Extensions\Original-<version>-<country>-al" and will contain AL files for the C/AL objects in the container at create time.
  .Parameter alFileStructure
   Specify a function, which will determine the location of the individual al source files
  .Parameter runTxt2AlInContainer
@@ -32,7 +32,7 @@
  .Parameter credential
   Credentials are needed to download the app if you do not use the baseline
  .Example
-  $alProjectFolder = "C:\ProgramData\NavContainerHelper\AL\BaseApp"
+  $alProjectFolder = "C:\ProgramData\BcContainerHelper\AL\BaseApp"
   Create-AlProjectFolderFromNavContainer -containerName alContainer `
                                          -alProjectFolder $alProjectFolder `
                                          -name "myapp" `

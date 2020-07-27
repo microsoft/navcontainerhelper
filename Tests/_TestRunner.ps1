@@ -5,7 +5,7 @@
 . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
 
 $modulePath = Join-Path $PSScriptRoot "..\BcContainerHelper.psm1"
-Remove-Module NavContainerHelper -ErrorAction Ignore
+Remove-Module BcContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
 $credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
