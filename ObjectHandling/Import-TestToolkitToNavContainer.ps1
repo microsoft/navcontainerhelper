@@ -141,7 +141,7 @@ function Import-TestToolkitToNavContainer {
                     "onprem"
                 }
             }
-            $applicationsPath = "C:\ProgramData\NavContainerHelper\Extensions\$folderPrefix-Applications-$Version-$country"
+            $applicationsPath = Join-Path $extensionsFolder "$folderPrefix-Applications-$Version-$country"
             if (!(Test-Path $applicationsPath)) {
                 New-Item -Path $applicationsPath -ItemType Directory | Out-Null
             }

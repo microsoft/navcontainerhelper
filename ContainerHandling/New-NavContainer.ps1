@@ -330,12 +330,12 @@ function New-NavContainer {
         $hostOs = "ltsc2016"
     }
     
-    Write-Host "NavContainerHelper is version $navContainerHelperVersion"
+    Write-Host "BcContainerHelper is version $navContainerHelperVersion"
     if ($isAdministrator) {
-        Write-Host "NavContainerHelper is running as administrator"
+        Write-Host "BcContainerHelper is running as administrator"
     }
     else {
-        Write-Host "NavContainerHelper is not running as administrator"
+        Write-Host "BcContainerHelper is not running as administrator"
     }
 
     $isServerHost = $os.ProductType -eq 3
@@ -524,7 +524,7 @@ function New-NavContainer {
     }
 
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
-        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
             Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
             $useTraefik = $true
@@ -532,7 +532,7 @@ function New-NavContainer {
     }
 
     if ($useTraefik) {
-        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
             throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
         }
