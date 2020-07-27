@@ -39,29 +39,29 @@ $NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 $sessions = @{}
 
 function Get-ContainerHelperConfig {
-    if (!((Get-Variable -scope Script navContainerHelperConfig -ErrorAction SilentlyContinue) -and $navContainerHelperConfig)) {
-        Set-Variable -scope Script -Name navContainerHelperConfig -Value @{
+    if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
+        Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
             "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
             "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
             "usePsSession" = $isAdministrator
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
         }
-        $navContainerHelperConfigFile = Join-Path $containerHelperFolder "NavContainerHelper.config.json"
-        if (Test-Path $navContainerHelperConfigFile) {
-            $savedConfig = Get-Content $navContainerHelperConfigFile | ConvertFrom-Json
-            $keys = $navContainerHelperConfig.Keys | % { $_ }
+        $bcContainerHelperConfigFile = Join-Path $containerHelperFolder "BcContainerHelper.config.json"
+        if (Test-Path $bcContainerHelperConfigFile) {
+            $savedConfig = Get-Content $bcContainerHelperConfigFile | ConvertFrom-Json
+            $keys = $bcContainerHelperConfig.Keys | % { $_ }
             $keys | % {
                 if ($savedConfig.PSObject.Properties.Name -eq "$_") {
                     Write-Host "Setting $_ = $($savedConfig."$_")"
-                    $navContainerHelperConfig."$_" = $savedConfig."$_"
+                    $bcContainerHelperConfig."$_" = $savedConfig."$_"
         
                 }
             }
         }
-        Export-ModuleMember -Variable navContainerHelperConfig
+        Export-ModuleMember -Variable bcContainerHelperConfig
     }
-    return $navContainerHelperConfig
+    return $bcContainerHelperConfig
 }
 
 Get-ContainerHelperConfig | Out-Null
