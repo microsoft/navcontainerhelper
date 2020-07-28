@@ -13,6 +13,8 @@
   This allows you to specify a number of scripts you want to copy to the c:\run\my folder in the container (override functionality)
  .Parameter skipDatabase
   Adding this parameter creates an image without a database
+ .Parameter multitenant
+  Adding this parameter creates an image with multitenancy
 #>
 function New-NavImage {
     Param (
@@ -23,7 +25,8 @@ function New-NavImage {
         [string] $isolation = "",
         [string] $memory = "",
         $myScripts = @(),
-        [switch] $skipDatabase
+        [switch] $skipDatabase,
+        [switch] $multitenant
     )
 
     if ($memory -eq "") {
@@ -194,6 +197,9 @@ function New-NavImage {
             }
         }
 
+        Write-Host "Files in $($myfolder):"
+        get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
@@ -274,6 +280,13 @@ function New-NavImage {
             $skipDatabaseLabel = "skipdatabase=""Y"" \`n"
         }
 
+        $multitenantLabel = ""
+        $multitenantParameter = ""
+        if ($multitenant) {
+            $multitenantLabel = "multitenant=""Y"" \`n"
+            $multitenantParameter = " -multitenant"
+        }
+
 @"
 FROM $baseimage
 
@@ -282,13 +295,13 @@ ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsB
 COPY my /run/
 COPY NAVDVD /NAVDVD/
 
-RUN \Run\start.ps1 -installOnly
+RUN \Run\start.ps1 -installOnly$multitenantParameter
 
 LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       created="$([DateTime]::Now.ToUniversalTime().ToString("yyyyMMddHHmm"))" \
       nav="$nav" \
       cu="$cu" \
-      $($skipDatabaseLabel)country="$($appManifest.Country)" \
+      $($skipDatabaseLabel)$($multitenantLabel)country="$($appManifest.Country)" \
       version="$($appmanifest.Version)" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")

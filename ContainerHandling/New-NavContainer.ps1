@@ -428,6 +428,9 @@ function New-NavContainer {
                 if ($skipDatabase) {
                     $imageName += "-nodb"
                 }
+                if ($multitenant) {
+                    $imageName += "-mt"
+                }
             }
 
             $buildMutexName = "img-$imageName"
@@ -484,8 +487,21 @@ function New-NavContainer {
                             Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
                             $rebuild = $true
                         }
-            
-                        if ($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") {
+                       
+                        if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
+                            if (!$multitenant) {
+                                Write-Host "Image $imageName was build multi tenant, should have been single tenant"
+                                $rebuild = $true
+                            }
+                        }
+                        else {
+                            if ($multitenant) {
+                                Write-Host "Image $imageName was build single tenant, should have been multi tenant"
+                                $rebuild = $true
+                            }
+                        }
+             
+                        if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
                             if (!$skipdatabase) {
                                 Write-Host "Image $imageName was build without a database, should have a database"
                                 $rebuild = $true
@@ -506,7 +522,7 @@ function New-NavContainer {
                 if ($rebuild) {
                     Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
                     $startTime = [DateTime]::Now
-                    New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase
+                    New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase -multitenant:$multitenant
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                     Write-Host "Building image took $timespend seconds"
                     if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
