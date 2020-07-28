@@ -71,7 +71,7 @@ Description = 'PowerShell module'
 # Functions to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no functions to export.
 FunctionsToExport = 'Add-FontsToNavContainer', 'Add-GitToAlProjectFolder', 
                'Backup-NavContainerDatabases', 
-               'Check-NavContainerHelperPermissions', 'Clean-BcContainerDatabase', 
+               'Check-BcContainerHelperPermissions', 'Clean-BcContainerDatabase', 
                'Compile-AppInNavContainer', 'Compile-ObjectsInNavContainer', 
                'Convert-AlcOutputToAzureDevOps', 'Convert-ModifiedObjectsToAl', 
                'Convert-Txt2Al', 'Copy-AlSourceFiles', 'Copy-CompanyInNavContainer', 
@@ -139,6 +139,7 @@ CmdletsToExport = @()
 
 # Aliases to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no aliases to export.
 AliasesToExport = 'Add-FontsToBCContainer', 'Backup-BCContainerDatabases', 
+               'Check-NavContainerHelperPermissions', 
                'Compile-AppInBCContainer', 'Copy-CompanyInBCContainer', 
                'Copy-FileFromBCContainer', 'Copy-FileToBCContainer', 
                'Create-AlProjectFolderFromBcContainer', 'Create-AadAppsForBC', 

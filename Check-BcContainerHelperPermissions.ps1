@@ -186,4 +186,6 @@ function Check-BcContainerHelperPermissions {
         }
     }
 }
-Export-ModuleMember -Function Check-BcContainerHelperPermissions
+Set-Alias -Name Check-NavContainerHelperPermissions -Value Check-BcContainerHelperPermissions
+Export-ModuleMember -Function Check-BcContainerHelperPermissions -Alias Check-NavContainerHelperPermissions
+
