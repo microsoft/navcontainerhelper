@@ -1,3 +1,4 @@
 1.0.0
 Change module name to BcContainerHelper
+Support Multitenancy in images
 
