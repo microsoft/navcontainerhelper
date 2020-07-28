@@ -1482,20 +1482,22 @@ if (-not `$restartingInstance) {
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
+    $containerContainerFolder = Join-Path $containerHelperFolder "Extensions\$containerName"
+
     ("
 if (-not `$restartingInstance) {
-    if (Test-Path -Path ""$containerFolder\*.vsix"") {
+    if (Test-Path -Path ""$containerContainerFolder\*.vsix"") {
         Remove-Item -Path 'C:\Run\*.vsix'
-        Copy-Item -Path ""$containerFolder\*.vsix"" -Destination 'C:\Run' -force
+        Copy-Item -Path ""$containerContainerFolder\*.vsix"" -Destination 'C:\Run' -force
         if (Test-Path 'C:\inetpub\wwwroot\http' -PathType Container) {
             Remove-Item -Path 'C:\inetpub\wwwroot\http\*.vsix'
-            Copy-Item -Path ""$containerFolder\*.vsix"" -Destination 'C:\inetpub\wwwroot\http' -force
+            Copy-Item -Path ""$containerContainerFolder\*.vsix"" -Destination 'C:\inetpub\wwwroot\http' -force
         }
     }
     else {
-        Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerFolder"" -force
+        Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerContainerFolder"" -force
     }
-    Copy-Item -Path 'C:\Run\*.cer' -Destination ""$containerFolder"" -force
+    Copy-Item -Path 'C:\Run\*.cer' -Destination ""$containerContainerFolder"" -force
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
