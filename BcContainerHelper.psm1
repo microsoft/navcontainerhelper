@@ -18,26 +18,6 @@ try {
     $myUsername = (whoami)
 }
 
-$hostHelperFolder = "C:\ProgramData\BcContainerHelper"
-$extensionsFolder = Join-Path $hostHelperFolder "Extensions"
-if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
-    New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
-    New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
-
-    if (!$isAdministrator) {
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
-        $acl.AddAccessRule($rule)
-        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
-    }
-}
-
-$containerHelperFolder = "C:\ProgramData\BcContainerHelper"
-
-$NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
-
-$sessions = @{}
-
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
@@ -46,8 +26,10 @@ function Get-ContainerHelperConfig {
             "usePsSession" = $isAdministrator
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
+            "HostHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "ContainerHelperFolder" = "C:\ProgramData\BcContainerHelper"
         }
-        $bcContainerHelperConfigFile = Join-Path $containerHelperFolder "BcContainerHelper.config.json"
+        $bcContainerHelperConfigFile = Join-Path $bcContainerHelperConfig.HostHelperFolder "BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
             $savedConfig = Get-Content $bcContainerHelperConfigFile | ConvertFrom-Json
             $keys = $bcContainerHelperConfig.Keys | % { $_ }
@@ -91,6 +73,26 @@ $Source = @"
 "@;
  
 Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+
+$hostHelperFolder = $bcContainerHelperConfig.HostHelperFolder
+$extensionsFolder = Join-Path $hostHelperFolder "Extensions"
+$containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
+
+$NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+
+$sessions = @{}
+
+if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
+    New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+    New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+
+    if (!$isAdministrator) {
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+        $acl.AddAccessRule($rule)
+        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
+    }
+}
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")

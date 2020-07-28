@@ -1,4 +1,4 @@
 1.0.0
 Change module name to BcContainerHelper
 Support Multitenancy in images
-
+Add hostHelperFolder and containerHelperFolder to containerhelper config file for override
