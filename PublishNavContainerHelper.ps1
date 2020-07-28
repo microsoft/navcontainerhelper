@@ -1,17 +1,20 @@
 ﻿$path = $PSScriptRoot
 
-$version = Get-Content -Path (Join-Path $path 'Version.txt')
-Write-Host "NavContainerHelper version $Version"
+$versionTxt = Get-Content -Path (Join-Path $path 'Version.txt')
+Write-Host "BcContainerHelper version $VersionTxt"
 
-$modulePath = Join-Path $path "NavContainerHelper.psm1"
+$version = "$versionTxt-".Split('-')[0]
+$prerelease = "$versionTxt-".Split('-')[1]
+
+$modulePath = Join-Path $path "BcContainerHelper.psm1"
 Import-Module $modulePath -DisableNameChecking
 
-$functionsToExport = (get-module -Name NavContainerHelper).ExportedFunctions.Keys | Sort-Object
+$functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
 
-$aliasesToExport = (get-module -Name NavContainerHelper).ExportedAliases.Keys | Sort-Object
+$aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
 
 $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
-$idx = $releaseNotes.IndexOf($version)
+$idx = $releaseNotes.IndexOf($versionTxt)
 if ($idx -lt 0) {
     throw 'No release notes identified'
 }
@@ -26,9 +29,10 @@ Write-Host $VersionReleaseNotes
 
 
 Write-Host "Update Module Manifest"
-Update-ModuleManifest -Path (Join-Path $path "NavContainerHelper.psd1") `
-                      -RootModule "NavContainerHelper.psm1" `
+Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+                      -RootModule "BcContainerHelper.psm1" `
                       -ModuleVersion $version `
+                      -Prerelease $prerelease `
                       -Author "Freddy Kristiansen" `
                       -FunctionsToExport $functionsToExport `
                       -AliasesToExport $aliasesToExport `

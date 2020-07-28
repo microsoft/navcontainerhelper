@@ -7,8 +7,6 @@
   Name of the container you want to remove
  .Example
   Remove-NavContainer -containerName devServer
- .Example
-  Remove-NavContainer -containerName test -updateHosts
 #>
 function Remove-NavContainer {
     [CmdletBinding()]
@@ -52,40 +50,42 @@ function Remove-NavContainer {
         Remove-DesktopShortcut -Name "$containerName Command Prompt"
         Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
 
-        $wait = 10
-        $attempts = 0
-        $filesLeft = $true
-        Write-Host "Removing $containerFolder"
-        while ($filesLeft) {
-            $files = @()
-            Get-ChildItem $containerfolder -Recurse -File | % {
-                $file = $_.FullName
-                try {
-                    Remove-Item $file -Force -ErrorAction stop
+        if (Test-Path $containerFolder) {
+            $wait = 10
+            $attempts = 0
+            $filesLeft = $true
+            Write-Host "Removing $containerFolder"
+            while ($filesLeft) {
+                $files = @()
+                Get-ChildItem $containerfolder -Recurse -File | % {
+                    $file = $_.FullName
+                    try {
+                        Remove-Item $file -Force -ErrorAction stop
+                    }
+                    catch {
+                        $files += $file
+                    }
                 }
-                catch {
-                    $files += $file
+                if ($files.count -eq 0) {
+                    $filesLeft = $false
+                }
+                else {
+                    $attempts++
+                    if ($attempts -gt 10) {
+                        throw "Could not remove $containerFolder"
+                    }
+                    Write-Host "Error removing $containerFolder (attempts: $attempts)"
+                    Write-Host "The following files could not be removed:"
+                    $files | % { 
+                        Write-Host "- $_"
+                    }
+                    Write-Host "Please close any apps, prompts or files using these files"
+                    Write-Host "Retrying in $wait seconds"
+                    Start-Sleep -Seconds $wait
                 }
             }
-            if ($files.count -eq 0) {
-                $filesLeft = $false
-            }
-            else {
-                $attempts++
-                if ($attempts -gt 10) {
-                    throw "Could not remove $containerFolder"
-                }
-                Write-Host "Error removing $containerFolder (attempts: $attempts)"
-                Write-Host "The following files could not be removed:"
-                $files | % { 
-                    Write-Host "- $_"
-                }
-                Write-Host "Please close any apps, prompts or files using these files"
-                Write-Host "Retrying in $wait seconds"
-                Start-Sleep -Seconds $wait
-            }
+            Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction SilentlyContinue
         }
-        Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction SilentlyContinue
     }
 }
 Set-Alias -Name Remove-BCContainer -Value Remove-NavContainer

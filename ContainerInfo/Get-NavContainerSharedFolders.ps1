@@ -9,7 +9,7 @@
  .Example
   Get-NavContainerSharedFolders -containerName navserver
  .Example
-  (Get-NavContainerSharedFolders -containerName navserver)["c:\programdata\navcontainerhelper"]
+  (Get-NavContainerSharedFolders -containerName navserver)["c:\programdata\bccontainerhelper"]
  .Example
   ((Get-NavContainerSharedFolders -containerName navserver).GetEnumerator() | Where-Object { $_.Value -eq "c:\run\my" }).Key
 #>

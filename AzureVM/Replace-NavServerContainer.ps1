@@ -23,6 +23,7 @@
 #>
 function Replace-NavServerContainer {
     Param (
+        [string] $artifactUrl = "",
         [string] $imageName = "",
         [switch] $alwaysPull,
         [ValidateSet('Yes','No','Default')]
@@ -39,6 +40,13 @@ function Replace-NavServerContainer {
     if (!((Test-Path $SetupNavContainerScript) -and (Test-Path $setupDesktopScript) -and (Test-Path $settingsScript))) {
         throw "The Replace-NavServerContainer is designed to work inside the ARM template VMs created by (ex. http://aka.ms/getbc)"
     }
+
+    if ($artifactUrl -ne "" -and $imageName -ne "") {
+        throw "You cannot call Replace-NavServerContainer with artifactUrl AND imageName"
+    }
+
+    $newArtifactUrl = $artifactUrl
+    Remove-Variable -Name 'artifactUrl'
 
     if ($enableSymbolLoading -ne "Default") {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
@@ -65,16 +73,32 @@ function Replace-NavServerContainer {
         . $settingsScript
     }
 
-    if ($artifactUrl -eq "") {
-        if ("$imageName" -eq "") {
-            $imageName = $navDockerImage.Split(',')[0]
-        }
-        if ("$imageName" -ne "$navDockerImage") {
-            $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
-            $settings += '$navDockerImage = "'+$imageName + '"'
+    $artifactUrlRef = get-variable -Name artifactUrl -ErrorAction SilentlyContinue
+    if (-not ($artifactUrlRef)) { $artifactUrl = "" }
+
+    if ($newArtifactUrl) {
+        if ($newArtifactUrl -ne $artifactUrl) {
+            $settings = Get-Content -path $settingsScript | Where-Object { ($_.Trim() -notlike '$navDockerImage = *') -and ($_.Trim() -notlike '$artifactUrl = *') }
+            $settings += '$navDockerImage = ""'
+            $settings += '$artifactUrl = "'+$newArtifactUrl+'"'
             Set-Content -Path $settingsScript -Value $settings
         }
-    
+    }
+    elseif ($imageName) {
+        if ("$imageName" -ne "$navDockerImage") {
+            $settings = Get-Content -path $settingsScript | Where-Object { ($_.Trim() -notlike '$navDockerImage = *') -and ($_.Trim() -notlike '$artifactUrl = *') }
+            $settings += '$navDockerImage = "'+$imageName + '"'
+            $settings += '$artifactUrl = ""'
+            Set-Content -Path $settingsScript -Value $settings
+        }
+        $imageName = Get-BestNavContainerImageName -imageName $imageName
+        if ($alwaysPull) {
+            Write-Host "Pulling docker Image $imageName"
+            docker pull $imageName
+        }
+    }
+    elseif ($navDockerImage) {
+        $imageName = $navDockerImage.Split(',')[0]
         $imageName = Get-BestNavContainerImageName -imageName $imageName
         if ($alwaysPull) {
             Write-Host "Pulling docker Image $imageName"

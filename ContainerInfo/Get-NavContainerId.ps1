@@ -17,13 +17,16 @@ function Get-NavContainerId {
     )
 
     Process {
-        $name = Get-NavContainerName $containerName
-        if ($name) { $containerName = $name }
-
         $id = ""
         docker ps --format "{{.ID}}:{{.Names}}" -a --no-trunc | ForEach-Object {
             $ps = $_.split(':')
             if ($containerName -eq $ps[1]) {
+                $id = $ps[0]
+            }
+            if ($ps[0].StartsWith($containerName)) {
+                if ($id) {
+                    throw "Unambiguous container ID specified"
+                }
                 $id = $ps[0]
             }
         }

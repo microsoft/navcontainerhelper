@@ -227,3 +227,33 @@ function TestSasToken {
         }
     }
 }
+
+function Expand-7zipArchive {
+    Param (
+        [Parameter(Mandatory=$true)]
+        [string] $Path,
+        [string] $DestinationPath
+    )
+
+    $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
+
+    $use7zip = $false
+    if ($bcContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
+        try {
+            $use7zip = [decimal]::Parse([System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileVersion, [System.Globalization.CultureInfo]::InvariantCulture) -ge 19
+        }
+        catch {
+            $use7zip = $false
+        }
+    }
+
+    if ($use7zip) {
+        Write-Host "using 7zip"
+        Set-Alias -Name 7z -Value $7zipPath
+        $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
+        Invoke-Expression -Command $command | Out-Null
+    } else {
+        Write-Host "using Expand-Archive"
+        Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
+    }
+}

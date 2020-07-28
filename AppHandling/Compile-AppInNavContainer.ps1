@@ -113,7 +113,7 @@ function Compile-AppInNavContainer {
                 }
 
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\windows\assembly"""
+                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\Windows\Microsoft.NET\Assembly"""
                 $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
                 if (Test-Path $mockAssembliesPath -PathType Container) {
                     $assemblyProbingPaths += ",""$mockAssembliesPath"""
@@ -265,9 +265,8 @@ function Compile-AppInNavContainer {
         Write-Host "Disabling SSL Verification"
         [SslVerification]::Disable()
     }
-    
 
-    $webClient = [System.Net.WebClient]::new()
+    $webClient = [TimeoutWebClient]::new(300000)
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
         $webClient.UseDefaultCredentials = $true
     }
@@ -377,7 +376,7 @@ function Compile-AppInNavContainer {
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
 
-        $alcParameters = @("/project:$appProjectFolder", "/packagecachepath:$appSymbolsFolder", "/out:$appOutputFile")
+        $alcParameters = @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
         if ($GenerateReportLayoutParam) {
             $alcParameters += @($GenerateReportLayoutParam)
         }
@@ -406,7 +405,7 @@ function Compile-AppInNavContainer {
             $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
 
-        Write-Host "alc.exe $([string]::Join(' ', $alcParameters))"
+        Write-Host ".\alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
 

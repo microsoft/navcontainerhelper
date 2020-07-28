@@ -1,8 +1,14 @@
 # NAV Container Helper
 
-This repository contains a module, which makes it easier to work with Nav Containers on Docker.
+This repository contains a module, which makes it easier to work with Business Central and NAV Containers on Docker.
 The module is work in progress and feel free to submit pull requests and contribute with good ideas.
 Documentation will be on the wiki.
+
+# Branches
+
+**NavContainerHelper** is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery. **NavContainerHelper** will as of August 1st 2020 only receive bug fixes.
+
+**master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery. **BcContainerHelper** will from August 1st 2020 ship as release and pre-release.
 
 Please report issues in the issues list.
 

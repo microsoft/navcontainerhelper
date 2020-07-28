@@ -13,7 +13,7 @@
  .Example
   Backup-NavContainerDatabases -containerName test
  .Example
-  Backup-NavContainerDatabases -containerName test -bakfolder "c:\programdata\navcontainerhelper\extensions\test"
+  Backup-NavContainerDatabases -containerName test -bakfolder "c:\programdata\bccontainerhelper\extensions\test"
  .Example
   Backup-NavContainerDatabases -containerName test -tenant @("default")
 #>

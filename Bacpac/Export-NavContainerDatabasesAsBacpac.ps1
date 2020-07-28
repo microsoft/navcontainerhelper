@@ -25,7 +25,7 @@
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\programdata\navcontainerhelper\extensions\test"
+  Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\programdata\bccontainerhelper\extensions\test"
  .Example
   Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\demo" -sqlCredential <sqlCredential>
  .Example

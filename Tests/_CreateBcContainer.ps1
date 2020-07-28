@@ -1,7 +1,7 @@
 ﻿$bcImageName = Get-BestBCContainerImageName -ImageName "mcr.microsoft.com/businesscentral/onprem:1904-rtm-w1"
 $bcContainerName = 'bc'
 $bcContainerPlatformVersion = '14.0.29530.0'
-$bcContainerPath = Join-Path "C:\ProgramData\NavContainerHelper\Extensions" $bcContainerName
+$bcContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $bcContainerName
 $bcMyPath = Join-Path $bcContainerPath "my"
 New-BCContainer -accept_eula `
                 -accept_outdated `

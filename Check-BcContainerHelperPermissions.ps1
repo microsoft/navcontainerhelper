@@ -1,10 +1,10 @@
 ﻿<# 
  .Synopsis
-  Checks Permissions for NavContainerHelper to run
+  Checks Permissions for BcContainerHelper to run
  .Description
-  When running NavContainerHelper as administrator, you have access to everything.
-  When running NavContainerHelper as a user, that user needs:
-  - Full control to C:\ProgramData\NavContainerHelper (in order to create and remove containers)
+  When running BcContainerHelper as administrator, you have access to everything.
+  When running BcContainerHelper as a user, that user needs:
+  - Full control to C:\ProgramData\BcContainerHelper (in order to create and remove containers)
   - Modify permissions to C:\Windows\System32\drivers\etc\hosts (if you use -updatehosts)
   - Full control to docker engine pipe (in order to run docker commands)
   This script checks these permissions and allows you to fix the permissions by specifying -fix
@@ -15,13 +15,13 @@
  .Parameter ignoreHosts
   Specify -ignoreHosts to ignore checking the permissions for the hosts file
  .Example
-  Check-NavContainerHelperPermissions -fix
+  Check-BcContainerHelperPermissions -fix
  .Example
-  Check-NavContainerHelperPermissions -fix -ignoreHosts
+  Check-BcContainerHelperPermissions -fix -ignoreHosts
  .Example
-  Check-NavContainerHelperPermissions -silent
+  Check-BcContainerHelperPermissions -silent
 #>
-function Check-NavContainerHelperPermissions {
+function Check-BcContainerHelperPermissions {
     Param (
         [switch] $Fix,
         [switch] $Silent,
@@ -37,7 +37,7 @@ function Check-NavContainerHelperPermissions {
             }
         }
 
-        # Check access to C:\ProgramData\NavContainerHelper
+        # Check access to C:\ProgramData\BcContainerHelper
         if (!$silent) {
             Write-Host "Checking permissions to $hostHelperFolder"
         }
@@ -52,7 +52,7 @@ function Check-NavContainerHelperPermissions {
         } else {
             Write-Host -ForegroundColor Red "$myUsername does NOT have Full Control to $hostHelperFolder and all subfolders"
             if (!$Fix) {
-                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-NavContainerHelperPermissions -Fix to fix permissions"
+                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-BcContainerHelperPermissions -Fix to fix permissions"
             } else {
                 Write-Host -ForegroundColor Yellow "Trying to add permissions"
                 $scriptblock = {
@@ -93,7 +93,7 @@ function Check-NavContainerHelperPermissions {
             } else {
                 Write-Host -ForegroundColor Red "$myUsername does NOT have modify permissions to $hostsFile"
                 if (!$Fix) {
-                    Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-NavContainerHelperPermissions -Fix to fix permissions"
+                    Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-BcContainerHelperPermissions -Fix to fix permissions"
                 } else {
                     Write-Host -ForegroundColor Yellow "Trying to add permissions"
                     $scriptblock = {
@@ -156,7 +156,7 @@ function Check-NavContainerHelperPermissions {
         } else {
             Write-Host -ForegroundColor Red "$myUsername does NOT have permissions to run docker commands"
             if (!$Fix) {
-                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-NavContainerHelperPermissions -Fix to fix permissions"
+                Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-BcContainerHelperPermissions -Fix to fix permissions"
             } else {
                 if ($npipe -eq "") {
                     Write-Host -ForegroundColor Red "Unable to determine docker deamon socket. Are you sure Docker is running and reachable?"
@@ -186,4 +186,6 @@ function Check-NavContainerHelperPermissions {
         }
     }
 }
-Export-ModuleMember -Function Check-NavContainerHelperPermissions
+Set-Alias -Name Check-NavContainerHelperPermissions -Value Check-BcContainerHelperPermissions
+Export-ModuleMember -Function Check-BcContainerHelperPermissions -Alias Check-NavContainerHelperPermissions
+

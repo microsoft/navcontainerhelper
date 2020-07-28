@@ -12,7 +12,7 @@
  .Parameter force
   Specify -force if you want to automatically remove the destination folder if it exists
  .Example
-  Extract-FilesFromNavContainerImage -ImageName microsoft/bcsandbox:us -Path "c:\programdata\navcontainerhelper\extensions\acontainer\afolder"
+  Extract-FilesFromNavContainerImage -ImageName microsoft/bcsandbox:us -Path "c:\programdata\bccontainerhelper\extensions\acontainer\afolder"
 #>
 function Extract-FilesFromNavContainerImage {
     [CmdletBinding()]
@@ -27,7 +27,7 @@ function Extract-FilesFromNavContainerImage {
     $ErrorActionPreference = 'Continue'
 
     Write-Host "Creating temp container from $imagename and extract necessary files"
-    $containerName = "navcontainerhelper-temp"
+    $containerName = "bccontainerhelper-temp"
     docker rm $containerName 2>$null | Out-null
     docker create --name $containerName $imagename | Out-Null
 

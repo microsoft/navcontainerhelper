@@ -12,7 +12,7 @@
  .Parameter force
   Specify -force if you want to automatically stop the container if running and remove the destination folder if it exists
  .Example
-  Extract-FilesFromStoppedNavContainer -ContainerName temp -Path "c:\programdata\navcontainerhelper\extensions\acontainer\afolder"
+  Extract-FilesFromStoppedNavContainer -ContainerName temp -Path "c:\programdata\bccontainerhelper\extensions\acontainer\afolder"
 #>
 function Extract-FilesFromStoppedNavContainer {
     [CmdletBinding()]
