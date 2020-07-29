@@ -1,5 +1,6 @@
 1.0.1
 Copy-FileToBcContainer and Copy-FileFromBcContainer didn't support that hostHelperFolder and containerHelperFolder was different
+Get-TestsFromBcContainer and Run-TestsInBcContainer didn't support that hostHelperFolder and containerHelperFolder was different
 
 1.0.0
 Change module name to BcContainerHelper

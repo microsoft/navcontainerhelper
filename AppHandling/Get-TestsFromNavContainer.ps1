@@ -237,7 +237,7 @@ function Get-TestsFromNavContainer {
             }
         }
 
-    } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testCodeunit, $PsTestFunctionsPath, $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+    } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testCodeunit, (Get-BCContainerPath -containerName $containerName -path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.
