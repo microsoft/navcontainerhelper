@@ -30,14 +30,14 @@ function Copy-FileFromNavContainer {
         $id = Get-NavContainerId -containerName $containerName 
 
         # running hyperv containers doesn't support docker cp
-        $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
+        $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
         try {
             if (Test-Path $localPath -PathType Container) {
                 throw "localPath ($localPath) already exists as a folder. Cannot copy file, LocalPath needs to specify a filename."
             }
             Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($containerPath, $tempFile)
                 Copy-Item -Path $containerPath -Destination $tempFile
-            } -argumentList $containerPath, $tempFile
+            } -argumentList $containerPath, (Get-NavContainerPath -containerName $containerName -Path $tempFile)
             Move-Item -Path $tempFile -Destination $localPath -Force
         } finally {
             if (Test-Path $tempFile) {
