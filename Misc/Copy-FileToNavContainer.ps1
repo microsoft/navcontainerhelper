@@ -30,7 +30,7 @@ function Copy-FileToNavContainer {
         $id = Get-NavContainerId -containerName $containerName 
 
         # running hyperv containers doesn't support docker cp
-        $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
+        $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
         try {
             Copy-Item -Path $localPath -Destination $tempFile
             Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($tempFile, $containerPath)
@@ -42,7 +42,7 @@ function Copy-FileToNavContainer {
                     New-Item -Path $directory -ItemType Directory | Out-Null
                 }
                 Move-Item -Path $tempFile -Destination $containerPath -Force
-            } -argumentList $tempFile, $containerPath
+            } -argumentList (Get-NavContainerPath -containerName $containerName -Path $tempFile), $containerPath
         } finally {
             if (Test-Path $tempFile) {
                 Remove-Item $tempFile -ErrorAction Ignore

@@ -8,6 +8,8 @@ $modulePath = Join-Path $PSScriptRoot "..\BcContainerHelper.psm1"
 Remove-Module BcContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
+$bcContainerHelperConfig.hostHelperFolder = "D:\containerhelper"
+
 $credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
 
 Get-BcContainers | Remove-BCContainer
