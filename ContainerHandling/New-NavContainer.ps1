@@ -1020,22 +1020,33 @@ function New-NavContainer {
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ("$isolation" -eq "") {
-        if ($hostOsVersion.Major -ne $containerOsversion.Major -or 
-            $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
-            $hostOsVersion.Build -ne $containerOsversion.Build) {
-        
-            Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
-            $isolation = "hyperv"
-
-        }
-        elseif ($hostOsVersion.Revision -ne $containerOsversion.Revision) {
-
-            Write-Host "WARNING: The container operating system matches the host operating system, but the revision is different."
-            Write-Host "If you encounter issues, you might want to specify -isolation hyperv"
-
+    if ($hostOsVersion -eq $containerOsVersion) {
+        if ($isolation -eq "") {
+            $isolation = "process"
         }
     }
+    else {
+        if ($isolation -eq "") {
+            if ($isAdministrator) {
+                if (Get-HypervState -ne "Disabled") {
+                    $isolation = "hyperv"
+                }
+                else {
+                    $isolation = "process"
+                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                }
+            }
+            else {
+                $isolation = "hyperv"
+                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+            }
+
+        }
+        elseif ($isolation -eq "process") {
+            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+        }
+    }
+    Write-Host "Using $isolation isolation"
 
     if ("$locale" -eq "") {
         $locale = Get-LocaleFromCountry $devCountry
@@ -1073,26 +1084,6 @@ function New-NavContainer {
     if ($auth -eq "AAD" -and [System.Version]$genericTag -lt [System.Version]"0.0.5.0") {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
-
-    if ("$isolation" -eq "") {
-
-        if ($isServerHost) {
-            $isolation = "process"
-        } else {
-            $isolation = "hyperv"
-            if ($dockerClientVersion.StartsWith("master-dockerproject-") -and ($dockerClientVersion -gt "master-dockerproject-2018-12-01")) {
-                $isolation = "process"
-            } else {
-                [System.Version]$ver = $null
-                if ([System.Version]::TryParse($dockerClientVersion.Split('-')[0],[ref]$ver)) {
-                    if ($ver -gt [System.Version]::new(18,9,0)) {
-                        $isolation = "process"
-                    }
-                }
-            }
-        }
-    }
-    Write-Host "Using $isolation isolation"
 
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
