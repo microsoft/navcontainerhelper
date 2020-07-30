@@ -1,3 +1,6 @@
+0.7.0.22
+Issue #1174 building image defaults to hyperv even if hyperv isn't installed
+
 0.7.0.21
 Issue #1160 autobuilding image fails if there is only one image on the machine before building
 

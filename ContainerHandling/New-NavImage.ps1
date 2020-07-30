@@ -140,14 +140,30 @@ function New-NavImage {
     }
 
     if ($hostOsVersion -eq $containerOsVersion) {
-        if ($isolation -eq "") { $isolation = "process" }
+        if ($isolation -eq "") { 
+            $isolation = "process"
+        }
     }
     else {
         if ($isolation -eq "") {
-            $isolation = "hyperv"
+            if ($isAdministrator) {
+                $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
+                if (($feature) -and ($feature.State -eq "Enabled")) {
+                    $isolation = "hyperv"
+                }
+                else {
+                    $isolation = "process"
+                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                }
+            }
+            else {
+                $isolation = "hyperv"
+                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match. If you encounter issues, you could try to specify -isolation process"
+            }
+
         }
         elseif ($isolation -eq "process") {
-            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, please try hyperv instead."
+            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
         }
     }
 
