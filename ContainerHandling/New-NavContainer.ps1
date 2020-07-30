@@ -369,33 +369,6 @@ function New-NavContainer {
 
     $skipDatabase = $false
 
-    if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
-        $memoryLimit = "4G"
-    }
-
-    $SqlServerMemoryLimit = 0
-    if ($SqlMemoryLimit) {
-        if ($SqlMemoryLimit.EndsWith('%')) {
-            if ($memoryLimit -ne "") {
-                if ($memoryLimit -like '*M') {
-                    $mbytes = [int]($memoryLimit.TrimEnd('mM'))
-                }
-                else {
-                    $mbytes = [int](1024*([double]($memoryLimit.TrimEnd('gG'))))
-                }
-                $sqlServerMemoryLimit = [int]($mbytes * ([int]$SqlMemoryLimit.TrimEnd('%')) / 100)
-            }
-        }
-        else {
-            if ($SqlMemoryLimit -like '*M') {
-                $SqlServerMemoryLimit = [int]($SqlMemoryLimit.TrimEnd('mM'))
-            }
-            else {
-                $SqlServerMemoryLimit = [int](1024*([double]($SqlMemoryLimit.TrimEnd('gG'))))
-            }
-        }
-    }
-
     # Remove if it already exists
     Remove-NavContainer $containerName
 
@@ -1221,6 +1194,33 @@ function New-NavContainer {
                     "--isolation $isolation",
                     "--restart $restart"
                    )
+
+    if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
+        $memoryLimit = "4G"
+    }
+
+    $SqlServerMemoryLimit = 0
+    if ($SqlMemoryLimit) {
+        if ($SqlMemoryLimit.EndsWith('%')) {
+            if ($memoryLimit -ne "") {
+                if ($memoryLimit -like '*M') {
+                    $mbytes = [int]($memoryLimit.TrimEnd('mM'))
+                }
+                else {
+                    $mbytes = [int](1024*([double]($memoryLimit.TrimEnd('gG'))))
+                }
+                $sqlServerMemoryLimit = [int]($mbytes * ([int]$SqlMemoryLimit.TrimEnd('%')) / 100)
+            }
+        }
+        else {
+            if ($SqlMemoryLimit -like '*M') {
+                $SqlServerMemoryLimit = [int]($SqlMemoryLimit.TrimEnd('mM'))
+            }
+            else {
+                $SqlServerMemoryLimit = [int](1024*([double]($SqlMemoryLimit.TrimEnd('gG'))))
+            }
+        }
+    }
 
     if ($memoryLimit) {
         $parameters += "--memory $memoryLimit"
