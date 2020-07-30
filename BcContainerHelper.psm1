@@ -48,6 +48,20 @@ function Get-ContainerHelperConfig {
 
 Get-ContainerHelperConfig | Out-Null
 
+$hypervState = ""
+function Get-HypervState {
+    if ($isAdministrator -and $hypervState -eq "") {
+        $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
+        if ($feature) {
+            $script:hypervState = $feature.State
+        }
+        else {
+            $script:hypervState = "Disabled"
+        }
+    }
+    return $script:hypervState
+}
+
 $Source = @"
 	using System.Net;
  

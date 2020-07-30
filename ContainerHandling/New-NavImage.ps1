@@ -143,16 +143,32 @@ function New-NavImage {
     }
 
     if ($hostOsVersion -eq $containerOsVersion) {
-        if ($isolation -eq "") { $isolation = "process" }
+        if ($isolation -eq "") { 
+            $isolation = "process"
+        }
     }
     else {
         if ($isolation -eq "") {
-            $isolation = "hyperv"
+            if ($isAdministrator) {
+                if (Get-HypervState -ne "Disabled") {
+                    $isolation = "hyperv"
+                }
+                else {
+                    $isolation = "process"
+                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                }
+            }
+            else {
+                $isolation = "hyperv"
+                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+            }
+
         }
         elseif ($isolation -eq "process") {
-            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, please try hyperv instead."
+            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
         }
     }
+    Write-Host "Using $isolation isolation"
 
     $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
