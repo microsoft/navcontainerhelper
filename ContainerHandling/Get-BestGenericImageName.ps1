@@ -33,7 +33,7 @@ function Get-BestGenericImageName {
     $repo = $genericImageNameSetting.Split(':')[0]
     $tag = $genericImageNameSetting.Split(':')[1].Replace('{0}','*')
 
-    $imagetags = Get-NavContainerImageTags -imageName $repo
+    $imagetags = Get-BcContainerImageTags -imageName $repo
     $versions = @()
     if ($imagetags) {
         $ver = [Version]"0.0.0.0"

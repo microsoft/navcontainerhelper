@@ -7,14 +7,13 @@
  .Parameter containerName
   Name of the container for which you want to get the image name
  .Example
-  $artifactUrl = Get-NavContainerArtifactUrl -containerName navserver
-  PS C:\>New-NavContainer -accept_eula -artifactUrl $artifactUrl -containerName test
+  $artifactUrl = Get-BcContainerArtifactUrl -containerName navserver
+  PS C:\>New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName test
 #>
-function Get-NavContainerArtifactUrl {
+function Get-BcContainerArtifactUrl {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
@@ -28,5 +27,5 @@ function Get-NavContainerArtifactUrl {
         }
     }
 }
-Set-Alias -Name Get-BCContainerArtifactUrl -Value Get-NavContainerArtifactUrl
-Export-ModuleMember -Function Get-NavContainerArtifactUrl -Alias Get-BCContainerArtifactUrl
+Set-Alias -Name Get-NavContainerArtifactUrl -Value Get-BcContainerArtifactUrl
+Export-ModuleMember -Function Get-BcContainerArtifactUrl -Alias Get-NavContainerArtifactUrl

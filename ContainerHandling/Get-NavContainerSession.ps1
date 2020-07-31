@@ -9,13 +9,13 @@
  .Parameter silent
   Include the silent switch to avoid the welcome text
  .Example
-  $session = Get-NavContainerSession -containerName navserver
+  $session = Get-BcContainerSession -containerName navserver
   PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance $ServerInstance -restart }
 #>
-function Get-NavContainerSession {
+function Get-BcContainerSession {
     [CmdletBinding()]
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [switch] $silent
     )
 
@@ -31,7 +31,7 @@ function Get-NavContainerSession {
                 $sessions.Remove($containerName)
             }
         }
-        $containerId = Get-NavContainerId -containerName $containerName
+        $containerId = Get-BcContainerId -containerName $containerName
         $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
@@ -66,5 +66,5 @@ function Get-NavContainerSession {
         return $session
     }
 }
-Set-Alias -Name Get-BCContainerSession -Value Get-NavContainerSession
-Export-ModuleMember -Function Get-NavContainerSession -Alias Get-BCContainerSession
+Set-Alias -Name Get-NavContainerSession -Value Get-BcContainerSession
+Export-ModuleMember -Function Get-BcContainerSession -Alias Get-NavContainerSession

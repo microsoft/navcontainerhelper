@@ -14,12 +14,12 @@
  .Parameter destinationDatabase
   Specify a database name for the new tenant (default is the tenantid)
  .Example
-  New-NavContainerTenant -containerName test2 -tenantId mytenant
+  New-BcContainerTenant -containerName test2 -tenantId mytenant
 #>
-function New-NavContainerTenant {
+function New-BcContainerTenant {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $tenantId,
         [PSCredential] $sqlCredential = $null,
@@ -33,7 +33,7 @@ function New-NavContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -50,5 +50,5 @@ function New-NavContainerTenant {
     } -ArgumentList $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
-Set-Alias -Name New-BCContainerTenant -Value New-NavContainerTenant
-Export-ModuleMember -Function New-NavContainerTenant -Alias New-BCContainerTenant
+Set-Alias -Name New-NavContainerTenant -Value New-BcContainerTenant
+Export-ModuleMember -Function New-BcContainerTenant -Alias New-NavContainerTenant

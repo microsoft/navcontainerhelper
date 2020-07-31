@@ -14,12 +14,12 @@
  .Parameter mode
   Sync mode to transfer to Sync-NavApp
  .Example
-  Sync-NavContainerApp -containerName test2 -appName myapp
+  Sync-BcContainerApp -containerName test2 -appName myapp
 #>
-function Sync-NavContainerApp {
+function Sync-BcContainerApp {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
@@ -31,7 +31,7 @@ function Sync-NavContainerApp {
         [string] $Mode,
         [switch] $Force
     )
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode,$force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode,$force)
         Write-Host "Synchronizing $appName on $tenant"
         Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
         $parameters = @{
@@ -55,5 +55,5 @@ function Sync-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant, $Mode,$force
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
-Set-Alias -Name Sync-BCContainerApp -Value Sync-NavContainerApp
-Export-ModuleMember -Function Sync-NavContainerApp -Alias Sync-BCContainerApp
+Set-Alias -Name Sync-NavContainerApp -Value Sync-BcContainerApp
+Export-ModuleMember -Function Sync-BcContainerApp -Alias Sync-NavContainerApp

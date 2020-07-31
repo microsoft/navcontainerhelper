@@ -8,16 +8,16 @@
  .Parameter containerName
   Name of the container from which you want to copy and install the NavSip.dll (default is navserver)
  .Example
-  Install-NAVSipCryptoProviderFromNavContainer
+  Install-NAVSipCryptoProviderFromBcContainer
 #>
-function Install-NAVSipCryptoProviderFromNavContainer {
+function Install-NAVSipCryptoProviderFromBcContainer {
     Param (
-        [string] $containerName = "navserver"
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     $msvcr120Path = "C:\Windows\System32\msvcr120.dll"
     if (!(Test-Path $msvcr120Path)) {
-        Copy-FileFromNavContainer -containerName $containerName -ContainerPath $msvcr120Path
+        Copy-FileFromBcContainer -containerName $containerName -ContainerPath $msvcr120Path
     }
 
     $navSip64Path = "C:\Windows\System32\NavSip.dll"
@@ -27,11 +27,11 @@ function Install-NAVSipCryptoProviderFromNavContainer {
     RegSvr32 /u /s $navSip32Path
 
     Log "Copy SIP crypto provider from container $containerName"
-    Copy-FileFromNavContainer -containerName $containerName -ContainerPath $navSip64Path
-    Copy-FileFromNavContainer -containerName $containerName -ContainerPath $navSip32Path
+    Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip64Path
+    Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path
 
     RegSvr32 /s $navSip32Path
     RegSvr32 /s $navSip64Path
 }
-Set-Alias -Name Install-NAVSipCryptoProviderFromBCContainer -Value Install-NAVSipCryptoProviderFromNavContainer
-Export-ModuleMember -Function Install-NAVSipCryptoProviderFromNavContainer -Alias Install-NAVSipCryptoProviderFromBCContainer
+Set-Alias -Name Install-NAVSipCryptoProviderFromNavContainer -Value Install-NAVSipCryptoProviderFromBcContainer
+Export-ModuleMember -Function Install-NAVSipCryptoProviderFromBcContainer -Alias Install-NAVSipCryptoProviderFromNavContainer

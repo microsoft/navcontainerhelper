@@ -8,20 +8,19 @@
  .Parameter networkName
   Specify network name if you want to get the IP Address for a specific network
  .Example
-  Get-NavContainerIpAddress -containerName navserver
+  Get-BcContainerIpAddress -containerName navserver
 #>
-function Get-NavContainerIpAddress {
+function Get-BcContainerIpAddress {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $networkName = ""
     )
 
     Process {
 
-        $ip = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+        $ip = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             $ip = ""
             $ips = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.IPAddress -ne "127.0.0.1" }
             if ($ips) {
@@ -48,5 +47,5 @@ function Get-NavContainerIpAddress {
         return $ip
     }
 }
-Set-Alias -Name Get-BCContainerIpAddress -Value Get-NavContainerIpAddress
-Export-ModuleMember -Function Get-NavContainerIpAddress -Alias Get-BCContainerIpAddress
+Set-Alias -Name Get-NavContainerIpAddress -Value Get-BcContainerIpAddress
+Export-ModuleMember -Function Get-BcContainerIpAddress -Alias Get-NavContainerIpAddress

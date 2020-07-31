@@ -6,11 +6,11 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the generic tag
  .Example
-  Get-NavContainerGenericTag -containerOrImageName navserver
+  Get-BcContainerGenericTag -containerOrImageName navserver
  .Example
-  Get-NavContainerGenericTag -containerOrImageName microsoft/dynamics-nav:2017
+  Get-BcContainerGenericTag -containerOrImageName microsoft/dynamics-nav:2017
 #>
-function Get-NavContainerGenericTag {
+function Get-BcContainerGenericTag {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -25,5 +25,5 @@ function Get-NavContainerGenericTag {
         return "$($inspect.Config.Labels.tag)"
     }
 }
-Set-Alias -Name Get-BCContainerGenericTag -Value Get-NavContainerGenericTag
-Export-ModuleMember -Function Get-NavContainerGenericTag -Alias Get-BCContainerGenericTag
+Set-Alias -Name Get-NavContainerGenericTag -Value Get-BcContainerGenericTag
+Export-ModuleMember -Function Get-BcContainerGenericTag -Alias Get-NavContainerGenericTag

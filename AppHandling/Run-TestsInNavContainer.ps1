@@ -52,13 +52,13 @@
  .Parameter connectFromHost
   Run the Test Runner PS functions on the host connecting to the public Web BaseUrl to allow web debuggers like fiddler to trace connections
  .Example
-  Run-TestsInNavContainer -contatinerName test -credential $credential
+  Run-TestsInBcContainer -contatinerName test -credential $credential
  .Example
-  Run-TestsInNavContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\BcContainerHelper\$containername.results.xml" -AzureDevOps "warning"
+  Run-TestsInBcContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\BcContainerHelper\$containername.results.xml" -AzureDevOps "warning"
 #>
-function Run-TestsInNavContainer {
+function Run-TestsInBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
@@ -99,7 +99,7 @@ function Run-TestsInNavContainer {
         [switch] $connectFromHost
     )
     
-    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
 
     $useTraefik = $false
@@ -115,7 +115,7 @@ function Run-TestsInNavContainer {
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
-    $serverConfiguration = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $serverConfiguration = Get-BcContainerServerConfiguration -ContainerName $containerName
     $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
 
     if ($usePublicWebBaseUrl -and $useUrl -ne "") {
@@ -171,9 +171,9 @@ function Run-TestsInNavContainer {
                 }
 
                 if ($clientServicesCredentialType -eq "Windows") {
-                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
+                    Import-ObjectsToBcContainer -containerName $containerName -objectsFile $fobfile
                 } else {
-                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+                    Import-ObjectsToBcContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
                 }
             }
         } catch {
@@ -184,7 +184,7 @@ function Run-TestsInNavContainer {
 
     if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
         $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
-        Get-NavContainerNavUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
+        Get-BcContainerNavUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
             $companyName = $_.Company
         }
     }
@@ -214,7 +214,7 @@ function Run-TestsInNavContainer {
                 $newtonSoftDllPath = Join-Path $PsTestToolFolder "NewtonSoft.json.dll"
                 $clientDllPath = Join-Path $PsTestToolFolder "Microsoft.Dynamics.Framework.UI.Client.dll"
     
-                Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
+                Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
                 
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     if (!(Test-Path $myNewtonSoftDllPath)) {
@@ -226,7 +226,7 @@ function Run-TestsInNavContainer {
                     }
                 } -argumentList $newtonSoftDllPath, $clientDllPath
     
-                $config = Get-NavContainerServerConfiguration -ContainerName $containerName
+                $config = Get-BcContainerServerConfiguration -ContainerName $containerName
                 if ($useUrl) {
                     $publicWebBaseUrl = $useUrl.TrimEnd('/')
                 }
@@ -286,13 +286,13 @@ function Run-TestsInNavContainer {
 
                 $containerXUnitResultFileName = ""
                 if ($XUnitResultFileName) {
-                    $containerXUnitResultFileName = Get-NavContainerPath -containerName $containerName -path $XUnitResultFileName
+                    $containerXUnitResultFileName = Get-BcContainerPath -containerName $containerName -path $XUnitResultFileName
                     if ("$containerXUnitResultFileName" -eq "") {
                         throw "The path for XUnitResultFileName ($XUnitResultFileName) is not shared with the container."
                     }
                 }
 
-                $result = Invoke-ScriptInNavContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -393,15 +393,15 @@ function Run-TestsInNavContainer {
                 $allPassed
             }
             if (!$allPassed) {
-                Remove-NavContainerSession -containerName $containerName
+                Remove-BcContainerSession -containerName $containerName
             }
             break
         }
         catch {
-            Remove-NavContainerSession $containerName
+            Remove-BcContainerSession $containerName
             if ($restartContainerAndRetry) {
                 Write-Host -ForegroundColor Red $_.Exception.Message
-                Restart-NavContainer $containerName
+                Restart-BcContainer $containerName
                 if ($useTraefik) {
                     Write-Host "Waiting for 30 seconds to allow Traefik to pickup restarted container"
                     Start-Sleep -Seconds 30
@@ -417,5 +417,5 @@ function Run-TestsInNavContainer {
         }
     }
 }
-Set-Alias -Name Run-TestsInBCContainer -Value Run-TestsInNavContainer
-Export-ModuleMember -Function Run-TestsInNavContainer -Alias Run-TestsInBCContainer
+Set-Alias -Name Run-TestsInNavContainer -Value Run-TestsInBcContainer
+Export-ModuleMember -Function Run-TestsInBcContainer -Alias Run-TestsInNavContainer

@@ -7,17 +7,17 @@
  .Parameter containerName
   Name of the container for which you want to open a session
  .Example
-  Open-NavContainer -containerName navserver
+  Open-BcContainer -containerName navserver
 #>
-function Open-NavContainer {
+function Open-BcContainer {
     [CmdletBinding()]
     Param (
-        [string] $containerName = "navserver"
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
         Start-Process "cmd.exe" @("/C";"docker exec -it $containerName powershell -noexit C:\Run\prompt.ps1")
     }
 }
-Set-Alias -Name Open-BCContainer -Value Open-NavContainer
-Export-ModuleMember -Function Open-NavContainer -Alias Open-BCContainer
+Set-Alias -Name Open-NavContainer -Value Open-BcContainer
+Export-ModuleMember -Function Open-BcContainer -Alias Open-NavContainer

@@ -190,7 +190,7 @@ function AssumeNavContainer {
 
     $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-        throw "Container $containerOrImageName is not a NAV container"
+        throw "Container $containerOrImageName is not a Business Central container"
     }
     [System.Version]$version = $inspect.Config.Labels.version
 

@@ -20,13 +20,13 @@
  .Parameter tenant
   If you specify the uninstall switch, then you can specify the tenant from which you want to uninstall the app
  .Example
-  Unpublish-NavContainerApp -containerName test2 -appName myapp
+  Unpublish-BcContainerApp -containerName test2 -appName myapp
  .Example
-  Unpublish-NavContainerApp -containerName test2 -appName myapp -uninstall
+  Unpublish-BcContainerApp -containerName test2 -appName myapp -uninstall
 #>
-function UnPublish-NavContainerApp {
+function UnPublish-BcContainerApp {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $appName,
         [switch] $unInstall,
@@ -40,7 +40,7 @@ function UnPublish-NavContainerApp {
         [string] $tenant = "default"
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
             $params = @{}
@@ -64,5 +64,5 @@ function UnPublish-NavContainerApp {
     } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
-Set-Alias -Name UnPublish-BCContainerApp -Value UnPublish-NavContainerApp
-Export-ModuleMember -Function UnPublish-NavContainerApp -Alias UnPublish-BCContainerApp
+Set-Alias -Name UnPublish-NavContainerApp -Value UnPublish-BcContainerApp
+Export-ModuleMember -Function UnPublish-BcContainerApp -Alias UnPublish-NavContainerApp

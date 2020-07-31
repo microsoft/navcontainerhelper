@@ -26,8 +26,9 @@ function Get-ContainerHelperConfig {
             "usePsSession" = $isAdministrator
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
-            "HostHelperFolder" = "C:\ProgramData\BcContainerHelper"
-            "ContainerHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "defaultContainerName" = "bcserver"
         }
         $bcContainerHelperConfigFile = Join-Path $bcContainerHelperConfig.HostHelperFolder "BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -92,7 +93,7 @@ $hostHelperFolder = $bcContainerHelperConfig.HostHelperFolder
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
 
-$NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+$BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
 $sessions = @{}
 

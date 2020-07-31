@@ -9,9 +9,9 @@
  .Parameter registryCredential
   Credentials for the registry if you are using a private registry (incl. bcinsider)
  .Example
-  $created = (Get-NavContainerImageLabels -imageName "mcr.microsoft.com/businesscentral/sandbox:us-ltsc2019").created
+  $created = (Get-BcContainerImageLabels -imageName "mcr.microsoft.com/businesscentral/sandbox:us-ltsc2019").created
 #>
-function Get-NavContainerImageLabels {
+function Get-BcContainerImageLabels {
     Param (
         [string] $imageName,
         [PSCredential] $registryCredential
@@ -70,5 +70,5 @@ function Get-NavContainerImageLabels {
     catch {
     }
 }
-Set-Alias -Name Get-BCContainerImageLabels -Value Get-NavContainerImageLabels
-Export-ModuleMember -Function Get-NavContainerImageLabels -Alias Get-BCContainerImageLabels
+Set-Alias -Name Get-NavContainerImageLabels -Value Get-BcContainerImageLabels
+Export-ModuleMember -Function Get-BcContainerImageLabels -Alias Get-NavContainerImageLabels

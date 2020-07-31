@@ -35,20 +35,20 @@
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
   If your application doesn't use the same appId, Publisher, Name and version as the original baseapp, you need to specify this if you want to restore apps
  .Example
-  Publish-NewApplicationToNavContainer -containerName test `
-                                       -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
-                                       -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
-                                       -credential $credential
+  Publish-NewApplicationToBcContainer -containerName test `
+                                      -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
+                                      -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
+                                      -credential $credential
  .Example
-  Publish-NewApplicationToNavContainer -containerName test `
-                                       -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
-                                       -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
-                                       -credential $credential `
-                                       -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
+  Publish-NewApplicationToBcContainer -containerName test `
+                                      -appFile (Join-Path $alProjectFolder ".output\$($appPublisher)_$($appName)_$($appVersion).app") `
+                                      -appDotNetPackagesFolder (Join-Path $alProjectFolder ".netPackages") `
+                                      -credential $credential `
+                                      -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
-function Publish-NewApplicationToNavContainer {
+function Publish-NewApplicationToBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $appFile,
         [Parameter(Mandatory=$false)]
@@ -67,25 +67,25 @@ function Publish-NewApplicationToNavContainer {
         [hashtable] $replaceDependencies = $null
     )
 
-    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
     if ("$platform" -eq "") {
-        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+        $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
     }
     [System.Version]$platformversion = $platform
 
     if ($platformversion.Major -lt 14) {
-        throw "Container $containerName does not support the function Publish-NewApplicationToNavContainer"
+        throw "Container $containerName does not support the function Publish-NewApplicationToBcContainer"
     }
 
     Add-Type -AssemblyName System.Net.Http
 
-    $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     $containerAppDotNetPackagesFolder = ""
     if ($appDotNetPackagesFolder -and (Test-Path $appDotNetPackagesFolder)) {
-        $containerAppDotNetPackagesFolder = Get-NavContainerPath -containerName $containerName -path $appDotNetPackagesFolder -throw
+        $containerAppDotNetPackagesFolder = Get-BcContainerPath -containerName $containerName -path $appDotNetPackagesFolder -throw
     }
     
-    Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $appDotNetPackagesFolder )
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param ( $appDotNetPackagesFolder )
 
         $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
         $RTCFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
@@ -114,13 +114,13 @@ function Publish-NewApplicationToNavContainer {
         New-Item -Path $appsFolder -ItemType Directory | Out-Null
     }
     if ($restoreApps -ne "No") {
-        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
+        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.Name -ne "System Application" -and $_.Name -ne "BaseApp" -and $_.Name -ne "Base Application" }
         if ($restoreApps -eq "AsRuntimePackages" -and ($replaceDependencies)) {
             Write-Warning "ReplaceDependencies will not work with apps restored as runtime packages"
         }
     }
     else {
-        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties | Where-Object { $_.Name -eq "Application" }
+        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties | Where-Object { $_.Name -eq "Application" }
     }
     $applicationApp = $installedApps | Where-Object { $_.Name -eq "Application" }
     if ($applicationApp) {
@@ -216,5 +216,5 @@ function Publish-NewApplicationToNavContainer {
         }
     }
 }
-Set-Alias -Name Publish-NewApplicationToBcContainer -Value Publish-NewApplicationToNavContainer
-Export-ModuleMember -Function Publish-NewApplicationToNavContainer -Alias Publish-NewApplicationToBcContainer
+Set-Alias -Name Publish-NewApplicationToNavContainer -Value Publish-NewApplicationToBcContainer
+Export-ModuleMember -Function Publish-NewApplicationToBcContainer -Alias Publish-NewApplicationToNavContainer

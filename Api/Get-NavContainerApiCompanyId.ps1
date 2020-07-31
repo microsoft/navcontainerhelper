@@ -12,14 +12,13 @@
  .Parameter CompanyName
   CompanyName for which you want to get the Company Id (leave empty to get company Id for the default company)
  .Example
-  $companyId = Get-NavContainerApiCompanyId -containerName $containerName -credential $credential
+  $companyId = Get-BcContainerApiCompanyId -containerName $containerName -credential $credential
  .Example
-  $companyId = Get-NavContainerApiCompanyId -containerName $containerName -credential $credential -CompanyName 'CRONUS International Ltd.'
+  $companyId = Get-BcContainerApiCompanyId -containerName $containerName -credential $credential -CompanyName 'CRONUS International Ltd.'
 #>
-function Get-NavContainerApiCompanyId {
+function Get-BcContainerApiCompanyId {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
@@ -33,7 +32,7 @@ function Get-NavContainerApiCompanyId {
 
     if (!($CompanyName)) {
 
-        $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+        $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     
         if ($credential) {
             $username = $credential.UserName
@@ -41,7 +40,7 @@ function Get-NavContainerApiCompanyId {
             $username = whoami
         }
         
-        $user = Get-NavContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.Username -eq $Username }
+        $user = Get-BcContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.Username -eq $Username }
         if (!($CompanyName)) {
             if ($user) {
                 $CompanyName = $user.Company
@@ -51,7 +50,7 @@ function Get-NavContainerApiCompanyId {
             $CompanyName = $customConfig.ServicesDefaultCompany
         }
         if (!($CompanyName)) {
-            $Company = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($tenant)
+            $Company = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($tenant)
                 Get-NavCompany -ServerInstance $serverInstance -tenant default
             } -argumentList $tenant | Where-Object { $_ -isnot [System.String] }
             $CompanyName = $Company | Select-Object -First 1 -ExpandProperty CompanyName
@@ -60,8 +59,8 @@ function Get-NavContainerApiCompanyId {
 
     $companyFilter = [Uri]::EscapeDataString("name eq '$CompanyName'")
     
-    $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion $APIVersion -Query "companies?`$filter=$companyFilter" -credential $credential -silent:$silent
+    $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion $APIVersion -Query "companies?`$filter=$companyFilter" -credential $credential -silent:$silent
     $result.value | Select-Object -First 1 -ExpandProperty id
 }
-Set-Alias -Name Get-BCContainerApiCompanyId -Value Get-NavContainerApiCompanyId
-Export-ModuleMember -Function Get-NavContainerApiCompanyId -Alias Get-BCContainerApiCompanyId
+Set-Alias -Name Get-NavContainerApiCompanyId -Value Get-BcContainerApiCompanyId
+Export-ModuleMember -Function Get-BcContainerApiCompanyId -Alias Get-NavContainerApiCompanyId

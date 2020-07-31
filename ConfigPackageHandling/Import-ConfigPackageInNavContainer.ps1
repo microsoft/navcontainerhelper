@@ -8,22 +8,22 @@
  .Parameter configPackageFile
   Path to the configuration package file you want to import
  .Example
-  Import-ConfigPackageInNavContainer -containerName test2 -configPackage 'c:\temp\configPackage.rapidstart'
+  Import-ConfigPackageInBcContainer -containerName test2 -configPackage 'c:\temp\configPackage.rapidstart'
 #>
-function Import-ConfigPackageInNavContainer {
+function Import-ConfigPackageInBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $configPackageFile
     )
 
-    $containerConfigPackageFile = Get-NavContainerPath -containerName $containerName -path $configPackageFile -throw
+    $containerConfigPackageFile = Get-BcContainerPath -containerName $containerName -path $configPackageFile -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($configPackageFile)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($configPackageFile)
         Write-Host "Importing configuration package from $configPackageFile (container path)"
         Import-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Path $configPackageFile
     } -ArgumentList $containerConfigPackageFile
     Write-Host -ForegroundColor Green "Configuration package imported"
 }
-Set-Alias -Name Import-ConfigPackageInBCContainer -Value Import-ConfigPackageInNavContainer
-Export-ModuleMember -Function Import-ConfigPackageInNavContainer -Alias Import-ConfigPackageInBCContainer
+Set-Alias -Name Import-ConfigPackageInNavContainer -Value Import-ConfigPackageInBcContainer
+Export-ModuleMember -Function Import-ConfigPackageInBcContainer -Alias Import-ConfigPackageInNavContainer

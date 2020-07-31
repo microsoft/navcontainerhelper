@@ -8,13 +8,13 @@
  .Parameter timeout
   Specify the number of seconds to wait for activity. Default is 1800 (30 min.), -1 means wait forever, 0 means don't wait.
  .Example
-  Start-NavContainer -containerName test
+  Start-BcContainer -containerName test
 #>
-function Start-NavContainer {
+function Start-BcContainer {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string] $containerName,
+        [Parameter(Mandatory=$false, ValueFromPipeline)]
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [int] $timeout = 1800
     )
 
@@ -22,8 +22,8 @@ function Start-NavContainer {
         return
     }
     if ($timeout -ne 0) {
-        Wait-NavContainerReady -containerName $containerName -timeout $timeout
+        Wait-BcContainerReady -containerName $containerName -timeout $timeout
     }
 }
-Set-Alias -Name Start-BCContainer -Value Start-NavContainer
-Export-ModuleMember -Function Start-NavContainer -Alias Start-BCContainer
+Set-Alias -Name Start-NavContainer -Value Start-BcContainer
+Export-ModuleMember -Function Start-BcContainer -Alias Start-NavContainer

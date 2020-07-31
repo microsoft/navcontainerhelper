@@ -23,14 +23,14 @@
  .Parameter databaseCredential
   Database Credential if using AssignPremiumPlan with foreign database connection
  .Example
-  New-NavContainerNavUser -containerName test -tenantId mytenant -credential $credential
+  New-BcContainerNavUser -containerName test -tenantId mytenant -credential $credential
  .Example
-  New-NavContainerNavUser -containerName test -tenantId mytenant -WindowsAccount freddyk -PermissionSetId SUPER
+  New-BcContainerNavUser -containerName test -tenantId mytenant -WindowsAccount freddyk -PermissionSetId SUPER
 #>
-function New-NavContainerNavUser {
+function New-BcContainerBcUser {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [parameter(Mandatory=$true, ParameterSetName="NavUserPassword")]
@@ -49,7 +49,7 @@ function New-NavContainerNavUser {
 
     PROCESS
     {
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential)
                         
             $TenantParam = @{}
             if ($Tenant) {
@@ -124,5 +124,5 @@ INSERT INTO [dbo].[$_] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-44
         } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential
     }
 }
-Set-Alias -Name New-BCContainerBCUser -Value New-NavContainerNavUser
-Export-ModuleMember -Function New-NavContainerNavUser -Alias New-BCContainerBCUser
+Set-Alias -Name New-NavContainerNavUser -Value New-BcContainerBcUser
+Export-ModuleMember -Function New-BcContainerBcUser -Alias New-NavContainerNavUser

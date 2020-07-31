@@ -14,11 +14,11 @@
  .Parameter force
   Include this flag to indicate that you want to force install the app
  .Example
-  Install-NavContainerApp -containerName test2 -appName myapp
+  Install-BcContainerApp -containerName test2 -appName myapp
 #>
-function Install-NavContainerApp {
+function Install-BcContainerApp {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory = $false)]
         [string] $tenant = "default",
         [Parameter(Mandatory = $true)]
@@ -28,7 +28,7 @@ function Install-NavContainerApp {
         [switch] $Force
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $Force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $Force)
         Write-Host "Installing $appName on $tenant"
         $parameters = @{ 
             "ServerInstance" = $ServerInstance
@@ -43,5 +43,5 @@ function Install-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant, $Force
     Write-Host -ForegroundColor Green "App successfully installed"
 }
-Set-Alias -Name Install-BCContainerApp -Value Install-NavContainerApp
-Export-ModuleMember -Function Install-NavContainerApp -Alias Install-BCContainerApp
+Set-Alias -Name Install-NavContainerApp -Value Install-BcContainerApp
+Export-ModuleMember -Function Install-BcContainerApp -Alias Install-NavContainerApp

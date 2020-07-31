@@ -8,12 +8,11 @@
  .Parameter doNotIncludeStoppedContainers
   Specify this parameter if you only want to test running containers
  .Example
-  if (Test-NavContainer -containerName devcontainer) { dosomething }
+  if (Test-BcContainer -containerName devcontainer) { dosomething }
 #>
-function Test-NavContainer {
+function Test-BcContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
 
         [switch] $doNotIncludeStoppedContainers
     )
@@ -36,5 +35,5 @@ function Test-NavContainer {
         }
     }
 }
-Set-Alias -Name Test-BCContainer -Value Test-NavContainer
-Export-ModuleMember -Function Test-NavContainer -Alias Test-BCContainer
+Set-Alias -Name Test-NavContainer -Value Test-BcContainer
+Export-ModuleMember -Function Test-BcContainer -Alias Test-NavContainer

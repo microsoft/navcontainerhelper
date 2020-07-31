@@ -8,17 +8,17 @@
   .Parameter tenant
   Name of tenant you want to get the commpanies for in the container
  .Example
-  Get-CompanyInNavContainer -containerName navserver
+  Get-CompanyInBcContainer -containerName navserver
 #>
-function Get-CompanyInNavContainer {
+function Get-CompanyInBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "default"
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavCompany -ServerInstance $ServerInstance -Tenant $tenant
     } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
 }
-Set-Alias -Name Get-CompanyInBCContainer -Value Get-CompanyInNavContainer
-Export-ModuleMember -Function Get-CompanyInNavContainer -Alias Get-CompanyInBCContainer
+Set-Alias -Name Get-CompanyInNavContainer -Value Get-CompanyInBcContainer
+Export-ModuleMember -Function Get-CompanyInBcContainer -Alias Get-CompanyInNavContainer
