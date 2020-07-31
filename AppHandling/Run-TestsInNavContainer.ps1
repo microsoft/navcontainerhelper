@@ -171,9 +171,9 @@ function Run-TestsInBcContainer {
                 }
 
                 if ($clientServicesCredentialType -eq "Windows") {
-                    Import-ObjectsToBcContainer -containerName $containerName -objectsFile $fobfile
+                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
                 } else {
-                    Import-ObjectsToBcContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
                 }
             }
         } catch {
