@@ -6,11 +6,11 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the OS Version
  .Example
-  Get-NavContainerOsVersion -containerOrImageName navserver
+  Get-BcContainerOsVersion -containerOrImageName navserver
  .Example
-  Get-NavContainerOsVersion -containerOrImageName microsoft/dynamics-nav:2017
+  Get-BcContainerOsVersion -containerOrImageName microsoft/dynamics-nav:2017
 #>
-function Get-NavContainerOsVersion {
+function Get-BcContainerOsVersion {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -22,5 +22,5 @@ function Get-NavContainerOsVersion {
         return "$($inspect.Config.Labels.osversion)"
     }
 }
-Set-Alias -Name Get-BCContainerOsVersion -Value Get-NavContainerOsVersion
-Export-ModuleMember -Function Get-NavContainerOsVersion -Alias Get-BCContainerOsVersion
+Set-Alias -Name Get-NavContainerOsVersion -Value Get-BcContainerOsVersion
+Export-ModuleMember -Function Get-BcContainerOsVersion -Alias Get-NavContainerOsVersion

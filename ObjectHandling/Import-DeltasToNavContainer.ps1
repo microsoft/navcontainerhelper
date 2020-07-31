@@ -18,8 +18,7 @@
 #>
 function Import-DeltasToNavContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $deltaFolder,
         [PSCredential] $sqlCredential = $null,

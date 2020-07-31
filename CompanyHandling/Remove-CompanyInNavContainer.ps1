@@ -10,21 +10,21 @@
  .Parameter companyName
   Name of the company you want to remove
  .Example
-  Remove-CompanyInNavContainer -containerName test2 -companyName 'My Company' -tenant mytenant
+  Remove-CompanyInBcContainer -containerName test2 -companyName 'My Company' -tenant mytenant
 #>
-function Remove-CompanyInNavContainer {
+function Remove-CompanyInBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $companyName
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($companyName, $tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($companyName, $tenant)
         Write-Host "Removing company $companyName from $tenant"
         Remove-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -ForceImmediateDataDeletion -Force
     } -ArgumentList $companyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully removed"
 }
-Set-Alias -Name Remove-CompanyInBCContainer -Value Remove-CompanyInNavContainer
-Export-ModuleMember -Function Remove-CompanyInNavContainer -Alias Remove-CompanyInBCContainer
+Set-Alias -Name Remove-CompanyInNavContainer -Value Remove-CompanyInBcContainer
+Export-ModuleMember -Function Remove-CompanyInBcContainer -Alias Remove-CompanyInNavContainer

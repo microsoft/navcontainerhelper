@@ -6,16 +6,15 @@
  .Parameter containerName
   Name of the container for which you want to get the server configuration
  .Example
-  Get-NavContainerServerConfiguration -ContainerName "MyContainer"
+  Get-BcContainerServerConfiguration -ContainerName "MyContainer"
 #>
-Function Get-NavContainerServerConfiguration {
+Function Get-BcContainerServerConfiguration {
     Param (
-        [Parameter(Mandatory=$true)]
-        [String] $ContainerName
+        [String] $ContainerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     $ResultObjectArray = @()
-    $config = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock{
+    $config = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
         Get-NAVServerConfiguration -ServerInstance $ServerInstance -AsXml
     }
     
@@ -31,5 +30,5 @@ Function Get-NavContainerServerConfiguration {
     
     Write-Output $ResultObjectArray
 }
-Set-Alias -Name Get-BCContainerServerConfiguration -Value Get-NavContainerServerConfiguration
-Export-ModuleMember -Function Get-NavContainerServerConfiguration -Alias Get-BCContainerServerConfiguration
+Set-Alias -Name Get-NavContainerServerConfiguration -Value Get-BcContainerServerConfiguration
+Export-ModuleMember -Function Get-BcContainerServerConfiguration -Alias Get-NavContainerServerConfiguration

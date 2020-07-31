@@ -494,7 +494,7 @@ $Step.ContainerName {
         }
     }
     else {
-        $containerName = "navserver"
+        $containerName = $bcContainerHelperConfig.defaultContainerName
     }
 }
 

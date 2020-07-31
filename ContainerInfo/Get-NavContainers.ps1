@@ -4,9 +4,9 @@
  .Description
   Returns the names of all NAV/BC Containers
  .Example
-  Get-NavContainers | Remove-NavContainer
+  Get-BcContainers | Remove-BcContainer
 #>
-function Get-NavContainers {
+function Get-BcContainers {
     Param (
         [switch] $includeLabels
     )
@@ -30,5 +30,5 @@ function Get-NavContainers {
         $containers            
     }
 }
-Set-Alias -Name Get-BCContainers -Value Get-NavContainers
-Export-ModuleMember -Function Get-NavContainers -Alias Get-BCContainers
+Set-Alias -Name Get-NavContainers -Value Get-BcContainers
+Export-ModuleMember -Function Get-BcContainers -Alias Get-NavContainers

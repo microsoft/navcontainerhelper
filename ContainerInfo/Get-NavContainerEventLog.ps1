@@ -10,15 +10,14 @@
  .Parameter doNotOpen
   Obtain a copy of the event log, but do not open the event log in the event viewer
  .Example
-  Get-NavContainerEventLog -containerName navserver
+  Get-BcContainerEventLog -containerName navserver
  .Example
-  Get-NavContainerEventLog -containerName navserver -logname Security -doNotOpen
+  Get-BcContainerEventLog -containerName navserver -logname Security -doNotOpen
 #>
-function Get-NavContainerEventLog {
+function Get-BcContainerEventLog {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $logname = "Application",
         [switch] $doNotOpen
@@ -29,9 +28,9 @@ function Get-NavContainerEventLog {
 
         $containerFolder = Join-Path $ExtensionsFolder $containerName
         $myFolder = Join-Path $containerFolder "my"
-        $folder = Get-NavContainerPath -containerName $containerName -Path $myFolder
+        $folder = Get-BcContainerPath -containerName $containerName -Path $myFolder
         $name = $containerName + ' ' + [DateTime]::Now.ToString("yyyy-MM-dd HH.mm.ss") + ".evtx"
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([string]$path, [string]$logname) 
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string]$path, [string]$logname) 
             wevtutil epl $logname "$path"
         } -ArgumentList (Join-Path $folder $name), $logname
 
@@ -40,5 +39,5 @@ function Get-NavContainerEventLog {
         }
     }
 }
-Set-Alias -Name Get-BCContainerEventLog -Value Get-NavContainerEventLog
-Export-ModuleMember -Function Get-NavContainerEventLog -Alias Get-BCContainerEventLog
+Set-Alias -Name Get-NavContainerEventLog -Value Get-BcContainerEventLog
+Export-ModuleMember -Function Get-BcContainerEventLog -Alias Get-NavContainerEventLog

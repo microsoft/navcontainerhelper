@@ -19,8 +19,7 @@
 #>
 function Create-MyDeltaFolder {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $modifiedFolder, 
         [Parameter(Mandatory=$true)]

@@ -33,19 +33,19 @@
  .Parameter showMyCode
   With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Example
-  Publish-NavContainerApp -appFile c:\temp\myapp.app
+  Publish-BcContainerApp -appFile c:\temp\myapp.app
  .Example
-  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification
+  Publish-BcContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification
  .Example
-  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -install -sync
+  Publish-BcContainerApp -containerName test2 -appFile c:\temp\myapp.app -install -sync
  .Example
-  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification -install -sync -tenant mytenant
+  Publish-BcContainerApp -containerName test2 -appFile c:\temp\myapp.app -skipVerification -install -sync -tenant mytenant
  .Example
-  Publish-NavContainerApp -containerName test2 -appFile c:\temp\myapp.app -install -sync -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
+  Publish-BcContainerApp -containerName test2 -appFile c:\temp\myapp.app -install -sync -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
-function Publish-NavContainerApp {
+function Publish-BcContainerApp {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $appFile,
         [switch] $skipVerification,
@@ -70,14 +70,14 @@ function Publish-NavContainerApp {
     )
 
     Add-Type -AssemblyName System.Net.Http
-    $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
     $copied = $false
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
         $appUrl = $appFile
         $appFile = Join-Path $extensionsFolder "$containerName\_$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
-        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+        $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
         if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
             Write-Host "Checking dependencies in $appFile"
             Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
@@ -85,7 +85,7 @@ function Publish-NavContainerApp {
         $copied = $true
     }
     else {
-        $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+        $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
         if ("$containerAppFile" -eq "" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
             $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
             if ($appFile.StartsWith(':')) {
@@ -103,7 +103,7 @@ function Publish-NavContainerApp {
                 Copy-Item -Path $appFile -Destination $sharedAppFile
             }
             $appFile = $sharedAppFile
-            $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+            $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
             $copied = $true
         }
     }
@@ -138,7 +138,7 @@ function Publish-NavContainerApp {
             $protocol = "http://"
         }
     
-        $ip = Get-NavContainerIpAddress -containerName $containerName
+        $ip = Get-BcContainerIpAddress -containerName $containerName
         if ($ip) {
             $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
         }
@@ -203,7 +203,7 @@ function Publish-NavContainerApp {
     }
     else {
 
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
 
             $publishArgs = @{ "packageType" = $packageType }
             if ($scope) {
@@ -253,5 +253,5 @@ function Publish-NavContainerApp {
     }
     Write-Host -ForegroundColor Green "App successfully published"
 }
-Set-Alias -Name Publish-BCContainerApp -Value Publish-NavContainerApp
-Export-ModuleMember -Function Publish-NavContainerApp -Alias Publish-BCContainerApp
+Set-Alias -Name Publish-NavContainerApp -Value Publish-BcContainerApp
+Export-ModuleMember -Function Publish-BcContainerApp -Alias Publish-NavContainerApp

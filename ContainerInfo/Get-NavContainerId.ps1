@@ -7,13 +7,12 @@
  .Parameter containerName
   Name of the container for which you want the Id
  .Example
-  Get-NavContainerId -containerId navserver
+  Get-BcContainerId -containerId navserver
 #>
-function Get-NavContainerId {
+function Get-BcContainerId {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
@@ -36,5 +35,5 @@ function Get-NavContainerId {
         $id
     }
 }
-Set-Alias -Name Get-BCContainerId -Value Get-NavContainerId
-Export-ModuleMember -Function Get-NavContainerId -Alias Get-BCContainerId
+Set-Alias -Name Get-NavContainerId -Value Get-BcContainerId
+Export-ModuleMember -Function Get-BcContainerId -Alias Get-NavContainerId

@@ -20,8 +20,7 @@
 #>
 function Convert-Txt2Al {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $myDeltaFolder, 
         [Parameter(Mandatory=$true)]

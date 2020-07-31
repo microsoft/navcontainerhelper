@@ -10,12 +10,12 @@
  .Parameter group
   Name of the local group to add the user to (default is administrators)
  .Example
-  New-NavContainerWindowsUser -containerName test -tenantId mytenant -username freddyk -password $password
+  New-BcContainerWindowsUser -containerName test -tenantId mytenant -username freddyk -password $password
 #>
-function New-NavContainerWindowsUser {
+function New-BcContainerWindowsUser {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [PSCredential] $Credential,
         [parameter(Mandatory=$false)]        
@@ -24,7 +24,7 @@ function New-NavContainerWindowsUser {
 
     PROCESS
     {
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$group)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$group)
 
             Write-Host "Creating Windows user $($Credential.username)"
             New-LocalUser -AccountNeverExpires -FullName $Credential.username -Name $Credential.username -Password $Credential.Password | Out-Null
@@ -35,5 +35,5 @@ function New-NavContainerWindowsUser {
         -ArgumentList $Credential, $group
     }
 }
-Set-Alias -Name New-BCContainerWindowsUser -Value New-NavContainerWindowsUser
-Export-ModuleMember -Function New-NavContainerWindowsUser -Alias New-BCContainerWindowsUser
+Set-Alias -Name New-NavContainerWindowsUser -Value New-BcContainerWindowsUser
+Export-ModuleMember -Function New-BcContainerWindowsUser -Alias New-NavContainerWindowsUser

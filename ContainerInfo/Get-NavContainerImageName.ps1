@@ -7,14 +7,13 @@
  .Parameter containerName
   Name of the container for which you want to get the image name
  .Example
-  $imageName = Get-NavContainerImageName -containerName navserver
+  $imageName = Get-BcContainerImageName -containerName navserver
   PS C:\>Docker run -e accept_eula=Y $imageName
 #>
-function Get-NavContainerImageName {
+function Get-BcContainerImageName {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
@@ -22,5 +21,5 @@ function Get-NavContainerImageName {
         return "$($inspect.Config.Image)"
     }
 }
-Set-Alias -Name Get-BCContainerImageName -Value Get-NavContainerImageName
-Export-ModuleMember -Function Get-NavContainerImageName -Alias Get-BCContainerImageName
+Set-Alias -Name Get-NavContainerImageName -Value Get-BcContainerImageName
+Export-ModuleMember -Function Get-BcContainerImageName -Alias Get-NavContainerImageName

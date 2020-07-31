@@ -12,11 +12,11 @@
  .Parameter appVersion
   Version of app you want to upgrade in the container
  .Example
-  Start-NavContainerAppDataUpgrade -containerName test2 -appName myapp
+  Start-BcContainerAppDataUpgrade -containerName test2 -appName myapp
 #>
-function  Start-NavContainerAppDataUpgrade {
+function  Start-BcContainerAppDataUpgrade {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $appName,
@@ -24,7 +24,7 @@ function  Start-NavContainerAppDataUpgrade {
         [string] $appVersion
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Upgrading app $appName"
         $parameters = @{
             "ServerInstance" = $ServerInstance;
@@ -39,5 +39,5 @@ function  Start-NavContainerAppDataUpgrade {
     } -ArgumentList $appName, $appVersion, $tenant
     Write-Host -ForegroundColor Green "App successfully upgraded"
 }
-Set-Alias -Name Start-BCContainerAppDataUpgrade -Value Start-NavContainerAppDataUpgrade
-Export-ModuleMember -Function Start-NavContainerAppDataUpgrade -Alias Start-BCContainerAppDataUpgrade
+Set-Alias -Name Start-NavContainerAppDataUpgrade -Value Start-BcContainerAppDataUpgrade
+Export-ModuleMember -Function Start-BcContainerAppDataUpgrade -Alias Start-NavContainerAppDataUpgrade

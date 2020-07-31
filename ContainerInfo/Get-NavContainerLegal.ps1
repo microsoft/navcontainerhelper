@@ -7,11 +7,11 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the legal link
  .Example
-  Get-NavContainerLegal -containerOrImageName navserver
+  Get-BcContainerLegal -containerOrImageName navserver
  .Example
-  Get-NavContainerLegal -containerOrImageName microsoft/dynamics-nav:2017
+  Get-BcContainerLegal -containerOrImageName microsoft/dynamics-nav:2017
 #>
-function Get-NavContainerLegal {
+function Get-BcContainerLegal {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -26,5 +26,5 @@ function Get-NavContainerLegal {
         return "$($inspect.Config.Labels.legal)"
     }
 }
-Set-Alias -Name Get-BCContainerLegal -Value Get-NavContainerLegal
-Export-ModuleMember -Function Get-NavContainerLegal -Alias Get-BCContainerLegal
+Set-Alias -Name Get-NavContainerLegal -Value Get-BcContainerLegal
+Export-ModuleMember -Function Get-BcContainerLegal -Alias Get-NavContainerLegal

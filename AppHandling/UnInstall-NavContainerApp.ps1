@@ -16,13 +16,13 @@
  .Parameter force
   Include this flag to indicate that you want to force uninstall the app
  .Example
-  Uninstall-NavContainerApp -containerName test2 -appName myapp
+  Uninstall-BcContainerApp -containerName test2 -appName myapp
  .Example
-  Uninstall-NavContainerApp -containerName test2 -appName myapp -doNotSaveData
+  Uninstall-BcContainerApp -containerName test2 -appName myapp -doNotSaveData
 #>
-function UnInstall-NavContainerApp {
+function UnInstall-BcContainerApp {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
@@ -33,7 +33,7 @@ function UnInstall-NavContainerApp {
         [switch] $Force
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $Force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $Force)
         Write-Host "Uninstalling $appName from $tenant"
         $parameters = @{
             "ServerInstance" = $ServerInstance
@@ -53,5 +53,5 @@ function UnInstall-NavContainerApp {
     } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
-Set-Alias -Name UnInstall-BCContainerApp -Value UnInstall-NavContainerApp
-Export-ModuleMember -Function UnInstall-NavContainerApp -Alias UnInstall-BCContainerApp
+Set-Alias -Name UnInstall-NavContainerApp -Value UnInstall-BcContainerApp
+Export-ModuleMember -Function UnInstall-BcContainerApp -Alias UnInstall-NavContainerApp

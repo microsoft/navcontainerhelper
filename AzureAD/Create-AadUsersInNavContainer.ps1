@@ -19,11 +19,11 @@
  .Parameter useCurrentAzureAdConnection
   Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
-  Create-AadUsersInNavContainer -containerName test -AadAdminCredential (Get-Credential)
+  Create-AadUsersInBcContainer -containerName test -AadAdminCredential (Get-Credential)
 #>
-function Create-AadUsersInNavContainer {
+function Create-AadUsersInBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
         [PSCredential] $AadAdminCredential,
@@ -66,13 +66,13 @@ function Create-AadUsersInNavContainer {
     Get-AzureADUser -All $true | Where-Object { $_.AccountEnabled } | ForEach-Object {
         $userName = $_.MailNickName
         $authenticationEMail = $_.UserPrincipalName
-        if (Get-NavContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName -or $_.AuthenticationEmail -eq $authenticationEMail }) {
+        if (Get-BcContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName -or $_.AuthenticationEmail -eq $authenticationEMail }) {
             Write-Host "User $userName already exists"
         } else {
             $Credential = [System.Management.Automation.PSCredential]::new($userName, $securePassword)
-            New-NavContainerNavUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
+            New-BcContainerNavUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
         }
     }
 }
-Set-Alias -Name Create-AadUsersInBCContainer -Value Create-AadUsersInNavContainer
-Export-ModuleMember -Function Create-AadUsersInNavContainer -Alias Create-AadUsersInBCContainer
+Set-Alias -Name Create-AadUsersInNavContainer -Value Create-AadUsersInBcContainer
+Export-ModuleMember -Function Create-AadUsersInBcContainer -Alias Create-AadUsersInNavContainer

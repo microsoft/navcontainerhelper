@@ -6,11 +6,11 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the country version
  .Example
-  Get-NavContainerCountry -containerOrImageName navserver
+  Get-BcContainerCountry -containerOrImageName navserver
  .Example
-  Get-NavContainerCountry -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
+  Get-BcContainerCountry -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
 #>
-function Get-NavContainerCountry {
+function Get-BcContainerCountry {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -25,5 +25,5 @@ function Get-NavContainerCountry {
         return "$($inspect.Config.Labels.country)"
     }
 }
-Set-Alias -Name Get-BCContainerCountry -Value Get-NavContainerCountry
-Export-ModuleMember -Function Get-NavContainerCountry -Alias Get-BCContainerCountry
+Set-Alias -Name Get-NavContainerCountry -Value Get-BcContainerCountry
+Export-ModuleMember -Function Get-BcContainerCountry -Alias Get-NavContainerCountry

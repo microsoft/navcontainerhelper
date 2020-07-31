@@ -30,7 +30,7 @@
 #>
 function Clean-BcContainerDatabase {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [switch] $saveData,
         [Switch] $onlySaveBaseAppData,
         [switch] $doNotUnpublish,
@@ -42,14 +42,14 @@ function Clean-BcContainerDatabase {
         [switch] $evaluationCompany
     )
 
-    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
     if ("$platform" -eq "") {
-        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+        $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
     }
     [System.Version]$platformversion = $platform
 
     if ($platformversion.Major -lt 14) {
-        throw "Container $containerName does not support the function Clean-NavContainerDatabase"
+        throw "Container $containerName does not support the function Clean-BcContainerDatabase"
     }
 
     $myFolder = Join-Path $ExtensionsFolder "$containerName\my"
@@ -57,7 +57,7 @@ function Clean-BcContainerDatabase {
         throw "Container must be started with a developer license to perform this operation"
     }
 
-    $customconfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
     if ($useNewDatabase) {
         if ($saveData) {
@@ -72,8 +72,8 @@ function Clean-BcContainerDatabase {
 
         if ($platformversion.Major -lt 15) {
             $SystemSymbolsFile = Join-Path $ExtensionsFolder "$containerName\system.app"
-            $systemSymbols = Get-NavContainerAppInfo -containerName $containerName -symbolsOnly | Where-Object { $_.Name -eq "System" }
-            Get-NavContainerApp -containerName $containerName -appName $SystemSymbols.Name -publisher $SystemSymbols.Publisher -appVersion $SystemSymbols.Version -appFile $SystemSymbolsFile -credential $credential
+            $systemSymbols = Get-BcContainerAppInfo -containerName $containerName -symbolsOnly | Where-Object { $_.Name -eq "System" }
+            Get-BcContainerApp -containerName $containerName -appName $SystemSymbols.Name -publisher $SystemSymbols.Publisher -appVersion $SystemSymbols.Version -appFile $SystemSymbolsFile -credential $credential
             $SystemApplicationFile = ""
         }
         else {
@@ -159,7 +159,7 @@ function Clean-BcContainerDatabase {
         } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables, ($customconfig.Multitenant -eq "True")
         
         Write-Host "Importing license file"
-        Import-NavContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
+        Import-BcContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
         if ($customconfig.ClientServicesCredentialType -eq "Windows") {
             Write-Host "Creating user $($env:USERNAME)"
@@ -170,18 +170,18 @@ function Clean-BcContainerDatabase {
         }
         else {
             Write-Host "Creating user $($credential.UserName)"
-            New-NavContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
+            New-BcContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
         }
         
         Write-Host "Publishing System Symbols"
-        Publish-NavContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
+        Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
 
         Write-Host "Creating Company"
-        New-CompanyInBCContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
+        New-CompanyInBcContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
         
         if ($SystemApplicationFile) {
             Write-Host "Publishing System Application"
-            Publish-NavContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync
+            Publish-BcContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync
         }
 
         if ($customconfig.Multitenant -eq "True") {
@@ -220,7 +220,7 @@ function Clean-BcContainerDatabase {
     }
     else {
     
-        $installedApps = Get-NavContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
+        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
         $installedApps | % {
             $app = $_
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData, $onlySaveBaseAppData)
@@ -237,7 +237,7 @@ function Clean-BcContainerDatabase {
         }
     
         if ($platformversion.Major -eq 14) {
-            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param ( $customConfig )
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param ( $customConfig )
                 
                 if ($customConfig.databaseInstance) {
                     $databaseServerInstance = "$($customConfig.databaseServer)\$($customConfig.databaseInstance)"

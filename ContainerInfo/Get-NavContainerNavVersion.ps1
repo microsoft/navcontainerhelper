@@ -6,11 +6,11 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the version
  .Example
-  Get-NavContainerNavVersion -containerOrImageName navserver
+  Get-BcContainerNavVersion -containerOrImageName navserver
  .Example
-  Get-NavContainerNavVersion -containerOrImageName microsoft/dynamics-nav:2017
+  Get-BcContainerNavVersion -containerOrImageName microsoft/dynamics-nav:2017
 #>
-function Get-NavContainerNavVersion {
+function Get-BcContainerNavVersion {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -25,5 +25,5 @@ function Get-NavContainerNavVersion {
         return "$($inspect.Config.Labels.version)-$($inspect.Config.Labels.country)"
     }
 }
-Set-Alias -Name Get-BCContainerNavVersion -Value Get-NavContainerNavVersion
-Export-ModuleMember -Function Get-NavContainerNavVersion -Alias Get-BCContainerNavVersion
+Set-Alias -Name Get-NavContainerNavVersion -Value Get-BcContainerNavVersion
+Export-ModuleMember -Function Get-BcContainerNavVersion -Alias Get-NavContainerNavVersion

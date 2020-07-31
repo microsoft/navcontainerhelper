@@ -7,9 +7,9 @@
  .Parameter containerId
   Id (or part of the Id) of the container for which you want to get the name
  .Example
-  Get-NavContainerName -containerId 7d
+  Get-BcContainerName -containerId 7d
 #>
-function Get-NavContainerName {
+function Get-BcContainerName {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $containerId
@@ -17,5 +17,5 @@ function Get-NavContainerName {
 
     docker ps --format='{{.Names}}' -a --filter "id=$containerId"
 }
-Set-Alias -Name Get-BCContainerName -Value Get-NavContainerName
-Export-ModuleMember -Function Get-NavContainerName -Alias Get-BCContainerName
+Set-Alias -Name Get-NavContainerName -Value Get-BcContainerName
+Export-ModuleMember -Function Get-BcContainerName -Alias Get-NavContainerName

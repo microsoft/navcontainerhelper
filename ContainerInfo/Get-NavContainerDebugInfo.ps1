@@ -18,20 +18,19 @@
  .Parameter CopyToClipboard
   Add this switch if you want the debugging info to automatically be added to the clipboard
  .Example 
-  Get-NavContainerDebugInfo -containerName navserver -includeSensitiveInformation
+  Get-BcContainerDebugInfo -containerName navserver -includeSensitiveInformation
   Get all debug information including sensitive information
   .Example
-  Get-NavContainerDebugInfo -containerName navserver -ExcludeDockerInfo
+  Get-BcContainerDebugInfo -containerName navserver -ExcludeDockerInfo
   Get debug information excluding sensitive information and excluding docker info
   .Example
-  Get-NavContainerDebugInfo -containerName navserver -ExcludeEnvVars -ExcludeDockerInfo -ExcludeDockerLogs -CopyToClipboard
+  Get-BcContainerDebugInfo -containerName navserver -ExcludeEnvVars -ExcludeDockerInfo -ExcludeDockerLogs -CopyToClipboard
   Get basic debug information and copy it into the clipboard.
 #>
-function Get-NavContainerDebugInfo {
+function Get-BcContainerDebugInfo {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter()]
         [switch] $ExcludeEnvVars,
         [Parameter()]
@@ -107,5 +106,5 @@ function Get-NavContainerDebugInfo {
         return $debugInfoJson
     }
 }
-Set-Alias -Name Get-BCContainerDebugInfo -Value Get-NavContainerDebugInfo
-Export-ModuleMember -Function Get-NavContainerDebugInfo -Alias Get-BCContainerDebugInfo
+Set-Alias -Name Get-NavContainerDebugInfo -Value Get-BcContainerDebugInfo
+Export-ModuleMember -Function Get-BcContainerDebugInfo -Alias Get-NavContainerDebugInfo

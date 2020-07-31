@@ -97,13 +97,13 @@ function New-NavImage {
         }
     }
 
-    $genericTag = [Version](Get-NavContainerGenericTag -containerOrImageName $baseImage)
+    $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
     Write-Host "Generic Tag: $genericTag"
     if ($genericTag -lt [Version]"0.1.0.1") {
         throw "Generic tag must be at least 0.1.0.1. Cannot build image based on $genericTag"
     }
 
-    $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $baseImage)
+    $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
         $containerOs = "ltsc2016"
     }

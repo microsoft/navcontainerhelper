@@ -14,15 +14,15 @@
  .Parameter sort
   Specifies how (if any) you want to sort apps based on dependencies to other apps
  .Example
-  Get-NavContainerAppInfo -containerName test2
+  Get-BcContainerAppInfo -containerName test2
  .Example
-  Get-NavContainerAppInfo -containerName test2 -tenant mytenant -tenantSpecificProperties
+  Get-BcContainerAppInfo -containerName test2 -tenant mytenant -tenantSpecificProperties
  .Example
-  Get-NavContainerAppInfo -containerName test2 -symbolsOnly
+  Get-BcContainerAppInfo -containerName test2 -symbolsOnly
 #>
-function Get-NavContainerAppInfo {
+function Get-BcContainerAppInfo {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "",
         [switch] $symbolsOnly,
         [switch] $tenantSpecificProperties,
@@ -41,7 +41,7 @@ function Get-NavContainerAppInfo {
         $args += @{ "Tenant" = $tenant }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort)
 
         $script:installedApps = @()
 
@@ -85,5 +85,5 @@ function Get-NavContainerAppInfo {
 
     } -ArgumentList $args, $sort | Where-Object {$_ -isnot [System.String]}
 }
-Set-Alias -Name Get-BCContainerAppInfo -Value Get-NavContainerAppInfo
-Export-ModuleMember -Function Get-NavContainerAppInfo -Alias Get-BCContainerAppInfo
+Set-Alias -Name Get-NavContainerAppInfo -Value Get-BcContainerAppInfo
+Export-ModuleMember -Function Get-BcContainerAppInfo -Alias Get-NavContainerAppInfo

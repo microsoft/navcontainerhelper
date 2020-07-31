@@ -43,16 +43,15 @@
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
-  Compile-AppInNavContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
+  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
-  Compile-AppInNavContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
+  Compile-AppInBcContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
-  Compile-AppInNavContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
+  Compile-AppInBcContainer -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
 #>
-function Compile-AppInNavContainer {
+function Compile-AppInBcContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
@@ -87,20 +86,20 @@ function Compile-AppInNavContainer {
 
     $startTime = [DateTime]::Now
 
-    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
     if ("$platform" -eq "") {
-        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+        $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
     }
     [System.Version]$platformversion = $platform
     
-    $containerProjectFolder = Get-NavContainerPath -containerName $containerName -path $appProjectFolder
+    $containerProjectFolder = Get-BcContainerPath -containerName $containerName -path $appProjectFolder
     if ("$containerProjectFolder" -eq "") {
         throw "The appProjectFolder ($appProjectFolder) is not shared with the container."
     }
 
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
-            $assemblyProbingPaths = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
+            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
                 if (Test-Path $netpackagesPath) {
@@ -125,19 +124,19 @@ function Compile-AppInNavContainer {
         }
     }
 
-    $containerOutputFolder = Get-NavContainerPath -containerName $containerName -path $appOutputFolder
+    $containerOutputFolder = Get-BcContainerPath -containerName $containerName -path $appOutputFolder
     if ("$containerOutputFolder" -eq "") {
         throw "The appOutputFolder ($appOutputFolder) is not shared with the container."
     }
 
-    $containerSymbolsFolder = Get-NavContainerPath -containerName $containerName -path $appSymbolsFolder
+    $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $appSymbolsFolder
     if ("$containerSymbolsFolder" -eq "") {
         throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
     }
 
     $containerRulesetFile = ""
     if ($rulesetFile) {
-        $containerRulesetFile = Get-NavContainerPath -containerName $containerName -path $rulesetFile
+        $containerRulesetFile = Get-BcContainerPath -containerName $containerName -path $rulesetFile
         if ("$containerRulesetFile" -eq "") {
             throw "The rulesetFile ($rulesetFile) is not shared with the container."
         }
@@ -169,7 +168,7 @@ function Compile-AppInNavContainer {
     }
 
     # unpack compiler
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         if (!(Test-Path "c:\build" -PathType Container)) {
             $tempZip = Join-Path $env:TEMP "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
@@ -177,7 +176,7 @@ function Compile-AppInNavContainer {
         }
     }
 
-    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
     $dependencies = @()
 
@@ -207,11 +206,11 @@ function Compile-AppInNavContainer {
     }
 
     if (!$updateSymbols) {
-        $existingApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
+        $existingApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object { Get-NavAppInfo -Path $_.FullName }
         } -ArgumentList $containerSymbolsFolder
     }
-    $publishedApps = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant)
+    $publishedApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavAppInfo -ServerInstance $ServerInstance -tenant $tenant
         Get-NavAppInfo -ServerInstance $ServerInstance -symbolsOnly
     } -ArgumentList $tenant | Where-Object { $_ -isnot [System.String] }
@@ -221,7 +220,7 @@ function Compile-AppInNavContainer {
         # locate application version number in database if using SQLEXPRESS
         try {
             if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
-                $appVersion = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($databaseName)
+                $appVersion = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($databaseName)
                     (invoke-sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -ErrorAction Stop -Query "SELECT [applicationversion] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]").applicationVersion
                 } -argumentList $customConfig.DatabaseName
                 $publishedApps += @{ "Name" = "Application"; "Publisher" = "Microsoft"; "Version" = $appversion }
@@ -240,7 +239,7 @@ function Compile-AppInNavContainer {
         $protocol = "http://"
     }
 
-    $ip = Get-NavContainerIpAddress -containerName $containerName
+    $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
         $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$ServerInstance"
     }
@@ -301,7 +300,7 @@ function Compile-AppInNavContainer {
             Write-Host "Url : $Url"
             $webClient.DownloadFile($url, $symbolsFile)
             if (Test-Path -Path $symbolsFile) {
-                $addDependencies = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
+                $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                     # Wait for file to be accessible in container
                     While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
 
@@ -336,7 +335,7 @@ function Compile-AppInNavContainer {
                             }
                         }
                     }
-                } -ArgumentList (Get-NavContainerPath -containerName $containerName -path $symbolsFile), $platformversion
+                } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
 
                 $addDependencies | % {
                     $addDependency = $_
@@ -361,7 +360,7 @@ function Compile-AppInNavContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -435,5 +434,5 @@ function Compile-AppInNavContainer {
     }
     $appFile
 }
-Set-Alias -Name Compile-AppInBCContainer -Value Compile-AppInNavContainer
-Export-ModuleMember -Function Compile-AppInNavContainer -Alias Compile-AppInBCContainer
+Set-Alias -Name Compile-AppInNavContainer -Value Compile-AppInBcContainer
+Export-ModuleMember -Function Compile-AppInBcContainer -Alias Compile-AppInNavContainer

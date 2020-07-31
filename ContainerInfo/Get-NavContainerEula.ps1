@@ -7,11 +7,11 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the Eula link
  .Example
-  Get-NavContainerEula -containerOrImageName navserver
+  Get-BcContainerEula -containerOrImageName navserver
  .Example
-  Get-NavContainerEula -containerOrImageName microsoft/dynamics-nav:2017
+  Get-BcContainerEula -containerOrImageName microsoft/dynamics-nav:2017
 #>
-function Get-NavContainerEula {
+function Get-BcContainerEula {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -26,5 +26,5 @@ function Get-NavContainerEula {
         return "$($inspect.Config.Labels.Eula)"
     }
 }
-Set-Alias -Name Get-BCContainerEula -Value Get-NavContainerEula
-Export-ModuleMember -Function Get-NavContainerEula -Alias Get-BCContainerEula
+Set-Alias -Name Get-NavContainerEula -Value Get-BcContainerEula
+Export-ModuleMember -Function Get-BcContainerEula -Alias Get-NavContainerEula

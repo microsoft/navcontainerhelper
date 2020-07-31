@@ -10,13 +10,13 @@
  .Parameter restart
   Include this switch to restart the service tier after importing the license file
  .Example
-  Import-NavContainerLicense -containerName test -licenseFile c:\temp\mylicense.flf -restart
+  Import-BcContainerLicense -containerName test -licenseFile c:\temp\mylicense.flf -restart
  .Example
-  Import-NavContainerLicense -containerName test -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1"
+  Import-BcContainerLicense -containerName test -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1"
 #>
-function Import-NavContainerLicense {
+function Import-BcContainerLicense {
     Param (
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [Parameter(Mandatory=$true)]
         [string] $licenseFile,
         [switch] $restart
@@ -39,7 +39,7 @@ function Import-NavContainerLicense {
         }
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($licensefile, $restart)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($licensefile, $restart)
 
         Write-Host "Importing License $licensefile"
         Import-NAVServerLicense -LicenseFile $licensefile -ServerInstance $ServerInstance -Database NavDatabase -WarningAction SilentlyContinue
@@ -49,7 +49,7 @@ function Import-NavContainerLicense {
             Set-NavServerInstance -ServerInstance $ServerInstance -restart
         }
     
-    }  -ArgumentList (Get-NavContainerPath -ContainerName $containerName -Path $containerLicenseFile), $restart
+    }  -ArgumentList (Get-BcContainerPath -ContainerName $containerName -Path $containerLicenseFile), $restart
 }
-Set-Alias -Name Import-BCContainerLicense -Value Import-NavContainerLicense
-Export-ModuleMember -Function Import-NavContainerLicense -Alias Import-BCContainerLicense
+Set-Alias -Name Import-NavContainerLicense -Value Import-BcContainerLicense
+Export-ModuleMember -Function Import-BcContainerLicense -Alias Import-NavContainerLicense

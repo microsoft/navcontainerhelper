@@ -12,13 +12,13 @@
  .Parameter force
   Forces the command to run without asking for user confirmation.
  .Example
-  Get-NavContainerTenants -containerName test
+  Get-BcContainerTenants -containerName test
 #>
-function Get-NavContainerTenants {
+function Get-BcContainerTenants {
     [CmdletBinding(DefaultParameterSetName = 'UseContainerName')]
     Param (
         [ValidateNotNullorEmpty()]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
 
         [Parameter(Mandatory = $true, ParameterSetName = 'ForceRefreshTenantState')]
         [switch] $ForceRefresh,
@@ -37,10 +37,10 @@ function Get-NavContainerTenants {
     if ($Tenant) {
         $Params += @{ "Tenant" = $Tenant }
     }
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         Param( [PsCustomObject] $Params)
         Get-NavTenant -ServerInstance $ServerInstance @Params
     } -argumentList $Params
 }
-Set-Alias -Name Get-BCContainerTenants -Value Get-NavContainerTenants
-Export-ModuleMember -Function Get-NavContainerTenants -Alias Get-BCContainerTenants
+Set-Alias -Name Get-NavContainerTenants -Value Get-BcContainerTenants
+Export-ModuleMember -Function Get-BcContainerTenants -Alias Get-NavContainerTenants
