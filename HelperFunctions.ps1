@@ -155,7 +155,7 @@ function Get-NavContainerAuth {
     }
 }
 
-function Check-NavContainerName {
+function Check-BcContainerName {
     Param
     (
         [string]$containerName = ""
