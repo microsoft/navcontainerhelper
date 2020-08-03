@@ -2,6 +2,8 @@
 Copy-FileToBcContainer and Copy-FileFromBcContainer didn't support that hostHelperFolder and containerHelperFolder was different
 Get-TestsFromBcContainer and Run-TestsInBcContainer didn't support that hostHelperFolder and containerHelperFolder was different
 Issue #1174 do not use hyperv isolation if Hyper-V isn't installed
+Issue #1180 New-BcContainerWizard doesn't work (if BcContainerHelper is installed in standard path)
+Change NavContainerhelper to BcContainerHelper in New-BcContainerWizard
 
 1.0.0
 Change module name to BcContainerHelper
