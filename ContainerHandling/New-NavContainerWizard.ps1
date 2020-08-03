@@ -13,7 +13,7 @@ function New-BcContainerWizard {
 
     $script = Join-Path $PSScriptRoot "..\CreateScript.ps1"
 
-    Start-Process $pslink @($script, "-skipContainerHelperCheck")
+    Start-Process $pslink @("-File ""$script""", "-skipContainerHelperCheck")
 
 }
 Set-Alias -Name New-NavContainerWizard -Value New-BcContainerWizard
