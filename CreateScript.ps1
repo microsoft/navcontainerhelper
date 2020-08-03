@@ -369,7 +369,7 @@ $Step.NavContainerHelper {
             Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
             return
         }
-        elseif ($module.Version -eq [Version]"0.0") {
+        elseif ($module.Version -eq "0.0") {
             $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
             if (!($function)) {
                 Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
@@ -379,7 +379,7 @@ $Step.NavContainerHelper {
             Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
             Write-Host
         }
-        elseif ($module.Version -lt [Version]"0.7.0.9") {
+        elseif ([Version]$module.Version -lt [Version]"0.7.0.9") {
              Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
              Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
              return

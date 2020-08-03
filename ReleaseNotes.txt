@@ -1,3 +1,6 @@
+0.7.0.23
+Issue #1180 New-BcContainerWizard doesn't work in 0.7.0.18 - 0.7.0.22 (if NavContainerHelper is installed in standard path)
+
 0.7.0.22
 Issue #1174 building image defaults to hyperv even if hyperv isn't installed
 
