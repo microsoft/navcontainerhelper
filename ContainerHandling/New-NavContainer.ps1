@@ -1647,7 +1647,7 @@ if (-not `$restartingInstance) {
         Remove-NavContainerSession -containerName $containerName
     }
 
-    if ($version -eq [System.Version]"16.0.11240.12076" -and $devCountry -ne "W1") {
+    if ((($version -eq [System.Version]"16.0.11240.12076") -or ($version -eq [System.Version]"16.0.11240.12085")) -and $devCountry -ne "W1") {
         $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
         Write-Host "Downloading new test apps for this version from $url"
         $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
