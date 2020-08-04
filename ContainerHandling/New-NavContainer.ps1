@@ -367,6 +367,9 @@ function New-BcContainer {
     Write-Host "Docker Server Version is $dockerServerVersion"
 
     $skipDatabase = $false
+    if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
+        $skipDatabase = $true
+    }
 
     # Remove if it already exists
     Remove-BcContainer $containerName
@@ -389,20 +392,10 @@ function New-BcContainer {
             }
         }
         else {
-            if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
-                $skipDatabase = $true
-            }
-    
             Write-Host "ArtifactUrl and ImageName specified"
             if (!$imageName.Contains(':')) {
                 $appUri = [Uri]::new($artifactUrl)
                 $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
-                if ($skipDatabase) {
-                    $imageName += "-nodb"
-                }
-                if ($multitenant) {
-                    $imageName += "-mt"
-                }
             }
 
             $buildMutexName = "img-$imageName"
@@ -425,7 +418,26 @@ function New-BcContainer {
                 $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
                 $appManifestPath = Join-Path $appArtifactPath "manifest.json"
                 $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-        
+
+                if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+                    if ($appManifest.isBcSandbox) {
+                        if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
+                            $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+                        }
+                    }
+                }
+
+                $dbstr = ""
+                if ($skipDatabase) {
+                    $imageName += "-nodb"
+                    $dbstr = " without database"
+                }
+                $mtstr = ""
+                if ($multitenant) {
+                    $imageName += "-mt"
+                    $mtstr = " multitenant"
+                }
+
                 $rebuild = $false
                 if ($allImages | Where-Object { $_ -eq $imageName }) {
                     try {
@@ -492,7 +504,7 @@ function New-BcContainer {
                     $rebuild = $true
                 }
                 if ($rebuild) {
-                    Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
+                    Write-Host "Building$mtstr image $imageName based on $($artifactUrl.Split('?')[0])$dbstr"
                     $startTime = [DateTime]::Now
                     New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase -multitenant:$multitenant
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
@@ -732,6 +744,9 @@ function New-BcContainer {
         if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
             if ($appManifest.isBcSandbox) {
                 $bcstyle = "sandbox"
+                if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
+                    $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+                }
             }
         }
 
@@ -820,6 +835,12 @@ function New-BcContainer {
 
     Write-Host "Version: $navversion"
     Write-Host "Style: $bcStyle"
+    if ($multitenant) {
+        Write-Host "Multitenant: Yes"
+    }
+    else {
+        Write-Host "Multitenant: No"
+    }
 
     $version = [System.Version]($navversion.split('-')[0])
     if ($dvdPlatform) {

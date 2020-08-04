@@ -4,6 +4,7 @@ Get-TestsFromBcContainer and Run-TestsInBcContainer didn't support that hostHelp
 Issue #1174 do not use hyperv isolation if Hyper-V isn't installed
 Issue #1180 New-BcContainerWizard doesn't work (if BcContainerHelper is installed in standard path)
 Change NavContainerhelper to BcContainerHelper in New-BcContainerWizard
+Sandbox containers are multitenant by default (as SaaS is multitenant!)
 
 1.0.0
 Change module name to BcContainerHelper
