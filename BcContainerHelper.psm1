@@ -29,6 +29,7 @@ function Get-ContainerHelperConfig {
             "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "defaultContainerName" = "bcserver"
+            "sandboxContainersAreMultitenantByDefault" = $true
         }
         $bcContainerHelperConfigFile = Join-Path $bcContainerHelperConfig.HostHelperFolder "BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
