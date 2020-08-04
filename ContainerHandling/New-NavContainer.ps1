@@ -392,10 +392,12 @@ function New-BcContainer {
             }
         }
         else {
+            $autotag = $false
             Write-Host "ArtifactUrl and ImageName specified"
             if (!$imageName.Contains(':')) {
                 $appUri = [Uri]::new($artifactUrl)
                 $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+                $autotag = $true
             }
 
             $buildMutexName = "img-$imageName"
@@ -429,12 +431,12 @@ function New-BcContainer {
 
                 $dbstr = ""
                 if ($skipDatabase) {
-                    $imageName += "-nodb"
+                    if ($autotag) { $imageName += "-nodb" }
                     $dbstr = " without database"
                 }
                 $mtstr = ""
                 if ($multitenant) {
-                    $imageName += "-mt"
+                    if ($autotag) { $imageName += "-mt" }
                     $mtstr = " multitenant"
                 }
 
