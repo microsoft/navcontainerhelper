@@ -373,29 +373,6 @@ function New-NavContainer {
         $memoryLimit = "4G"
     }
 
-    $SqlServerMemoryLimit = 0
-    if ($SqlMemoryLimit) {
-        if ($SqlMemoryLimit.EndsWith('%')) {
-            if ($memoryLimit -ne "") {
-                if ($memoryLimit -like '*M') {
-                    $mbytes = [int]($memoryLimit.TrimEnd('mM'))
-                }
-                else {
-                    $mbytes = [int](1024*([double]($memoryLimit.TrimEnd('gG'))))
-                }
-                $sqlServerMemoryLimit = [int]($mbytes * ([int]$SqlMemoryLimit.TrimEnd('%')) / 100)
-            }
-        }
-        else {
-            if ($SqlMemoryLimit -like '*M') {
-                $SqlServerMemoryLimit = [int]($SqlMemoryLimit.TrimEnd('mM'))
-            }
-            else {
-                $SqlServerMemoryLimit = [int](1024*([double]($SqlMemoryLimit.TrimEnd('gG'))))
-            }
-        }
-    }
-
     # Remove if it already exists
     Remove-NavContainer $containerName
 
@@ -1078,6 +1055,10 @@ function New-NavContainer {
     }
     Write-Host "Using $isolation isolation"
 
+    if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
+        $memoryLimit = "4G"
+    }
+
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
@@ -1556,6 +1537,29 @@ if (-not `$restartingInstance) {
 
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+
+    $SqlServerMemoryLimit = 0
+    if ($SqlMemoryLimit) {
+        if ($SqlMemoryLimit.EndsWith('%')) {
+            if ($memoryLimit -ne "") {
+                if ($memoryLimit -like '*M') {
+                    $mbytes = [int]($memoryLimit.TrimEnd('mM'))
+                }
+                else {
+                    $mbytes = [int](1024*([double]($memoryLimit.TrimEnd('gG'))))
+                }
+                $sqlServerMemoryLimit = [int]($mbytes * ([int]$SqlMemoryLimit.TrimEnd('%')) / 100)
+            }
+        }
+        else {
+            if ($SqlMemoryLimit -like '*M') {
+                $SqlServerMemoryLimit = [int]($SqlMemoryLimit.TrimEnd('mM'))
+            }
+            else {
+                $SqlServerMemoryLimit = [int](1024*([double]($SqlMemoryLimit.TrimEnd('gG'))))
+            }
+        }
+    }
 
     if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
         Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"

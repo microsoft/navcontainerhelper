@@ -1,5 +1,6 @@
 0.7.0.24
 Issue #1186 New-BcContainer cannot import test toolkit from 16.0 onprem artifacts
+Issue #1187 Running an image with hyperv isolation sometimes doesn't allowcate memory automatically
 
 0.7.0.23
 Issue #1180 New-BcContainerWizard doesn't work in 0.7.0.18 - 0.7.0.22 (if NavContainerHelper is installed in standard path)
