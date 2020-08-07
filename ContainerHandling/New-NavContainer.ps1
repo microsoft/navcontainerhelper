@@ -366,6 +366,7 @@ function New-BcContainer {
 
     Write-Host "Docker Server Version is $dockerServerVersion"
 
+    $doNotGetBestImageName = $false
     $skipDatabase = $false
     if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
         $skipDatabase = $true
@@ -518,6 +519,7 @@ function New-BcContainer {
                 $artifactUrl = ""
                 $alwaysPull = $false
                 $useGenericImage = ""
+                $doNotGetBestImageName = $true
             }
             finally {
                 $buildMutex.ReleaseMutex()
@@ -600,6 +602,9 @@ function New-BcContainer {
             $imageName = Get-BestBcContainerImageName -imageName "mcr.microsoft.com/businesscentral/onprem"
             $alwaysPull = $true
         }
+        $bestImageName = $imageName
+    }
+    elseif ($doNotGetBestImageName) {
         $bestImageName = $imageName
     }
     else {
