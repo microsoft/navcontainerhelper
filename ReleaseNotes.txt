@@ -7,6 +7,7 @@ Change NavContainerhelper to BcContainerHelper in New-BcContainerWizard
 Sandbox containers are multitenant by default (as SaaS is multitenant!)
 Issue #1191 New-BcImage should add the same auto-tag as New-BcContainer
 Issue #1190 New-BcImage will return imagename after generation
+Issue #1195 New-BcContainer sometimes uses a different image than the one created
 
 1.0.0
 Change module name to BcContainerHelper

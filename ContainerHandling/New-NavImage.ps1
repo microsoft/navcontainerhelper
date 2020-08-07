@@ -1,4 +1,9 @@
 ﻿<# 
+ .Synopsis
+  Create or refresh NAV/BC image
+ .Description
+  Creates a new image based on artifacts and a base image
+  The function returns the imagename of the image created
  .Parameter artifactUrl
   Url for application artifact to use
  .Parameter imageName
