@@ -2,7 +2,7 @@
  .Parameter artifactUrl
   Url for application artifact to use
  .Parameter imageName
-  Name of the image getting build. Default is myimage:latest.
+  Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
   BaseImage to use. Default is using Get-BestGenericImage to get the best generic image to use.
  .Parameter isolation
@@ -19,7 +19,7 @@
 function New-NavImage {
     Param (
         [string] $artifactUrl,
-        [string] $imageName = "myimage:latest",
+        [string] $imageName = "myimage",
         [string] $baseImage = "",
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
@@ -85,6 +85,20 @@ function New-NavImage {
             throw "Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
         }
     }
+
+    if (!$imageName.Contains(':')) {
+        $appUri = [Uri]::new($artifactUrl)
+        $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+        if ($skipDatabase) {
+            $imageName += "-nodb"
+        }
+        if ($multitenant) {
+            $imageName += "-mt"
+        }
+    }
+
+    Write-Host "Building image $imageName based on $baseImage"
+
     if ($baseImage -eq $bestGenericImageName) {
         Write-Host "Pulling latest image $baseImage"
         DockerDo -command pull -imageName $baseImage | Out-Null
