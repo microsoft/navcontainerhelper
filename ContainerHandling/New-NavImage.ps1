@@ -98,6 +98,8 @@ function New-NavImage {
     }
 
     Write-Host "Building image $imageName based on $baseImage"
+    
+    $imageName
 
     if ($baseImage -eq $bestGenericImageName) {
         Write-Host "Pulling latest image $baseImage"
@@ -299,7 +301,7 @@ function New-NavImage {
         docker images --format "{{.Repository}}:{{.Tag}}" | % { 
             if ($_ -eq $imageName) 
             {
-                docker rmi $imageName -f
+                docker rmi $imageName -f | Out-Host
             }
         }
 
@@ -336,7 +338,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder
+docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder | Out-Host
 
     }
     finally {
