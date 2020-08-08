@@ -596,11 +596,21 @@ function New-BcContainer {
             else {
                 $imageName = Get-BestGenericImageName
             }
-        } elseif (Test-BcContainer -containerName navserver) {
-            $imageName = Get-BcContainerImageName -containerName navserver
+        } elseif (Test-BcContainer -containerName $bcContainerHelperConfig.defaultContainerName) {
+            $artifactUrl = Get-BcContainerArtifactUrl -containerName $bcContainerHelperConfig.defaultContainerName
+            if ($artifactUrl) {
+                if ($useGenericImage) {
+                    $imageName = $useGenericImage
+                }
+                else {
+                    $imageName = Get-BestGenericImageName
+                }
+            }
+            else {
+                $imageName = Get-BcContainerImageName -containerName $bcContainerHelperConfig.defaultContainerName
+            }
         } else {
-            $imageName = Get-BestBcContainerImageName -imageName "mcr.microsoft.com/businesscentral/onprem"
-            $alwaysPull = $true
+            throw "You have to specify artifactUrl or imageName when creating a new container."            
         }
         $bestImageName = $imageName
     }
