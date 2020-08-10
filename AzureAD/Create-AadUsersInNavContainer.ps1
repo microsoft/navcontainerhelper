@@ -70,7 +70,7 @@ function Create-AadUsersInBcContainer {
             Write-Host "User $userName already exists"
         } else {
             $Credential = [System.Management.Automation.PSCredential]::new($userName, $securePassword)
-            New-BcContainerNavUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
+            New-BcContainerBcUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
         }
     }
 }

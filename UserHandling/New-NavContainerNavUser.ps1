@@ -23,9 +23,9 @@
  .Parameter databaseCredential
   Database Credential if using AssignPremiumPlan with foreign database connection
  .Example
-  New-BcContainerNavUser -containerName test -tenantId mytenant -credential $credential
+  New-BcContainerBcUser -containerName test -tenantId mytenant -credential $credential
  .Example
-  New-BcContainerNavUser -containerName test -tenantId mytenant -WindowsAccount freddyk -PermissionSetId SUPER
+  New-BcContainerBcUser -containerName test -tenantId mytenant -WindowsAccount freddyk -PermissionSetId SUPER
 #>
 function New-BcContainerBcUser {
     Param (
