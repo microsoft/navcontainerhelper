@@ -1778,7 +1778,7 @@ if (-not `$restartingInstance) {
             $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
             if (!(Test-Path $originalFolder)) {
                 # Export base objects
-                Export-BcContainerObjects -containerName $containerName `
+                Export-NavContainerObjects -containerName $containerName `
                                            -objectsFolder $originalFolder `
                                            -filter "" `
                                            -sqlCredential $sqlCredential `
@@ -1838,7 +1838,7 @@ if (-not `$restartingInstance) {
             $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
             if (!(Test-Path $originalFolder)) {
                 # Export base objects as new syntax
-                Export-BcContainerObjects -containerName $containerName `
+                Export-NavContainerObjects -containerName $containerName `
                                            -objectsFolder $originalFolder `
                                            -filter "" `
                                            -sqlCredential $sqlCredential `
