@@ -39,6 +39,12 @@
   The password for all test users created
  .Parameter Credential
   Credentials for the admin user if using NavUserPassword authentication
+ .Parameter ReplaceDependencies
+  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+ .Parameter select
+  Select which users to create. Essential creates only Essential user, Premium only premium user. Empty adds all.
+ .Parameter createTestUsersAppUrl
+  Url to Create Test Users App, if you have a special version of the app. Leave empty to use the default app.
  .Example
   Setup-BcContainerTestUsers -password $securePassword
  .Example
@@ -54,7 +60,10 @@ function Setup-BcContainerTestUsers {
         [securestring] $Password,
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential,
-        [hashtable] $replaceDependencies = $null
+        [hashtable] $replaceDependencies = $null,
+        [ValidateSet('','Essential','Premium')]
+        [string] $select = '',
+        [string] $createTestUsersAppUrl = ''
     )
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
@@ -84,18 +93,24 @@ function Setup-BcContainerTestUsers {
                     Publish-BcContainerApp -containerName $containerName -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
                 }
             }
-            Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_15.0.app" -destinationFile $appfile
+            if ($createTestUsersAppUrl -eq '') {
+                $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_15.0.app"
+            }
         }
         else {
-            Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app" -destinationFile $appfile
+            if ($createTestUsersAppUrl -eq '') {
+                $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app"
+            }
+            $select = ''
         }
 
+        Download-File -sourceUrl $createTestUsersAppUrl -destinationFile $appfile
         Publish-BcContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
 
         $companyId = Get-BcContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
 
         $parameters = @{ 
-            "name" = "CreateTestUsers"
+            "name" = "CreateTestUsers$select"
             "value" = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
         }
         Invoke-BcContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
