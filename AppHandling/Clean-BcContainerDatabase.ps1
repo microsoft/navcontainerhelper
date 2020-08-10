@@ -170,7 +170,7 @@ function Clean-BcContainerDatabase {
         }
         else {
             Write-Host "Creating user $($credential.UserName)"
-            New-BcContainerNavUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
+            New-BcContainerBcUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
         }
         
         Write-Host "Publishing System Symbols"

@@ -66,11 +66,11 @@ function Create-AadUsersInBcContainer {
     Get-AzureADUser -All $true | Where-Object { $_.AccountEnabled } | ForEach-Object {
         $userName = $_.MailNickName
         $authenticationEMail = $_.UserPrincipalName
-        if (Get-BcContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName -or $_.AuthenticationEmail -eq $authenticationEMail }) {
+        if (Get-BcContainerBcUser -containerName $containerName -tenant $tenant | Where-Object { $_.UserName -eq $userName -or $_.AuthenticationEmail -eq $authenticationEMail }) {
             Write-Host "User $userName already exists"
         } else {
             $Credential = [System.Management.Automation.PSCredential]::new($userName, $securePassword)
-            New-BcContainerNavUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
+            New-BcContainerBcUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
         }
     }
 }

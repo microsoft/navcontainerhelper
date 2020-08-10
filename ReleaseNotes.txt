@@ -2,6 +2,8 @@
 Issue #1202 New-BcContainer gives wrong message if no artifactUrl nor imagename is specified
 Cleanup terminology
 Issue #1203 Export-BcContainerObjects doesn't exist
+Issue #1169 add parameter to Setup-BcContainerTestUsers to select which users to add (Essential or Premium) to avoid mixed plans
+References to Get-BcContainerNavUser needs to be replaced with Get-BcContainerBcUser
 
 1.0.1
 Copy-FileToBcContainer and Copy-FileFromBcContainer didn't support that hostHelperFolder and containerHelperFolder was different

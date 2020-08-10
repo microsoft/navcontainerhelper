@@ -1,9 +1,9 @@
 ﻿Describe 'UserHandling' {
 
-    It 'Get-BcContainerNavUser' {
+    It 'Get-BcContainerBcUser' {
         #TODO
     }
-    It 'New-BcContainerNavUser' {
+    It 'New-BcContainerBcUser' {
         #TODO
     }
     It 'New-BcContainerWindowsUser' {
