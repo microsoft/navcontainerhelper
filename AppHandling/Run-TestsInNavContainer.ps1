@@ -184,7 +184,7 @@ function Run-TestsInBcContainer {
 
     if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
         $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
-        Get-BcContainerNavUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
+        Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
             $companyName = $_.Company
         }
     }

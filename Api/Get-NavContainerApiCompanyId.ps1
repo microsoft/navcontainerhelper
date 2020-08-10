@@ -40,7 +40,7 @@ function Get-BcContainerApiCompanyId {
             $username = whoami
         }
         
-        $user = Get-BcContainerNavUser -containerName $containerName -tenant $tenant | Where-Object { $_.Username -eq $Username }
+        $user = Get-BcContainerBcUser -containerName $containerName -tenant $tenant | Where-Object { $_.Username -eq $Username }
         if (!($CompanyName)) {
             if ($user) {
                 $CompanyName = $user.Company

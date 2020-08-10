@@ -8,9 +8,9 @@
  .Parameter tenant
   Name of tenant from which you want to get the users
  .Example
-  Get-BcContainerNavUser
+  Get-BcContainerBcUser
  .Example
-  Get-BcContainerNavUser -containerName test -tenant mytenant
+  Get-BcContainerBcUser -containerName test -tenant mytenant
 #>
 function Get-BcContainerBcUser {
     Param (
