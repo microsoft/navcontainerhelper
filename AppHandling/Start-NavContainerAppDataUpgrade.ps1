@@ -4,7 +4,7 @@
  .Description
   Creates a session to the container and runs the CmdLet Start-NAVAppDataUpgrade in the container
  .Parameter containerName
-  Name of the container in which you want to upgrade the app (default navserver)
+  Name of the container in which you want to upgrade the app
  .Parameter tenant
   Name of the tenant in which you want to upgrade the app (default default)
  .Parameter appName

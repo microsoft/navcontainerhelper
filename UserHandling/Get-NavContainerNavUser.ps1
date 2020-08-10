@@ -4,7 +4,7 @@
  .Description
   Retrieve the list of user objects from a tenant in a NAV/BC Container
  .Parameter containerName
-  Name of the container from which you want to get the users (default navserver)
+  Name of the container from which you want to get the users
  .Parameter tenant
   Name of tenant from which you want to get the users
  .Example

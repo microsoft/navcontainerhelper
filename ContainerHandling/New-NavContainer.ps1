@@ -11,9 +11,7 @@
  .Parameter containerName
   Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
-  Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
- .Parameter useArtifacts
-  Temporary parameter, in which you can specify a storage account url, in which build artifacts are expected to live. ImageName is translated to an artifact Url if you specify this.
+  Name of the image you want to use for your Container
  .Parameter artifactUrl
   Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
  .Parameter dvdPath

@@ -7,7 +7,7 @@
  .Parameter containerName
   Name of the container for which you want the Id
  .Example
-  Get-BcContainerId -containerId navserver
+  Get-BcContainerId -containerId bcserver
 #>
 function Get-BcContainerId {
     [CmdletBinding()]

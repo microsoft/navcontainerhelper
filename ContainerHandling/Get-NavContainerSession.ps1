@@ -9,7 +9,7 @@
  .Parameter silent
   Include the silent switch to avoid the welcome text
  .Example
-  $session = Get-BcContainerSession -containerName navserver
+  $session = Get-BcContainerSession -containerName bcserver
   PS C:\>Invoke-Command -Session $session -ScriptBlock { Set-NavServerInstance -ServerInstance $ServerInstance -restart }
 #>
 function Get-BcContainerSession {

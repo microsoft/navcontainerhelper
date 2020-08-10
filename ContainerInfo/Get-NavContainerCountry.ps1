@@ -6,7 +6,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the country version
  .Example
-  Get-BcContainerCountry -containerOrImageName navserver
+  Get-BcContainerCountry -containerOrImageName bcserver
  .Example
   Get-BcContainerCountry -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
 #>

@@ -5,7 +5,7 @@
   Copies the appFile to the container if necessary
   Creates a session to the container and runs the CmdLet Publish-NavApp in the container
  .Parameter containerName
-  Name of the container in which you want to publish an app (default is navserver)
+  Name of the container in which you want to publish an app
  .Parameter appFile
   Path of the app you want to publish  
  .Parameter skipVerification

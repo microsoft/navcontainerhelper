@@ -7,7 +7,7 @@
  .Parameter containerName
   Name of the container for which you want to remove the session
  .Example
-  Remove-BcContainerSession -containerName navserver
+  Remove-BcContainerSession -containerName bcserver
 #>
 function Remove-BcContainerSession {
     [CmdletBinding()]

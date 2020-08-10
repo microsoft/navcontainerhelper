@@ -10,9 +10,9 @@
  .Parameter doNotOpen
   Obtain a copy of the event log, but do not open the event log in the event viewer
  .Example
-  Get-BcContainerEventLog -containerName navserver
+  Get-BcContainerEventLog -containerName bcserver
  .Example
-  Get-BcContainerEventLog -containerName navserver -logname Security -doNotOpen
+  Get-BcContainerEventLog -containerName bcserver -logname Security -doNotOpen
 #>
 function Get-BcContainerEventLog {
     [CmdletBinding()]

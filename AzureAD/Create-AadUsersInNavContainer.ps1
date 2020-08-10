@@ -5,7 +5,7 @@
   This function will create an app in AAD, to allow Web and Windows Client to use AAD for authentication
   Optionally the function can also create apps for the Excel AddIn and/or PowerBI integration
  .Parameter containerName
-  Name of the container in which you want to create the users (default navserver)
+  Name of the container in which you want to create the users
  .Parameter tenant
   Name of tenant in which you want to create a users
  .Parameter AadAdminCredential

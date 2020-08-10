@@ -5,7 +5,7 @@
   Creates a new user in a NAV/BC container.
   If the Container is multitenant, the user will be added to a specified tenant
  .Parameter containerName
-  Name of the container in which you want to create the user (default navserver)
+  Name of the container in which you want to create the user
  .Parameter tenant
   Name of tenant in which you want to create a user
  .Parameter Credential

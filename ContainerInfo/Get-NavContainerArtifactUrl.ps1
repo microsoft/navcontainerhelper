@@ -7,7 +7,7 @@
  .Parameter containerName
   Name of the container for which you want to get the image name
  .Example
-  $artifactUrl = Get-BcContainerArtifactUrl -containerName navserver
+  $artifactUrl = Get-BcContainerArtifactUrl -containerName bcserver
   PS C:\>New-BcContainer -accept_eula -artifactUrl $artifactUrl -containerName test
 #>
 function Get-BcContainerArtifactUrl {

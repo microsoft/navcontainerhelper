@@ -6,7 +6,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the generic tag
  .Example
-  Get-BcContainerGenericTag -containerOrImageName navserver
+  Get-BcContainerGenericTag -containerOrImageName bcserver
  .Example
   Get-BcContainerGenericTag -containerOrImageName microsoft/dynamics-nav:2017
 #>

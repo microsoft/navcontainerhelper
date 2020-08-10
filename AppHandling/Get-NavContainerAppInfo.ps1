@@ -4,7 +4,7 @@
  .Description
   Creates a session to the NAV/BC Container and runs the CmdLet Get-NavAppInfo in the container
  .Parameter containerName
-  Name of the container in which you want to enumerate apps (default navserver)
+  Name of the container in which you want to enumerate apps
  .Parameter tenant
   Specifies the tenant from which you want to get the app info
  .Parameter tenantSpecificProperties

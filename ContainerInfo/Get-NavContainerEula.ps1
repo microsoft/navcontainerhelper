@@ -7,7 +7,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the Eula link
  .Example
-  Get-BcContainerEula -containerOrImageName navserver
+  Get-BcContainerEula -containerOrImageName bcserver
  .Example
   Get-BcContainerEula -containerOrImageName microsoft/dynamics-nav:2017
 #>

@@ -32,7 +32,7 @@
                                                 LOCAL
 
  .Parameter containerName
-  Name of the container in which you want to add test users (default navserver)
+  Name of the container in which you want to add test users
  .Parameter tenant
   Name of tenant in which you want to add test users (default defeault)
  .Parameter password

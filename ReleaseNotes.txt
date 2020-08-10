@@ -1,5 +1,6 @@
 1.0.2
 Issue #1202 New-BcContainer gives wrong message if no artifactUrl nor imagename is specified
+Cleanup terminology
 
 1.0.1
 Copy-FileToBcContainer and Copy-FileFromBcContainer didn't support that hostHelperFolder and containerHelperFolder was different

@@ -10,7 +10,7 @@
  .Parameter throw
   Include the throw switch to throw an exception if the folder isn't shared with the container
  .Example
-  $containerPath = Get-BcContainerPath -containerName navserver -path c:\programdata\bccontainerhelper\extensions\test2\my
+  $containerPath = Get-BcContainerPath -containerName bcserver -path c:\programdata\bccontainerhelper\extensions\test2\my
 #>
 function Get-BcContainerPath {
     [CmdletBinding()]
