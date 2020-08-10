@@ -6,7 +6,7 @@
   Copies the pfxFile to the container if necessary
   Creates a session to the container and Signs the App using the provided certificate and password
  .Parameter containerName
-  Name of the container in which you want to publish an app (default is navserver)
+  Name of the container in which you want to publish an app
  .Parameter appFile
   Path of the app you want to sign
  .Parameter pfxFile

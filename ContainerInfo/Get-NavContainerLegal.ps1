@@ -7,7 +7,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the legal link
  .Example
-  Get-BcContainerLegal -containerOrImageName navserver
+  Get-BcContainerLegal -containerOrImageName bcserver
  .Example
   Get-BcContainerLegal -containerOrImageName microsoft/dynamics-nav:2017
 #>

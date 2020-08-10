@@ -18,13 +18,13 @@
  .Parameter CopyToClipboard
   Add this switch if you want the debugging info to automatically be added to the clipboard
  .Example 
-  Get-BcContainerDebugInfo -containerName navserver -includeSensitiveInformation
+  Get-BcContainerDebugInfo -containerName bcserver -includeSensitiveInformation
   Get all debug information including sensitive information
   .Example
-  Get-BcContainerDebugInfo -containerName navserver -ExcludeDockerInfo
+  Get-BcContainerDebugInfo -containerName bcserver -ExcludeDockerInfo
   Get debug information excluding sensitive information and excluding docker info
   .Example
-  Get-BcContainerDebugInfo -containerName navserver -ExcludeEnvVars -ExcludeDockerInfo -ExcludeDockerLogs -CopyToClipboard
+  Get-BcContainerDebugInfo -containerName bcserver -ExcludeEnvVars -ExcludeDockerInfo -ExcludeDockerLogs -CopyToClipboard
   Get basic debug information and copy it into the clipboard.
 #>
 function Get-BcContainerDebugInfo {

@@ -6,7 +6,7 @@
   Extensions cannot be signed inside the container, they need to be signed on the host.
   Beside the NavSip.dll you also need the SignTool.exe which you get with Visual Studio.
  .Parameter containerName
-  Name of the container from which you want to copy and install the NavSip.dll (default is navserver)
+  Name of the container from which you want to copy and install the NavSip.dll
  .Example
   Install-NAVSipCryptoProviderFromBcContainer
 #>

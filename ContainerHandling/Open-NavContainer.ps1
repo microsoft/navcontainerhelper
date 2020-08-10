@@ -7,7 +7,7 @@
  .Parameter containerName
   Name of the container for which you want to open a session
  .Example
-  Open-BcContainer -containerName navserver
+  Open-BcContainer -containerName bcserver
 #>
 function Open-BcContainer {
     [CmdletBinding()]

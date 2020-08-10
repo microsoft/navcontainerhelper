@@ -9,7 +9,7 @@
  .Parameter timeout
   Specify the number of seconds to wait for activity. Default is 1800 (30 min.). -1 means wait forever.
  .Example
-  Wait-BcContainerReady -containerName navserver
+  Wait-BcContainerReady -containerName bcserver
 #>
 function Wait-BcContainerReady {
     [CmdletBinding()]

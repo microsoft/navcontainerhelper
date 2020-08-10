@@ -4,7 +4,7 @@
  .Description
   Creates a session to the container and runs the CmdLet Unpublish-NavApp in the container
  .Parameter containerName
-  Name of the container in which you want to unpublish the app (default navserver)
+  Name of the container in which you want to unpublish the app
  .Parameter appName
   Name of app you want to unpublish in the container
  .Parameter uninstall

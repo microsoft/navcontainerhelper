@@ -8,7 +8,7 @@
   .Parameter tenant
   Name of tenant you want to get the commpanies for in the container
  .Example
-  Get-CompanyInBcContainer -containerName navserver
+  Get-CompanyInBcContainer -containerName bcserver
 #>
 function Get-CompanyInBcContainer {
     Param (

@@ -98,7 +98,7 @@ function Write-BcContainerHelperWelcomeText {
     Write-Host "Create-AadUsersInBcContainer    Create all active users in the Aad in the Business Central container"
     Write-Host
     Write-Host -ForegroundColor Yellow "Azure VM specific functions"
-    Write-Host "Replace-NavServerContainer       Replace or recreate navserver (primary) container"
+    Write-Host "Replace-BcServerContainer        Replace or recreate bcserver (primary) container"
     Write-Host "New-LetsEncryptCertificate       Create Lets Encrypt Certificate for secure communication"
     Write-Host "Renew-LetsEncryptCertificate     Renew Lets Encrypt Certificate for secure communication"
     Write-Host

@@ -7,7 +7,7 @@
  .Parameter containerName
   Name of the container for which you want to get the image name
  .Example
-  $imageName = Get-BcContainerImageName -containerName navserver
+  $imageName = Get-BcContainerImageName -containerName bcserver
   PS C:\>Docker run -e accept_eula=Y $imageName
 #>
 function Get-BcContainerImageName {

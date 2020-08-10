@@ -7,7 +7,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the platform version
  .Example
-  Get-BcContainerPlatformVersion -containerOrImageName navserver
+  Get-BcContainerPlatformVersion -containerOrImageName bcserver
  .Example
   Get-BcContainerPlatformVersion -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
 #>

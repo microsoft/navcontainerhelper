@@ -6,7 +6,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the version
  .Example
-  Get-BcContainerNavVersion -containerOrImageName navserver
+  Get-BcContainerNavVersion -containerOrImageName bcserver
  .Example
   Get-BcContainerNavVersion -containerOrImageName microsoft/dynamics-nav:2017
 #>

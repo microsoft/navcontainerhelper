@@ -1,11 +1,11 @@
 ﻿<# 
  .Synopsis
-  Replace navserver container with the same or a different image
+  Replace bcserver container with the same or a different image
  .Description
-  This command is designed to be used in the Azure VMs, where the main container (mapped to public ip) is called navserver.
+  This command is designed to be used in the Azure VMs, where the main container (mapped to public ip) is called bcserver.
   Running this command will replace the container with a new container with a different (or the same) image.
  .Parameter imageName
-  imageName you want to use to replace the navserver container (omit to recreate the same container)
+  imageName you want to use to replace the bcserver container (omit to recreate the same container)
  .Parameter alwaysPull
   Include this switch if you want to make sure that you pull latest version of the docker image
  .Parameter enableSymbolLoading

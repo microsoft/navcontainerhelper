@@ -11,9 +11,7 @@
  .Parameter containerName
   Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
-  Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
- .Parameter useArtifacts
-  Temporary parameter, in which you can specify a storage account url, in which build artifacts are expected to live. ImageName is translated to an artifact Url if you specify this.
+  Name of the image you want to use for your Container
  .Parameter artifactUrl
   Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
  .Parameter dvdPath
@@ -596,11 +594,21 @@ function New-BcContainer {
             else {
                 $imageName = Get-BestGenericImageName
             }
-        } elseif (Test-BcContainer -containerName navserver) {
-            $imageName = Get-BcContainerImageName -containerName navserver
+        } elseif (Test-BcContainer -containerName $bcContainerHelperConfig.defaultContainerName) {
+            $artifactUrl = Get-BcContainerArtifactUrl -containerName $bcContainerHelperConfig.defaultContainerName
+            if ($artifactUrl) {
+                if ($useGenericImage) {
+                    $imageName = $useGenericImage
+                }
+                else {
+                    $imageName = Get-BestGenericImageName
+                }
+            }
+            else {
+                $imageName = Get-BcContainerImageName -containerName $bcContainerHelperConfig.defaultContainerName
+            }
         } else {
-            $imageName = Get-BestBcContainerImageName -imageName "mcr.microsoft.com/businesscentral/onprem"
-            $alwaysPull = $true
+            throw "You have to specify artifactUrl or imageName when creating a new container."            
         }
         $bestImageName = $imageName
     }
@@ -1770,7 +1778,7 @@ if (-not `$restartingInstance) {
             $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
             if (!(Test-Path $originalFolder)) {
                 # Export base objects
-                Export-BcContainerObjects -containerName $containerName `
+                Export-NavContainerObjects -containerName $containerName `
                                            -objectsFolder $originalFolder `
                                            -filter "" `
                                            -sqlCredential $sqlCredential `
@@ -1830,7 +1838,7 @@ if (-not `$restartingInstance) {
             $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
             if (!(Test-Path $originalFolder)) {
                 # Export base objects as new syntax
-                Export-BcContainerObjects -containerName $containerName `
+                Export-NavContainerObjects -containerName $containerName `
                                            -objectsFolder $originalFolder `
                                            -filter "" `
                                            -sqlCredential $sqlCredential `

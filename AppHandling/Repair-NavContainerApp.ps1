@@ -5,7 +5,7 @@
   Repairs a Business Central App by recompiling it against the current base application. Use this cmdlet if the base application has changed since publishing the Business Central App.
   It is recommended that the Business Central Server instance is restarted after running the repair.
  .Parameter containerName
-  Name of the container in which you want to repair an app (default is navserver)
+  Name of the container in which you want to repair an app
  .Parameter appName
   Name of app you want to repair in the container
  .Parameter appVersion

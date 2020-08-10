@@ -8,7 +8,7 @@
  .Parameter networkName
   Specify network name if you want to get the IP Address for a specific network
  .Example
-  Get-BcContainerIpAddress -containerName navserver
+  Get-BcContainerIpAddress -containerName bcserver
 #>
 function Get-BcContainerIpAddress {
     [CmdletBinding()]

@@ -7,11 +7,11 @@
  .Parameter containerName
   Name of the container for which you want to get the shared folder list
  .Example
-  Get-BcContainerSharedFolders -containerName navserver
+  Get-BcContainerSharedFolders -containerName bcserver
  .Example
-  (Get-BcContainerSharedFolders -containerName navserver)["c:\programdata\bccontainerhelper"]
+  (Get-BcContainerSharedFolders -containerName bcserver)["c:\programdata\bccontainerhelper"]
  .Example
-  ((Get-BcContainerSharedFolders -containerName navserver).GetEnumerator() | Where-Object { $_.Value -eq "c:\run\my" }).Key
+  ((Get-BcContainerSharedFolders -containerName bcserver).GetEnumerator() | Where-Object { $_.Value -eq "c:\run\my" }).Key
 #>
 function Get-BcContainerSharedFolders {
     [CmdletBinding()]
