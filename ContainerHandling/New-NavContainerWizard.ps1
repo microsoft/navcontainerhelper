@@ -11,9 +11,19 @@ function New-BcContainerWizard {
         $pslink = "powershell.exe"
     }
 
-    $script = Join-Path $PSScriptRoot "..\CreateScript.ps1"
+    $script = (Get-Item -Path (Join-Path $PSScriptRoot "..\CreateScript.ps1")).FullName
 
-    Start-Process $pslink @("-File ""$script""", "-skipContainerHelperCheck")
+    $module = Get-InstalledModule -Name "BcContainerHelper" -ErrorAction SilentlyContinue
+
+    Write-Host "Launching $script"
+
+    if ($module) {
+        Start-Process $pslink @("-File ""$script""", "-skipContainerHelperCheck")
+    }
+    else {
+        . $script -skipContainerHelperCheck
+    }
+
 
 }
 Set-Alias -Name New-NavContainerWizard -Value New-BcContainerWizard

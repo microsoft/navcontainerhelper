@@ -332,8 +332,9 @@ $Step = @{
     "License"            = 11
     "Database"           = 12
     "DNS"                = 13
-    "Isolation"          = 14
-    "Memory"             = 15
+    "SSL"                = 14
+    "Isolation"          = 20
+    "Memory"             = 21
     "IncludeCSIDE"       = 40
     "SaveImage"          = 50
     "Special"            = 60
@@ -867,6 +868,31 @@ $Step.DNS {
     }
 }
 
+$Step.SSL {
+    if ($hosting -eq "Local") {
+
+        $options = [ordered]@{"default" = "Do not use SSL (use http)"; "usessl" = "Use SSL (https) with self-signed certificate"; "usessl2" = "Use SSL (https) with self-signed certificate and install certificate on host computer" }
+        $ssl = Select-Value `
+            -title @'
+   _____ _____ _      
+  / ____/ ____| |     
+ | (___| (___ | |     
+  \___ \\___ \| |     
+  ____) |___) | |____ 
+ |_____/_____/|______|
+
+'@ `
+            -description "If your container is only used from host computer, you likely do not need to setup SSL. There are however functionality (like camera), which requires SSL and will not work if you haven't setup SSL.`nInstalling the self-signed certificate on the host might remove some of the insecure connection warnings from your browser." `
+            -options $options `
+            -question "Use SSL" `
+            -default "default" `
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
+    }
+}
+
 $Step.Isolation {
     if ($hosting -eq "Local") {
 
@@ -1162,6 +1188,13 @@ $step.Final {
             $parameters += "-dns '$hostDNS'"
         }
     
+        if ($ssl -eq "usessl") {
+            $parameters += "-usessl"
+        }
+        elseif ($ssl -eq "usessl2") {
+            $parameters += "-usessl -installCertificateOnHost"
+        }
+
         if ($isolation -ne "default") {
             $parameters += "-isolation '$isolation'"
         }
