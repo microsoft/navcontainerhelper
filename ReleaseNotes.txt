@@ -1,3 +1,6 @@
+1.0.3
+Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images
+
 1.0.2
 Issue #1202 New-BcContainer gives wrong message if no artifactUrl nor imagename is specified
 Cleanup terminology
