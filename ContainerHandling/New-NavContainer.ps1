@@ -373,6 +373,11 @@ function New-BcContainer {
     # Remove if it already exists
     Remove-BcContainer $containerName
 
+    if ($artifactUrl) {
+        # When using artifacts, you always use best container os - no need to replatform
+        $useBestContainerOS = $false
+    }
+
     if ($imageName -eq "") {
         Write-Host "Fetching all docker images"
         $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
@@ -427,6 +432,10 @@ function New-BcContainer {
                         }
                     }
                 }
+                $mtImage = $multitenant
+                if ($useNewDatabase -or $useCleanDatabase) {
+                    $mtImage = $false
+                }
 
                 $dbstr = ""
                 if ($skipDatabase) {
@@ -434,7 +443,7 @@ function New-BcContainer {
                     $dbstr = " without database"
                 }
                 $mtstr = ""
-                if ($multitenant) {
+                if ($mtImage) {
                     if ($autotag) { $imageName += "-mt" }
                     $mtstr = " multitenant"
                 }
@@ -474,13 +483,13 @@ function New-BcContainer {
                         }
                        
                         if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
-                            if (!$multitenant) {
+                            if (!$mtImage) {
                                 Write-Host "Image $imageName was build multi tenant, should have been single tenant"
                                 $rebuild = $true
                             }
                         }
                         else {
-                            if ($multitenant) {
+                            if ($mtImage) {
                                 Write-Host "Image $imageName was build single tenant, should have been multi tenant"
                                 $rebuild = $true
                             }
@@ -507,7 +516,7 @@ function New-BcContainer {
                 if ($rebuild) {
                     Write-Host "Building$mtstr image $imageName based on $($artifactUrl.Split('?')[0])$dbstr"
                     $startTime = [DateTime]::Now
-                    New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase -multitenant:$multitenant
+                    New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase -multitenant:$mtImage
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                     Write-Host "Building image took $timespend seconds"
                     if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
