@@ -6,7 +6,7 @@
  .Parameter containerOrImageName
   Name of the container or container image for which you want to get the legal link
  .Example
-  New-NavContainer ... -vsixFile (Get-LatestAlLanguageExtensionUrl) ...
+  New-BcContainer ... -vsixFile (Get-LatestAlLanguageExtensionUrl) ...
  .Example
   Download-File -SourceUrl (Get-LatestAlLanguageExtensionUrl) -DestinationFile "c:\temp\al.vsix"
 #>

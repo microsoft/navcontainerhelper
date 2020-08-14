@@ -6,18 +6,18 @@
  .Parameter containerName
   Name of the container you want to stop
  .Example
-  Stop-NavContainer -containerName devServer
+  Stop-BcContainer -containerName devServer
 #>
-function Stop-NavContainer {
+function Stop-BcContainer {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string] $containerName
+        [Parameter(Mandatory=$false, ValueFromPipeline)]
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     if (!(DockerDo -command stop -imageName $containerName)) {
         return
     }
 }
-Set-Alias -Name Stop-BCContainer -Value Stop-NavContainer
-Export-ModuleMember -Function Stop-NavContainer -Alias Stop-BCContainer
+Set-Alias -Name Stop-NavContainer -Value Stop-BcContainer
+Export-ModuleMember -Function Stop-BcContainer -Alias Stop-NavContainer

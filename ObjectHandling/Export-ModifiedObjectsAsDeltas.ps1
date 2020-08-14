@@ -29,8 +29,7 @@
 #>
 function Export-ModifiedObjectsAsDeltas {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $sqlCredential = $null,
         [switch] $useNewSyntax,
         [string] $filter = "Modified=1",

@@ -12,12 +12,12 @@
  .Parameter databaseName
   Specify a database name of the tenant you want to remove (default is the tenantId)
  .Example
-  Remove-NavContainerTenant -containerName test2 -tenantId mytenant
+  Remove-BcContainerTenant -containerName test2 -tenantId mytenant
 #>
-function Remove-NavContainerTenant {
+function Remove-BcContainerTenant {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $tenantId,
         [string] $databaseName = $tenantId,
@@ -30,7 +30,7 @@ function Remove-NavContainerTenant {
         throw "You cannot remove a tenant called tenant"
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $databaseName)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $databaseName)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -48,5 +48,5 @@ function Remove-NavContainerTenant {
     } -ArgumentList $tenantId, $sqlCredential, $databaseName
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
-Set-Alias -Name Remove-BCContainerTenant -Value Remove-NavContainerTenant
-Export-ModuleMember -Function Remove-NavContainerTenant -Alias Remove-BCContainerTenant
+Set-Alias -Name Remove-NavContainerTenant -Value Remove-BcContainerTenant
+Export-ModuleMember -Function Remove-BcContainerTenant -Alias Remove-NavContainerTenant

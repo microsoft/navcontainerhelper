@@ -17,11 +17,11 @@
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
  .Example
-  $appFile = Get-NavContainerApp -containerName test -publisher "Microsoft" -appName "Base Application" -appVersion "15.0.35528.0"
+  $appFile = Get-BcContainerApp -containerName test -publisher "Microsoft" -appName "Base Application" -appVersion "15.0.35528.0"
 #>
-function Get-NavContainerApp {
+function Get-BcContainerApp {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $publisher,
         [string] $appName,
         [string] $appVersion,
@@ -35,14 +35,14 @@ function Get-NavContainerApp {
 
     $startTime = [DateTime]::Now
 
-    $platform = Get-NavContainerPlatformversion -containerOrImageName $containerName
+    $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
     if ("$platform" -eq "") {
-        $platform = (Get-NavContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+        $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
     }
     [System.Version]$platformversion = $platform
     
 
-    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
     $serverInstance = $customConfig.ServerInstance
     if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
@@ -52,7 +52,7 @@ function Get-NavContainerApp {
         $protocol = "http://"
     }
 
-    $ip = Get-NavContainerIpAddress -containerName $containerName
+    $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
         $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$ServerInstance"
     }
@@ -106,5 +106,5 @@ function Get-NavContainerApp {
     }
 
 }
-Set-Alias -Name Get-BCContainerApp -Value Get-NavContainerApp
-Export-ModuleMember -Function Get-NavContainerApp -Alias Get-BCContainerApp
+Set-Alias -Name Get-NavContainerApp -Value Get-BcContainerApp
+Export-ModuleMember -Function Get-BcContainerApp -Alias Get-NavContainerApp

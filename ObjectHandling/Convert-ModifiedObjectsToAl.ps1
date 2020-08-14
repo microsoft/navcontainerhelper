@@ -41,8 +41,7 @@
 #>
 function Convert-ModifiedObjectsToAl {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $sqlCredential = $null,
         [int]    $startId = 50100,
         [string] $filter = "None",

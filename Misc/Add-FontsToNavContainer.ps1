@@ -8,23 +8,23 @@
  .Parameter path
   Path to fonts to copy and register in the container
  .Example
-  Add-FontsToNavContainer
+  Add-FontsToBcContainer
  .Example
-  Add-FontsToNavContainer -containerName test2
+  Add-FontsToBcContainer -containerName test2
  .Example
-  Add-FontsToNavContainer -containerName test2 -path "C:\Windows\Fonts\ming*.*"
+  Add-FontsToBcContainer -containerName test2 -path "C:\Windows\Fonts\ming*.*"
  .Example
-  Add-FontsToNavContainer -containerName test2 -path "C:\Windows\Fonts\mingliu.ttc"
+  Add-FontsToBcContainer -containerName test2 -path "C:\Windows\Fonts\mingliu.ttc"
 #>
-function Add-FontsToNavContainer {
+function Add-FontsToBcContainer {
    Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [Parameter(Mandatory=$false)]
         [string] $path = "C:\Windows\Fonts"
     )
 
-    $ExistingFonts = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+    $ExistingFonts = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         $fontsFolderPath = "C:\Windows\Fonts"
         Get-ChildItem -Path $fontsFolderPath | % { $_.Name }
     }
@@ -36,9 +36,9 @@ function Add-FontsToNavContainer {
             {
                 $WindowsFontPath = Join-Path "c:\Windows\Fonts" $_.Name
                 $fullName = $_.FullName
-                Copy-FileToNavContainer -containerName $containerName -localPath $fullName -containerPath $WindowsFontPath
+                Copy-FileToBcContainer -containerName $containerName -localPath $fullName -containerPath $WindowsFontPath
 
-                Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($path)
+                Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($path)
 
 #*******************************************************************
 #  Load C# code
@@ -112,5 +112,5 @@ namespace FontResource
         }
     }
 }
-Set-Alias -Name Add-FontsToBCContainer -Value Add-FontsToNavContainer
-Export-ModuleMember -Function Add-FontsToNavContainer -Alias Add-FontsToBCContainer
+Set-Alias -Name Add-FontsToNavContainer -Value Add-FontsToBcContainer
+Export-ModuleMember -Function Add-FontsToBcContainer -Alias Add-FontsToNavContainer

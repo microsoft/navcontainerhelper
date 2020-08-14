@@ -26,8 +26,10 @@ function Get-ContainerHelperConfig {
             "usePsSession" = $isAdministrator
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
-            "HostHelperFolder" = "C:\ProgramData\BcContainerHelper"
-            "ContainerHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "defaultContainerName" = "bcserver"
+            "sandboxContainersAreMultitenantByDefault" = $true
         }
         $bcContainerHelperConfigFile = Join-Path $bcContainerHelperConfig.HostHelperFolder "BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -47,6 +49,20 @@ function Get-ContainerHelperConfig {
 }
 
 Get-ContainerHelperConfig | Out-Null
+
+$hypervState = ""
+function Get-HypervState {
+    if ($isAdministrator -and $hypervState -eq "") {
+        $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
+        if ($feature) {
+            $script:hypervState = $feature.State
+        }
+        else {
+            $script:hypervState = "Disabled"
+        }
+    }
+    return $script:hypervState
+}
 
 $Source = @"
 	using System.Net;
@@ -78,7 +94,7 @@ $hostHelperFolder = $bcContainerHelperConfig.HostHelperFolder
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
 
-$NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+$BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
 $sessions = @{}
 

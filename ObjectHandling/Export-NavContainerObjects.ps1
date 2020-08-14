@@ -25,8 +25,7 @@
 #>
 function Export-NavContainerObjects {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $objectsFolder, 
         [Parameter(Mandatory=$false)]

@@ -14,8 +14,7 @@
 #>
 function Generate-SymbolsInNavContainer {
     Param (
-        [Parameter(Mandatory = $true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $sqlCredential = $null
     )
 

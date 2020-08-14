@@ -1,8 +1,13 @@
 ﻿<# 
+ .Synopsis
+  Create or refresh NAV/BC image
+ .Description
+  Creates a new image based on artifacts and a base image
+  The function returns the imagename of the image created
  .Parameter artifactUrl
   Url for application artifact to use
  .Parameter imageName
-  Name of the image getting build. Default is myimage:latest.
+  Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
   BaseImage to use. Default is using Get-BestGenericImage to get the best generic image to use.
  .Parameter isolation
@@ -19,7 +24,7 @@
 function New-NavImage {
     Param (
         [string] $artifactUrl,
-        [string] $imageName = "myimage:latest",
+        [string] $imageName = "myimage",
         [string] $baseImage = "",
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
@@ -85,6 +90,22 @@ function New-NavImage {
             throw "Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
         }
     }
+
+    if (!$imageName.Contains(':')) {
+        $appUri = [Uri]::new($artifactUrl)
+        $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+        if ($skipDatabase) {
+            $imageName += "-nodb"
+        }
+        if ($multitenant) {
+            $imageName += "-mt"
+        }
+    }
+
+    Write-Host "Building image $imageName based on $baseImage"
+    
+    $imageName
+
     if ($baseImage -eq $bestGenericImageName) {
         Write-Host "Pulling latest image $baseImage"
         DockerDo -command pull -imageName $baseImage | Out-Null
@@ -97,13 +118,13 @@ function New-NavImage {
         }
     }
 
-    $genericTag = [Version](Get-NavContainerGenericTag -containerOrImageName $baseImage)
+    $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
     Write-Host "Generic Tag: $genericTag"
     if ($genericTag -lt [Version]"0.1.0.1") {
         throw "Generic tag must be at least 0.1.0.1. Cannot build image based on $genericTag"
     }
 
-    $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $baseImage)
+    $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
         $containerOs = "ltsc2016"
     }
@@ -143,16 +164,32 @@ function New-NavImage {
     }
 
     if ($hostOsVersion -eq $containerOsVersion) {
-        if ($isolation -eq "") { $isolation = "process" }
+        if ($isolation -eq "") { 
+            $isolation = "process"
+        }
     }
     else {
         if ($isolation -eq "") {
-            $isolation = "hyperv"
+            if ($isAdministrator) {
+                if (Get-HypervState -ne "Disabled") {
+                    $isolation = "hyperv"
+                }
+                else {
+                    $isolation = "process"
+                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                }
+            }
+            else {
+                $isolation = "hyperv"
+                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+            }
+
         }
         elseif ($isolation -eq "process") {
-            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, please try hyperv instead."
+            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
         }
     }
+    Write-Host "Using $isolation isolation"
 
     $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
@@ -269,7 +306,7 @@ function New-NavImage {
         docker images --format "{{.Repository}}:{{.Tag}}" | % { 
             if ($_ -eq $imageName) 
             {
-                docker rmi $imageName -f
+                docker rmi $imageName -f | Out-Host
             }
         }
 
@@ -306,7 +343,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder
+docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder | Out-Host
 
     }
     finally {

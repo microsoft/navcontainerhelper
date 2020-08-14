@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Import TestToolkit to Nav Container
+  Import TestToolkit to BC Container
  .Description
-  Import the objects from the TestToolkit to the Nav Container.
+  Import the objects from the TestToolkit to the BC Container.
   The TestToolkit objects are already in a folder on the NAV on Docker image from version 0.0.4.3
  .Parameter containerName
   Name of the container for which you want to enter a session
@@ -31,16 +31,15 @@
  .Parameter replaceDependencies
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
  .Example
-  Import-TestToolkitToNavContainer -containerName test2
+  Import-TestToolkitToBcContainer -containerName test2
   .Example
-  Import-TestToolkitToNavContainer -containerName test2 -testToolkitCountry US
+  Import-TestToolkitToBcContainer -containerName test2 -testToolkitCountry US
   .Example
-  Import-TestToolkitToNavContainer -containerName test2 -includeTestLibrariesOnly -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
+  Import-TestToolkitToBcContainer -containerName test2 -includeTestLibrariesOnly -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
 #>
-function Import-TestToolkitToNavContainer {
+function Import-TestToolkitToBcContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $sqlCredential = $null,
         [PSCredential] $credential = $null,
         [switch] $includeTestLibrariesOnly,
@@ -71,12 +70,12 @@ function Import-TestToolkitToNavContainer {
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-        throw "Container $containerName is not a NAV container"
+        throw "Container $containerName is not a Business Central container"
     }
     [System.Version]$version = $inspect.Config.Labels.version
     $country = $inspect.Config.Labels.country
 
-    $config = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $config = Get-BcContainerServerConfiguration -ContainerName $containerName
     $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
 
     $generateSymbols = $false
@@ -133,7 +132,7 @@ function Import-TestToolkitToNavContainer {
         } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly
 
         if (!$doNotUseRuntimePackages) {
-            $folderPrefix = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            $folderPrefix = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                 if ($env:IsBcSandbox -eq "Y") {
                     "sandbox"
                 }
@@ -164,7 +163,7 @@ function Import-TestToolkitToNavContainer {
                 }
             }
 
-            Publish-NavContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential
+            Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential
 
             if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
                 Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
@@ -175,14 +174,14 @@ function Import-TestToolkitToNavContainer {
                     $appVersion = $navAppInfo.Version
 
                     Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
-                } -argumentList $appFile, (Get-NavContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+                } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
             }
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
     else {
         $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
-        Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
         
             $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
             [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -236,10 +235,10 @@ function Import-TestToolkitToNavContainer {
     
         if ($generateSymbols) {
             Write-Host "Generating symbols"
-            Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
+            Generate-SymbolsInBcContainer -containerName $containerName -sqlCredential $sqlCredential
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
 }
-Set-Alias -Name Import-TestToolkitToBCContainer -Value Import-TestToolkitToNavContainer
-Export-ModuleMember -Function Import-TestToolkitToNavContainer -Alias Import-TestToolkitToBCContainer
+Set-Alias -Name Import-TestToolkitToNavContainer -Value Import-TestToolkitToBcContainer
+Export-ModuleMember -Function Import-TestToolkitToBcContainer -Alias Import-TestToolkitToNavContainer

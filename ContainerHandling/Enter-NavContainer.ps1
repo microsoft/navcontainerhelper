@@ -8,32 +8,32 @@
  .Parameter containerName
   Name of the container for which you want to enter a session
  .Example
-  Enter-NavContainer -containerName
+  Enter-BcContainer -containerName
   [64b6ca872aefc93529bdfc7ec0a4eb7a2f0c022942000c63586a48c27b4e7b2d]: PS C:\run>psedit c:\run\navstart.ps1
 #>
-function Enter-NavContainer {
+function Enter-BcContainer {
     [CmdletBinding()]
     Param (
-        [string] $containerName = "navserver"
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
         if ((Get-ContainerHelperConfig).usePsSession) {
-            $session = Get-NavContainerSession $containerName
+            $session = Get-BcContainerSession $containerName
             Enter-PSSession -Session $session
             Invoke-Command -Session $session -ScriptBlock {
                 function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
             }
         } else {
             if ($isAdministrator) {
-                Write-Host "UsePsSession is false, running Open-NavContainer instead"
+                Write-Host "UsePsSession is false, running Open-BcContainer instead"
             }
             else {
-                Write-Host "Enter-NavContainer needs administrator privileges, running Open-NavContainer instead"
+                Write-Host "Enter-BcContainer needs administrator privileges, running Open-BcContainer instead"
             }
-            Open-NavContainer $containerName
+            Open-BcContainer $containerName
         }
     }
 }
-Set-Alias -Name Enter-BCContainer -Value Enter-NavContainer
-Export-ModuleMember -Function Enter-NavContainer -Alias Enter-BCContainer
+Set-Alias -Name Enter-NavContainer -Value Enter-BcContainer
+Export-ModuleMember -Function Enter-BcContainer -Alias Enter-NavContainer

@@ -16,8 +16,7 @@
 #>
 Function Replace-DependenciesInAppFile {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $Path,
         [string] $Destination = $Path,

@@ -318,7 +318,7 @@ $script:wizardStep = 0
 $script:acceptDefaults = $false
 
 $Step = @{
-    "NavContainerHelper" = 0
+    "BcContainerHelper"  = 0
     "AcceptEula"         = 1
     "Hosting"            = 2
     "Authentication"     = 3
@@ -332,8 +332,9 @@ $Step = @{
     "License"            = 11
     "Database"           = 12
     "DNS"                = 13
-    "Isolation"          = 14
-    "Memory"             = 15
+    "SSL"                = 14
+    "Isolation"          = 20
+    "Memory"             = 21
     "IncludeCSIDE"       = 40
     "SaveImage"          = 50
     "Special"            = 60
@@ -349,49 +350,42 @@ $script:thisStep = $script:wizardStep
 $script:wizardStep++
 
 switch ($script:thisStep) {
-$Step.NavContainerHelper {
-    #     _   _              _____            _        _                 _    _      _                 
-    #    | \ | |            / ____|          | |      (_)               | |  | |    | |                
-    #    |  \| | __ ___   __ |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
-    #    | . ` |/ _` \ \ / / |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  __  |/ _ \ | '_ \ / _ \ '__|
-    #    | |\  | (_| |\ V /| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
-    #    |_| \_|\__,_| \_/  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
-    #                                                                                 | |              
-    #                                     
+$Step.BcContainerHelper {
+    #     ____        _____            _        _                 _    _      _                 
+    #    |  _ \      / ____|          | |      (_)               | |  | |    | |                
+    #    | |_) | ___| |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
+    #    |  _ < / __| |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  __  |/ _ \ | '_ \ / _ \ '__|
+    #    | |_) | (__| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
+    #    |____/ \___|\_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
+    #                                                                          | |              
+    #                                                                          |_|              
     if (!$skipContainerHelperCheck) {
-        $module = Get-InstalledModule -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+        $module = Get-InstalledModule -Name "BcContainerHelper" -ErrorAction SilentlyContinue
         if (!($module)) {
-            $module = Get-Module -Name "NavContainerHelper" -ErrorAction SilentlyContinue
+            $module = Get-Module -Name "BcContainerHelper" -ErrorAction SilentlyContinue
         }
         if (!($module)) {
-            Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module NavContainerHelper."
-            Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/navcontainerhelper"
-            Write-Host -ForegroundColor Red "Use 'Install-Module NavContainerHelper -force' to install in PowerShell"
+            Write-Host -ForegroundColor Red "This script has a dependency on the PowerShell module BcContainerHelper."
+            Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/bccontainerhelper"
+            Write-Host -ForegroundColor Red "Use 'Install-Module BcContainerHelper -force' to install in PowerShell"
             return
         }
-        elseif ($module.Version -eq [Version]"0.0") {
-            $function = $module.ExportedFunctions.GetEnumerator() | Where-Object { $_.Key -eq "Get-BcArtifactUrl" }
-            if (!($function)) {
-                Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
-                Write-Host -ForegroundColor Red "Please pull a new version of the sources or install the module using: Install-Module NavContainerHelper -force"
-                return
-            }
-            Write-Host -ForegroundColor Green "Running a cloned version of NavContainerHelper, which seems to be OK"
-            Write-Host
-        }
-        elseif ($module.Version -lt [Version]"0.7.0.9") {
-             Write-Host -ForegroundColor Red "Your version of the NavContainerHelper PowerShell module is not up-to-date."
-             Write-Host -ForegroundColor Red "Please update the module using: Update-Module NavContainerHelper -force"
-             return
-        }
         else {
-            $latestVersion = (Find-Module -Name navcontainerhelper).Version
             $myVersion = $module.Version.ToString()
-            if ($latestVersion -eq $myVersion) {
-                Write-Host -ForegroundColor Green "You are running NavContainerHelper $myVersion (which is the latest version)"
+            $prerelease = $myVersion.Contains("-preview")
+            if ($prerelease) {
+                $latestVersion = (Find-Module -Name bccontainerhelper -AllowPrerelease).Version
+                $previewStr = "Prerelease version "
             }
             else {
-                Write-Host -ForegroundColor Yellow "You are running NavContainerHelper $myVersion. A newer version ($latestVersion) exists, please consider updating."
+                $latestVersion = (Find-Module -Name bccontainerhelper).Version
+                $previewStr = ""
+            }
+            if ($latestVersion -eq $myVersion) {
+                Write-Host -ForegroundColor Green "You are running BcContainerHelper $previewStr$myVersion (which is the latest version)"
+            }
+            else {
+                Write-Host -ForegroundColor Yellow "You are running BcContainerHelper $previewStr$myVersion. A newer version ($latestVersion) exists, please consider updating."
             }
             Write-Host
         }
@@ -494,7 +488,7 @@ $Step.ContainerName {
         }
     }
     else {
-        $containerName = "navserver"
+        $containerName = $bcContainerHelperConfig.defaultContainerName
     }
 }
 
@@ -874,6 +868,31 @@ $Step.DNS {
     }
 }
 
+$Step.SSL {
+    if ($hosting -eq "Local") {
+
+        $options = [ordered]@{"default" = "Do not use SSL (use http)"; "usessl" = "Use SSL (https) with self-signed certificate"; "usessl2" = "Use SSL (https) with self-signed certificate and install certificate on host computer" }
+        $ssl = Select-Value `
+            -title @'
+   _____ _____ _      
+  / ____/ ____| |     
+ | (___| (___ | |     
+  \___ \\___ \| |     
+  ____) |___) | |____ 
+ |_____/_____/|______|
+
+'@ `
+            -description "If your container is only used from host computer, you likely do not need to setup SSL. There are however functionality (like camera), which requires SSL and will not work if you haven't setup SSL.`nInstalling the self-signed certificate on the host might remove some of the insecure connection warnings from your browser." `
+            -options $options `
+            -question "Use SSL" `
+            -default "default" `
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
+    }
+}
+
 $Step.Isolation {
     if ($hosting -eq "Local") {
 
@@ -1169,6 +1188,13 @@ $step.Final {
             $parameters += "-dns '$hostDNS'"
         }
     
+        if ($ssl -eq "usessl") {
+            $parameters += "-usessl"
+        }
+        elseif ($ssl -eq "usessl2") {
+            $parameters += "-usessl -installCertificateOnHost"
+        }
+
         if ($isolation -ne "default") {
             $parameters += "-isolation '$isolation'"
         }

@@ -1,3 +1,25 @@
+1.0.3
+Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images
+
+1.0.2
+Issue #1202 New-BcContainer gives wrong message if no artifactUrl nor imagename is specified
+Cleanup terminology
+Issue #1203 Export-BcContainerObjects doesn't exist
+Issue #1169 add parameter to Setup-BcContainerTestUsers to select which users to add (Essential or Premium) to avoid mixed plans
+References to Get-BcContainerNavUser needs to be replaced with Get-BcContainerBcUser
+Add SSL option for New-BcContainerWizard
+
+1.0.1
+Copy-FileToBcContainer and Copy-FileFromBcContainer didn't support that hostHelperFolder and containerHelperFolder was different
+Get-TestsFromBcContainer and Run-TestsInBcContainer didn't support that hostHelperFolder and containerHelperFolder was different
+Issue #1174 do not use hyperv isolation if Hyper-V isn't installed
+Issue #1180 New-BcContainerWizard doesn't work (if BcContainerHelper is installed in standard path)
+Change NavContainerhelper to BcContainerHelper in New-BcContainerWizard
+Sandbox containers are multitenant by default (as SaaS is multitenant!)
+Issue #1191 New-BcImage should add the same auto-tag as New-BcContainer
+Issue #1190 New-BcImage will return imagename after generation
+Issue #1195 New-BcContainer sometimes uses a different image than the one created
+
 1.0.0
 Change module name to BcContainerHelper
 Support Multitenancy in images

@@ -6,19 +6,19 @@
  .Parameter containerName
   Name of the container you want to remove
  .Example
-  Remove-NavContainer -containerName devServer
+  Remove-BcContainer -containerName devServer
 #>
-function Remove-NavContainer {
+function Remove-BcContainer {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true, ValueFromPipeline)]
-        [string] $containerName
+        [Parameter(Mandatory=$false, ValueFromPipeline)]
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
-        if (Test-NavContainer -containerName $containerName) {
-            Remove-NavContainerSession $containerName
-            $containerId = Get-NavContainerId -containerName $containerName
+        if (Test-BcContainer -containerName $containerName) {
+            Remove-BcContainerSession $containerName
+            $containerId = Get-BcContainerId -containerName $containerName
             Write-Host "Removing container $containerName"
             docker rm $containerId -f | Out-Null
         }
@@ -88,5 +88,5 @@ function Remove-NavContainer {
         }
     }
 }
-Set-Alias -Name Remove-BCContainer -Value Remove-NavContainer
-Export-ModuleMember -Function Remove-NavContainer -Alias Remove-BCContainer
+Set-Alias -Name Remove-NavContainer -Value Remove-BcContainer
+Export-ModuleMember -Function Remove-BcContainer -Alias Remove-NavContainer
