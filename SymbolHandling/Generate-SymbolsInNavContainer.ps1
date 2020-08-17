@@ -55,4 +55,5 @@ function Generate-SymbolsInNavContainer {
     
     Write-Host -ForegroundColor Green "Symbols successfully generated"
 }
-Export-ModuleMember -Function Generate-SymbolsInNavContainer
+Set-Alias -Name Generate-SymbolsInBcContainer -Value Generate-SymbolsInNavContainer
+Export-ModuleMember -Function Generate-SymbolsInNavContainer -Alias Generate-SymbolsInBcContainer
