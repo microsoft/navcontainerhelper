@@ -235,7 +235,7 @@ function Import-TestToolkitToBcContainer {
     
         if ($generateSymbols) {
             Write-Host "Generating symbols"
-            Generate-SymbolsInBcContainer -containerName $containerName -sqlCredential $sqlCredential
+            Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
     }
