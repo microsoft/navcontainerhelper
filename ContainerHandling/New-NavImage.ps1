@@ -20,9 +20,12 @@
   Adding this parameter creates an image without a database
  .Parameter multitenant
   Adding this parameter creates an image with multitenancy
+ .Parameter addFontsFromPath
+  Enumerate all fonts from this path and install them in the container
 #>
 function New-NavImage {
     Param (
+        [Parameter(Mandatory=$true)]
         [string] $artifactUrl,
         [string] $imageName = "myimage",
         [string] $baseImage = "",
@@ -31,7 +34,8 @@ function New-NavImage {
         [string] $memory = "",
         $myScripts = @(),
         [switch] $skipDatabase,
-        [switch] $multitenant
+        [switch] $multitenant,
+        [string] $addFontsFromPath = ""
     )
 
     if ($memory -eq "") {
@@ -324,6 +328,25 @@ function New-NavImage {
             $multitenantParameter = " -multitenant"
         }
 
+        $dockerFileAddFonts = ""
+        if ($addFontsFromPath) {
+            $found = $false
+            $fontsFolder = Join-Path $buildFolder "Fonts"
+            New-Item $fontsFolder -ItemType Directory | Out-Null
+            $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
+            Get-ChildItem $addFontsFromPath -ErrorAction Ignore | % {
+                if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
+                    Copy-Item -Path $_.FullName -Destination $fontsFolder
+                    $found = $true
+                }
+            }
+            if ($found) {
+                Write-Host "Adding fonts"
+                Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
+                $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
+            }
+        }
+
 @"
 FROM $baseimage
 
@@ -331,6 +354,7 @@ ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsB
 
 COPY my /run/
 COPY NAVDVD /NAVDVD/
+$DockerFileAddFonts
 
 RUN \Run\start.ps1 -installOnly$multitenantParameter
 

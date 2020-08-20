@@ -78,6 +78,8 @@
   Assign Premium plan to admin user
  .Parameter multitenant
   Setup container for multitenancy by adding this switch
+ .Parameter addFontsFromPath
+  Enumerate all fonts from this path and install them in the container
  .Parameter clickonce
   Specify the clickonce switch if you want to have a clickonce version of the Windows Client created
  .Parameter includeTestToolkit
@@ -199,6 +201,7 @@ function New-BcContainer {
         [string] $useGenericImage,
         [switch] $assignPremiumPlan,
         [switch] $multitenant,
+        [string] $addFontsFromPath = "",
         [switch] $clickonce,
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
@@ -516,7 +519,16 @@ function New-BcContainer {
                 if ($rebuild) {
                     Write-Host "Building$mtstr image $imageName based on $($artifactUrl.Split('?')[0])$dbstr"
                     $startTime = [DateTime]::Now
-                    New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit -skipDatabase:$skipDatabase -multitenant:$mtImage
+                    New-Bcimage `
+                        -artifactUrl $artifactUrl `
+                        -imageName $imagename `
+                        -isolation $isolation `
+                        -baseImage $useGenericImage `
+                        -memory $memoryLimit `
+                        -skipDatabase:$skipDatabase `
+                        -multitenant:$mtImage `
+                        -addFontsFromPath $addFontsFromPath
+
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                     Write-Host "Building image took $timespend seconds"
                     if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
@@ -1617,6 +1629,10 @@ if (-not `$restartingInstance) {
             Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
             Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
         } -argumentList ($SqlServerMemoryLimit)
+    }
+
+    if ($addFontsFromPath) {
+        Add-FontsToBcContainer -containerName $containerName -path $addFontsFromPath
     }
 
     if ("$TimeZoneId" -ne "") {
