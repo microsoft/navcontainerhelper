@@ -93,6 +93,7 @@ function Sort-AppFoldersByDependencies {
         }
     }
     
+    $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
     $apps | ForEach-Object { AddAnApp -AnApp $_ }
 
     $script:sortedApps | ForEach-Object {

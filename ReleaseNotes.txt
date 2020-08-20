@@ -1,3 +1,6 @@
+0.7.0.26
+Sort-AppFoldersByDependencies didn't take custom Application apps into account
+
 0.7.0.25
 Fix missing pre-requisites
 
