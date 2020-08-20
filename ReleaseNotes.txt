@@ -1,5 +1,6 @@
 1.0.4
 Sort-AppFoldersByDependencies doesn't support custom Application app (needs to be sorted first)
+
 1.0.3
 Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images
 Issue #1220 Generate-SymbolsInNavContainer.ps1 does not have BC alias
