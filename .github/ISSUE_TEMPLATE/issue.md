@@ -8,6 +8,8 @@ assignees: freddydk
 
 ---
 
+PLEASE DO NOT INCLUDE ANY PASSWORDS OR TOKENS IN YOUR ISSUE!!!
+
 **Describe the issue**
 A clear and concise description of what the issue is.
 
