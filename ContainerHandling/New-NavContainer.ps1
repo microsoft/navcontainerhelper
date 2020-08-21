@@ -1983,11 +1983,13 @@ if (-not `$restartingInstance) {
     Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog"
     Write-Host " to retrieve a snapshot of the event log from the container"
     Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo"
-    Write-Host  " to get information about the container"
+    Write-Host  " to get debug information about the container"
     Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer"
     Write-Host " to open a PowerShell prompt inside the container"
     Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer"
     Write-Host " to remove the container again"
+    Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
+    Write-Host " to retrieve information about URL's again"
 }
 Set-Alias -Name New-NavContainer -Value New-BcContainer
 Export-ModuleMember -Function New-BcContainer -Alias New-NavContainer
