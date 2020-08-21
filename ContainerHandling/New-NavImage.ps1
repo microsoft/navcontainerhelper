@@ -128,8 +128,8 @@ function New-BcImage {
 
     $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
     Write-Host "Generic Tag: $genericTag"
-    if ($genericTag -lt [Version]"0.1.0.1") {
-        throw "Generic tag must be at least 0.1.0.1. Cannot build image based on $genericTag"
+    if ($genericTag -lt [Version]"0.1.0.16") {
+        throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
     }
 
     $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
