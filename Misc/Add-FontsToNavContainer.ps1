@@ -38,9 +38,14 @@ function Add-FontsToBcContainer {
 
     $found = $false
     Get-ChildItem $path -ErrorAction Ignore | % {
-        if (!$ExistingFonts.Contains($_.Name) -and $extensions.Contains($_.Extension.ToLowerInvariant())) {
-            Copy-Item -Path $_.FullName -Destination $fontsFolder
-            $found = $true
+        if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
+            if ($ExistingFonts.Contains($_.Name)) {
+                Write-Host "Skipping font '$($_.Name)' as it is already installed"
+            }
+            else {
+                Copy-Item -Path $_.FullName -Destination $fontsFolder
+                $found = $true
+            }
         }
     }
 
