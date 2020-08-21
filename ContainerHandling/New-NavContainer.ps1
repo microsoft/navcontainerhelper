@@ -527,7 +527,11 @@ function New-BcContainer {
                         -memory $memoryLimit `
                         -skipDatabase:$skipDatabase `
                         -multitenant:$mtImage `
-                        -addFontsFromPath $addFontsFromPath
+                        -addFontsFromPath $addFontsFromPath `
+                        -licenseFile $licensefile `
+                        -includeTestToolkit:$includeTestToolkit `
+                        -includeTestFrameworkOnly:$includeTestFrameworkOnly `
+                        -includeTestLibrariesOnly:$includeTestLibrariesOnly
 
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                     Write-Host "Building image took $timespend seconds"

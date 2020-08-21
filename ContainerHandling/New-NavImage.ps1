@@ -23,7 +23,7 @@
  .Parameter addFontsFromPath
   Enumerate all fonts from this path and install them in the container
 #>
-function New-NavImage {
+function New-BcImage {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $artifactUrl,
@@ -35,7 +35,11 @@ function New-NavImage {
         $myScripts = @(),
         [switch] $skipDatabase,
         [switch] $multitenant,
-        [string] $addFontsFromPath = ""
+        [string] $addFontsFromPath = "",
+        [string] $licenseFile = "",
+        [switch] $includeTestToolkit,
+        [switch] $includeTestLibrariesOnly,
+        [switch] $includeTestFrameworkOnly
     )
 
     if ($memory -eq "") {
@@ -238,6 +242,25 @@ function New-NavImage {
             }
         }
 
+        $licenseFilePath = ""
+        if ($licenseFile) {
+            $licenseFilePath = Join-Path $myFolder "license.flf"
+            if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+                Write-Host "Using license file $licenseFile"
+                Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
+                $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
+                $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+                if (!($text.StartsWith("Microsoft Software License Information"))) {
+                    Remove-Item -Path $licenseFilePath -Force
+                    throw "Specified license file Uri isn't a direct download Uri"
+                }
+            }
+            else {
+                Write-Host "Using license file $licenseFile"
+                $licenseFilePath = $licenseFile
+            }
+        }
+
         Write-Host "Files in $($myfolder):"
         get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
 
@@ -258,11 +281,12 @@ function New-NavImage {
         if (!$skipDatabase){
             $database = $appManifest.database
             $databasePath = Join-Path $appArtifactPath $database
-            $licenseFile = ""
-            if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
-                $licenseFile = $appManifest.licenseFile
-                if ($licenseFile) {
-                    $licenseFilePath = Join-Path $appArtifactPath $licenseFile
+            if ($licenseFile -eq "") {
+                if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
+                    $licenseFilePath = $appManifest.licenseFile
+                    if ($licenseFilePath) {
+                        $licenseFilePath = Join-Path $appArtifactPath $licenseFilePath
+                    }
                 }
             }
         }
@@ -287,9 +311,9 @@ function New-NavImage {
             New-Item $dbPath -ItemType Directory | Out-Null
             Write-Host "Copying Database"
             Copy-Item -path $databasePath -Destination $dbPath -Force
-            if ($licenseFile) {
+            if ($licenseFilePath) {
                 Write-Host "Copying Licensefile"
-                Copy-Item -path $licenseFilePath -Destination $dbPath -Force
+                Copy-Item -path $licenseFilePath -Destination "$dbPath\CRONUS.flf" -Force
             }
         }
 
@@ -347,6 +371,22 @@ function New-NavImage {
             }
         }
 
+        $TestToolkitParameter = ""
+        if ($genericTag -ge [Version]"0.1.0.18") {
+            if ($includeTestToolkit) {
+                if (!($licenseFile)) {
+                    Write-Host "Cannot include TestToolkit without a licensefile, please specify licensefile"
+                }
+                $TestToolkitParameter = " -includeTestToolkit"
+                if ($includeTestLibrariesOnly) {
+                    $TestToolkitParameter += " -includeTestLibrariesOnly"
+                }
+                elseif ($includeTestFrameworkOnly) {
+                    $TestToolkitParameter += " -includeTestFrameworkOnly"
+                }
+            }
+        }
+
 @"
 FROM $baseimage
 
@@ -356,7 +396,7 @@ COPY my /run/
 COPY NAVDVD /NAVDVD/
 $DockerFileAddFonts
 
-RUN \Run\start.ps1 -installOnly$multitenantParameter
+RUN \Run\start.ps1 -installOnly$multitenantParameter$TestToolkitParameter
 
 LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       created="$([DateTime]::Now.ToUniversalTime().ToString("yyyyMMddHHmm"))" \
@@ -374,5 +414,5 @@ docker build --isolation=$isolation --memory $memory --tag $imageName $buildFold
         Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
-Set-Alias -Name New-BCImage -Value New-NavImage
-Export-ModuleMember -Function New-NavImage -Alias New-BCImage
+Set-Alias -Name New-NavImage -Value New-BcImage
+Export-ModuleMember -Function New-BcImage -Alias New-NavImage

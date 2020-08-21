@@ -334,7 +334,8 @@ $Step = @{
     "DNS"                = 13
     "SSL"                = 14
     "Isolation"          = 20
-    "Memory"             = 21
+    "IncludeAL"          = 21
+    "Memory"             = 30
     "IncludeCSIDE"       = 40
     "SaveImage"          = 50
     "Special"            = 60
@@ -1088,9 +1089,8 @@ $Step.SaveImage  {
 
 $Step.Special {
     if ($hosting -eq "Local") {
-    
-        # TODO: SSL / .pdx+password
-    
+
+        # TODO: Multitenant, -includeAL
         # TODO: Vsix
     
         # TODO: Publish ports

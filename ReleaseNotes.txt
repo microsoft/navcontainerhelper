@@ -3,6 +3,7 @@ Sort-AppFoldersByDependencies doesn't support custom Application app (needs to b
 Add parameter -addFontsFromPath to New-BcContainer and New-BcImage
 Increase performance of Add-FontsToBcContainer
 Ensure that Import-TestToolkitToBcContainer can be called repeatedly
+Include TestToolkit in cached image if possible
 
 1.0.3
 Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images
