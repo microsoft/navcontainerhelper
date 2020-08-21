@@ -20,9 +20,12 @@
   Adding this parameter creates an image without a database
  .Parameter multitenant
   Adding this parameter creates an image with multitenancy
+ .Parameter addFontsFromPath
+  Enumerate all fonts from this path and install them in the container
 #>
-function New-NavImage {
+function New-BcImage {
     Param (
+        [Parameter(Mandatory=$true)]
         [string] $artifactUrl,
         [string] $imageName = "myimage",
         [string] $baseImage = "",
@@ -31,7 +34,12 @@ function New-NavImage {
         [string] $memory = "",
         $myScripts = @(),
         [switch] $skipDatabase,
-        [switch] $multitenant
+        [switch] $multitenant,
+        [string] $addFontsFromPath = "",
+        [string] $licenseFile = "",
+        [switch] $includeTestToolkit,
+        [switch] $includeTestLibrariesOnly,
+        [switch] $includeTestFrameworkOnly
     )
 
     if ($memory -eq "") {
@@ -120,8 +128,8 @@ function New-NavImage {
 
     $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
     Write-Host "Generic Tag: $genericTag"
-    if ($genericTag -lt [Version]"0.1.0.1") {
-        throw "Generic tag must be at least 0.1.0.1. Cannot build image based on $genericTag"
+    if ($genericTag -lt [Version]"0.1.0.16") {
+        throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
     }
 
     $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
@@ -234,6 +242,25 @@ function New-NavImage {
             }
         }
 
+        $licenseFilePath = ""
+        if ($licenseFile) {
+            $licenseFilePath = Join-Path $myFolder "license.flf"
+            if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+                Write-Host "Using license file $licenseFile"
+                Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
+                $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
+                $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+                if (!($text.StartsWith("Microsoft Software License Information"))) {
+                    Remove-Item -Path $licenseFilePath -Force
+                    throw "Specified license file Uri isn't a direct download Uri"
+                }
+            }
+            else {
+                Write-Host "Using license file $licenseFile"
+                $licenseFilePath = $licenseFile
+            }
+        }
+
         Write-Host "Files in $($myfolder):"
         get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
 
@@ -254,11 +281,12 @@ function New-NavImage {
         if (!$skipDatabase){
             $database = $appManifest.database
             $databasePath = Join-Path $appArtifactPath $database
-            $licenseFile = ""
-            if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
-                $licenseFile = $appManifest.licenseFile
-                if ($licenseFile) {
-                    $licenseFilePath = Join-Path $appArtifactPath $licenseFile
+            if ($licenseFile -eq "") {
+                if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
+                    $licenseFilePath = $appManifest.licenseFile
+                    if ($licenseFilePath) {
+                        $licenseFilePath = Join-Path $appArtifactPath $licenseFilePath
+                    }
                 }
             }
         }
@@ -283,9 +311,9 @@ function New-NavImage {
             New-Item $dbPath -ItemType Directory | Out-Null
             Write-Host "Copying Database"
             Copy-Item -path $databasePath -Destination $dbPath -Force
-            if ($licenseFile) {
+            if ($licenseFilePath) {
                 Write-Host "Copying Licensefile"
-                Copy-Item -path $licenseFilePath -Destination $dbPath -Force
+                Copy-Item -path $licenseFilePath -Destination "$dbPath\CRONUS.flf" -Force
             }
         }
 
@@ -324,6 +352,41 @@ function New-NavImage {
             $multitenantParameter = " -multitenant"
         }
 
+        $dockerFileAddFonts = ""
+        if ($addFontsFromPath) {
+            $found = $false
+            $fontsFolder = Join-Path $buildFolder "Fonts"
+            New-Item $fontsFolder -ItemType Directory | Out-Null
+            $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
+            Get-ChildItem $addFontsFromPath -ErrorAction Ignore | % {
+                if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
+                    Copy-Item -Path $_.FullName -Destination $fontsFolder
+                    $found = $true
+                }
+            }
+            if ($found) {
+                Write-Host "Adding fonts"
+                Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
+                $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
+            }
+        }
+
+        $TestToolkitParameter = ""
+        if ($genericTag -ge [Version]"0.1.0.18") {
+            if ($includeTestToolkit) {
+                if (!($licenseFile)) {
+                    Write-Host "Cannot include TestToolkit without a licensefile, please specify licensefile"
+                }
+                $TestToolkitParameter = " -includeTestToolkit"
+                if ($includeTestLibrariesOnly) {
+                    $TestToolkitParameter += " -includeTestLibrariesOnly"
+                }
+                elseif ($includeTestFrameworkOnly) {
+                    $TestToolkitParameter += " -includeTestFrameworkOnly"
+                }
+            }
+        }
+
 @"
 FROM $baseimage
 
@@ -331,8 +394,9 @@ ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsB
 
 COPY my /run/
 COPY NAVDVD /NAVDVD/
+$DockerFileAddFonts
 
-RUN \Run\start.ps1 -installOnly$multitenantParameter
+RUN \Run\start.ps1 -installOnly$multitenantParameter$TestToolkitParameter
 
 LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       created="$([DateTime]::Now.ToUniversalTime().ToString("yyyyMMddHHmm"))" \
@@ -350,5 +414,5 @@ docker build --isolation=$isolation --memory $memory --tag $imageName $buildFold
         Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
-Set-Alias -Name New-BCImage -Value New-NavImage
-Export-ModuleMember -Function New-NavImage -Alias New-BCImage
+Set-Alias -Name New-NavImage -Value New-BcImage
+Export-ModuleMember -Function New-BcImage -Alias New-NavImage

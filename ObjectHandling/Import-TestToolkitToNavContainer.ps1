@@ -89,13 +89,7 @@ function Import-TestToolkitToBcContainer {
             throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
         }
 
-        $appFiles = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly)
-
-
-            # Add Test Framework
-            $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
-
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
             if (Test-Path $mockAssembliesPath) {
                 $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
@@ -106,30 +100,10 @@ function Import-TestToolkitToBcContainer {
                         Start-Sleep -Seconds 1
                     }
                 }
-
-                if (!$includeTestFrameworkOnly) {
-                    
-                    # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
-                        @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
-                    }
-
-                    if (!$includeTestLibrariesOnly) {
-
-                        # Add Tests
-                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
-                    }
-                }
             }
+        }
 
-            $apps | % {
-                $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
-                if (!($appFile)) {
-                    $appFile = $_
-                }
-                $appFile
-            }
-        } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly
+        $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly
 
         if (!$doNotUseRuntimePackages) {
             $folderPrefix = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
@@ -163,18 +137,28 @@ function Import-TestToolkitToBcContainer {
                 }
             }
 
-            Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential
+            $isInstalled = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile)
+                $navAppInfo = Get-NAVAppInfo -Path $appFile
+                (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version) 
+            } -argumentList $appFile
 
-            if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
-                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
-                    
-                    $navAppInfo = Get-NAVAppInfo -Path $appFile
-                    $appPublisher = $navAppInfo.Publisher
-                    $appName = $navAppInfo.Name
-                    $appVersion = $navAppInfo.Version
-
-                    Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
-                } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+            if ($isInstalled) {
+                Write-Host "Skipping $appFile as it is already installed"
+            }
+            else {
+                Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential
+    
+                if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
+                    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
+                        
+                        $navAppInfo = Get-NAVAppInfo -Path $appFile
+                        $appPublisher = $navAppInfo.Publisher
+                        $appName = $navAppInfo.Name
+                        $appVersion = $navAppInfo.Version
+    
+                        Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
+                    } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+                }
             }
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully imported"
