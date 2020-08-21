@@ -257,3 +257,42 @@ function Expand-7zipArchive {
         Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
     }
 }
+
+function GetTestToolkitApps {
+    Param(
+        [string] $containerName,
+        [switch] $includeTestLibrariesOnly,
+        [switch] $includeTestFrameworkOnly
+    )
+
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly)
+    
+        # Add Test Framework
+        $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
+        $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+    
+
+        if (!$includeTestFrameworkOnly) {
+            
+            # Add Test Libraries
+            $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+            }
+
+            if (!$includeTestLibrariesOnly) {
+
+                # Add Tests
+                $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+            }
+        }
+
+        $apps | % {
+            $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+            if (!($appFile)) {
+                $appFile = $_
+            }
+            $appFile
+        }
+    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly
+}
+
