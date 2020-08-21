@@ -143,7 +143,7 @@ function Import-TestToolkitToBcContainer {
             } -argumentList $appFile
 
             if ($isInstalled) {
-                Write-Host "Skipping $appFile as it is already installed"
+                Write-Host "Skipping app '$appFile' as it is already installed"
             }
             else {
                 Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential

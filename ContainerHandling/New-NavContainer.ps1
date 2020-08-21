@@ -1979,11 +1979,15 @@ if (-not `$restartingInstance) {
     }
 
     Write-Host
-    Write-Host -ForegroundColor Yellow "Troubleshooting information, use:"
-    Write-Host "Get-BcContainerEventLog to retrieve a snapshot of the event log from the container"
-    Write-Host "Get-BcContainerDebugInfo to get information about the container"
-    Write-Host "Enter-BcContainer to open a PowerShell prompt inside the container"
-    Write-Host "Remove-BcContainer to remove the container again"
+    Write-Host "Use:"
+    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog"
+    Write-Host " to retrieve a snapshot of the event log from the container"
+    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo"
+    Write-Host  " to get information about the container"
+    Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer"
+    Write-Host " to open a PowerShell prompt inside the container"
+    Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer"
+    Write-Host " to remove the container again"
 }
 Set-Alias -Name New-NavContainer -Value New-BcContainer
 Export-ModuleMember -Function New-BcContainer -Alias New-NavContainer
