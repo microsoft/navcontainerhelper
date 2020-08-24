@@ -6,6 +6,8 @@ Ensure that Import-TestToolkitToBcContainer can be called repeatedly
 Include TestToolkit in cached image if possible
 Add parameter -forceRebuild to New-NavContainer to force a rebuild of a cached image
 Pull new generic if not at least 0.1.0.16 (to ensure download fixes)
+Add/Remove hostnames for tenants to hosts file when multitenancy and -updatehosts
+New-BcContainerWizard to support -includeAL and -multitenant
 
 1.0.3
 Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images

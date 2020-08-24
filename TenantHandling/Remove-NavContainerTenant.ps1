@@ -39,6 +39,9 @@ function Remove-BcContainerTenant {
         }
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+        if ("$databaseServer\$databaseInstance" -eq "localhost\SQLEXPRESS") {
+            $sqlCredential = $null
+        }
 
         # Remove tenant
         Write-Host "Dismounting tenant $tenantId"

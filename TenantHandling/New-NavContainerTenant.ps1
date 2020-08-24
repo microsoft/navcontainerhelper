@@ -24,7 +24,8 @@ function New-BcContainerTenant {
         [string] $tenantId,
         [PSCredential] $sqlCredential = $null,
         [string] $sourceDatabase = "tenant",
-        [string] $destinationDatabase = $tenantId
+        [string] $destinationDatabase = $tenantId,
+        [string[]] $alternateId = @()
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
@@ -33,7 +34,7 @@ function New-BcContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -42,12 +43,37 @@ function New-BcContainerTenant {
         }
         $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
         $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+        if ("$databaseServer\$databaseInstance" -eq "localhost\SQLEXPRESS") {
+            $sqlCredential = $null
+        }
+
+        $hostname = hostname
+        $dotidx = $hostname.indexOf('.')
+        if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+        $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
+        $alternateId += @($tenantHostname)
 
         # Setup tenant
         Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
-        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential -AlternateId $alternateId
 
-    } -ArgumentList $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase
+        if (Test-Path "c:\run\my\updatehosts.ps1") {
+            $ip = "127.0.0.1"
+            $ips = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.IPAddress -ne "127.0.0.1" }
+            if ($ips) {
+                $ips | ForEach-Object {
+                    if ($ip -eq "127.0.0.1") {
+                        $ip = $_.IPAddress
+                    }
+                }
+            }
+
+            if ($ip -ne "127.0.0.1") {
+                . "c:\run\my\updatehosts.ps1" -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+            }
+        }
+
+    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
 Set-Alias -Name New-NavContainerTenant -Value New-BcContainerTenant

@@ -16,17 +16,36 @@ function Remove-BcContainer {
     )
 
     Process {
+        $hostname = ""
         if (Test-BcContainer -containerName $containerName) {
+            try {
+                $id = Get-BcContainerId -containerName $containerName
+                if ($id) {
+                    $inspect = docker inspect $id | ConvertFrom-Json
+                    $hostname = $inspect.config.Hostname
+                }
+            }
+            catch {
+                $hostname = ""
+            }
             Remove-BcContainerSession $containerName
             $containerId = Get-BcContainerId -containerName $containerName
             Write-Host "Removing container $containerName"
             docker rm $containerId -f | Out-Null
         }
+        if ($hostname -eq "") {
+            $hostname = $containerName
+        }
+        $dotidx = $hostname.indexOf('.')
+        if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+        $tenantHostname = $hostname.insert($dotidx,"-*")
+
         $containerFolder = Join-Path $ExtensionsFolder $containerName
         $updateHostsScript = Join-Path $containerFolder "my\updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
-            . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $containerName -theIpAddress ""
+            . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $hostname -theIpAddress ""
+            . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
         $thumbprintFile = Join-Path $containerFolder "thumbprint.txt"
