@@ -1453,7 +1453,13 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     if ($updateHosts) {
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname '+$containername+' -theIpAddress $ip
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname "$hostname" -theIpAddress $ip
+if ($multitenant) {
+    $dotidx = $hostname.indexOf(".")
+    if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+    $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
+    . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+}
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
     ('
@@ -1980,13 +1986,13 @@ if (-not `$restartingInstance) {
 
     Write-Host
     Write-Host "Use:"
-    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog"
+    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog -containerName $containerName"
     Write-Host " to retrieve a snapshot of the event log from the container"
-    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo"
+    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo -containerName $containerName"
     Write-Host  " to get debug information about the container"
-    Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer"
+    Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer -containerName $containerName"
     Write-Host " to open a PowerShell prompt inside the container"
-    Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer"
+    Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer -containerName $containerName"
     Write-Host " to remove the container again"
     Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
     Write-Host " to retrieve information about URL's again"

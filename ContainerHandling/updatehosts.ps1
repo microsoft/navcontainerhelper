@@ -40,8 +40,7 @@ function UpdateHostsFile {
                     if ($idx -gt 0) {
                         $line = $line.Substring(0,$idx)
                     }
-                    $hidx = ("$line ".Replace("`t"," ")).ToLowerInvariant().IndexOf(" $theHostname ")
-                    if ($hidx -ge 0 -or $line -eq "") {
+                    if (("$line ".Replace("`t"," ")) -like "* $theHostname *" -or $line -eq "") {
                         $hosts.RemoveAt($ln) | Out-Null
                     } else {
                         $existsLater = $false
