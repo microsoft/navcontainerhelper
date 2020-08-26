@@ -1,3 +1,6 @@
+1.0.5
+Added PREVIEW function Run-AlPipeline
+
 1.0.4
 Sort-AppFoldersByDependencies doesn't support custom Application app (needs to be sorted first)
 Add parameter -addFontsFromPath to New-BcContainer and New-BcImage
