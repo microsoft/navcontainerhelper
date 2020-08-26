@@ -19,6 +19,7 @@ function Get-BcContainerImageTags {
         [int] $pageSize = -1
     )
 
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $webclient = New-Object System.Net.WebClient
 
     $registry = $imageName.Split("/")[0]
