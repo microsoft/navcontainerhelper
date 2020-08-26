@@ -33,6 +33,7 @@ function Set-BcContainerFeatureKeys {
     
             if ($databaseServer -ne "localhost" -or $databaseInstance -ne "SQLEXPRESS") {
                 Write-Host "WARNING: Trying to use Set-BcContainerFeatureKeys on a foreign database, no feature keys are set"
+                exit
             }
     
             if (!$multitenant) {
