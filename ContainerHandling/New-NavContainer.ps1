@@ -82,6 +82,8 @@
   Setup container for multitenancy by adding this switch
  .Parameter addFontsFromPath
   Enumerate all fonts from this path and install them in the container
+ .Parameter featureKeys
+  Optional hashtable of featureKeys, which can be applied to the container database
  .Parameter clickonce
   Specify the clickonce switch if you want to have a clickonce version of the Windows Client created
  .Parameter includeTestToolkit
@@ -205,6 +207,7 @@ function New-BcContainer {
         [switch] $assignPremiumPlan,
         [switch] $multitenant,
         [string] $addFontsFromPath = "",
+        [hashtable] $featureKeys = $null,
         [switch] $clickonce,
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
@@ -1457,8 +1460,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
-    . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+    Get-NavTenant -serverInstance $serverInstance | % {
+        $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
+        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+    }
 }
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
@@ -1645,6 +1650,10 @@ if (-not `$restartingInstance) {
 
     if ($addFontsFromPath) {
         Add-FontsToBcContainer -containerName $containerName -path $addFontsFromPath
+    }
+
+    if ($featureKeys) {
+        Set-BcContainerFeatureKeys -containerName $containerName -featureKeys $featureKeys
     }
 
     if ("$TimeZoneId" -ne "") {

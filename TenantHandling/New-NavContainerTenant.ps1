@@ -47,11 +47,13 @@ function New-BcContainerTenant {
             $sqlCredential = $null
         }
 
-        $hostname = hostname
-        $dotidx = $hostname.indexOf('.')
-        if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-        $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
-        $alternateId += @($tenantHostname)
+        if (Test-Path "c:\run\my\updatehosts.ps1") {
+            $hostname = hostname
+            $dotidx = $hostname.indexOf('.')
+            if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+            $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
+            $alternateId += @($tenantHostname)
+        }
 
         # Setup tenant
         Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
