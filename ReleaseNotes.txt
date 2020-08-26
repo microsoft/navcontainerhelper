@@ -8,6 +8,8 @@ Add parameter -forceRebuild to New-NavContainer to force a rebuild of a cached i
 Pull new generic if not at least 0.1.0.16 (to ensure download fixes)
 Add/Remove hostnames for tenants to hosts file when multitenancy and -updatehosts
 New-BcContainerWizard to support -includeAL and -multitenant
+Added new function Set-BcContainerFeatureKeys to enable/disable feature keys in tenant databases
+Add parameter -featureKeys to New-BcContainer to enable/disable feature keys in all tenants in new container
 
 1.0.3
 Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images

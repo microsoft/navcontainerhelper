@@ -82,6 +82,8 @@
   Setup container for multitenancy by adding this switch
  .Parameter addFontsFromPath
   Enumerate all fonts from this path and install them in the container
+ .Parameter featureKeys
+  Optional hashtable of featureKeys, which can be applied to the container database
  .Parameter clickonce
   Specify the clickonce switch if you want to have a clickonce version of the Windows Client created
  .Parameter includeTestToolkit
@@ -205,6 +207,7 @@ function New-BcContainer {
         [switch] $assignPremiumPlan,
         [switch] $multitenant,
         [string] $addFontsFromPath = "",
+        [hashtable] $featureKeys = $null,
         [switch] $clickonce,
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
@@ -1645,6 +1648,10 @@ if (-not `$restartingInstance) {
 
     if ($addFontsFromPath) {
         Add-FontsToBcContainer -containerName $containerName -path $addFontsFromPath
+    }
+
+    if ($featureKeys) {
+        Set-BcContainerFeatureKeys -containerName $containerName -featureKeys $featureKeys
     }
 
     if ("$TimeZoneId" -ne "") {
