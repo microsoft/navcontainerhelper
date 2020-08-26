@@ -48,6 +48,15 @@ function Remove-BcContainerTenant {
         Dismount-NavTenant -ServerInstance $ServerInstance -Tenant $TenantId -force | Out-null
         Remove-NavDatabase -DatabaseName $databaseName -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
 
+        if (Test-Path "c:\run\my\updatehosts.ps1") {
+            $hostname = hostname
+            $dotidx = $hostname.indexOf('.')
+            if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+            $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
+
+            . "c:\run\my\updatehosts.ps1" -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress ""
+        }
+
     } -ArgumentList $tenantId, $sqlCredential, $databaseName
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
