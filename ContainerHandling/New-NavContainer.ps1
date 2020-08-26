@@ -1460,8 +1460,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
-    . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+    Get-NavTenant -serverInstance $serverInstance | % {
+        $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
+        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+    }
 }
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
