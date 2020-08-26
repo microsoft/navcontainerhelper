@@ -10,6 +10,7 @@ Add/Remove hostnames for tenants to hosts file when multitenancy and -updatehost
 New-BcContainerWizard to support -includeAL and -multitenant
 Added new function Set-BcContainerFeatureKeys to enable/disable feature keys in tenant databases
 Add parameter -featureKeys to New-BcContainer to enable/disable feature keys in all tenants in new container
+Issue #1243 - Get-BcContainerImageTags and Get-BcContainerImageLabels doesn't work if TLS 1.2 isn't enabled
 
 1.0.3
 Issue #1215 New-BcContainer with -useBestContainerOS and -useNewDatabase fails with multitenant sandbox images
