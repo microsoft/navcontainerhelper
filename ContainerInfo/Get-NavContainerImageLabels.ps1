@@ -17,6 +17,7 @@ function Get-NavContainerImageLabels {
         [PSCredential] $registryCredential
     )
 
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $webclient = New-Object System.Net.WebClient
 
     if ($imageName.IndexOf("/") -lt 0) {
