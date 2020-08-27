@@ -411,3 +411,5 @@ Remove-BcContainer `
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
 
 }
+Export-ModuleMember -Function Run-AlPipeline
+
