@@ -136,6 +136,7 @@ Write-Host -ForegroundColor Yellow @'
 '@
 
 $genericImageName = Get-BestGenericImageName
+Write-Host "Pulling $genericImageName"
 docker pull $genericImageName
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
