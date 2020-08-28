@@ -36,7 +36,8 @@ function Get-BCArtifactUrl {
         [ValidateSet('Latest', 'All', 'Closest', 'SecondToLastMajor')]
         [String] $select = 'Latest',
         [String] $storageAccount = 'bcartifacts',
-        [String] $sasToken
+        [String] $sasToken,
+        [switch] $doNotCheckPlatform
     )
     
     TestSasToken -sasToken $sasToken
@@ -89,7 +90,7 @@ function Get-BCArtifactUrl {
                 $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker"
                 $enumerationResults = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults
                 if ($enumerationResults.Blobs) {
-                    $Artifacts += $enumerationResults.Blobs.Blob
+                    $Artifacts += $enumerationResults.Blobs.Blob.Name
                 }
                 $nextMarker = $enumerationResults.NextMarker
                 if ($nextMarker) {
@@ -99,32 +100,32 @@ function Get-BCArtifactUrl {
         
             if (!([string]::IsNullOrEmpty($country))) {
                 # avoid confusion between base and se
-                $Artifacts = $Artifacts | Where-Object { $_.Name.EndsWith("/$country") }
+                $Artifacts = $Artifacts | Where-Object { $_.EndsWith("/$country") -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
             }
             else {
-                $Artifacts = $Artifacts | Where-Object { !($_.Name.EndsWith("/platform")) }
+                $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform")) }
             }
         
-            $Artifacts = $Artifacts | Sort-Object { [Version]($_.name.Split('/')[0]) }
+            $Artifacts = $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
         
             switch ($Select) {
                 'All' {  
                     $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.name.Split('/')[0]) }
+                        Sort-Object { [Version]($_.Split('/')[0]) }
                 }
                 'Latest' { 
                     $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.name.Split('/')[0]) } |
+                        Sort-Object { [Version]($_.Split('/')[0]) } |
                         Select-Object -Last 1
                 }
                 'SecondToLastMajor' { 
                     $Artifacts = $Artifacts |
-                        Sort-Object -Descending { [Version]($_.name.Split('/')[0]) }
+                        Sort-Object -Descending { [Version]($_.Split('/')[0]) }
                     $latest = $Artifacts | Select-Object -First 1
                     if ($latest) {
-                        $latestversion = [Version]($latest.name.Split('/')[0])
-                        $artifacts = $Artifacts |
-                            Where-Object { ([Version]($_.name.Split('/')[0])).Major -ne $latestversion.Major } |
+                        $latestversion = [Version]($latest.Split('/')[0])
+                        $Artifacts = $Artifacts |
+                            Where-Object { ([Version]($_.Split('/')[0])).Major -ne $latestversion.Major } |
                             Select-Object -First 1
                     }
                     else {
@@ -133,9 +134,9 @@ function Get-BCArtifactUrl {
                 }
                 'Closest' {
                     $Artifacts = $Artifacts |
-                        Sort-Object { [Version]($_.name.Split('/')[0]) }
-                    $closest = $artifacts |
-                        Where-Object { [Version]($_.name.Split('/')[0]) -ge $closestToVersion } |
+                        Sort-Object { [Version]($_.Split('/')[0]) }
+                    $closest = $Artifacts |
+                        Where-Object { [Version]($_.Split('/')[0]) -ge $closestToVersion } |
                         Select-Object -First 1
                     if (-not $closest) {
                         $closest = $Artifacts | Select-Object -Last 1
@@ -154,7 +155,7 @@ function Get-BCArtifactUrl {
     } while ($retry)
 
     foreach ($Artifact in $Artifacts) {
-        "$BaseUrl$($Artifact.Name)$sasToken"
+        "$BaseUrl$($Artifact)$sasToken"
     }
 }
 Export-ModuleMember -Function Get-BCArtifactUrl

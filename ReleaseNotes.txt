@@ -1,5 +1,6 @@
 1.0.5
 Added PREVIEW function Run-AlPipeline
+Issue #1252 do not return artifact url for artifacts without platform (unless -doNotCheckPlatform is specified)
 
 1.0.4
 Sort-AppFoldersByDependencies doesn't support custom Application app (needs to be sorted first)
