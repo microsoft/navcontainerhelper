@@ -324,11 +324,13 @@ $Step = @{
     "Authentication"     = 3
     "ContainerName"      = 4
     "Version"            = 5
-    "Version2"           = 6
-    "Country"            = 7
-    "Toolkit"            = 8
-    "PremiumPlan"        = 9
-    "CreateTestUsers"    = 10
+    "SasToken"           = 6
+    "Version2"           = 7
+    "Country"            = 8
+    "TestToolkit"        = 9
+    "PerformanceToolkit" = 10
+    "PremiumPlan"        = 11
+    "CreateTestUsers"    = 12
     "IncludeAL"          = 20
     "ExportAlSource"     = 21
     "IncludeCSIDE"       = 22
@@ -510,7 +512,14 @@ $Step.Version {
 
 '@ `
         -description "What version of Business Central do you need?`nIf you are developing a Per Tenant Extension for a Business Central Saas tenant, you need a Business Central Sandbox environment" `
-        -options ([ordered]@{"LatestSandbox" = "Latest Business Central Sandbox"; "LatestOnPrem" = "Latest Business Central OnPrem"; "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"; "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"}) `
+        -options ([ordered]@{
+            "LatestSandbox" = "Latest Business Central Sandbox"
+            "LatestOnPrem" = "Latest Business Central OnPrem"
+            "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"
+            "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"
+            "Next Major" = "Business Central Sandbox for Next Major release (requires insider SAS token from http://aka.ms/collaborate)"
+            "Next Minor" = "Business Central Sandbox for Next Minor release (requires insider SAS token from http://aka.ms/collaborate)"
+        }) `
         -question "Version" `
         -default "LatestSandbox" `
         -writeAnswer `
@@ -520,13 +529,46 @@ $Step.Version {
     }
 }
 
+$Step."SasToken" {
+
+    $sasToken = ""
+    if ($predef -like "Next*") {
+        $sasToken = Enter-Value `
+            -title @'
+   _____          _____   _______    _              
+  / ____|  /\    / ____| |__   __|  | |             
+ | (___   /  \  | (___      | | ___ | | _____ _ __  
+  \___ \ / /\ \  \___ \     | |/ _ \| |/ / _ \ '_ \ 
+  ____) / ____ \ ____) |    | | (_) |   <  __/ | | |
+ |_____/_/    \_\_____/     |_|\___/|_|\_\___|_| |_|
+
+'@ `
+            -description "Creating container with $predef are released for partners under NDA only.`n`nA SAS (Shared Access Signature) Token is required in order to download insider artifacts.`nA SAS Token can be found on http://aka.ms/collaborate in this document:`nhttps://partner.microsoft.com/en-us/dashboard/collaborate/packages/9387" `
+            -question "SAS Token" `
+            -previousStep `
+            -doNotConvertToLower
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
+    }
+}
+
 $Step.Version2 {
 
     $fullVersionNo = $false
     $select = "Latest"
+    $storageAccount = "bcartifacts"
     if ($predef -like "latest*") {
         $type = $predef.Substring(6)
         $version = ''
+    }
+    elseif ($predef -like "Next*") {
+        $type = "Sandbox"
+        $version = ''
+        $storageAccount = "bcinsider"
+        if ($predef -eq "Next Minor") {
+            $select = "SecondToLastMajor"
+        }
     }
     elseif ($predef -like "specific*") {
         $type = $predef.Substring(8)
@@ -607,9 +649,22 @@ $Step.Version2 {
 
 $Step.Country {
 
+    $versionno = $version
+    if ($versionno -eq "") {
+        $versionno = (Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country "w1" -sasToken $sasToken).split('/')[4]
+    }
+    $majorVersion = [int]($versionno.Split('.')[0])
+    $countries = @()
+    Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $versionno -select All -sasToken $sasToken | ForEach-Object {
+        $countries += $_.SubString($_.LastIndexOf('/')+1).Split('?')[0]
+    }
+
     $description = ""
     if ($version -ne "") {
         $description += "Version $version selected`n`n"
+    }
+    else {
+        $description += "Version $versionno identified`n`n"
     }
     if ($type -eq "Sandbox") {
         $default = "us"
@@ -620,14 +675,6 @@ $Step.Country {
         $description += "Please select which country version you want to use.`n`nNote: NA contains US, CA and MX."
     }
 
-    $versionno = $version
-    if ($versionno -eq "") {
-        $versionno = (Get-BcArtifactUrl -type $type -country "w1").split('/')[4]
-    }
-    $countries = @()
-    Get-BCArtifactUrl -type $type -version $versionno -select All | ForEach-Object {
-        $countries += $_.SubString($_.LastIndexOf('/')+1)
-    }
  
     $country = Enter-Value `
         -title @'
@@ -650,7 +697,7 @@ $Step.Country {
     }
 }
 
-$Step.Toolkit {
+$Step.TestToolkit {
 
     $testtoolkit = Select-Value `
         -title @'
@@ -669,6 +716,31 @@ $Step.Toolkit {
         -previousStep
     if ($script:wizardStep -eq $script:thisStep+1) {
         $script:prevSteps.Push($script:thisStep)
+    }
+}
+
+$Step.PerformanceToolkit {
+
+    $performanceToolkit = "N"
+    if ($majorVersion -ge 17 -and $testtoolkit -ne "No") {
+        $performancetoolkit = Enter-Value `
+            -title @'
+  _____           __                                            _______          _ _    _ _   
+ |  __ \         / _|                                          |__   __|        | | |  (_) |  
+ | |__) |__ _ __| |_ ___  _ __ _ __ ___   __ _ _ __   ___ ___     | | ___   ___ | | | ___| |_ 
+ |  ___/ _ \ '__|  _/ _ \| '__| '_ ` _ \ / _` | '_ \ / __/ _ \    | |/ _ \ / _ \| | |/ / | __|
+ | |  |  __/ |  | || (_) | |  | | | | | | (_| | | | | (__  __/    | | (_) | (_) | |   <| | |_ 
+ |_|   \___|_|  |_| \___/|_|  |_| |_| |_|\__,_|_| |_|\___\___|    |_|\___/ \___/|_|_|\_\_|\__|
+
+'@ `
+            -description "The Performance Toolkit ships with Business Central 17.0.`n`nDo you need the performance toolkit to be installed?`nThe Performance Toolkit is needed in order to develop and run performance tests in the container." `
+            -options @("Y","N") `
+            -question "Please enter Y if you want to install the performance toolkit" `
+            -default "N" `
+            -previousStep
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     }
 }
 
@@ -701,10 +773,6 @@ $Step.PremiumPlan {
 $step.IncludeAL {
     $includeAL = "N"
 
-    Write-Host -ForegroundColor White $versionno
-    Read-Host
-
-    $majorVersion = [int]($versionno.Split('.')[0])
     if ($majorVersion -gt 14) {
 
         $includeAL = Enter-Value `
@@ -756,7 +824,7 @@ $step.ExportAlSource {
 
 $step.IncludeCSIDE {
     $includeCSIDE = "N"
-    $majorVersion = [int]($versionno.Split('.')[0])
+
     if ($majorVersion -le 14) {
 
         if ($majorVersion -lt 14) {
@@ -1111,8 +1179,6 @@ $Step.Isolation {
 $Step.Memory {
     if ($hosting -eq "Local") {
 
-        $majorVersion = [int]($versionno.Split('.')[0])
-
         $demo = 4
         $development = 8
         if ($majorVersion -ge 16) {
@@ -1252,8 +1318,19 @@ $step.Final {
     
         $script += "`$auth = '$auth'"
         $parameters += "-auth `$auth"
-    
-        $script += "`$artifactUrl = Get-BcArtifactUrl -type '$type' -version '$version' -country '$country' -select '$select'"
+
+        if ($predef -like "Next*") {
+            $script += "`$sasToken = '$sasToken'"
+            $script += "`$artifactUrl = Get-BcArtifactUrl -storageAccount '$storageAccount' -type '$type' -country '$country' -select '$select' -sasToken `$sasToken"
+        }
+        else {
+            if ($version) {
+                $script += "`$artifactUrl = Get-BcArtifactUrl -type '$type' -version '$version' -country '$country' -select '$select'"
+            }
+            else {
+                $script += "`$artifactUrl = Get-BcArtifactUrl -type '$type' -country '$country' -select '$select'"
+            }
+        }
         $parameters += "-artifactUrl `$artifactUrl"
     
         if ($imageName -ne "blank") {
@@ -1290,6 +1367,9 @@ $step.Final {
             }
             elseif ($testtoolkit -eq "Libraries") {
                 $parameters += "-includeTestLibrariesOnly"
+            }
+            if ($performanceToolkit -eq "Y") {
+                $parameters += "-includePerformanceToolkit"
             }
         }
     

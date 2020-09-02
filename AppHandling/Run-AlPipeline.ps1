@@ -23,13 +23,19 @@ Param(
     [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
     [string] $artifact = "bcartifacts/sandbox//us/latest",
-    [Boolean] $reuseContainer = $false,
+    [string] $artifactSasToken = "",
+    [switch] $reuseContainer,
     [switch] $installTestFramework,
     [switch] $installTestLibraries,
+    [switch] $installPerformanceToolkit,
     [switch] $azureDevOps,
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
-    [switch] $keepContainer
+    [switch] $keepContainer,
+    [switch] $enableCodeCop,
+    [switch] $enableAppSourceCop,
+    [switch] $enableUICop,
+    [switch] $enablePerTenantExtensionCop
 )
 
 function randomchar([string]$str)
@@ -66,7 +72,14 @@ if (!($appFolders)) {
 $sortedFolders = Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders) -WarningAction SilentlyContinue
 
 $segments = "$artifact/////".Split('/')
-$artifactUrl = Get-BCArtifactUrl -storageAccount $segments[0] -type $segments[1] -version $segments[2] -country $segments[3] -select $segments[4] -sasToken $env:InsiderSasToken | Select-Object -First 1
+$storageAccount = $segments[0]; if ($storageAccount -eq "") { $storageAccount = "bcartifacts" }
+$type = $segments[1]; if ($type -eq "") { $type = "Sandbox" }
+$version = $segments[2]
+$country = $segments[3]; if ($country -eq "") { $country = "us" }
+$select = $segments[4]; if ($select -eq "") { $select = "latest" }
+if (-not ($artifactSasToken)) { $artifactSasToken = $segments[5] }
+
+$artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $artifactSasToken | Select-Object -First 1
 
 if (!($artifactUrl)) {
     throw "Unable to locate artifacts"
@@ -74,6 +87,14 @@ if (!($artifactUrl)) {
 
 if ($reuseContainer -and (!($credential))) {
     throw "When using -reuseContainer, you have to specify credentials"
+}
+
+if (Test-Path $packagesFolder) {
+    Remove-Item $packagesFolder -Recurse -Force
+}
+
+if (Test-Path $outputFolder) {
+    Remove-Item $outputFolder -Recurse -Force
 }
 
 Write-Host -ForegroundColor Yellow @'
@@ -89,6 +110,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name          "; Write-H
 Write-Host -NoNewLine -ForegroundColor Yellow "Container name         "; Write-Host $containerName
 Write-Host -NoNewLine -ForegroundColor Yellow "Image name             "; Write-Host $imageName
 Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl            "; Write-Host $artifactUrl.Split('?')[0]
+Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactSasToken       "; if ($artifactSasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential             ";
 if ($credential) {
     Write-Host "Specified"
@@ -100,8 +122,9 @@ else {
 }
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit            "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler  "; Write-Host $enableTaskScheduler
-Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework "; Write-Host $installTestFramework
+Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries "; Write-Host $installTestLibraries
+Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit  "; Write-Host $installPerformanceToolkit
 Write-Host -NoNewLine -ForegroundColor Yellow "reuseContainer         "; Write-Host $reuseContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps            "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "License file           "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
@@ -221,7 +244,7 @@ Measure-Command {
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 
-if (($installApps) -or $installTestFramework -or $installTestLibraries) {
+if (($installApps) -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit) {
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _                                     
@@ -237,10 +260,10 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 
     if ($installTestLibraries) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly
+        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly -includePerformanceToolkit:$installPerformanceToolkit
     }
-    elseif ($installTestFramework) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly
+    elseif ($installTestFramework -or $installPerformanceToolkit) {
+        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly -includePerformanceToolkit:$installPerformanceToolkit
     }
 
     $installApps | ForEach-Object{
@@ -292,7 +315,17 @@ $apps = @()
 $testApps = @()
 $sortedFolders | ForEach-Object {
     $folder = $_
-    $appFile = Compile-AppInBcContainer `
+    $testApp = $testFolders.Contains($folder)
+    $compileParams = @{ }
+    if (-not $testApp) {
+        $compileParams += @{ 
+            "EnableCodeCop" = $enableCodeCop
+            "EnableAppSourceCop" = $enableAppSourceCop
+            "EnableUICop" = $enableUICop
+            "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
+        }
+    }
+    $appFile = Compile-AppInBcContainer @compileParams `
         -containerName $containerName `
         -credential $credential `
         -appProjectFolder $folder `
@@ -300,7 +333,8 @@ $sortedFolders | ForEach-Object {
         -appSymbolsFolder $packagesFolder `
         -CopyAppToSymbolsFolder `
         -AzureDevOps:$azureDevOps
-    if ($testFolders.Contains($folder)) {
+
+    if ($testApp) {
         $testApps += $appFile
     }
     else {

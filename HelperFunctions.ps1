@@ -262,10 +262,11 @@ function GetTestToolkitApps {
     Param(
         [string] $containerName,
         [switch] $includeTestLibrariesOnly,
-        [switch] $includeTestFrameworkOnly
+        [switch] $includeTestFrameworkOnly,
+        [switch] $includePerformanceToolkit
     )
 
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly)
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit)
     
         # Add Test Framework
         $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
@@ -286,6 +287,10 @@ function GetTestToolkitApps {
             }
         }
 
+        if ($includePerformanceToolkit) {
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app")
+        }
+
         $apps | % {
             $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
             if (!($appFile)) {
@@ -293,6 +298,6 @@ function GetTestToolkitApps {
             }
             $appFile
         }
-    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly
+    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit
 }
 

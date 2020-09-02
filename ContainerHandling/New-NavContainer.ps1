@@ -92,6 +92,8 @@
   Specify this parameter to avoid including the standard tests when adding includeTestToolkit
  .Parameter includeTestFrameworkOnly
   Only import TestFramework (do not import Test Codeunits nor TestLibraries)
+ .Parameter includePerformanceToolkit
+  Include the performance toolkit app (only 17.x and later)
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
@@ -212,6 +214,7 @@ function New-BcContainer {
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
         [switch] $includeTestFrameworkOnly,
+        [switch] $includePerformanceToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string] $restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
@@ -536,7 +539,8 @@ function New-BcContainer {
                         -licenseFile $licensefile `
                         -includeTestToolkit:$includeTestToolkit `
                         -includeTestFrameworkOnly:$includeTestFrameworkOnly `
-                        -includeTestLibrariesOnly:$includeTestLibrariesOnly
+                        -includeTestLibrariesOnly:$includeTestLibrariesOnly `
+                        -includePerformanceToolkit:$includePerformanceToolkit
 
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                     Write-Host "Building image took $timespend seconds"
@@ -1451,9 +1455,9 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
-    Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
 
     if ($updateHosts) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatehosts.ps1") -Force
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname "$hostname" -theIpAddress $ip
@@ -1474,8 +1478,9 @@ if ($multitenant) {
     }
     else {
 
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatecontainerhosts.ps1") -Force
     ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1")
+. (Join-Path $PSScriptRoot "updatecontainerhosts.ps1")
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }
@@ -1699,11 +1704,14 @@ if (-not `$restartingInstance) {
                 }
 
                 if ($webClientUrl.Contains('?')) {
-                    $webClientUrl += "&page=$pageno"
+                    $webClientUrl += "&page="
                 } else {
-                    $webClientUrl += "?page=$pageno"
+                    $webClientUrl += "?page="
                 }
-                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl$pageno" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                if ($includePerformanceToolkit) {
+                    New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                }
             }
             
         }
@@ -1777,7 +1785,13 @@ if (-not `$restartingInstance) {
         }
     
         if ($includeTestToolkit) {
-            Import-TestToolkitToBcContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
+            Import-TestToolkitToBcContainer `
+                -containerName $containerName `
+                -sqlCredential $sqlCredential `
+                -includeTestLibrariesOnly:$includeTestLibrariesOnly `
+                -includeTestFrameworkOnly:$includeTestFrameworkOnly `
+                -includePerformanceToolkit:$includePerformanceToolkit `
+                -doNotUseRuntimePackages:$doNotUseRuntimePackages
         }
     }
 
