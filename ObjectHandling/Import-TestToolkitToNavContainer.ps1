@@ -44,6 +44,7 @@ function Import-TestToolkitToBcContainer {
         [PSCredential] $credential = $null,
         [switch] $includeTestLibrariesOnly,
         [switch] $includeTestFrameworkOnly,
+        [switch] $includePerformanceToolkit,
         [string] $testToolkitCountry,
         [switch] $doNotUpdateSymbols,
         [ValidateSet("Overwrite","Skip")]
@@ -103,7 +104,7 @@ function Import-TestToolkitToBcContainer {
             }
         }
 
-        $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly
+        $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
 
         if (!$doNotUseRuntimePackages) {
             $folderPrefix = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
