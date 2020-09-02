@@ -1,6 +1,10 @@
 1.0.5
 Added PREVIEW function Run-AlPipeline
 Issue #1252 do not return artifact url for artifacts without platform (unless -doNotCheckPlatform is specified)
+Issue #1263 new-bccontainertenant freezes if -updatehosts isn't specified
+Add switch -includePerformanceToolkit to Import-TestToolkitToBcContainer and New-BcContainer
+Support for -includePerformanceToolkit in New-BcContainerWizard
+Support for insider builds and sasToken in New-BcContainerWizard
 
 1.0.4
 Sort-AppFoldersByDependencies doesn't support custom Application app (needs to be sorted first)
