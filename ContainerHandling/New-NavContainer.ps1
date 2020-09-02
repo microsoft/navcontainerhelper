@@ -1451,9 +1451,9 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
-    Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
 
     if ($updateHosts) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatehosts.ps1") -Force
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
         ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname "$hostname" -theIpAddress $ip
@@ -1474,8 +1474,9 @@ if ($multitenant) {
     }
     else {
 
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatecontainerhosts.ps1") -Force
     ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1")
+. (Join-Path $PSScriptRoot "updatecontainerhosts.ps1")
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }
