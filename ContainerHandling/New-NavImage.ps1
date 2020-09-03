@@ -39,7 +39,9 @@ function New-BcImage {
         [string] $licenseFile = "",
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
-        [switch] $includeTestFrameworkOnly
+        [switch] $includeTestFrameworkOnly,
+        [switch] $includePerformanceToolkit
+
     )
 
     if ($memory -eq "") {
@@ -383,6 +385,13 @@ function New-BcImage {
                 }
                 elseif ($includeTestFrameworkOnly) {
                     $TestToolkitParameter += " -includeTestFrameworkOnly"
+                }
+            }
+        }
+        if ($genericTag -ge [Version]"0.1.0.21") {
+            if ($includeTestToolkit) {
+                if ($includePerformanceToolkit) {
+                    $TestToolkitParameter += " -includePerformanceToolkit"
                 }
             }
         }
