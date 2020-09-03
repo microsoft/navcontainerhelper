@@ -5,6 +5,8 @@ Issue #1263 new-bccontainertenant freezes if -updatehosts isn't specified
 Add switch -includePerformanceToolkit to Import-TestToolkitToBcContainer and New-BcContainer
 Support for -includePerformanceToolkit in New-BcContainerWizard
 Support for insider builds and sasToken in New-BcContainerWizard
+Add NAV to New-BcContainerWizard
+Add AL Language Extension version selection to New-BcContainerWizard
 
 1.0.4
 Sort-AppFoldersByDependencies doesn't support custom Application app (needs to be sorted first)
