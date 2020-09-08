@@ -470,10 +470,10 @@ Remove-BcContainer `
     -containerName $containerName
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
 
-if ($error) {
-    throw $error
 }
 
+if ($error) {
+    throw $error
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
