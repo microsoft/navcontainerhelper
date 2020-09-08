@@ -119,12 +119,12 @@ Write-Host -ForegroundColor Yellow @'
  |_|   \__,_|_|  \__,_|_| |_| |_|\___|\__\___|_|  |___/
 
 '@
-Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name          "; Write-Host $pipelineName
-Write-Host -NoNewLine -ForegroundColor Yellow "Container name         "; Write-Host $containerName
-Write-Host -NoNewLine -ForegroundColor Yellow "Image name             "; Write-Host $imageName
-Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl            "; Write-Host $artifactUrl.Split('?')[0]
-Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactSasToken       "; if ($artifactSasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
-Write-Host -NoNewLine -ForegroundColor Yellow "Credential             ";
+Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name               "; Write-Host $pipelineName
+Write-Host -NoNewLine -ForegroundColor Yellow "Container name              "; Write-Host $containerName
+Write-Host -NoNewLine -ForegroundColor Yellow "Image name                  "; Write-Host $imageName
+Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                 "; Write-Host $artifactUrl.Split('?')[0]
+Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactSasToken            "; if ($artifactSasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "Credential                  ";
 if ($credential) {
     Write-Host "Specified"
 }
@@ -133,20 +133,24 @@ else {
     Write-Host "admin/$password"
     $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
-Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit            "; Write-Host $memoryLimit
-Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler  "; Write-Host $enableTaskScheduler
-Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework "; Write-Host $installTestFramework
-Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries "; Write-Host $installTestLibraries
-Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit  "; Write-Host $installPerformanceToolkit
-Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps            "; Write-Host $azureDevOps
-Write-Host -NoNewLine -ForegroundColor Yellow "License file           "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
-Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile    "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
-Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile        "; Write-Host $testResultsFile
-Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder         "; Write-Host $packagesFolder
-Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder           "; Write-Host $outputFolder
-Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder    "; Write-Host $buildArtifactFolder
-Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages  "; Write-Host $createRuntimePackages
-Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion             "; Write-Host $appVersion
+Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                 "; Write-Host $memoryLimit
+Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler       "; Write-Host $enableTaskScheduler
+Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework      "; Write-Host $installTestFramework
+Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries      "; Write-Host $installTestLibraries
+Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit       "; Write-Host $installPerformanceToolkit
+Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Write-Host $enableCodeCop
+Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
+Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                 "; Write-Host $enableUICop
+Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                 "; Write-Host $azureDevOps
+Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
+Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Write-Host $packagesFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                "; Write-Host $outputFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Write-Host $buildArtifactFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages       "; Write-Host $createRuntimePackages
+Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion                  "; Write-Host $appVersion
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Application folders"
