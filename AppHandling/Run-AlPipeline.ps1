@@ -19,6 +19,7 @@ Param(
     $installApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
+    [string] $appVersion = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
@@ -341,6 +342,19 @@ $sortedFolders | ForEach-Object {
             "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
         }
     }
+
+    if ($appVersion) {
+        $version = [System.Version]::Parse($appVersion)
+        Write-Host "Using Version $version"
+        $appJsonFile = Join-Path $folder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        if (!($appJson.version.StartsWith("$($version.Major).$($version.Minor)."))) {
+            throw "Major and Minor version of app doesn't match with pipeline"
+        }
+        $appJson.version = "$version"
+        $appJson | ConvertTo-Json -Depth 99 | Set-Content $appJsonFile
+    }
+
     $appFile = Compile-AppInBcContainer @compileParams `
         -containerName $containerName `
         -credential $credential `
