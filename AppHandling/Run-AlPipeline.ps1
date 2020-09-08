@@ -61,9 +61,9 @@ function Get-RandomPassword {
      (randomchar $numbers))
 }
 
-if ($installApps -is [String]) { $installApps = $installApps.Split(',') }
-if ($appFolders -is [String])  { $appFolders = $appFolders.Split(',') }
-if ($testFolders -is [String]) { $testFolders = $testFolders.Split(',') }
+if ($installApps -is [String]) { $installApps = $installApps.Split(',') | Where-Object { $_ } }
+if ($appFolders -is [String])  { $appFolders  = $appFolders.Split(',')  | Where-Object { $_ } }
+if ($testFolders -is [String]) { $testFolders = $testFolders.Split(',') | Where-Object { $_ } }
 
 $appFolders  = @($appFolders  | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
