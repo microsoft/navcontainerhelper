@@ -175,6 +175,7 @@ docker pull $genericImageName
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
 
+$error = $null
 try {
 
 Write-Host -ForegroundColor Yellow @'
@@ -447,6 +448,7 @@ if ($createRuntimePackages) {
 }
 
 } catch {
+    $error = $_
     $keepContainer = $false
 }
 
@@ -468,7 +470,9 @@ Remove-BcContainer `
     -containerName $containerName
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
 
-
+if ($error) {
+    throw $error
+}
 
 }
 
