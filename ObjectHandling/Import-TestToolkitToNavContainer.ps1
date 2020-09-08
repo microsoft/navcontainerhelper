@@ -76,6 +76,8 @@ function Import-TestToolkitToBcContainer {
     [System.Version]$version = $inspect.Config.Labels.version
     $country = $inspect.Config.Labels.country
 
+    $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
+
     $config = Get-BcContainerServerConfiguration -ContainerName $containerName
     $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
 
@@ -107,13 +109,11 @@ function Import-TestToolkitToBcContainer {
         $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
 
         if (!$doNotUseRuntimePackages) {
-            $folderPrefix = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                if ($env:IsBcSandbox -eq "Y") {
-                    "sandbox"
-                }
-                else {
-                    "onprem"
-                }
+            if ($isBcSandbox) {
+                $folderPrefix = "sandbox"
+            }
+            else {
+                $folderPrefix = "onprem"
             }
             $applicationsPath = Join-Path $extensionsFolder "$folderPrefix-Applications-$Version-$country"
             if (!(Test-Path $applicationsPath)) {

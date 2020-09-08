@@ -19,12 +19,14 @@ Param(
     $installApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
+    [string] $appVersion = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
     [string] $artifact = "bcartifacts/sandbox//us/latest",
     [string] $artifactSasToken = "",
-    [switch] $reuseContainer,
+    [string] $buildArtifactFolder = "",
+    [switch] $createRuntimePackages,
     [switch] $installTestFramework,
     [switch] $installTestLibraries,
     [switch] $installPerformanceToolkit,
@@ -71,22 +73,23 @@ if (!($appFolders)) {
 
 $sortedFolders = Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders) -WarningAction SilentlyContinue
 
-$segments = "$artifact/////".Split('/')
-$storageAccount = $segments[0]; if ($storageAccount -eq "") { $storageAccount = "bcartifacts" }
-$type = $segments[1]; if ($type -eq "") { $type = "Sandbox" }
-$version = $segments[2]
-$country = $segments[3]; if ($country -eq "") { $country = "us" }
-$select = $segments[4]; if ($select -eq "") { $select = "latest" }
-if (-not ($artifactSasToken)) { $artifactSasToken = $segments[5] }
-
-$artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $artifactSasToken | Select-Object -First 1
+if ($artifact -like "https://*") {
+    $artifactUrl = $artifact
+}
+else {
+    $segments = "$artifact/////".Split('/')
+    $storageAccount = $segments[0]; if ($storageAccount -eq "") { $storageAccount = "bcartifacts" }
+    $type = $segments[1]; if ($type -eq "") { $type = "Sandbox" }
+    $version = $segments[2]
+    $country = $segments[3]; if ($country -eq "") { $country = "us" }
+    $select = $segments[4]; if ($select -eq "") { $select = "latest" }
+    if (-not ($artifactSasToken)) { $artifactSasToken = $segments[5] }
+    
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $artifactSasToken | Select-Object -First 1
+}
 
 if (!($artifactUrl)) {
     throw "Unable to locate artifacts"
-}
-
-if ($reuseContainer -and (!($credential))) {
-    throw "When using -reuseContainer, you have to specify credentials"
 }
 
 if (Test-Path $packagesFolder) {
@@ -95,6 +98,12 @@ if (Test-Path $packagesFolder) {
 
 if (Test-Path $outputFolder) {
     Remove-Item $outputFolder -Recurse -Force
+}
+
+if ($buildArtifactFolder) {
+    if (!(Test-Path $buildArtifactFolder)) {
+        throw "BuildArtifactFolder must exist"
+    }
 }
 
 Write-Host -ForegroundColor Yellow @'
@@ -125,13 +134,15 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler  "; Write-H
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework "; Write-Host $installTestFramework
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit  "; Write-Host $installPerformanceToolkit
-Write-Host -NoNewLine -ForegroundColor Yellow "reuseContainer         "; Write-Host $reuseContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps            "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "License file           "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile    "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile        "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder         "; Write-Host $packagesFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder           "; Write-Host $outputFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder    "; Write-Host $buildArtifactFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages  "; Write-Host $createRuntimePackages
+Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion             "; Write-Host $appVersion
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Application folders"
@@ -164,55 +175,8 @@ docker pull $genericImageName
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
 
-$createContainer = $true
-if ($reuseContainer -and 
-    (Test-BcContainer -containerName $containerName) -and 
-    (Get-BcContainerArtifactUrl -containerName $containerName) -eq $artifactUrl -and
-    (Get-BcContainerOsVersion -containerOrImageName $containerName) -eq (Get-BcContainerOsVersion -containerOrImageName $genericImageName) -and
-    (Get-BcContainerGenericTag -containerOrImageName $containerName) -eq (Get-BcContainerGenericTag -containerOrImageName $genericImageName)) {
-        
-Write-Host -ForegroundColor Yellow @'
-   
-  _____                _                               _        _                 
- |  __ \              (_)                             | |      (_)                
- | |__) |___ _   _ ___ _ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __ 
- |  _  // _ \ | | / __| | '_ \ / _` |  / __/ _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
- | | \ \  __/ |_| \__ \ | | | | (_| | | (__ (_) | | | | |_ (_| | | | | |  __/ |   
- |_|  \_\___|\__,_|___/_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|   
-                                __/ |                                             
-                               |___/                                              
-                                                                           
-'@
-
-    try {
-        Measure-Command {
-
-            Restore-DatabasesInBcContainer `
-                -containerName $containerName `
-                -bakFolder $pipelineName
-
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                $mtstartTime = [DateTime]::Now
-                while ([DateTime]::Now.Subtract($mtstartTime).TotalSeconds -le 60) {
-                    $tenantInfo = Get-NAVTenant -ServerInstance $ServerInstance -Tenant "default"
-                    if ($tenantInfo.State -eq "Operational") { break }
-                    Start-Sleep -Seconds 1
-                }
-                Write-Host "Tenant is $($TenantInfo.State)"
-            }
-
-            $createContainer = $false
-
-        } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRestoring databases took $([int]$_.TotalSeconds) seconds" }
-    }
-    catch {
-        Write-Host -ForegroundColor Red "`nFailed to restore databases, creating new container."
-    }
-
-}
-
-
-if ($createContainer) {
+$error = $null
+try {
 
 Write-Host -ForegroundColor Yellow @'
 
@@ -260,10 +224,10 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 
     if ($installTestLibraries) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly -includePerformanceToolkit:$installPerformanceToolkit
+        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly -includePerformanceToolkit:$installPerformanceToolkit -doNotUseRuntimePackages
     }
     elseif ($installTestFramework -or $installPerformanceToolkit) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly -includePerformanceToolkit:$installPerformanceToolkit
+        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly -includePerformanceToolkit:$installPerformanceToolkit -doNotUseRuntimePackages
     }
 
     $installApps | ForEach-Object{
@@ -271,31 +235,6 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
-}
-
-if ($reuseContainer) {
-
-Write-Host -ForegroundColor Yellow @'
-
-  ____             _    _                                 _       _        _                        
- |  _ \           | |  (_)                               | |     | |      | |                       
- | |_) | __ _  ___| | ___ _ __   __ _   _   _ _ __     __| | __ _| |_ __ _| |__   __ _ ___  ___ ___ 
- |  _ < / _` |/ __| |/ / | '_ \ / _` | | | | | '_ \   / _` |/ _` | __/ _` | '_ \ / _` / __|/ _ \ __|
- | |_) | (_| | (__|   <| | | | | (_| | | |_| | |_) | | (_| | (_| | |_ (_| | |_) | (_| \__ \  __\__ \
- |____/ \__,_|\___|_|\_\_|_| |_|\__, |  \__,_| .__/   \__,_|\__,_|\__\__,_|_.__/ \__,_|___/\___|___/
-                                 __/ |       | |                                                    
-                                |___/        |_|                                                    
-
-'@
-Measure-Command {
-
-    Backup-BcContainerDatabases `
-        -containerName $containerName `
-        -bakFolder $pipelineName
-
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nBacking up databases took $([int]$_.TotalSeconds) seconds" }
-}
-
 }
 
 Write-Host -ForegroundColor Yellow @'
@@ -311,6 +250,7 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
+$appsFolder = @{}
 $apps = @()
 $testApps = @()
 $sortedFolders | ForEach-Object {
@@ -325,6 +265,19 @@ $sortedFolders | ForEach-Object {
             "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
         }
     }
+
+    if ($appVersion) {
+        $version = [System.Version]::Parse($appVersion)
+        Write-Host "Using Version $version"
+        $appJsonFile = Join-Path $folder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        if (!($appJson.version.StartsWith("$($version.Major).$($version.Minor)."))) {
+            throw "Major and Minor version of app doesn't match with pipeline"
+        }
+        $appJson.version = "$version"
+        $appJson | ConvertTo-Json -Depth 99 | Set-Content $appJsonFile
+    }
+
     $appFile = Compile-AppInBcContainer @compileParams `
         -containerName $containerName `
         -credential $credential `
@@ -339,6 +292,7 @@ $sortedFolders | ForEach-Object {
     }
     else {
         $apps += $appFile
+        $appsFolder += @{ "$appFile" = $folder }
     }
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCompiling apps took $([int]$_.TotalSeconds) seconds" }
@@ -424,7 +378,81 @@ $testFolders | ForEach-Object {
 }
 }
 
-if (!$reuseContainer -and !$keepContainer) {
+if ($buildArtifactFolder) {
+Write-Host -ForegroundColor Yellow @'
+   _____                    _          ____        _ _     _                 _   _  __           _       
+  / ____|                  | |        |  _ \      (_) |   | |     /\        | | (_)/ _|         | |      
+ | |     ___  _ __  _   _  | |_ ___   | |_) |_   _ _| | __| |    /  \   _ __| |_ _| |_ __ _  ___| |_ ___ 
+ | |    / _ \| '_ \| | | | | __/ _ \  |  _ <| | | | | |/ _` |   / /\ \ | '__| __| |  _/ _` |/ __| __/ __|
+ | |____ (_) | |_) | |_| | | |_ (_) | | |_) | |_| | | | (_| |  / ____ \| |  | |_| | || (_| | (__| |_\__ \
+  \_____\___/| .__/ \__, |  \__\___/  |____/ \__,_|_|_|\__,_| /_/    \_\_|   \__|_|_| \__,_|\___|\__|___/
+             | |     __/ |                                                                               
+             |_|    |___/                                                                                
+'@
+
+Measure-Command {
+
+$destFolder = Join-Path $buildArtifactFolder "Apps"
+if (!(Test-Path $destFolder -PathType Container)) {
+    New-Item $destFolder -ItemType Directory | Out-Null
+}
+$apps | ForEach-Object {
+    $appFile = $_
+    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) to build artifact"
+    Copy-Item -Path $appFile -Destination $destFolder -Force
+}
+$destFolder = Join-Path $buildArtifactFolder "TestApps"
+if (!(Test-Path $destFolder -PathType Container)) {
+    New-Item $destFolder -ItemType Directory | Out-Null
+}
+$testApps | ForEach-Object {
+    $appFile = $_
+    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) to build artifact"
+    Copy-Item -Path $appFile -Destination $destFolder -Force
+}
+if ($createRuntimePackages) {
+    $destFolder = Join-Path $buildArtifactFolder "RuntimePackages"
+    if (!(Test-Path $destFolder -PathType Container)) {
+        New-Item $destFolder -ItemType Directory | Out-Null
+    }
+    $apps | ForEach-Object {
+        $appFile = $_
+        $tempRuntimeAppFile = "$($appFile.TrimEnd('.app')).runtime.app"
+        $runtimeAppFile = Join-Path $destFolder ([System.IO.Path]::GetFileName($appFile))
+        $folder = $appsFolder[$appFile]
+        $appJson = Get-Content -Path (Join-Path $folder "app.json") | ConvertFrom-Json
+        Write-Host "Getting Runtime Package for $([System.IO.Path]::GetFileName($appFile))"
+        Get-NavContainerAppRuntimePackage `
+            -containerName $containerName `
+            -appName $appJson.name `
+            -appVersion $appJson.Version `
+            -publisher $appJson.Publisher `
+            -appFile $tempRuntimeAppFile
+
+        if ($signApps) {
+            Write-Host "Signing runtime package"
+            Sign-BcContainerApp `
+                -containerName $containerName `
+                -appFile $tempRuntimeAppFile `
+                -pfxFile $codeSignPfxFile `
+                -pfxPassword $codeSignPfxPassword
+        }
+
+        Write-Host "Copying runtime package to build artifact"
+        Copy-Item -Path $tempRuntimeAppFile -Destination $runtimeAppFile -Force
+    }
+}
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
+
+}
+
+} catch {
+    $error = $_
+    $keepContainer = $false
+}
+
+if (!$keepContainer) {
 Write-Host -ForegroundColor Yellow @'
 
   _____                           _                _____            _        _                 
@@ -441,6 +469,11 @@ Measure-Command {
 Remove-BcContainer `
     -containerName $containerName
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
+
+}
+
+if ($error) {
+    throw $error
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
