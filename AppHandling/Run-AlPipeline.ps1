@@ -223,10 +223,10 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 
     if ($installTestLibraries) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly -includePerformanceToolkit:$installPerformanceToolkit
+        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly -includePerformanceToolkit:$installPerformanceToolkit -doNotUseRuntimePackages
     }
     elseif ($installTestFramework -or $installPerformanceToolkit) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly -includePerformanceToolkit:$installPerformanceToolkit
+        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly -includePerformanceToolkit:$installPerformanceToolkit -doNotUseRuntimePackages
     }
 
     $installApps | ForEach-Object{

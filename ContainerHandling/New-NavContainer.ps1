@@ -1184,6 +1184,10 @@ function New-BcContainer {
         }
     }
 
+    if ($bcStyle -eq "Sandbox") {
+        $parameters += "--env isBcSandbox=Y"
+    }
+
     if ($multitenant -and !($usecleandatabase -or $useNewDatabase -or $restoreBakFolder)) {
         $parameters += "--env multitenant=Y"
     }
