@@ -81,6 +81,7 @@ function Extract-AppFileToFolder {
             "brief" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Brief" } | % { $_.Value } )"
             "description" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Description" } | % { $_.Value } )"
             "platform" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Platform" } | % { $_.Value } )"
+            "application" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
             "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
             "runtime" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
             "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')

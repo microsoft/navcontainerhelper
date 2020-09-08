@@ -24,7 +24,9 @@ Param(
     [string] $outputFolder = ".output",
     [string] $artifact = "bcartifacts/sandbox//us/latest",
     [string] $artifactSasToken = "",
+    [string] $buildArtifactFolder = "",
     [switch] $reuseContainer,
+    [switch] $createRuntimePackages,
     [switch] $installTestFramework,
     [switch] $installTestLibraries,
     [switch] $installPerformanceToolkit,
@@ -71,15 +73,20 @@ if (!($appFolders)) {
 
 $sortedFolders = Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders) -WarningAction SilentlyContinue
 
-$segments = "$artifact/////".Split('/')
-$storageAccount = $segments[0]; if ($storageAccount -eq "") { $storageAccount = "bcartifacts" }
-$type = $segments[1]; if ($type -eq "") { $type = "Sandbox" }
-$version = $segments[2]
-$country = $segments[3]; if ($country -eq "") { $country = "us" }
-$select = $segments[4]; if ($select -eq "") { $select = "latest" }
-if (-not ($artifactSasToken)) { $artifactSasToken = $segments[5] }
-
-$artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $artifactSasToken | Select-Object -First 1
+if ($artifact -like "https://*") {
+    $artifactUrl = $artifact
+}
+else {
+    $segments = "$artifact/////".Split('/')
+    $storageAccount = $segments[0]; if ($storageAccount -eq "") { $storageAccount = "bcartifacts" }
+    $type = $segments[1]; if ($type -eq "") { $type = "Sandbox" }
+    $version = $segments[2]
+    $country = $segments[3]; if ($country -eq "") { $country = "us" }
+    $select = $segments[4]; if ($select -eq "") { $select = "latest" }
+    if (-not ($artifactSasToken)) { $artifactSasToken = $segments[5] }
+    
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $artifactSasToken | Select-Object -First 1
+}
 
 if (!($artifactUrl)) {
     throw "Unable to locate artifacts"
@@ -95,6 +102,12 @@ if (Test-Path $packagesFolder) {
 
 if (Test-Path $outputFolder) {
     Remove-Item $outputFolder -Recurse -Force
+}
+
+if ($buildArtifactFolder) {
+    if (!(Test-Path $buildArtifactFolder)) {
+        throw "BuildArtifactFolder must exist"
+    }
 }
 
 Write-Host -ForegroundColor Yellow @'
@@ -132,6 +145,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile    "; if ($co
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile        "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder         "; Write-Host $packagesFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder           "; Write-Host $outputFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder    "; Write-Host $buildArtifactFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages  "; Write-Host $createRuntimePackages
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Application folders"
@@ -311,6 +326,7 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
+$appsFolder = @{}
 $apps = @()
 $testApps = @()
 $sortedFolders | ForEach-Object {
@@ -339,6 +355,7 @@ $sortedFolders | ForEach-Object {
     }
     else {
         $apps += $appFile
+        $appsFolder += @{ "$appFile" = $folder }
     }
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCompiling apps took $([int]$_.TotalSeconds) seconds" }
@@ -424,6 +441,75 @@ $testFolders | ForEach-Object {
 }
 }
 
+if ($buildArtifactFolder) {
+Write-Host -ForegroundColor Yellow @'
+   _____                    _          ____        _ _     _                 _   _  __           _       
+  / ____|                  | |        |  _ \      (_) |   | |     /\        | | (_)/ _|         | |      
+ | |     ___  _ __  _   _  | |_ ___   | |_) |_   _ _| | __| |    /  \   _ __| |_ _| |_ __ _  ___| |_ ___ 
+ | |    / _ \| '_ \| | | | | __/ _ \  |  _ <| | | | | |/ _` |   / /\ \ | '__| __| |  _/ _` |/ __| __/ __|
+ | |____ (_) | |_) | |_| | | |_ (_) | | |_) | |_| | | | (_| |  / ____ \| |  | |_| | || (_| | (__| |_\__ \
+  \_____\___/| .__/ \__, |  \__\___/  |____/ \__,_|_|_|\__,_| /_/    \_\_|   \__|_|_| \__,_|\___|\__|___/
+             | |     __/ |                                                                               
+             |_|    |___/                                                                                
+'@
+
+Measure-Command {
+
+$destFolder = Join-Path $buildArtifactFolder "Apps"
+if (!(Test-Path $destFolder -PathType Container)) {
+    New-Item $destFolder -ItemType Directory | Out-Null
+}
+$apps | ForEach-Object {
+    $appFile = $_
+    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) to build artifact"
+    Copy-Item -Path $appFile -Destination $destFolder -Force
+}
+$destFolder = Join-Path $buildArtifactFolder "TestApps"
+if (!(Test-Path $destFolder -PathType Container)) {
+    New-Item $destFolder -ItemType Directory | Out-Null
+}
+$testApps | ForEach-Object {
+    $appFile = $_
+    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) to build artifact"
+    Copy-Item -Path $appFile -Destination $destFolder -Force
+}
+if ($createRuntimePackages) {
+    $destFolder = Join-Path $buildArtifactFolder "RuntimePackages"
+    if (!(Test-Path $destFolder -PathType Container)) {
+        New-Item $destFolder -ItemType Directory | Out-Null
+    }
+    $apps | ForEach-Object {
+        $appFile = $_
+        $tempRuntimeAppFile = "$($appFile.TrimEnd('.app')).runtime.app"
+        $runtimeAppFile = Join-Path $destFolder ([System.IO.Path]::GetFileName($appFile))
+        $folder = $appsFolder[$appFile]
+        $appJson = Get-Content -Path (Join-Path $folder "app.json") | ConvertFrom-Json
+        Write-Host "Getting Runtime Package for $([System.IO.Path]::GetFileName($appFile))"
+        Get-NavContainerAppRuntimePackage `
+            -containerName $containerName `
+            -appName $appJson.name `
+            -appVersion $appJson.Version `
+            -publisher $appJson.Publisher `
+            -appFile $tempRuntimeAppFile
+
+        if ($signApps) {
+            Write-Host "Signing runtime package"
+            Sign-BcContainerApp `
+                -containerName $containerName `
+                -appFile $tempRuntimeAppFile `
+                -pfxFile $codeSignPfxFile `
+                -pfxPassword $codeSignPfxPassword
+        }
+
+        Write-Host "Copying runtime package to build artifact"
+        Copy-Item -Path $tempRuntimeAppFile -Destination $runtimeAppFile -Force
+    }
+}
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
+
+}
+
 if (!$reuseContainer -and !$keepContainer) {
 Write-Host -ForegroundColor Yellow @'
 
@@ -441,6 +527,9 @@ Measure-Command {
 Remove-BcContainer `
     -containerName $containerName
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
+
+
+
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
