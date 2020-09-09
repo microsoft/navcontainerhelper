@@ -9,7 +9,7 @@ Param(
     [string] $pipelineName,
     [string] $baseFolder,
     [string] $licenseFile,
-    [string] $containerName = "$pipelinename-bld".ToLowerInvariant(),
+    [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
     [Boolean] $enableTaskScheduler = $false,
     [string] $memoryLimit = "6G",
@@ -24,7 +24,6 @@ Param(
     [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
     [string] $artifact = "bcartifacts/sandbox//us/latest",
-    [string] $artifactSasToken = "",
     [string] $buildArtifactFolder = "",
     [switch] $createRuntimePackages,
     [switch] $installTestFramework,
@@ -87,9 +86,9 @@ else {
     $version = $segments[2]
     $country = $segments[3]; if ($country -eq "") { $country = "us" }
     $select = $segments[4]; if ($select -eq "") { $select = "latest" }
-    if (-not ($artifactSasToken)) { $artifactSasToken = $segments[5] }
+    $sasToken = $segments[5]
     
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $artifactSasToken | Select-Object -First 1
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $sasToken | Select-Object -First 1
 }
 
 if (!($artifactUrl)) {
@@ -123,7 +122,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name               "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "Container name              "; Write-Host $containerName
 Write-Host -NoNewLine -ForegroundColor Yellow "Image name                  "; Write-Host $imageName
 Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                 "; Write-Host $artifactUrl.Split('?')[0]
-Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactSasToken            "; if ($artifactSasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                    "; if ($artifactUrl.Contains('?')) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                  ";
 if ($credential) {
     Write-Host "Specified"
