@@ -7,6 +7,7 @@ Support for -includePerformanceToolkit in New-BcContainerWizard
 Support for insider builds and sasToken in New-BcContainerWizard
 Add NAV to New-BcContainerWizard
 Add AL Language Extension version selection to New-BcContainerWizard
+Flush-ContainerHelperCache will remove images, which was built on artifacts, which is no longer in the cache
 
 1.0.4
 Sort-AppFoldersByDependencies doesn't support custom Application app (needs to be sorted first)

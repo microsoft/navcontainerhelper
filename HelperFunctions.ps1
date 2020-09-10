@@ -45,7 +45,7 @@ function DockerDo {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$imageName,
-        [ValidateSet('run','start','pull','restart','stop')]
+        [ValidateSet('run','start','pull','restart','stop', 'rmi')]
         [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
