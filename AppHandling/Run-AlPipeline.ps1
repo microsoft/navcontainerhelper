@@ -88,7 +88,6 @@ else {
     $select = $segments[4]; if ($select -eq "") { $select = "latest" }
     $sasToken = $segments[5]
     
-    Write-Host "Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $sasToken | Select-Object -First 1"
     $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $sasToken | Select-Object -First 1
 }
 
