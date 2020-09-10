@@ -104,7 +104,7 @@ function Flush-ContainerHelperCache {
                 $artifactUrl = $artifactUrl.Split('?')[0]
                 "artifactUrl=https://bcartifacts.azureedge.net/", "artifactUrl=https://bcinsider.azureedge.net/" | % {
                     if ($artifactUrl -like "$($_)*") {
-                        $cacheFolder = Join-Path $cacheBaseFolder $artifactUrl.SubString($_.Length)
+                        $cacheFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder $artifactUrl.SubString($_.Length)
                         if (-not (Test-Path $cacheFolder)) {
                             Write-Host "$imageName was built on artifacts which was removed from the cache, removing image"
                             if (-not (DockerDo -command rmi -parameters @("--force") -imageName $imageID -ErrorAction SilentlyContinue)) {
