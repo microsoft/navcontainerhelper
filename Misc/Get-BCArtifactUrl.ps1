@@ -33,7 +33,7 @@ function Get-BCArtifactUrl {
     [CmdletBinding()]
     param (
         [ValidateSet('OnPrem', 'Sandbox')]
-        [String] $type = '',
+        [String] $type = 'Sandbox',
         [String] $country = '',
         [String] $version = '',
         [ValidateSet('Latest', 'All', 'Closest', 'SecondToLastMajor', 'Current', 'NextMinor', 'NextMajor')]
@@ -44,14 +44,14 @@ function Get-BCArtifactUrl {
     )
     
     if ($select -eq "Current") {
-        if ($storageAccount -ne '' -or $type -ne '' -or $version -ne '') {
-            throw 'You cannot specify storageAccount, type or version when selecting Current release'
+        if ($storageAccount -ne '' -or $type -eq 'OnPrem' -or $version -ne '') {
+            throw 'You cannot specify storageAccount, type=OnPrem or version when selecting Current release'
         }
         Get-BCArtifactUrl -country $country -select Latest -doNotCheckPlatform:$doNotCheckPlatform
     }
     elseif ($select -eq "NextMinor" -or $select -eq "NextMajor") {
-        if ($storageAccount -ne '' -or $type -ne '' -or $version -ne '') {
-            throw "You cannot specify storageAccount, type or version when selecting $select release"
+        if ($storageAccount -ne '' -or $type -eq 'OnPrem' -or $version -ne '') {
+            throw "You cannot specify storageAccount, type=OnPrem or version when selecting $select release"
         }
         if ($sasToken -eq '') {
             throw "You need to specify an insider SasToken if you want to get $select release"
@@ -91,9 +91,6 @@ function Get-BCArtifactUrl {
         do {
             if ($storageAccount -eq '') {
                 $storageAccount = 'bcartifacts'
-            }
-            if ($type -eq '') {
-                $type = 'sandbox'
             }
 
             $retry = $false
