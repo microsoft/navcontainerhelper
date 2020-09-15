@@ -32,29 +32,38 @@
                                                 LOCAL
 
  .Parameter containerName
-  Name of the container in which you want to add test users (default navserver)
+  Name of the container in which you want to add test users
  .Parameter tenant
   Name of tenant in which you want to add test users (default defeault)
  .Parameter password
   The password for all test users created
  .Parameter Credential
   Credentials for the admin user if using NavUserPassword authentication
+ .Parameter ReplaceDependencies
+  With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+ .Parameter select
+  Select which users to create. Essential creates only Essential user, Premium only premium user. Empty adds all.
+ .Parameter createTestUsersAppUrl
+  Url to Create Test Users App, if you have a special version of the app. Leave empty to use the default app.
  .Example
-  Setup-NavContainerTestUsers -password $securePassword
+  Setup-BcContainerTestUsers -password $securePassword
  .Example
-  Setup-NavContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
+  Setup-BcContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
 #>
-function Setup-NavContainerTestUsers {
+function Setup-BcContainerTestUsers {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [securestring] $Password,
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential,
-        [hashtable] $replaceDependencies = $null
+        [hashtable] $replaceDependencies = $null,
+        [ValidateSet('','Essential','Premium')]
+        [string] $select = '',
+        [string] $createTestUsersAppUrl = ''
     )
 
     $inspect = docker inspect $containerName | ConvertFrom-Json
@@ -66,9 +75,9 @@ function Setup-NavContainerTestUsers {
         $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
         if (([System.Version]$version).Major -ge 15) {
 
-            $systemAppTestLibrary = get-navcontainerappinfo -containername $containerName | Where-Object { $_.Name -eq "System Application Test Library" }
+            $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName | Where-Object { $_.Name -eq "System Application Test Library" }
             if (!($systemAppTestLibrary)) {
-                $testAppFile = Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+                $testAppFile = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                     $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
                     $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
                     if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
@@ -81,30 +90,36 @@ function Setup-NavContainerTestUsers {
                     get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_System Application Test Library.app"
                 }
                 if ($testAppFile) {
-                    Publish-NavContainerApp -containerName $containerName -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
+                    Publish-BcContainerApp -containerName $containerName -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
                 }
             }
-            Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_15.0.app" -destinationFile $appfile
+            if ($createTestUsersAppUrl -eq '') {
+                $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_15.0.app"
+            }
         }
         else {
-            Download-File -sourceUrl "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app" -destinationFile $appfile
+            if ($createTestUsersAppUrl -eq '') {
+                $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app"
+            }
+            $select = ''
         }
 
-        Publish-NavContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
+        Download-File -sourceUrl $createTestUsersAppUrl -destinationFile $appfile
+        Publish-BcContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
 
-        $companyId = Get-NavContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
+        $companyId = Get-BcContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
 
         $parameters = @{ 
-            "name" = "CreateTestUsers"
+            "name" = "CreateTestUsers$select"
             "value" = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
         }
-        Invoke-NavContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
+        Invoke-BcContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
 
-        UnPublish-NavContainerApp -containerName $containerName -appName "CreateTestUsers" -unInstall
+        UnPublish-BcContainerApp -containerName $containerName -appName "CreateTestUsers" -unInstall
         if ((([System.Version]$version).Major -ge 15) -and (!($systemAppTestLibrary))) {
-            UnPublish-NavContainerApp -containerName $containerName -appName "System Application Test Library" -unInstall
+            UnPublish-BcContainerApp -containerName $containerName -appName "System Application Test Library" -unInstall
         }
     }
 }
-Set-Alias -Name Setup-BCContainerTestUsers -Value Setup-NavContainerTestUsers
-Export-ModuleMember -Function Setup-NavContainerTestUsers -Alias Setup-BCContainerTestUsers
+Set-Alias -Name Setup-NavContainerTestUsers -Value Setup-BcContainerTestUsers
+Export-ModuleMember -Function Setup-BcContainerTestUsers -Alias Setup-NavContainerTestUsers

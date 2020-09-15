@@ -7,7 +7,7 @@
   2. Create-MyOriginalFolder
   3. Create-MyDeltaFolder
   4. Convert-Txt2Al
-  A folder with the name of the container is created underneath c:\programdata\navcontainerhelper\extensions for holding all the temp and the final output.
+  A folder with the name of the container is created underneath c:\programdata\bccontainerhelper\extensions for holding all the temp and the final output.
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects
@@ -25,7 +25,7 @@
   Specify the path of a location, where you want to receive the resulting AL objects.
  .Parameter alFilePattern
   Specify the file pattern (or multiple seperated by comma) of the files you want to copy to the alProjectFolder. Default is *.
-  If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\NavContainerHelper
+  If you do not specify a path, then the objects will only be in a folder within the container folder in C:\ProgramData\BcContainerHelper
  .Parameter alFileStructure
   Specify a function, which will determine the location of the individual al source files
  .Parameter dotNetAddInsPackage
@@ -41,8 +41,7 @@
 #>
 function Convert-ModifiedObjectsToAl {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $sqlCredential = $null,
         [int]    $startId = 50100,
         [string] $filter = "None",

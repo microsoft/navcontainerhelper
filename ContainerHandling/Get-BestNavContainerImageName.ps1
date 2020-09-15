@@ -6,9 +6,9 @@
  .Parameter imageName
   Name of image
  .Example
-  $imageName = Get-BestNavContainerImageName -imageName $imageName
+  $imageName = Get-BestBcContainerImageName -imageName $imageName
 #>
-function Get-BestNavContainerImageName {
+function Get-BestBcContainerImageName {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true, ValueFromPipeline)]
@@ -56,5 +56,5 @@ function Get-BestNavContainerImageName {
     
     $imageName
 }
-Set-Alias -Name Get-BestBCContainerImageName -Value Get-BestNavContainerImageName
-Export-ModuleMember -Function Get-BestNavContainerImageName -Alias Get-BestBCContainerImageName
+Set-Alias -Name Get-BestNavContainerImageName -Value Get-BestBcContainerImageName
+Export-ModuleMember -Function Get-BestBcContainerImageName -Alias Get-BestNavContainerImageName

@@ -47,7 +47,7 @@ function New-DesktopShortcut {
             $folder = [Environment]::GetFolderPath($shortcuts)
 
         } else {
-            $folder = Join-Path ([Environment]::GetFolderPath($shortcuts)) "NavContainerHelper"
+            $folder = Join-Path ([Environment]::GetFolderPath($shortcuts)) "BcContainerHelper"
             if (!(Test-Path $folder -PathType Container)) {
                 New-Item $folder -ItemType Directory | Out-Null
             }

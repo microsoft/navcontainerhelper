@@ -11,15 +11,15 @@
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers. Omit to export all tenants.
  .Example
-  Backup-NavContainerDatabases -containerName test
+  Backup-BcContainerDatabases -containerName test
  .Example
-  Backup-NavContainerDatabases -containerName test -bakfolder "c:\programdata\navcontainerhelper\extensions\test"
+  Backup-BcContainerDatabases -containerName test -bakfolder "c:\programdata\bccontainerhelper\extensions\test"
  .Example
-  Backup-NavContainerDatabases -containerName test -tenant @("default")
+  Backup-BcContainerDatabases -containerName test -tenant @("default")
 #>
-function Backup-NavContainerDatabases {
+function Backup-BcContainerDatabases {
     Param (
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [string] $bakFolder = "",
         [string[]] $tenant
     )
@@ -29,8 +29,8 @@ function Backup-NavContainerDatabases {
         $bakFolder = $containerFolder
     }
     elseif (!$bakFolder.Contains('\')) {
-        $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-        if ((Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
+        $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
+        if ((Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
             $folderPrefix = "sandbox"
         }
         else {
@@ -38,9 +38,9 @@ function Backup-NavContainerDatabases {
         }
         $bakFolder = Join-Path $containerHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
     }
-    $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
+    $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($bakFolder, $tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($bakFolder, $tenant)
        
         function Backup {
             Param (
@@ -86,5 +86,5 @@ function Backup-NavContainerDatabases {
         }
     } -ArgumentList $containerbakFolder, $tenant
 }
-Set-Alias -Name Backup-BCContainerDatabases -Value Backup-NavContainerDatabases
-Export-ModuleMember -Function Backup-NavContainerDatabases -Alias Backup-BCContainerDatabases
+Set-Alias -Name Backup-NavContainerDatabases -Value Backup-BcContainerDatabases
+Export-ModuleMember -Function Backup-BcContainerDatabases -Alias Backup-NavContainerDatabases

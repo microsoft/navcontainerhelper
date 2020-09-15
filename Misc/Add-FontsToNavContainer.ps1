@@ -8,109 +8,54 @@
  .Parameter path
   Path to fonts to copy and register in the container
  .Example
-  Add-FontsToNavContainer
+  Add-FontsToBcContainer
  .Example
-  Add-FontsToNavContainer -containerName test2
+  Add-FontsToBcContainer -containerName test2
  .Example
-  Add-FontsToNavContainer -containerName test2 -path "C:\Windows\Fonts\ming*.*"
+  Add-FontsToBcContainer -containerName test2 -path "C:\Windows\Fonts\ming*.*"
  .Example
-  Add-FontsToNavContainer -containerName test2 -path "C:\Windows\Fonts\mingliu.ttc"
+  Add-FontsToBcContainer -containerName test2 -path "C:\Windows\Fonts\mingliu.ttc"
 #>
-function Add-FontsToNavContainer {
+function Add-FontsToBcContainer {
    Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [Parameter(Mandatory=$false)]
         [string] $path = "C:\Windows\Fonts"
     )
 
-    $ExistingFonts = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock {
+    $ExistingFonts = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         $fontsFolderPath = "C:\Windows\Fonts"
         Get-ChildItem -Path $fontsFolderPath | % { $_.Name }
     }
 
+    $fontsFolder = Join-Path $extensionsFolder "$containerName\Fonts"
+    if (Test-Path $fontsFolder) {
+        Remove-Item $fontsFolder -Recurse -Force
+    }
+    New-Item -Path $fontsFolder -ItemType Directory | Out-Null
+    $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
+
+    $found = $false
     Get-ChildItem $path -ErrorAction Ignore | % {
-        if (!$ExistingFonts.Contains($_.Name) -and $_.Extension -ne ".ini") {
-
-            try
-            {
-                $WindowsFontPath = Join-Path "c:\Windows\Fonts" $_.Name
-                $fullName = $_.FullName
-                Copy-FileToNavContainer -containerName $containerName -localPath $fullName -containerPath $WindowsFontPath
-
-                Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($path)
-
-#*******************************************************************
-#  Load C# code
-#*******************************************************************
-$fontCSharpCode = @'
-using System;
-using System.Collections.Generic;
-using System.Text;
-using System.IO;
-using System.Runtime.InteropServices;
-
-namespace FontResource
-{
-    public class AddRemoveFonts
-    {
-        [DllImport("gdi32.dll")]
-        static extern int AddFontResource(string lpFilename);
-
-        public static int AddFont(string fontFilePath) {
-            try 
-            {
-                return AddFontResource(fontFilePath);
+        if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
+            if ($ExistingFonts.Contains($_.Name)) {
+                Write-Host "Skipping font '$($_.Name)' as it is already installed"
             }
-            catch
-            {
-                return 0;
+            else {
+                Copy-Item -Path $_.FullName -Destination $fontsFolder
+                $found = $true
             }
         }
     }
-}
-'@
 
-                    Add-Type $fontCSharpCode
-                    
-                    # Create hashtable containing valid font file extensions and text to append to Registry entry name.
-                    $hashFontFileTypes = @{}
-                    $hashFontFileTypes.Add(".fon", "")
-                    $hashFontFileTypes.Add(".fnt", "")
-                    $hashFontFileTypes.Add(".ttf", " (TrueType)")
-                    $hashFontFileTypes.Add(".ttc", " (TrueType)")
-                    $hashFontFileTypes.Add(".otf", " (OpenType)")
-                    $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
-        
-                    $fileDir  = split-path $path
-                    $fileName = split-path $path -leaf
-                    $fileExt = (Get-Item $path).extension
-                    $fileBaseName = $fileName -replace($fileExt ,"")
-            
-                    $shell = new-object -com shell.application
-                    $myFolder = $shell.Namespace($fileDir)
-                    $fileobj = $myFolder.Items().Item($fileName)
-                    $fontName = $myFolder.GetDetailsOf($fileobj,21)
-            
-                    if ($fontName -eq "") { $fontName = $fileBaseName }
-            
-                    $retVal = [FontResource.AddRemoveFonts]::AddFont($path)
-            
-                    if ($retVal -eq 0) {
-                        Write-Host -ForegroundColor Red "Font `'$($path)`'`' installation failed"
-                    } else {
-                        Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
-                        Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
-                    }
-                } -ArgumentList $WindowsFontPath
-            }
-            catch
-            {
-                Write-Host -ForegroundColor Red "Font `'$($fullName)`' exception when installing"
-                $error.clear()
-            }
-        }
+    if ($found) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
+
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($addFontsScript)
+            . $addFontsScript
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path (Join-Path $fontsFolder "AddFonts.ps1"))
     }
 }
-Set-Alias -Name Add-FontsToBCContainer -Value Add-FontsToNavContainer
-Export-ModuleMember -Function Add-FontsToNavContainer -Alias Add-FontsToBCContainer
+Set-Alias -Name Add-FontsToNavContainer -Value Add-FontsToBcContainer
+Export-ModuleMember -Function Add-FontsToBcContainer -Alias Add-FontsToNavContainer

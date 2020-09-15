@@ -11,28 +11,30 @@
  .Parameter argumentList
   Arguments to transfer to the scriptblock in form of an object[]
  .Example
-  Invoke-ScriptInNavContainer -containerName dev -scriptblock { $env:UserName }
+  Invoke-ScriptInBcContainer -containerName dev -scriptblock { $env:UserName }
  .Example
-  [xml](Invoke-ScriptInNavContainer -containerName dev -scriptblock { Get-Content -Path (Get-item 'c:\Program Files\Microsoft Dynamics NAV\*\Service\CustomSettings.config').FullName })
+  [xml](Invoke-ScriptInBcContainer -containerName dev -scriptblock { Get-Content -Path (Get-item 'c:\Program Files\Microsoft Dynamics NAV\*\Service\CustomSettings.config').FullName })
 #>
-function Invoke-ScriptInNavContainer {
+function Invoke-ScriptInBcContainer {
     Param (
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]
         [Object[]] $argumentList
     )
 
-    if ($usePsSession) {
+    $useSession = (Get-ContainerHelperConfig).usePsSession
+
+    if ($useSession) {
         try {
-            $session = Get-NavContainerSession -containerName $containerName -silent
+            $session = Get-BcContainerSession -containerName $containerName -silent
         }
         catch {
-            $usePsSession = $false
+            $useSession = $false
         }
     }
-    if ($usePsSession) {
+    if ($useSession) {
         try {
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
@@ -117,5 +119,5 @@ Set-Location $runPath
         }
     }
 }
-Set-Alias -Name Invoke-ScriptInBCContainer -Value Invoke-ScriptInNavContainer
-Export-ModuleMember -Function Invoke-ScriptInNavContainer -Alias Invoke-ScriptInBCContainer
+Set-Alias -Name Invoke-ScriptInNavContainer -Value Invoke-ScriptInBcContainer
+Export-ModuleMember -Function Invoke-ScriptInBcContainer -Alias Invoke-ScriptInNavContainer

@@ -16,12 +16,11 @@
  .Parameter dotNetAddInsPackage
   Path to folder where dotnet add-ins are located (folder must be shared with container)
  .Example
-  Convert-Txt2Al -containerName test -mydeltaFolder c:\programdata\navcontainerhelper\mydeltafiles -myAlFolder c:\programdata\navcontainerhelper\myAlFiles -startId 50100
+  Convert-Txt2Al -containerName test -mydeltaFolder c:\programdata\bccontainerhelper\mydeltafiles -myAlFolder c:\programdata\bccontainerhelper\myAlFiles -startId 50100
 #>
 function Convert-Txt2Al {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $myDeltaFolder, 
         [Parameter(Mandatory=$true)]

@@ -20,9 +20,9 @@ function Remove-DesktopShortcut {
             }
             else {
                 $folderName = $Name.Split(' ')[0]
-                $name = $name.Substring($folderName.Length).TrimStart(' ')
+                $shortcutName = $name.Substring($folderName.Length).TrimStart(' ')
                 $folderName = Join-Path $environmentPath $folderName
-                if (Test-Path -Path (Join-Path $foldername "$name.lnk") -PathType leaf) {
+                if (Test-Path -Path (Join-Path $foldername "$shortcutName.lnk") -PathType leaf) {
                     Remove-Item $folderName -Recurse -force
                 }                
             }
@@ -31,7 +31,7 @@ function Remove-DesktopShortcut {
     "StartMenu","CommonStartMenu" | % {
         $environmentPath = [Environment]::GetFolderPath($_)
         if ($environmentPath -ne "") {
-            $filename = Join-Path $environmentPath "NavContainerHelper\$Name.lnk"
+            $filename = Join-Path $environmentPath "BcContainerHelper\$Name.lnk"
             if (Test-Path -Path $filename) {
                 Remove-Item $filename -force
             }

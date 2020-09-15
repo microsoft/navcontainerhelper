@@ -12,12 +12,12 @@
  .Parameter force
   Specify -force if you want to automatically stop the container if running and remove the destination folder if it exists
  .Example
-  Extract-FilesFromStoppedNavContainer -ContainerName temp -Path "c:\programdata\navcontainerhelper\extensions\acontainer\afolder"
+  Extract-FilesFromStoppedBcContainer -ContainerName temp -Path "c:\programdata\bccontainerhelper\extensions\acontainer\afolder"
 #>
-function Extract-FilesFromStoppedNavContainer {
+function Extract-FilesFromStoppedBcContainer {
     [CmdletBinding()]
     Param (
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $path,
         [ValidateSet('all','vsix','database')]
         [string] $extract = "all",
@@ -30,7 +30,7 @@ function Extract-FilesFromStoppedNavContainer {
             throw "Container is running. Cannot extract files from a running container"
         }
         $startContainer = $true
-        Stop-NavContainer $containerName | Out-Null
+        Stop-BcContainer $containerName | Out-Null
     }
 
     if (Test-Path -Path $path) {
@@ -187,8 +187,8 @@ function Extract-FilesFromStoppedNavContainer {
     $ErrorActionPreference = 'Stop'
 
     if ($startContainer) {
-        Start-NavContainer -containerName $containerName
+        Start-BcContainer -containerName $containerName
     }
 }
-Set-Alias -Name Extract-FilesFromStoppedBCContainer -Value Extract-FilesFromStoppedNavContainer
-Export-ModuleMember -Function Extract-FilesFromStoppedNavContainer -Alias Extract-FilesFromStoppedBCContainer
+Set-Alias -Name Extract-FilesFromStoppedNavContainer -Value Extract-FilesFromStoppedBcContainer
+Export-ModuleMember -Function Extract-FilesFromStoppedBcContainer -Alias Extract-FilesFromStoppedNavContainer

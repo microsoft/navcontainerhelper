@@ -6,7 +6,7 @@
   1. Export-NavContainerObjects
   2. Create-MyOriginalFolder
   3. Create-MyDeltaFolder
-  A folder with the name of the container is created underneath c:\programdata\navcontainerhelper\extensions for holding all the temp and the final output.
+  A folder with the name of the container is created underneath c:\programdata\bccontainerhelper\extensions for holding all the temp and the final output.
   The command will open a windows explorer window with the output
  .Parameter containerName
   Name of the container for which you want to export and convert objects
@@ -29,8 +29,7 @@
 #>
 function Export-ModifiedObjectsAsDeltas {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $sqlCredential = $null,
         [switch] $useNewSyntax,
         [string] $filter = "Modified=1",

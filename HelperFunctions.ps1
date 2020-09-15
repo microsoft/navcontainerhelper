@@ -45,7 +45,7 @@ function DockerDo {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$imageName,
-        [ValidateSet('run','start','pull','restart','stop')]
+        [ValidateSet('run','start','pull','restart','stop', 'rmi')]
         [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
@@ -155,7 +155,7 @@ function Get-NavContainerAuth {
     }
 }
 
-function Check-NavContainerName {
+function Check-BcContainerName {
     Param
     (
         [string]$containerName = ""
@@ -190,7 +190,7 @@ function AssumeNavContainer {
 
     $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-        throw "Container $containerOrImageName is not a NAV container"
+        throw "Container $containerOrImageName is not a Business Central container"
     }
     [System.Version]$version = $inspect.Config.Labels.version
 
@@ -201,3 +201,103 @@ function AssumeNavContainer {
         throw "Container $containerOrImageName does not support the function $functionName"
     }
 }
+
+function TestSasToken {
+    Param
+    (
+        [string] $sasToken
+    )
+
+    if ($sasToken.Contains('?')) {
+        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
+        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
+        if ($st) {
+            if ([DateTime]::Now -lt [DateTime]$st) {
+                Write-Host "ERROR: The sas token provided isn't valid before $(([DateTime]$st).ToString())"
+            }
+        }
+        if ($se) {
+            if ([DateTime]::Now -gt [DateTime]$se) {
+                Write-Host "ERROR: The sas token provided expired on $(([DateTime]$se).ToString())"
+            }
+            elseif ([DateTime]::Now.AddDays(7) -gt [DateTime]$se) {
+                $span = ([DateTime]$se).Subtract([DateTime]::Now)
+                Write-Host "WARNING: The sas token provided will expire on $(([DateTime]$se).ToString())"
+            }
+        }
+    }
+}
+
+function Expand-7zipArchive {
+    Param (
+        [Parameter(Mandatory=$true)]
+        [string] $Path,
+        [string] $DestinationPath
+    )
+
+    $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
+
+    $use7zip = $false
+    if ($bcContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
+        try {
+            $use7zip = [decimal]::Parse([System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileVersion, [System.Globalization.CultureInfo]::InvariantCulture) -ge 19
+        }
+        catch {
+            $use7zip = $false
+        }
+    }
+
+    if ($use7zip) {
+        Write-Host "using 7zip"
+        Set-Alias -Name 7z -Value $7zipPath
+        $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
+        Invoke-Expression -Command $command | Out-Null
+    } else {
+        Write-Host "using Expand-Archive"
+        Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
+    }
+}
+
+function GetTestToolkitApps {
+    Param(
+        [string] $containerName,
+        [switch] $includeTestLibrariesOnly,
+        [switch] $includeTestFrameworkOnly,
+        [switch] $includePerformanceToolkit
+    )
+
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit)
+    
+        # Add Test Framework
+        $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
+        $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+    
+
+        if (!$includeTestFrameworkOnly) {
+            
+            # Add Test Libraries
+            $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+            }
+
+            if (!$includeTestLibrariesOnly) {
+
+                # Add Tests
+                $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+            }
+        }
+
+        if ($includePerformanceToolkit) {
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app")
+        }
+
+        $apps | % {
+            $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+            if (!($appFile)) {
+                $appFile = $_
+            }
+            $appFile
+        }
+    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit
+}
+

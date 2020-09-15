@@ -9,15 +9,25 @@
  .Parameter registryCredential
   Credentials for the registry if you are using a private registry (incl. bcinsider)
  .Example
-  $created = (Get-NavContainerImageLabels -imageName "mcr.microsoft.com/businesscentral/sandbox:us-ltsc2019").created
+  $created = (Get-BcContainerImageLabels -imageName "mcr.microsoft.com/businesscentral/sandbox:us-ltsc2019").created
 #>
-function Get-NavContainerImageLabels {
+function Get-BcContainerImageLabels {
     Param (
         [string] $imageName,
         [PSCredential] $registryCredential
     )
 
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $webclient = New-Object System.Net.WebClient
+
+    if ($imageName.IndexOf("/") -lt 0) {
+        try {
+            return (docker inspect $usegenericimage | ConvertFrom-Json).Config.Labels
+        }
+        catch {
+            return
+        }
+    }
 
     $registry = $imageName.Split("/")[0]
     $repository = $imageName.Substring($registry.Length+1).Split(":")[0]
@@ -61,5 +71,5 @@ function Get-NavContainerImageLabels {
     catch {
     }
 }
-Set-Alias -Name Get-BCContainerImageLabels -Value Get-NavContainerImageLabels
-Export-ModuleMember -Function Get-NavContainerImageLabels -Alias Get-BCContainerImageLabels
+Set-Alias -Name Get-NavContainerImageLabels -Value Get-BcContainerImageLabels
+Export-ModuleMember -Function Get-BcContainerImageLabels -Alias Get-NavContainerImageLabels

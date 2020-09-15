@@ -8,28 +8,24 @@
  .Parameter doNotIncludeStoppedContainers
   Specify this parameter if you only want to test running containers
  .Example
-  if (Test-NavContainer -containerName devcontainer) { dosomething }
+  if (Test-BcContainer -containerName devcontainer) { dosomething }
 #>
-function Test-NavContainer {
+function Test-BcContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
 
         [switch] $doNotIncludeStoppedContainers
     )
     Process {
-        $name = Get-NavContainerName $containerName
-        if ($name) { $containerName = $name }
         $id = ""
         $a = "-a"
         if ($doNotIncludeStoppedContainers) {
             $a = ""
         }
-        docker ps $a -q --no-trunc | ForEach-Object {
-            $name = Get-NavContainerName -containerId $_
-            if ($name -eq $containerName) {
-                $id = $_
-            }
+
+        $id = docker ps $a -q --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
+        if (!($id)) {
+            $id = docker ps $a -q --no-trunc --filter "id=$containerName"
         }
         if ($id) {
             $inspect = docker inspect $id | ConvertFrom-Json
@@ -39,5 +35,5 @@ function Test-NavContainer {
         }
     }
 }
-Set-Alias -Name Test-BCContainer -Value Test-NavContainer
-Export-ModuleMember -Function Test-NavContainer -Alias Test-BCContainer
+Set-Alias -Name Test-NavContainer -Value Test-BcContainer
+Export-ModuleMember -Function Test-BcContainer -Alias Test-NavContainer

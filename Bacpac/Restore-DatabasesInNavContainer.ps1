@@ -7,19 +7,19 @@
  .Parameter containerName
   Name of the container in which you want to restore databases
  .Parameter bakFolder
-  The folder to which the bak files are exported (default is the container folder c:\programdata\navcontainerhelper\extensions\<containername>)
+  The folder to which the bak files are exported (default is the container folder c:\programdata\bccontainerhelper\extensions\<containername>)
  .Parameter tenant
   The tenant database(s) to restore, only applies to multi-tenant containers. Omit to restore all tenants
  .Example
-  Restore-DatabasesInNavContainer -containerName test
+  Restore-DatabasesInBcContainer -containerName test
  .Example
-  Restore-DatabasesInNavContainer -containerName test -tenant @("default")
+  Restore-DatabasesInBcContainer -containerName test -tenant @("default")
  .Example
-  Restore-DatabasesInBCContainer -containerName test -bakFile C:\ProgramData\NavContainerHelper\mydb.bak -databaseFolder "c:\databases\mydb"
+  Restore-DatabasesInBCContainer -containerName test -bakFile C:\ProgramData\bccontainerhelper\mydb.bak -databaseFolder "c:\databases\mydb"
 #>
-function Restore-DatabasesInNavContainer {
+function Restore-DatabasesInBcContainer {
     Param(
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [string] $bakFolder = "",
         [string] $bakFile = "",
         [string] $databaseName = "",
@@ -39,7 +39,7 @@ function Restore-DatabasesInNavContainer {
         if ($tenant) {
             throw "You cannot specify tenant when you specify bakFile"
         }
-        $containerBakFile = Get-NavContainerPath -containerName $containerName -path $bakFile -throw
+        $containerBakFile = Get-BcContainerPath -containerName $containerName -path $bakFile -throw
         if (-not $databaseName) {
             $databaseName = [System.IO.Path]::GetFileNameWithoutExtension($bakFile)
         }
@@ -53,8 +53,8 @@ function Restore-DatabasesInNavContainer {
             $bakFolder = $containerFolder
         }
         elseif (!$bakFolder.Contains('\')) {
-            $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-            if ((Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
+            $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
+            if ((Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
                 $folderPrefix = "sandbox"
             }
             else {
@@ -62,7 +62,7 @@ function Restore-DatabasesInNavContainer {
             }
             $bakFolder = Join-Path $containerHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
         }
-        $containerBakFolder = Get-NavContainerPath -containerName $containerName -path $bakFolder -throw
+        $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
     }
 
     Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($bakFolder, $bakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout)
@@ -129,13 +129,13 @@ function Restore-DatabasesInNavContainer {
     
     } -argumentList $containerBakFolder, $containerBakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout
 
-    if (Test-Path -Path "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-*") {
-        Get-Item -Path "C:\ProgramData\NavContainerHelper\Extensions\$containerName\PsTestTool-*" | % {
+    if (Test-Path -Path "C:\ProgramData\BcContainerHelper\Extensions\$containerName\PsTestTool-*") {
+        Get-Item -Path "C:\ProgramData\BcContainerHelper\Extensions\$containerName\PsTestTool-*" | % {
             Remove-Item -Path $_.FullName -Force -Recurse
         }
     }
 
 }
-Set-Alias -Name Restore-DatabasesInBCContainer -Value Restore-DatabasesInNavContainer
-Export-ModuleMember -Function Restore-DatabasesInNavContainer -Alias Restore-DatabasesInBCContainer
+Set-Alias -Name Restore-DatabasesInNavContainer -Value Restore-DatabasesInBcContainer
+Export-ModuleMember -Function Restore-DatabasesInBcContainer -Alias Restore-DatabasesInNavContainer
 

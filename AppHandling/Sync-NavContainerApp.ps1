@@ -4,9 +4,9 @@
  .Description
   Creates a session to the container and runs the CmdLet Sync-NavApp in the container
  .Parameter containerName
-  Name of the container in which you want to sync the app (default navserver)
+  Name of the container in which you want to sync the app
  .Parameter tenant
-  Name of the tenant in which you want to sync the app (default navserver)
+  Name of the tenant in which you want to sync the app
  .Parameter appName
   Name of app you want to sync in the container
  .Parameter appVersion
@@ -14,12 +14,12 @@
  .Parameter mode
   Sync mode to transfer to Sync-NavApp
  .Example
-  Sync-NavContainerApp -containerName test2 -appName myapp
+  Sync-BcContainerApp -containerName test2 -appName myapp
 #>
-function Sync-NavContainerApp {
+function Sync-BcContainerApp {
     Param (
         [Parameter(Mandatory=$false)]
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
@@ -27,10 +27,11 @@ function Sync-NavContainerApp {
         [Parameter()]
         [string] $appVersion,
         [Parameter(Mandatory = $false)]
-        [ValidateSet('Add','Clean')]
-        [string] $Mode
+        [ValidateSet('Add','Clean','ForceSync')]
+        [string] $Mode,
+        [switch] $Force
     )
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode,$force)
         Write-Host "Synchronizing $appName on $tenant"
         Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
         $parameters = @{
@@ -46,9 +47,13 @@ function Sync-NavContainerApp {
         {
             $parameters += @{ "Mode" = $mode }
         }
+        if ($force)
+        {
+            $parameters += @{ "Force" = $true }
+        }
         Sync-NavApp @parameters
-    } -ArgumentList $appName, $appVersion, $tenant, $Mode
+    } -ArgumentList $appName, $appVersion, $tenant, $Mode,$force
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
-Set-Alias -Name Sync-BCContainerApp -Value Sync-NavContainerApp
-Export-ModuleMember -Function Sync-NavContainerApp -Alias Sync-BCContainerApp
+Set-Alias -Name Sync-NavContainerApp -Value Sync-BcContainerApp
+Export-ModuleMember -Function Sync-BcContainerApp -Alias Sync-NavContainerApp

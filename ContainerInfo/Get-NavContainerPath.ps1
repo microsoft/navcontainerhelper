@@ -10,13 +10,12 @@
  .Parameter throw
   Include the throw switch to throw an exception if the folder isn't shared with the container
  .Example
-  $containerPath = Get-NavContainerPath -containerName navserver -path c:\programdata\navcontainerhelper\extensions\test2\my
+  $containerPath = Get-BcContainerPath -containerName bcserver -path c:\programdata\bccontainerhelper\extensions\test2\my
 #>
-function Get-NavContainerPath {
+function Get-BcContainerPath {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $path,
         [switch] $throw
@@ -26,7 +25,7 @@ function Get-NavContainerPath {
         $containerPath = ""
         if ($path.StartsWith(":")) {
             $path =$path.Substring(1)
-            $exist = Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($path)
+            $exist = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($path)
                 Test-Path $path
             } -ArgumentList $path
             if ($exist) {
@@ -36,7 +35,7 @@ function Get-NavContainerPath {
                 throw "The path $path does not exist in the container $containerName"
             }
         } else {
-            $sharedFolders = Get-NavContainerSharedFolders -containerName $containerName
+            $sharedFolders = Get-BcContainerSharedFolders -containerName $containerName
             $sharedFolders.GetEnumerator() | ForEach-Object {
                 $Name = $_.Name.TrimEnd('\')
                 $Value = $_.Value.TrimEnd('\')
@@ -51,5 +50,5 @@ function Get-NavContainerPath {
         return $containerPath
     }
 }
-Set-Alias -Name Get-BCContainerPath -Value Get-NavContainerPath
-Export-ModuleMember -Function Get-NavContainerPath -Alias Get-BCContainerPath
+Set-Alias -Name Get-NavContainerPath -Value Get-BcContainerPath
+Export-ModuleMember -Function Get-BcContainerPath -Alias Get-NavContainerPath

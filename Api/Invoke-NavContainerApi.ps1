@@ -8,7 +8,7 @@
  .Parameter tenant
   Name of the tenant in which context you want to invoke an api
  .Parameter CompanyId
-  Id the Company in which context you want to invoke an api (Use Get-NavContainerApiCompanyId
+  Id the Company in which context you want to invoke an api (Use Get-BcContainerApiCompanyId
  .Parameter Credential
   Credentials for the user making invoking the api (do not specify if using Windows auth)
  .Parameter APIPublisher
@@ -30,18 +30,17 @@
  .Parameter silent
   Include the silent switch to avoid the printout of the URL invoked
  .Example
-  $result = Invoke-NavContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
+  $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
  .Example
-  Invoke-NavContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers" -credential $credential | Select-Object -ExpandProperty value
  .Example 
-  Invoke-NavContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers?`$filter=$([Uri]::EscapeDataString("number eq '10000'"))" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers?`$filter=$([Uri]::EscapeDataString("number eq '10000'"))" -credential $credential | Select-Object -ExpandProperty value
  .Example
-  Invoke-NavContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
 #>
-function Invoke-NavContainerApi {
+function Invoke-BcContainerApi {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
@@ -67,7 +66,7 @@ function Invoke-NavContainerApi {
         [switch] $silent
     )
 
-    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
     $parameters = @{}
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
@@ -88,7 +87,7 @@ function Invoke-NavContainerApi {
         $protocol = "http://"
     }
     
-    $ip = Get-NavContainerIpAddress -containerName $containerName
+    $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
         $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
     }
@@ -158,5 +157,5 @@ function Invoke-NavContainerApi {
     }
 
 }
-Set-Alias -Name Invoke-BCContainerApi -Value Invoke-NavContainerApi
-Export-ModuleMember -Function Invoke-NavContainerApi -Alias Invoke-BCContainerApi
+Set-Alias -Name Invoke-NavContainerApi -Value Invoke-BcContainerApi
+Export-ModuleMember -Function Invoke-BcContainerApi -Alias Invoke-NavContainerApi

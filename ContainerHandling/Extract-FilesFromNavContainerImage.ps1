@@ -12,9 +12,9 @@
  .Parameter force
   Specify -force if you want to automatically remove the destination folder if it exists
  .Example
-  Extract-FilesFromNavContainerImage -ImageName microsoft/bcsandbox:us -Path "c:\programdata\navcontainerhelper\extensions\acontainer\afolder"
+  Extract-FilesFromBcContainerImage -ImageName microsoft/bcsandbox:us -Path "c:\programdata\bccontainerhelper\extensions\acontainer\afolder"
 #>
-function Extract-FilesFromNavContainerImage {
+function Extract-FilesFromBcContainerImage {
     [CmdletBinding()]
     Param (
         [string] $imageName,
@@ -27,13 +27,13 @@ function Extract-FilesFromNavContainerImage {
     $ErrorActionPreference = 'Continue'
 
     Write-Host "Creating temp container from $imagename and extract necessary files"
-    $containerName = "navcontainerhelper-temp"
+    $containerName = "bccontainerhelper-temp"
     docker rm $containerName 2>$null | Out-null
     docker create --name $containerName $imagename | Out-Null
 
     $ErrorActionPreference = 'Stop'
 
-    Extract-FilesFromStoppedNavContainer -containerName $containerName -path $path -extract $extract -force:$force
+    Extract-FilesFromStoppedBcContainer -containerName $containerName -path $path -extract $extract -force:$force
     
     $ErrorActionPreference = 'Continue'
 
@@ -42,5 +42,5 @@ function Extract-FilesFromNavContainerImage {
 
     $ErrorActionPreference = 'Stop'
 }
-Set-Alias -Name Extract-FilesFromBCContainerImage -Value Extract-FilesFromNavContainerImage
-Export-ModuleMember -Function Extract-FilesFromNavContainerImage -Alias Extract-FilesFromBCContainerImage
+Set-Alias -Name Extract-FilesFromNavContainerImage -Value Extract-FilesFromBcContainerImage
+Export-ModuleMember -Function Extract-FilesFromBcContainerImage -Alias Extract-FilesFromNavContainerImage

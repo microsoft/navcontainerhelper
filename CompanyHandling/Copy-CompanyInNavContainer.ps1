@@ -12,11 +12,11 @@
  .Parameter destinationCompanyName
   Name of the destination company
  .Example
-  Copy-CompanyInNavContainer -containerName test2 -sourceCompanyName 'Cronus International Ltd.' -destinationCompanyName 'Cronus Subsidiary' -tenant mytenant
+  Copy-CompanyInBcContainer -containerName test2 -sourceCompanyName 'Cronus International Ltd.' -destinationCompanyName 'Cronus Subsidiary' -tenant mytenant
 #>
-function Copy-CompanyInNavContainer {
+function Copy-CompanyInBcContainer {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $sourceCompanyName,
@@ -24,11 +24,11 @@ function Copy-CompanyInNavContainer {
         [string] $destinationCompanyName
     )
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($sourceCompanyName, $destinationCompanyName, $tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($sourceCompanyName, $destinationCompanyName, $tenant)
         Write-Host "Copying company from $sourceCompanyName to $destinationCompanyName in $tenant"
         Copy-NAVCompany -ServerInstance $ServerInstance -Tenant $tenant -SourceCompanyName $sourceCompanyName -DestinationCompanyName $destinationCompanyName
     } -ArgumentList $sourceCompanyName, $destinationCompanyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully copied"
 }
-Set-Alias -Name Copy-CompanyInBCContainer -Value Copy-CompanyInNavContainer
-Export-ModuleMember -Function Copy-CompanyInNavContainer -Alias Copy-CompanyInBCContainer
+Set-Alias -Name Copy-CompanyInNavContainer -Value Copy-CompanyInBcContainer
+Export-ModuleMember -Function Copy-CompanyInBcContainer -Alias Copy-CompanyInNavContainer

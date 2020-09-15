@@ -10,12 +10,11 @@
  .Parameter containerPath
   Path of the file in the Container. This cannot be a foldername, it needs to be a filename.
  .Example
-  Copy-FileToNavContainer -containerName test2 -localPath "c:\temp\myfile.txt" -containerPath "c:\run\my\myfile.txt"
+  Copy-FileToBcContainer -containerName test2 -localPath "c:\temp\myfile.txt" -containerPath "c:\run\my\myfile.txt"
 #>
-function Copy-FileToNavContainer {
+function Copy-FileToBcContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName,
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $localPath,
         [Parameter(Mandatory=$false)]
@@ -23,17 +22,17 @@ function Copy-FileToNavContainer {
     )
 
     Process {
-        if (!(Test-NavContainer -containerName $containerName)) {
+        if (!(Test-BcContainer -containerName $containerName)) {
             throw "Container $containerName does not exist"
         }
         Log "Copy $localPath to container ${containerName} ($containerPath)"
-        $id = Get-NavContainerId -containerName $containerName 
+        $id = Get-BcContainerId -containerName $containerName 
 
         # running hyperv containers doesn't support docker cp
-        $tempFile = Join-Path $containerHelperFolder ([GUID]::NewGuid().ToString())
+        $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
         try {
             Copy-Item -Path $localPath -Destination $tempFile
-            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($tempFile, $containerPath)
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($tempFile, $containerPath)
                 if (Test-Path $containerPath -PathType Container) {
                     throw "ContainerPath ($containerPath) already exists as a folder. Cannot copy file, ContainerPath needs to specify a filename."
                 }
@@ -42,7 +41,7 @@ function Copy-FileToNavContainer {
                     New-Item -Path $directory -ItemType Directory | Out-Null
                 }
                 Move-Item -Path $tempFile -Destination $containerPath -Force
-            } -argumentList $tempFile, $containerPath
+            } -argumentList (Get-BcContainerPath -containerName $containerName -Path $tempFile), $containerPath
         } finally {
             if (Test-Path $tempFile) {
                 Remove-Item $tempFile -ErrorAction Ignore
@@ -50,5 +49,5 @@ function Copy-FileToNavContainer {
         }
     }
 }
-Set-Alias -Name Copy-FileToBCContainer -Value Copy-FileToNavContainer
-Export-ModuleMember -Function Copy-FileToNavContainer -Alias Copy-FileToBCContainer
+Set-Alias -Name Copy-FileToNavContainer -Value Copy-FileToBcContainer
+Export-ModuleMember -Function Copy-FileToBcContainer -Alias Copy-FileToNavContainer

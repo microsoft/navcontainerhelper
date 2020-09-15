@@ -10,7 +10,8 @@
   - filesCache is the files extracted from other images
   - applicationCache are the test applications runtime cache (15.x containers)
   - bakFolderCache are version specific backup sets
-  - bcartifacts are artifacts downloaded for spinning up containers.
+  - bcartifacts are artifacts downloaded for spinning up containers
+  - images are images built on artifacts using New-BcImage or New-BcContainer
  .Parameter keepDays
   When specifying a value in keepDays, the function will try to keep cached information, which has been used during the last keepDays days. Default is 0 - to flush all cache.
  .Example
@@ -19,25 +20,27 @@
 function Flush-ContainerHelperCache {
     [CmdletBinding()]
     Param (
-        [ValidateSet('all','calSourceCache','alSourceCache','applicationCache','bakFolderCache','filesCache','bcartifacts')]
         [string] $cache = 'all',
         [int] $keepDays = 0
     )
 
+    $caches = $cache.ToLowerInvariant().Split(',')
+
     $folders = @()
-    if ($cache -eq 'all' -or $cache -eq 'calSourceCache') {
+    if ($caches.Contains('all') -or $caches.Contains('calSourceCache')) {
         $folders += @("extensions\original-*-??","extensions\original-*-??-newsyntax")
     }
 
-    if ($cache -eq 'all' -or $cache -eq 'filesCache') {
+    if ($caches.Contains('all') -or $caches.Contains('filesCache')) {
         $folders += @("*-??-files")
     }
 
-    if ($cache -eq 'all' -or $cache -eq 'bcartifacts') {
-        if (Test-Path "c:\bcartifacts.cache") {
+    if ($caches.Contains('all') -or $caches.Contains('bcartifacts')) {
+        $bcartifactsCacheFolder = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+        if (Test-Path $bcartifactsCacheFolder) {
             if ($keepDays) {
                 $removeBefore = [DateTime]::Now.Subtract([timespan]::FromDays($keepDays))
-                Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer } | ForEach-Object {
                     $level1 = $_.FullName
                     Get-ChildItem -Path $level1 | ?{ $_.PSIsContainer } | ForEach-Object {
                         $level2 = $_.FullName
@@ -62,7 +65,7 @@ function Flush-ContainerHelperCache {
                 }
             }
             else {
-                Get-ChildItem -Path 'c:\bcartifacts.cache' | ?{ $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer } | ForEach-Object {
                     Write-Host "Removing Cache $($_.FullName)"
                     [System.IO.Directory]::Delete($_.FullName, $true)
                 }
@@ -70,15 +73,15 @@ function Flush-ContainerHelperCache {
         }
     }
 
-    if ($cache -eq 'all' -or $cache -eq 'alSourceCache') {
+    if ($caches.Contains('all') -or $caches.Contains('alSourceCache')) {
         $folders += @("extensions\original-*-??-al")
     }
 
-    if ($cache -eq 'all' -or $cache -eq 'applicationCache') {
+    if ($caches.Contains('all') -or $caches.Contains('applicationCache')) {
         $folders += @("extensions\applications-*-??","extensions\sandbox-applications-*-??","extensions\onprem-applications-*-??")
     }
 
-    if ($cache -eq 'all' -or $cache -eq 'bakFolderCache') {
+    if ($caches.Contains('all') -or $caches.Contains('bakFolderCache')) {
         $folders += @("sandbox-*-bakfolders","onprem-*-bakfolders")
     }
 
@@ -88,6 +91,31 @@ function Flush-ContainerHelperCache {
             Write-Host "Removing Cache $($_.FullName)"
             [System.IO.Directory]::Delete($_.FullName, $true)
         }
+    }
+
+    if ($caches.Contains('all') -or $caches.Contains('images')) {
+        $allImages = @(docker images --no-trunc --format "{{.Repository}}:{{.Tag}}|{{.ID}}")
+        $allImages | ForEach-Object {
+            $imageName = $_.Split('|')[0]
+            $imageID = $_.Split('|')[1]
+            $inspect = docker inspect $imageID | ConvertFrom-Json
+            $artifactUrl = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
+            if ($artifactUrl) {
+                $artifactUrl = $artifactUrl.Split('?')[0]
+                "artifactUrl=https://bcartifacts.azureedge.net/", "artifactUrl=https://bcinsider.azureedge.net/" | % {
+                    if ($artifactUrl -like "$($_)*") {
+                        $cacheFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder $artifactUrl.SubString($_.Length)
+                        if (-not (Test-Path $cacheFolder)) {
+                            Write-Host "$imageName was built on artifacts which was removed from the cache, removing image"
+                            if (-not (DockerDo -command rmi -parameters @("--force") -imageName $imageID -ErrorAction SilentlyContinue)) {
+                                Write-Host "WARNING: Unable to remove image"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        docker image prune -f
     }
 }
 Export-ModuleMember -Function Flush-ContainerHelperCache

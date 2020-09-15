@@ -11,9 +11,7 @@
  .Parameter containerName
   Name of the new Container (if the container already exists it will be replaced)
  .Parameter imageName
-  Name of the image you want to use for your Container (default is to grab the imagename from the navserver container)
- .Parameter useArtifacts
-  Temporary parameter, in which you can specify a storage account url, in which build artifacts are expected to live. ImageName is translated to an artifact Url if you specify this.
+  Name of the image you want to use for your Container
  .Parameter artifactUrl
   Url for application artifact to use. If you also specify an ImageName, an image will be build (if it doesn't exist) using these artifacts and that will be run.
  .Parameter dvdPath
@@ -34,6 +32,9 @@
   AuthenticationEmail of the admin user
  .Parameter memoryLimit
   Memory limit for the container (default is unlimited for Windows Server host else 4G)
+ .Parameter sqlMemoryLimit
+  Memory limit for the SQL inside the container (default is no limit)
+  Value can be specified as 50%, 1.5G, 1500M
  .Parameter isolation
   Isolation mode for the container (default is process for Windows Server host else hyperv)
  .Parameter databaseServer
@@ -69,6 +70,8 @@
   Avoid exporting objects for baseline from the container (Saves time, but you will not be able to use the object handling functions without the baseline)
  .Parameter alwaysPull
   Always pull latest version of the docker image
+ .Parameter forceRebuild
+  Force a rebuild of the cached image even if the generic image or os hasn't changed
  .Parameter useBestContainerOS
   Use the best Container OS based on the Host OS. If the OS doesn't match, a better public generic image is selected.
  .Parameter useGenericImage
@@ -77,6 +80,10 @@
   Assign Premium plan to admin user
  .Parameter multitenant
   Setup container for multitenancy by adding this switch
+ .Parameter addFontsFromPath
+  Enumerate all fonts from this path and install them in the container
+ .Parameter featureKeys
+  Optional hashtable of featureKeys, which can be applied to the container database
  .Parameter clickonce
   Specify the clickonce switch if you want to have a clickonce version of the Windows Client created
  .Parameter includeTestToolkit
@@ -85,6 +92,8 @@
   Specify this parameter to avoid including the standard tests when adding includeTestToolkit
  .Parameter includeTestFrameworkOnly
   Only import TestFramework (do not import Test Codeunits nor TestLibraries)
+ .Parameter includePerformanceToolkit
+  Include the performance toolkit app (only 17.x and later)
  .Parameter restart
   Define the restart option for the container
  .Parameter auth
@@ -143,25 +152,23 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this
  .Example
-  New-NavContainer -accept_eula -containerName test
+  New-BcContainer -accept_eula -containerName test
  .Example
-  New-NavContainer -accept_eula -containerName test -multitenant
+  New-BcContainer -accept_eula -containerName test -multitenant
  .Example
-  New-NavContainer -accept_eula -containerName test -memoryLimit 3G -imageName "mcr.microsoft.com/dynamicsnav:2017" -updateHosts -useBestContainerOS
+  New-BcContainer -accept_eula -containerName test -memoryLimit 3G -imageName "mcr.microsoft.com/dynamicsnav:2017" -updateHosts -useBestContainerOS
  .Example
-  New-NavContainer -accept_eula -containerName test -imageName "mcr.microsoft.com/businesscentral/onprem:dk" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+  New-BcContainer -accept_eula -containerName test -imageName "mcr.microsoft.com/businesscentral/onprem:dk" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-NavContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "mcr.microsoft.com/businesscentral/onprem:de"
+  New-BcContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "mcr.microsoft.com/businesscentral/onprem:de"
 #>
-function New-NavContainer {
+function New-BcContainer {
     Param (
         [switch] $accept_eula,
         [switch] $accept_outdated = $true,
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $imageName = "", 
         [string] $artifactUrl = "", 
-        [string] $useArtifacts = "",
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
         [Alias('navDvdCountry')]
@@ -175,6 +182,7 @@ function New-NavContainer {
         [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
         [string] $memoryLimit = "",
+        [string] $sqlMemoryLimit = "",
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
         [string] $databaseServer = "",
@@ -195,14 +203,18 @@ function New-NavContainer {
         [switch] $enableTaskScheduler,
         [switch] $doNotExportObjectsToText,
         [switch] $alwaysPull,
+        [switch] $forceRebuild,
         [switch] $useBestContainerOS,
         [string] $useGenericImage,
         [switch] $assignPremiumPlan,
         [switch] $multitenant,
+        [string] $addFontsFromPath = "",
+        [hashtable] $featureKeys = $null,
         [switch] $clickonce,
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
         [switch] $includeTestFrameworkOnly,
+        [switch] $includePerformanceToolkit,
         [ValidateSet('no','on-failure','unless-stopped','always')]
         [string] $restart='unless-stopped',
         [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
@@ -233,11 +245,18 @@ function New-NavContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
+    (Get-ContainerHelperConfig).defaultNewContainerParameters.GetEnumerator() | % {
+        if (!($PSBoundParameters.ContainsKey($_.Name))) {
+            Write-Host "Default parameter $($_.Name) = $($_.Value)"
+            Set-Variable -name $_.Name -Value $_.Value
+        }        
+    }
+
     if (!$accept_eula) {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
     }
 
-    Check-NavContainerName -ContainerName $containerName
+    Check-BcContainerName -ContainerName $containerName
 
     if ($imageName.StartsWith('microsoft/dynamics-nav','InvariantCultureIgnoreCase')) {
         Write-Host 'WARNING: using old docker hub name for NAV image. Replacing with mcr.microsoft.com/dynamicsnav'
@@ -320,12 +339,12 @@ function New-NavContainer {
         $hostOs = "ltsc2016"
     }
     
-    Write-Host "NavContainerHelper is version $navContainerHelperVersion"
+    Write-Host "BcContainerHelper is version $BcContainerHelperVersion"
     if ($isAdministrator) {
-        Write-Host "NavContainerHelper is running as administrator"
+        Write-Host "BcContainerHelper is running as administrator"
     }
     else {
-        Write-Host "NavContainerHelper is not running as administrator"
+        Write-Host "BcContainerHelper is not running as administrator"
     }
 
     $isServerHost = $os.ProductType -eq 3
@@ -340,12 +359,14 @@ function New-NavContainer {
         throw "Docker Service is $($dockerService.Status) (Needs to be running)"
     }
 
-   	$dockerOS = docker version -f "{{.Server.Os}}"
+    $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
+    $dockerOS = $dockerVersion.Split('/')[0]
+    $dockerClientVersion = $dockerVersion.Split('/')[1]
+    $dockerServerVersion = $dockerVersion.Split('/')[2]
+
     if ($dockerOS -ne "Windows") {
         throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
    	}
-
-    $dockerClientVersion = (docker version -f "{{.Client.Version}}")
     Write-Host "Docker Client Version is $dockerClientVersion"
 
     $myClientVersion = [System.Version]"0.0.0"
@@ -353,58 +374,193 @@ function New-NavContainer {
         Write-Host -ForegroundColor Red "WARNING: Microsoft container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
     }
 
-    $dockerServerVersion = (docker version -f "{{.Server.Version}}")
     Write-Host "Docker Server Version is $dockerServerVersion"
 
+    $doNotGetBestImageName = $false
+    $skipDatabase = $false
+    if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
+        $skipDatabase = $true
+    }
+
     # Remove if it already exists
-    Remove-NavContainer $containerName
+    Remove-BcContainer $containerName
 
-    if ($imageName -ne "" -and $artifactUrl -ne "") {
+    if ($artifactUrl) {
+        # When using artifacts, you always use best container os - no need to replatform
+        $useBestContainerOS = $false
+    }
 
-        Write-Host "ArtifactUrl and ImageName specified"
+    if ($imageName -eq "") {
+        Write-Host "Fetching all docker images"
+        $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+    }
+    else {
+        if ($artifactUrl -eq "") {
 
-        $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
-        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+            Write-Host "Fetching all docker images"
+            $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
 
-        $rebuild = $false
-        try {
-            $inspect = docker inspect $imageName | ConvertFrom-Json
-
-            Write-Host "Image $imageName already exists"
-            if ($useGenericImage -eq "") {
-                $useGenericImage = Get-BestGenericImageName
+            if ($imageName -like "mcr.microsoft.com/*") {
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from mcr.microsoft.com. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
-
-            $labels = Get-NavContainerImageLabels -imageName $useGenericImage
-
-            if ($inspect.Config.Labels.version -ne $appManifest.Version) {
-                Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                $rebuild = $true
-            }
-            elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
-                Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
-                $rebuild = $true
-            }
-            elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
-                Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
-                $rebuild = $true
+            if ($imageName -like "bcinsider.azurecr.io/*") {
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from bcinsider.azurecr.io. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
         }
-        catch {
-            $rebuild = $true
+        else {
+            $autotag = $false
+            Write-Host "ArtifactUrl and ImageName specified"
+            if (!$imageName.Contains(':')) {
+                $appUri = [Uri]::new($artifactUrl)
+                $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+                $autotag = $true
+            }
+
+            $buildMutexName = "img-$imageName"
+            $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+            try {
+                try {
+                    if (!$buildMutex.WaitOne(1000)) {
+                        Write-Host "Waiting for other process building image $imageName"
+                        $buildMutex.WaitOne() | Out-Null
+                        Write-Host "Other process completed download"
+                    }
+                }
+                catch [System.Threading.AbandonedMutexException] {
+                   Write-Host "Other process terminated abnormally"
+                }
+    
+                Write-Host "Fetching all docker images"
+                $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+
+                $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
+                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+                $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+                if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+                    if ($appManifest.isBcSandbox) {
+                        if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
+                            $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+                        }
+                    }
+                }
+                $mtImage = $multitenant
+                if ($useNewDatabase -or $useCleanDatabase) {
+                    $mtImage = $false
+                }
+
+                $dbstr = ""
+                if ($skipDatabase) {
+                    if ($autotag) { $imageName += "-nodb" }
+                    $dbstr = " without database"
+                }
+                $mtstr = ""
+                if ($mtImage) {
+                    if ($autotag) { $imageName += "-mt" }
+                    $mtstr = " multitenant"
+                }
+
+                if ($allImages | Where-Object { $_ -eq $imageName }) {
+                    try {
+                        Write-Host "Image $imageName already exists"
+                        $inspect = docker inspect $imageName | ConvertFrom-Json
+            
+                        if ($useGenericImage -eq "") {
+                            $useGenericImage = Get-BestGenericImageName
+                        }
+            
+                        $labels = Get-BcContainerImageLabels -imageName $useGenericImage
+            
+                        $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
+                        if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                            Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
+                            $forceRebuild = $true
+                        }
+                        if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                            Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                            $forceRebuild = $true
+                        }
+                        elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
+                            Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                            $forceRebuild = $true
+                        }
+                        elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                            Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                            $forceRebuild = $true
+                        }
+                        elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                            Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                            $forceRebuild = $true
+                        }
+                       
+                        if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
+                            if (!$mtImage) {
+                                Write-Host "Image $imageName was build multi tenant, should have been single tenant"
+                                $forceRebuild = $true
+                            }
+                        }
+                        else {
+                            if ($mtImage) {
+                                Write-Host "Image $imageName was build single tenant, should have been multi tenant"
+                                $forceRebuild = $true
+                            }
+                        }
+             
+                        if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
+                            if (!$skipdatabase) {
+                                Write-Host "Image $imageName was build without a database, should have a database"
+                                $forceRebuild = $true
+                            }
+                        }
+                        else {
+                            # Do not rebuild if database is there, just don't use it
+                        }
+                    }
+                    catch {
+                        $forceRebuild = $true
+                    }
+                }
+                else {
+                    Write-Host "Image $imageName doesn't exist"
+                    $forceRebuild = $true
+                }
+                if ($forceRebuild) {
+                    Write-Host "Building$mtstr image $imageName based on $($artifactUrl.Split('?')[0])$dbstr"
+                    $startTime = [DateTime]::Now
+                    New-Bcimage `
+                        -artifactUrl $artifactUrl `
+                        -imageName $imagename `
+                        -isolation $isolation `
+                        -baseImage $useGenericImage `
+                        -memory $memoryLimit `
+                        -skipDatabase:$skipDatabase `
+                        -multitenant:$mtImage `
+                        -addFontsFromPath $addFontsFromPath `
+                        -licenseFile $licensefile `
+                        -includeTestToolkit:$includeTestToolkit `
+                        -includeTestFrameworkOnly:$includeTestFrameworkOnly `
+                        -includeTestLibrariesOnly:$includeTestLibrariesOnly `
+                        -includePerformanceToolkit:$includePerformanceToolkit
+
+                    $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+                    Write-Host "Building image took $timespend seconds"
+                    if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
+                        $allImages += $imageName
+                    }
+                }
+                $artifactUrl = ""
+                $alwaysPull = $false
+                $useGenericImage = ""
+                $doNotGetBestImageName = $true
+            }
+            finally {
+                $buildMutex.ReleaseMutex()
+            }
         }
-        if ($rebuild) {
-            Write-Host "Building image $imageName based on $($artifactUrl.Split('?')[0])"
-            New-Bcimage -artifactUrl $artifactUrl -imageName $imagename -isolation $isolation -baseImage $useGenericImage -memory $memoryLimit
-        }
-        $artifactUrl = ""
-        $alwaysPull = $false
-        $useGenericImage = ""
     }
 
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
-        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
             Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
             $useTraefik = $true
@@ -412,9 +568,9 @@ function New-NavContainer {
     }
 
     if ($useTraefik) {
-        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         if (-not (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf)) {
-            throw "Traefik container was not initialized. Please call Setup-TraefikContainerForNavContainers before using -useTraefik"
+            throw "Traefik container was not initialized. Please call Setup-TraefikContainerForBcContainers before using -useTraefik"
         }
         
         $forceHttpWithTraefik = $false
@@ -451,39 +607,9 @@ function New-NavContainer {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
-    $downloadsPath = "c:\bcartifacts.cache"
+    $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
-    }
-
-    if ("$useArtifacts" -ne "") {
-        Write-Host "WARNING: -useArtifacts is a temporary solution for translating legacy imagenames to artifact urls, not a permanent solution."
-        Write-Host "WARNING: please change your code to use -artifactUrl instead."
-
-        if (!($imageName.Contains(':'))) {
-            $imageName += ":latest"
-        }
-        if ($imageName.EndsWith('-ltsc2019') -or $imageName.EndsWith('-ltsc2016')) {
-            $imageName = $imageName.Substring(0,$imageName.Length-9)
-        }
-
-        if ($imageName.StartsWith('mcr.microsoft.com/','InvariantCultureIgnoreCase')) {
-            $imageName = $imageName.Substring('mcr.microsoft.com/'.Length)
-        }
-        elseif ($imageName.StartsWith('bcinsider.azurecr.io/','InvariantCultureIgnoreCase')) {
-            $imageName = $imageName.Substring('bcinsider.azurecr.io/'.Length)
-        }
-        else {
-            throw "useArtifacts can only be used with images from mcr.microsoft.com or bcinsider.azurecr.io"
-        }
-
-        $redirArtifactUri = [Uri]::new($useArtifacts)
-        $redirArtifactUri = ([UriBuilder]::new($redirArtifactUri.Scheme, $redirArtifactUri.Host, $redirArtifactUri.Port, $imageName.Replace(':','/'), $redirArtifactUri.Query)).Uri
-
-        $artifactUrl = $redirArtifactUri.AbsoluteUri
-        $imageName = ''
-
-        Write-Host "Using Artifact Url $($artifactUrl.Split('?')[0])"
     }
 
     if ($imageName -eq "") {
@@ -502,12 +628,25 @@ function New-NavContainer {
             else {
                 $imageName = Get-BestGenericImageName
             }
-        } elseif (Test-NavContainer -containerName navserver) {
-            $imageName = Get-NavContainerImageName -containerName navserver
+        } elseif (Test-BcContainer -containerName $bcContainerHelperConfig.defaultContainerName) {
+            $artifactUrl = Get-BcContainerArtifactUrl -containerName $bcContainerHelperConfig.defaultContainerName
+            if ($artifactUrl) {
+                if ($useGenericImage) {
+                    $imageName = $useGenericImage
+                }
+                else {
+                    $imageName = Get-BestGenericImageName
+                }
+            }
+            else {
+                $imageName = Get-BcContainerImageName -containerName $bcContainerHelperConfig.defaultContainerName
+            }
         } else {
-            $imageName = Get-BestNavContainerImageName -imageName "mcr.microsoft.com/businesscentral/onprem"
-            $alwaysPull = $true
+            throw "You have to specify artifactUrl or imageName when creating a new container."            
         }
+        $bestImageName = $imageName
+    }
+    elseif ($doNotGetBestImageName) {
         $bestImageName = $imageName
     }
     else {
@@ -516,7 +655,7 @@ function New-NavContainer {
         }
     
         # Determine best container ImageName (append -ltsc2016 or -ltsc2019)
-        $bestImageName = Get-BestNavContainerImageName -imageName $imageName
+        $bestImageName = Get-BestBcContainerImageName -imageName $imageName
     
         if ($useBestContainerOS) {
             $imageName = $bestImageName
@@ -528,7 +667,7 @@ function New-NavContainer {
 
         $imageExists = $false
         $bestImageExists = $false
-        docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+        $allImages | ForEach-Object {
             if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $imageExists = $true }
             if ("$_" -eq "$bestImageName") { $bestImageExists = $true }
         }
@@ -536,8 +675,8 @@ function New-NavContainer {
         if ($bestImageExists) {
             $imageName = $bestImageName
             if ($artifactUrl) {
-                $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"0.1.0.1") {
+                $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
+                if ($genericTagVersion -lt [Version]"0.1.0.16") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -564,6 +703,7 @@ function New-NavContainer {
     }
 
     Write-Host "Using image $imageName"
+    $inspect = docker inspect $imageName | ConvertFrom-Json
 
     if ($clickonce) {
         $parameters += "--env clickonce=Y"
@@ -625,16 +765,16 @@ function New-NavContainer {
         new-item -type directory -Path $tempFolder | Out-Null
         $tempFile = "$tempFolder.zip"
         Download-File -sourceUrl $dvdPath -destinationFile $tempFile
-        Write-Host "Extracting DVD .zip file"
-        Expand-Archive -Path $tempFile -DestinationPath $tempFolder
+        Write-Host "Extracting DVD .zip file " -NoNewline
+        Expand-7zipArchive -Path $tempFile -DestinationPath $tempFolder
         Remove-Item -Path $tempFile
         $dvdPath = $tempFolder
     }
     elseif ($dvdPath.EndsWith(".zip", [StringComparison]::OrdinalIgnoreCase)) {
         $temp = Join-Path $containerFolder "NAVDVD"
         new-item -type directory -Path $temp | Out-Null
-        Write-Host "Extracting DVD .zip file"
-        Expand-Archive -Path $dvdPath -DestinationPath $temp
+        Write-Host "Extracting DVD .zip file " -NoNewline
+        Expand-7zipArchive -Path $dvdPath -DestinationPath $temp
         $dvdPath = $temp
     }
 
@@ -653,6 +793,9 @@ function New-NavContainer {
         if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
             if ($appManifest.isBcSandbox) {
                 $bcstyle = "sandbox"
+                if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
+                    $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+                }
             }
         }
 
@@ -724,13 +867,12 @@ function New-NavContainer {
         $navVersion += "-$devCountry"
 
     } elseif ($devCountry -eq "") {
-        $devCountry = Get-NavContainerCountry -containerOrImageName $imageName
+        $devCountry = $inspect.Config.Labels.country
     }
 
     Write-Host "Creating Container $containerName"
     
     if ($navVersion -eq "") {
-        $inspect = docker inspect $imageName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
             throw "Container $imageName is not a NAV/BC container"
         }
@@ -742,16 +884,32 @@ function New-NavContainer {
 
     Write-Host "Version: $navversion"
     Write-Host "Style: $bcStyle"
+    if ($multitenant) {
+        Write-Host "Multitenant: Yes"
+    }
+    else {
+        Write-Host "Multitenant: No"
+    }
 
     $version = [System.Version]($navversion.split('-')[0])
-    $platformversion = Get-NavContainerPlatformversion -containerOrImageName $imageName -ErrorAction SilentlyContinue
+    if ($dvdPlatform) {
+        $platformVersion = $dvdPlatform
+    }
+    else {
+        if ($inspect.Config.Labels.psobject.Properties.Name -eq 'platform') {
+            $platformVersion = $inspect.Config.Labels.platform
+        } else {
+            $platformVersion = ""
+        }
+    }
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
     }
-    $genericTag = Get-NavContainerGenericTag -containerOrImageName $imageName
+
+    $genericTag = $inspect.Config.Labels.tag
     Write-Host "Generic Tag: $genericTag"
 
-    $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+    $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
         $containerOs = "ltsc2016"
         if (!$useBestContainerOS -and $TimeZoneId -eq $null) {
@@ -806,20 +964,18 @@ function New-NavContainer {
         }
     }
 
-    if ($useGenericImage) {
+    if ($useGenericImage -and $useGenericImage -ne $imageName) {
 
         if ("$dvdPath" -eq "" -and "$artifactUrl" -eq "") {
             # Extract files from image if not already done
             $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
 
             if (!(Test-Path "$dvdPath\allextracted")) {
-                Extract-FilesFromNavContainerImage -imageName $imageName -path $dvdPath -force
+                Extract-FilesFromBcContainerImage -imageName $imageName -path $dvdPath -force
                 if (!(Test-Path "$dvdPath\allextracted")) {
                     throw "Couldn't extract content from image $image"
                 }
             }
-
-            $inspect = docker inspect $imageName | ConvertFrom-Json
 
             $parameters += @(
                            "--label nav=$($inspect.Config.Labels.nav)",
@@ -828,7 +984,7 @@ function New-NavContainer {
                            "--label cu=$($inspect.Config.Labels.cu)"
                            )
 
-            if ($inspect.Config.Labels.psobject.Properties.Match('platform').Count -ne 0) {
+            if ($inspect.Config.Labels.psobject.Properties.Name -eq 'platform') {
                 $parameters += @( "--label platform=$($inspect.Config.Labels.platform)" )
             }
             if ($inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }) {
@@ -841,7 +997,7 @@ function New-NavContainer {
 
         if (!$alwaysPull) {
             $alwaysPull = $true
-            docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object {
+            $allImages | ForEach-Object {
                 if ("$_" -eq "$imageName" -or "$_" -eq "$($imageName):latest") { $alwaysPull = $false }
             }
         }
@@ -851,15 +1007,16 @@ function New-NavContainer {
             DockerDo -command pull -imageName $imageName | Out-Null
         }
 
+        $inspect = docker inspect $imageName | ConvertFrom-Json
+        $useGenericImageTagVersion = [System.Version]"$($inspect.Config.Labels.tag)"
+
         if ($artifactUrl) {
-            $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
             if ($useGenericImageTagVersion -lt [System.Version]"0.0.9.103") {
                 Write-Host "Generic Tag is $useGenericImageTagVersion - pulling updated generic image to use artifacts"
                 DockerDo -command pull -imageName $imageName | Out-Null
             }
         }
 
-        $useGenericImageTagVersion = [System.Version](Get-NavContainerGenericTag -containerOrImageName $useGenericImage)
         if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
             Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
             $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
@@ -869,7 +1026,7 @@ function New-NavContainer {
             $myscripts += @( @{ "navinstall.ps1" = '. "c:\run\navinstall.ps1"; Stop-Service -Name $NavServiceName -WarningAction Ignore' } )
         }
 
-        $containerOsVersion = [Version](Get-NavContainerOsVersion -containerOrImageName $imageName)
+        $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     
         if ("$containerOsVersion".StartsWith('10.0.14393.')) {
             $containerOs = "ltsc2016"
@@ -901,26 +1058,37 @@ function New-NavContainer {
     
         Write-Host "Generic Container OS Version: $containerOsVersion ($containerOs)"
 
-        $genericTagVersion = [Version](Get-NavContainerGenericTag -containerOrImageName $imageName)
+        $genericTagVersion = [Version]"$($inspect.Config.Labels.tag)"
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ("$isolation" -eq "") {
-        if ($hostOsVersion.Major -ne $containerOsversion.Major -or 
-            $hostOsVersion.Minor -ne $containerOsversion.Minor -or 
-            $hostOsVersion.Build -ne $containerOsversion.Build) {
-        
-            Write-Host "The container operating system does not match the host operating system, forcing hyperv isolation."
-            $isolation = "hyperv"
-
-        }
-        elseif ($hostOsVersion.Revision -ne $containerOsversion.Revision) {
-
-            Write-Host "WARNING: The container operating system matches the host operating system, but the revision is different."
-            Write-Host "If you encounter issues, you might want to specify -isolation hyperv"
-
+    if ($hostOsVersion -eq $containerOsVersion) {
+        if ($isolation -eq "") {
+            $isolation = "process"
         }
     }
+    else {
+        if ($isolation -eq "") {
+            if ($isAdministrator) {
+                if (Get-HypervState -ne "Disabled") {
+                    $isolation = "hyperv"
+                }
+                else {
+                    $isolation = "process"
+                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                }
+            }
+            else {
+                $isolation = "hyperv"
+                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+            }
+
+        }
+        elseif ($isolation -eq "process") {
+            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+        }
+    }
+    Write-Host "Using $isolation isolation"
 
     if ("$locale" -eq "") {
         $locale = Get-LocaleFromCountry $devCountry
@@ -936,27 +1104,15 @@ function New-NavContainer {
     }
 
     if ($includeAL -and ($version.Major -lt 14)) {
-        #start BCCS
-        #throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
-        Write-Host("IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x). Disabling switch...")
-        $includeAL = !$includeAL;
-        #end BCCS
+        throw "IncludeAL is supported from Dynamics 365 Business Central Spring 2019 release (1904 / 14.x)"
     }
 
     if ($includeCSide -and ($version.Major -ge 15)) {
-        #start BCCS
-        #throw "IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
-        Write-Host("IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x). Disabling switch...")
-        $includeCSide = !$includeCSide;
-        #end BCCS
+        throw "IncludeCSide is no longer supported in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
     if ($enableSymbolLoading -and ($version.Major -ge 15)) {
-        #start BCCS
-        #throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
-        Write-Host("EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x). Disabling switch...")
-        $enableSymbolLoading = !$enableSymbolLoading;
-        #end BCCS
+        throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
     if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
@@ -970,26 +1126,6 @@ function New-NavContainer {
     if ($auth -eq "AAD" -and [System.Version]$genericTag -lt [System.Version]"0.0.5.0") {
         throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
     }
-
-    if ("$isolation" -eq "") {
-
-        if ($isServerHost) {
-            $isolation = "process"
-        } else {
-            $isolation = "hyperv"
-            if ($dockerClientVersion.StartsWith("master-dockerproject-") -and ($dockerClientVersion -gt "master-dockerproject-2018-12-01")) {
-                $isolation = "process"
-            } else {
-                [System.Version]$ver = $null
-                if ([System.Version]::TryParse($dockerClientVersion.Split('-')[0],[ref]$ver)) {
-                    if ($ver -gt [System.Version]::new(18,9,0)) {
-                        $isolation = "process"
-                    }
-                }
-            }
-        }
-    }
-    Write-Host "Using $isolation isolation"
 
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -1012,15 +1148,16 @@ function New-NavContainer {
                 $destinationFile = Join-Path $myFolder $filename
                 Download-File -sourceUrl $_ -destinationFile $destinationFile
                 if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Write-Host "Extracting .zip file"
-                    Expand-Archive -Path $destinationFile -DestinationPath $myFolder
+                    Write-Host "Extracting .zip file " -NoNewline
+                    Expand-7zipArchive -Path $destinationFile -DestinationPath $myFolder
                     Remove-Item -Path $destinationFile -Force
                 }
             } elseif (Test-Path $_ -PathType Container) {
                 Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
             } else {
                 if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                    Expand-Archive -Path $_ -DestinationPath $myFolder
+                    Write-Host "Extracting .zip file " -NoNewline
+                    Expand-7zipArchive -Path $_ -DestinationPath $myFolder
                 } else {
                     Copy-Item -Path $_ -Destination $myFolder -Force
                 }
@@ -1127,11 +1264,34 @@ function New-NavContainer {
                     "--restart $restart"
                    )
 
-    if ("$memoryLimit" -eq "") {
-        if ($isolation -eq "hyperv") {
-            $parameters += "--memory 4G"
+    if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
+        $memoryLimit = "4G"
+    }
+
+    $SqlServerMemoryLimit = 0
+    if ($SqlMemoryLimit) {
+        if ($SqlMemoryLimit.EndsWith('%')) {
+            if ($memoryLimit -ne "") {
+                if ($memoryLimit -like '*M') {
+                    $mbytes = [int]($memoryLimit.TrimEnd('mM'))
+                }
+                else {
+                    $mbytes = [int](1024*([double]($memoryLimit.TrimEnd('gG'))))
+                }
+                $sqlServerMemoryLimit = [int]($mbytes * ([int]$SqlMemoryLimit.TrimEnd('%')) / 100)
+            }
         }
-    } else {
+        else {
+            if ($SqlMemoryLimit -like '*M') {
+                $SqlServerMemoryLimit = [int]($SqlMemoryLimit.TrimEnd('mM'))
+            }
+            else {
+                $SqlServerMemoryLimit = [int](1024*([double]($SqlMemoryLimit.TrimEnd('gG'))))
+            }
+        }
+    }
+
+    if ($memoryLimit) {
         $parameters += "--memory $memoryLimit"
     }
 
@@ -1290,21 +1450,37 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         $parameters += "--volume ""$($dvdPath):c:\NAVDVD"""
     }
 
-    if ($updateHosts) {
-        $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
-        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination $myfolder -Force
-        ('
-. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname '+$containername+' -theIpAddress $ip
-') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
-
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
         ('# Invoke default behavior
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
 
+    if ($updateHosts) {
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatehosts.ps1") -Force
+        $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""
+        ('
+. (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname "$hostname" -theIpAddress $ip
+if ($multitenant) {
+    $dotidx = $hostname.indexOf(".")
+    if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+    Get-NavTenant -serverInstance $serverInstance | % {
+        $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
+        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+    }
+}
+') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
+
     ('
 . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts"
+') | Add-Content -Path "$myfolder\SetupVariables.ps1"
+
+    }
+    else {
+
+        Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatecontainerhosts.ps1") -Force
+    ('
+. (Join-Path $PSScriptRoot "updatecontainerhosts.ps1")
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"
 
     }
@@ -1375,20 +1551,22 @@ if (-not `$restartingInstance) {
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
+    $containerContainerFolder = Join-Path $containerHelperFolder "Extensions\$containerName"
+
     ("
 if (-not `$restartingInstance) {
-    if (Test-Path -Path ""$containerFolder\*.vsix"") {
+    if (Test-Path -Path ""$containerContainerFolder\*.vsix"") {
         Remove-Item -Path 'C:\Run\*.vsix'
-        Copy-Item -Path ""$containerFolder\*.vsix"" -Destination 'C:\Run' -force
+        Copy-Item -Path ""$containerContainerFolder\*.vsix"" -Destination 'C:\Run' -force
         if (Test-Path 'C:\inetpub\wwwroot\http' -PathType Container) {
             Remove-Item -Path 'C:\inetpub\wwwroot\http\*.vsix'
-            Copy-Item -Path ""$containerFolder\*.vsix"" -Destination 'C:\inetpub\wwwroot\http' -force
+            Copy-Item -Path ""$containerContainerFolder\*.vsix"" -Destination 'C:\inetpub\wwwroot\http' -force
         }
     }
     else {
-        Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerFolder"" -force
+        Copy-Item -Path 'C:\Run\*.vsix' -Destination ""$containerContainerFolder"" -force
     }
-    Copy-Item -Path 'C:\Run\*.cer' -Destination ""$containerFolder"" -force
+    Copy-Item -Path 'C:\Run\*.cer' -Destination ""$containerContainerFolder"" -force
 }
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
 
@@ -1449,7 +1627,7 @@ if (-not `$restartingInstance) {
             if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
                 return
             }
-            Wait-NavContainerReady $containerName -timeout $timeout
+            Wait-BcContainerReady $containerName -timeout $timeout
         } finally {
             Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
         }
@@ -1460,12 +1638,32 @@ if (-not `$restartingInstance) {
         if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
-        Wait-NavContainerReady $containerName -timeout $timeout
+        Wait-BcContainerReady $containerName -timeout $timeout
+    }
+
+    Write-Host "Reading CustomSettings.config from $containerName"
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+
+    if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
+        Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
+            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
+            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
+            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
+        } -argumentList ($SqlServerMemoryLimit)
+    }
+
+    if ($addFontsFromPath) {
+        Add-FontsToBcContainer -containerName $containerName -path $addFontsFromPath
+    }
+
+    if ($featureKeys) {
+        Set-BcContainerFeatureKeys -containerName $containerName -featureKeys $featureKeys
     }
 
     if ("$TimeZoneId" -ne "") {
         Write-Host "Set TimeZone in Container to $TimeZoneId"
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
             $OldTimeZoneId = (Get-TimeZone).Id
             try { 
                 if ($OldTimeZoneId -ne $TimeZoneId) { 
@@ -1489,9 +1687,6 @@ if (-not `$restartingInstance) {
         }
     }
 
-    Write-Host "Reading CustomSettings.config from $containerName"
-    $customConfig = Get-NavContainerServerConfiguration -ContainerName $containerName
-
     if ($shortcuts -ne "None") {
         Write-Host "Creating Desktop Shortcuts for $containerName"
         if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
@@ -1509,11 +1704,14 @@ if (-not `$restartingInstance) {
                 }
 
                 if ($webClientUrl.Contains('?')) {
-                    $webClientUrl += "&page=$pageno"
+                    $webClientUrl += "&page="
                 } else {
-                    $webClientUrl += "?page=$pageno"
+                    $webClientUrl += "?page="
                 }
-                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl$pageno" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                if ($includePerformanceToolkit) {
+                    New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                }
             }
             
         }
@@ -1524,7 +1722,7 @@ if (-not `$restartingInstance) {
 
     if ([System.Version]$genericTag -lt [System.Version]"0.0.4.4") {
         if (Test-Path -Path "C:\windows\System32\t2embed.dll" -PathType Leaf) {
-            Copy-FileToNavContainer -containerName $containerName -localPath "C:\windows\System32\t2embed.dll" -containerPath "C:\Windows\System32\t2embed.dll"
+            Copy-FileToBcContainer -containerName $containerName -localPath "C:\windows\System32\t2embed.dll" -containerPath "C:\Windows\System32\t2embed.dll"
         }
     }
 
@@ -1534,27 +1732,28 @@ if (-not `$restartingInstance) {
         Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/Microsoft.IdentityModel.dll' -destinationFile $wifdll
         $ps = 'Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "Microsoft.IdentityModel.dll"'
         $containerWifDll = docker exec $containerName powershell $ps
-        Copy-FileToNavContainer -containerName $containerName -localPath $wifdll -containerPath $containerWifDll
+        Copy-FileToBcContainer -containerName $containerName -localPath $wifdll -containerPath $containerWifDll
     }
 
     if ($version -eq [System.Version]"14.10.40471.0") {
         Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
         $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
         Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($idepsm)
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
             Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
         } -argumentList $idepsm
-        Remove-NavContainerSession -containerName $containerName
+        Remove-BcContainerSession -containerName $containerName
     }
 
-    if ($version -eq [System.Version]"16.0.11240.12076" -and $devCountry -ne "W1") {
+    if ((($version -eq [System.Version]"16.0.11240.12076") -or ($version -eq [System.Version]"16.0.11240.12085")) -and $devCountry -ne "W1") {
         $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
         Write-Host "Downloading new test apps for this version from $url"
         $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
         Download-File -sourceUrl $url -destinationFile "$zipName.zip"
-        Expand-Archive "$zipName.zip" -DestinationPath $zipname -Force
+        Write-Host "Extracting new test apps for this version " -NoNewline
+        Expand-7zipArchive -Path "$zipName.zip" -DestinationPath $zipname
         Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
             Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
         } -argumentList $zipName, $devcountry
     }
@@ -1568,16 +1767,16 @@ if (-not `$restartingInstance) {
         if ($multitenant) {
             $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
             $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
-            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                 Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
             }
-            Restore-DatabasesInNavContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
+            Restore-DatabasesInBcContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
         }
     }
     else {
         if ($enableSymbolLoading) {
             # Unpublish symbols when running hybrid development
-            Invoke-ScriptInNavContainer -containerName $containerName -scriptblock {
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                 # Unpublish only, when Apps when present
                 # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
                 #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
@@ -1586,7 +1785,13 @@ if (-not `$restartingInstance) {
         }
     
         if ($includeTestToolkit) {
-            Import-TestToolkitToNavContainer -containerName $containerName -sqlCredential $sqlCredential -includeTestLibrariesOnly:$includeTestLibrariesOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -doNotUseRuntimePackages:$doNotUseRuntimePackages
+            Import-TestToolkitToBcContainer `
+                -containerName $containerName `
+                -sqlCredential $sqlCredential `
+                -includeTestLibrariesOnly:$includeTestLibrariesOnly `
+                -includeTestFrameworkOnly:$includeTestFrameworkOnly `
+                -includePerformanceToolkit:$includePerformanceToolkit `
+                -doNotUseRuntimePackages:$doNotUseRuntimePackages
         }
     }
 
@@ -1600,6 +1805,14 @@ if (-not `$restartingInstance) {
         $databaseServer = $customConfig.DatabaseServer
         if ($databaseServer -eq "localhost") {
             $databaseServer = "$containerName"
+            if (("$databaseInstance" -ne "") -and ("$databaseInstance" -ne "SQLEXPRESS")) {
+                $databaseServer += "\$databaseInstance"
+            }
+        }
+        else {
+            if ($databaseInstance) {
+                $databaseServer += "\$databaseInstance"
+            }
         }
 
         if ($auth -eq "Windows") {
@@ -1607,7 +1820,6 @@ if (-not `$restartingInstance) {
         } else {
             $ntauth="0"
         }
-        if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
         $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
 
         if ($enableSymbolLoading) {
@@ -1662,7 +1874,7 @@ if (-not `$restartingInstance) {
                     if ($version -lt [Version]("15.0.35659.0")) {
                         $appName = "BaseApp"
                     }
-                    Get-NavContainerApp -containerName $containerName `
+                    Get-BcContainerApp -containerName $containerName `
                                         -publisher Microsoft `
                                         -appName $appName `
                                         -appFile $appFile `
@@ -1718,7 +1930,7 @@ if (-not `$restartingInstance) {
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         Write-Host "Creating .net Assembly Reference Folder for VS Code"
-        Invoke-ScriptInNavContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
@@ -1772,7 +1984,7 @@ if (-not `$restartingInstance) {
                 Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 Set-NavserverInstance -ServerInstance $serverInstance -start
             }
-            New-NavContainerTenant -containerName $containerName -tenantId default
+            New-BcContainerTenant -containerName $containerName -tenantId default
         }
     }
 
@@ -1781,7 +1993,7 @@ if (-not `$restartingInstance) {
     }
 
     if ($bakFolder -and !$restoreBakFolder) {
-        Backup-NavContainerDatabases -containerName $containerName -bakFolder $bakFolder
+        Backup-BcContainerDatabases -containerName $containerName -bakFolder $bakFolder
     }
 
     Write-Host -ForegroundColor Green "Container $containerName successfully created"
@@ -1794,6 +2006,19 @@ if (-not `$restartingInstance) {
         Write-Host "Dev Service:       $devUrl"
         Write-Host "File downloads:    $dlUrl"
     }
+
+    Write-Host
+    Write-Host "Use:"
+    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog -containerName $containerName"
+    Write-Host " to retrieve a snapshot of the event log from the container"
+    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo -containerName $containerName"
+    Write-Host  " to get debug information about the container"
+    Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer -containerName $containerName"
+    Write-Host " to open a PowerShell prompt inside the container"
+    Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer -containerName $containerName"
+    Write-Host " to remove the container again"
+    Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
+    Write-Host " to retrieve information about URL's again"
 }
-Set-Alias -Name New-BCContainer -Value New-NavContainer
-Export-ModuleMember -Function New-NavContainer -Alias New-BCContainer
+Set-Alias -Name New-NavContainer -Value New-BcContainer
+Export-ModuleMember -Function New-BcContainer -Alias New-NavContainer

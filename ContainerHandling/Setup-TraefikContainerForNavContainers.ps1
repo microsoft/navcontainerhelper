@@ -25,11 +25,11 @@
   Use this parameter to force http (disable SSL) although traefik is used. This will mean that the mobile apps and
   the modern Windows app won't work
  .Example
-  Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
+  Setup-TraefikContainerForBcContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
  .Example
-  Setup-TraefikContainerForNavContainers -PublicDnsName "dev.mycorp.com" -CrtFile "c:\my\cert.crt" -CrtKeyFile "c:\my\cert.key"
+  Setup-TraefikContainerForBcContainers -PublicDnsName "dev.mycorp.com" -CrtFile "c:\my\cert.crt" -CrtKeyFile "c:\my\cert.key"
 #>
-function Setup-TraefikContainerForNavContainers {
+function Setup-TraefikContainerForBcContainers {
     [CmdletBinding()]
     Param (
         [Parameter(Mandatory=$true)]
@@ -51,7 +51,7 @@ function Setup-TraefikContainerForNavContainers {
     )
 
     Process {
-        $traefikForBcBasePath = "c:\programdata\navcontainerhelper\traefikforbc"
+        $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         $traefikDockerImage = "stefanscherer/traefik-windows:v1.7.12"
         $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
         if ($forceHttpWithTraefik) {
@@ -159,5 +159,5 @@ function Setup-TraefikContainerForNavContainers {
         }
     }
 }
-Set-Alias -Name Setup-TraefikContainerForBCContainers -Value Setup-TraefikContainerForNavContainers
-Export-ModuleMember -Function Setup-TraefikContainerForNavContainers -Alias Setup-TraefikContainerForBCContainers
+Set-Alias -Name Setup-TraefikContainerForNavContainers -Value Setup-TraefikContainerForBcContainers
+Export-ModuleMember -Function Setup-TraefikContainerForBcContainers -Alias Setup-TraefikContainerForNavContainers

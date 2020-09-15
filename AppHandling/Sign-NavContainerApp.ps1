@@ -6,7 +6,7 @@
   Copies the pfxFile to the container if necessary
   Creates a session to the container and Signs the App using the provided certificate and password
  .Parameter containerName
-  Name of the container in which you want to publish an app (default is navserver)
+  Name of the container in which you want to publish an app
  .Parameter appFile
   Path of the app you want to sign
  .Parameter pfxFile
@@ -14,13 +14,13 @@
  .Parameter pfxPassword
   Password of the certificate pfx file
  .Example
-  Sign-NavContainerApp -appFile c:\programdata\navcontainerhelper\myapp.app -pfxFile http://my.secure.url/mycert.pfx -pfxPassword $securePassword
+  Sign-BcContainerApp -appFile c:\programdata\bccontainerhelper\myapp.app -pfxFile http://my.secure.url/mycert.pfx -pfxPassword $securePassword
  .Example
-  Sign-NavContainerApp -appFile c:\programdata\navcontainerhelper\myapp.app -pfxFile c:\programdata\navcontainerhelper\mycert.pfx -pfxPassword $securePassword
+  Sign-BcContainerApp -appFile c:\programdata\bccontainerhelper\myapp.app -pfxFile c:\programdata\bccontainerhelper\mycert.pfx -pfxPassword $securePassword
 #>
-function Sign-NavContainerApp {
+function Sign-BcContainerApp {
     Param (
-        [string] $containerName = "navserver",
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $appFile,
         [Parameter(Mandatory=$true)]
@@ -29,7 +29,7 @@ function Sign-NavContainerApp {
         [SecureString] $pfxPassword
     )
 
-    $containerAppFile = Get-NavContainerPath -containerName $containerName -path $appFile
+    $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
     if ("$containerAppFile" -eq "") {
         throw "The app ($appFile)needs to be in a folder, which is shared with the container $containerName"
     }
@@ -38,16 +38,16 @@ function Sign-NavContainerApp {
     if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
         $containerPfxFile = $pfxFile
     } else {
-        $containerPfxFile = Get-NavContainerPath -containerName $containerName -path $pfxFile
+        $containerPfxFile = Get-BcContainerPath -containerName $containerName -path $pfxFile
         if ("$containerPfxFile" -eq "") {
             $containerPfxFile = Join-Path "c:\run" ([System.IO.Path]::GetFileName($pfxFile))
-            Copy-FileToNavContainer -containerName $containerName -localPath $pfxFile -containerPath $containerPfxFile
+            Copy-FileToBcContainer -containerName $containerName -localPath $pfxFile -containerPath $containerPfxFile
             $copied = $true
         }
     }
 
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
@@ -80,5 +80,5 @@ function Sign-NavContainerApp {
         }
     } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword
 }
-Set-Alias -Name Sign-BCContainerApp -Value Sign-NavContainerApp
-Export-ModuleMember -Function Sign-NavContainerApp -Alias Sign-BCContainerApp
+Set-Alias -Name Sign-NavContainerApp -Value Sign-BcContainerApp
+Export-ModuleMember -Function Sign-BcContainerApp -Alias Sign-NavContainerApp

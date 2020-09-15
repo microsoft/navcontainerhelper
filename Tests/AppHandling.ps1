@@ -197,25 +197,23 @@
     It 'Get/RunTests for all versions' {
         $runTestsContainerName = "runtests"
 
-        2016,2017,2018,1810,1904,1910,2004 | % {
+        9,10,11,14,15,16 | % {
 
+            
             $runTestsInVersion  = $_
-            if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
-                $imageName = "mcr.microsoft.com/dynamicsnav:$runTestsInVersion"
+            $artifactUrl = Get-BCArtifactUrl -type OnPrem -version "$runTestsInVersion" -country "w1" -select Latest
+            $containerParams = @{ }
+            if ($runTestsInVersion -lt 13) {
                 $containerParams = @{ 
                     "includeCSIDE" = $true
                     "doNotExportObjectsToText" = $true
                 }
             }
-            else {
-                $imageName = "mcr.microsoft.com/businesscentral/onprem:$runTestsInVersion"
-                $containerParams = @{ }
-            }
 
             New-BcContainer @containerParams -accept_eula `
                             -accept_outdated `
                             -containerName $runTestsContainerName `
-                            -imageName $imageName `
+                            -artifactUrl $artifactUrl `
                             -auth NavUserPassword `
                             -Credential $credential `
                             -updateHosts `
@@ -224,15 +222,15 @@
                             -useBestContainerOS
 
             $useCALTestFwk = $false
-            if ($runTestsInVersion -eq 2016 -or $runTestsInVersion -eq 2017 -or $runTestsInVersion -eq 2018) {
+            if ($runTestsInVersion -lt 12) {
                 Import-ObjectsToNavContainer -containerName $runTestsContainerName -objectsFile (Join-Path $PSScriptRoot "inserttests.txt") -sqlCredential $credential
                 Compile-ObjectsInNavContainer -containerName $runTestsContainerName
                 Invoke-NavContainerCodeunit -containerName $runTestsContainerName -Codeunitid 50000 -CompanyName "CRONUS International Ltd."
                 $useCALTestFwk = $true
             }
-            elseif ($runTestsInVersion -eq 1810 -or $runTestsInVersion -eq 1904) {
-                Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
-                $appProjectFolder = Join-Path "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName" "inserttests"
+            elseif ($runTestsInVersion -eq 14) {
+                Copy-Item -Path (Join-Path $PSScriptRoot "inserttests") -Destination "c:\programdata\bccontainerhelper\Extensions\$runTestsContainerName" -Recurse -Force
+                $appProjectFolder = Join-Path "c:\programdata\bccontainerhelper\Extensions\$runTestsContainerName" "inserttests"
                 Compile-AppInBCContainer -containerName $runTestsContainerName -credential $credential -appProjectFolder $appProjectFolder -appOutputFolder $appProjectFolder -appName "inserttests.app" -UpdateSymbols
                 Publish-NavContainerApp -containerName $runTestsContainerName -appFile (Join-Path $appProjectFolder "inserttests.app") -skipVerification -sync -install
                 $useCALTestFwk = $true
@@ -248,7 +246,7 @@
             $tests.Count | Should -be 2
         
             $first = $true
-            $resultsFile = "c:\programdata\navcontainerhelper\Extensions\$runTestsContainerName\result.xml"
+            $resultsFile = "c:\programdata\bccontainerhelper\Extensions\$runTestsContainerName\result.xml"
             $tests | % {
                 $allpassed = Run-TestsInBcContainer -containerName $runTestsContainerName `
                                                     -credential $credential `

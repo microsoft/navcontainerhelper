@@ -18,8 +18,7 @@
 #>
 function Compile-ObjectsInNavContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $filter = "compiled=0", 
         [PSCredential] $sqlCredential = $null,
         [ValidateSet('Force','Yes','No')]

@@ -7,17 +7,16 @@
  .Parameter containerName
   Name of the container for which you want to get the shared folder list
  .Example
-  Get-NavContainerSharedFolders -containerName navserver
+  Get-BcContainerSharedFolders -containerName bcserver
  .Example
-  (Get-NavContainerSharedFolders -containerName navserver)["c:\programdata\navcontainerhelper"]
+  (Get-BcContainerSharedFolders -containerName bcserver)["c:\programdata\bccontainerhelper"]
  .Example
-  ((Get-NavContainerSharedFolders -containerName navserver).GetEnumerator() | Where-Object { $_.Value -eq "c:\run\my" }).Key
+  ((Get-BcContainerSharedFolders -containerName bcserver).GetEnumerator() | Where-Object { $_.Value -eq "c:\run\my" }).Key
 #>
-function Get-NavContainerSharedFolders {
+function Get-BcContainerSharedFolders {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
@@ -48,5 +47,5 @@ function Get-NavContainerSharedFolders {
         return $sharedFolders
     }
 }
-Set-Alias -Name Get-BCContainerSharedFolders -Value Get-NavContainerSharedFolders
-Export-ModuleMember -Function Get-NavContainerSharedFolders -Alias Get-BCContainerSharedFolders
+Set-Alias -Name Get-NavContainerSharedFolders -Value Get-BcContainerSharedFolders
+Export-ModuleMember -Function Get-BcContainerSharedFolders -Alias Get-NavContainerSharedFolders

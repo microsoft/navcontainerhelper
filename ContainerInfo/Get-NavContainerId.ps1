@@ -7,23 +7,25 @@
  .Parameter containerName
   Name of the container for which you want the Id
  .Example
-  Get-NavContainerId -containerId navserver
+  Get-BcContainerId -containerId bcserver
 #>
-function Get-NavContainerId {
+function Get-BcContainerId {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
-        $name = Get-NavContainerName $containerName
-        if ($name) { $containerName = $name }
-
         $id = ""
         docker ps --format "{{.ID}}:{{.Names}}" -a --no-trunc | ForEach-Object {
             $ps = $_.split(':')
             if ($containerName -eq $ps[1]) {
+                $id = $ps[0]
+            }
+            if ($ps[0].StartsWith($containerName)) {
+                if ($id) {
+                    throw "Unambiguous container ID specified"
+                }
                 $id = $ps[0]
             }
         }
@@ -33,5 +35,5 @@ function Get-NavContainerId {
         $id
     }
 }
-Set-Alias -Name Get-BCContainerId -Value Get-NavContainerId
-Export-ModuleMember -Function Get-NavContainerId -Alias Get-BCContainerId
+Set-Alias -Name Get-NavContainerId -Value Get-BcContainerId
+Export-ModuleMember -Function Get-BcContainerId -Alias Get-NavContainerId

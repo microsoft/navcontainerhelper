@@ -11,7 +11,7 @@
  .Parameter myoriginalFolder
   Folder in which the original objects for your modified objects are copied to
  .Example
-  Create-MyOriginalFolder -originalFolder c:\programdata\navcontainerhelper\baseobjects -modifiedFolder c:\programdata\navcontainerhelper\myobjects -myoriginalFolder c:\programdata\navcontainerhelper\mybaseobjects
+  Create-MyOriginalFolder -originalFolder c:\programdata\bccontainerhelper\baseobjects -modifiedFolder c:\programdata\bccontainerhelper\myobjects -myoriginalFolder c:\programdata\bccontainerhelper\mybaseobjects
 #>
 function Create-MyOriginalFolder {
     Param (

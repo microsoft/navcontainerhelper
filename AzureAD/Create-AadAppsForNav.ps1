@@ -90,7 +90,7 @@ function Create-AadAppsForNav {
     $adUserObjectId = $adUser.ObjectId
     
     # Remove "old" AD Application
-    Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($appIdUri) } | Remove-AzureADApplication
+    Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris -contains $appIdUri } | Remove-AzureADApplication
 
     # Create AesKey
     $SsoAdAppKeyValue = Create-AesKey

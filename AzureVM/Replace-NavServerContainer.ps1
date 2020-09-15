@@ -1,11 +1,11 @@
 ﻿<# 
  .Synopsis
-  Replace navserver container with the same or a different image
+  Replace bcserver container with the same or a different image
  .Description
-  This command is designed to be used in the Azure VMs, where the main container (mapped to public ip) is called navserver.
+  This command is designed to be used in the Azure VMs, where the main container (mapped to public ip) is called bcserver.
   Running this command will replace the container with a new container with a different (or the same) image.
  .Parameter imageName
-  imageName you want to use to replace the navserver container (omit to recreate the same container)
+  imageName you want to use to replace the bcserver container (omit to recreate the same container)
  .Parameter alwaysPull
   Include this switch if you want to make sure that you pull latest version of the docker image
  .Parameter enableSymbolLoading
@@ -21,8 +21,9 @@
  .Example
   Replace-NavServerContainer
 #>
-function Replace-NavServerContainer {
+function Replace-BcServerContainer {
     Param (
+        [string] $artifactUrl = "",
         [string] $imageName = "",
         [switch] $alwaysPull,
         [ValidateSet('Yes','No','Default')]
@@ -32,13 +33,22 @@ function Replace-NavServerContainer {
         [string] $aadAccessToken
     )
 
-    $SetupNavContainerScript = "C:\DEMO\SetupNavContainer.ps1"
+    $SetupBcContainerScript = "C:\DEMO\Setup*Container.ps1"
     $setupDesktopScript = "C:\DEMO\SetupDesktop.ps1"
     $settingsScript = "C:\DEMO\settings.ps1"
 
-    if (!((Test-Path $SetupNavContainerScript) -and (Test-Path $setupDesktopScript) -and (Test-Path $settingsScript))) {
+    if (!((Test-Path $SetupBcContainerScript) -and (Test-Path $setupDesktopScript) -and (Test-Path $settingsScript))) {
         throw "The Replace-NavServerContainer is designed to work inside the ARM template VMs created by (ex. http://aka.ms/getbc)"
     }
+
+    if ($artifactUrl -ne "" -and $imageName -ne "") {
+        throw "You cannot call Replace-NavServerContainer with artifactUrl AND imageName"
+    }
+
+    $SetupBcContainerScript = (Get-Item $SetupBcContainerScript).FullName
+
+    $newArtifactUrl = $artifactUrl
+    Remove-Variable -Name 'artifactUrl'
 
     if ($enableSymbolLoading -ne "Default") {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
@@ -65,17 +75,33 @@ function Replace-NavServerContainer {
         . $settingsScript
     }
 
-    if ($artifactUrl -eq "") {
-        if ("$imageName" -eq "") {
-            $imageName = $navDockerImage.Split(',')[0]
-        }
-        if ("$imageName" -ne "$navDockerImage") {
-            $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$navDockerImage = ') }
-            $settings += '$navDockerImage = "'+$imageName + '"'
+    $artifactUrlRef = get-variable -Name artifactUrl -ErrorAction SilentlyContinue
+    if (-not ($artifactUrlRef)) { $artifactUrl = "" }
+
+    if ($newArtifactUrl) {
+        if ($newArtifactUrl -ne $artifactUrl) {
+            $settings = Get-Content -path $settingsScript | Where-Object { ($_.Trim() -notlike '$navDockerImage = *') -and ($_.Trim() -notlike '$artifactUrl = *') }
+            $settings += '$navDockerImage = ""'
+            $settings += '$artifactUrl = "'+$newArtifactUrl+'"'
             Set-Content -Path $settingsScript -Value $settings
         }
-    
-        $imageName = Get-BestNavContainerImageName -imageName $imageName
+    }
+    elseif ($imageName) {
+        if ("$imageName" -ne "$navDockerImage") {
+            $settings = Get-Content -path $settingsScript | Where-Object { ($_.Trim() -notlike '$navDockerImage = *') -and ($_.Trim() -notlike '$artifactUrl = *') }
+            $settings += '$navDockerImage = "'+$imageName + '"'
+            $settings += '$artifactUrl = ""'
+            Set-Content -Path $settingsScript -Value $settings
+        }
+        $imageName = Get-BestBcContainerImageName -imageName $imageName
+        if ($alwaysPull) {
+            Write-Host "Pulling docker Image $imageName"
+            docker pull $imageName
+        }
+    }
+    elseif ($navDockerImage) {
+        $imageName = $navDockerImage.Split(',')[0]
+        $imageName = Get-BestBcContainerImageName -imageName $imageName
         if ($alwaysPull) {
             Write-Host "Pulling docker Image $imageName"
             docker pull $imageName
@@ -83,8 +109,8 @@ function Replace-NavServerContainer {
     }
 
     Write-Host -ForegroundColor Green "Setup new Container"
-    . $SetupNavContainerScript
+    . $SetupBcContainerScript
     . $setupDesktopScript
 }
-Set-Alias -Name Replace-BCServerContainer -Value Replace-NavServerContainer
-Export-ModuleMember -Function Replace-NavServerContainer -Alias Replace-BCServerContainer
+Set-Alias -Name Replace-NavServerContainer -Value Replace-BcServerContainer
+Export-ModuleMember -Function Replace-BcServerContainer -Alias Replace-NavServerContainer

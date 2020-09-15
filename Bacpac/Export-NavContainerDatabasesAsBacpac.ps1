@@ -23,19 +23,19 @@
  .Parameter additionalArguments
   Use this parameter to specify additional arguments to sqlpackage.exe
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test
+  Export-BcContainerDatabasesAsBacpac -containerName test
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\programdata\navcontainerhelper\extensions\test"
+  Export-BcContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\programdata\bccontainerhelper\extensions\test"
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\demo" -sqlCredential <sqlCredential>
+  Export-BcContainerDatabasesAsBacpac -containerName test -bacpacfolder "c:\demo" -sqlCredential <sqlCredential>
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -tenant default
+  Export-BcContainerDatabasesAsBacpac -containerName test -tenant default
  .Example
-  Export-NavContainerDatabasesAsBacpac -containerName test -tenant @("default","tenant")
+  Export-BcContainerDatabasesAsBacpac -containerName test -tenant @("default","tenant")
 #>
-function Export-NavContainerDatabasesAsBacpac {
+function Export-BcContainerDatabasesAsBacpac {
     Param (
-        [string] $containerName = "navserver", 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [PSCredential] $sqlCredential = $null,
         [string] $bacpacFolder = "",
         [string[]] $tenant = @("default"),
@@ -45,7 +45,7 @@ function Export-NavContainerDatabasesAsBacpac {
         [string[]] $additionalArguments = @()
     )
     
-    $genericTag = Get-NavContainerGenericTag -containerOrImageName $containerName
+    $genericTag = Get-BcContainerGenericTag -containerOrImageName $containerName
     if ([System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
         throw "Export-DatabasesAsBacpac is not supported in images with generic tag prior to 0.0.4.5"
     }
@@ -56,9 +56,9 @@ function Export-NavContainerDatabasesAsBacpac {
     if ("$bacpacFolder" -eq "") {
         $bacpacFolder = $containerFolder
     }
-    $containerBacpacFolder = Get-NavContainerPath -containerName $containerName -path $bacpacFolder -throw
+    $containerBacpacFolder = Get-BcContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
         function InstallPrerequisite {
             Param (
@@ -331,5 +331,5 @@ function Export-NavContainerDatabasesAsBacpac {
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
-Set-Alias -Name Export-BCContainerDatabasesAsBacpac -Value Export-NavContainerDatabasesAsBacpac
-Export-ModuleMember -Function Export-NavContainerDatabasesAsBacpac -Alias Export-BCContainerDatabasesAsBacpac
+Set-Alias -Name Export-NavContainerDatabasesAsBacpac -Value Export-BcContainerDatabasesAsBacpac
+Export-ModuleMember -Function Export-BcContainerDatabasesAsBacpac -Alias Export-NavContainerDatabasesAsBacpac

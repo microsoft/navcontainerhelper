@@ -9,7 +9,7 @@
  .Parameter alProjectFolder
   The alProjectFolder will contain the AL project upon successful completion of this function.
   The content of the folder will be removed.
-  This folder doesn't need to be shared with the container, but if you want to use Compile-AppInNavContainer, it might be a good idea to share it.
+  This folder doesn't need to be shared with the container, but if you want to use Compile-AppInBcContainer, it might be a good idea to share it.
  .Parameter id
   This parameter specifies the ID of the AL app to be placed in app.json. Default is a new GUID.
  .Parameter name
@@ -22,7 +22,7 @@
   Specify 
  .Parameter useBaseLine
   Specify this switch if you want to use the AL BaseLine, which was created when creating the container with -includeAL.
-  The baseline AL objects are added to "C:\ProgramData\NavContainerHelper\Extensions\Original-<version>-<country>-al" and will contain AL files for the C/AL objects in the container at create time.
+  The baseline AL objects are added to "C:\ProgramData\BcContainerHelper\Extensions\Original-<version>-<country>-al" and will contain AL files for the C/AL objects in the container at create time.
  .Parameter alFileStructure
   Specify a function, which will determine the location of the individual al source files
  .Parameter runTxt2AlInContainer
@@ -32,8 +32,8 @@
  .Parameter credential
   Credentials are needed to download the app if you do not use the baseline
  .Example
-  $alProjectFolder = "C:\ProgramData\NavContainerHelper\AL\BaseApp"
-  Create-AlProjectFolderFromNavContainer -containerName alContainer `
+  $alProjectFolder = "C:\ProgramData\BcContainerHelper\AL\BaseApp"
+  Create-AlProjectFolderFromBcContainer -containerName alContainer `
                                          -alProjectFolder $alProjectFolder `
                                          -name "myapp" `
                                          -publisher "Freddy Kristiansen" `
@@ -41,10 +41,9 @@
                                          -AddGIT `
                                          -useBaseLine
 #>
-function Create-AlProjectFolderFromNavContainer {
+function Create-AlProjectFolderFromBcContainer {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $alProjectFolder,
         [string] $id = [GUID]::NewGuid().ToString(),
@@ -59,7 +58,7 @@ function Create-AlProjectFolderFromNavContainer {
         [PSCredential] $credential = $null
     )
 
-    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $ver = [System.Version]($navversion.split('-')[0])
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
     $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
@@ -96,13 +95,13 @@ function Create-AlProjectFolderFromNavContainer {
             if ($ver -lt [Version]("15.0.35659.0")) {
                 $appName = "BaseApp"
             }
-            $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq $appName }
-            Get-NavContainerApp -containerName $containerName `
-                                -publisher $baseapp.Publisher `
-                                -appName $baseapp.Name `
-                                -appVersion $baseapp.Version `
-                                -appFile $appFile `
-                                -credential $credential
+            $baseapp = Get-BcContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq $appName }
+            Get-BcContainerApp -containerName $containerName `
+                               -publisher $baseapp.Publisher `
+                               -appName $baseapp.Name `
+                               -appVersion $baseapp.Version `
+                               -appFile $appFile `
+                               -credential $credential
         
             Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
             'layout','src','translations' | ForEach-Object {
@@ -150,7 +149,7 @@ function Create-AlProjectFolderFromNavContainer {
             if ($ver -lt [Version]("15.0.35659.0")) {
                 $appName = "BaseApp"
             }
-            $baseapp = Get-NavContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq $appName }
+            $baseapp = Get-BcContainerAppInfo -containerName $containerName | Where-Object { $_.Name -eq $appName }
             if ($baseapp) {
                 $id = $baseapp.AppId
                 $name = $baseapp.Name
@@ -236,7 +235,7 @@ function Create-AlProjectFolderFromNavContainer {
     Set-Content -Path $settingsJsonFile -Value ($settingsJson | ConvertTo-Json)
     
     $launchJsonFile = Join-Path $vscodeFolder "launch.json"
-    $config = Get-NavContainerServerConfiguration -ContainerName $containerName
+    $config = Get-BcContainerServerConfiguration -ContainerName $containerName
     if ($config.DeveloperServicesSSLEnabled -eq "true") {
         $devserverUrl = "https://$containerName"
     }
@@ -271,6 +270,6 @@ function Create-AlProjectFolderFromNavContainer {
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"
 }
-Set-Alias -Name Create-AlProjectFolderFromBcContainer -Value Create-AlProjectFolderFromNavContainer
-Export-ModuleMember -Function Create-AlProjectFolderFromNavContainer -Alias Create-AlProjectFolderFromBcContainer
+Set-Alias -Name Create-AlProjectFolderFromNavContainer -Value Create-AlProjectFolderFromBcContainer
+Export-ModuleMember -Function Create-AlProjectFolderFromBcContainer -Alias Create-AlProjectFolderFromNavContainer
 

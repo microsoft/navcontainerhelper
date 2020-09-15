@@ -19,14 +19,13 @@
  .Parameter includeSystemObjects
   Include the includeSystemObjects switch to include the system objects in the export
  .Example
-  Export-NavContainerObject -containerName test -objectsFolder c:\programdata\navcontainerhelper\objects
+  Export-NavContainerObject -containerName test -objectsFolder c:\programdata\bccontainerhelper\objects
  .Example
-  Export-NavContainerObject -containerName test -objectsFolder c:\programdata\navcontainerhelper\objects -sqlCredential (get-credential -credential 'sa') -filter ""
+  Export-NavContainerObject -containerName test -objectsFolder c:\programdata\bccontainerhelper\objects -sqlCredential (get-credential -credential 'sa') -filter ""
 #>
 function Export-NavContainerObjects {
     Param (
-        [Parameter(Mandatory=$true)]
-        [string] $containerName, 
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
         [string] $objectsFolder, 
         [Parameter(Mandatory=$false)]
