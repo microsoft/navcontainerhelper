@@ -89,7 +89,7 @@ function New-NavContainerFromDeployFile {
 
     $fullContainerName = $deploy_Prefix + "-" + $containerSuffix
 
-    Check-NavContainerName -containerName $fullContainerName
+    # Check-NavContainerName -containerName $fullContainerName
 
     $params = @{
         'containerName'            = $fullContainerName;
@@ -105,6 +105,8 @@ function New-NavContainerFromDeployFile {
         'useBestContainerOS'       = $true;
         'includeCSide'             = $true;
         'enableSymbolLoading'      = $true;
+		'isolation'                = 'hyperv';
+		'memoryLimit'              = '8G';
     }
 
     if ($licenseFile -ne "") {
