@@ -31,9 +31,9 @@
  .Parameter usePublicWebBaseUrl
   Connect to the public Url and not to localhost
  .Example
-  Get-TestsFromBcContainer -contatinerName test -credential $credential
+  Get-TestsFromBcContainer -containerName test -credential $credential
  .Example
-  Get-TestsFromBcContainer -contatinerName $containername -credential $credential -TestSuite "MYTESTS" -TestCodeunit "134001"
+  Get-TestsFromBcContainer -containerName $containername -credential $credential -TestSuite "MYTESTS" -TestCodeunit "134001"
 #>
 function Get-TestsFromBcContainer {
     Param (
