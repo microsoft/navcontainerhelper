@@ -258,7 +258,9 @@ function New-BcContainer {
 
     Check-BcContainerName -ContainerName $containerName
 
-    if ($imageName.StartsWith('microsoft/dynamics-nav','InvariantCultureIgnoreCase')) {
+    $imageName = $imageName.ToLowerInvariant()
+
+    if ($imageName.StartsWith('microsoft/dynamics-nav')) {
         Write-Host 'WARNING: using old docker hub name for NAV image. Replacing with mcr.microsoft.com/dynamicsnav'
         $imageName = "mcr.microsoft.com/dynamicsnav$($imageName.Substring('microsoft/dynamics-nav'.Length))"
     }
@@ -412,7 +414,7 @@ function New-BcContainer {
             Write-Host "ArtifactUrl and ImageName specified"
             if (!$imageName.Contains(':')) {
                 $appUri = [Uri]::new($artifactUrl)
-                $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+                $imageName += ":$($appUri.AbsolutePath.ToLowerInvariant().Replace('/','-').TrimStart('-'))"
                 $autotag = $true
             }
 

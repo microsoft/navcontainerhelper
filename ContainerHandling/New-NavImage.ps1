@@ -48,6 +48,8 @@ function New-BcImage {
         $memory = "4G"
     }
 
+    $imageName = $imageName.ToLowerInvariant()
+
     $myScripts | ForEach-Object {
         if ($_ -is [string]) {
             if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
@@ -103,7 +105,7 @@ function New-BcImage {
 
     if (!$imageName.Contains(':')) {
         $appUri = [Uri]::new($artifactUrl)
-        $imageName += ":$($appUri.AbsolutePath.Replace('/','-').TrimStart('-'))"
+        $imageName += ":$($appUri.AbsolutePath.ToLowerInvariant().Replace('/','-').TrimStart('-'))"
         if ($skipDatabase) {
             $imageName += "-nodb"
         }
