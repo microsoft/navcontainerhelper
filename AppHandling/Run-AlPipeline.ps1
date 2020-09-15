@@ -81,8 +81,8 @@ if ($artifact -like "https://*") {
 }
 else {
     $segments = "$artifact/////".Split('/')
-    $storageAccount = $segments[0]; if ($storageAccount -eq "") { $storageAccount = "bcartifacts" }
-    $type = $segments[1]; if ($type -eq "") { $type = "Sandbox" }
+    $storageAccount = $segments[0];
+    $type = $segments[1];
     $version = $segments[2]
     $country = $segments[3]; if ($country -eq "") { $country = "us" }
     $select = $segments[4]; if ($select -eq "") { $select = "latest" }
