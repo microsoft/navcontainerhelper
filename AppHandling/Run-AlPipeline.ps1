@@ -12,7 +12,7 @@ Param(
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
     [Boolean] $enableTaskScheduler = $false,
-    [string] $memoryLimit = "6G",
+    [string] $memoryLimit,
     [PSCredential] $credential,
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
@@ -21,7 +21,7 @@ Param(
     $testFolders = @("test", "testapp"),
     [string] $appVersion = "",
     [string] $testResultsFile = "TestResults.xml",
-    [string] $packagesFolder = ".packages",
+    [string] $packagesFolder = "",
     [string] $outputFolder = ".output",
     [string] $artifact = "bcartifacts/sandbox//us/latest",
     [string] $buildArtifactFolder = "",
@@ -33,6 +33,7 @@ Param(
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
     [switch] $keepContainer,
+    [string] $updateLaunchJson = "",
     [switch] $enableCodeCop,
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
@@ -60,15 +61,76 @@ function Get-RandomPassword {
      (randomchar $numbers))
 }
 
+Function UpdateLaunchJson {
+    Param(
+        [string] $launchJsonFile,
+        [string] $configuration,
+        [string] $Name,
+        [string] $Server,
+        [int] $Port = 7049,
+        [string] $ServerInstance = "BC"
+    )
+    
+    $launchSettings = [ordered]@{
+        "type" = 'al';
+        "request" = 'launch';
+        "name" = $configuration; 
+        "server" = "http://$Server"
+        "serverInstance" = $serverInstance
+        "port" = $Port
+        "tenant" = 'default'
+        "authentication" =  'UserPassword'
+    }
+    
+    if (Test-Path $launchJsonFile) {
+        Write-Host "Modifying $launchJsonFile"
+        $launchJson = Get-Content $LaunchJsonFile | ConvertFrom-Json
+        $oldSettings = $launchJson.configurations | Where-Object { $_.name -eq $launchsettings.name }
+        if ($oldSettings) {
+            $oldSettings.PSObject.Properties | % {
+                $prop = $_.Name
+                if (!($launchSettings.Keys | Where-Object { $_ -eq $prop } )) {
+                    $launchSettings += @{ "$prop" = $oldSettings."$prop" }
+                }
+            }
+        }
+        $launchJson.configurations = @($launchJson.configurations | Where-Object { $_.name -ne $launchsettings.name })
+        $launchJson.configurations += $launchSettings
+        $launchJson | ConvertTo-Json -Depth 10 | Set-Content $launchJsonFile
+    }
+}
+
+if ($memoryLimit -eq "")       { $memoryLimit = "6G" }
+
 if ($installApps -is [String]) { $installApps = $installApps.Split(',') | Where-Object { $_ } }
-if ($appFolders -is [String])  { $appFolders  = $appFolders.Split(',')  | Where-Object { $_ } }
+if ($appFolders  -is [String]) { $appFolders  = $appFolders.Split(',')  | Where-Object { $_ } }
 if ($testFolders -is [String]) { $testFolders = $testFolders.Split(',') | Where-Object { $_ } }
 
 $appFolders  = @($appFolders  | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
 if (!$testResultsFile.Contains(':')) { $testResultsFile = Join-Path $baseFolder $testResultsFile }
-if (!$packagesFolder.Contains(':'))  { $packagesFolder  = Join-Path $baseFolder $packagesFolder }
-if (!$outputFolder.Contains(':'))    { $outputFolder    = Join-Path $baseFolder $outputFolder }
+
+if ($useDevEndpoint) {
+    $packagesFolder = ""
+}
+else {
+    if ($packagesFolder -eq "") {
+        $packagesFolder = ".packages"
+    }
+    if (!$packagesFolder.Contains(':')) {
+        $packagesFolder  = Join-Path $baseFolder $packagesFolder
+    }
+    if (Test-Path $packagesFolder) {
+        Remove-Item $packagesFolder -Recurse -Force
+    }
+
+    if (!$outputFolder.Contains(':')) {
+        $outputFolder = Join-Path $baseFolder $outputFolder
+    }
+    if (Test-Path $outputFolder) {
+        Remove-Item $outputFolder -Recurse -Force
+    }
+}
 
 if (!($appFolders)) {
     throw "No app folders found"
@@ -93,14 +155,6 @@ else {
 
 if (!($artifactUrl)) {
     throw "Unable to locate artifacts"
-}
-
-if (Test-Path $packagesFolder) {
-    Remove-Item $packagesFolder -Recurse -Force
-}
-
-if (Test-Path $outputFolder) {
-    Remove-Item $outputFolder -Recurse -Force
 }
 
 if ($buildArtifactFolder) {
@@ -183,6 +237,9 @@ docker pull $genericImageName
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
 
 $error = $null
+$prevProgressPreference = $progressPreference
+$progressPreference = 'SilentlyContinue'
+
 try {
 
 Write-Host -ForegroundColor Yellow @'
@@ -213,6 +270,9 @@ Measure-Command {
         -MemoryLimit $memoryLimit `
         -additionalParameters @("--volume $($baseFolder):c:\sources")
 
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+        $progressPreference = 'SilentlyContinue'
+    }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 
 if (($installApps) -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit) {
@@ -285,14 +345,39 @@ $sortedFolders | ForEach-Object {
         $appJson | ConvertTo-Json -Depth 99 | Set-Content $appJsonFile
     }
 
+    if ($useDevEndpoint) {
+        $appPackagesFolder = Join-Path $folder ".alPackages"
+        $appOutputFolder = $folder
+    }
+    else {
+        $appOutputFolder = $outputFolder
+        $appPackagesFolder = $packagesFolder
+        $compileParams += @{ "CopyAppToSymbolsFolder" = $true }
+    }
+
     $appFile = Compile-AppInBcContainer @compileParams `
         -containerName $containerName `
         -credential $credential `
         -appProjectFolder $folder `
-        -appOutputFolder $outputFolder `
-        -appSymbolsFolder $packagesFolder `
-        -CopyAppToSymbolsFolder `
+        -appOutputFolder $appOutputFolder `
+        -appSymbolsFolder $appPackagesFolder `
         -AzureDevOps:$azureDevOps
+
+    if ($useDevEndpoint) {
+        Publish-BcContainerApp `
+            -containerName $containerName `
+            -credential $credential `
+            -appFile $appFile `
+            -skipVerification `
+            -sync `
+            -install `
+            -useDevEndpoint
+
+        if ($updateLaunchJson) {
+            $launchJsonFile = Join-Path $folder ".vscode\launch.json"
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server $containerName
+        }
+    }
 
     if ($testApp) {
         $testApps += $appFile
@@ -329,6 +414,7 @@ $apps | ForEach-Object {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nSigning apps took $([int]$_.TotalSeconds) seconds" }
 }
 
+if (!$useDevEndpoint) {
 Write-Host -ForegroundColor Yellow @'
 
   _____       _     _ _     _     _                                        
@@ -348,12 +434,12 @@ $apps+$testApps | ForEach-Object {
         -containerName $containerName `
         -credential $credential `
         -appFile $appFile `
-        -skipVerification:($testApps.Contains($appFile) -or !$signApps -or $useDevEndpoint) `
+        -skipVerification:($testApps.Contains($appFile) -or !$signApps) `
         -sync `
-        -install `
-        -useDevEndpoint:$useDevEndpoint
+        -install
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
+}
 
 if (!$doNotRunTests) {
 Remove-Item -Path $testResultsFile -Force -ErrorAction SilentlyContinue
@@ -456,7 +542,9 @@ if ($createRuntimePackages) {
 
 } catch {
     $error = $_
-    $keepContainer = $false
+}
+finally {
+    $progressPreference = $prevProgressPreference
 }
 
 if (!$keepContainer) {
