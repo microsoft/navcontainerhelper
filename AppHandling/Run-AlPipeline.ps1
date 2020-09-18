@@ -298,7 +298,7 @@ Measure-Command {
     }
 
     $installApps | ForEach-Object{
-        # Install dependency    
+        Publish-BcContainerApp -containerName $containerName -credential $credential -appFile $_ -skipVerification -sync -install
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -489,29 +489,48 @@ $destFolder = Join-Path $buildArtifactFolder "Apps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
+$no = 1
 $apps | ForEach-Object {
     $appFile = $_
-    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) to build artifact"
-    Copy-Item -Path $appFile -Destination $destFolder -Force
+    $name = [System.IO.Path]::GetFileName($appFile)
+    Write-Host "Copying $name to build artifact"
+    if ($apps.Count -gt 1) {
+        $name = "$($no.ToString('00')) - $name"
+        $no++
+    }
+    Copy-Item -Path $appFile -Destination (Join-Path $destFolder $name) -Force
 }
 $destFolder = Join-Path $buildArtifactFolder "TestApps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
+$no = 1
 $testApps | ForEach-Object {
     $appFile = $_
-    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) to build artifact"
-    Copy-Item -Path $appFile -Destination $destFolder -Force
+    $name = [System.IO.Path]::GetFileName($appFile)
+    Write-Host "Copying $name to build artifact"
+    if ($testApps.Count -gt 1) {
+        $name = "$($no.ToString('00')) - $name"
+        $no++
+    }
+    Copy-Item -Path $appFile -Destination (Join-Path $destFolder $name) -Force
 }
 if ($createRuntimePackages) {
     $destFolder = Join-Path $buildArtifactFolder "RuntimePackages"
     if (!(Test-Path $destFolder -PathType Container)) {
         New-Item $destFolder -ItemType Directory | Out-Null
     }
+    $no = 1
     $apps | ForEach-Object {
         $appFile = $_
         $tempRuntimeAppFile = "$($appFile.TrimEnd('.app')).runtime.app"
-        $runtimeAppFile = Join-Path $destFolder ([System.IO.Path]::GetFileName($appFile))
+        $name = [System.IO.Path]::GetFileName($appFile)
+        if ($apps.Count -gt 1) {
+            $runtimeAppFile = Join-Path $destFolder "$($no.ToString('00')) - $name"
+        }
+        else {
+            $runtimeAppFile = Join-Path $destFolder $name
+        }
         $folder = $appsFolder[$appFile]
         $appJson = Get-Content -Path (Join-Path $folder "app.json") | ConvertFrom-Json
         Write-Host "Getting Runtime Package for $([System.IO.Path]::GetFileName($appFile))"
