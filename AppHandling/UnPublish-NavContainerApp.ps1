@@ -59,8 +59,11 @@ function UnPublish-BcContainerApp {
         if ($version) {
             $params += @{ 'Version' = $version }
         }
-        if ((Get-NAVAppInfo -ServerInstance $ServerInstance -Name $appName).Scope -eq "Tenant") {
-            $params += @{ 'Tenant' = $tenant }
+        $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $appName)
+        if ([bool]($appInfo.PSObject.Properties.Name -match 'Scope')) {
+            if ($appInfo.Scope -eq "Tenant") {
+                $params += @{ 'Tenant' = $tenant }
+            }
         }
 
         Write-Host "Unpublishing $appName"
