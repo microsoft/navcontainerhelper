@@ -72,40 +72,66 @@ function Publish-BcContainerApp {
     Add-Type -AssemblyName System.Net.Http
     $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
-    $copied = $false
+    $Params = @{
+        "containerName" = $containerName
+        "skipVerification" = $skipVerification
+        "sync" = $sync
+        "install" = $install
+        "tenant" = $tenant
+        "useDevEndpoint" = $useDevEndpoint
+        "language" = $language
+        "replaceDependencies" = $replaceDependencies
+        "ShowMyCode" = $showMyCode
+    }
+    if ($syncMode) { $Params += @{ "SyncMode" = $syncMode } }
+    if ($packageType) { $Params += @{ "packageType" = $packageType } }
+    if ($scope) { $Params += @{ "scope" = $scope } }
+    if ($credential) { $Params += @{ "credential" = $credential } }
+
     if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
         $appUrl = $appFile
-        $appFile = Join-Path $extensionsFolder "$containerName\_$([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0]))"
+        $name = [System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0])
+        $appFile = Join-Path $extensionsFolder "$containerName\_$name"
+        if (Test-Path $appFile) { Remove-Item $appFile }
         (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
-        $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
-        if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
-            Write-Host "Checking dependencies in $appFile"
-            Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
-        }
-        $copied = $true
+
+        Publish-BcContainerApp @Params -appFile $appFile
+
+        Remove-Item $appFile -Force
+        return
     }
-    else {
-        $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
-        if ("$containerAppFile" -eq "" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
-            $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
-            if ($appFile.StartsWith(':')) {
-                Copy-FileFromBCContainer -containerName $containerName -containerPath $appFile.Substring(1) -localPath $sharedAppFile
-                if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
-                    Write-Host "Checking dependencies in $sharedAppFile"
-                    Replace-DependenciesInAppFile -containerName $containerName -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
-                }
-            }
-            elseif ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
-                Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
-            }
-            else {
-                Copy-Item -Path $appFile -Destination $sharedAppFile
-            }
-            $appFile = $sharedAppFile
-            $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
-            $copied = $true
+
+    if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK"){
+        $zipFolder = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
+        Expand-Archive $appFile -DestinationPath $zipFolder -Force
+        Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | % {
+            Publish-BcContainerApp @Params -appFile $_.FullName
         }
+        Remove-Item -Path $zipFolder -Recurse -Force
+        return
+    }
+
+    $copied = $false
+    $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
+    if ("$containerAppFile" -eq "" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
+        $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
+        if ($appFile.StartsWith(':')) {
+            Copy-FileFromBCContainer -containerName $containerName -containerPath $appFile.Substring(1) -localPath $sharedAppFile
+            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+                Write-Host "Checking dependencies in $sharedAppFile"
+                Replace-DependenciesInAppFile -containerName $containerName -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+            }
+        }
+        elseif ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+            Write-Host "Checking dependencies in $appFile"
+            Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+        }
+        else {
+            Copy-Item -Path $appFile -Destination $sharedAppFile
+        }
+        $appFile = $sharedAppFile
+        $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
+        $copied = $true
     }
 
     if ($useDevEndpoint) {

@@ -1,5 +1,7 @@
 1.0.6
 Add 3 new values for Select: Current, NextMinor and NextMajor for selecting artifacts. SasToken needs to be provided for NextMajor and NextMinor
+Publish-BcContainerApp now supports .zip files. All .app files in the .zip file are published in alphabetic order
+Run-AlPipeline to add sequence numbers (dependencies) to apps in artifacts if more than one app is added
 
 1.0.5
 Added PREVIEW function Run-AlPipeline
