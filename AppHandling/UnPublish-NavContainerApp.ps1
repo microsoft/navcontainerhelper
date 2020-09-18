@@ -60,7 +60,7 @@ function UnPublish-BcContainerApp {
             $params += @{ 'Version' = $version }
         }
         $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $appName)
-        if ([bool]($appInfo.PSObject.Properties.Name -match 'Scope')) {
+        if ([bool]($appInfo.PSObject.Properties.Name -eq 'Scope')) {
             if ($appInfo.Scope -eq "Tenant") {
                 $params += @{ 'Tenant' = $tenant }
             }
