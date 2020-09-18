@@ -101,7 +101,7 @@ function Publish-BcContainerApp {
         return
     }
 
-    if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK"){
+    if (!($appFile.StartsWith(':')) -and (Test-Path $appFile) -and ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK")) {
         $zipFolder = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
         Expand-Archive $appFile -DestinationPath $zipFolder -Force
         Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | % {
