@@ -1,12 +1,15 @@
 ---
-name: Issue
+name: DO NOT OPEN A BLANK ISSUE - ALWAYS FOLLOW THIS TEMPLATE
 about: Please follow the template and include as much information as possible. Use
-  Preview to see that your scripts are readable.
+  Preview formatting to see that your scripts are readable, and please do NOT include
+  any passwords or tokens in your issue.
 title: ''
 labels: ''
 assignees: freddydk
 
 ---
+
+PLEASE DO NOT INCLUDE ANY PASSWORDS OR TOKENS IN YOUR ISSUE!!!
 
 **Describe the issue**
 A clear and concise description of what the issue is.
