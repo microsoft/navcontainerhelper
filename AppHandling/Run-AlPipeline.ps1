@@ -19,7 +19,8 @@ Param(
     $installApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
-    [string] $appVersion = "",
+    [string] $appBuild = 0,
+    [string] $appRevision = 0,
     [string] $testResultsFile = "TestResults.xml",
     [string] $packagesFolder = "",
     [string] $outputFolder = ".output",
@@ -203,7 +204,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                "; Write-Host $outputFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Write-Host $buildArtifactFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages       "; Write-Host $createRuntimePackages
-Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion                  "; Write-Host $appVersion
+Write-Host -NoNewLine -ForegroundColor Yellow "AppBuild                    "; Write-Host $appBuild
+Write-Host -NoNewLine -ForegroundColor Yellow "AppRevision                 "; Write-Host $appRevision
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Application folders"
@@ -333,14 +335,12 @@ $sortedFolders | ForEach-Object {
         }
     }
 
-    if ($appVersion) {
-        $version = [System.Version]::Parse($appVersion)
-        Write-Host "Using Version $version"
+    if ($appBuild) {
         $appJsonFile = Join-Path $folder "app.json"
         $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-        if (!($appJson.version.StartsWith("$($version.Major).$($version.Minor)."))) {
-            throw "Major and Minor version of app doesn't match with pipeline"
-        }
+        $appJsonVersion = [System.Version]$appJson.Version
+        $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+        Write-Host "Using Version $version"
         $appJson.version = "$version"
         $appJson | ConvertTo-Json -Depth 99 | Set-Content $appJsonFile
     }
