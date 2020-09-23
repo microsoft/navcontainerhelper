@@ -52,9 +52,9 @@
  .Parameter connectFromHost
   Run the Test Runner PS functions on the host connecting to the public Web BaseUrl to allow web debuggers like fiddler to trace connections
  .Example
-  Run-TestsInBcContainer -contatinerName test -credential $credential
+  Run-TestsInBcContainer -containerName test -credential $credential
  .Example
-  Run-TestsInBcContainer -contatinerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\BcContainerHelper\$containername.results.xml" -AzureDevOps "warning"
+  Run-TestsInBcContainer -containerName $containername -credential $credential -XUnitResultFileName "c:\ProgramData\BcContainerHelper\$containername.results.xml" -AzureDevOps "warning"
 #>
 function Run-TestsInBcContainer {
     Param (
