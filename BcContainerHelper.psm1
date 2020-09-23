@@ -279,5 +279,4 @@ $bccsScriptFolder = $PSScriptRoot
 . (Join-Path $PSScriptRoot "BCCS\Get-BCCSRepository.ps1")
 . (Join-Path $PSScriptRoot "BCCS\Get-BCCSImage.ps1")
 
-. (Join-Path $PSScriptRoot "BCCS\Show-BCCSGUI.ps1")
 . (Join-Path $PSScriptRoot "BCCS\Show-BCCSAssistant.ps1")
