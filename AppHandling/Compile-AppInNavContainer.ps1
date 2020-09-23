@@ -353,6 +353,12 @@ function Compile-AppInNavContainer {
             if (Test-Path -Path (Join-Path -Path $appSymbolsFolder -ChildPath $appName)) {
                 Write-Host "${appName} copied to ${appSymbolsFolder}"
             }
+            Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { 
+                Param($appSymbolsFolder, $appName)   
+                while (-not (Test-Path -Path (Join-Path -Path $appSymbolsFolder -ChildPath $appName))) { 
+                    Start-Sleep -Seconds 1 
+                }
+            } -ArgumentList $containerSymbolsFolder,"$($appName)"
         }
     }
     else {
