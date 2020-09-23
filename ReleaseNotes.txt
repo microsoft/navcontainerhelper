@@ -1,3 +1,7 @@
+1.0.7
+Issue #1299 wait for symbol file to be available in container
+Add parameter AssignPremiumPlan to Run-AlPipeline
+
 1.0.6
 Add 3 new values for Select: Current, NextMinor and NextMajor for selecting artifacts. SasToken needs to be provided for NextMajor and NextMinor
 Publish-BcContainerApp now supports .zip files. All .app files in the .zip file are published in alphabetic order

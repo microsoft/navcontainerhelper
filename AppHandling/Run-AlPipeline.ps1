@@ -11,7 +11,8 @@ Param(
     [string] $licenseFile,
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
-    [Boolean] $enableTaskScheduler = $false,
+    [switch] $enableTaskScheduler,
+    [switch] $assignPremiumPlan,
     [string] $memoryLimit,
     [PSCredential] $credential,
     [string] $codeSignCertPfxFile = "",
@@ -189,6 +190,7 @@ else {
 }
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                 "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler       "; Write-Host $enableTaskScheduler
+Write-Host -NoNewLine -ForegroundColor Yellow "Assign Premium Plan         "; Write-Host $assignPremiumPlan
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework      "; Write-Host $installTestFramework
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries      "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit       "; Write-Host $installPerformanceToolkit
@@ -269,6 +271,7 @@ Measure-Command {
         -updateHosts `
         -licenseFile $licenseFile `
         -EnableTaskScheduler:$enableTaskScheduler `
+        -AssignPremiumPlan:$assignPremiumPlan `
         -MemoryLimit $memoryLimit `
         -additionalParameters @("--volume $($baseFolder):c:\sources")
 

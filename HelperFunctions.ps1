@@ -220,7 +220,7 @@ function TestSasToken {
             if ([DateTime]::Now -gt [DateTime]$se) {
                 Write-Host "ERROR: The sas token provided expired on $(([DateTime]$se).ToString())"
             }
-            elseif ([DateTime]::Now.AddDays(7) -gt [DateTime]$se) {
+            elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
                 $span = ([DateTime]$se).Subtract([DateTime]::Now)
                 Write-Host "WARNING: The sas token provided will expire on $(([DateTime]$se).ToString())"
             }
