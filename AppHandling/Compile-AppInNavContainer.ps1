@@ -426,6 +426,10 @@ function Compile-AppInBcContainer {
             Copy-Item -Path $appFile -Destination $appSymbolsFolder -ErrorAction SilentlyContinue
             if (Test-Path -Path (Join-Path -Path $appSymbolsFolder -ChildPath $appName)) {
                 Write-Host "${appName} copied to ${appSymbolsFolder}"
+                Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder, $appName)
+                    $appFile = Join-Path -Path $appSymbolsFolder -ChildPath $appName
+                    while (-not (Test-Path -Path $appFile)) { Start-Sleep -Seconds 1 }
+                } -ArgumentList $containerSymbolsFolder,"$($appName)"                
             }
         }
     }
