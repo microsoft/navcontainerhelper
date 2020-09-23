@@ -50,7 +50,7 @@ function New-BCCSContainerFromTemplate {
 
     $fullContainerName = $prefix + "-" + $containerName
 
-    Check-NavContainerName -containerName $fullContainerName
+    Check-BcContainerName -containerName $fullContainerName
 
     $template = $jsonData | Where-Object prefix -eq $prefix
 
@@ -92,13 +92,13 @@ function New-BCCSContainerFromTemplate {
 
     try {
         Write-Log "Creating container..."
-        New-NavContainer @params
+        New-BcContainer @params
         if ($template.licenseFile -ne "") {
             Write-Log "Importing license file..."
-            Import-NavContainerLicense -containerName $fullContainerName -licenseFile $template.licenseFile
+            Import-BcContainerLicense -containerName $fullContainerName -licenseFile $template.licenseFile
         }
         Write-Log "Adding fonts to container..."
-        Add-FontsToNavContainer -containerName $fullContainerName 
+        Add-FontsToBcContainer -containerName $fullContainerName 
     }
     catch {
         throw "Could not create $($fullContainerName)"

@@ -158,7 +158,7 @@ function Menu-RemoveTemplate {
 }
 
 function Menu-CreateDesktopShortcut {
-        $module = Join-Path $bccsScriptFolder -ChildPath NavContainerHelper.psm1
+        $module = Join-Path $bccsScriptFolder -ChildPath BcContainerHelper.psm1
         $module = "`'$module`'"
         New-DesktopShortcut -Name "BCCS Assistant" -TargetPath "PowerShell.exe" -Arguments "-NoExit -Command `"& { Import-Module $module; Show-BCCSAssistant }`"" -Shortcuts Desktop -RunAsAdministrator
         Write-Log "Created desktop shortcut 'BCCS Assistant'"
@@ -219,7 +219,7 @@ function Menu-CreateContainerFromDeployFile {
         }
 
         Write-Log "Creating container from assistant..."
-        New-NavContainerFromDeployFile @params
+        New-BcContainerFromDeployFile @params
 }
 
 function Menu-CreateContainer {
@@ -254,7 +254,7 @@ function Menu-UpdateLicense() {
         if ($selection) {
                 $newLicense = Get-OpenFile "Pick new license file to upload" "License files (*.flf)|*.flf" $PSScriptRoot
                 if (Test-Path -path $newLicense) {
-                        Import-NavContainerLicense -containerName $selection.fullName -licenseFile $newLicense
+                        Import-BcContainerLicense -containerName $selection.fullName -licenseFile $newLicense
                 }
                 else {
                         throw "Not a valid license file"
@@ -265,11 +265,11 @@ function Menu-UpdateLicense() {
 function Menu-BackupDatabase() {
         $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to backup its database" -OutputMode Single
         if ($selection) {
-                Backup-NavContainerDatabases -containerName $selection.fullName
+                Backup-BcContainerDatabases -containerName $selection.fullName
 
                 $containerFolder = Join-Path $ExtensionsFolder $selection.fullName
                 $bakFolder = $containerFolder
-                $containerBakFolder = Get-NavContainerPath -containerName $selection.fullName -path $bakFolder -throw
+                $containerBakFolder = Get-BcContainerPath -containerName $selection.fullName -path $bakFolder -throw
                 if (Test-Path -path $containerBakFolder) {
                         Invoke-Item -Path $containerBakFolder
                 }
@@ -294,7 +294,7 @@ function Menu-ChangePWD() {
 function Menu-AddCurrentUser() {
         $selection = GetAllContainersFromDocker | Out-GridView -Title "Select a container to add your User to its NAV/BC service" -OutputMode Single
         if ($selection) {
-                New-NavContainerNavUser -WindowsAccount $env:USERNAME -containerName $selection.FullName -PermissionSetId SUPER 
+                New-BcContainerNavUser -WindowsAccount $env:USERNAME -containerName $selection.FullName -PermissionSetId SUPER 
                 Write-Log "Added user $env:USERNAME to $($selection.FullName)!"
         }       
 }

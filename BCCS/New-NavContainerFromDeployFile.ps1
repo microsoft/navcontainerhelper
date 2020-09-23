@@ -14,12 +14,12 @@
  .Parameter auth
   Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use (defaults to NavUserPassword)
  .Example
-  New-NavContainerFromDeployFile -file "C:\temp\git\project\.docker\deploy.json" -containerSuffix DEV
+  New-BcContainerFromDeployFile -file "C:\temp\git\project\.docker\deploy.json" -containerSuffix DEV
  .Example
-  New-NavContainerFromDeployFile -file "C:\temp\git\project\.docker\deploy.json" -containerSuffix DEV -auth Windows -databaseBackup "C:\Workspace\backup.bak"
+  New-BcContainerFromDeployFile -file "C:\temp\git\project\.docker\deploy.json" -containerSuffix DEV -auth Windows -databaseBackup "C:\Workspace\backup.bak"
 #>
 
-function New-NavContainerFromDeployFile {
+function New-BcContainerFromDeployFile {
     Param (
         [Parameter(mandatory = $true, ValueFromPipeline = $true)]
         [string] $file,
@@ -89,7 +89,7 @@ function New-NavContainerFromDeployFile {
 
     $fullContainerName = $deploy_Prefix + "-" + $containerSuffix
 
-    # Check-NavContainerName -containerName $fullContainerName
+    Check-BcContainerName -containerName $fullContainerName
 
     $params = @{
         'containerName'            = $fullContainerName;
@@ -131,12 +131,12 @@ function New-NavContainerFromDeployFile {
         $startDTM = (Get-Date)
         $totalErrorCount = 0
         Write-Log "Creating container $($fullContainerName)..."
-        New-NavContainer @params
+        New-BcContainer @params
         if ($licenseFile -ne "") {
             Write-Log "Importing license file..."
             try {
                 $errorCount = 0
-                Import-NavContainerLicense -containerName $fullContainerName -licenseFile $licenseFile
+                Import-BcContainerLicense -containerName $fullContainerName -licenseFile $licenseFile
                 Write-Log "Import of license file $licenseFile finished."
             }
             catch {
@@ -155,7 +155,7 @@ function New-NavContainerFromDeployFile {
                 $appFilesSelected | ForEach-Object { 
                     try {
                         $current = $_
-                        Publish-NavContainerApp -containerName $fullContainerName -appFile $_ -skipVerification 
+                        Publish-BcContainerApp -containerName $fullContainerName -appFile $_ -skipVerification 
                         Write-Log "Import of app file $_ finished."
                     }
                     catch {
@@ -181,7 +181,7 @@ function New-NavContainerFromDeployFile {
                 $rapidstartFiles | ForEach-Object { 
                     try {
                         $current = $_
-                        Import-ConfigPackageInNavContainer -containerName $fullContainerName -configPackage $_ 
+                        Import-ConfigPackageInBcContainer -containerName $fullContainerName -configPackage $_ 
                         Write-Log "Import of configuration package $_ finished."
                     }
                     catch {
@@ -207,7 +207,7 @@ function New-NavContainerFromDeployFile {
                 $fontFiles | ForEach-Object {
                     try {
                         $current = $_
-                        Add-FontsToNavContainer -containerName $fullContainerName -path $_ 
+                        Add-FontsToBcContainer -containerName $fullContainerName -path $_ 
                         Write-Log "Import of font $_ finished."
                     }
                     catch {
@@ -240,4 +240,4 @@ function New-NavContainerFromDeployFile {
     }
 }
 
-Export-ModuleMember -Function New-NavContainerFromDeployFile
+Export-ModuleMember -Function New-BcContainerFromDeployFile
