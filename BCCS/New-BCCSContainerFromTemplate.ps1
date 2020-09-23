@@ -54,6 +54,8 @@ function New-BCCSContainerFromTemplate {
 
     $template = $jsonData | Where-Object prefix -eq $prefix
 
+    
+
     $params = @{
         'containerName'            = $fullContainerName;
         'imageName'                = $template.imageName;
@@ -70,6 +72,17 @@ function New-BCCSContainerFromTemplate {
         'enableSymbolLoading'      = $true;
         'isolation'                = 'hyperv';
 		'memoryLimit'              = '8G';
+    }
+
+    if (IsURL $imageName) {
+        Write-Log "Image Name = Image. Using Image."
+        $params += @{'imageName' = $imageName }
+    }
+    else {
+        Write-Log "Image Name = Artifact String. Finding Artifact URL..."
+        $artifactUrl = GetArtifactURLFromString $imageName
+        Write-Log "Found Artifact Url: $($artifactUrl)"
+        $params += @{'artifactUrl' = $artifactUrl }
     }
 
     if ($template.auth -match "UserPassword") {
