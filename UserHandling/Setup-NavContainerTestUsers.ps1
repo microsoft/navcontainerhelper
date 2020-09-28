@@ -75,7 +75,7 @@ function Setup-BcContainerTestUsers {
         $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
         if (([System.Version]$version).Major -ge 15) {
 
-            $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName | Where-Object { $_.Name -eq "System Application Test Library" }
+            $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName -tenant $tenant | Where-Object { $_.Name -eq "System Application Test Library" }
             if (!($systemAppTestLibrary)) {
                 $testAppFile = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                     $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
@@ -90,7 +90,7 @@ function Setup-BcContainerTestUsers {
                     get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_System Application Test Library.app"
                 }
                 if ($testAppFile) {
-                    Publish-BcContainerApp -containerName $containerName -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
+                    Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
@@ -105,7 +105,7 @@ function Setup-BcContainerTestUsers {
         }
 
         Download-File -sourceUrl $createTestUsersAppUrl -destinationFile $appfile
-        Publish-BcContainerApp -containerName $containerName -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
+        Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
 
         $companyId = Get-BcContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
 
@@ -115,9 +115,9 @@ function Setup-BcContainerTestUsers {
         }
         Invoke-BcContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
 
-        UnPublish-BcContainerApp -containerName $containerName -appName "CreateTestUsers" -unInstall
+        UnPublish-BcContainerApp -containerName $containerName -appName "CreateTestUsers" -tenant $tenant -unInstall
         if ((([System.Version]$version).Major -ge 15) -and (!($systemAppTestLibrary))) {
-            UnPublish-BcContainerApp -containerName $containerName -appName "System Application Test Library" -unInstall
+            UnPublish-BcContainerApp -containerName $containerName -appName "System Application Test Library" -tenant $tenant -unInstall
         }
     }
 }

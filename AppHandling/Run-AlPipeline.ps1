@@ -13,6 +13,9 @@ Param(
     [string] $imageName = 'my',
     [switch] $enableTaskScheduler,
     [switch] $assignPremiumPlan,
+    [Parameter(Mandatory=$false)]
+    [ValidateSet('None','All','Essential','Premium')]
+    [string] $tenant = "default",
     [string] $memoryLimit,
     [PSCredential] $credential,
     [string] $codeSignCertPfxFile = "",
@@ -39,7 +42,15 @@ Param(
     [switch] $enableCodeCop,
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
-    [switch] $enablePerTenantExtensionCop
+    [switch] $enablePerTenantExtensionCop,
+    [scriptblock] $DockerPull,
+    [scriptblock] $NewBcContainer,
+    [scriptblock] $CompileAppInBcContainer,
+    [scriptblock] $PublishBcContainerApp,
+    [scriptblock] $SignBcContainerApp,
+    [scriptblock] $RunTestsInBcContainer,
+    [scriptblock] $GetBcContainerAppRuntimePackage,
+    [scriptblock] $RemoveBcContainer
 )
 
 function randomchar([string]$str)
@@ -70,7 +81,8 @@ Function UpdateLaunchJson {
         [string] $Name,
         [string] $Server,
         [int] $Port = 7049,
-        [string] $ServerInstance = "BC"
+        [string] $ServerInstance = "BC",
+        [string] $tenant = "default"
     )
     
     $launchSettings = [ordered]@{
@@ -80,7 +92,7 @@ Function UpdateLaunchJson {
         "server" = "http://$Server"
         "serverInstance" = $serverInstance
         "port" = $Port
-        "tenant" = 'default'
+        "tenant" = $tenant
         "authentication" =  'UserPassword'
     }
     
@@ -215,6 +227,55 @@ if ($appFolders) { $appFolders | ForEach-Object { Write-Host "- $_" } }  else { 
 Write-Host -ForegroundColor Yellow "Test application folders"
 if ($testFolders) { $testFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
+if ($DockerPull) {
+    Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
+}
+else {
+    $DockerPull = { Param($imageName) docker pull $imageName }
+}
+if ($NewBcContainer) {
+    Write-Host -ForegroundColor Yellow "NewBccontainer override"; Write-Host $NewBcContainer.ToString()
+}
+else {
+    $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
+}
+if ($CompileAppInBcContainer) {
+    Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
+}
+else {
+    $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
+}
+if ($PublishBcContainerApp) {
+    Write-Host -ForegroundColor Yellow "PublishBcContainerApp override"; Write-Host $PublishBcContainerApp.ToString()
+}
+else {
+    $PublishBcContainerApp = { Param([Hashtable]$parameters) Publish-BcContainerApp @parameters }
+}
+if ($SignBcContainerApp) {
+    Write-Host -ForegroundColor Yellow "SignBcContainerApp override"; Write-Host $SignBcContainerApp.ToString()
+}
+else {
+    $SignBcContainerApp = { Param([Hashtable]$parameters) Sign-BcContainerApp @parameters }
+}
+if ($RunTestsInBcContainer) {
+    Write-Host -ForegroundColor Yellow "RunTestsInBcContainer override"; Write-Host $RunTestsInBcContainer.ToString()
+}
+else {
+    $RunTestsInBcContainer = { Param([Hashtable]$parameters) Run-TestsInBcContainer @parameters }
+}
+if ($GetBcContainerAppRuntimePackage) {
+    Write-Host -ForegroundColor Yellow "GetBcContainerAppRuntimePackage override"; Write-Host $GetBcContainerAppRuntimePackage.ToString()
+}
+else {
+    $GetBcContainerAppRuntimePackage = { Param([Hashtable]$parameters) Get-BcContainerAppRuntimePackage @parameters }
+}
+if ($RemoveBcContainer) {
+    Write-Host -ForegroundColor Yellow "RemoveBcContainer override"; Write-Host $RemoveBcContainer.ToString()
+}
+else {
+    $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
+}
+
 $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
@@ -236,7 +297,8 @@ Write-Host -ForegroundColor Yellow @'
 
 $genericImageName = Get-BestGenericImageName
 Write-Host "Pulling $genericImageName"
-docker pull $genericImageName
+
+Invoke-Command -ScriptBlock $DockerPull -ArgumentList $genericImageName
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
 
@@ -260,27 +322,76 @@ Write-Host -ForegroundColor Yellow @'
 '@
 
 Measure-Command {
-
-    New-BcContainer `
-        -accept_eula `
-        -containerName $containerName `
-        -imageName $imageName `
-        -artifactUrl $artifactUrl `
-        -Credential $credential `
-        -auth UserPassword `
-        -updateHosts `
-        -licenseFile $licenseFile `
-        -EnableTaskScheduler:$enableTaskScheduler `
-        -AssignPremiumPlan:$assignPremiumPlan `
-        -MemoryLimit $memoryLimit `
-        -additionalParameters @("--volume $($baseFolder):c:\sources")
-
-    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-        $progressPreference = 'SilentlyContinue'
+    
+    $Parameters = @{
+        "accept_eula" = $true
+        "containerName" = $containerName
+        "imageName" = $imageName
+        "artifactUrl" = $artifactUrl
+        "Credential" = $credential
+        "auth" = 'UserPassword'
+        "updateHosts" = $true
+        "licenseFile" = $licenseFile
+        "EnableTaskScheduler" = $enableTaskScheduler
+        "AssignPremiumPlan" = $assignPremiumPlan
+        "MemoryLimit" = $memoryLimit
+        "additionalParameters" = @("--volume $($baseFolder):c:\sources")
     }
+
+    if ($installTestLibraries) {
+        $Parameters += @{
+            "includeTestToolkit" = $true
+            "doNotUseRuntimePackages" = $true
+            "includeTestLibrariesOnly" = $true
+            "includePerformanceToolkit" = $installPerformanceToolkit
+        }
+    }
+    elseif ($installTestFramework -or $installPerformanceToolkit) {
+        $Parameters += @{
+            "includeTestToolkit" = $true
+            "doNotUseRuntimePackages" = $true
+            "includeTestFrameworkOnly" = $true
+            "includePerformanceToolkit" = $installPerformanceToolkit
+        }
+    }
+
+    Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
+
+    if ($tenant -ne 'default' -and -not (Get-NavContainerTenants -containerName $containerName | Where-Object { $_.id -eq "default" })) {
+
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenantId" = $tenant
+        }
+        New-BcContainerTenant @Parameters
+
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "permissionsetId" = "SUPER"
+            "ChangePasswordAtNextLogOn" = $false
+            "assignPremiumPlan" = $assignPremiumPlan            
+        }
+        New-BcContainerBcUser @Parameters
+
+        $tenantApps = Get-NavContainerAppInfo -containerName $containerName -tenant $tenant -tenantSpecificProperties -sort DependenciesFirst
+        Get-NavContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | % {
+            $name = $_.Name
+            $version = $_.Version
+            $tenantApp = $tenantApps | Where-Object { $_.Name -eq $name -and $_.Version -eq $version }
+            if ($tenantApp.SyncState -eq "NotSynced" -or $tenantApp.SyncState -eq 3) {
+                Sync-NavContainerApp -containerName $containerName -tenant $tenant -appName $Name -appVersion $Version -Mode ForceSync -Force
+            }
+            if (-not $tenantApp.IsInstalled) {
+                Install-NavContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
+            }
+        }
+    }
+
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 
-if (($installApps) -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit) {
+if ($installApps) {
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _                                     
@@ -295,15 +406,17 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    if ($installTestLibraries) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestLibrariesOnly -includePerformanceToolkit:$installPerformanceToolkit -doNotUseRuntimePackages
-    }
-    elseif ($installTestFramework -or $installPerformanceToolkit) {
-        Import-TestToolkitToBcContainer -containerName $containerName -credential $credential -includeTestFrameworkOnly -includePerformanceToolkit:$installPerformanceToolkit -doNotUseRuntimePackages
-    }
-
     $installApps | ForEach-Object{
-        Publish-BcContainerApp -containerName $containerName -credential $credential -appFile $_ -skipVerification -sync -install
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $_
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+        }
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -328,9 +441,9 @@ $testApps = @()
 $sortedFolders | ForEach-Object {
     $folder = $_
     $testApp = $testFolders.Contains($folder)
-    $compileParams = @{ }
+    $Parameters = @{ }
     if (-not $testApp) {
-        $compileParams += @{ 
+        $Parameters += @{ 
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
             "EnableUICop" = $enableUICop
@@ -355,30 +468,39 @@ $sortedFolders | ForEach-Object {
     else {
         $appOutputFolder = $outputFolder
         $appPackagesFolder = $packagesFolder
-        $compileParams += @{ "CopyAppToSymbolsFolder" = $true }
+        $Parameters += @{ "CopyAppToSymbolsFolder" = $true }
     }
 
-    $appFile = Compile-AppInBcContainer @compileParams `
-        -containerName $containerName `
-        -credential $credential `
-        -appProjectFolder $folder `
-        -appOutputFolder $appOutputFolder `
-        -appSymbolsFolder $appPackagesFolder `
-        -AzureDevOps:$azureDevOps
+    $Parameters += @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+        "credential" = $credential
+        "appProjectFolder" = $folder
+        "appOutputFolder" = $appOutputFolder
+        "appSymbolsFolder" = $appPackagesFolder
+        "AzureDevOps" = $azureDevOps
+    }
+
+    $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
 
     if ($useDevEndpoint) {
-        Publish-BcContainerApp `
-            -containerName $containerName `
-            -credential $credential `
-            -appFile $appFile `
-            -skipVerification `
-            -sync `
-            -install `
-            -useDevEndpoint
+
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $appFile
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+            "useDevEndpoint" = $true
+        }
+
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 
         if ($updateLaunchJson) {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
-            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server $containerName
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server $containerName -tenant $tenant
         }
     }
 
@@ -407,12 +529,16 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 $apps | ForEach-Object {
-    $appFile = $_
-    Sign-BcContainerApp `
-        -containerName $containerName `
-        -appFile $appFile `
-        -pfxFile $codeSignPfxFile `
-        -pfxPassword $codeSignPfxPassword
+
+    $Parameters = @{
+        "containerName" = $containerName
+        "appFile" = $_
+        "pfxFile" = $codeSignPfxFile
+        "pfxPassword" = $codeSignPfxPassword
+    }
+
+    Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
+
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nSigning apps took $([int]$_.TotalSeconds) seconds" }
 }
@@ -432,14 +558,18 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 $apps+$testApps | ForEach-Object {
-    $appFile = $_
-    Publish-BcContainerApp `
-        -containerName $containerName `
-        -credential $credential `
-        -appFile $appFile `
-        -skipVerification:($testApps.Contains($appFile) -or !$signApps) `
-        -sync `
-        -install
+
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+        "credential" = $credential
+        "appFile" = $_
+        "skipVerification" = ($testApps.Contains($appFile) -or !$signApps)
+        "sync" = $true
+        "install" = $true
+    }
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
 }
@@ -462,13 +592,19 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 $testFolders | ForEach-Object {
     $appJson = Get-Content -Path (Join-Path $_ "app.json") | ConvertFrom-Json
-    Run-TestsInBcContainer `
-        -containerName $containerName `
-        -credential $credential `
-        -extensionId $appJson.id `
-        -AzureDevOps "$(if($azureDevOps){'error'}else{'no'})" `
-        -XUnitResultFileName $testResultsFile `
-        -AppendToXUnitResultFile
+
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+        "credential" = $credential
+        "extensionId" = $appJson.id
+        "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
+        "XUnitResultFileName" = $testResultsFile
+        "AppendToXUnitResultFile" = $true
+    }
+
+    Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters
+
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
 }
@@ -537,20 +673,28 @@ if ($createRuntimePackages) {
         $folder = $appsFolder[$appFile]
         $appJson = Get-Content -Path (Join-Path $folder "app.json") | ConvertFrom-Json
         Write-Host "Getting Runtime Package for $([System.IO.Path]::GetFileName($appFile))"
-        Get-NavContainerAppRuntimePackage `
-            -containerName $containerName `
-            -appName $appJson.name `
-            -appVersion $appJson.Version `
-            -publisher $appJson.Publisher `
-            -appFile $tempRuntimeAppFile
+
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "appName" = $appJson.name
+            "appVersion" = $appJson.Version
+            "publisher" = $appJson.Publisher
+            "appFile" = $tempRuntimeAppFile
+        }
+
+        Invoke-Command -ScriptBlock $GetBcContainerAppRuntimePackage -ArgumentList $Parameters
 
         if ($signApps) {
             Write-Host "Signing runtime package"
-            Sign-BcContainerApp `
-                -containerName $containerName `
-                -appFile $tempRuntimeAppFile `
-                -pfxFile $codeSignPfxFile `
-                -pfxPassword $codeSignPfxPassword
+            $Parameters = @{
+                "containerName" = $containerName
+                "appFile" = $tempRuntimeAppFile
+                "pfxFile" = $codeSignPfxFile
+                "pfxPassword" = $codeSignPfxPassword
+            }
+            
+            Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
         }
 
         Write-Host "Copying runtime package to build artifact"
@@ -583,8 +727,12 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
-Remove-BcContainer `
-    -containerName $containerName
+
+    $Parameters = @{
+        "containerName" = $containerName
+    }
+    Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
+   
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
 
 }
