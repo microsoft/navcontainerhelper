@@ -533,8 +533,8 @@ $apps | ForEach-Object {
     $Parameters = @{
         "containerName" = $containerName
         "appFile" = $_
-        "pfxFile" = $codeSignPfxFile
-        "pfxPassword" = $codeSignPfxPassword
+        "pfxFile" = $codeSignCertPfxFile
+        "pfxPassword" = $codeSignCertPfxPassword
     }
 
     Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
@@ -690,8 +690,8 @@ if ($createRuntimePackages) {
             $Parameters = @{
                 "containerName" = $containerName
                 "appFile" = $tempRuntimeAppFile
-                "pfxFile" = $codeSignPfxFile
-                "pfxPassword" = $codeSignPfxPassword
+                "pfxFile" = $codeSignCertPfxFile
+                "pfxPassword" = $codeSignCertPfxPassword
             }
             
             Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
