@@ -1,6 +1,10 @@
 1.0.7
 Issue #1299 wait for symbol file to be available in container
 Add parameter AssignPremiumPlan to Run-AlPipeline
+Support reading defaultNewContainerParameters from config file
+Add tenant to Run-AlPipeline to allow running the pipeline in a tenant
+Add ability to override functions
+Addiional fixes to Run-AlPipeline
 
 1.0.6
 Add 3 new values for Select: Current, NextMinor and NextMajor for selecting artifacts. SasToken needs to be provided for NextMajor and NextMinor
