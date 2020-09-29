@@ -1976,7 +1976,7 @@ if (-not `$restartingInstance) {
                     new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
                 }
             }
-        } -argumentList $dotnetAssembliesFolder
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
     }
 
     if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
