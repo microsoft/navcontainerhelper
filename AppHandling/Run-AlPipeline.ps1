@@ -80,22 +80,22 @@ Function UpdateLaunchJson {
         [string] $configuration,
         [string] $Name,
         [string] $Server,
-        [int] $Port = 7049,
-        [string] $ServerInstance = "BC",
-        [string] $tenant = "default"
+        [int] $Port,
+        [string] $ServerInstance,
+        [string] $tenant
     )
     
     $launchSettings = [ordered]@{
         "type" = 'al';
         "request" = 'launch';
         "name" = $configuration; 
-        "server" = "http://$Server"
+        "server" = $Server
         "serverInstance" = $serverInstance
         "port" = $Port
         "tenant" = $tenant
         "authentication" =  'UserPassword'
     }
-    
+
     if (Test-Path $launchJsonFile) {
         Write-Host "Modifying $launchJsonFile"
         $launchJson = Get-Content $LaunchJsonFile | ConvertFrom-Json
@@ -500,7 +500,9 @@ $sortedFolders | ForEach-Object {
 
         if ($updateLaunchJson) {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
-            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server $containerName -tenant $tenant
+            $config = Get-BcContainerServerConfiguration $containerName
+            $webUri = [Uri]::new($config.PublicWebBaseUrl)
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server "$($webUri.Scheme)//$($webUri.Authority))" -Port $config.DeveloperServicesPort -ServerInstance $webUri.AbsolutePath.Trim('/') -tenant $tenant
         }
     }
 
