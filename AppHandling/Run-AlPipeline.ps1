@@ -506,7 +506,7 @@ $sortedFolders | ForEach-Object {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
             $config = Get-BcContainerServerConfiguration $containerName
             $webUri = [Uri]::new($config.PublicWebBaseUrl)
-            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server "$($webUri.Scheme)//$($webUri.Authority))" -Port $config.DeveloperServicesPort -ServerInstance $webUri.AbsolutePath.Trim('/') -tenant $tenant
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server "$($webUri.Scheme)://$($webUri.Authority)" -Port $config.DeveloperServicesPort -ServerInstance $webUri.AbsolutePath.Trim('/') -tenant $tenant
         }
     }
 
