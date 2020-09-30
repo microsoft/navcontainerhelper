@@ -624,6 +624,9 @@ $testFolders | ForEach-Object {
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
 }
+if ($buildArtifactFolder -and (Test-Path $testResultsFile)) {
+    Copy-Item -Path $testResultsFile -Destination $buildArtifactFolder -Force
+} 
 }
 
 if ($buildArtifactFolder) {
