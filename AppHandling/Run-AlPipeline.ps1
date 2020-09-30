@@ -506,7 +506,7 @@ $sortedFolders | ForEach-Object {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
             $config = Get-BcContainerServerConfiguration $containerName
             $webUri = [Uri]::new($config.PublicWebBaseUrl)
-            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server "$($webUri.Scheme)//$($webUri.Authority))" -Port $config.DeveloperServicesPort -ServerInstance $webUri.AbsolutePath.Trim('/') -tenant $tenant
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server "$($webUri.Scheme)://$($webUri.Authority)" -Port $config.DeveloperServicesPort -ServerInstance $webUri.AbsolutePath.Trim('/') -tenant $tenant
         }
     }
 
@@ -624,6 +624,9 @@ $testFolders | ForEach-Object {
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
 }
+if ($buildArtifactFolder -and (Test-Path $testResultsFile)) {
+    Copy-Item -Path $testResultsFile -Destination $buildArtifactFolder -Force
+} 
 }
 
 if ($buildArtifactFolder) {
