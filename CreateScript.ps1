@@ -994,7 +994,8 @@ $Step.License {
         -description $description `
         -question "License File" `
         -default $default `
-        -previousStep
+        -previousStep `
+        -doNotConvertToLower
     if ($script:wizardStep -eq $script:thisStep+1) {
         $script:prevSteps.Push($script:thisStep)
     }

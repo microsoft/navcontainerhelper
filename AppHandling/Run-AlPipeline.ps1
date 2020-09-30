@@ -26,6 +26,9 @@ Param(
     [int] $appBuild = 0,
     [int] $appRevision = 0,
     [string] $testResultsFile = "TestResults.xml",
+    [Parameter(Mandatory=$false)]
+    [ValidateSet('XUnit','JUnit')]
+    [string] $testResultsFormat = "XUnit",
     [string] $packagesFolder = "",
     [string] $outputFolder = ".output",
     [string] $artifact = "bcartifacts/sandbox//us/latest",
@@ -214,6 +217,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                 "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
+Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat           "; Write-Host $testResultsFormat
 Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Write-Host $packagesFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                "; Write-Host $outputFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Write-Host $buildArtifactFolder
@@ -601,8 +605,18 @@ $testFolders | ForEach-Object {
         "credential" = $credential
         "extensionId" = $appJson.id
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
-        "XUnitResultFileName" = $testResultsFile
-        "AppendToXUnitResultFile" = $true
+    }
+    if ($testResultsFormat -eq "XUnit") {
+        $Parameters += @{
+            "XUnitResultFileName" = $testResultsFile
+            "AppendToXUnitResultFile" = $true
+        }
+    }
+    else {
+        $Parameters += @{
+            "JUnitResultFileName" = $testResultsFile
+            "AppendToJUnitResultFile" = $true
+        }
     }
 
     Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters
