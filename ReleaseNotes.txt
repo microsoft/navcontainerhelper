@@ -7,6 +7,8 @@ Add ability to override functions
 Addiional fixes to Run-AlPipeline
 Issue #1313 -includeAL fails when using a hostHelperFolder, which is different from the containerhelperfolder
 Issue #1316 New-BcContainerWizard converts license file url to lowercase
+Add support for JUnit to Run-Tests
+Add parameter testResultsFormat to Run-AlPipeline
 
 1.0.6
 Add 3 new values for Select: Current, NextMinor and NextMajor for selecting artifacts. SasToken needs to be provided for NextMajor and NextMinor

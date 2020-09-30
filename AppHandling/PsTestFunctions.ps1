@@ -282,6 +282,8 @@ function Run-Tests {
         [switch] $debugMode,
         [string] $XUnitResultFileName = "",
         [switch] $AppendToXUnitResultFile,
+        [string] $JUnitResultFileName = "",
+        [switch] $AppendToJUnitResultFile,
         [switch] $ReRun,
         [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no'
@@ -346,6 +348,28 @@ function Run-Tests {
             $XUnitDoc.AppendChild($XUnitAssemblies) | Out-Null
         }
     }
+    if ($JUnitResultFileName) {
+        if (($Rerun -or $AppendToJUnitResultFile) -and (Test-Path $JUnitResultFileName)) {
+            [xml]$JUnitDoc = Get-Content $JUnitResultFileName
+
+            $JUnitTestSuites = $JUnitDoc.testsuites
+            if (-not $JUnitTestSuites) {
+                [xml]$JUnitDoc = New-Object System.Xml.XmlDocument
+                $JUnitDoc.AppendChild($JUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
+                $JUnitTestSuites = $JUnitDoc.CreateElement("testsuites")
+                $JUnitDoc.AppendChild($JUnitTestSuites) | Out-Null
+            }
+        }
+        else {
+            if (Test-Path $JUnitResultFileName -PathType Leaf) {
+                Remove-Item $JUnitResultFileName -Force
+            }
+            [xml]$JUnitDoc = New-Object System.Xml.XmlDocument
+            $JUnitDoc.AppendChild($JUnitDoc.CreateXmlDeclaration("1.0","UTF-8",$null)) | Out-Null
+            $JUnitTestSuites = $JUnitDoc.CreateElement("testsuites")
+            $JUnitDoc.AppendChild($JUnitTestSuites) | Out-Null
+        }
+    }
 
     if ($testPage -eq 130455 -and $testCodeunit -eq "*" -and $testFunction -eq "*" -and $testGroup -eq "*" -and "$extensionId" -ne "") {
 
@@ -378,14 +402,13 @@ function Run-Tests {
         
             Write-Host -NoNewline "  Codeunit $($result.codeUnit) $($result.name) "
 
-            if ($ReRun) {
-                $LastResult = $XUnitDoc.assemblies.ChildNodes | Where-Object { $_.name -eq "$($result.codeUnit) $($result.name)" }
-                if ($LastResult) {
-                    $XUnitDoc.assemblies.RemoveChild($LastResult) | Out-Null
-                }
-            }
-
             if ($XUnitResultFileName) {        
+                if ($ReRun) {
+                    $LastResult = $XUnitDoc.assemblies.ChildNodes | Where-Object { $_.name -eq "$($result.codeUnit) $($result.name)" }
+                    if ($LastResult) {
+                        $XUnitDoc.assemblies.RemoveChild($LastResult) | Out-Null
+                    }
+                }
                 $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
                 $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
@@ -396,6 +419,21 @@ function Run-Tests {
                 $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
                 $XUnitCollection.SetAttribute("name", $result.name)
                 $XUnitCollection.SetAttribute("total", $result.testResults.Count)
+            }
+            if ($JUnitResultFileName) {        
+                if ($ReRun) {
+                    $LastResult = $JUnitDoc.testsuites.ChildNodes | Where-Object { $_.name -eq "$($result.codeUnit) $($result.name)" }
+                    if ($LastResult) {
+                        $JUnitDoc.testsuites.RemoveChild($LastResult) | Out-Null
+                    }
+                }
+                $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
+                $JUnitTestSuite.SetAttribute("name","$($result.codeUnit) $($result.name)")
+                $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
+                $JUnitTestSuite.SetAttribute("hostname", (hostname))
+
+                $JUnitTestSuite.SetAttribute("time", 0)
+                $JUnitTestSuite.SetAttribute("tests", $result.testResults.Count)
             }
         
             $totalduration = [Timespan]::Zero
@@ -435,6 +473,17 @@ function Run-Tests {
                         $XUnitTest.SetAttribute("name", $XUnitCollection.GetAttribute("name")+':'+$_.method)
                         $XUnitTest.SetAttribute("method", $_.method)
                         $XUnitTest.SetAttribute("time", [Math]::Round($testduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                    }
+                    if ($JUnitResultFileName) {
+                        if ($JUnitTestSuite.ParentNode -eq $null) {
+                            $JUnitTestSuites.AppendChild($JUnitTestSuite) | Out-Null
+                        }
+            
+                        $JUnitTestCase = $JUnitDoc.CreateElement("testcase")
+                        $JUnitTestSuite.AppendChild($JUnitTestCase) | Out-Null
+                        $JUnitTestCase.SetAttribute("classname", $JUnitTestSuite.GetAttribute("name"))
+                        $JUnitTestCase.SetAttribute("name", $_.method)
+                        $JUnitTestCase.SetAttribute("time", [Math]::Round($testduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                     }
                     if ($_.result -eq 2) {
                         if ($detailed) {
@@ -476,6 +525,12 @@ function Run-Tests {
                             $XUnitFailure.AppendChild($XUnitStacktrace) | Out-Null
                             $XUnitTest.AppendChild($XUnitFailure) | Out-Null
                         }
+                        if ($JUnitResultFileName) {
+                            $JUnitFailure = $JUnitDoc.CreateElement("failure")
+                            $JUnitFailure.SetAttribute("message", $_.message)
+                            $JUnitFailure.InnerText = $_.stacktrace.Replace(";","`n")
+                            $JUnitTestCase.AppendChild($JUnitFailure) | Out-Null
+                        }
                     }
                     else {
                         if ($detailed) {
@@ -484,6 +539,10 @@ function Run-Tests {
             
                         if ($XUnitResultFileName) {
                             $XUnitTest.SetAttribute("result", "Skip")
+                        }
+                        if ($JUnitResultFileName) {
+                            $JUnitSkipped = $JUnitDoc.CreateElement("skipped")
+                            $JUnitTestCase.AppendChild($JUnitSkipped) | Out-Null
                         }
                         $skipped++
                     }
@@ -500,6 +559,12 @@ function Run-Tests {
                 $XUnitCollection.SetAttribute("failed", $failed)
                 $XUnitCollection.SetAttribute("skipped", $skipped)
                 $XUnitCollection.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+            }
+            if ($JUnitResultFileName) {
+                $JUnitTestSuite.SetAttribute("errors", 0)
+                $JUnitTestSuite.SetAttribute("failures", $failed)
+                $JUnitTestSuite.SetAttribute("skipped", $skipped)
+                $JUnitTestSuite.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
             }
         }
 
@@ -711,6 +776,23 @@ function Run-Tests {
                             $XUnitCollection.SetAttribute("skipped",0)
                             $XUnitCollection.SetAttribute("time", "0")
                         }
+                        if ($JUnitResultFileName) {
+                            if ($ReRun) {
+                                $LastResult = $JUnitDoc.testsuites.ChildNodes | Where-Object { $_.name -eq "$codeunitId $Name" }
+                                if ($LastResult) {
+                                    $JUnitDoc.testsuites.RemoveChild($LastResult) | Out-Null
+                                }
+                            }
+                            $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
+                            $JUnitTestSuite.SetAttribute("name","$codeunitId $Name")
+                            $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
+                            $JUnitTestSuite.SetAttribute("hostname", (hostname))
+                            $JUnitTestSuite.SetAttribute("time", 0)
+                            $JUnitTestSuite.SetAttribute("tests", 0)
+                            $JUnitTestSuite.SetAttribute("failures", 0)
+                            $JUnitTestSuite.SetAttribute("errors", 0)
+                            $JUnitTestSuite.SetAttribute("skipped", 0)
+                        }
                     }
                     "2" {
                         if ($testFunction -ne "*") {
@@ -749,6 +831,18 @@ function Run-Tests {
                             $XUnitTest.SetAttribute("method", $Name)
                             $XUnitTest.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
                         }
+                        if ($JUnitResultFileName) {
+                            if ($JUnitTestSuite.ParentNode -eq $null) {
+                                $JUnitTestSuites.AppendChild($JUnitTestSuite) | Out-Null
+                            }
+                            $JUnitTestSuite.SetAttribute("time",([Math]::Round($totalduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                            $JUnitTestSuite.SetAttribute("total",([int]$JUnitTestSuite.GetAttribute("total")+1))
+                            $JUnitTestCase = $JUnitDoc.CreateElement("testcase")
+                            $JUnitTestSuite.AppendChild($JUnitTestCase) | Out-Null
+                            $JUnitTestCase.SetAttribute("classname", $JUnitTestSuite.GetAttribute("name"))
+                            $JUnitTestCase.SetAttribute("name", $Name)
+                            $JUnitTestCase.SetAttribute("time", ([Math]::Round($testduration.TotalSeconds,3)).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                        }
                         if ($result -eq "2") {
                             if ($detailed) {
                                 Write-Host -ForegroundColor Green "    Testfunction $name Success ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
@@ -779,6 +873,14 @@ function Run-Tests {
                                 $XUnitFailure.AppendChild($XUnitStacktrace) | Out-Null
                                 $XUnitTest.AppendChild($XUnitFailure) | Out-Null
                             }
+                            if ($JUnitResultFileName) {
+                                $JUnitTestSuite.SetAttribute("failures",([int]$JUnitTestSuite.GetAttribute("failures")+1))
+                                $JUnitTestCase.SetAttribute("result", "Fail")
+                                $JUnitFailure = $JUnitDoc.CreateElement("failure")
+                                $JUnitFailure.SetAttribute("message", $firstError)
+                                $JUnitFailure.InnerText = $Callstack.Replace("\","`n")
+                                $JUnitTestCase.AppendChild($JUnitFailure) | Out-Null
+                            }
                         }
                         else {
                             if ($detailed) {
@@ -788,6 +890,11 @@ function Run-Tests {
                                 $XUnitCollection.SetAttribute("skipped",([int]$XUnitCollection.GetAttribute("skipped")+1))
                                 $XUnitAssembly.SetAttribute("skipped",([int]$XUnitAssembly.GetAttribute("skipped")+1))
                                 $XUnitTest.SetAttribute("result", "Skip")
+                            }
+                            if ($JUnitResultFileName) {
+                                $JUnitTestSuite.SetAttribute("skipped",([int]$JUnitTestSuite.GetAttribute("skipped")+1))
+                                $JUnitSkipped = $JUnitDoc.CreateElement("skipped")
+                                $JUnitTestCase.AppendChild($JUnitSkipped) | Out-Null
                             }
                         }
                         if ($result -eq "1" -and $detailed) {
@@ -812,6 +919,9 @@ function Run-Tests {
     }
     if ($XUnitResultFileName) {
         $XUnitDoc.Save($XUnitResultFileName)
+    }
+    if ($JUnitResultFileName) {
+        $JUnitDoc.Save($JUnitResultFileName)
     }
     $clientContext.CloseForm($form)
     $allPassed
