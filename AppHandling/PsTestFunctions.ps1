@@ -327,6 +327,8 @@ function Run-Tests {
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
 
+    $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server"
+
     if ($XUnitResultFileName) {
         if (($Rerun -or $AppendToXUnitResultFile) -and (Test-Path $XUnitResultFileName)) {
             [xml]$XUnitDoc = Get-Content $XUnitResultFileName
@@ -379,6 +381,10 @@ function Run-Tests {
 
         while ($true) {
         
+            $processinfostart = ""
+            if ($process) {
+                $processinfostart = "{ ""CPU"": ""$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))"", ""WorkingSet"": ""$(($process.WorkingSet64/1048576).ToString("F3",[CultureInfo]::InvariantCulture))"" }"
+            }
             $validationResults = $form.validationResults
             if ($validationResults) {
                 throw "Validation errors occured. Error is: $($validationResults | ConvertTo-Json -Depth 99)"
@@ -434,6 +440,24 @@ function Run-Tests {
 
                 $JUnitTestSuite.SetAttribute("time", 0)
                 $JUnitTestSuite.SetAttribute("tests", $result.testResults.Count)
+
+                $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
+                $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
+
+                if ($processinfostart) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","processinfo.start")
+                    $property.SetAttribute("value", $processinfostart)
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
+
+                Get-NavAppInfo -ServerInstance $serverInstance | % {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name", $_.Id)
+                    $property.SetAttribute("value", "{ ""Name"": ""$($_.Name)"", ""Publisher"": ""$($_.Publisher)"", ""Version"": ""$($_.Version)"" }")
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
+
             }
         
             $totalduration = [Timespan]::Zero
@@ -565,6 +589,12 @@ function Run-Tests {
                 $JUnitTestSuite.SetAttribute("failures", $failed)
                 $JUnitTestSuite.SetAttribute("skipped", $skipped)
                 $JUnitTestSuite.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
+                if ($process) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","processinfo.end")
+                    $property.SetAttribute("value", "{ ""CPU"": ""$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))"", ""WorkingSet (Mb)"": ""$(($process.WorkingSet64/1048576).ToString("F3",[CultureInfo]::InvariantCulture))"" }")
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
             }
         }
 
