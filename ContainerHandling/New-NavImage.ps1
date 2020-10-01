@@ -71,6 +71,14 @@ function New-BcImage {
     $hostOs = "Unknown/Insider build"
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
 
+    if ("$baseImage" -eq "") {
+        if ("$bestGenericImageName" -eq "") {
+            Write-Host "WARNING: Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
+        }
+        $bestGenericImageName = Get-BestGenericImageName
+        $baseImage = $bestGenericImageName
+    }
+
     if ($os.BuildNumber -eq 19041) { 
         $hostOs = "2004"
     }
@@ -94,13 +102,6 @@ function New-BcImage {
     }
     elseif ($os.BuildNumber -eq 14393) {
         $hostOs = "ltsc2016"
-    }
-
-    if ("$baseImage" -eq "") {
-        $baseImage = $bestGenericImageName
-        if ("$baseImage" -eq "") {
-            throw "Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
-        }
     }
 
     if (!$imageName.Contains(':')) {
