@@ -278,7 +278,8 @@ function Run-TestsInBcContainer {
                               -AzureDevOps $AzureDevOps `
                               -detailed:$detailed `
                               -debugMode:$debugMode `
-                              -testPage $testPage
+                              -testPage $testPage `
+                              -connectFromHost:$connectFromHost
                 }
                 catch {
                     if ($debugMode -and $clientContext) {
@@ -381,7 +382,8 @@ function Run-TestsInBcContainer {
                                   -AzureDevOps $AzureDevOps `
                                   -detailed:$detailed `
                                   -debugMode:$debugMode `
-                                  -testPage $testPage
+                                  -testPage $testPage `
+                                  -connectFromHost:$connectFromHost
                     }
                     catch {
                         if ($debugMode -and $clientContext) {

@@ -605,6 +605,7 @@ $testFolders | ForEach-Object {
         "credential" = $credential
         "extensionId" = $appJson.id
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
+        "detailed" = $true
     }
     if ($testResultsFormat -eq "XUnit") {
         $Parameters += @{

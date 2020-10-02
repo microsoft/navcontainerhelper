@@ -218,7 +218,8 @@ function Get-TestsFromBcContainer {
                       -DisabledTests $disabledtests `
                       -testPage $testPage `
                       -debugMode:$debugMode `
-                      -ignoreGroups:$ignoreGroups
+                      -ignoreGroups:$ignoreGroups `
+                      -connectFromHost:$connectFromHost
 
         }
         catch {

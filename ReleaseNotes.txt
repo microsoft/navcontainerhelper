@@ -9,6 +9,8 @@ Issue #1313 -includeAL fails when using a hostHelperFolder, which is different f
 Issue #1316 New-BcContainerWizard converts license file url to lowercase
 Add support for JUnit to Run-Tests
 Add parameter testResultsFormat to Run-AlPipeline
+Do not fail on missing image in New-BcImage (only warn)
+Add properties to JUnit output
 
 1.0.6
 Add 3 new values for Select: Current, NextMinor and NextMajor for selecting artifacts. SasToken needs to be provided for NextMajor and NextMinor
