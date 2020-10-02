@@ -134,7 +134,8 @@ function Get-Tests {
         [string] $extensionId = "",
         [array]  $disabledtests = @(),
         [switch] $debugMode,
-        [switch] $ignoreGroups
+        [switch] $ignoreGroups,
+        [switch] $connectFromHost
     )
 
     if ($testPage -eq 130455) {
@@ -286,7 +287,8 @@ function Run-Tests {
         [switch] $AppendToJUnitResultFile,
         [switch] $ReRun,
         [ValidateSet('no','error','warning')]
-        [string] $AzureDevOps = 'no'
+        [string] $AzureDevOps = 'no',
+        [switch] $connectFromHost
     )
 
     if ($testPage -eq 130455) {
@@ -308,6 +310,7 @@ function Run-Tests {
         }
     }
     $allPassed = $true
+    $dumpAppsToTestOutput = $true
 
     if ($debugMode) {
         Write-Host "Run-Tests, open page $testpage"
@@ -327,7 +330,10 @@ function Run-Tests {
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
 
-    $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server"
+    if (!$connectFromHost) {
+        $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server"
+        if (!($process)) { throw "Cannot find Server process" }
+    }
 
     if ($XUnitResultFileName) {
         if (($Rerun -or $AppendToXUnitResultFile) -and (Test-Path $XUnitResultFileName)) {
@@ -381,9 +387,9 @@ function Run-Tests {
 
         while ($true) {
         
-            $processinfostart = ""
-            if ($process) {
-                $processinfostart = "{ ""CPU"": ""$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))"", ""WorkingSet"": ""$(($process.WorkingSet64/1048576).ToString("F3",[CultureInfo]::InvariantCulture))"" }"
+            if (!$connectFromHost) {
+                $cimInstance = Get-CIMInstance Win32_OperatingSystem
+                $processinfostart = "{ ""CPU"": ""$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))"", ""Free Memory (Gb)"": ""$(($cimInstance.FreePhysicalMemory/1048576).ToString("F1",[CultureInfo]::InvariantCulture))"" }"
             }
             $validationResults = $form.validationResults
             if ($validationResults) {
@@ -444,18 +450,27 @@ function Run-Tests {
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
 
-                if ($processinfostart) {
+                if (!$connectfromHost) {
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.start")
                     $property.SetAttribute("value", $processinfostart)
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-                }
 
-                Get-NavAppInfo -ServerInstance $serverInstance | % {
-                    $property = $JUnitDoc.CreateElement("property")
-                    $property.SetAttribute("name", $_.Id)
-                    $property.SetAttribute("value", "{ ""Name"": ""$($_.Name)"", ""Publisher"": ""$($_.Publisher)"", ""Version"": ""$($_.Version)"" }")
-                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                    if ($dumpAppsToTestOutput) {
+                        $versionInfo = (Get-Item -Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo
+                        $property = $JUnitDoc.CreateElement("property")
+                        $property.SetAttribute("name", "platform.info")
+                        $property.SetAttribute("value", "{ ""Version"": ""$($VersionInfo.ProductVersion)"" }")
+                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+    
+                        Get-NavAppInfo -ServerInstance $serverInstance | % {
+                            $property = $JUnitDoc.CreateElement("property")
+                            $property.SetAttribute("name", "app.info")
+                            $property.SetAttribute("value", "{ ""Name"": ""$($_.Name)"", ""Publisher"": ""$($_.Publisher)"", ""Version"": ""$($_.Version)"" }")
+                            $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                        }
+                        $dumpAppsToTestOutput = $false
+                    }
                 }
 
             }
@@ -589,10 +604,11 @@ function Run-Tests {
                 $JUnitTestSuite.SetAttribute("failures", $failed)
                 $JUnitTestSuite.SetAttribute("skipped", $skipped)
                 $JUnitTestSuite.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
-                if ($process) {
+                if (!$connectfromHost) {
+                    $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.end")
-                    $property.SetAttribute("value", "{ ""CPU"": ""$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))"", ""WorkingSet (Mb)"": ""$(($process.WorkingSet64/1048576).ToString("F3",[CultureInfo]::InvariantCulture))"" }")
+                    $property.SetAttribute("value", "{ ""CPU"": ""$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))"", ""Free Memory (Gb)"": ""$(($cimInstance.FreePhysicalMemory/1048576).ToString("F1",[CultureInfo]::InvariantCulture))"" }")
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
                 }
             }
