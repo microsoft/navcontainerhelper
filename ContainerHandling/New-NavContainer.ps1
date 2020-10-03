@@ -274,11 +274,20 @@ function New-BcContainer {
     }
 
     Check-BcContainerName -ContainerName $containerName
-
     $imageName = $imageName.ToLowerInvariant()
 
+    if (!$useSSL) {
+        try {
+            $hsts = (New-Object System.Net.WebClient).DownloadString('https://hstspreload.com/api/v1/status/dev') | ConvertFrom-Json
+            if (($hsts.chrome) -or ($hsts.firefox) -or ($hsts.tor)) {
+                Write-Host -ForegroundColor Red "WARNING: '$containername' is in the HSTS preload list. You cannot use the container unless you use SSL and a trusted certificate.`nAdd -useSSL and -installCertificateOnHost to use a self signed certificate and install it in trusted root certifications on the host."
+            }
+        }
+        catch {}
+    }
+
     if ($imageName.StartsWith('microsoft/dynamics-nav')) {
-        Write-Host 'WARNING: using old docker hub name for NAV image. Replacing with mcr.microsoft.com/dynamicsnav'
+        Write-Host -ForegroundColor Yellow "WARNING: using old docker hub name for NAV image. Replacing with mcr.microsoft.com/dynamicsnav"
         $imageName = "mcr.microsoft.com/dynamicsnav$($imageName.Substring('microsoft/dynamics-nav'.Length))"
     }
 
@@ -390,7 +399,7 @@ function New-BcContainer {
 
     $myClientVersion = [System.Version]"0.0.0"
     if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
-        Write-Host -ForegroundColor Red "WARNING: Microsoft container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
+        Write-Host -ForegroundColor Yellow "WARNING: Microsoft container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
     }
 
     Write-Host "Docker Server Version is $dockerServerVersion"
@@ -581,7 +590,7 @@ function New-BcContainer {
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
         $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
-            Write-Host "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
+            Write-Host -ForegroundColor Yellow "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
             $useTraefik = $true
         }
     }
@@ -1094,17 +1103,17 @@ function New-BcContainer {
                 }
                 else {
                     $isolation = "process"
-                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                    Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
                 }
             }
             else {
                 $isolation = "hyperv"
-                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
             }
 
         }
         elseif ($isolation -eq "process") {
-            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+            Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
         }
     }
     Write-Host "Using $isolation isolation"
@@ -1418,7 +1427,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
     . "c:\run\setupWebClient.ps1"
 }
 catch {
-    Write-Host "WARNING: SetupWebClient failed, retrying in 10 seconds"
+    Write-Host -ForegroundColor Yellow "WARNING: SetupWebClient failed, retrying in 10 seconds"
     Start-Sleep -seconds 10
     . "c:\run\setupWebClient.ps1"
 }
@@ -1690,7 +1699,7 @@ if (-not `$restartingInstance) {
                 }
             }
             catch {
-                Write-Host "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
+                Write-Host -ForegroundColor Yellow "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
             }
         } -argumentList $TimeZoneId
     }
