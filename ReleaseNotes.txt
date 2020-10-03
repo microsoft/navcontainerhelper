@@ -1,3 +1,6 @@
+1.0.8
+Issue #1329 test whether containername is in hsts preload list
+
 1.0.7
 Issue #1299 wait for symbol file to be available in container
 Add parameter AssignPremiumPlan to Run-AlPipeline
