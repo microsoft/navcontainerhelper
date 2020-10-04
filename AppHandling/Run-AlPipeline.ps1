@@ -648,31 +648,15 @@ $destFolder = Join-Path $buildArtifactFolder "Apps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
-$no = 1
 $apps | ForEach-Object {
-    $appFile = $_
-    $name = [System.IO.Path]::GetFileName($appFile)
-    Write-Host "Copying $name to build artifact"
-    if ($apps.Count -gt 1) {
-        $name = "$($no.ToString('00')) - $name"
-        $no++
-    }
-    Copy-Item -Path $appFile -Destination (Join-Path $destFolder $name) -Force
+    Copy-Item -Path $_ -Destination $destFolder -Force
 }
 $destFolder = Join-Path $buildArtifactFolder "TestApps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
-$no = 1
 $testApps | ForEach-Object {
-    $appFile = $_
-    $name = [System.IO.Path]::GetFileName($appFile)
-    Write-Host "Copying $name to build artifact"
-    if ($testApps.Count -gt 1) {
-        $name = "$($no.ToString('00')) - $name"
-        $no++
-    }
-    Copy-Item -Path $appFile -Destination (Join-Path $destFolder $name) -Force
+    Copy-Item -Path $_ -Destination $destFolder -Force
 }
 if ($createRuntimePackages) {
     $destFolder = Join-Path $buildArtifactFolder "RuntimePackages"
@@ -683,13 +667,6 @@ if ($createRuntimePackages) {
     $apps | ForEach-Object {
         $appFile = $_
         $tempRuntimeAppFile = "$($appFile.TrimEnd('.app')).runtime.app"
-        $name = [System.IO.Path]::GetFileName($appFile)
-        if ($apps.Count -gt 1) {
-            $runtimeAppFile = Join-Path $destFolder "$($no.ToString('00')) - $name"
-        }
-        else {
-            $runtimeAppFile = Join-Path $destFolder $name
-        }
         $folder = $appsFolder[$appFile]
         $appJson = Get-Content -Path (Join-Path $folder "app.json") | ConvertFrom-Json
         Write-Host "Getting Runtime Package for $([System.IO.Path]::GetFileName($appFile))"
@@ -718,7 +695,8 @@ if ($createRuntimePackages) {
         }
 
         Write-Host "Copying runtime package to build artifact"
-        Copy-Item -Path $tempRuntimeAppFile -Destination $runtimeAppFile -Force
+        Copy-Item -Path $tempRuntimeAppFile -Destination (Join-Path $destFolder "$($no.ToString('N2')) - $([System.IO.Path]::GetFileName($tempRuntimeAppFile)) ) -Force
+        $no++
     }
 }
 
