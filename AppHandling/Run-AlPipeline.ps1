@@ -695,7 +695,7 @@ if ($createRuntimePackages) {
         }
 
         Write-Host "Copying runtime package to build artifact"
-        Copy-Item -Path $tempRuntimeAppFile -Destination (Join-Path $destFolder "$($no.ToString('N2')) - $([System.IO.Path]::GetFileName($tempRuntimeAppFile))" ) -Force
+        Copy-Item -Path $tempRuntimeAppFile -Destination (Join-Path $destFolder "$($no.ToString('00')) - $([System.IO.Path]::GetFileName($tempRuntimeAppFile))" ) -Force
         $no++
     }
 }
