@@ -278,7 +278,7 @@ function New-BcContainer {
 
     if (!$useSSL) {
         try {
-            $hsts = (New-Object System.Net.WebClient).DownloadString('https://hstspreload.com/api/v1/status/dev') | ConvertFrom-Json
+            $hsts = (New-Object System.Net.WebClient).DownloadString('https://hstspreload.com/api/v1/status/$containerName') | ConvertFrom-Json
             if (($hsts.chrome) -or ($hsts.firefox) -or ($hsts.tor)) {
                 Write-Host -ForegroundColor Red "WARNING: '$containername' is in the HSTS preload list. You cannot use the container unless you use SSL and a trusted certificate.`nAdd -useSSL and -installCertificateOnHost to use a self signed certificate and install it in trusted root certifications on the host."
             }

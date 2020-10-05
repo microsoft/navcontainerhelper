@@ -203,6 +203,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Clean-BcContainerDatabase.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Add-GitToAlProjectFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sort-AppFoldersByDependencies.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Sort-AppFilesByDependencies.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlPipeline.ps1")
 
 # Tenant Handling functions
