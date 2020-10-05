@@ -45,7 +45,7 @@ function DockerDo {
     Param(
         [Parameter(Mandatory=$true)]
         [string]$imageName,
-        [ValidateSet('run','start','pull','restart','stop', 'rmi')]
+        [ValidateSet('run','start','pull','restart','stop', 'rmi','images')]
         [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
@@ -62,6 +62,9 @@ function DockerDo {
     }
     if ($detach) {
         $parameters += "--detach"
+    }
+    if ($command -eq "images") {
+        $parameters += "-q"
     }
 
     $result = $true
@@ -114,6 +117,10 @@ function DockerDo {
     
     $err = $errtask.Result
     $p.WaitForExit();
+    
+    if ($command -eq "images") {
+        $result = ("$out" -ne "")
+    }
 
     if ($p.ExitCode -ne 0) {
         $result = $false
