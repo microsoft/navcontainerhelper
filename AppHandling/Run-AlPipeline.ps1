@@ -21,6 +21,7 @@ Param(
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
     $installApps = @(),
+    $previousApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
     [int] $appBuild = 0,
@@ -46,6 +47,8 @@ Param(
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    $AppSourceCopMandatoryAffixes = @(),
+    $AppSourceCopSupportedCountries = @(),
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $CompileAppInBcContainer,
@@ -119,9 +122,12 @@ Function UpdateLaunchJson {
 
 if ($memoryLimit -eq "")       { $memoryLimit = "6G" }
 
-if ($installApps -is [String]) { $installApps = $installApps.Split(',') | Where-Object { $_ } }
-if ($appFolders  -is [String]) { $appFolders  = $appFolders.Split(',')  | Where-Object { $_ } }
-if ($testFolders -is [String]) { $testFolders = $testFolders.Split(',') | Where-Object { $_ } }
+if ($installApps                    -is [String]) { $installApps = $installApps.Split(',') | Where-Object { $_ } }
+if ($previousApps                   -is [String]) { $previousApps = $previousApps.Split(',') | Where-Object { $_ } }
+if ($appFolders                     -is [String]) { $appFolders = $appFolders.Split(',')  | Where-Object { $_ } }
+if ($testFolders                    -is [String]) { $testFolders = $testFolders.Split(',') | Where-Object { $_ } }
+if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = $AppSourceCopMandatoryAffixes.Split(',') | Where-Object { $_ } }
+if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = $AppSourceCopSupportedCountries.Split(',') | Where-Object { $_ } }
 
 $appFolders  = @($appFolders  | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
@@ -224,8 +230,14 @@ Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages       "; Write-Host $createRuntimePackages
 Write-Host -NoNewLine -ForegroundColor Yellow "AppBuild                    "; Write-Host $appBuild
 Write-Host -NoNewLine -ForegroundColor Yellow "AppRevision                 "; Write-Host $appRevision
+if ($enableAppSourceCop) {
+    Write-Host -NoNewLine -ForegroundColor Yellow "Mandatory Affixes           "; Write-Host ($AppSourceCopMandatoryAffixes -join ',')
+    Write-Host -NoNewLine -ForegroundColor Yellow "Supported Countries         "; Write-Host ($AppSourceCopSupportedCountries -join ',')
+}
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "Previous Apps"
+if ($previousApps) { $previousApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Application folders"
 if ($appFolders) { $appFolders | ForEach-Object { Write-Host "- $_" } }  else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Test application folders"
@@ -439,6 +451,7 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
+$previousAppsCopied = $false
 $appsFolder = @{}
 $apps = @()
 $testApps = @()
@@ -455,9 +468,9 @@ $sortedFolders | ForEach-Object {
         }
     }
 
+    $appJsonFile = Join-Path $folder "app.json"
+    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
     if ($appBuild) {
-        $appJsonFile = Join-Path $folder "app.json"
-        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
         $appJsonVersion = [System.Version]$appJson.Version
         $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
         Write-Host "Using Version $version"
@@ -483,6 +496,88 @@ $sortedFolders | ForEach-Object {
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
+    }
+    if ($enableAppSourceCop -and !$testApp) {
+        if (!$previousAppsCopied) {
+            $previousAppsCopied = $true
+            $AppList = @()
+            $previousAppVersions = @{}
+            if ($previousApps) {
+                Write-Host "Copying previous apps to packages folder"
+                $previousApps | % {
+                    if ($_ -like "http://*" -or $_ -like "https://*") {
+                        $tmpFileName = [System.IO.Path]::GetFileName($_).split("?")[0]
+                        $tmpFile = Join-Path $ENV:TEMP $tmpFileName
+                        Download-File -sourceUrl $_ -destinationFile $tmpFile
+                        if ($tmpFile -like "*.zip") {
+                            Write-Host "Unpacking $tmpFileName to $appPackagesFolder"
+                            Expand-Archive -Path $tmpFile -DestinationPath $appPackagesFolder
+                            $subFolder = Join-Path $appPackagesFolder $tmpFileName.Trim('.zip')
+                            Get-ChildItem -Path $subFolder -Recurse | ForEach-Object {
+                                Copy-Item -Path $_.FullName -Destination $appPackagesFolder -Force
+                                $AppList += @(Join-Path $appPackagesFolder $_.Name)
+                            }
+                            Remove-Item $subFolder -Recurse -Force
+                        }
+                        else {
+                            Write-Host "Copying $tmpFileName to $appPackagesFolder"
+                            Copy-Item -Path $tmpFile -Destination $appPackagesFolder -Force
+                            $AppList += @(Join-Path $appPackagesFolder $tmpFileName)
+                        }
+                        remove-item $tmpFile
+                    }
+                }
+                $previousApps = $AppList
+                $previousApps | ForEach-Object {
+                    $appFile = $_
+                    $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+                    try {
+                        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
+                        $xappJsonFile = Join-Path $tmpFolder "app.json"
+                        $xappJson = Get-Content $xappJsonFile | ConvertFrom-Json
+                        Write-Host "$($xappJson.Publisher)_$($xappJson.Name) = $($xappJson.Version)"
+                        $previousAppVersions += @{ "$($xappJson.Publisher)_$($xappJson.Name)" = $xappJson.Version }
+                    }
+                    catch {
+                        throw "Cannot use previous app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+                    }
+                    finally {
+                    #    Remove-Item $tmpFolder -Recurse -Force
+                    }
+                }
+            }
+        }
+
+        $appSourceCopJson = @{}
+        $saveit = $false
+
+        if ($AppSourceCopMandatoryAffixes) {
+            $appSourceCopJson += @{ "mandatoryAffixes" = @()+$AppSourceCopMandatoryAffixes }
+            $saveit = $true
+        }
+        if ($AppSourceCopSupportedCountries) {
+            $appSourceCopJson += @{ "supportedCountries" = @()+$AppSourceCopSupportedCountries }
+            $saveit = $true
+        }
+
+        if ($previousAppVersions.ContainsKey("$($appJson.Publisher)_$($appJson.Name)")) {
+            $appSourceCopJson += @{
+                "Publisher" = $appJson.Publisher
+                "Name" = $appJson.Name
+                "Version" = $previousAppVersions."$($appJson.Publisher)_$($appJson.Name)"
+            }
+            $saveit = $true
+        }
+        $appSourceCopJsonFile = Join-Path $folder "AppSourceCop.json"
+        if ($saveit) {
+            Write-Host "Creating AppSourceCop.json for validation"
+            $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content $appSourceCopJsonFile
+        }
+        else {
+            if (Test-Path $appSourceCopJsonFile) {
+                Remove-Item $appSourceCopJsonFile -force
+            }
+        }
     }
 
     $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
@@ -550,6 +645,41 @@ $apps | ForEach-Object {
 }
 
 if (!$useDevEndpoint) {
+
+if ($previousApps) {
+Write-Host -ForegroundColor Yellow @'
+
+  _____           _        _ _ _               _____                _                                            
+ |_   _|         | |      | | (_)             |  __ \              (_)                     /\                    
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |__) | __ _____   ___  ___  _   _ ___     /  \   _ __  _ __  ___ 
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | |  ___/ '__/ _ \ \ / / |/ _ \| | | / __|   / /\ \ | '_ \| '_ \/ __|
+  _| |_| | | \__ \ |_ (_| | | | | | | | (_| | | |   | | |  __/\ V /| | (_) | |_| \__ \  / ____ \| |_) | |_) \__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, | |_|   |_|  \___| \_/ |_|\___/ \__,_|___/ /_/    \_\ .__/| .__/|___/
+                                        __/ |                                                   | |   | |        
+                                       |___/                                                    |_|   |_|        
+
+'@
+Measure-Command {
+
+    if ($previousApps) {
+        $previousApps | ForEach-Object{
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "appFile" = $_
+                "skipVerification" = $true
+                "sync" = $true
+                "install" = $true
+                "useDevEndpoint" = $false
+            }
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+    }
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
+}
+
 Write-Host -ForegroundColor Yellow @'
 
   _____       _     _ _     _     _                                        
@@ -563,20 +693,52 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
-$apps+$testApps | ForEach-Object {
+
+$installedApps = Get-BcContainerAppInfo -containerName $containerName -tenant $tenant
+
+$apps | ForEach-Object {
+   
+    
+    $folder = $appsFolder[$_]
+    $appJsonFile = Join-Path $folder "app.json"
+    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+
+    $installedApp = $false
+    if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
+        $installedApp = $true
+    }
 
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
         "credential" = $credential
         "appFile" = $_
-        "skipVerification" = ($testApps.Contains($appFile) -or !$signApps)
+        "skipVerification" = !$signApps
         "sync" = $true
-        "install" = $true
+        "install" = !$installedApp
+        "upgrade" = $installedApp
     }
+
     Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 
 }
+
+$testApps | ForEach-Object {
+   
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+        "credential" = $credential
+        "appFile" = $_
+        "skipVerification" = $true
+        "sync" = $true
+        "install" = $true
+    }
+
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+
+}
+
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
 }
 
