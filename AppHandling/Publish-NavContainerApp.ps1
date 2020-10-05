@@ -54,6 +54,7 @@ function Publish-BcContainerApp {
         [ValidateSet('Add','Clean','Development','ForceSync')]
         [string] $syncMode,
         [switch] $install,
+        [switch] $upgrade,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [ValidateSet('Extension','SymbolsOnly')]
@@ -104,9 +105,14 @@ function Publish-BcContainerApp {
     if (!($appFile.StartsWith(':')) -and (Test-Path $appFile) -and ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK")) {
         $zipFolder = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
         Expand-Archive $appFile -DestinationPath $zipFolder -Force
-        Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | % {
-            Publish-BcContainerApp @Params -appFile $_.FullName
+        $apps = Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | ForEach-Object { $_.FullName }
+        try {
+            $apps = Sort-AppFilesByDependencies -appFiles $apps
         }
+        catch {
+            # use alphabetic sorting if runtime apps
+        }
+        $apps | ForEach-Object { Publish-BcContainerApp @Params -appFile $_ }
         Remove-Item -Path $zipFolder -Recurse -Force
         return
     }
@@ -229,7 +235,7 @@ function Publish-BcContainerApp {
     }
     else {
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
 
             $publishArgs = @{ "packageType" = $packageType }
             if ($scope) {
@@ -242,7 +248,7 @@ function Publish-BcContainerApp {
             Write-Host "Publishing $appFile"
             Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
 
-            if ($sync -or $install) {
+            if ($sync -or $install -or $upgrade) {
 
                 $navAppInfo = Get-NAVAppInfo -Path $appFile
                 $appPublisher = $navAppInfo.Publisher
@@ -269,9 +275,19 @@ function Publish-BcContainerApp {
                     Write-Host "Installing $appName on tenant $tenant"
                     Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
                 }
+
+                if ($upgrade) {
+
+                    $languageArgs = @{}
+                    if ($language) {
+                        $languageArgs += @{ "Language" = $language }
+                    }
+                    Write-Host "Upgrading $appName on tenant $tenant"
+                    Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                }
             }
 
-        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies
+        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies
     }
 
     if ($copied) { 
