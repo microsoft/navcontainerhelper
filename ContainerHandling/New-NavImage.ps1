@@ -40,7 +40,9 @@ function New-BcImage {
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,
         [switch] $includeTestFrameworkOnly,
-        [switch] $includePerformanceToolkit
+        [switch] $includePerformanceToolkit,
+        [switch] $skipIfImageAlreadyExists,
+        $allImages
 
     )
 
@@ -73,9 +75,9 @@ function New-BcImage {
 
     if ("$baseImage" -eq "") {
         if ("$bestGenericImageName" -eq "") {
-            Write-Host "WARNING: Unable to find matching generic image for your host OS. You must pull and specify baseImage manually."
+            $bestGenericImageName = Get-BestGenericImageName
+            Write-Host "WARNING: Unable to find matching generic image for your host OS. Using $bestGenericImageName"
         }
-        $bestGenericImageName = Get-BestGenericImageName
         $baseImage = $bestGenericImageName
     }
 
@@ -104,301 +106,398 @@ function New-BcImage {
         $hostOs = "ltsc2016"
     }
 
+    $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
+    $appArtifactPath = $artifactPaths[0]
+    $platformArtifactPath = $artifactPaths[1]
+
+    $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+    $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+    if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+        if ($appManifest.isBcSandbox) {
+            if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
+                $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+            }
+        }
+    }
+
+    $dbstr = ""
+    $mtstr = ""
     if (!$imageName.Contains(':')) {
         $appUri = [Uri]::new($artifactUrl)
         $imageName += ":$($appUri.AbsolutePath.ToLowerInvariant().Replace('/','-').TrimStart('-'))"
         if ($skipDatabase) {
             $imageName += "-nodb"
+            $dbstr = " without database"
+
         }
         if ($multitenant) {
             $imageName += "-mt"
+            $mtstr = " multitenant"
         }
     }
 
-    Write-Host "Building image $imageName based on $baseImage"
-    
     $imageName
 
-    if ($baseImage -eq $bestGenericImageName) {
-        Write-Host "Pulling latest image $baseImage"
-        DockerDo -command pull -imageName $baseImage | Out-Null
-    }
-    else {
-        $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
-        if (!($baseImageExists)) {
-            Write-Host "Pulling non-existing base image $baseImage"
-            DockerDo -command pull -imageName $baseImage | Out-Null
+    $forceRebuild = $true
+    if ($skipIfImageAlreadyExists) {
+
+        if (-not ($allImages)) {
+            Write-Host "Fetching all docker images"
+            $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
         }
-    }
 
-    $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
-    Write-Host "Generic Tag: $genericTag"
-    if ($genericTag -lt [Version]"0.1.0.16") {
-        throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
-    }
+        if ($allImages | Where-Object { $_ -eq $imageName }) {
+            
+            $forceRebuild = $false
 
-    $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
-    if ("$containerOsVersion".StartsWith('10.0.14393.')) {
-        $containerOs = "ltsc2016"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
-        $containerOs = "1703"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
-        $containerOs = "1709"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
-        $containerOs = "1803"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
-        $containerOs = "ltsc2019"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
-        $containerOs = "1903"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
-        $containerOs = "1909"
-    }
-    elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
-        $containerOs = "2004"
-    }
-    else {
-        $containerOs = "unknown"
-    }
-    Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
-    Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
-
-    if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
-        ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
-        ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
-
-        throw "The container operating system is newer than the host operating system, cannot use image"
-    
-    }
-
-    if ($hostOsVersion -eq $containerOsVersion) {
-        if ($isolation -eq "") { 
-            $isolation = "process"
-        }
-    }
-    else {
-        if ($isolation -eq "") {
-            if ($isAdministrator) {
-                if (Get-HypervState -ne "Disabled") {
-                    $isolation = "hyperv"
+            try {
+                Write-Host "Image $imageName already exists"
+                $inspect = docker inspect $imageName | ConvertFrom-Json
+                $labels = Get-BcContainerImageLabels -imageName $baseImage
+        
+                $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
+                if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                    Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
+                    $forceRebuild = $true
+                }
+                if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                    Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                    $forceRebuild = $true
+                }
+                elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
+                    Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                    $forceRebuild = $true
+                }
+                elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                    Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                    $forceRebuild = $true
+                }
+                elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                    Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                    $forceRebuild = $true
+                }
+               
+                if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
+                    if (!$multitenant) {
+                        Write-Host "Image $imageName was build multi tenant, should have been single tenant"
+                        $forceRebuild = $true
+                    }
                 }
                 else {
-                    $isolation = "process"
-                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
-                }
-            }
-            else {
-                $isolation = "hyperv"
-                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
-            }
-
-        }
-        elseif ($isolation -eq "process") {
-            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
-        }
-    }
-    Write-Host "Using $isolation isolation"
-
-    $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
-    if (!(Test-Path $downloadsPath)) {
-        New-Item $downloadsPath -ItemType Directory | Out-Null
-    }
-
-    $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder "tmp$(([datetime]::Now).Ticks)"
-    New-Item $buildFolder -ItemType Directory | Out-Null
-
-    try {
-
-        $myFolder = Join-Path $buildFolder "my"
-        new-Item -Path $myFolder -ItemType Directory | Out-Null
-    
-        $myScripts | ForEach-Object {
-            if ($_ -is [string]) {
-                if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
-                    $uri = [System.Uri]::new($_)
-                    $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
-                    $destinationFile = Join-Path $myFolder $filename
-                    Download-File -sourceUrl $_ -destinationFile $destinationFile
-                    if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                        Write-Host "Extracting .zip file " -NoNewline
-                        Expand-7zipArchive -Path $destinationFile -DestinationPath $myFolder
-                        Remove-Item -Path $destinationFile -Force
-                    }
-                } elseif (Test-Path $_ -PathType Container) {
-                    Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
-                } else {
-                    if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
-                        Write-Host "Extracting .zip file " -NoNewline
-                        Expand-7zipArchive -Path $_ -DestinationPath $myFolder
-                    } else {
-                        Copy-Item -Path $_ -Destination $myFolder -Force
+                    if ($multitenant) {
+                        Write-Host "Image $imageName was build single tenant, should have been multi tenant"
+                        $forceRebuild = $true
                     }
                 }
-            } else {
-                $hashtable = $_
-                $hashtable.Keys | ForEach-Object {
-                    Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
-                }
-            }
-        }
-
-        $licenseFilePath = ""
-        if ($licenseFile) {
-            $licenseFilePath = Join-Path $myFolder "license.flf"
-            if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-                Write-Host "Using license file $licenseFile"
-                Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
-                $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
-                $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-                if (!($text.StartsWith("Microsoft Software License Information"))) {
-                    Remove-Item -Path $licenseFilePath -Force
-                    throw "Specified license file Uri isn't a direct download Uri"
-                }
-            }
-            else {
-                Write-Host "Using license file $licenseFile"
-                $licenseFilePath = $licenseFile
-            }
-        }
-
-        Write-Host "Files in $($myfolder):"
-        get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
-
-        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
-        $appArtifactPath = $artifactPaths[0]
-        $platformArtifactPath = $artifactPaths[1]
-
-        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-
-        $isBcSandbox = "N"
-        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
-            if ($appManifest.isBcSandbox) {
-                $IsBcSandbox = "Y"
-            }
-        }
-
-        if (!$skipDatabase){
-            $database = $appManifest.database
-            $databasePath = Join-Path $appArtifactPath $database
-            if ($licenseFile -eq "") {
-                if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
-                    $licenseFilePath = $appManifest.licenseFile
-                    if ($licenseFilePath) {
-                        $licenseFilePath = Join-Path $appArtifactPath $licenseFilePath
-                    }
-                }
-            }
-        }
-
-        $nav = ""
-        if ($appManifest.PSObject.Properties.name -eq "Nav") {
-            $nav = $appManifest.Nav
-        }
-        $cu = ""
-        if ($appManifest.PSObject.Properties.name -eq "Cu") {
-            $cu = $appManifest.Cu
-        }
-    
-        $navDvdPath = Join-Path $buildFolder "NAVDVD"
-        New-Item $navDvdPath -ItemType Directory | Out-Null
-
-        Write-Host "Copying Platform Artifacts"
-        Robocopy "$platformArtifactPath" "$navDvdPath" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
-
-        if (!$skipDatabase) {
-            $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
-            New-Item $dbPath -ItemType Directory | Out-Null
-            Write-Host "Copying Database"
-            Copy-Item -path $databasePath -Destination $dbPath -Force
-            if ($licenseFilePath) {
-                Write-Host "Copying Licensefile"
-                Copy-Item -path $licenseFilePath -Destination "$dbPath\CRONUS.flf" -Force
-            }
-        }
-
-        "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | % {
-            $appSubFolder = Join-Path $appArtifactPath $_
-            if (Test-Path $appSubFolder -PathType Container) {
-                $appSubFolder = (Get-Item $appSubFolder).FullName
-                $name = [System.IO.Path]::GetFileName($appSubFolder)
-                $destFolder = Join-Path $navDvdPath $name
-                if (Test-Path $destFolder) {
-                    Remove-Item -path $destFolder -Recurse -Force
-                }
-                Write-Host "Copying $name"
-                RoboCopy "$appSubFolder" "$destFolder" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
-            }
-        }
-    
-        docker images --format "{{.Repository}}:{{.Tag}}" | % { 
-            if ($_ -eq $imageName) 
-            {
-                docker rmi $imageName -f | Out-Host
-            }
-        }
-
-        Write-Host $buildFolder
         
-        $skipDatabaseLabel = ""
-        if ($skipDatabase) {
-            $skipDatabaseLabel = "skipdatabase=""Y"" \`n"
-        }
-
-        $multitenantLabel = ""
-        $multitenantParameter = ""
-        if ($multitenant) {
-            $multitenantLabel = "multitenant=""Y"" \`n"
-            $multitenantParameter = " -multitenant"
-        }
-
-        $dockerFileAddFonts = ""
-        if ($addFontsFromPath) {
-            $found = $false
-            $fontsFolder = Join-Path $buildFolder "Fonts"
-            New-Item $fontsFolder -ItemType Directory | Out-Null
-            $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
-            Get-ChildItem $addFontsFromPath -ErrorAction Ignore | % {
-                if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
-                    Copy-Item -Path $_.FullName -Destination $fontsFolder
-                    $found = $true
+                if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
+                    if (!$skipdatabase) {
+                        Write-Host "Image $imageName was build without a database, should have a database"
+                        $forceRebuild = $true
+                    }
+                }
+                else {
+                    # Do not rebuild if database is there, just don't use it
                 }
             }
-            if ($found) {
-                Write-Host "Adding fonts"
-                Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
-                $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
+            catch {
+                Write-Host "Exception $($_.ToString())"
+                $forceRebuild = $true
             }
         }
+    }
 
-        $TestToolkitParameter = ""
-        if ($genericTag -ge [Version]"0.1.0.18") {
-            if ($includeTestToolkit) {
-                if (!($licenseFile)) {
-                    Write-Host "Cannot include TestToolkit without a licensefile, please specify licensefile"
-                }
-                $TestToolkitParameter = " -includeTestToolkit"
-                if ($includeTestLibrariesOnly) {
-                    $TestToolkitParameter += " -includeTestLibrariesOnly"
-                }
-                elseif ($includeTestFrameworkOnly) {
-                    $TestToolkitParameter += " -includeTestFrameworkOnly"
+    if ($forceRebuild) {
+        $buildMutexName = "img-$imageName"
+        $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+        try {
+            try {
+                if (!$buildMutex.WaitOne(1000)) {
+                    Write-Host "Waiting for other process building image $imageName"
+                    $buildMutex.WaitOne() | Out-Null
+                    Write-Host "Other process completed building"
                 }
             }
-        }
-        if ($genericTag -ge [Version]"0.1.0.21") {
-            if ($includeTestToolkit) {
-                if ($includePerformanceToolkit) {
-                    $TestToolkitParameter += " -includePerformanceToolkit"
+            catch [System.Threading.AbandonedMutexException] {
+               Write-Host "Other process terminated abnormally"
+            }
+    
+            Write-Host "Building$mtstr image $imageName based on $baseImage with $($artifactUrl.Split('?')[0])$dbstr"
+            $startTime = [DateTime]::Now
+            
+            if ($baseImage -eq $bestGenericImageName) {
+                Write-Host "Pulling latest image $baseImage"
+                DockerDo -command pull -imageName $baseImage | Out-Null
+            }
+            else {
+                $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
+                if (!($baseImageExists)) {
+                    Write-Host "Pulling non-existing base image $baseImage"
+                    DockerDo -command pull -imageName $baseImage | Out-Null
                 }
             }
-        }
-
+        
+            $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
+            Write-Host "Generic Tag: $genericTag"
+            if ($genericTag -lt [Version]"0.1.0.16") {
+                throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
+            }
+        
+            $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
+            if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+                $containerOs = "ltsc2016"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+                $containerOs = "1703"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+                $containerOs = "1709"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+                $containerOs = "1803"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+                $containerOs = "ltsc2019"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+                $containerOs = "1903"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+                $containerOs = "1909"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+                $containerOs = "2004"
+            }
+            else {
+                $containerOs = "unknown"
+            }
+            Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
+            Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
+        
+            if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
+                ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
+                ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
+        
+                throw "The container operating system is newer than the host operating system, cannot use image"
+            
+            }
+        
+            if ($hostOsVersion -eq $containerOsVersion) {
+                if ($isolation -eq "") { 
+                    $isolation = "process"
+                }
+            }
+            else {
+                if ($isolation -eq "") {
+                    if ($isAdministrator) {
+                        if (Get-HypervState -ne "Disabled") {
+                            $isolation = "hyperv"
+                        }
+                        else {
+                            $isolation = "process"
+                            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                        }
+                    }
+                    else {
+                        $isolation = "hyperv"
+                        Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                    }
+        
+                }
+                elseif ($isolation -eq "process") {
+                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+                }
+            }
+            Write-Host "Using $isolation isolation"
+        
+            $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+            if (!(Test-Path $downloadsPath)) {
+                New-Item $downloadsPath -ItemType Directory | Out-Null
+            }
+        
+            $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder "tmp$(([datetime]::Now).Ticks)"
+            New-Item $buildFolder -ItemType Directory | Out-Null
+        
+            try {
+        
+                $myFolder = Join-Path $buildFolder "my"
+                new-Item -Path $myFolder -ItemType Directory | Out-Null
+            
+                $myScripts | ForEach-Object {
+                    if ($_ -is [string]) {
+                        if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
+                            $uri = [System.Uri]::new($_)
+                            $filename = [System.Uri]::UnescapeDataString($uri.Segments[$uri.Segments.Count-1])
+                            $destinationFile = Join-Path $myFolder $filename
+                            Download-File -sourceUrl $_ -destinationFile $destinationFile
+                            if ($destinationFile.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                                Write-Host "Extracting .zip file " -NoNewline
+                                Expand-7zipArchive -Path $destinationFile -DestinationPath $myFolder
+                                Remove-Item -Path $destinationFile -Force
+                            }
+                        } elseif (Test-Path $_ -PathType Container) {
+                            Copy-Item -Path "$_\*" -Destination $myFolder -Recurse -Force
+                        } else {
+                            if ($_.EndsWith(".zip", "OrdinalIgnoreCase")) {
+                                Write-Host "Extracting .zip file " -NoNewline
+                                Expand-7zipArchive -Path $_ -DestinationPath $myFolder
+                            } else {
+                                Copy-Item -Path $_ -Destination $myFolder -Force
+                            }
+                        }
+                    } else {
+                        $hashtable = $_
+                        $hashtable.Keys | ForEach-Object {
+                            Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
+                        }
+                    }
+                }
+        
+                $licenseFilePath = ""
+                if ($licenseFile) {
+                    $licenseFilePath = Join-Path $myFolder "license.flf"
+                    if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
+                        Write-Host "Using license file $licenseFile"
+                        Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
+                        $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
+                        $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+                        if (!($text.StartsWith("Microsoft Software License Information"))) {
+                            Remove-Item -Path $licenseFilePath -Force
+                            throw "Specified license file Uri isn't a direct download Uri"
+                        }
+                    }
+                    else {
+                        Write-Host "Using license file $licenseFile"
+                        $licenseFilePath = $licenseFile
+                    }
+                }
+        
+                Write-Host "Files in $($myfolder):"
+                get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+        
+                $isBcSandbox = "N"
+                if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+                    if ($appManifest.isBcSandbox) {
+                        $IsBcSandbox = "Y"
+                    }
+                }
+        
+                if (!$skipDatabase){
+                    $database = $appManifest.database
+                    $databasePath = Join-Path $appArtifactPath $database
+                    if ($licenseFile -eq "") {
+                        if ($appManifest.PSObject.Properties.name -eq "licenseFile") {
+                            $licenseFilePath = $appManifest.licenseFile
+                            if ($licenseFilePath) {
+                                $licenseFilePath = Join-Path $appArtifactPath $licenseFilePath
+                            }
+                        }
+                    }
+                }
+        
+                $nav = ""
+                if ($appManifest.PSObject.Properties.name -eq "Nav") {
+                    $nav = $appManifest.Nav
+                }
+                $cu = ""
+                if ($appManifest.PSObject.Properties.name -eq "Cu") {
+                    $cu = $appManifest.Cu
+                }
+            
+                $navDvdPath = Join-Path $buildFolder "NAVDVD"
+                New-Item $navDvdPath -ItemType Directory | Out-Null
+        
+                Write-Host "Copying Platform Artifacts"
+                Robocopy "$platformArtifactPath" "$navDvdPath" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+        
+                if (!$skipDatabase) {
+                    $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
+                    New-Item $dbPath -ItemType Directory | Out-Null
+                    Write-Host "Copying Database"
+                    Copy-Item -path $databasePath -Destination $dbPath -Force
+                    if ($licenseFilePath) {
+                        Write-Host "Copying Licensefile"
+                        Copy-Item -path $licenseFilePath -Destination "$dbPath\CRONUS.flf" -Force
+                    }
+                }
+        
+                "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | % {
+                    $appSubFolder = Join-Path $appArtifactPath $_
+                    if (Test-Path $appSubFolder -PathType Container) {
+                        $appSubFolder = (Get-Item $appSubFolder).FullName
+                        $name = [System.IO.Path]::GetFileName($appSubFolder)
+                        $destFolder = Join-Path $navDvdPath $name
+                        if (Test-Path $destFolder) {
+                            Remove-Item -path $destFolder -Recurse -Force
+                        }
+                        Write-Host "Copying $name"
+                        RoboCopy "$appSubFolder" "$destFolder" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+                    }
+                }
+            
+                docker images --format "{{.Repository}}:{{.Tag}}" | % { 
+                    if ($_ -eq $imageName) 
+                    {
+                        docker rmi $imageName -f | Out-Host
+                    }
+                }
+        
+                Write-Host $buildFolder
+                
+                $skipDatabaseLabel = ""
+                if ($skipDatabase) {
+                    $skipDatabaseLabel = "skipdatabase=""Y"" \`n"
+                }
+        
+                $multitenantLabel = ""
+                $multitenantParameter = ""
+                if ($multitenant) {
+                    $multitenantLabel = "multitenant=""Y"" \`n"
+                    $multitenantParameter = " -multitenant"
+                }
+        
+                $dockerFileAddFonts = ""
+                if ($addFontsFromPath) {
+                    $found = $false
+                    $fontsFolder = Join-Path $buildFolder "Fonts"
+                    New-Item $fontsFolder -ItemType Directory | Out-Null
+                    $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
+                    Get-ChildItem $addFontsFromPath -ErrorAction Ignore | % {
+                        if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
+                            Copy-Item -Path $_.FullName -Destination $fontsFolder
+                            $found = $true
+                        }
+                    }
+                    if ($found) {
+                        Write-Host "Adding fonts"
+                        Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
+                        $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
+                    }
+                }
+        
+                $TestToolkitParameter = ""
+                if ($genericTag -ge [Version]"0.1.0.18") {
+                    if ($includeTestToolkit) {
+                        if (!($licenseFile)) {
+                            Write-Host "Cannot include TestToolkit without a licensefile, please specify licensefile"
+                        }
+                        $TestToolkitParameter = " -includeTestToolkit"
+                        if ($includeTestLibrariesOnly) {
+                            $TestToolkitParameter += " -includeTestLibrariesOnly"
+                        }
+                        elseif ($includeTestFrameworkOnly) {
+                            $TestToolkitParameter += " -includeTestFrameworkOnly"
+                        }
+                    }
+                }
+                if ($genericTag -ge [Version]"0.1.0.21") {
+                    if ($includeTestToolkit) {
+                        if ($includePerformanceToolkit) {
+                            $TestToolkitParameter += " -includePerformanceToolkit"
+                        }
+                    }
+                }
+    
 @"
 FROM $baseimage
 
@@ -421,9 +520,17 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
 
 docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder | Out-Host
 
-    }
-    finally {
-        Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
+                $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+                Write-Host "Building image took $timespend seconds"
+    
+            }
+            finally {
+                Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
+            }
+        }
+        finally {
+            $buildMutex.ReleaseMutex()
+        }
     }
 }
 Set-Alias -Name New-NavImage -Value New-BcImage

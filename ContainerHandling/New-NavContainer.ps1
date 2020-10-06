@@ -416,17 +416,32 @@ function New-BcContainer {
     if ($artifactUrl) {
         # When using artifacts, you always use best container os - no need to replatform
         $useBestContainerOS = $false
+
+        $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
+        $appArtifactPath = $artifactPaths[0]
+        $platformArtifactPath = $artifactPaths[1]
+
+        $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+        $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+        $bcstyle = "onprem"
+        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+            if ($appManifest.isBcSandbox) {
+                $bcstyle = "sandbox"
+                if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
+                    $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+                }
+            }
+        }
+
     }
 
-    if ($imageName -eq "") {
-        Write-Host "Fetching all docker images"
-        $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
-    }
-    else {
+    Write-Host "Fetching all docker images"
+    $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+
+    if ($imageName -ne "") {
+
         if ($artifactUrl -eq "") {
-
-            Write-Host "Fetching all docker images"
-            $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
 
             if ($imageName -like "mcr.microsoft.com/*") {
                 Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from mcr.microsoft.com. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
@@ -436,154 +451,38 @@ function New-BcContainer {
             }
         }
         else {
-            $autotag = $false
             Write-Host "ArtifactUrl and ImageName specified"
-            if (!$imageName.Contains(':')) {
-                $appUri = [Uri]::new($artifactUrl)
-                $imageName += ":$($appUri.AbsolutePath.ToLowerInvariant().Replace('/','-').TrimStart('-'))"
-                $autotag = $true
+
+            $mtImage = $multitenant
+            if ($useNewDatabase -or $useCleanDatabase) {
+                $mtImage = $false
             }
 
-            $buildMutexName = "img-$imageName"
-            $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
-            try {
-                try {
-                    if (!$buildMutex.WaitOne(1000)) {
-                        Write-Host "Waiting for other process building image $imageName"
-                        $buildMutex.WaitOne() | Out-Null
-                        Write-Host "Other process completed download"
-                    }
-                }
-                catch [System.Threading.AbandonedMutexException] {
-                   Write-Host "Other process terminated abnormally"
-                }
-    
-                Write-Host "Fetching all docker images"
-                $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+            $imageName = New-Bcimage `
+                -artifactUrl $artifactUrl `
+                -imageName $imagename `
+                -isolation $isolation `
+                -baseImage $useGenericImage `
+                -memory $memoryLimit `
+                -skipDatabase:$skipDatabase `
+                -multitenant:$mtImage `
+                -addFontsFromPath $addFontsFromPath `
+                -licenseFile $licensefile `
+                -includeTestToolkit:$includeTestToolkit `
+                -includeTestFrameworkOnly:$includeTestFrameworkOnly `
+                -includeTestLibrariesOnly:$includeTestLibrariesOnly `
+                -includePerformanceToolkit:$includePerformanceToolkit `
+                -skipIfImageAlreadyExists:(!$forceRebuild) `
+                -allImages $allImages
 
-                $appArtifactPath = Download-Artifacts -artifactUrl $artifactUrl -forceRedirection:$alwaysPull
-                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-                $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-
-                if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
-                    if ($appManifest.isBcSandbox) {
-                        if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
-                            $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
-                        }
-                    }
-                }
-                $mtImage = $multitenant
-                if ($useNewDatabase -or $useCleanDatabase) {
-                    $mtImage = $false
-                }
-
-                $dbstr = ""
-                if ($skipDatabase) {
-                    if ($autotag) { $imageName += "-nodb" }
-                    $dbstr = " without database"
-                }
-                $mtstr = ""
-                if ($mtImage) {
-                    if ($autotag) { $imageName += "-mt" }
-                    $mtstr = " multitenant"
-                }
-
-                if ($allImages | Where-Object { $_ -eq $imageName }) {
-                    try {
-                        Write-Host "Image $imageName already exists"
-                        $inspect = docker inspect $imageName | ConvertFrom-Json
-            
-                        if ($useGenericImage -eq "") {
-                            $useGenericImage = Get-BestGenericImageName
-                        }
-            
-                        $labels = Get-BcContainerImageLabels -imageName $useGenericImage
-            
-                        $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                        if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
-                            Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
-                            $forceRebuild = $true
-                        }
-                        if ($inspect.Config.Labels.version -ne $appManifest.Version) {
-                            Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                            $forceRebuild = $true
-                        }
-                        elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                            Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                            $forceRebuild = $true
-                        }
-                        elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
-                            Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
-                            $forceRebuild = $true
-                        }
-                        elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
-                            Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
-                            $forceRebuild = $true
-                        }
-                       
-                        if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
-                            if (!$mtImage) {
-                                Write-Host "Image $imageName was build multi tenant, should have been single tenant"
-                                $forceRebuild = $true
-                            }
-                        }
-                        else {
-                            if ($mtImage) {
-                                Write-Host "Image $imageName was build single tenant, should have been multi tenant"
-                                $forceRebuild = $true
-                            }
-                        }
-             
-                        if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
-                            if (!$skipdatabase) {
-                                Write-Host "Image $imageName was build without a database, should have a database"
-                                $forceRebuild = $true
-                            }
-                        }
-                        else {
-                            # Do not rebuild if database is there, just don't use it
-                        }
-                    }
-                    catch {
-                        $forceRebuild = $true
-                    }
-                }
-                else {
-                    Write-Host "Image $imageName doesn't exist"
-                    $forceRebuild = $true
-                }
-                if ($forceRebuild) {
-                    Write-Host "Building$mtstr image $imageName based on $($artifactUrl.Split('?')[0])$dbstr"
-                    $startTime = [DateTime]::Now
-                    New-Bcimage `
-                        -artifactUrl $artifactUrl `
-                        -imageName $imagename `
-                        -isolation $isolation `
-                        -baseImage $useGenericImage `
-                        -memory $memoryLimit `
-                        -skipDatabase:$skipDatabase `
-                        -multitenant:$mtImage `
-                        -addFontsFromPath $addFontsFromPath `
-                        -licenseFile $licensefile `
-                        -includeTestToolkit:$includeTestToolkit `
-                        -includeTestFrameworkOnly:$includeTestFrameworkOnly `
-                        -includeTestLibrariesOnly:$includeTestLibrariesOnly `
-                        -includePerformanceToolkit:$includePerformanceToolkit
-
-                    $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
-                    Write-Host "Building image took $timespend seconds"
-                    if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
-                        $allImages += $imageName
-                    }
-                }
-                $artifactUrl = ""
-                $alwaysPull = $false
-                $useGenericImage = ""
-                $doNotGetBestImageName = $true
+            if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
+                $allImages += $imageName
             }
-            finally {
-                $buildMutex.ReleaseMutex()
-            }
+
+            $artifactUrl = ""
+            $alwaysPull = $false
+            $useGenericImage = ""
+            $doNotGetBestImageName = $true
         }
     }
 

@@ -3,6 +3,8 @@ Issue #1329 test whether containername is in hsts preload list
 Add function Sort-AppFilesByDependencies for sorting an array of app files by dependencies
 Sort apps before install in Publish-BcContainerApp
 Add PrevousApps, AppSourceCopMandatoryAffixes and AppSourceCopSupportedCountries to Run-AlPipeline
+Move decision on whether or not to rebuild image from New-BcContainer to New-BcImage and always call
+Add parameter -skipIfImageAlreadyExists to New-BcImage
 
 1.0.7
 Issue #1299 wait for symbol file to be available in container
