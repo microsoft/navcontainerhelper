@@ -527,7 +527,7 @@ $sortedFolders | ForEach-Object {
                         remove-item $tmpFile
                     }
                 }
-                $previousApps = $AppList
+                $previousApps = Sort-AppFilesByDependencies -appFiles $appList
                 $previousApps | ForEach-Object {
                     $appFile = $_
                     $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
@@ -542,7 +542,7 @@ $sortedFolders | ForEach-Object {
                         throw "Cannot use previous app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
                     }
                     finally {
-                    #    Remove-Item $tmpFolder -Recurse -Force
+                        Remove-Item $tmpFolder -Recurse -Force
                     }
                 }
             }
