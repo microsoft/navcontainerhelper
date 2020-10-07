@@ -20,8 +20,7 @@ Function Replace-DependenciesInAppFile {
         [Parameter(Mandatory=$true)]
         [string] $Path,
         [string] $Destination = $Path,
-        [Parameter(Mandatory=$true)]
-        [hashtable] $replaceDependencies,
+        [hashtable] $replaceDependencies = $null,
         [ValidateSet('Ignore','True','False','Check')]
         [string] $ShowMyCode = "Ignore"
     )

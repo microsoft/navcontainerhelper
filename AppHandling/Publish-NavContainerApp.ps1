@@ -12,8 +12,8 @@
   Include this parameter if the app you want to publish is not signed
  .Parameter sync
   Include this parameter if you want to synchronize the app after publishing
-  .Parameter syncMode
-   Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
+ .Parameter syncMode
+  Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
  .Parameter install
   Include this parameter if you want to install the app after publishing
  .Parameter tenant
@@ -119,16 +119,16 @@ function Publish-BcContainerApp {
 
     $copied = $false
     $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
-    if ("$containerAppFile" -eq "" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
+    if ("$containerAppFile" -eq "" -or $ShowMyCode -ne "Ignore" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
         $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
         if ($appFile.StartsWith(':')) {
             Copy-FileFromBCContainer -containerName $containerName -containerPath $appFile.Substring(1) -localPath $sharedAppFile
-            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+            if ($ShowMyCode -ne "Ignore" -or ($replaceDependencies)) {
                 Write-Host "Checking dependencies in $sharedAppFile"
                 Replace-DependenciesInAppFile -containerName $containerName -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
             }
         }
-        elseif ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+        elseif ($ShowMyCode -ne "Ignore" -or ($replaceDependencies)) {
             Write-Host "Checking dependencies in $appFile"
             Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
         }
@@ -235,7 +235,7 @@ function Publish-BcContainerApp {
     }
     else {
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language)
 
             $publishArgs = @{ "packageType" = $packageType }
             if ($scope) {
@@ -287,7 +287,7 @@ function Publish-BcContainerApp {
                 }
             }
 
-        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $replaceDependencies
+        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language
     }
 
     if ($copied) { 
