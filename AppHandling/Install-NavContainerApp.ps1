@@ -51,7 +51,7 @@ function Install-BcContainerApp {
             $parameters += @{ "Language" = $language }
         }
         Install-NavApp @parameters
-    } -ArgumentList $appName, $appPublisher, $appVersion, $language, $tenant, $Force
+    } -ArgumentList $appName, $appPublisher, $appVersion, $tenant, $language, $Force
     Write-Host -ForegroundColor Green "App successfully installed"
 }
 Set-Alias -Name Install-NavContainerApp -Value Install-BcContainerApp
