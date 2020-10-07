@@ -9,6 +9,8 @@
   Name of the tenant in which you want to sync the app
  .Parameter appName
   Name of app you want to sync in the container
+ .Parameter appPublisher
+  Publisher of app you want to sync in the container
  .Parameter appVersion
   Version of app you want to sync in the container
  .Parameter mode
@@ -24,35 +26,35 @@ function Sync-BcContainerApp {
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $appName,
-        [Parameter()]
+        [string] $appPublisher,
         [string] $appVersion,
         [Parameter(Mandatory = $false)]
         [ValidateSet('Add','Clean','ForceSync')]
         [string] $Mode,
         [switch] $Force
     )
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName,$appVersion,$tenant,$mode,$force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName,$appPublisher,$appVersion,$tenant,$mode,$force)
         Write-Host "Synchronizing $appName on $tenant"
         Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
         $parameters = @{
-            "ServerInstance" = $ServerInstance;
-            "Name" = $appName;
+            "ServerInstance" = $ServerInstance
+            "Name" = $appName
             "Tenant" = $tenant
         }
-        if ($appVersion)
-        {
+        if ($appPublisher) {
+            $parameters += @{ "Publisher" = $appPublisher }
+        }
+        if ($appVersion) {
             $parameters += @{ "Version" = $appVersion }
         }
-        if ($mode)
-        {
+        if ($mode) {
             $parameters += @{ "Mode" = $mode }
         }
-        if ($force)
-        {
+        if ($force) {
             $parameters += @{ "Force" = $true }
         }
         Sync-NavApp @parameters
-    } -ArgumentList $appName, $appVersion, $tenant, $Mode,$force
+    } -ArgumentList $appName, $appPublisher, $appVersion, $tenant, $Mode, $force
     Write-Host -ForegroundColor Green "App successfully synchronized"
 }
 Set-Alias -Name Sync-NavContainerApp -Value Sync-BcContainerApp

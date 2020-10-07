@@ -6,6 +6,9 @@ Add PrevousApps, AppSourceCopMandatoryAffixes and AppSourceCopSupportedCountries
 Move decision on whether or not to rebuild image from New-BcContainer to New-BcImage and always call
 Add parameter -skipIfImageAlreadyExists to New-BcImage
 Issue #1343 Publish-BcContainerApp with ShowMyCode fails if replaceDependencies is not Set
+Add parameters appPublisher and language to Install-BcContainerApp
+Add parameter appPublisher Sync-BcContainerApp
+Issue #1337 Add tenant parameter to Install-TestToolkitToBcContainer
 
 1.0.7
 Issue #1299 wait for symbol file to be available in container

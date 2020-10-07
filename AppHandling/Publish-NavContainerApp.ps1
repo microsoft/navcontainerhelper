@@ -12,8 +12,8 @@
   Include this parameter if the app you want to publish is not signed
  .Parameter sync
   Include this parameter if you want to synchronize the app after publishing
-  .Parameter syncMode
-   Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
+ .Parameter syncMode
+  Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
  .Parameter install
   Include this parameter if you want to install the app after publishing
  .Parameter tenant

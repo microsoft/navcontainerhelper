@@ -24,6 +24,8 @@
   Specifies the import action. Default is Overwrite
  .Parameter scope
   Specify Global or Tenant based on how you want to publish the package. Default is Global
+ .Parameter tenant
+  Tenant in which you want to install the test framework (default is default)
  .Parameter useDevEndpoint
   Specify the useDevEndpoint switch if you want to publish using the Dev Endpoint (like VS Code). This allows VS Code to re-publish.
  .Parameter doNotUseRuntimePackages
@@ -53,6 +55,7 @@ function Import-TestToolkitToBcContainer {
         [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
         [string] $scope,
+        [string] $tenant = "default",
         [switch] $useDevEndpoint,
         [hashtable] $replaceDependencies = $null
     )
@@ -138,16 +141,22 @@ function Import-TestToolkitToBcContainer {
                 }
             }
 
-            $isInstalled = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile)
+            $tenantAppInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant)
                 $navAppInfo = Get-NAVAppInfo -Path $appFile
-                (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version) 
-            } -argumentList $appFile
+                (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version -tenant $tenant -tenantSpecificProperties)
+            } -argumentList $appFile, $tenant
 
-            if ($isInstalled) {
-                Write-Host "Skipping app '$appFile' as it is already installed"
+            if ($tenantAppInfo) {
+                if ($tenantAppInfo.IsInstalled) {
+                    Write-Host "Skipping app '$appFile' as it is already installed"
+                }
+                else {
+                    Sync-BcContainerApp -containerName $containerName -tenant $tenant -appName $tenantAppInfo.Name -appPublisher $tenantAppInfo.Publisher -appVersion $tenantAppInfo.Version -Force
+                    Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $tenantAppInfo.Name -appPublisher $tenantAppInfo.Publisher -appVersion $tenantAppInfo.Version -Force
+                }
             }
             else {
-                Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential
+                Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
     
                 if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
                     Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
