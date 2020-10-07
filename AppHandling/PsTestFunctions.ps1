@@ -479,6 +479,7 @@ function Run-Tests {
             if ($result.PSobject.Properties.name -eq "testResults") {
                 $result.testResults | % {
                     $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                    if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
                     $totalduration += $testduration
                 }
             }
@@ -501,6 +502,7 @@ function Run-Tests {
             if ($result.PSobject.Properties.name -eq "testResults") {
                 $result.testResults | % {
                     $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                    if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
         
                     if ($XUnitResultFileName) {
                         if ($XUnitAssembly.ParentNode -eq $null) {
@@ -852,6 +854,7 @@ function Run-Tests {
                             $clientContext.InvokeAction($clientContext.GetActionByName($form, $runSelectedName))
                             $finishTime = get-date
                             $testduration = $finishTime.Subtract($startTime)
+                            if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
 
                             $row = $repeater.CurrentRow
                             for ($idx = 0; $idx -lt $repeater.DefaultViewPort.Count; $idx++) {
@@ -864,6 +867,7 @@ function Run-Tests {
                         $startTime = $clientContext.GetControlByName($row, "Start Time").ObjectValue
                         $finishTime = $clientContext.GetControlByName($row, "Finish Time").ObjectValue
                         $testduration = $finishTime.Subtract($startTime)
+                        if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
                         $totalduration += $testduration
                         if ($XUnitResultFileName) {
                             if ($XUnitAssembly.ParentNode -eq $null) {
