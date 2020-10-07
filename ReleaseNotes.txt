@@ -5,6 +5,7 @@ Sort apps before install in Publish-BcContainerApp
 Add PrevousApps, AppSourceCopMandatoryAffixes and AppSourceCopSupportedCountries to Run-AlPipeline
 Move decision on whether or not to rebuild image from New-BcContainer to New-BcImage and always call
 Add parameter -skipIfImageAlreadyExists to New-BcImage
+Issue #1343 Publish-BcContainerApp with ShowMyCode fails if replaceDependencies is not Set
 
 1.0.7
 Issue #1299 wait for symbol file to be available in container
