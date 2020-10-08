@@ -166,8 +166,6 @@ function CheckRelativePath([string] $baseFolder, $path, $name) {
             $path = Join-Path $baseFolder $path
         }
         else {
-            $path = (Get-Item -Path $path).FullName
-            $baseFolder = (Get-Item -Path $baseFolder).FullName
             if ($path -notlike "$($baseFolder)*") {
                 throw "$name is ($path) must be a subfolder to baseFolder ($baseFolder)"
             }
