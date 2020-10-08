@@ -273,7 +273,6 @@ else {
 }
 
 if ($buildArtifactFolder) {
-    $buildArtifactFolder = CheckRelativePath -baseFolder $baseFolder -path $buildArtifactFolder -name "buildArtifactFolder"
     if (!(Test-Path $buildArtifactFolder)) {
         New-Item $buildArtifactFolder -ItemType Directory | Out-Null
     }
