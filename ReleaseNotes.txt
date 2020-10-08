@@ -9,6 +9,8 @@ Issue #1343 Publish-BcContainerApp with ShowMyCode fails if replaceDependencies 
 Add parameters appPublisher and language to Install-BcContainerApp
 Add parameter appPublisher Sync-BcContainerApp
 Issue #1337 Add tenant parameter to Install-TestToolkitToBcContainer
+Add parameter description to Run-AlPipeline
+Set JUnit as default output from Run-AlPipeline
 
 1.0.7
 Issue #1299 wait for symbol file to be available in container

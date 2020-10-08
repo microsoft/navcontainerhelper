@@ -1,13 +1,114 @@
 <# 
  .Synopsis
-  Preview script for running simple AL pipeline
+  Run AL Pipeline
  .Description
-  Preview script for running simple AL pipeline
+  Run AL Pipeline
+ .Parameter pipelineName
+  The name of the pipeline or project.
+ .Parameter baseFolder
+  The baseFolder serves as the base Folder for all other parameters including a path (appFolders, testFolders, testResultFile, outputFolder, packagesFolder and buildArtifactsFodler).
+ .Parameter licenseFile
+  License file to use for AL Pipeline.
+ .Parameter containerName
+  This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
+ .Parameter imageName
+  if artifact is specified then imageName is the name of a docker image cache. if artifact is empty, then imageName specified the image to be run.
+ .Parameter enableTaskScheduler
+  Include this switch if the Task Scheduler should be running inside the build/test container, as some app features rely on the Task Scheduler.
+ .Parameter assignPremiumPlan
+  Include this switch if the primary user in Business Central should have assign premium plan, as some app features require premium plan.
+ .Parameter tenant
+  If you specify a tenant name, a tenant with this name will be created and used for the entire process.
+ .Parameter memoryLimit
+  MemoryLimit is default set to 8Gb. This is fine for compiling small and medium size apps, but if your have a number of apps or your apps are large and complex, you might need to assign more memory.
+ .Parameter credential
+  These are the credentials used for the container. If not provided, the Run-AlPipeline function will generate a random password and use that.
+ .Parameter codeSignCertPfxFile
+  A secure url to a code signing certificate for signing apps. Apps will only be signed if useDevEndpoint is NOT specified.
+ .Parameter codeSignCertPfxPassword
+  Password for the code signing certificate specified by codeSignCertPfxFile. Apps will only be signed if useDevEndpoint is NOT specified.
+ .Parameter installApps
+  Array or comma separated list of 3rd party apps to install before compiling apps.
+ .Parameter previousApps
+  Array or comma separated list of previous version of apps
+ .Parameter appFolders
+  Array or comma separated list of folders with apps to be compiled, signed and published
+ .Parameter testFolders
+  Array or comma separated list of folders with test apps to be compiled, published and run
+ .Parameter appBuild
+  Build number for build. Will be stamped into the build part of the app.json version number property.
+ .Parameter appRevision
+  Revision number for build. Will be stamped into the revision part of the app.json version number property.
+ .Parameter testResultsFile
+  Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
+ .Parameter testResultsFormat
+  Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
+ .Parameter packagesFolder
+  This is the folder (relative to base folder) where symbols are downloaded  and compiled apps are placed. Only relevant when not using useDevEndpoint.
+ .Parameter outputFolder
+  This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
+ .Parameter artifact
+  The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select/sastoken, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
+ .Parameter buildArtifactFolder
+  If this folder is specified, the build artifacts will be copied to this folder.
+ .Parameter createRuntimePackages
+  Include this switch if you want to create runtime packages of all apps. The runtime packages will also be signed (if certificate is provided) and copied to artifacts folder.
+ .Parameter installTestFramework
+  Include this switch to include the test framework in the container before compiling apps and test apps. The Test Framework includes the following apps: Microsoft Any, Microsoft Library Assert, Microsoft Library Variable Storage and Microsoft Test Runner.
+ .Parameter installTestLibraries
+  Include this switch to include the test libraries in the container before compiling apps and test apps. The Test Libraries includes all the Test Framework apps and the following apps: Microsoft System Application Test Library and Microsoft Tests-TestLibraries
+ .Parameter installPerformanceToolkit
+  Include this switch to install test Performance Test Toolkit. This includes the apps from the Test Framework and the Microsoft Business Central Performance Toolkit app
+ .Parameter azureDevOps
+  Include this switch if you want compile errors and test errors to surface directly in Azure Devops pipeline.
+ .Parameter useDevEndpoint
+  Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
+ .Parameter doNotRunTests
+  Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
+ .Parameter keepContainer
+  Including the keepContainer switch causes the container to not be deleted after the pipeline finishes.
+ .Parameter updateLaunchJson
+  Including the updateLaunchJson switch causes the launch.json file in each project to be updated with container information to be able to start debugging right away.
+ .Parameter enableCodeCop
+  Include this switch to include Code Cop Rules during compilation.
+ .Parameter enableAppSourceCop
+  Only relevant for AppSource apps. Include this switch to include AppSource Cop during compilation.
+ .Parameter enableUICop
+  Include this switch to include UI Cop during compilation.
+ .Parameter enablePerTenantExtensionCop
+  Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+ .Parameter AppSourceCopMandatoryAffixes
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app. 
+ .Parameter AppSourceCopSupportedCountries
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
+ .Parameter DockerPull
+  Override function parameter for docker pull
+ .Parameter NewBcContainer
+  Override function parameter for New-BcContainer
+ .Parameter CompileAppInBcContainer
+  Override function parameter for Compile-AppInBcContainer
+ .Parameter PublishBcContainerApp
+  Override function parameter for Publish-BcContainerApp
+ .Parameter SignBcContainerApp
+  Override function parameter for Sign-BcContainerApp
+ .Parameter RunTestsInBcContainer
+  Override function parameter for Run-TestsInBcContainer
+ .Parameter GetBcContainerAppRuntimePackage
+  Override function parameter Get-BcContainerAppRuntimePackage
+ .Parameter RemoveBcContainer
+  Override function parameter for Remove-BcContainer
+ .Example
+  Please visit https://www.freddysblog.com for descriptions
+ .Example
+  Please visit https://dev.azure.com/businesscentralapps/HelloWorld for Per Tenant Extension example
+ .Example
+  Please visit https://dev.azure.com/businesscentralapps/HelloWorld.AppSource for AppSource example
+
 #>
 function Run-AlPipeline {
 Param(
     [string] $pipelineName,
-    [string] $baseFolder,
+    [string] $baseFolder = "",
     [string] $licenseFile,
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
@@ -29,10 +130,10 @@ Param(
     [string] $testResultsFile = "TestResults.xml",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
-    [string] $testResultsFormat = "XUnit",
-    [string] $packagesFolder = "",
+    [string] $testResultsFormat = "JUnit",
+    [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
-    [string] $artifact = "bcartifacts/sandbox//us/latest",
+    [string] $artifact = "///us/Current",
     [string] $buildArtifactFolder = "",
     [switch] $createRuntimePackages,
     [switch] $installTestFramework,
@@ -59,25 +160,40 @@ Param(
     [scriptblock] $RemoveBcContainer
 )
 
-function randomchar([string]$str)
-{
+function CheckRelativePath([string] $baseFolder, $path, $name) {
+    if ($path) {
+        if (!$path.contains(':')) {
+            $path = Join-Path $baseFolder $path
+        }
+        else {
+            $path = (Get-Item -Path $path).FullName
+            $baseFolder = (Get-Item -Path $baseFolder).FullName
+            if ($path -notlike "$($baseFolder)*") {
+                throw "$name is ($path) must be a subfolder to baseFolder ($baseFolder)"
+            }
+        }
+    }
+    $path
+}
+
+function RandomChar([string]$str) {
     $rnd = Get-Random -Maximum $str.length
     [string]$str[$rnd]
 }
 
-function Get-RandomPassword {
+function GetRandomPassword {
     $cons = 'bcdfghjklmnpqrstvwxz'
     $voc = 'aeiouy'
     $numbers = '0123456789'
 
-    ((randomchar $cons).ToUpper() + `
-     (randomchar $voc) + `
-     (randomchar $cons) + `
-     (randomchar $voc) + `
-     (randomchar $numbers) + `
-     (randomchar $numbers) + `
-     (randomchar $numbers) + `
-     (randomchar $numbers))
+    ((RandomChar $cons).ToUpper() + `
+     (RandomChar $voc) + `
+     (RandomChar $cons) + `
+     (RandomChar $voc) + `
+     (RandomChar $numbers) + `
+     (RandomChar $numbers) + `
+     (RandomChar $numbers) + `
+     (RandomChar $numbers))
 }
 
 Function UpdateLaunchJson {
@@ -120,38 +236,48 @@ Function UpdateLaunchJson {
     }
 }
 
-if ($memoryLimit -eq "")       { $memoryLimit = "6G" }
+if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
+    throw "baseFolder must be an existing folder"
+}
 
-if ($installApps                    -is [String]) { $installApps = $installApps.Split(',') | Where-Object { $_ } }
-if ($previousApps                   -is [String]) { $previousApps = $previousApps.Split(',') | Where-Object { $_ } }
-if ($appFolders                     -is [String]) { $appFolders = $appFolders.Split(',')  | Where-Object { $_ } }
-if ($testFolders                    -is [String]) { $testFolders = $testFolders.Split(',') | Where-Object { $_ } }
-if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = $AppSourceCopMandatoryAffixes.Split(',') | Where-Object { $_ } }
-if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = $AppSourceCopSupportedCountries.Split(',') | Where-Object { $_ } }
+if ($memoryLimit -eq "") {
+    $memoryLimit = "8G"
+}
 
-$appFolders  = @($appFolders  | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
-$testFolders = @($testFolders | ForEach-Object { if (!$_.contains(':')) { Join-Path $baseFolder $_ } else { $_ } } | Where-Object { Test-Path $_ } )
-if (!$testResultsFile.Contains(':')) { $testResultsFile = Join-Path $baseFolder $testResultsFile }
+if ($installApps                    -is [String]) { $installApps = $installApps.Split(',').Trim() | Where-Object { $_ } }
+if ($previousApps                   -is [String]) { $previousApps = $previousApps.Split(',').Trim() | Where-Object { $_ } }
+if ($appFolders                     -is [String]) { $appFolders = $appFolders.Split(',').Trim()  | Where-Object { $_ } }
+if ($testFolders                    -is [String]) { $testFolders = $testFolders.Split(',').Trim() | Where-Object { $_ } }
+if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = $AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ } }
+if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = $AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ } }
+
+$appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
+$testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
+$testResultsFile = CheckRelativePath -baseFolder $baseFolder -path $testResultsFile -name "testResultsFile"
+if (Test-Path $testResultsFile) {
+    Remove-Item -Path $testResultsFile -Force
+}
 
 if ($useDevEndpoint) {
     $packagesFolder = ""
+    $outputFolder = ""
 }
 else {
-    if ($packagesFolder -eq "") {
-        $packagesFolder = ".packages"
-    }
-    if (!$packagesFolder.Contains(':')) {
-        $packagesFolder  = Join-Path $baseFolder $packagesFolder
-    }
+    $packagesFolder = CheckRelativePath -baseFolder $baseFolder -path $packagesFolder -name "packagesFolder"
     if (Test-Path $packagesFolder) {
         Remove-Item $packagesFolder -Recurse -Force
     }
 
-    if (!$outputFolder.Contains(':')) {
-        $outputFolder = Join-Path $baseFolder $outputFolder
-    }
+    $outputFolder = CheckRelativePath -baseFolder $baseFolder -path $outputFolder -name "outputFolder"
     if (Test-Path $outputFolder) {
         Remove-Item $outputFolder -Recurse -Force
+    }
+}
+
+if ($buildArtifactFolder) {
+    $buildArtifactFolder = CheckRelativePath -baseFolder $baseFolder -path $buildArtifactFolder -name "buildArtifactFolder"
+    if (!(Test-Path $buildArtifactFolder)) {
+        New-Item $buildArtifactFolder -ItemType Directory | Out-Null
     }
 }
 
@@ -161,7 +287,10 @@ if (!($appFolders)) {
 
 $sortedFolders = Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders) -WarningAction SilentlyContinue
 
-if ($artifact -like "https://*") {
+if (!$artifact) {
+    $artifactUrl = ""    
+}
+elseif ($artifact -like "https://*") {
     $artifactUrl = $artifact
 }
 else {
@@ -174,15 +303,8 @@ else {
     $sasToken = $segments[5]
 
     $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $sasToken | Select-Object -First 1
-}
-
-if (!($artifactUrl)) {
-    throw "Unable to locate artifacts"
-}
-
-if ($buildArtifactFolder) {
-    if (!(Test-Path $buildArtifactFolder)) {
-        throw "BuildArtifactFolder must exist"
+    if (!($artifactUrl)) {
+        throw "Unable to locate artifacts"
     }
 }
 
@@ -205,7 +327,7 @@ if ($credential) {
     Write-Host "Specified"
 }
 else {
-    $password = Get-RandomPassword
+    $password = GetRandomPassword
     Write-Host "admin/$password"
     $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
@@ -298,6 +420,7 @@ Measure-Command {
 
 Measure-Command {
 
+if ($artifactUrl) {
 Write-Host -ForegroundColor Yellow @'
 
   _____       _ _ _                                          _        _                            
@@ -315,7 +438,7 @@ $genericImageName = Get-BestGenericImageName
 Write-Host "Pulling $genericImageName"
 
 Invoke-Command -ScriptBlock $DockerPull -ArgumentList $genericImageName
-
+}
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
 
 $error = $null
@@ -483,8 +606,8 @@ $sortedFolders | ForEach-Object {
         $appOutputFolder = $folder
     }
     else {
-        $appOutputFolder = $outputFolder
         $appPackagesFolder = $packagesFolder
+        $appOutputFolder = $outputFolder
         $Parameters += @{ "CopyAppToSymbolsFolder" = $true }
     }
 
@@ -743,7 +866,6 @@ $testApps | ForEach-Object {
 }
 
 if (!$doNotRunTests) {
-Remove-Item -Path $testResultsFile -Force -ErrorAction SilentlyContinue
 if ($testFolders) {
 Write-Host -ForegroundColor Yellow @'
 
