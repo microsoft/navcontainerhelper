@@ -13,24 +13,28 @@
 function Test-BcContainer {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-
         [switch] $doNotIncludeStoppedContainers
     )
     Process {
-        $id = ""
-        $a = "-a"
-        if ($doNotIncludeStoppedContainers) {
-            $a = ""
+        if ($containerName) {
+            $id = ""
+            $a = "-a"
+            if ($doNotIncludeStoppedContainers) {
+                $a = ""
+            }
+    
+            $id = docker ps $a -q --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
+            if (!($id)) {
+                $id = docker ps $a -q --no-trunc --filter "id=$containerName"
+            }
+            if ($id) {
+                $inspect = docker inspect $id | ConvertFrom-Json
+                ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
+            } else {
+                $false
+            }
         }
-
-        $id = docker ps $a -q --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
-        if (!($id)) {
-            $id = docker ps $a -q --no-trunc --filter "id=$containerName"
-        }
-        if ($id) {
-            $inspect = docker inspect $id | ConvertFrom-Json
-            ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
-        } else {
+        else {
             $false
         }
     }

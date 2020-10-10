@@ -249,15 +249,21 @@ function New-BcContainer {
     if ($defaultNewContainerParameters -is [HashTable]) {
         $defaultNewContainerParameters.GetEnumerator() | ForEach-Object {
             if (!($PSBoundParameters.ContainsKey($_.Name))) {
-                Write-Host "Default parameter $($_.Name) = $($_.Value)"
-                Set-Variable -name $_.Name -Value $_.Value
+                if ($_.Name -eq "Credential" -or $_.Name -eq "DatabaseCredential") {
+                    Write-Host "Default parameter $($_.Name)"
+                    Set-Variable -Name $_.Name -Value (New-Object pscredential -ArgumentList $_.Value.Username, ($_.Value.Password | ConvertTo-SecureString))
+                }
+                else {
+                    Write-Host "Default parameter $($_.Name) = $($_.Value)"
+                    Set-Variable -name $_.Name -Value $_.Value
+                }
             }        
         }
     }
     elseif ($defaultNewContainerParameters -is [PSCustomObject]) {
         $defaultNewContainerParameters.PSObject.Properties | ForEach-Object {
             if (!($PSBoundParameters.ContainsKey($_.Name))) {
-                if ($_.Name -eq "Credential") {
+                if ($_.Name -eq "Credential" -or $_.Name -eq "DatabaseCredential") {
                     Write-Host "Default parameter $($_.Name)"
                     Set-Variable -Name $_.Name -Value (New-Object pscredential -ArgumentList $_.Value.Username, ($_.Value.Password | ConvertTo-SecureString))
                 }
