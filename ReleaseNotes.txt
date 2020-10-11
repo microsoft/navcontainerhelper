@@ -1,3 +1,6 @@
+1.0.9
+Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it
+
 1.0.8
 Issue #1329 test whether containername is in hsts preload list
 Add function Sort-AppFilesByDependencies for sorting an array of app files by dependencies

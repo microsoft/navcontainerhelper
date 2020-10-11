@@ -27,7 +27,7 @@ Author = 'Freddy Kristiansen'
 CompanyName = 'Microsoft'
 
 # Copyright statement for this module
-Copyright = '(c) 2017 Freddy Kristiansen. All rights reserved.'
+Copyright = '(c) 2020 Microsoft. All rights reserved.'
 
 # Description of the functionality provided by this module
 Description = 'PowerShell module'
