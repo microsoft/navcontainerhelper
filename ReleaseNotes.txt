@@ -1,6 +1,7 @@
 1.0.9
 Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it
 Add parameter AllowAppDatabaseWrite to New-BcContainerTenant. Works with generic image 0.1.0.24 or later.
+Merge AdditionalParameters and MyScripts with defaultNewContainerParameters config file settings
 Add build number for Windows 10 20H2
 
 1.0.8
