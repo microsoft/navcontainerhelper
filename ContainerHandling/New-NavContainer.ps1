@@ -31,12 +31,12 @@
  .Parameter AuthenticationEmail
   AuthenticationEmail of the admin user
  .Parameter memoryLimit
-  Memory limit for the container (default is unlimited for Windows Server host else 4G)
+  Memory limit for the container (default is unlimited for process isolation and 4G for hyperv isolation containers)
  .Parameter sqlMemoryLimit
   Memory limit for the SQL inside the container (default is no limit)
   Value can be specified as 50%, 1.5G, 1500M
  .Parameter isolation
-  Isolation mode for the container (default is process for Windows Server host else hyperv)
+  Isolation mode for the container (default is process isolation if host and container OS match)
  .Parameter databaseServer
   Name of database server when using external SQL Server (omit if using database inside the container)
  .Parameter databaseInstance
@@ -257,7 +257,15 @@ function New-BcContainer {
                     Write-Host "Default parameter $($_.Name) = $($_.Value)"
                     Set-Variable -name $_.Name -Value $_.Value
                 }
-            }        
+            }
+            elseif ($_.Name -eq "AdditionalParameters") {
+                Write-Host "Merging $($_.Name)"
+                $additionalParameters = $_.Value + $additionalParameters
+            }
+            elseif ($_.Name -eq "MyScripts") {
+                Write-Host "Merging $($_.Name)"
+                $myScripts = $_.Value + $myScripts
+            }
         }
     }
     elseif ($defaultNewContainerParameters -is [PSCustomObject]) {
@@ -271,6 +279,14 @@ function New-BcContainer {
                     Write-Host "Default parameter $($_.Name) = $($_.Value)"
                     Set-Variable -name $_.Name -Value $_.Value
                 }
+            }
+            elseif ($_.Name -eq "AdditionalParameters") {
+                Write-Host "Merging $($_.Name)"
+                $additionalParameters = $_.Value + $additionalParameters
+            }
+            elseif ($_.Name -eq "MyScripts") {
+                Write-Host "Merging $($_.Name)"
+                $myScripts = $_.Value + $myScripts
             }
         }        
     }
@@ -332,7 +348,7 @@ function New-BcContainer {
             } elseif (!(Test-Path $_)) {
                 throw "Script directory or file $_ does not exist"
             }
-        } elseif ($_ -isnot [Hashtable]) {
+        } elseif ($_ -isnot [Hashtable] -and $_ -isnot [PSCustomObject]) {
             throw "Illegal value in myScripts"
         }
     }
@@ -348,7 +364,12 @@ function New-BcContainer {
     $hostOs = "Unknown/Insider build"
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
 
-    if ($os.BuildNumber -eq 19041) { 
+    $isServerHost = $os.ProductType -eq 3
+
+    if ($os.BuildNumber -eq 19042) { 
+        $hostOs = "20H2"
+    }
+    elseif ($os.BuildNumber -eq 19041) { 
         $hostOs = "2004"
     }
     elseif ($os.BuildNumber -eq 18363) { 
@@ -358,7 +379,12 @@ function New-BcContainer {
         $hostOs = "1903"
     }
     elseif ($os.BuildNumber -eq 17763) { 
-        $hostOs = "ltsc2019"
+        if ($isServerHost) {
+            $hostOs = "ltsc2019"
+        }
+        else {
+            $hostOs = "1809"
+        }
     }
     elseif ($os.BuildNumber -eq 17134) { 
         $hostOs = "1803"
@@ -370,7 +396,12 @@ function New-BcContainer {
         $hostOs = "1703"
     }
     elseif ($os.BuildNumber -eq 14393) {
-        $hostOs = "ltsc2016"
+        if ($isServerHost) {
+            $hostOs = "ltsc2016"
+        }
+        else {
+            $hostOs = "1607"
+        }
     }
     
     Write-Host "BcContainerHelper is version $BcContainerHelperVersion"
@@ -381,7 +412,6 @@ function New-BcContainer {
         Write-Host "BcContainerHelper is not running as administrator"
     }
 
-    $isServerHost = $os.ProductType -eq 3
     Write-Host "Host is $($os.Caption) - $hostOs"
 
     $dockerService = (Get-Service docker -ErrorAction Ignore)
@@ -870,6 +900,9 @@ function New-BcContainer {
     elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
         $containerOs = "2004"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+        $containerOs = "20H2"
+    }
     else {
         $containerOs = "unknown"
     }
@@ -985,6 +1018,9 @@ function New-BcContainer {
         elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
             $containerOs = "2004"
         }
+        elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+            $containerOs = "20H2"
+        }
         else {
             $containerOs = "unknown"
         }
@@ -1095,10 +1131,17 @@ function New-BcContainer {
                     Copy-Item -Path $_ -Destination $myFolder -Force
                 }
             }
-        } else {
+        }
+        elseif ($_ -is [hashtable]) {
             $hashtable = $_
             $hashtable.Keys | ForEach-Object {
-                Set-Content -Path (Join-Path $myFolder $_) -Value $hashtable[$_]
+                Add-Content -Path (Join-Path $myFolder $_) -Value "`n$($hashtable[$_])`n"
+            }
+        }
+        elseif ($_ -is [PSCustomObject]) {
+            $psobj = $_
+            $psobj.PSObject.Properties | ForEach-Object {
+                Add-Content -Path (Join-Path $myFolder $_.Name) -Value "`n$($_.Value)`n"
             }
         }
     }
