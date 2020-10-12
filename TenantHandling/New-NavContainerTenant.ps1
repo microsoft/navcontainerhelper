@@ -13,6 +13,10 @@
   Specify a source database which will be the template for the new tenant (default is tenant)
  .Parameter destinationDatabase
   Specify a database name for the new tenant (default is the tenantid)
+ .Parameter alternateId
+  Specify an array of alternate tenant ids (hostnames f.ex.)
+ .Parameter allowAppDatabaseWrite
+  Include this switch if the tenant should have AllowAppDatabaseWrite set
  .Example
   New-BcContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -25,7 +29,8 @@ function New-BcContainerTenant {
         [PSCredential] $sqlCredential = $null,
         [string] $sourceDatabase = "tenant",
         [string] $destinationDatabase = $tenantId,
-        [string[]] $alternateId = @()
+        [string[]] $alternateId = @(),
+        [switch] $allowAppDatabaseWrite
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
@@ -55,9 +60,14 @@ function New-BcContainerTenant {
             $alternateId += @($tenantHostname)
         }
 
+        $Params = @{}
+        if ($allowAppDatabaseWrite) {
+            $Params += @{ "AllowAppDatabaseWrite" = $true }
+        }
+
         # Setup tenant
         Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
-        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential -AlternateId $alternateId
+        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential -AlternateId $alternateId @Params
 
         if (Test-Path "c:\run\my\updatehosts.ps1") {
             $ip = "127.0.0.1"
