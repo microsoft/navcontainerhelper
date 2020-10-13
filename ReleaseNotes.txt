@@ -3,6 +3,9 @@ Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.cre
 Add parameter AllowAppDatabaseWrite to New-BcContainerTenant. Works with generic image 0.1.0.24 or later.
 Merge AdditionalParameters and MyScripts with defaultNewContainerParameters config file settings
 Add build number for Windows 10 20H2
+Do not install the test toolkit before compiling test apps
+Add 2 more overrides ImportTestToolkitToBcContainer and GetBcContainerAppInfo
+Issue #1359 Allow apps to contain test code (but not for AppSource Apps or PTEs)
 
 1.0.8
 Issue #1329 test whether containername is in hsts preload list
