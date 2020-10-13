@@ -85,8 +85,12 @@
   Override function parameter for docker pull
  .Parameter NewBcContainer
   Override function parameter for New-BcContainer
+ .Parameter ImportTestToolkitToBcContainer
+  Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
+ .Parameter GetBcContainerAppInfo
+  Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
   Override function parameter for Publish-BcContainerApp
  .Parameter SignBcContainerApp
@@ -152,7 +156,9 @@ Param(
     $AppSourceCopSupportedCountries = @(),
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
+    [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
+    [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
     [scriptblock] $SignBcContainerApp,
     [scriptblock] $RunTestsInBcContainer,
@@ -282,7 +288,8 @@ if (!($appFolders)) {
     throw "No app folders found"
 }
 
-$sortedFolders = Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders) -WarningAction SilentlyContinue
+$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
+                 @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue)
 
 if (!$artifact) {
     $artifactUrl = ""    
@@ -374,11 +381,23 @@ if ($NewBcContainer) {
 else {
     $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
 }
+if ($ImportTestToolkitToBcContainer) {
+    Write-Host -ForegroundColor Yellow "ImportTestToolkitToBcContainer override"; Write-Host $ImportTestToolkitToBcContainer.ToString()
+}
+else {
+    $ImportTestToolkitToBcContainer = { Param([Hashtable]$parameters) Import-TestToolkitToBcContainer @parameters }
+}
 if ($CompileAppInBcContainer) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
 else {
     $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
+}
+if ($GetBcContainerAppInfo) {
+    Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
+}
+else {
+    $GetBcContainerAppInfo = { Param([Hashtable]$parameters) Get-BcContainerAppInfo @parameters }
 }
 if ($PublishBcContainerApp) {
     Write-Host -ForegroundColor Yellow "PublishBcContainerApp override"; Write-Host $PublishBcContainerApp.ToString()
@@ -474,23 +493,6 @@ Measure-Command {
         "additionalParameters" = @("--volume $($baseFolder):c:\sources")
     }
 
-    if ($installTestLibraries) {
-        $Parameters += @{
-            "includeTestToolkit" = $true
-            "doNotUseRuntimePackages" = $true
-            "includeTestLibrariesOnly" = $true
-            "includePerformanceToolkit" = $installPerformanceToolkit
-        }
-    }
-    elseif ($installTestFramework -or $installPerformanceToolkit) {
-        $Parameters += @{
-            "includeTestToolkit" = $true
-            "doNotUseRuntimePackages" = $true
-            "includeTestFrameworkOnly" = $true
-            "includePerformanceToolkit" = $installPerformanceToolkit
-        }
-    }
-
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
 
     if ($tenant -ne 'default' -and -not (Get-NavContainerTenants -containerName $containerName | Where-Object { $_.id -eq "default" })) {
@@ -575,16 +577,35 @@ $previousAppsCopied = $false
 $appsFolder = @{}
 $apps = @()
 $testApps = @()
-$sortedFolders | ForEach-Object {
+$testToolkitInstalled = $false
+$sortedFolders | select -Unique | ForEach-Object {
     $folder = $_
+
     $testApp = $testFolders.Contains($folder)
+    $app = $appFolders.Contains($folder)
+
+    if ($testApp -and !$testToolkitInstalled) {
+        $Parameters = @{
+            "containerName" = $containerName
+            "includeTestLibrariesOnly" = $installTestLibraries
+            "includeTestFrameworkOnly" = $installTestFramework
+            "includePerformanceToolkit" = $installPerformanceToolkit
+            "doNotUseRuntimePackages" = $true
+        }
+        Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
+        $testToolkitInstalled = $true
+    }
+
     $Parameters = @{ }
-    if (-not $testApp) {
+    if ($app) {
         $Parameters += @{ 
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
             "EnableUICop" = $enableUICop
             "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
+        }
+        if ($testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
+            throw "You cannot run AppSourceCop or PerTenantExtensionCop on a Test App as a Test App cannot be published to production tenants online"
         }
     }
 
@@ -617,7 +638,7 @@ $sortedFolders | ForEach-Object {
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
     }
-    if ($enableAppSourceCop -and !$testApp) {
+    if ($enableAppSourceCop -and $app) {
         if (!$previousAppsCopied) {
             $previousAppsCopied = $true
             $AppList = @()
@@ -728,7 +749,7 @@ $sortedFolders | ForEach-Object {
     if ($testApp) {
         $testApps += $appFile
     }
-    else {
+    if ($app) {
         $apps += $appFile
         $appsFolder += @{ "$appFile" = $folder }
     }
@@ -814,7 +835,7 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-$installedApps = Get-BcContainerAppInfo -containerName $containerName -tenant $tenant
+$installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 
 $apps | ForEach-Object {
    
@@ -878,6 +899,7 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 $testFolders | ForEach-Object {
+    
     $appJson = Get-Content -Path (Join-Path $_ "app.json") | ConvertFrom-Json
 
     $Parameters = @{
