@@ -6,6 +6,7 @@ Add build number for Windows 10 20H2
 Do not install the test toolkit before compiling test apps
 Add 2 more overrides ImportTestToolkitToBcContainer and GetBcContainerAppInfo
 Issue #1359 Allow apps to contain test code (but not for AppSource Apps or PTEs)
+Add useGenericImage parameter to run-alpipeline
 
 1.0.8
 Issue #1329 test whether containername is in hsts preload list

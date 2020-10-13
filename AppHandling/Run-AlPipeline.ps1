@@ -49,6 +49,8 @@
   This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
  .Parameter artifact
   The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select/sastoken, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
+ .Parameter useGenericImage
+  Specify a private (or special) generic image to use for the Container OS. Default is calling Get-BestGenericImageName.
  .Parameter buildArtifactFolder
   If this folder is specified, the build artifacts will be copied to this folder.
  .Parameter createRuntimePackages
@@ -138,6 +140,7 @@ Param(
     [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
     [string] $artifact = "///us/Current",
+    [string] $useGenericImage = (Get-BestGenericImageName),
     [string] $buildArtifactFolder = "",
     [switch] $createRuntimePackages,
     [switch] $installTestFramework,
@@ -450,10 +453,9 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 
-$genericImageName = Get-BestGenericImageName
-Write-Host "Pulling $genericImageName"
+Write-Host "Pulling $useGenericImage"
 
-Invoke-Command -ScriptBlock $DockerPull -ArgumentList $genericImageName
+Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
 
@@ -483,6 +485,7 @@ Measure-Command {
         "containerName" = $containerName
         "imageName" = $imageName
         "artifactUrl" = $artifactUrl
+        "useGenericImage" = $useGenericImage
         "Credential" = $credential
         "auth" = 'UserPassword'
         "updateHosts" = $true
@@ -579,7 +582,7 @@ $appsFolder = @{}
 $apps = @()
 $testApps = @()
 $testToolkitInstalled = $false
-$sortedFolders | select -Unique | ForEach-Object {
+$sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
     $testApp = $testFolders.Contains($folder)
