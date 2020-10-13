@@ -572,6 +572,7 @@ Write-Host -ForegroundColor Yellow @'
                        |_|                |___/        |_|   |_|        
 
 '@
+$measureText = ""
 Measure-Command {
 $previousAppsCopied = $false
 $appsFolder = @{}
@@ -585,6 +586,19 @@ $sortedFolders | select -Unique | ForEach-Object {
     $app = $appFolders.Contains($folder)
 
     if ($testApp -and !$testToolkitInstalled) {
+
+Write-Host -ForegroundColor Yellow @'
+  _____                            _   _               _______       _     _______          _ _    _ _   
+ |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _     | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
+   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` |    | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| |    | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
+ |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |    |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
+                 | |                            __/ |                                                    
+                 |_|                           |___/                                                     
+'@
+Measure-Command {
+        $measureText = ", test apps and importing test toolkit"
         $Parameters = @{
             "containerName" = $containerName
             "includeTestLibrariesOnly" = $installTestLibraries
@@ -594,6 +608,17 @@ $sortedFolders | select -Unique | ForEach-Object {
         }
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
         $testToolkitInstalled = $true
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
+Write-Host -ForegroundColor Yellow @'
+   _____                      _ _ _               _           _                           
+  / ____|                    (_) (_)             | |         | |                          
+ | |     ___  _ __ ___  _ __  _| |_ _ __   __ _  | |_ ___ ___| |_    __ _ _ __  _ __  ___ 
+ | |    / _ \| '_ ` _ \| '_ \| | | | '_ \ / _` | | __/ _ \ __| __|  / _` | '_ \| '_ \/ __|
+ | |____ (_) | | | | | | |_) | | | | | | | (_| | | |_  __\__ \ |_  | (_| | |_) | |_) \__ \
+  \_____\___/|_| |_| |_| .__/|_|_|_|_| |_|\__, |  \__\___|___/\__|  \__,_| .__/| .__/|___/
+                       | |                 __/ |                         | |   | |        
+                       |_|                |___/                          |_|   |_|        
+'@
     }
 
     $Parameters = @{ }
@@ -605,7 +630,7 @@ $sortedFolders | select -Unique | ForEach-Object {
             "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
         }
         if ($testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
-            throw "You cannot run AppSourceCop or PerTenantExtensionCop on a Test App as a Test App cannot be published to production tenants online"
+            Write-Host -ForegroundColor Yellow "WARNING: A Test App cannot be published to production tenants online"
         }
     }
 
@@ -754,7 +779,7 @@ $sortedFolders | select -Unique | ForEach-Object {
         $appsFolder += @{ "$appFile" = $folder }
     }
 }
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCompiling apps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" }
 
 if ($signApps -and !$useDevEndpoint) {
 Write-Host -ForegroundColor Yellow @'
