@@ -7,6 +7,8 @@ Do not install the test toolkit before compiling test apps
 Add 2 more overrides ImportTestToolkitToBcContainer and GetBcContainerAppInfo
 Issue #1359 Allow apps to contain test code (but not for AppSource Apps or PTEs)
 Add useGenericImage parameter to run-alpipeline
+Issue #1364 country attribute needs to be case insensitive
+Add parameter additionalCountries to allow Run-AlPipeline to test additional countries during the pipeline
 
 1.0.8
 Issue #1329 test whether containername is in hsts preload list
