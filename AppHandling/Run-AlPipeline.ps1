@@ -35,6 +35,8 @@
   Array or comma separated list of folders with apps to be compiled, signed and published
  .Parameter testFolders
   Array or comma separated list of folders with test apps to be compiled, published and run
+ .Parameter additionalCountries
+  Array or comma separated list of countries to test
  .Parameter appBuild
   Build number for build. Will be stamped into the build part of the app.json version number property.
  .Parameter appRevision
@@ -131,6 +133,7 @@ Param(
     $previousApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
+    $additionalCountries = @(),
     [int] $appBuild = 0,
     [int] $appRevision = 0,
     [string] $testResultsFile = "TestResults.xml",
@@ -255,6 +258,7 @@ if ($installApps                    -is [String]) { $installApps = $installApps.
 if ($previousApps                   -is [String]) { $previousApps = $previousApps.Split(',').Trim() | Where-Object { $_ } }
 if ($appFolders                     -is [String]) { $appFolders = $appFolders.Split(',').Trim()  | Where-Object { $_ } }
 if ($testFolders                    -is [String]) { $testFolders = $testFolders.Split(',').Trim() | Where-Object { $_ } }
+if ($additionalCountries            -is [String]) { $additionalCountries = $additionalCountries.Split(',').Trim() | Where-Object { $_ } }
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = $AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ } }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = $AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ } }
 
@@ -315,6 +319,10 @@ else {
     }
 }
 
+if ($useDevEndpoint) {
+    $additionalCountries = @()
+}
+
 Write-Host -ForegroundColor Yellow @'
   _____                               _                
  |  __ \                             | |               
@@ -353,6 +361,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat           "; Write-Host $testResultsFormat
+Write-Host -NoNewLine -ForegroundColor Yellow "AdditionalCountries         "; Write-Host ([string]::Join(',',$additionalCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Write-Host $packagesFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                "; Write-Host $outputFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Write-Host $buildArtifactFolder
@@ -465,6 +474,9 @@ $progressPreference = 'SilentlyContinue'
 
 try {
 
+@("")+$additionalCountries | % {
+$testCountry = $_.Trim()
+
 Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                               _        _                 
@@ -479,6 +491,12 @@ Write-Host -ForegroundColor Yellow @'
 '@
 
 Measure-Command {
+
+    if ($testCountry) {
+        $artifactSegments = $artifactUrl.Split('?')[0].Split('/')
+        $artifactUrl = $artifactUrl.Replace("/$($artifactSegments[4])/$($artifactSegments[5])","/$($artifactSegments[4])/$testCountry")
+        Write-Host -ForegroundColor Yellow "Creating container for additional country $testCountry"
+    }
     
     $Parameters = @{
         "accept_eula" = $true
@@ -547,6 +565,10 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
+    if ($testCountry) {
+        Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
+    }
+
     $installApps | ForEach-Object{
         $Parameters = @{
             "containerName" = $containerName
@@ -563,6 +585,30 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
 
+if ($testCountry) {
+Write-Host -ForegroundColor Yellow @'
+  _____                            _   _               _______       _     _______          _ _    _ _   
+ |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _     | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
+   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` |    | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| |    | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
+ |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |    |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
+                 | |                            __/ |                                                    
+                 |_|                           |___/                                                     
+'@
+Measure-Command {
+    Write-Host -ForegroundColor Yellow "Importing Test Toolkit for additional country $testCountry"
+    $Parameters = @{
+        "containerName" = $containerName
+        "includeTestLibrariesOnly" = $installTestLibraries
+        "includeTestFrameworkOnly" = $installTestFramework
+        "includePerformanceToolkit" = $installPerformanceToolkit
+        "doNotUseRuntimePackages" = $true
+    }
+    Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
+}
+else {
 Write-Host -ForegroundColor Yellow @'
 
    _____                      _ _ _                                     
@@ -812,6 +858,7 @@ $apps | ForEach-Object {
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nSigning apps took $([int]$_.TotalSeconds) seconds" }
 }
+}
 
 if (!$useDevEndpoint) {
 
@@ -829,7 +876,9 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
-
+    if ($testCountry) {
+        Write-Host -ForegroundColor Yellow "Installing previous apps for additional country $testCountry"
+    }
     if ($previousApps) {
         $previousApps | ForEach-Object{
             $Parameters = @{
@@ -862,6 +911,9 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
+if ($testCountry) {
+    Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
+}
 
 $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 
@@ -912,6 +964,7 @@ $testApps | ForEach-Object {
 }
 
 if (!$doNotRunTests) {
+$resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
 if ($testFolders) {
 Write-Host -ForegroundColor Yellow @'
 
@@ -926,6 +979,10 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
+if ($testCountry) {
+    Write-Host -ForegroundColor Yellow "Running Tests for additional country $testCountry"
+}
+
 $testFolders | ForEach-Object {
     
     $appJson = Get-Content -Path (Join-Path $_ "app.json") | ConvertFrom-Json
@@ -938,15 +995,16 @@ $testFolders | ForEach-Object {
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
         "detailed" = $true
     }
+
     if ($testResultsFormat -eq "XUnit") {
         $Parameters += @{
-            "XUnitResultFileName" = $testResultsFile
+            "XUnitResultFileName" = $resultsFile
             "AppendToXUnitResultFile" = $true
         }
     }
     else {
         $Parameters += @{
-            "JUnitResultFileName" = $testResultsFile
+            "JUnitResultFileName" = $resultsFile
             "AppendToJUnitResultFile" = $true
         }
     }
@@ -956,9 +1014,10 @@ $testFolders | ForEach-Object {
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
 }
-if ($buildArtifactFolder -and (Test-Path $testResultsFile)) {
-    Copy-Item -Path $testResultsFile -Destination $buildArtifactFolder -Force
+if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
+    Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
 } 
+}
 }
 
 if ($buildArtifactFolder) {
