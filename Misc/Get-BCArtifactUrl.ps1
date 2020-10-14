@@ -98,7 +98,7 @@ function Get-BCArtifactUrl {
                 if (-not $storageAccount.Contains('.')) {
                     $storageAccount += ".azureedge.net"
                 }
-                $BaseUrl = "https://$storageAccount/$($Type.ToLower())/"
+                $BaseUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
                 
                 $GetListUrl = $BaseUrl
                 if (!([string]::IsNullOrEmpty($sasToken))) {
@@ -150,10 +150,10 @@ function Get-BCArtifactUrl {
             
                 if (!([string]::IsNullOrEmpty($country))) {
                     # avoid confusion between base and se
-                    $Artifacts = $Artifacts | Where-Object { $_.EndsWith("/$country") -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+                    $Artifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
                 }
                 else {
-                    $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform")) }
+                    $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
                 }
             
                 $Artifacts = $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
