@@ -9,6 +9,7 @@ Issue #1359 Allow apps to contain test code (but not for AppSource Apps or PTEs)
 Add useGenericImage parameter to run-alpipeline
 Issue #1364 country attribute needs to be case insensitive
 Add parameter additionalCountries to allow Run-AlPipeline to test additional countries during the pipeline
+Issue #1367 - If two processes build the same image at the same time, the second one always rebuilds
 
 1.0.8
 Issue #1329 test whether containername is in hsts preload list
