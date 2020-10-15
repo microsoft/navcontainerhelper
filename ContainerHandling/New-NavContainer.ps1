@@ -743,7 +743,7 @@ function New-BcContainer {
 
     if ($artifactUrl) {
 
-        $parameters += "--volume $($downloadsPath):c:\dl"
+        $parameters += "--volume ""$($downloadsPath):c:\dl"""
 
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
