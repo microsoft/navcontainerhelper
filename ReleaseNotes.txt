@@ -1,5 +1,6 @@
 1.0.10
 Issue #1369 wrong validateset on tenant
+Issue #1371 missing quotes on volume parameter
 
 1.0.9
 Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it

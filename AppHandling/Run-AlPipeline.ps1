@@ -509,7 +509,7 @@ Measure-Command {
         "EnableTaskScheduler" = $enableTaskScheduler
         "AssignPremiumPlan" = $assignPremiumPlan
         "MemoryLimit" = $memoryLimit
-        "additionalParameters" = @("--volume $($baseFolder):c:\sources")
+        "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
     }
 
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
