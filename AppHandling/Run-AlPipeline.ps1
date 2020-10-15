@@ -122,8 +122,6 @@ Param(
     [string] $imageName = 'my',
     [switch] $enableTaskScheduler,
     [switch] $assignPremiumPlan,
-    [Parameter(Mandatory=$false)]
-    [ValidateSet('None','All','Essential','Premium')]
     [string] $tenant = "default",
     [string] $memoryLimit,
     [PSCredential] $credential,
