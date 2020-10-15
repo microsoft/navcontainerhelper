@@ -138,89 +138,90 @@ function New-BcImage {
 
     $imageName
 
-    $forceRebuild = $true
-    if ($skipIfImageAlreadyExists) {
-
-        if (-not ($allImages)) {
-            Write-Host "Fetching all docker images"
-            $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
-        }
-
-        if ($allImages | Where-Object { $_ -eq $imageName }) {
-            
-            $forceRebuild = $false
-
-            try {
-                Write-Host "Image $imageName already exists"
-                $inspect = docker inspect $imageName | ConvertFrom-Json
-                $labels = Get-BcContainerImageLabels -imageName $baseImage
-        
-                $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
-                    Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
-                    $forceRebuild = $true
-                }
-                if ($inspect.Config.Labels.version -ne $appManifest.Version) {
-                    Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                    $forceRebuild = $true
-                }
-                elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                    Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
-                    $forceRebuild = $true
-                }
-                elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
-                    Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
-                    $forceRebuild = $true
-                }
-                elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
-                    Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
-                    $forceRebuild = $true
-                }
-               
-                if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
-                    if (!$multitenant) {
-                        Write-Host "Image $imageName was build multi tenant, should have been single tenant"
-                        $forceRebuild = $true
-                    }
-                }
-                else {
-                    if ($multitenant) {
-                        Write-Host "Image $imageName was build single tenant, should have been multi tenant"
-                        $forceRebuild = $true
-                    }
-                }
-        
-                if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
-                    if (!$skipdatabase) {
-                        Write-Host "Image $imageName was build without a database, should have a database"
-                        $forceRebuild = $true
-                    }
-                }
-                else {
-                    # Do not rebuild if database is there, just don't use it
-                }
-            }
-            catch {
-                Write-Host "Exception $($_.ToString())"
-                $forceRebuild = $true
-            }
-        }
-    }
-
-    if ($forceRebuild) {
-        $buildMutexName = "img-$imageName"
-        $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+    $buildMutexName = "img-$imageName"
+    $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+    try {
         try {
-            try {
-                if (!$buildMutex.WaitOne(1000)) {
-                    Write-Host "Waiting for other process building image $imageName"
-                    $buildMutex.WaitOne() | Out-Null
-                    Write-Host "Other process completed building"
+            if (!$buildMutex.WaitOne(1000)) {
+                Write-Host "Waiting for other process building image $imageName"
+                $buildMutex.WaitOne() | Out-Null
+                Write-Host "Other process completed building"
+            }
+        }
+        catch [System.Threading.AbandonedMutexException] {
+           Write-Host "Other process terminated abnormally"
+        }
+
+        $forceRebuild = $true
+        if ($skipIfImageAlreadyExists) {
+    
+            if (-not ($allImages)) {
+                Write-Host "Fetching all docker images"
+                $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
+            }
+    
+            if ($allImages | Where-Object { $_ -eq $imageName }) {
+                
+                $forceRebuild = $false
+    
+                try {
+                    Write-Host "Image $imageName already exists"
+                    $inspect = docker inspect $imageName | ConvertFrom-Json
+                    $labels = Get-BcContainerImageLabels -imageName $baseImage
+            
+                    $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
+                    if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                        Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
+                        $forceRebuild = $true
+                    }
+                    if ($inspect.Config.Labels.version -ne $appManifest.Version) {
+                        Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                        $forceRebuild = $true
+                    }
+                    elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
+                        Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                        $forceRebuild = $true
+                    }
+                    elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
+                        Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                        $forceRebuild = $true
+                    }
+                    elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
+                        Write-Host "Image $imageName has generic Tag $($inspect.Config.Labels.tag), should be $($labels.tag)"
+                        $forceRebuild = $true
+                    }
+                   
+                    if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
+                        if (!$multitenant) {
+                            Write-Host "Image $imageName was build multi tenant, should have been single tenant"
+                            $forceRebuild = $true
+                        }
+                    }
+                    else {
+                        if ($multitenant) {
+                            Write-Host "Image $imageName was build single tenant, should have been multi tenant"
+                            $forceRebuild = $true
+                        }
+                    }
+            
+                    if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
+                        if (!$skipdatabase) {
+                            Write-Host "Image $imageName was build without a database, should have a database"
+                            $forceRebuild = $true
+                        }
+                    }
+                    else {
+                        # Do not rebuild if database is there, just don't use it
+                    }
+                }
+                catch {
+                    Write-Host "Exception $($_.ToString())"
+                    $forceRebuild = $true
                 }
             }
-            catch [System.Threading.AbandonedMutexException] {
-               Write-Host "Other process terminated abnormally"
-            }
+        }
+    
+        if ($forceRebuild) {
     
             Write-Host "Building$mtstr image $imageName based on $baseImage with $($artifactUrl.Split('?')[0])$dbstr"
             $startTime = [DateTime]::Now
@@ -528,9 +529,9 @@ docker build --isolation=$isolation --memory $memory --tag $imageName $buildFold
                 Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
-        finally {
-            $buildMutex.ReleaseMutex()
-        }
+    }
+    finally {
+        $buildMutex.ReleaseMutex()
     }
 }
 Set-Alias -Name New-NavImage -Value New-BcImage
