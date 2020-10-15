@@ -1,3 +1,6 @@
+1.0.10
+Issue #1369 wrong validateset on tenant
+
 1.0.9
 Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it
 Add parameter AllowAppDatabaseWrite to New-BcContainerTenant. Works with generic image 0.1.0.24 or later.
