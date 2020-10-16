@@ -311,7 +311,22 @@ else {
     $select = $segments[4]; if ($select -eq "") { $select = "latest" }
     $sasToken = $segments[5]
 
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $country -select $select -sasToken $sasToken | Select-Object -First 1
+    Write-Host "Determining artifacts to use"
+    $minver = $null
+    @($country)+$additionalCountries | ForEach-Object {
+        $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
+        Write-Host "Found $url"
+        if ($url) {
+            $ver = [Version]$url.Split('/')[4]
+            if ($minver -eq $null -or $ver -lt $minver) {
+                $minver = $ver
+            }
+        }
+    }
+    $artifactUrl = ""
+    if ($minver) {
+        $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $minver -country $country -select Latest -sasToken $sasToken | Select-Object -First 1
+    }
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
