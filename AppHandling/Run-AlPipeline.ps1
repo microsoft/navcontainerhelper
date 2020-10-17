@@ -316,20 +316,28 @@ else {
     $sasToken = $segments[5]
 
     Write-Host "Determining artifacts to use"
-    $minver = $null
-    @($country)+$additionalCountries | ForEach-Object {
-        $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
-        Write-Host "Found $($url.Split('?')[0])"
-        if ($url) {
-            $ver = [Version]$url.Split('/')[4]
-            if ($minver -eq $null -or $ver -lt $minver) {
-                $minver = $ver
+    $minsto = $storageAccount
+    $minver = $version
+    $minsel = $select
+    $mintok = $sasToken
+    if ($additionalCountries) {
+        @($country)+$additionalCountries | ForEach-Object {
+            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
+            Write-Host "Found $($url.Split('?')[0])"
+            if ($url) {
+                $ver = [Version]$url.Split('/')[4]
+                if ($minver -eq $null -or $ver -lt $minver) {
+                    $minsto = $url.Split('/')[2].Split('.')[0]
+                    $minver = $ver
+                    $minsel = "Latest"
+                    $mintok = $url.Split('?')[1]; if ($mintok) { $mintok = "?$mintok" }
+                }
             }
         }
     }
     $artifactUrl = ""
     if ($minver) {
-        $artifactUrl = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $minver -country $country -select Latest -sasToken $sasToken | Select-Object -First 1
+        $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $minver.ToString() -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
     }
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
