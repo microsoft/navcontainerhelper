@@ -296,6 +296,10 @@ if (!($appFolders)) {
 $sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
                  @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue)
 
+if ($useDevEndpoint) {
+    $additionalCountries = @()
+}
+
 if (!$artifact) {
     $artifactUrl = ""    
 }
@@ -315,7 +319,7 @@ else {
     $minver = $null
     @($country)+$additionalCountries | ForEach-Object {
         $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
-        Write-Host "Found $url"
+        Write-Host "Found $($url.Split('?')[0])"
         if ($url) {
             $ver = [Version]$url.Split('/')[4]
             if ($minver -eq $null -or $ver -lt $minver) {
@@ -330,10 +334,6 @@ else {
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
-}
-
-if ($useDevEndpoint) {
-    $additionalCountries = @()
 }
 
 Write-Host -ForegroundColor Yellow @'
