@@ -252,13 +252,13 @@ if ($memoryLimit -eq "") {
     $memoryLimit = "8G"
 }
 
-if ($installApps                    -is [String]) { $installApps = $installApps.Split(',').Trim() | Where-Object { $_ } }
-if ($previousApps                   -is [String]) { $previousApps = $previousApps.Split(',').Trim() | Where-Object { $_ } }
-if ($appFolders                     -is [String]) { $appFolders = $appFolders.Split(',').Trim()  | Where-Object { $_ } }
-if ($testFolders                    -is [String]) { $testFolders = $testFolders.Split(',').Trim() | Where-Object { $_ } }
-if ($additionalCountries            -is [String]) { $additionalCountries = $additionalCountries.Split(',').Trim() | Where-Object { $_ } }
-if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = $AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ } }
-if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = $AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ } }
+if ($installApps                    -is [String]) { $installApps = @($installApps.Split(',').Trim() | Where-Object { $_ }) }
+if ($previousApps                   -is [String]) { $previousApps = @($previousApps.Split(',').Trim() | Where-Object { $_ }) }
+if ($appFolders                     -is [String]) { $appFolders = @($appFolders.Split(',').Trim()  | Where-Object { $_ }) }
+if ($testFolders                    -is [String]) { $testFolders = @($testFolders.Split(',').Trim() | Where-Object { $_ }) }
+if ($additionalCountries            -is [String]) { $additionalCountries = @($additionalCountries.Split(',').Trim() | Where-Object { $_ }) }
+if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
+if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
@@ -339,10 +339,7 @@ else {
         }
         $version = $minver.ToString()
     }
-    $artifactUrl = ""
-    if ($minver) {
-        $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
-    }
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
@@ -747,7 +744,7 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps | % {
                     if ($_ -like "http://*" -or $_ -like "https://*") {
                         $tmpFileName = [System.IO.Path]::GetFileName($_).split("?")[0]
-                        $tmpFile = Join-Path $ENV:TEMP $tmpFileName
+                        $tmpFile = Join-Path $appPackagesFolder $tmpFileName
                         Download-File -sourceUrl $_ -destinationFile $tmpFile
                         if ($tmpFile -like "*.zip") {
                             Write-Host "Unpacking $tmpFileName to $appPackagesFolder"
@@ -758,13 +755,11 @@ Write-Host -ForegroundColor Yellow @'
                                 $AppList += @(Join-Path $appPackagesFolder $_.Name)
                             }
                             Remove-Item $subFolder -Recurse -Force
+                            Remove-Item $tmpFile
                         }
                         else {
-                            Write-Host "Copying $tmpFileName to $appPackagesFolder"
-                            Copy-Item -Path $tmpFile -Destination $appPackagesFolder -Force
-                            $AppList += @(Join-Path $appPackagesFolder $tmpFileName)
+                            $AppList += @($tmpFile)
                         }
-                        remove-item $tmpFile
                     }
                 }
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList
