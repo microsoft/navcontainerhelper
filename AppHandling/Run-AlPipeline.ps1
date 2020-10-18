@@ -252,13 +252,13 @@ if ($memoryLimit -eq "") {
     $memoryLimit = "8G"
 }
 
-if ($installApps                    -eq $null -or $installApps                    -is [String]) { $installApps = "$installApps".Split(',').Trim() | Where-Object { $_ } }
-if ($previousApps                   -eq $null -or $previousApps                   -is [String]) { $previousApps = "$previousApps".Split(',').Trim() | Where-Object { $_ } }
-if ($appFolders                     -eq $null -or $appFolders                     -is [String]) { $appFolders = "$appFolders".Split(',').Trim()  | Where-Object { $_ } }
-if ($testFolders                    -eq $null -or $testFolders                    -is [String]) { $testFolders = "$testFolders".Split(',').Trim() | Where-Object { $_ } }
-if ($additionalCountries            -eq $null -or $additionalCountries            -is [String]) { $additionalCountries = "$additionalCountries".Split(',').Trim() | Where-Object { $_ } }
-if ($AppSourceCopMandatoryAffixes   -eq $null -or $AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = "$AppSourceCopMandatoryAffixes".Split(',').Trim() | Where-Object { $_ } }
-if ($AppSourceCopSupportedCountries -eq $null -or $AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = "$AppSourceCopSupportedCountries".Split(',').Trim() | Where-Object { $_ } }
+if ($installApps                    -is [String]) { $installApps = @($installApps.Split(',').Trim() | Where-Object { $_ }) }
+if ($previousApps                   -is [String]) { $previousApps = @($previousApps.Split(',').Trim() | Where-Object { $_ }) }
+if ($appFolders                     -is [String]) { $appFolders = @($appFolders.Split(',').Trim()  | Where-Object { $_ }) }
+if ($testFolders                    -is [String]) { $testFolders = @($testFolders.Split(',').Trim() | Where-Object { $_ }) }
+if ($additionalCountries            -is [String]) { $additionalCountries = @($additionalCountries.Split(',').Trim() | Where-Object { $_ }) }
+if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
+if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
