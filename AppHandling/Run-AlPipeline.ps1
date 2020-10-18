@@ -339,10 +339,7 @@ else {
         }
         $version = $minver.ToString()
     }
-    $artifactUrl = ""
-    if ($minver) {
-        $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
-    }
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
