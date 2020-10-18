@@ -744,7 +744,7 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps | % {
                     if ($_ -like "http://*" -or $_ -like "https://*") {
                         $tmpFileName = [System.IO.Path]::GetFileName($_).split("?")[0]
-                        $tmpFile = Join-Path $ENV:TEMP $tmpFileName
+                        $tmpFile = Join-Path $appPackagesFolder $tmpFileName
                         Download-File -sourceUrl $_ -destinationFile $tmpFile
                         if ($tmpFile -like "*.zip") {
                             Write-Host "Unpacking $tmpFileName to $appPackagesFolder"
@@ -755,13 +755,11 @@ Write-Host -ForegroundColor Yellow @'
                                 $AppList += @(Join-Path $appPackagesFolder $_.Name)
                             }
                             Remove-Item $subFolder -Recurse -Force
+                            Remove-Item $tmpFile
                         }
                         else {
-                            Write-Host "Copying $tmpFileName to $appPackagesFolder"
-                            Copy-Item -Path $tmpFile -Destination $appPackagesFolder -Force
-                            $AppList += @(Join-Path $appPackagesFolder $tmpFileName)
+                            $AppList += @($tmpFile)
                         }
-                        remove-item $tmpFile
                     }
                 }
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList
