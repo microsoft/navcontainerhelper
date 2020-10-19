@@ -607,7 +607,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
 
-if ($testCountry) {
+if ($testCountry  -and ($installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
  |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
@@ -623,7 +623,7 @@ Measure-Command {
     $Parameters = @{
         "containerName" = $containerName
         "includeTestLibrariesOnly" = $installTestLibraries
-        "includeTestFrameworkOnly" = $installTestFramework
+        "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
         "includePerformanceToolkit" = $installPerformanceToolkit
         "doNotUseRuntimePackages" = $true
     }
@@ -656,7 +656,7 @@ $sortedFolders | Select-Object -Unique | ForEach-Object {
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
 
-    if ($testApp -and !$testToolkitInstalled) {
+    if ($testApp -and !$testToolkitInstalled -and ($installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
@@ -673,7 +673,7 @@ Measure-Command {
         $Parameters = @{
             "containerName" = $containerName
             "includeTestLibrariesOnly" = $installTestLibraries
-            "includeTestFrameworkOnly" = $installTestFramework
+            "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
             "includePerformanceToolkit" = $installPerformanceToolkit
             "doNotUseRuntimePackages" = $true
         }
