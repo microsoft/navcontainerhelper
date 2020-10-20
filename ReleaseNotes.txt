@@ -2,6 +2,7 @@
 Issue #1369 wrong validateset on tenant
 Issue #1371 missing quotes on volume parameter
 Check all countries when determining artifacts to use
+Issue #1380 Import-TestToolkitToBcContainer fails when license warning occurs
 
 1.0.9
 Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it
