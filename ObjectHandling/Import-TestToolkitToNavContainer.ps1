@@ -144,7 +144,7 @@ function Import-TestToolkitToBcContainer {
             $tenantAppInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant)
                 $navAppInfo = Get-NAVAppInfo -Path $appFile
                 (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version -tenant $tenant -tenantSpecificProperties)
-            } -argumentList $appFile, $tenant
+            } -argumentList $appFile, $tenant | Where-Object { $_ -isnot [System.String] }
 
             if ($tenantAppInfo) {
                 if ($tenantAppInfo.IsInstalled) {
