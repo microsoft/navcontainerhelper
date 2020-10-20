@@ -12,11 +12,15 @@
 #>
 function Sort-AppFilesByDependencies {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string[]] $appFiles,
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies
     )
+
+    if (!$appFiles) {
+        return @()
+    }
 
     # Read all app.json objects, populate $apps
     $apps = $()
