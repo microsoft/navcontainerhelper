@@ -761,6 +761,9 @@ Write-Host -ForegroundColor Yellow @'
                             $AppList += @($tmpFile)
                         }
                     }
+                    else {
+                        $AppList += @($_)
+                    }
                 }
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList
                 $previousApps | ForEach-Object {
