@@ -14,13 +14,17 @@
 #>
 function Sort-AppFoldersByDependencies {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory=$false)]
         [string[]] $appFolders,
         [Parameter(Mandatory=$false)]
         [string] $baseFolder = "",
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies
     )
+
+    if (!$appFolders) {
+        return @()
+    }
 
     if ($baseFolder) {
         $baseFolder = $baseFolder.TrimEnd('\')+'\'
