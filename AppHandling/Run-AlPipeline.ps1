@@ -81,6 +81,8 @@
   Include this switch to include UI Cop during compilation.
  .Parameter enablePerTenantExtensionCop
   Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+ .Parameter escapeFromCops
+  If One of the cops causes an error in an app, then show the error, recompile the app without cops and continue
  .Parameter AppSourceCopMandatoryAffixes
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app. 
  .Parameter AppSourceCopSupportedCountries
@@ -156,6 +158,7 @@ Param(
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    [switch] $escapeFromCops,
     $AppSourceCopMandatoryAffixes = @(),
     $AppSourceCopSupportedCountries = @(),
     [scriptblock] $DockerPull,
@@ -345,6 +348,8 @@ else {
     }
 }
 
+$escapeFromCops = $escapeFromCops -and ($enableCodeCop -or $enableAppSourceCop -or $enableUICop -or $enablePerTenantExtensionCop)
+
 Write-Host -ForegroundColor Yellow @'
   _____                               _                
  |  __ \                             | |               
@@ -378,6 +383,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                 "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Write-Host $escapeFromCops
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                 "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
@@ -693,8 +699,9 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     $Parameters = @{ }
+    $CopParameters = @{ }
     if ($app) {
-        $Parameters += @{ 
+        $CopParameters += @{ 
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
             "EnableUICop" = $enableUICop
@@ -762,7 +769,11 @@ Write-Host -ForegroundColor Yellow @'
                         }
                     }
                     else {
-                        $AppList += @($_)
+                        if (-not (Test-Path $appPackagesFolder)) {
+                            New-Item -Path $appPackagesFolder -ItemType Directory | Out-Null
+                        }
+                        Copy-Item -Path $_ -Destination $appPackagesFolder -Force
+                        $AppList += @(Join-Path $appPackagesFolder ([System.IO.Path]::GetFileName($_)))
                     }
                 }
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList
@@ -818,7 +829,18 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
+    try {
+        $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters+$CopParameters)
+    }
+    catch {
+        if ($escapeFromCops) {
+            Write-Host "Retrying without Cops"
+            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
+        }
+        else {
+            throw $_
+        }
+    }
 
     if ($useDevEndpoint) {
 
