@@ -81,7 +81,10 @@ function New-BcImage {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 19041) { 
+    if ($os.BuildNumber -eq 19042) { 
+        $hostOs = "20H2"
+    }
+    elseif ($os.BuildNumber -eq 19041) { 
         $hostOs = "2004"
     }
     elseif ($os.BuildNumber -eq 18363) { 
@@ -268,6 +271,9 @@ function New-BcImage {
             }
             elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
                 $containerOs = "2004"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+                $containerOs = "20H2"
             }
             else {
                 $containerOs = "unknown"

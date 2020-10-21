@@ -68,19 +68,21 @@ class ClientContext {
         $clientSessionParameters.AdditionalSettings.Add("IncludeControlIdentifier", $true)
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"
-            if ($this.debugMode) {
-                try {
-                    $this.GetAllForms() | ForEach-Object {
-                        $formInfo = $this.GetFormInfo($_)
-                        if ($formInfo) {
-                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                            Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                            $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+            if ($Global:OpenClientContext) {
+                if ($Global:OpenClientContext.debugMode) {
+                    try {
+                        $Global:OpenClientContext.GetAllForms() | ForEach-Object {
+                            $formInfo = $Global:OpenClientContext.GetFormInfo($_)
+                            if ($formInfo) {
+                                Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                                Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
+                                $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                            }
                         }
                     }
-                }
-                catch {
-                    Write-Host "Exception when enumerating forms"
+                    catch {
+                        Write-Host "Exception when enumerating forms"
+                    }
                 }
             }
         })
@@ -148,23 +150,37 @@ class ClientContext {
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName DialogToShow -Action {
             $form = $EventArgs.DialogToShow
-            if ($this.debugMode) {
-                Write-Host -ForegroundColor Yellow "Show dialog $($form.ControlIdentifier)"
-                $formInfo = $this.GetFormInfo($form)
-                if ($formInfo) {
-                    Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                    $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+            if ($Global:OpenClientContext) {
+                if ($Global:OpenClientContext.debugMode) {
+                    Write-Host -ForegroundColor Yellow "Show dialog $($form.ControlIdentifier)"
+                    $formInfo = $Global:OpenClientContext.GetFormInfo($form)
+                    if ($formInfo) {
+                        Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                    }
                 }
-            }
-            if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
-                $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
-                Write-Host -ForegroundColor Red "ERROR: $($errorControl.StringValue)"
-                $this.CloseForm($form)
-            }
-            elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
-                $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
-                Write-Host -ForegroundColor Yellow "WARNING: $($errorControl.StringValue)"
-                $this.CloseForm($form)
+                if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
+                    $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
+                    Write-Host -ForegroundColor Red "ERROR DIALOG: $($errorControl.StringValue)"
+                    $Global:OpenClientContext.CloseForm($form)
+                }
+                elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
+                    $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
+                    Write-Host -ForegroundColor Yellow "WARNING DIALOG: $($errorControl.StringValue)"
+                    $Global:OpenClientContext.CloseForm($form)
+                }
+                else {
+                    Write-Host -NoNewline "DIALOG: $($form.Name) $($form.Caption) - "
+                    $OkAction = $Global:OpenClientContext.GetActionByName($form, 'OK')
+                    if ($OkAction) {
+                        Write-Host "Invoke OK"
+                        $Global:OpenClientContext.InvokeAction($OkAction)
+                    }
+                    else {
+                        Write-Host "close Dialog"
+                        $Global:OpenClientContext.CloseForm($form)
+                    }
+                }
             }
         })
     
@@ -190,6 +206,9 @@ class ClientContext {
     }
     
     AwaitState([ClientSessionState] $state) {
+        if ($this.debugMode) {
+            Write-Host "Await State $state (state is $($this.clientSession.State))"
+        }
         $now = [DateTime]::Now
         While ($this.clientSession.State -ne $state) {
             Start-Sleep -Milliseconds 100
@@ -207,6 +226,7 @@ class ClientContext {
                 }
             }
         }
+        Start-Sleep -Milliseconds 100
     }
     
     InvokeInteraction([ClientInteraction] $interaction) {
