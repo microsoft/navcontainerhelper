@@ -6,6 +6,7 @@ Issue #1380 Import-TestToolkitToBcContainer fails when license warning occurs
 Issue 1377 Sort-AppFoldersByDependencies didn't support empty arrays
 Allow AppFiles to be an empty array in Sort-AppFilesByDependencies
 Allow previousApps to be present locally (not downloaded from http or https)
+Set default containername in New-BcContainerWizard to bcserver
 
 1.0.9
 Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it

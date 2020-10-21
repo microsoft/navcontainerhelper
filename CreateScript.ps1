@@ -488,7 +488,7 @@ $Step.ContainerName {
 '@ `
             -description "Enter the name of the container.`nContainer names are case sensitive and must start with a letter.`n`nNote: We recommend short lower case names as container names." `
             -question "Container name" `
-            -default "my" `
+            -default "bcserver" `
             -previousStep
         if ($script:wizardStep -eq $script:thisStep+1) {
             $script:prevSteps.Push($script:thisStep)
