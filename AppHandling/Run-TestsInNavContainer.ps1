@@ -282,6 +282,7 @@ function Run-TestsInBcContainer {
                               -connectFromHost:$connectFromHost
                 }
                 catch {
+                    Write-Host $_.ScriptStackTrace
                     if ($debugMode -and $clientContext) {
                         Dump-ClientContext -clientcontext $clientContext 
                     }
@@ -386,6 +387,7 @@ function Run-TestsInBcContainer {
                                   -connectFromHost:$connectFromHost
                     }
                     catch {
+                        Write-Host $_.ScriptStackTrace
                         if ($debugMode -and $clientContext) {
                             Dump-ClientContext -clientcontext $clientContext 
                         }

@@ -269,6 +269,43 @@ function Get-Tests {
     $Tests | ConvertTo-Json
 }
 
+function Run-ConnectionTest {
+    Param(
+        [ClientContext] $clientContext,
+        [switch] $debugMode,
+        [switch] $connectFromHost
+    )
+
+    $rolecenter = $clientContext.OpenForm(9022)
+    if (!($rolecenter)) {
+        throw "Cannot open rolecenter"
+    }
+    Write-Host "Rolecenter 9022 opened successfully"
+
+    $customerList = $clientContext.OpenForm(22)
+    if (!($customerList)) {
+        throw "Cannnot open Customer List page"
+    }
+    Write-Host "Customer List opened successfully, title is ($($customerList.name) - $($customerList.caption))"
+    
+    $newCustomerAction = $clientContext.GetActionByName($customerList, 'New')
+    if (!($newCustomerAction)) {
+        throw "Cannot locate new Customer action"
+    }
+
+    $customerPage = $clientContext.InvokeActionAndCatchForm($newCustomerAction)
+    if (!($customerPage)) {
+        throw "Cannot invoke new customer action"
+    }
+    Write-Host "New Customer Action successfully invoked, opened page has title $($customerPage.name) $($customerPage.caption)"
+
+    $clientContext.CloseForm($customerPage)
+    Write-Host "Customer page successfully closed"
+
+    $clientContext.CloseForm($customerList)
+    Write-Host "Customer list successfully closed"
+}
+
 function Run-Tests {
     Param(
         [ClientContext] $clientContext,
