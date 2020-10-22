@@ -11,6 +11,7 @@ Added function Run-ConnectionTestToBcContainer to test that a simple connection 
 Update hardcoded image version list
 Update Windows Versions in New-BcImage
 Issue #1392 New-BcContainerWizard closes if font size is too big
+Issue #1384 Concurrency issues with artifacts
 
 1.0.9
 Fix issue when setting bccontainerhelperconfig.defaultnewcontainerparameters.credential in the same session as using it
