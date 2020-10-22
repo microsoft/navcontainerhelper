@@ -301,11 +301,17 @@ $minWidth = 150
 if (($pswindow.BufferSize) -and ($pswindow.WindowSize) -and ($pswindow.WindowSize.Width -lt $minWidth)) {
     $buffersize = $pswindow.BufferSize
     $buffersize.width = $minWidth
-    $pswindow.buffersize = $buffersize
+    try {
+        $pswindow.buffersize = $buffersize
+    }
+    catch {}
     
     $newsize = $pswindow.windowsize
     $newsize.width = $minWidth
-    $pswindow.windowsize = $newsize
+    try {
+        $pswindow.windowsize = $newsize
+    }
+    catch {}
 }
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())

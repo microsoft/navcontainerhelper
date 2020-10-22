@@ -43,7 +43,6 @@ function New-BcImage {
         [switch] $includePerformanceToolkit,
         [switch] $skipIfImageAlreadyExists,
         $allImages
-
     )
 
     if ($memory -eq "") {
@@ -149,6 +148,7 @@ function New-BcImage {
                 Write-Host "Waiting for other process building image $imageName"
                 $buildMutex.WaitOne() | Out-Null
                 Write-Host "Other process completed building"
+                $allImages = @()
             }
         }
         catch [System.Threading.AbandonedMutexException] {
