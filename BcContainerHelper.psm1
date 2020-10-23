@@ -154,6 +154,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Stop-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Start-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Import-NavContainerLicense.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Set-BcContainerKeyVaultAadAppAndCertificate.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Wait-NavContainerReady.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Extract-FilesFromNavContainerImage.ps1")
