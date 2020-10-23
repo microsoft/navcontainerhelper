@@ -45,7 +45,7 @@ function Set-BcContainerKeyVaultAadAppAndCertificate {
 
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($pfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier)
 
-        Set-NAVServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultAppSecretsPublisherValidationEnabled -KeyValue $enablePublisherValidation.ToString().ToLowerInvariant() | Out-Null
+        Set-NAVServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultAppSecretsPublisherValidationEnabled -KeyValue $enablePublisherValidation.ToString().ToLowerInvariant() -WarningAction SilentlyContinue
         
         $importedPfxCertificate = Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation Cert:\LocalMachine\My
         Write-Host "Keyvault Certificate Thumbprint: $($importedPfxCertificate.Thumbprint)"
@@ -60,12 +60,13 @@ function Set-BcContainerKeyVaultAadAppAndCertificate {
         Set-Acl $keyPath $acl
         #$acl.Access
         
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreLocation -KeyValue "LocalMachine" | Out-Null
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreName     -KeyValue "My" | Out-Null
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateThumbprint    -KeyValue $importedPfxCertificate.Thumbprint | Out-Null
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientId                       -KeyValue $clientId | Out-Null
+        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreLocation -KeyValue "LocalMachine" -WarningAction SilentlyContinue
+        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreName     -KeyValue "My" -WarningAction SilentlyContinue
+        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateThumbprint    -KeyValue $importedPfxCertificate.Thumbprint -WarningAction SilentlyContinue
+        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientId                       -KeyValue $clientId -WarningAction SilentlyContinue
         
         if (!$doNotRestartServiceTier) {
+            Write-Host "Restarting Service Tier"
             Set-NAVServerInstance -ServerInstance $serverInstance -Restart
         }
     } -argumentList $containerPfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
