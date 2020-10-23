@@ -1,3 +1,6 @@
+1.0.11
+Add function Set-BcContainerKeyVaultAadAppAndCertificate to set keyvault AAD App and certificate in container
+
 1.0.10
 Issue #1369 wrong validateset on tenant
 Issue #1371 missing quotes on volume parameter
