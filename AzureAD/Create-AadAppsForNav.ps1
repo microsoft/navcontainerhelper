@@ -16,6 +16,8 @@
   Add this switch to request the function to also create an AAD app for the Excel AddIn
  .Parameter IncludePowerBiAadApp
   Add this switch to request the function to also create an AAD app for the PowerBI service
+ .Parameter IncludeEMailAadApp
+  Add this switch to request the function to also create an AAD app for the EMail service
  .Parameter useCurrentAzureAdConnection
   Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
@@ -33,6 +35,7 @@ function Create-AadAppsForNav {
         [string] $iconPath,
         [switch] $IncludeExcelAadApp,
         [switch] $IncludePowerBiAadApp,
+        [switch] $IncludeEmailAadApp,
         [switch] $useCurrentAzureAdConnection
     )
 
@@ -199,6 +202,46 @@ function Create-AadAppsForNav {
         $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
 
         Set-AzureADApplication -ObjectId $powerBiAdApp.ObjectId -RequiredResourceAccess $req1, $req2
+    }
+
+    # EMail App
+    if ($IncludeEmailAadApp) {
+        # Remove "old" Email AD Application
+        #$EmailIdentifierUri = "${appIdUri}EMail"
+        $EMailDisplayName = "EMail Service for $appIdUri"
+        Get-AzureADApplication -All $true | Where-Object { $_.DisplayName -eq $EMailDisplayName } | Remove-AzureADApplication
+    
+        # Create AesKey
+        $EMailAdAppKeyValue = Create-AesKey
+        $AdProperties["EMailAdAppKeyValue"] = $EMailAdAppKeyValue 
+    
+        # Create AD Application
+        Write-Host "Creating AAD App for EMail Service"
+        $EMailAdApp = New-AzureADApplication –DisplayName $EMailDisplayName `
+                                             -HomePage $publicWebBaseUrl `
+                                             -ReplyUrls "${publicWebBaseUrl}OAuthLanding.htm" `
+                                             -AvailableToOtherTenants 1
+        
+        $EMailAdAppId = $EMailAdApp.AppId.ToString()
+        $AdProperties["EMailAdAppId"] = $EMailAdAppId 
+    
+        # Add a key to the app
+        $startDate = Get-Date
+        New-AzureADApplicationPasswordCredential -ObjectId $EMailAdApp.ObjectId `
+                                                 -Value $EMailAdAppKeyValue `
+                                                 -StartDate $startDate `
+                                                 -EndDate $startDate.AddYears(10) | Out-Null
+
+        $req = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+        $req.ResourceAppId = "00000003-0000-0000-c000-000000000000"
+        $req.ResourceAccess = @(
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "64a6cdd6-aab1-4aaf-94b8-3cc8405e90d0","Scope"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e383f46e-2787-4529-855e-0e479a3ffac0","Scope"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "024d486e-b451-40bb-833d-3e66d98c5c73","Scope"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"
+        )
+
+        Set-AzureADApplication -ObjectId $EMailAdApp.ObjectId -RequiredResourceAccess $req
     }
 
     $AdProperties
