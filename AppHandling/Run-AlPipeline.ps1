@@ -861,7 +861,30 @@ Write-Host -ForegroundColor Yellow @'
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
             $config = Get-BcContainerServerConfiguration $containerName
             $webUri = [Uri]::new($config.PublicWebBaseUrl)
-            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server "$($webUri.Scheme)://$($webUri.Authority)" -Port $config.DeveloperServicesPort -ServerInstance $webUri.AbsolutePath.Trim('/') -tenant $tenant
+            try {
+                $inspect = docker inspect $containerName | ConvertFrom-Json
+                if ($inspect.config.Labels.'traefik.enable' -eq 'true') {
+                    $server = "$($inspect.config.Labels.'traefik.protocol')://$($webUri.Authority)"
+                    if ($inspect.config.Labels.'traefik.protocol' -eq 'http') {
+                        $port = 80
+                    }
+                    else {
+                        $port = 443
+                    }
+                    $serverInstance = "$($containerName)dev"
+                }
+                else {
+                    $server = "$($webUri.Scheme)://$($webUri.Authority)"
+                    $port = $config.DeveloperServicesPort
+                    $serverInstance = $webUri.AbsolutePath.Trim('/')
+                }
+            }
+            catch {
+                $server = "$($webUri.Scheme)://$($webUri.Authority)"
+                $port = $config.DeveloperServicesPort
+                $serverInstance = $webUri.AbsolutePath.Trim('/')
+            }
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server $server -Port $port -ServerInstance $serverInstance -tenant $tenant
         }
     }
 
