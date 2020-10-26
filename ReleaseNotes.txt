@@ -1,6 +1,8 @@
 1.0.11
 Add function Set-BcContainerKeyVaultAadAppAndCertificate to set keyvault AAD App and certificate in container
 Add parameter IncludeEmailAadApp to Create-AadAppsForBC to allow the function to create an Aad App for the new Email feature in 17.1
+Run-AlPipeline support traefik containers in updatelaunchjson
+Add preview function Publish-PerTenantExtensionApps to publish Per Tenant Extension Apps to an online tenant
 
 1.0.10
 Issue #1369 wrong validateset on tenant
