@@ -208,6 +208,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Sort-AppFilesByDependencies.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlPipeline.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Publish-PerTenantExtensionApps.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Publish-BuildOutputToStorage.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
