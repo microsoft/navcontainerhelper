@@ -94,7 +94,7 @@ function Publish-PerTenantExtensionApps {
                 $appJson = Get-Content $appJsonFile | ConvertFrom-Json
                 Remove-Item -Path $tempFolder -Force -Recurse
             
-                Write-Host @newLine "Publishing and Installing $([System.IO.Path]::GetFileName($_))"
+                Write-Host @newLine "Publishing and Installing"
                 Invoke-WebRequest -Headers ($authHeaders+(@{"If-Match" = "*"})) `
                     -Method Patch `
                     -Uri "$baseUrl/companies($companyId)/extensionUpload(0)/content" `
