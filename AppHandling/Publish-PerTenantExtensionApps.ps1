@@ -1,15 +1,32 @@
 ﻿<# 
  .Synopsis
-  Preview function for publishing PTE apps to an online tenant
+  Function for publishing PTE apps to an online tenant
  .Description
-  Preview function for publishing PTE apps to an online tenant
+  Function for publishing PTE apps to an online tenant
+  Please consult the CI/CD Workshop document at http://aka.ms/cicdhol to learn more about this function
+ .Parameter clientId
+  ClientID of Azure AD App for authenticating to Business Central (SecureString or String)
+ .Parameter clientSecret
+  ClientSecret of Azure AD App for authenticating to Business Central (SecureString or String)
+ .Parameter tenantId
+  TenantId of tenant in which you want to publish the Per Tenant Extension Apps
+ .Parameter environment
+  Name of the environment inside the tenant in which you want to publish the Per Tenant Extension Apps
+ .Parameter companyName
+  Company Name in which the Azure AD App is registered
+ .Parameter appFiles
+  Array or comma separated string of apps or .zip files containing apps, which needs to be published
+  The apps will be sorted by dependencies and published+installed
+ .Parameter useNewLine
+  Add this switch to add a newline to progress indicating periods during wait.
+  Azure DevOps doesn't update logs until a newline is added.
 #>
 function Publish-PerTenantExtensionApps {
     Param(
         [Parameter(Mandatory=$true)]
-        [string] $clientId,
+        $clientId,
         [Parameter(Mandatory=$true)]
-        [string] $clientSecret,
+        $clientSecret,
         [Parameter(Mandatory=$true)]
         [string] $tenantId,
         [Parameter(Mandatory=$true)]
@@ -26,6 +43,10 @@ function Publish-PerTenantExtensionApps {
         $newLine = @{ "NoNewLine" = $true }
     }
 
+    if ($clientId -is [String]) { $clientID = ConvertTo-SecureString -String $clientId -AsPlainText -Force }
+    if ($clientId -isnot [SecureString]) { throw "ClientID needs to be a SecureString or a String" }
+    if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
+    if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
     if ($appFiles -is [String]) { $appFiles = @($appFiles.Split(',').Trim() | Where-Object { $_ }) }
 
     $appFolder = Join-Path $ENV:TEMP ([guid]::NewGuid().ToString())
@@ -64,8 +85,8 @@ function Publish-PerTenantExtensionApps {
         $scopes       = "https://api.businesscentral.dynamics.com/.default"
         $baseUrl      = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v1.0"
         
-        Write-Host "Authenticating to $tenantId using $ClientId"
-        $body = @{grant_type="client_credentials";scope=$scopes;client_id=$ClientID;client_secret=$ClientSecret}
+        Write-Host "Authenticating to $tenantId"
+        $body = @{grant_type="client_credentials";scope=$scopes;client_id=$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientID)));client_secret=$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientSecret)))}
         $oauth = Invoke-RestMethod -Method Post -Uri $("$loginURL/$tenantId/oauth2/v2.0/token") -Body $body
         $authHeaders = @{ "Authorization" = "Bearer $($oauth.access_token)" }
         Write-Host "Authenticated"
