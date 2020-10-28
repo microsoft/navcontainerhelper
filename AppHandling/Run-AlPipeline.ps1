@@ -714,7 +714,7 @@ Write-Host -ForegroundColor Yellow @'
 
     $appJsonFile = Join-Path $folder "app.json"
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-    if ($appBuild) {
+    if ($appBuild -or $appRevision) {
         $appJsonVersion = [System.Version]$appJson.Version
         $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
         Write-Host "Using Version $version"
