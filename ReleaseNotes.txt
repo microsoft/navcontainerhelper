@@ -1,3 +1,6 @@
+1.0.13
+Issue #1414 the magic setting defaultTenantHasAllowAppDatabaseWrite=Y is not used when using -cleandatabase or -newdatabase
+
 1.0.12
 Issue #1401 set app version if appBuild -or appRevision is specified
 Add function description for Publish-PerTenantExtensionApps and Publish-BuildOutputToStorage
