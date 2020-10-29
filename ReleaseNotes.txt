@@ -2,6 +2,7 @@
 Issue #1401 set app version if appBuild -or appRevision is specified
 Add function description for Publish-PerTenantExtensionApps and Publish-BuildOutputToStorage
 Support SecureString or String for secrets in Publish-PerTenantExtensionApps and Publish-BuildOutputToStorage
+Fix issue where http://aka.ms/getbc cannot find prerequisites
 
 1.0.11
 Add function Set-BcContainerKeyVaultAadAppAndCertificate to set keyvault AAD App and certificate in container
