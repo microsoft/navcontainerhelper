@@ -17,6 +17,8 @@
   Specify an array of alternate tenant ids (hostnames f.ex.)
  .Parameter allowAppDatabaseWrite
   Include this switch if the tenant should have AllowAppDatabaseWrite set
+ .Parameter doNotCopyDatabase
+  Mount the database specified in destinationDatabase. Do not copy source database.
  .Example
   New-BcContainerTenant -containerName test2 -tenantId mytenant
 #>
@@ -30,7 +32,8 @@ function New-BcContainerTenant {
         [string] $sourceDatabase = "tenant",
         [string] $destinationDatabase = $tenantId,
         [string[]] $alternateId = @(),
-        [switch] $allowAppDatabaseWrite
+        [switch] $allowAppDatabaseWrite,
+        [switch] $doNotCopyDatabase
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
@@ -39,7 +42,7 @@ function New-BcContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -66,7 +69,9 @@ function New-BcContainerTenant {
         }
 
         # Setup tenant
-        Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        if (!$doNotCopyDatabase) {
+            Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        }
         Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential -AlternateId $alternateId @Params
 
         if (Test-Path "c:\run\my\updatehosts.ps1") {
@@ -85,7 +90,7 @@ function New-BcContainerTenant {
             }
         }
 
-    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId
+    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
 Set-Alias -Name New-NavContainerTenant -Value New-BcContainerTenant

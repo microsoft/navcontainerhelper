@@ -13,6 +13,8 @@
   Specifies whether you only want apps, which are of packagetype SymbolsOnly (Specifying SymbolsOnly ignores the tenant parameter)
  .Parameter sort
   Specifies how (if any) you want to sort apps based on dependencies to other apps
+ .Parameter publishedOnly
+  Get published apps
  .Example
   Get-BcContainerAppInfo -containerName test2
  .Example
@@ -27,13 +29,14 @@ function Get-BcContainerAppInfo {
         [switch] $symbolsOnly,
         [switch] $tenantSpecificProperties,
         [ValidateSet('None','DependenciesFirst','DependenciesLast')]
-        [string] $sort = 'None'
+        [string] $sort = 'None',
+        [switch] $publishedOnly
     )
 
     $args = @{}
     if ($symbolsOnly) {
         $args += @{ "SymbolsOnly" = $true }
-    } else {
+    } elseif (!$publishedOnly) {
         $args += @{ "TenantSpecificProperties" = $tenantSpecificProperties }
         if ("$tenant" -eq "") {
             $tenant = "default"

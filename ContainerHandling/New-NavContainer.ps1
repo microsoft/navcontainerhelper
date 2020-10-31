@@ -1204,8 +1204,8 @@ function New-BcContainer {
                 throw "You must specify a license file when creating a AL Development container with this version."
             }
             $containerlicenseFile = ""
-        } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-            Write-Host "Using license file $licenseFile"
+        } elseif ($licensefile -like "https://*" -or $licensefile -like "http://*") {
+            Write-Host "Using license file $($licenseFile.Split('?')[0])"
             $licensefileUri = $licensefile
             $licenseFile = "$myFolder\license.flf"
             Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
@@ -1960,7 +1960,8 @@ if (-not `$restartingInstance) {
                 Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 Set-NavserverInstance -ServerInstance $serverInstance -start
             }
-            New-BcContainerTenant -containerName $containerName -tenantId default
+            $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
+            New-BcContainerTenant -containerName $containerName -tenantId default -allowAppDatabaseWrite:$allowAppDatabaseWrite
         }
     }
 
