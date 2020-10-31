@@ -32,6 +32,8 @@
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
  .Parameter showMyCode
   With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
+ .Parameter PublisherAzureActiveDirectoryTenantId
+  AAD Tenant of the publisher to ensure access to keyvault (unless publisher check is disables in server config)
  .Example
   Publish-BcContainerApp -appFile c:\temp\myapp.app
  .Example
@@ -67,7 +69,8 @@ function Publish-BcContainerApp {
         [string] $language = "",
         [hashtable] $replaceDependencies = $null,
         [ValidateSet('Ignore','True','False','Check')]
-        [string] $ShowMyCode = "Ignore"
+        [string] $ShowMyCode = "Ignore",
+        [string] $PublisherAzureActiveDirectoryTenantId
     )
 
     Add-Type -AssemblyName System.Net.Http
@@ -83,6 +86,7 @@ function Publish-BcContainerApp {
         "language" = $language
         "replaceDependencies" = $replaceDependencies
         "ShowMyCode" = $showMyCode
+        "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId 
     }
     if ($syncMode) { $Params += @{ "SyncMode" = $syncMode } }
     if ($packageType) { $Params += @{ "packageType" = $packageType } }
@@ -235,7 +239,7 @@ function Publish-BcContainerApp {
     }
     else {
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId)
 
             $publishArgs = @{ "packageType" = $packageType }
             if ($scope) {
@@ -243,6 +247,9 @@ function Publish-BcContainerApp {
                 if ($scope -eq "Tenant") {
                     $publishArgs += @{ "Tenant" = $tenant }
                 }
+            }
+            if ($PublisherAzureActiveDirectoryTenantId) {
+                $publishArgs += @{ "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId }
             }
     
             Write-Host "Publishing $appFile"
@@ -287,7 +294,7 @@ function Publish-BcContainerApp {
                 }
             }
 
-        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language
+        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId
     }
 
     if ($copied) { 

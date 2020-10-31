@@ -72,7 +72,7 @@ function New-BcContainerTenant {
         if (!$doNotCopyDatabase) {
             Copy-NavDatabase -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
         }
-        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential -AlternateId $alternateId @Params
+        Mount-NavDatabase -ServerInstance $ServerInstance -TenantId $TenantId -DatabaseName $destinationDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential -AlternateId $alternateId @Params -WarningAction SilentlyContinue
 
         if (Test-Path "c:\run\my\updatehosts.ps1") {
             $ip = "127.0.0.1"
