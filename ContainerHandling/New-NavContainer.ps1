@@ -1204,8 +1204,8 @@ function New-BcContainer {
                 throw "You must specify a license file when creating a AL Development container with this version."
             }
             $containerlicenseFile = ""
-        } elseif ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-            Write-Host "Using license file $licenseFile"
+        } elseif ($licensefile -like "https://*" -or $licensefile -like "http://*") {
+            Write-Host "Using license file $($licenseFile.Split('?')[0])"
             $licensefileUri = $licensefile
             $licenseFile = "$myFolder\license.flf"
             Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile

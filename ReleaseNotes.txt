@@ -1,5 +1,8 @@
 1.0.13
 Issue #1414 the magic setting defaultTenantHasAllowAppDatabaseWrite=Y is not used when using -cleandatabase or -newdatabase
+Add parameter -publishedOnly to Get-BcContainerAppInfo to get published apps (no tenant specified)
+Add parameter -doNotCopyDatabase to New-BcContainerTenant to mount an existing database (move from other container)
+Add parameter -doNotRemoveDatabase to Remove-BcContainerTenant to avoid removing the database (move to other container)
 
 1.0.12
 Issue #1401 set app version if appBuild -or appRevision is specified

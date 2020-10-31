@@ -21,7 +21,8 @@ function Remove-BcContainerTenant {
         [Parameter(Mandatory=$true)]
         [string] $tenantId,
         [string] $databaseName = $tenantId,
-        [PSCredential] $sqlCredential = $null
+        [PSCredential] $sqlCredential = $null,
+        [switch] $doNotRemoveDatabase
     )
 
     Write-Host "Removing Tenant $tenantId from $containerName"
@@ -30,7 +31,7 @@ function Remove-BcContainerTenant {
         throw "You cannot remove a tenant called tenant"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $databaseName)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenantId, [PSCredential]$sqlCredential, $databaseName, $doNotRemoveDatabase)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -46,7 +47,9 @@ function Remove-BcContainerTenant {
         # Remove tenant
         Write-Host "Dismounting tenant $tenantId"
         Dismount-NavTenant -ServerInstance $ServerInstance -Tenant $TenantId -force | Out-null
-        Remove-NavDatabase -DatabaseName $databaseName -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        if (!$doNotRemoveDatabase) {
+            Remove-NavDatabase -DatabaseName $databaseName -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseCredentials $sqlCredential
+        }
 
         if (Test-Path "c:\run\my\updatehosts.ps1") {
             $hostname = hostname
@@ -57,7 +60,7 @@ function Remove-BcContainerTenant {
             . "c:\run\my\updatehosts.ps1" -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
-    } -ArgumentList $tenantId, $sqlCredential, $databaseName
+    } -ArgumentList $tenantId, $sqlCredential, $databaseName, $doNotRemoveDatabase
     Write-Host -ForegroundColor Green "Tenant successfully removed"
 }
 Set-Alias -Name Remove-NavContainerTenant -Value Remove-BcContainerTenant
