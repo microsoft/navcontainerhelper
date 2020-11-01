@@ -12,6 +12,8 @@
   profile to use
  .Parameter credential
   Credentials of the SUPER user if using NavUserPassword authentication
+ .Parameter sqlcredential
+  SQL Credential if using an external sql server
  .Parameter accesstoken
   If your container is running AAD authentication, you need to specify an accesstoken for the user specified in credential
  .Parameter testSuite
@@ -73,6 +75,8 @@ function Run-TestsInBcContainer {
         [string] $profile = "",
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null,
+        [Parameter(Mandatory=$false)]
+        [PSCredential] $sqlCredential = $credential,
         [Parameter(Mandatory=$false)]
         [string] $accessToken = "",
         [Parameter(Mandatory=$false)]
@@ -181,7 +185,7 @@ function Run-TestsInBcContainer {
                 if ($clientServicesCredentialType -eq "Windows") {
                     Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile
                 } else {
-                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $credential
+                    Import-ObjectsToNavContainer -containerName $containerName -objectsFile $fobfile -sqlCredential $sqlCredential
                 }
             }
         } catch {
