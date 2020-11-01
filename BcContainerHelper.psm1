@@ -95,6 +95,7 @@ $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
 
 $BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+Write-Host "BcContainerHelper version $BcContainerHelperVersion"
 
 $sessions = @{}
 
