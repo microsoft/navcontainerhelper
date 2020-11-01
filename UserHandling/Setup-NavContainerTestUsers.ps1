@@ -74,7 +74,7 @@ function Setup-BcContainerTestUsers {
 
         $appfile = Join-Path $env:TEMP "CreateTestUsers.app"
         if (([System.Version]$version).Major -ge 15) {
-
+            Import-TestToolkitToBcContainer -containerName $containerName -tenant $tenant -includeTestFrameworkOnly -replaceDependencies $replaceDependencies -doNotUseRuntimePackages
             $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName -tenant $tenant | Where-Object { $_.Name -eq "System Application Test Library" }
             if (!($systemAppTestLibrary)) {
                 $testAppFile = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
