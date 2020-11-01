@@ -480,6 +480,9 @@ function New-BcContainer {
         }
 
         if ($databaseServer -ne "" -and $databasePrefix -ne "" -and $databaseName -ne "" -and $replaceExternalDatabases) {
+            if ($bcstyle = "sandbox" -and (!($PSBoundParameters.ContainsKey('multitenant')))) {
+                $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
+            }
             Remove-BcDatabase -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName "$($databasePrefix)%"
             Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -async
             $successFileName = Join-Path $bcContainerHelperConfig.containerHelperFolder "$($databasePrefix)databasescreated.txt"
