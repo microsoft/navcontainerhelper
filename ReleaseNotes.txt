@@ -7,6 +7,7 @@ Add parameter -PublisherAzureActiveDirectoryTenantId to Publish-BcContainerApp
 New function Restore-BcDatabaseFromArtifacts for restoring databases from artifacts on an external sql server
 New function Remove-BcDatabase for removing databases from an external sql server
 New parameters -databasePrefix and -replaceExternalDatabases to New-BcContainer to allow New-BcContainer to create/replace databases on external SQL Server
+Add parameters -databaseCredential and -compress to Backup-BcContainerDatabases
 
 1.0.12
 Issue #1401 set app version if appBuild -or appRevision is specified

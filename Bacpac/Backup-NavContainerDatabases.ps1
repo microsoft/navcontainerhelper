@@ -10,6 +10,10 @@
   The folder to which the .bak files are exported (needs to be shared with the container)
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers. Omit to export all tenants.
+ .Parameter databaseCredential
+  database credentials if using an external sQL Server
+ .Parameter compress
+  Compress the database backup. SQL Express doesn't support compression.
  .Example
   Backup-BcContainerDatabases -containerName test
  .Example
@@ -21,7 +25,9 @@ function Backup-BcContainerDatabases {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [string] $bakFolder = "",
-        [string[]] $tenant
+        [string[]] $tenant,
+        [pscredential] $databasecredential,
+        [switch] $compress
     )
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName
@@ -40,21 +46,26 @@ function Backup-BcContainerDatabases {
     }
     $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($bakFolder, $tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($bakFolder, $tenant, $databasecredential, $compress)
        
         function Backup {
             Param (
                 [string] $serverInstance,
                 [string] $database,
                 [string] $bakFolder,
-                [string] $bakName
+                [string] $bakName,
+                [pscredential] $databaseCredential,
+                [switch] $compress
             )
             $bakFile = Join-Path $bakFolder "$bakName.bak"
             if (Test-Path $bakFile) {
                 Remove-Item -Path $bakFile -Force
             }
             Write-Host "Backing up $database to $bakFile"
-            Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile
+            $params = @{}
+            if ($compress) { $params += @{ "CompressionOption" = "On" } }
+            if ($databaseCredential) { $params += @{ "credential" = $databaseCredential } }
+            Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile @params
         }
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -77,14 +88,27 @@ function Backup-BcContainerDatabases {
             if (!($tenant)) {
                 $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
             }
-            Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app"
+            Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databasecredential -compress:$compress
             $tenant | ForEach-Object {
-                Backup -ServerInstance $databaseServerInstance -database $_ -bakFolder $bakFolder -bakName $_
+                if ($_ -eq "tenant") {
+                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
+                    if ($tenantInfo) {
+                        $dbName = $tenantInfo.DatabaseName.replace('default','tenant')
+                    }
+                    else {
+                        $dbName = "tenant"
+                    }
+                }
+                else {
+                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_
+                    $dbName = $tenantInfo.DatabaseName
+                }
+                Backup -ServerInstance $databaseServerInstance -database $dbName -bakFolder $bakFolder -bakName $_ -databasecredential $databasecredential -compress:$compress
             }
         } else {
-            Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database"
+            Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
         }
-    } -ArgumentList $containerbakFolder, $tenant
+    } -ArgumentList $containerbakFolder, $tenant, $databasecredential, $compress
 }
 Set-Alias -Name Backup-NavContainerDatabases -Value Backup-BcContainerDatabases
 Export-ModuleMember -Function Backup-BcContainerDatabases -Alias Backup-NavContainerDatabases
