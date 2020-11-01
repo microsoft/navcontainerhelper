@@ -41,8 +41,15 @@
   Name of database server when using external SQL Server (omit if using database inside the container)
  .Parameter databaseInstance
   Name of database instance when using external SQL Server (omit if using database inside the container)
+ .Parameter databasePrefix
+  Prefix of databases when using external SQL Server (omit if using database inside the container)
  .Parameter databaseName
   Name of database to connect to when using external SQL Server (omit if using database inside the container)
+ .Parameter replaceExternalDatabases
+  Include this switch to allow New-BcContainer to create/replace databases on the external SQL Server.
+  This parameter is ignored unless databaseServer, databasePrefix and databaseName is specified
+  This parameter uses Remove-BcDatabase and Restore-BcDatabaseFromArtifacts to remove and create the databases
+  Access to the SQL Server on the host must be Windows Authentication
  .Parameter bakFile
   Path or Secure Url of a bakFile if you want to restore a database in the container
  .Parameter bakFolder
@@ -187,7 +194,9 @@ function New-BcContainer {
         [string] $isolation = "",
         [string] $databaseServer = "",
         [string] $databaseInstance = "",
+        [string] $databasePrefix = "",
         [string] $databaseName = "",
+        [switch] $replaceExternalDatabases,
         [string] $bakFile = "",
         [string] $bakFolder = "",
         [PSCredential] $databaseCredential = $null,
@@ -442,7 +451,7 @@ function New-BcContainer {
 
     $doNotGetBestImageName = $false
     $skipDatabase = $false
-    if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or $databaseName -ne "") {
+    if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or "$databasePrefix$databaseName" -ne "") {
         $skipDatabase = $true
     }
 
@@ -470,6 +479,12 @@ function New-BcContainer {
             }
         }
 
+        if ($databaseServer -ne "" -and $databasePrefix -ne "" -and $databaseName -ne "" -and $replaceExternalDatabases) {
+            Remove-BcDatabase -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName "$($databasePrefix)%"
+            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -async
+            $successFileName = Join-Path $bcContainerHelperConfig.containerHelperFolder "$($databasePrefix)databasescreated.txt"
+            $myscripts += @( @{ "SetupDatabase.ps1" = "if (!(Test-Path ""$successFileName"")) { Write-Host -NoNewline 'Waiting for database creation to finish'; while (!(Test-Path ""$successFileName"")) { Start-Sleep -seconds 1; Write-Host -NoNewLine '.' }; Write-Host }; . 'c:\run\setupDatabase.ps1'" } ) `
+        }
     }
 
     Write-Host "Fetching all docker images"
@@ -1275,8 +1290,8 @@ function New-BcContainer {
         $parameters += "--env enableApiServices=Y"
     }
 
-    if ("$databaseName" -ne "") {
-        $parameters += "--env databaseName=""$databaseName"""
+    if ("$databasePrefix$databaseName" -ne "") {
+        $parameters += "--env databaseName=""$databasePrefix$databaseName"""
     }
 
     if ("$authenticationEMail" -ne "") {
@@ -1779,7 +1794,13 @@ if (-not `$restartingInstance) {
         $databaseInstance = $customConfig.DatabaseInstance
         $databaseName = $customConfig.DatabaseName
         $databaseServer = $customConfig.DatabaseServer
-        if ($databaseServer -eq "localhost") {
+        if ($databaseServer -eq "host.containerhelper.internal") {
+            $databaseServer = "localhost"
+            if ($databaseInstance) {
+                $databaseServer += "\$databaseInstance"
+            }
+        } 
+        elseif ($databaseServer -eq "localhost") {
             $databaseServer = "$containerName"
             if (("$databaseInstance" -ne "") -and ("$databaseInstance" -ne "SQLEXPRESS")) {
                 $databaseServer += "\$databaseInstance"
@@ -1948,7 +1969,7 @@ if (-not `$restartingInstance) {
                 $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
                 $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
                 $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-                
+
                 Set-NavserverInstance -ServerInstance $serverInstance -stop
                 Copy-NavDatabase -SourceDatabaseName $databaseName -DestinationDatabaseName "tenant"
                 Remove-NavDatabase -DatabaseName $databaseName
@@ -1963,6 +1984,25 @@ if (-not `$restartingInstance) {
             $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
             New-BcContainerTenant -containerName $containerName -tenantId default -allowAppDatabaseWrite:$allowAppDatabaseWrite
         }
+    }
+    elseif ($artifactUrl -ne "" -and $databaseServer -ne "" -and $databasePrefix -ne "" -and $databaseName -ne "" -and $replaceExternalDatabases) {
+        if ($multitenant) {
+            $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
+            New-NavContainerTenant `
+                -containerName $containerName `
+                -tenantId 'default' `
+                -sqlCredential $databaseCredential `
+                -sourceDatabase "$($databasePrefix)tenant" `
+                -destinationDatabase "$($databasePrefix)default" `
+                -allowAppDatabaseWrite:$allowAppDatabaseWrite
+        }
+        
+        New-NavContainerNavUser `
+            -containerName $containerName `
+            -tenant 'default' `
+            -Credential $credential `
+            -PermissionSetId 'SUPER' `
+            -ChangePasswordAtNextLogOn:$false
     }
 
     if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {
