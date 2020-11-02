@@ -97,8 +97,7 @@ function Publish-BcContainerApp {
         $appUrl = $appFile
         $name = [System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0])
         $appFile = Join-Path $extensionsFolder "$containerName\_$name"
-        if (Test-Path $appFile) { Remove-Item $appFile }
-        (New-Object System.Net.WebClient).DownloadFile($appUrl, $appFile)
+        Download-File -sourceUrl $appUrl -destinationFile $appFile
 
         Publish-BcContainerApp @Params -appFile $appFile
 
@@ -107,16 +106,23 @@ function Publish-BcContainerApp {
     }
 
     if (!($appFile.StartsWith(':')) -and (Test-Path $appFile) -and ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK")) {
+        $copied = $false
         $zipFolder = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
-        Expand-Archive $appFile -DestinationPath $zipFolder -Force
+        if ($appFile -notlike "*.zip") {
+            Copy-Item $appFile "$appFile.zip"
+            $appFile = "$appFile.zip"
+            $copied = $true
+        }
+        Expand-Archive $appfile -DestinationPath $zipFolder -Force
         $apps = Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | ForEach-Object { $_.FullName }
         try {
-            $apps = Sort-AppFilesByDependencies -appFiles $apps
+            $apps = Sort-AppFilesByDependencies -appFiles $apps -WarningAction SilentlyContinue
         }
         catch {
             # use alphabetic sorting if runtime apps
         }
         $apps | ForEach-Object { Publish-BcContainerApp @Params -appFile $_ }
+        if ($copied) { Remove-Item $appFile -Force }
         Remove-Item -Path $zipFolder -Recurse -Force
         return
     }

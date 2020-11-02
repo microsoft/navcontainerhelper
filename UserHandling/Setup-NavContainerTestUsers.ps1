@@ -90,7 +90,7 @@ function Setup-BcContainerTestUsers {
                     get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_System Application Test Library.app"
                 }
                 if ($testAppFile) {
-                    Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies
+                    Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile ":$testAppFile" -skipVerification -sync -install -replaceDependencies $replaceDependencies 
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
@@ -104,8 +104,7 @@ function Setup-BcContainerTestUsers {
             $select = ''
         }
 
-        Download-File -sourceUrl $createTestUsersAppUrl -destinationFile $appfile
-        Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $appFile -skipVerification -install -sync -replaceDependencies $replaceDependencies
+        Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $createTestUsersAppUrl -skipVerification -install -sync -replaceDependencies $replaceDependencies
 
         $companyId = Get-BcContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential
 
