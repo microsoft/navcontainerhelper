@@ -304,6 +304,13 @@ function New-BcContainer {
         throw "You have to accept the eula (See https://go.microsoft.com/fwlink/?linkid=861843) by specifying the -accept_eula switch to the function"
     }
 
+    if ($includePerformanceToolkit) {
+        if (!$includeTestToolkit) {
+            $includeTestToolkit = $true
+            $includeTestFrameworkOnly = $true
+        }
+    }
+
     Check-BcContainerName -ContainerName $containerName
     $imageName = $imageName.ToLowerInvariant()
 

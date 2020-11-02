@@ -10,6 +10,7 @@ New parameters -databasePrefix and -replaceExternalDatabases to New-BcContainer 
 Issue #1417 Add parameters -databaseCredential and -compress to Backup-BcContainerDatabases
 Issue #1416 Add parameter -sqlCredential to Run-TestsInBcContainer and Get-TestsFromBcContainer if using external SQL Server
 Issue #1415 Implicitely import the Test Framework in Setup-BcContainerTestUsers if not already installed
+Issue #1426 includePerformanceToolkit should automatically include includeTestToolkit and includeTestFrameWorkOnly (if not specified)
 
 1.0.12
 Issue #1401 set app version if appBuild -or appRevision is specified
