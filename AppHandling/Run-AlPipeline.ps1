@@ -65,6 +65,8 @@
   Include this switch to install test Performance Test Toolkit. This includes the apps from the Test Framework and the Microsoft Business Central Performance Toolkit app
  .Parameter azureDevOps
   Include this switch if you want compile errors and test errors to surface directly in Azure Devops pipeline.
+ .Parameter gitLab
+  Include this switch if you want compile errors and test errors to surface directly in GitLab.
  .Parameter useDevEndpoint
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotRunTests
@@ -150,6 +152,7 @@ Param(
     [switch] $installTestLibraries,
     [switch] $installPerformanceToolkit,
     [switch] $azureDevOps,
+    [switch] $gitLab,
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
     [switch] $keepContainer,
@@ -1062,6 +1065,7 @@ $testFolders | ForEach-Object {
         "extensionId" = $appJson.id
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
         "detailed" = $true
+        "returnTrueIfAllPassed" = $true
     }
 
     if ($testResultsFormat -eq "XUnit") {
@@ -1077,7 +1081,10 @@ $testFolders | ForEach-Object {
         }
     }
 
-    Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters
+    $allPassed = Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters
+    if ($gitLab -and !$allPassed) {
+        throw "There are test failures!"
+    }
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
