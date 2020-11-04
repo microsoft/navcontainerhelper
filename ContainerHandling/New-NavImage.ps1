@@ -322,8 +322,10 @@ function New-BcImage {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
             }
         
-            $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder "tmp$(([datetime]::Now).Ticks)"
-            New-Item $buildFolder -ItemType Directory | Out-Null
+            do {
+                $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+            }
+            until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
         
             try {
         
