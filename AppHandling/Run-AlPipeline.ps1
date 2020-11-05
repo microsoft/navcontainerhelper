@@ -67,6 +67,8 @@
   Include this switch if you want compile errors and test errors to surface directly in Azure Devops pipeline.
  .Parameter gitLab
   Include this switch if you want compile errors and test errors to surface directly in GitLab.
+ .Parameter gitHubActions
+  Include this switch if you want compile errors and test errors to surface directly in GitHubActions.
  .Parameter useDevEndpoint
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotRunTests
@@ -153,6 +155,7 @@ Param(
     [switch] $installPerformanceToolkit,
     [switch] $azureDevOps,
     [switch] $gitLab,
+    [switch] $gitHubActions,
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
     [switch] $keepContainer,
@@ -1035,6 +1038,7 @@ $testApps | ForEach-Object {
 }
 
 if (!$doNotRunTests) {
+$allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
 if ($testFolders) {
 Write-Host -ForegroundColor Yellow @'
@@ -1081,9 +1085,8 @@ $testFolders | ForEach-Object {
         }
     }
 
-    $allPassed = Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters
-    if ($gitLab -and !$allPassed) {
-        throw "There are test failures!"
+    if (!(Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters)) {
+        $allPassed = $false
     }
 
 }
@@ -1092,6 +1095,9 @@ $testFolders | ForEach-Object {
 if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
 } 
+if (($gitLab -or $gitHubActions) -and !$allPassed) {
+    throw "There are test failures!"
+}
 }
 }
 
