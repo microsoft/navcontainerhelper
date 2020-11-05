@@ -13,6 +13,8 @@ Issue #1415 Implicitely import the Test Framework in Setup-BcContainerTestUsers 
 Issue #1426 includePerformanceToolkit should automatically include includeTestToolkit and includeTestFrameWorkOnly (if not specified)
 Publishing apps from a .zip file, where the name isn't .zip caused an error
 Add parameter gitLab to Run-AlPipeline to add support for surfacing test errors on GitLab
+Issue #1430 temp folder is not unique
+Add GitHubActions option to Run-AlPipeline
 
 1.0.12
 Issue #1401 set app version if appBuild -or appRevision is specified
