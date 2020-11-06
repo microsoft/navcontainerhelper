@@ -88,7 +88,7 @@ function Download-Artifacts {
                     }
                 }
                 Write-Host "Unpacking application artifact to tmp folder " -NoNewline
-                $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
+                $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                 try {
                     Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
                     while (!(Test-Path "$appArtifactPath")) {
@@ -174,7 +174,7 @@ function Download-Artifacts {
                         }
                     }
                     Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
-                    $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) "tmp$(([datetime]::Now).Ticks)"
+                    $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                     try {
                         Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder
                         $downloadprereqs = $false
