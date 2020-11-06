@@ -15,6 +15,7 @@ Publishing apps from a .zip file, where the name isn't .zip caused an error
 Add parameter gitLab to Run-AlPipeline to add support for surfacing test errors on GitLab
 Issue #1430 temp folder is not unique
 Add GitHubActions option to Run-AlPipeline
+Create Temp folder using GetRandomFileName in Download-Artifacts (instead of ticks)
 
 1.0.12
 Issue #1401 set app version if appBuild -or appRevision is specified
