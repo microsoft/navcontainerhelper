@@ -81,6 +81,9 @@ function Compile-AppInBcContainer {
         [string] $nowarn,
         [Parameter(Mandatory=$false)]
         [string] $assemblyProbingPaths,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile')]
+        [string[]] $features,
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
@@ -360,7 +363,7 @@ function Compile-AppInBcContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam, $features )
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -404,11 +407,15 @@ function Compile-AppInBcContainer {
             $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
 
+        if ($features) {
+            $alcParameters +=@("/features:$([string]::Join(',', $features))")
+        }
+
         Write-Host ".\alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
 
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam, $features
     
     if ($AzureDevOps) {
         if ($result) {
