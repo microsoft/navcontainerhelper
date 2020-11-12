@@ -1,3 +1,5 @@
+1.0.14
+
 1.0.13
 Issue #1414 the magic setting defaultTenantHasAllowAppDatabaseWrite=Y is not used when using -cleandatabase or -newdatabase
 Add parameter -publishedOnly to Get-BcContainerAppInfo to get published apps (no tenant specified)
