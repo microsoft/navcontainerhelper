@@ -14,6 +14,8 @@
   database prefix to avoid conflicts on the SQL Server
  .Parameter databaseName
   database name (prefix will be inserted before the name) on the SQL Server.
+ .Parameter bakFile
+  Database backup file to restore. Default is to take the .bak file from the artifacts.
  .Parameter multitenant
   Include this switch if you want to split the database .bak file into an application database and a tenant template
  .Parameter async
@@ -32,6 +34,7 @@ function Restore-BcDatabaseFromArtifacts {
         [Parameter(Mandatory=$true)]
         [string] $databaseName,
         [Parameter(Mandatory=$false)]
+        [string] $bakFile,
         [switch] $multitenant,
         [switch] $async
     )
@@ -55,9 +58,16 @@ function Restore-BcDatabaseFromArtifacts {
         }
         
         $manifest = Get-Content -Path (Join-Path $artifactPath[0] "manifest.json") | ConvertFrom-Json
-        $databasePath = Join-Path $artifactPath[0] $manifest.database
-        if (!(Test-Path $databasePath)) {
-            throw "Unable to locate database in artifacts"
+        if ($bakFile) {
+            if (!(Test-Path $bakFile)) {
+                throw "Database backup ($bakFile) doesn't exist"
+            }
+        }
+        else {
+            $bakFile = Join-Path $artifactPath[0] $manifest.database
+            if (!(Test-Path $bakFile)) {
+                throw "Unable to locate database backup in artifacts"
+            }
         }
         
         Write-Host "Importing PowerShell module $($ManagementModule.FullName)"
@@ -75,7 +85,7 @@ function Restore-BcDatabaseFromArtifacts {
             $dbName = "$($databasePrefix)tenant"
         }
         Write-Host "Restoring database $dbName"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $databasePath -DestinationPath (Join-Path $smoServer.RootDirectory "DATA\$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
+        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $smoServer.RootDirectory "DATA\$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
    
         if ($multitenant) {
             $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
