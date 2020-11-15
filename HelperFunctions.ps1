@@ -288,7 +288,10 @@ function GetTestToolkitApps {
         }
 
         if ($includePerformanceToolkit) {
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app")
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*Toolkit.app")
+            if (!$includeTestFrameworkOnly) {
+                $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app" -exclude "*Toolkit.app")
+            }
         }
 
         $apps | % {
