@@ -2,6 +2,7 @@
 Add parameter -features to Compile-AppInBcContainer to add support of the alc features parameter
 Add parameter -bakFile to Restore-BcDatabaseFromArtifacts to allow restoring custom database using the artifact binaries
 Issue #1426 performance test samples are installed before performance test toolkit
+Clean-BcContainerDatabase will now cleanup Schema and company when not saving data
 
 1.0.13
 Issue #1414 the magic setting defaultTenantHasAllowAppDatabaseWrite=Y is not used when using -cleandatabase or -newdatabase
