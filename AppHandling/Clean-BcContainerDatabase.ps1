@@ -219,7 +219,11 @@ function Clean-BcContainerDatabase {
 
     }
     else {
-    
+        
+        if (!$saveData) {
+            Get-CompanyInBcContainer -containerName $containerName -tenant Default | % { Remove-CompanyInBcContainer -companyName $_.CompanyName -tenant Default }
+        }
+
         $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
         $installedApps | % {
             $app = $_
@@ -231,7 +235,12 @@ function Clean-BcContainerDatabase {
                     {
                       $tenant = $app.Tenant
                     }
-                    $app | Uninstall-NavApp -tenant $tenant -Force -doNotSaveData:(!$SaveData -or ($Name -ne "BaseApp" -and $Name -ne "Base Application" -and $onlySaveBaseAppData))
+                    $doNotSaveData = (!$SaveData -or ($Name -ne "BaseApp" -and $Name -ne "Base Application" -and $onlySaveBaseAppData))
+                    $app | Uninstall-NavApp -tenant $tenant -Force -doNotSaveData:$doNotSaveData
+                    if ($doNotSaveData) {
+                        Write-Host "Cleaning Schema from $($app.Name)"
+                        $app | Sync-NAVApp -tenant $tenant -Mode Clean -Force
+                    }
                 }
             } -argumentList $app, $SaveData, $onlySaveBaseAppData
         }
