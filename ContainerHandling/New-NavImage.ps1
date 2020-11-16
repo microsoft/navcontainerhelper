@@ -46,7 +46,7 @@ function New-BcImage {
     )
 
     if ($memory -eq "") {
-        $memory = "4G"
+        $memory = "8G"
     }
 
     $imageName = $imageName.ToLowerInvariant()
