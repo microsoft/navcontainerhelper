@@ -43,13 +43,18 @@ function UnInstall-BcContainerApp {
         if ($appVersion) {
             $parameters += @{ "Version" = $appVersion }
         }
-        if ($doNotSaveData) {
-            $parameters += @{ "DoNotSaveData" = $true }
-        }
         if ($Force) {
             $parameters += @{ "Force" = $true }
         }
-        Uninstall-NavApp @parameters
+        if ($doNotSaveData) {
+            Uninstall-NavApp @parameters -doNotSaveData
+            Write-Host "Cleaning Schema from $appName on $tenant"
+            Sync-NAVApp $parameters -mode Clean
+        }
+        else {
+            Uninstall-NavApp @parameters
+        }
+
     } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }

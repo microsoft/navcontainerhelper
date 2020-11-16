@@ -90,18 +90,18 @@ function Backup-BcContainerDatabases {
             }
             Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databasecredential -compress:$compress
             $tenant | ForEach-Object {
-                if ($_ -eq "tenant") {
-                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
-                    if ($tenantInfo) {
-                        $dbName = $tenantInfo.DatabaseName.replace('default','tenant')
-                    }
-                    else {
-                        $dbName = "tenant"
-                    }
+                $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_ -ErrorAction SilentlyContinue
+                if ($tenantInfo) {
+                    $dbName = $tenantInfo.DatabaseName
                 }
                 else {
-                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_
-                    $dbName = $tenantInfo.DatabaseName
+                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
+                    if ($tenantInfo) {
+                        $dbName = $tenantInfo.DatabaseName.replace('default',$_)
+                    }
+                    else {
+                        $dbName = $_
+                    }
                 }
                 Backup -ServerInstance $databaseServerInstance -database $dbName -bakFolder $bakFolder -bakName $_ -databasecredential $databasecredential -compress:$compress
             }
