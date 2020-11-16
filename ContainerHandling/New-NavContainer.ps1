@@ -31,7 +31,7 @@
  .Parameter AuthenticationEmail
   AuthenticationEmail of the admin user
  .Parameter memoryLimit
-  Memory limit for the container (default is unlimited for process isolation and 4G for hyperv isolation containers)
+  Memory limit for the container (default is unlimited for process isolation and 8G for hyperv isolation containers)
  .Parameter sqlMemoryLimit
   Memory limit for the SQL inside the container (default is no limit)
   Value can be specified as 50%, 1.5G, 1500M
@@ -1266,7 +1266,7 @@ function New-BcContainer {
                    )
 
     if ("$memoryLimit" -eq "" -and $isolation -eq "hyperv") {
-        $memoryLimit = "4G"
+        $memoryLimit = "8G"
     }
 
     $SqlServerMemoryLimit = 0
