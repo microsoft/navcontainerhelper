@@ -42,7 +42,7 @@ function New-BcContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -90,7 +90,7 @@ function New-BcContainerTenant {
             }
         }
 
-    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase
+    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
 Set-Alias -Name New-NavContainerTenant -Value New-BcContainerTenant
