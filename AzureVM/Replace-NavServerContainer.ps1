@@ -15,9 +15,9 @@
  .Parameter AadAccessToken
   Include this parameter if you want to change the AadAccessToken for the next deployment (accesstokens typically only have a lifetime of 1 hour)
  .Example
-  Replace-NavServerContainer -imageName mcr.microsoft.com/dynamicsnav:2018
+  Replace-NavServerContainer -imageName myimage:mytag
  .Example
-  Replace-NavServerContainer -imageName mcr.microsoft.com/businesscentral/onprem:w1 -alwaysPull
+  Replace-NavServerContainer -artifactUrl (Get-BcArtifactUrl -type onprem -country w1 -select latest)
  .Example
   Replace-NavServerContainer
 #>

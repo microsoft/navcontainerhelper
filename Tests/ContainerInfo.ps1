@@ -32,12 +32,12 @@
 #        Get-BCContainerImageName -containerName $bcContainerName | Should -Be $bcImageName
     }
     It 'Get-BcContainerImageTags' {
-        $imageTags = get-bccontainerImageTags -imageName mcr.microsoft.com/businesscentral/onprem
+        $imageTags = get-bccontainerImageTags -imageName mcr.microsoft.com/businesscentral
         if ($imageTags) {
-            ($imageTags.Tags | Where-Object { $_.startsWith('14.0') }).Count | Should -BeGreaterThan 100
+            ($imageTags.Tags | Where-Object { $_.startsWith('10.0') }).Count | Should -BeGreaterThan 100
         }
         else {
-            Set-ItResult -Inconclusive -Because 'Downloading image tags from mcr.microsoft.com failed'
+            Set-ItResult -Inconclusive -Because 'Downloading generic image tags from mcr.microsoft.com/businesscentral failed'
         }
     }
     It 'Get-BcContainerIpAddress' {
@@ -53,9 +53,6 @@
     }
     It 'Get-BcContainerNavVersion' {
         $version = Get-BcContainerNavVersion -containerOrImageName $bcContainerName
-        $image2 = Get-BestBCContainerImageName -imageName ($bcImageName.subString(0,$bcImageName.indexOf(':')+1)+$version.ToLowerInvariant())
-        docker pull $image2
-        Get-BcContainerNavVersion -containerOrImageName $image2 | Should -Be $version
         Get-BcContainerNavVersion -containerOrImageName $bcImageName | Should -Be $version
     }
     It 'Get-BcContainerOsVersion' {
