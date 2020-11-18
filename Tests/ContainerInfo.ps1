@@ -53,9 +53,6 @@
     }
     It 'Get-BcContainerNavVersion' {
         $version = Get-BcContainerNavVersion -containerOrImageName $bcContainerName
-        $image2 = Get-BestBCContainerImageName -imageName ($bcImageName.subString(0,$bcImageName.indexOf(':')+1)+$version.ToLowerInvariant())
-        docker pull $image2
-        Get-BcContainerNavVersion -containerOrImageName $image2 | Should -Be $version
         Get-BcContainerNavVersion -containerOrImageName $bcImageName | Should -Be $version
     }
     It 'Get-BcContainerOsVersion' {
