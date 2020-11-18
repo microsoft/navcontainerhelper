@@ -163,11 +163,11 @@
  .Example
   New-BcContainer -accept_eula -containerName test -multitenant
  .Example
-  New-BcContainer -accept_eula -containerName test -memoryLimit 3G -imageName "mcr.microsoft.com/dynamicsnav:2017" -updateHosts -useBestContainerOS
+  New-BcContainer -accept_eula -containerName test -memoryLimit 3G -artifactUrl (Get-NavArtifactUrl -nav 2017 -country w1) -updateHosts -imageName my
  .Example
-  New-BcContainer -accept_eula -containerName test -imageName "mcr.microsoft.com/businesscentral/onprem:dk" -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
+  New-BcContainer -accept_eula -containerName test -artifactUrl (Get-BcArtifactUrl -type onprem -country dk) -myScripts @("c:\temp\AdditionalSetup.ps1") -AdditionalParameters @("-v c:\hostfolder:c:\containerfolder")
  .Example
-  New-BcContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -imageName "mcr.microsoft.com/businesscentral/onprem:de"
+  New-BcContainer -accept_eula -containerName test -credential (get-credential -credential $env:USERNAME) -licenseFile "https://www.dropbox.com/s/fhwfwjfjwhff/license.flf?dl=1" -artifactUrl (Get-BcArtifactUrl -country de)
 #>
 function New-BcContainer {
     Param (
@@ -324,9 +324,8 @@ function New-BcContainer {
         catch {}
     }
 
-    if ($imageName.StartsWith('microsoft/dynamics-nav')) {
-        Write-Host -ForegroundColor Yellow "WARNING: using old docker hub name for NAV image. Replacing with mcr.microsoft.com/dynamicsnav"
-        $imageName = "mcr.microsoft.com/dynamicsnav$($imageName.Substring('microsoft/dynamics-nav'.Length))"
+    if ($imageName -like 'microsoft/dynamics-nav:*' -or $imageName -like 'microsoft/bcsandbox:*') {
+        throw "ERROR: Images are no longer available on Docker hub. You should use artifacts instead of specific docker images."
     }
 
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
@@ -505,10 +504,10 @@ function New-BcContainer {
         if ($artifactUrl -eq "") {
 
             if ($imageName -like "mcr.microsoft.com/*") {
-                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from mcr.microsoft.com. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from mcr.microsoft.com. These images will no longer be updated and will be removed on January 2nd 2021, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
             if ($imageName -like "bcinsider.azurecr.io/*") {
-                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from bcinsider.azurecr.io. These images will no longer be updated, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
+                Write-Host -ForegroundColor Red "WARNING: You are running specific Docker images from bcinsider.azurecr.io. These images will no longer be updated and will be removed on January 2nd 2021, you should switch to user Docker artifacts. See https://freddysblog.com/2020/07/05/july-updates-are-out-they-are-the-last-on-premises-docker-images/"
             }
         }
         else {

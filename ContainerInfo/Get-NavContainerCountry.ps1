@@ -8,7 +8,7 @@
  .Example
   Get-BcContainerCountry -containerOrImageName bcserver
  .Example
-  Get-BcContainerCountry -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
+  Get-BcContainerCountry -containerOrImageName myimage:mytag
 #>
 function Get-BcContainerCountry {
     [CmdletBinding()]

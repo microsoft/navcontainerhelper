@@ -6,6 +6,8 @@ Clean-BcContainerDatabase will now cleanup Schema and company when -doNotSaveDat
 UnInstall-BcContainerApp will now cleanup Schema when -doNotSaveData is specified
 Regression: Backup-BcContainerDatabases couldn't backup the tenant template database when specified
 Setting default container memory size to 8Gb when using hyperv
+Use mcr.microsoft.com/businesscentral as new generic image repository
+Remove references to specific images
 
 1.0.13
 Issue #1414 the magic setting defaultTenantHasAllowAppDatabaseWrite=Y is not used when using -cleandatabase or -newdatabase

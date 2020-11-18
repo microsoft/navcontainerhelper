@@ -10,7 +10,7 @@
  .Parameter pageSize
   The function will always retrieve all tags, this parameter just specifies the page size used when querying tags. 0 means don't use paging. If registryCredential is set, the default pagesize is 1000 else the default is to not use paging.
  .Example
- (Get-BcContainerImageTags -imageName "mcr.microsoft.com/businesscentral/onprem").tags
+ (Get-BcContainerImageTags -imageName myimage:mytags).tags
 #>
 function Get-BcContainerImageTags {
     Param (

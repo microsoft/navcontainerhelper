@@ -9,7 +9,7 @@
  .Example
   Get-BcContainerPlatformVersion -containerOrImageName bcserver
  .Example
-  Get-BcContainerPlatformVersion -containerOrImageName mcr.microsoft.com/businesscentral/onprem:dk
+  Get-BcContainerPlatformVersion -containerOrImageName myimage:mytag
 #>
 function Get-BcContainerPlatformVersion {
     [CmdletBinding()]
