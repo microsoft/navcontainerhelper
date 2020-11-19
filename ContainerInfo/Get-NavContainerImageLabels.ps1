@@ -22,7 +22,7 @@ function Get-BcContainerImageLabels {
 
     if ($imageName.IndexOf("/") -lt 0) {
         try {
-            return (docker inspect $usegenericimage | ConvertFrom-Json).Config.Labels
+            return (docker inspect $imageName | ConvertFrom-Json).Config.Labels
         }
         catch {
             return
