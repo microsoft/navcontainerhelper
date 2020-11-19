@@ -11,6 +11,8 @@
   Include this parameter if you want to uninstall the app before unpublishing
  .Parameter doNotSaveData
   Include this flag to indicate that you do not wish to save data when uninstalling the app
+ .Parameter doNotSaveSchema
+  Include this flag to indicate that you do not wish to save database schema when uninstalling the app
  .Parameter force
   Include this flag to indicate that you want to force uninstall the app
  .Parameter publisher
@@ -31,6 +33,7 @@ function UnPublish-BcContainerApp {
         [string] $appName,
         [switch] $unInstall,
         [switch] $doNotSaveData,
+        [switch] $doNotSaveSchema,
         [switch] $force,
         [Parameter(Mandatory=$false)]
         [string] $publisher,
@@ -40,7 +43,7 @@ function UnPublish-BcContainerApp {
         [string] $tenant = "default"
     )
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $doNotSaveSchema, $force)
         if ($unInstall) {
             Write-Host "Uninstalling $appName from tenant $tenant"
             $params = @{}
@@ -51,6 +54,10 @@ function UnPublish-BcContainerApp {
                 $params += @{ "force" = $true }
             }
             Uninstall-NavApp -ServerInstance $ServerInstance -Name $appName -Tenant $tenant @params
+            if ($doNotSaveData -and $doNotSaveSchema) {
+                Write-Host "Cleaning Schema from $appName on $tenant"
+                Sync-NAVApp -ServerInstance $ServerInstance -Name $appName -Tenant $tenant -mode Clean -force:$force
+            }
         }
         $params = @{}
         if ($publisher) {
@@ -68,7 +75,7 @@ function UnPublish-BcContainerApp {
 
         Write-Host "Unpublishing $appName"
         Unpublish-NavApp -ServerInstance $ServerInstance -Name $appName @params
-    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $force
+    } -ArgumentList $appName, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $doNotSaveSchema, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
 }
 Set-Alias -Name UnPublish-NavContainerApp -Value UnPublish-BcContainerApp
