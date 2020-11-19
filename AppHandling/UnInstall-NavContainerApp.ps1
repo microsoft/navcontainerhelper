@@ -13,6 +13,8 @@
   Version of app you want to uninstall in the container
  .Parameter doNotSaveData
   Include this flag to indicate that you do not wish to save data when uninstalling the app
+ .Parameter doNotSaveSchema
+  Include this flag to indicate that you do not wish to save database schema when uninstalling the app
  .Parameter force
   Include this flag to indicate that you want to force uninstall the app
  .Example
@@ -30,10 +32,11 @@ function UnInstall-BcContainerApp {
         [Parameter(Mandatory=$false)]
         [string] $appVersion,
         [switch] $doNotSaveData,
+        [switch] $doNotSaveSchema,
         [switch] $Force
     )
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $Force)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $doNotSaveSchema, $Force)
         Write-Host "Uninstalling $appName from $tenant"
         $parameters = @{
             "ServerInstance" = $ServerInstance
@@ -48,14 +51,16 @@ function UnInstall-BcContainerApp {
         }
         if ($doNotSaveData) {
             Uninstall-NavApp @parameters -doNotSaveData
-            Write-Host "Cleaning Schema from $appName on $tenant"
-            Sync-NAVApp $parameters -mode Clean
+            if ($doNotSaveSchema) {
+                Write-Host "Cleaning Schema from $appName on $tenant"
+                Sync-NAVApp $parameters -mode Clean
+            }
         }
         else {
             Uninstall-NavApp @parameters
         }
 
-    } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $Force
+    } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $doNotSaveSchema, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
 Set-Alias -Name UnInstall-NavContainerApp -Value UnInstall-BcContainerApp
