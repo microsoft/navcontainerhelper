@@ -282,6 +282,12 @@ function Run-ConnectionTest {
     }
     Write-Host "Rolecenter 9022 opened successfully"
 
+    $salesSetup = $clientContext.OpenForm(459)
+    if (!($salesSetup)) {
+        throw "Cannnot open Sales and Receivables setup"
+    }
+    Write-Host "Sales and receivables setup successfully opened"
+
     $customerList = $clientContext.OpenForm(22)
     if (!($customerList)) {
         throw "Cannnot open Customer List page"
