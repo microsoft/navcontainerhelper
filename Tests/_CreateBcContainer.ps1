@@ -1,5 +1,5 @@
 ﻿$bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "14.0" -country w1
-$bcImageName = New-BcImage -artifactUrl $bcArtifactUrl
+$bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
 $bcContainerName = 'bc'
 $bcContainerPlatformVersion = '14.0.29530.0'
 $bcContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $bcContainerName
@@ -8,7 +8,7 @@ New-BCContainer -accept_eula `
                 -accept_outdated `
                 -containerName $bcContainerName `
                 -artifactUrl $bcArtifactUrl `
-                -imageName "myimage" `
+                -imageName $bcImageName `
                 -auth NavUserPassword `
                 -Credential $credential `
                 -updateHosts `
