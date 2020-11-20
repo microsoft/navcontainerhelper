@@ -221,7 +221,7 @@ function Clean-BcContainerDatabase {
     else {
         
         if (!$saveData) {
-            Get-CompanyInBcContainer -containerName $containerName -tenant Default | % { Remove-CompanyInBcContainer -companyName $_.CompanyName -tenant Default }
+            Get-CompanyInBcContainer -containerName $containerName -tenant Default | % { Remove-CompanyInBcContainer -containerName $containerName -companyName $_.CompanyName -tenant Default }
         }
 
         $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
