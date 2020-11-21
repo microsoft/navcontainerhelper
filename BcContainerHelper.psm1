@@ -22,7 +22,7 @@ function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
             "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
-            "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
+            "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "usePsSession" = $isAdministrator
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
