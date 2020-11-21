@@ -1,5 +1,5 @@
 1.0.15
-Version number Change
+Use new Generic image location and SQL 2019 image as default (mcr.microsoft.com/businesscentral:{0}-0.1.0.25 is the latest with SQL 2017)
 
 1.0.14
 Add parameter -features to Compile-AppInBcContainer to add support of the alc features parameter
