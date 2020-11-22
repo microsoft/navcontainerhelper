@@ -174,6 +174,7 @@ Param(
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
     [scriptblock] $SignBcContainerApp,
+    [scriptblock] $ImportTestDataInBcContainer,
     [scriptblock] $RunTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
     [scriptblock] $RemoveBcContainer
@@ -550,7 +551,7 @@ Measure-Command {
 
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
 
-    if ($tenant -ne 'default' -and -not (Get-NavContainerTenants -containerName $containerName | Where-Object { $_.id -eq "default" })) {
+    if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq "default" })) {
 
         $Parameters = @{
             "containerName" = $containerName
@@ -568,16 +569,16 @@ Measure-Command {
         }
         New-BcContainerBcUser @Parameters
 
-        $tenantApps = Get-NavContainerAppInfo -containerName $containerName -tenant $tenant -tenantSpecificProperties -sort DependenciesFirst
-        Get-NavContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | % {
+        $tenantApps = Get-BcContainerAppInfo -containerName $containerName -tenant $tenant -tenantSpecificProperties -sort DependenciesFirst
+        Get-BcContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | % {
             $name = $_.Name
             $version = $_.Version
             $tenantApp = $tenantApps | Where-Object { $_.Name -eq $name -and $_.Version -eq $version }
             if ($tenantApp.SyncState -eq "NotSynced" -or $tenantApp.SyncState -eq 3) {
-                Sync-NavContainerApp -containerName $containerName -tenant $tenant -appName $Name -appVersion $Version -Mode ForceSync -Force
+                Sync-BcContainerApp -containerName $containerName -tenant $tenant -appName $Name -appVersion $Version -Mode ForceSync -Force
             }
             if (-not $tenantApp.IsInstalled) {
-                Install-NavContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
+                Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
             }
         }
     }
@@ -1038,6 +1039,24 @@ $testApps | ForEach-Object {
 }
 
 if (!$doNotRunTests) {
+if ($ImportTestDataInBcContainer) {
+Write-Host -ForegroundColor Yellow @'
+  _____                            _   _               _______       _     _____        _        
+ |_   _|                          | | (_)             |__   __|     | |   |  __ \      | |       
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _     | | ___ ___| |_  | |  | | __ _| |_ __ _ 
+   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` |    | |/ _ \ __| __| | |  | |/ _` | __/ _` |
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| |    | |  __\__ \ |_  | |__| | (_| | |_ (_| |
+ |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |    |_|\___|___/\__| |_____/ \__,_|\__\__,_|
+                 | |                            __/ |                                            
+                 |_|                           |___/                                             
+'@
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+    "credential" = $credential
+}
+Invoke-Command -ScriptBlock $ImportTestDataInBcContainer -ArgumentList $Parameters
+}
 $allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
 if ($testFolders) {
