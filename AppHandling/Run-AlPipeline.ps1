@@ -1067,7 +1067,7 @@ $Parameters = @{
 Invoke-Command -ScriptBlock $ImportTestDataInBcContainer -ArgumentList $Parameters
 if (!$enableTaskScheduler) {
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "True"
+        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "False"
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
         while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
             Start-Sleep -Seconds 1
