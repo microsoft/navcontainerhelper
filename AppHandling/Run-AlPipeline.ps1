@@ -1050,12 +1050,30 @@ Write-Host -ForegroundColor Yellow @'
                  | |                            __/ |                                            
                  |_|                           |___/                                             
 '@
+if (!$enableTaskScheduler) {
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "True"
+        Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+        while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
+            Start-Sleep -Seconds 1
+        }
+    }
+}
 $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
     "credential" = $credential
 }
 Invoke-Command -ScriptBlock $ImportTestDataInBcContainer -ArgumentList $Parameters
+if (!$enableTaskScheduler) {
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "True"
+        Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+        while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
+            Start-Sleep -Seconds 1
+        }
+    }
+}
 }
 $allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
