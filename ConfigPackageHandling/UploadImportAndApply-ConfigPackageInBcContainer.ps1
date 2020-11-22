@@ -20,7 +20,7 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $tenant = "default",
-        [string] $companyName,
+        [string] $companyName = "",
         [PSCredential] $Credential = $null,
         [Parameter(Mandatory=$true)]
         [string] $configPackage
@@ -33,8 +33,10 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
             return
         }
         $configPackage = $configFile.FullName
+        $packageId = ([System.IO.Path]::GetFileNameWithoutExtension($configPackage)).SubString(0,20)
     }
     else {
+        $packageId = $configPackage
         $containerConfigPackage = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($PackageId) 
             (Get-item "C:\ConfigurationPackages\*$packageId*").FullName
         } -argumentList $configPackage
@@ -60,6 +62,7 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
         throw "Company $companyName doesn't exist"
     }
     else {
+        Write-Host "Deleting Configuration Package $packageId (if exists)"
         Invoke-BCContainerApi -containerName $containerName `
                               -CompanyId $CompanyId `
                               -credential $credential `
