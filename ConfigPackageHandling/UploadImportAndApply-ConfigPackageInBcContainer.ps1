@@ -63,14 +63,19 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
     }
     else {
         Write-Host "Deleting Configuration Package $packageId (if exists)"
-        Invoke-BCContainerApi -containerName $containerName `
-                              -CompanyId $CompanyId `
-                              -credential $credential `
-                              -APIPublisher "microsoft" `
-                              -APIGroup "automation" `
-                              -APIVersion "v1.0" `
-                              -Method "DELETE" `
-                              -Query "configurationPackages('$packageId')" -ErrorAction SilentlyContinue | Out-Null
+        try {
+            Invoke-BCContainerApi -containerName $containerName `
+                                  -CompanyId $CompanyId `
+                                  -credential $credential `
+                                  -APIPublisher "microsoft" `
+                                  -APIGroup "automation" `
+                                  -APIVersion "v1.0" `
+                                  -Method "DELETE" `
+                                  -Query "configurationPackages('$packageId')" | Out-Null
+        }
+        catch {
+            Write-Host "Ignoring error while deleting configuration package"
+        }
         
         Write-Host "Creating Configuration Package $packageId"
         Invoke-BCContainerApi -containerName $containerName `
