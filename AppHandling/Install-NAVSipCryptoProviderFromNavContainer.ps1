@@ -26,6 +26,15 @@ function Install-NAVSipCryptoProviderFromBcContainer {
     RegSvr32 /u /s $navSip64Path
     RegSvr32 /u /s $navSip32Path
 
+    if (Test-Path $navSip64Path) {
+        Log "Remove existing $navsip64Path"
+        Remove-Item -Path $navSip64Path -Force
+    }
+    if (Test-Path $navSip32Path) {
+        Log "Remove existing $navsip32Path"
+        Remove-Item -Path $navSip32Path -Force
+    }
+
     Log "Copy SIP crypto provider from container $containerName"
     Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip64Path
     Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path

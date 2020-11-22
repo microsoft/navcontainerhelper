@@ -141,7 +141,7 @@ function Run-TestsInBcContainer {
     if ($useUrl -eq "") {
         if ([bool]($serverConfiguration.PSobject.Properties.name -eq "EnableTaskScheduler")) {
             if ($serverConfiguration.EnableTaskScheduler -eq "True") {
-                Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container. Please specify -EnableTaskScheduler:`$false when creating container."
+                Write-Host -ForegroundColor Red "WARNING: TaskScheduler is running in the container, this can lead to test failures. Specify -EnableTaskScheduler:`$false to disable Task Scheduler."
             }
         }
     }
