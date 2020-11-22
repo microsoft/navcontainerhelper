@@ -458,6 +458,9 @@ if ($SignBcContainerApp) {
 else {
     $SignBcContainerApp = { Param([Hashtable]$parameters) Sign-BcContainerApp @parameters }
 }
+if ($ImportTestDataInBcContainer) {
+    Write-Host -ForegroundColor Yellow "ImportTestDataInBcContainer override"; Write-Host $ImportTestDataInBcContainer.ToString()
+}
 if ($RunTestsInBcContainer) {
     Write-Host -ForegroundColor Yellow "RunTestsInBcContainer override"; Write-Host $RunTestsInBcContainer.ToString()
 }
@@ -1052,22 +1055,26 @@ Write-Host -ForegroundColor Yellow @'
 '@
 if (!$enableTaskScheduler) {
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "True"
+        Write-Host "Enabling Task Scheduler to load configuration packages"
+        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "True" -WarningAction SilentlyContinue
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
         while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
             Start-Sleep -Seconds 1
         }
     }
 }
+
 $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
     "credential" = $credential
 }
 Invoke-Command -ScriptBlock $ImportTestDataInBcContainer -ArgumentList $Parameters
+
 if (!$enableTaskScheduler) {
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "False"
+        Write-Host "Disabling Task Scheduler again"
+        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "EnableTaskScheduler" -KeyValue "False" -WarningAction SilentlyContinue
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
         while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
             Start-Sleep -Seconds 1

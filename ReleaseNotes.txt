@@ -3,6 +3,8 @@ Use new Generic image location and SQL 2019 image as default (mcr.microsoft.com/
 Issue #1469 Install-NavSipCryptoProvider cannot be executed twice
 Add new function UploadImportAndApply-ConfigPackageInBcContainer, which uses management APIs to Upload, Import and Apply a config package in a container
 Add parameter -ImportTestDataInBcContainer in Run-AlPipeline to allow for overriding and supporting test data
+Add configuration setting: timeStampServer (default timeStampServer for Sign-AppInBcContainer)
+Add parameter timeStampServer to Sign-AppInBcContainer to allow overriding the timeStampServer
 
 1.0.14
 Add parameter -features to Compile-AppInBcContainer to add support of the alc features parameter
