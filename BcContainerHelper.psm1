@@ -29,6 +29,7 @@ function Get-ContainerHelperConfig {
             "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "defaultContainerName" = "bcserver"
+            "timeStampServer" = "http://timestamp.verisign.com/scripts/timestamp.dll"
             "sandboxContainersAreMultitenantByDefault" = $true
         }
         $bcContainerHelperConfigFile = Join-Path $bcContainerHelperConfig.HostHelperFolder "BcContainerHelper.config.json"

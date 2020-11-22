@@ -13,6 +13,8 @@
   Path/Url of the certificate pfx file to use for signing
  .Parameter pfxPassword
   Password of the certificate pfx file
+ .Parameter timeStampServer
+  Specifies the URL of the time stamp server. Default is $bcContainerHelperConfig.timeStampServer, which defaults to http://timestamp.verisign.com/scripts/timestamp.dll
  .Example
   Sign-BcContainerApp -appFile c:\programdata\bccontainerhelper\myapp.app -pfxFile http://my.secure.url/mycert.pfx -pfxPassword $securePassword
  .Example
@@ -26,7 +28,9 @@ function Sign-BcContainerApp {
         [Parameter(Mandatory=$true)]
         [string] $pfxFile,
         [Parameter(Mandatory=$true)]
-        [SecureString] $pfxPassword
+        [SecureString] $pfxPassword,
+        [Parameter(Mandatory=$false)]
+        [string] $timeStampServer = $bcContainerHelperConfig.timeStampServer
     )
 
     $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
@@ -47,7 +51,7 @@ function Sign-BcContainerApp {
     }
 
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer)
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
@@ -73,12 +77,12 @@ function Sign-BcContainerApp {
 
         Write-Host "Signing $appFile"
         $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
-        & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "http://timestamp.verisign.com/scripts/timestamp.dll", "$appFile") | Write-Host
+        & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "$timeStampServer", "$appFile") | Write-Host
 
         if ($copied) { 
             Remove-Item $pfxFile -Force
         }
-    } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword
+    } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword, $timeStampServer
 }
 Set-Alias -Name Sign-NavContainerApp -Value Sign-BcContainerApp
 Export-ModuleMember -Function Sign-BcContainerApp -Alias Sign-NavContainerApp
