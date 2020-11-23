@@ -1,0 +1,18 @@
+{
+    "version":  "0.2.0",
+    "configurations":  [
+                           {
+                               "type":  "al",
+                               "request":  "launch",
+                               "name":  "Local Sandbox",
+                               "server":  "http://helloworld-current",
+                               "serverInstance":  "BC",
+                               "port":  7049,
+                               "tenant":  "default",
+                               "authentication":  "UserPassword",
+                               "startupObjectId":  22,
+                               "startupObjectType":  "Page",
+                               "breakOnError":  true
+                           }
+                       ]
+}

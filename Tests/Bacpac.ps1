@@ -73,4 +73,13 @@
         Remove-NavContainer $testContainerName
         Remove-Item -Path $bacpacFolder -Recurse -Force
     }
+    It 'Remove-BcDatabase' {
+        #TODO
+    }
+    It 'Restore-BcDatabaseFromArtifacts' {
+        #TODO
+    }
+    It 'Restore-DatabasesInNavContainer' {
+        #TODO
+    }
 }

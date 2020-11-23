@@ -1,0 +1,53 @@
+{
+    "id":  "00000000-0000-0000-0000-000000000002",
+    "name":  "Default Test App Name",
+    "publisher":  "Default Publisher",
+    "brief":  "",
+    "description":  "",
+    "version":  "2.0.2147483647.0",
+    "privacyStatement":  "",
+    "EULA":  "",
+    "help":  "",
+    "url":  "",
+    "logo":  "",
+    "dependencies":  [
+                         {
+                             "appId":  "dd0be2ea-f733-4d65-bb34-a28f4624fb14",
+                             "publisher":  "Microsoft",
+                             "name":  "Library Assert",
+                             "version":  "16.0.0.0"
+                         },
+                         {
+                             "appId":  "e7320ebb-08b3-4406-b1ec-b4927d3e280b",
+                             "publisher":  "Microsoft",
+                             "name":  "Any",
+                             "version":  "16.0.0.0"
+                         },
+                         {
+                             "appId":  "23de40a6-dfe8-4f80-80db-d70f83ce8caf",
+                             "publisher":  "Microsoft",
+                             "name":  "Test Runner",
+                             "version":  "16.0.0.0"
+                         },
+                         {
+                             "name":  "Default App Name",
+                             "publisher":  "Default Publisher",
+                             "version":  "2.0.0.0",
+                             "appId":  "00000000-0000-0000-0000-000000000001"
+                         }
+                     ],
+    "screenshots":  [
+
+                    ],
+    "application":  "17.0.0.0",
+    "platform":  "17.0.0.0",
+    "idRanges":  [
+                     {
+                         "from":  50100,
+                         "to":  50149
+                     }
+                 ],
+    "runtime":  "6.0",
+    "showMyCode":  true,
+    "target":  "OnPrem"
+}

@@ -4,6 +4,13 @@
     $appName = "Hello ÆØÅ"
     $appVersion = "1.0.0.0"
 
+    It 'Add-GitToAlProjectFolder' {
+        #TODO
+    }
+    It 'Clean-BcContainerDatabase' {
+        #TODO
+    }
+
     It 'Compile-AppInNavContainer' {
         Copy-Item -Path (Join-Path $PSScriptRoot "nav-app") -Destination $navContainerPath -Recurse -Force
         $appProjectFolder = Join-Path $navContainerPath "nav-app"
@@ -45,6 +52,12 @@
     It 'Convert-ALCOutputToAzureDevOps' {
         #TODO
     }
+    It 'Copy-AlSourceFiles' {
+        #TODO
+    }
+    It 'Create-AlProjectFolderFromNavContainer' {
+        #TODO
+    }
     It 'Extract-AppFileToFolder (nav app)' {
         $navAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
         $navAppFile = Join-Path $navContainerPath "nav-app\output\$navAppFileName"
@@ -56,7 +69,6 @@
         $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$bcAppFileName"
         Extract-AppFileToFolder $bcAppFile -appFolder (Join-Path $bcContainerPath "bc-app2")
         (Get-ChildItem -Path (Join-Path $bcContainerPath "bc-app\*.al") -Recurse).Count | Should -Be (Get-ChildItem -Path (Join-Path $bcContainerPath "bc-app2\*.al") -Recurse).Count
-
     }
     It 'Publish-NavContainerApp' {
         $navAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
@@ -197,7 +209,7 @@
     It 'Get/RunTests for all versions' {
         $runTestsContainerName = "runtests"
 
-        9,10,11,14,15,16 | % {
+        9,10,11,14,15,16,17 | % {
 
             
             $runTestsInVersion  = $_

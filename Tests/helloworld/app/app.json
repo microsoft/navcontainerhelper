@@ -1,0 +1,34 @@
+{
+    "id":  "00000000-0000-0000-0000-000000000001",
+    "name":  "Default App Name",
+    "publisher":  "Default Publisher",
+    "brief":  "",
+    "description":  "",
+    "version":  "2.0.2147483647.0",
+    "privacyStatement":  "",
+    "EULA":  "",
+    "help":  "",
+    "url":  "",
+    "logo":  "",
+    "dependencies":  [
+                         {
+                             "appId":  "00000000-0000-0000-0000-000000000003",
+                             "publisher":  "Default Publisher",
+                             "name":  "Default Base App Name",
+                             "version":  "2.0.0.0"
+                         }
+                     ],
+    "screenshots":  [
+
+                    ],
+    "application":  "17.0.0.0",
+    "platform":  "17.0.0.0",
+    "idRanges":  [
+                     {
+                         "from":  50100,
+                         "to":  50149
+                     }
+                 ],
+    "showMyCode":  true,
+    "runtime":  "6.0"
+}
