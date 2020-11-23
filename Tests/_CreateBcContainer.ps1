@@ -13,7 +13,7 @@ New-BCContainer -accept_eula `
                 -Credential $credential `
                 -updateHosts `
                 -memoryLimit 16g `
-                -licenseFile $licenseFile `
+                -licenseFile $buildLicenseFile `
                 -includeAL `
                 -includeTestToolkit `
                 -includeTestLibrariesOnly
@@ -32,8 +32,7 @@ New-BCContainer -accept_eula `
                 -Credential $credential `
                 -updateHosts `
                 -memoryLimit 8g `
-                -licenseFile $licenseFile `
-                -includeAL `
+                -licenseFile $buildLicenseFile `
                 -includeTestToolkit `
                 -includeTestLibrariesOnly
 

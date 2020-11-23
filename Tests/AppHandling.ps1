@@ -168,6 +168,7 @@
                 "table"          { "Tables\$($type) $($id) - $($name).al" }
                 "tableexension"  { "Tables\$($type) $($id) - $($name).al" }
                 "codeunit"       { "Codeunits\$($type) $($id) - $($name).al" }
+                "interface"      { "Interfaces\$($type) $($id) - $($name).al" }
                 "query"          { "Queries\$($type) $($id) - $($name).al" }
                 "report"         { "Reports\$($type) $($id) - $($name).al" }
                 "xmlport"        { "XmlPorts\$($type) $($id) - $($name).al" }
