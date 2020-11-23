@@ -4,7 +4,7 @@ codeunit 50113 "HelloWorld Tests"
     TestPermissions = Disabled;
 
     var
-        Assert: Codeunit Assert;
+        Assert: Codeunit "Library Assert";
 
     [Test]
     procedure WorkingTest();

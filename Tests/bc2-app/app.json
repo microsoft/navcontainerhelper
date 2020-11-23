@@ -19,8 +19,8 @@
     }
   ],
   "screenshots": [],
-  "platform": "14.0.0.0",
-  "application": "14.0.0.0",
+  "platform": "17.0.0.0",
+  "application": "17.0.0.0",
   "idRanges": [
     {
       "from": 50100,
@@ -29,5 +29,5 @@
   ],
   "contextSensitiveHelpUrl": "https://bc2-app.com/help/",
   "showMyCode": true,
-  "runtime": "3.0"
+  "runtime": "6.0"
 }
