@@ -304,3 +304,25 @@ function GetTestToolkitApps {
     } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit
 }
 
+function GetExtenedErrorMessage {
+    Param(
+        [System.Net.WebException] $webException
+    )
+
+    $message = $webException.Message
+    try {
+        $webResponse = $webException.Response
+        $reqstream = $webResponse.GetResponseStream()
+        $sr = new-object System.IO.StreamReader $reqstream
+        $result = $sr.ReadToEnd()
+        try {
+            $json = $result | ConvertFrom-Json
+            $message += " $($json.Message)"
+        }
+        catch {
+            $message += " $result"
+        }
+    }
+    catch{}
+    $message
+}

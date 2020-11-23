@@ -1,7 +1,7 @@
-﻿$bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "14.0" -country w1
+﻿$bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "17.0" -country w1
 $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
-$bcContainerName = 'bc'
-$bcContainerPlatformVersion = '14.0.29530.0'
+$bcContainerName = 'bco'
+$bcContainerPlatformVersion = '17.0.16993.0'
 $bcContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $bcContainerName
 $bcMyPath = Join-Path $bcContainerPath "my"
 New-BCContainer -accept_eula `
@@ -16,5 +16,28 @@ New-BCContainer -accept_eula `
                 -licenseFile $licenseFile `
                 -includeAL `
                 -includeTestToolkit `
-                -includeTestLibrariesOnly `
-                -useBestContainerOS
+                -includeTestLibrariesOnly
+
+$bcsArtifactUrl = Get-BCArtifactUrl -type Sandbox -country us
+$bcsImageName = New-BcImage -artifactUrl $bcsArtifactUrl -skipIfImageAlreadyExists
+$bcsContainerName = 'bcs'
+$bcsContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $bcsContainerName
+$bcsMyPath = Join-Path $bcsContainerPath "my"
+New-BCContainer -accept_eula `
+                -accept_outdated `
+                -containerName $bcsContainerName `
+                -artifactUrl $bcsArtifactUrl `
+                -imageName $bcsImageName `
+                -auth NavUserPassword `
+                -Credential $credential `
+                -updateHosts `
+                -memoryLimit 8g `
+                -licenseFile $licenseFile `
+                -includeAL `
+                -includeTestToolkit `
+                -includeTestLibrariesOnly
+
+$bcsContainerPlatformVersion = Get-BcContainerPlatformVersion -containerOrImageName $bcsContainerName
+if (!($bcsContainerPlatformVersion)) {
+    throw "Couldn't get platform version from Sandbox container"
+}
