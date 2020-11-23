@@ -301,7 +301,12 @@ function Compile-AppInBcContainer {
             $publisher = [uri]::EscapeDataString($publisher)
             $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
             Write-Host "Url : $Url"
-            $webClient.DownloadFile($url, $symbolsFile)
+            try {
+                $webClient.DownloadFile($url, $symbolsFile)
+            }
+            catch [System.Net.WebException] {
+                throw (GetExtenedErrorMessage $_.Exception)
+            }
             if (Test-Path -Path $symbolsFile) {
                 $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                     # Wait for file to be accessible in container
