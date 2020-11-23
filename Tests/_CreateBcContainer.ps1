@@ -1,7 +1,7 @@
 ﻿$bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "17.0" -country w1
 $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
 $bcContainerName = 'bco'
-$bcContainerPlatformVersion = '17.0.16993.0'
+$bcContainerPlatformVersion = '17.0.16974.0'
 $bcContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $bcContainerName
 $bcMyPath = Join-Path $bcContainerPath "my"
 New-BCContainer -accept_eula `
