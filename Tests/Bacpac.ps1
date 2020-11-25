@@ -54,6 +54,9 @@
         $appBacpacFile | Should -Exist
         $tenantBacpacFile | Should -Exist
 
+        $containerAppBacpacFile = Join-Path $bcContainerHelperConfig.containerHelperFolder "bacpac\app.bacpac"
+        $containerTenantBacpacFile = Join-Path $bcContainerHelperConfig.containerHelperFolder "bacpac\defult.bacpac"
+
         New-NavContainer -accept_eula `
                          -accept_outdated `
                          -imageName $bcImageName `
@@ -61,7 +64,7 @@
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -additionalParameters @("--env appBacpac=$appBacpacFile","--env tenantBacpac=$tenantBacpacFile") `
+                         -additionalParameters @("--env appBacpac=$containerAppBacpacFile","--env tenantBacpac=$containerTenantBacpacFile") `
                          -useBestContainerOS
 
         New-NavContainerTenant -containerName $testContainerName -tenantId "test"

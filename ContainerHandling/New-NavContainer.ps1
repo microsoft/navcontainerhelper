@@ -1198,7 +1198,10 @@ function New-BcContainer {
             throw "Database backup $bakFile doesn't exist"
         }
         
-        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+        if ($bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+            $bakFile = "$containerHelperFolder$($bakFile.Substring($hostHelperFolder.Length))"
+        }
+        else {
             $containerBakFile = Join-Path $containerFolder "database.bak"
             Copy-Item -Path $bakFile -Destination $containerBakFile
             $bakFile = $containerBakFile
