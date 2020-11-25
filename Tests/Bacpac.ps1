@@ -2,7 +2,7 @@
 
     It 'Backup-NavContainerDatabases' {
 
-        $bakFolder = "C:\programdata\BcContainerHelper\mybak"
+        $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "mybak"
         $bakFile = "$bakFolder\database.bak"
         Backup-NavContainerDatabases -containerName $navContainerName `
                                      -sqlCredential $credential `
@@ -26,7 +26,7 @@
     }
     It 'Export-NavContainerDatabasesAsBacpac' {
 
-        $bacpacFolder = "C:\programdata\BcContainerHelper\bacpac"
+        $bacpacFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "bacpac"
         $bacpacFile = "$bacpacFolder\database.bacpac"
         Export-NavContainerDatabasesAsBacpac -containerName $bcContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder -doNotCheckEntitlements
 
@@ -47,7 +47,7 @@
                          -multitenant `
                          -useBestContainerOS
 
-        $bacpacFolder = "C:\programdata\BcContainerHelper\bacpac"
+        $bacpacFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "bacpac"
         $appBacpacFile = "$bacpacFolder\app.bacpac"
         $tenant = "default"
         $tenantBacpacFile = "$bacpacFolder\$tenant.bacpac"

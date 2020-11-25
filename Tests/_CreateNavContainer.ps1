@@ -2,7 +2,7 @@
 $navImageName = New-BcImage -artifactUrl $navArtifactUrl -skipIfImageAlreadyExists
 $navContainerName = 'nav'
 $navContainerPlatformVersion = '11.0.31747.0'
-$navContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $navContainerName
+$navContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$navContainerName"
 $navMyPath = Join-Path $navContainerPath "my"
 New-NavContainer -accept_eula `
                  -accept_outdated `
