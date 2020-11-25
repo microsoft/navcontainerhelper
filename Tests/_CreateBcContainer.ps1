@@ -18,9 +18,10 @@ New-BCContainer -accept_eula `
                 -includeTestToolkit `
                 -includeTestLibrariesOnly
 
-$bcsArtifactUrl = Get-BCArtifactUrl -type Sandbox -country us
+$bcsArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.19244" -country "us"
 $bcsImageName = New-BcImage -artifactUrl $bcsArtifactUrl -skipIfImageAlreadyExists
 $bcsContainerName = 'bcs'
+$bcsContainerPlatformVersion = "17.0.18204.19144"
 $bcsContainerPath = Join-Path "C:\ProgramData\BcContainerHelper\Extensions" $bcsContainerName
 $bcsMyPath = Join-Path $bcsContainerPath "my"
 New-BCContainer -accept_eula `
@@ -36,7 +37,3 @@ New-BCContainer -accept_eula `
                 -includeTestToolkit `
                 -includeTestLibrariesOnly
 
-$bcsContainerPlatformVersion = Get-BcContainerPlatformVersion -containerOrImageName $bcsContainerName
-if (!($bcsContainerPlatformVersion)) {
-    throw "Couldn't get platform version from Sandbox container"
-}
