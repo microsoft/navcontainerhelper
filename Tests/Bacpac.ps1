@@ -13,13 +13,12 @@
         $testContainerName = "$($navContainerName)2"
         New-NavContainer -accept_eula `
                          -accept_outdated `
-                         -imageName $navImageName `
+                         -artifactUrl $navArtifactUrl `
                          -containerName $testContainerName `
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -bakFile $bakFile `
-                         -useBestContainerOS
+                         -bakFile $bakFile
 
         Remove-NavContainer $testContainerName
         Remove-Item -Path $bakFolder -Recurse -Force
@@ -39,13 +38,12 @@
         $testContainerName = "$($bcContainerName)2"
         New-NavContainer -accept_eula `
                          -accept_outdated `
-                         -imageName $bcImageName `
+                         -artifactUrl $bcArtifactUrl `
                          -containerName $testContainerName `
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -multitenant `
-                         -useBestContainerOS
+                         -multitenant
 
         $bacpacFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "bacpac"
         $appBacpacFile = "$bacpacFolder\app.bacpac"
