@@ -55,7 +55,7 @@
         $tenantBacpacFile | Should -Exist
 
         $containerAppBacpacFile = Join-Path $bcContainerHelperConfig.containerHelperFolder "bacpac\app.bacpac"
-        $containerTenantBacpacFile = Join-Path $bcContainerHelperConfig.containerHelperFolder "bacpac\defult.bacpac"
+        $containerTenantBacpacFile = Join-Path $bcContainerHelperConfig.containerHelperFolder "bacpac\default.bacpac"
 
         New-NavContainer -accept_eula `
                          -accept_outdated `
