@@ -73,6 +73,7 @@ function Extract-AppFileToFolder {
     if ($generateAppJson) {
         #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml"))
+        $runtime = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
         $appJson = [ordered]@{
             "id" = $manifest.Package.App.Id
             "name" = $manifest.Package.App.Name
@@ -83,16 +84,28 @@ function Extract-AppFileToFolder {
             "platform" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Platform" } | % { $_.Value } )"
             "application" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
             "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
-            "runtime" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+            "runtime" = $runtime
             "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
             "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | % { $_.Value } )"
             "EULA" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "EULA" } | % { $_.Value } )"
             "privacyStatement" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "PrivacyStatement" } | % { $_.Value } )"
             "help" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Help" } | % { $_.Value } )"
+            "target" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "target" } | % { $_.Value } )"
             "screenshots" = @()
             "dependencies" = @()
             "idRanges" = @()
             "features" = @()
+        }
+        if ($runtime -ge 5.0)  {
+            $appJson += @{
+                "applicationInsightsKey" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } )"
+            }
+        }
+        $contextSensitiveHelpUrl = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "contextSensitiveHelpUrl" } | % { $_.Value } )"
+        if ($contextSensitiveHelpUrl) {
+            $appJson += @{
+                "contextSensitiveHelpUrl" = $contextSensitiveHelpUrl
+            }
         }
         $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
             $_.GetEnumerator() | % {
@@ -119,6 +132,24 @@ function Extract-AppFileToFolder {
                     if ($feature -eq $_) {
                         $appJson.features += $_
                     }
+                }
+            }
+        }
+        $manifest.Package.ChildNodes | Where-Object { $_.name -eq "SupportedLocales" } | % { 
+            $first = $true
+            $_.GetEnumerator() | % {
+                if ($first) {
+                    $appJson += @{ "supportedLocales" = @() }
+                    $first = $false
+                }
+                $appJson.supportedLocales += @($_.Local)
+            }
+        }
+        if ($runtime -ge 6.0)  {
+            $appJson += @{ "keyVaultUrls" = @() }
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "KeyVaultUrls" } | % { 
+                $_.GetEnumerator() | % {
+                    $appJson.keyVaultUrls += @($_.Name)
                 }
             }
         }

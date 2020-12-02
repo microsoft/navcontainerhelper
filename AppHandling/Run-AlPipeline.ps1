@@ -12,7 +12,8 @@
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
  .Parameter imageName
-  if artifact is specified then imageName is the name of a docker image cache. if artifact is empty, then imageName specified the image to be run.
+  If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
+  Only speficy imagename if you are going to create multiple containers from the same artifacts.
  .Parameter enableTaskScheduler
   Include this switch if the Task Scheduler should be running inside the build/test container, as some app features rely on the Task Scheduler.
  .Parameter assignPremiumPlan
@@ -160,6 +161,7 @@ Param(
     [switch] $doNotRunTests,
     [switch] $keepContainer,
     [string] $updateLaunchJson = "",
+    [switch] $useLatestAlLanguageExtension,
     [switch] $enableCodeCop,
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
@@ -551,6 +553,11 @@ Measure-Command {
         "MemoryLimit" = $memoryLimit
         "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
     }
+    if ($useLatestAlLanguageExtension) {
+        $Parameters += @{
+            "vsixFile" = Get-LatestAlLanguageExtensionUrl
+        }
+    }
 
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
 
@@ -758,34 +765,8 @@ Write-Host -ForegroundColor Yellow @'
             $previousAppVersions = @{}
             if ($previousApps) {
                 Write-Host "Copying previous apps to packages folder"
-                $previousApps | % {
-                    if ($_ -like "http://*" -or $_ -like "https://*") {
-                        $tmpFileName = [System.IO.Path]::GetFileName($_).split("?")[0]
-                        $tmpFile = Join-Path $appPackagesFolder $tmpFileName
-                        Download-File -sourceUrl $_ -destinationFile $tmpFile
-                        if ($tmpFile -like "*.zip") {
-                            Write-Host "Unpacking $tmpFileName to $appPackagesFolder"
-                            Expand-Archive -Path $tmpFile -DestinationPath $appPackagesFolder
-                            $subFolder = Join-Path $appPackagesFolder $tmpFileName.Trim('.zip')
-                            Get-ChildItem -Path $subFolder -Recurse | ForEach-Object {
-                                Copy-Item -Path $_.FullName -Destination $appPackagesFolder -Force
-                                $AppList += @(Join-Path $appPackagesFolder $_.Name)
-                            }
-                            Remove-Item $subFolder -Recurse -Force
-                            Remove-Item $tmpFile
-                        }
-                        else {
-                            $AppList += @($tmpFile)
-                        }
-                    }
-                    else {
-                        if (-not (Test-Path $appPackagesFolder)) {
-                            New-Item -Path $appPackagesFolder -ItemType Directory | Out-Null
-                        }
-                        Copy-Item -Path $_ -Destination $appPackagesFolder -Force
-                        $AppList += @(Join-Path $appPackagesFolder ([System.IO.Path]::GetFileName($_)))
-                    }
-                }
+                $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
+
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList
                 $previousApps | ForEach-Object {
                     $appFile = $_
