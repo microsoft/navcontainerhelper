@@ -28,6 +28,8 @@
   Include this switch if you want to also validate against next minor version of Business Central. If you include this switch you need to specify a sasToken for insider builds as well.
  .Parameter ValidateNextMajor
   Include this switch if you want to also validate against next major version of Business Central. If you include this switch you need to specify a sasToken for insider builds as well.
+ .Parameter failOnError
+  Include this switch if you want to fail on the first error instead of returning all errors to the caller
  .Parameter sasToken
   Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
  .Parameter countries
@@ -68,6 +70,7 @@ Param(
     [switch] $validateCurrent,
     [switch] $validateNextMinor,
     [switch] $validateNextMajor,
+    [switch] $failOnError,
     [string] $sasToken = "",
     [Parameter(Mandatory=$true)]
     $countries,
@@ -272,7 +275,7 @@ Measure-Command {
 
 $artifactUrl = ""
 if ($_ -eq 0 -and $validateVersion) {
-    $artifactUrl = DetermineArtifactsToUse -version $version -countries $countries -select Latest
+    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $countries -select Latest
 }
 elseif ($_ -eq 1 -and $validateCurrent) {
     $artifactUrl = DetermineArtifactsToUse -countries $countries -select Current
@@ -387,7 +390,8 @@ $validationResult += @(Run-AlCops `
     -apps $apps `
     -affixes $affixes `
     -supportedCountries $supportedCountries `
-    -enableAppSourceCop)
+    -enableAppSourceCop `
+    -failOnError:$failOnError)
 
 if ($previousApps) {
 Write-Host -ForegroundColor Yellow @'
@@ -501,9 +505,11 @@ if ($error) {
 
 }
 
+}
+
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Validation finished in $([int]$_.TotalSeconds) seconds" }
 
-}
+$validationResult
 
 }
 Export-ModuleMember -Function Run-AlValidation

@@ -5,6 +5,10 @@ Add new function UploadImportAndApply-ConfigPackageInBcContainer, which uses man
 Add parameter -ImportTestDataInBcContainer in Run-AlPipeline to allow for overriding and supporting test data
 Add configuration setting: timeStampServer (default timeStampServer for Sign-AppInBcContainer)
 Add parameter timeStampServer to Sign-AppInBcContainer to allow overriding the timeStampServer
+Fix Extract-AppFileToFolder to include missing properties and honor runtime version
+Add parameter useLatestAlLanguageExtension to Run-AlPipeline
+Add new function Run-AlCops to run AL cops in existing container
+Add new function Run-AlValidation to run and end 2 end AL validation with multiple versions and multiple countries
 
 1.0.14
 Add parameter -features to Compile-AppInBcContainer to add support of the alc features parameter

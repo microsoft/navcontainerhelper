@@ -27,6 +27,8 @@
   Include this switch to enable UI Cop
  .Parameter enablePerTenantExtensionCop
   Include this switch to enable Per Tenant Extension Cop
+ .Parameter failOnError
+  Include this switch if you want to fail on the first error instead of returning all errors to the caller
  .Parameter rulesetFile
   Filename of the ruleset file for Compile-AppInBcContainer
  .Parameter CompileAppInBcContainer
@@ -45,6 +47,7 @@ function Run-AlCops {
         [switch] $enableCodeCop,
         [switch] $enableUICop,
         [switch] $enablePerTenantExtensionCop,
+        [switch] $failOnError,
         [string] $rulesetFile = "",
         [scriptblock] $CompileAppInBcContainer
     )
@@ -100,7 +103,9 @@ function Run-AlCops {
     
         $tmpFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
         try {
-            $global:_validationResult += "Analyzing: $([System.IO.Path]::GetFileName($appFile))"
+            $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
+
+            $global:_validationResult += "Analyzing: $([System.IO.Path]::GetFileName($appFile)) on $($artifactUrl.Split('?')[0])"
     
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
             $appJson = Get-Content (Join-Path $tmpFolder "app.json") | ConvertFrom-Json
@@ -142,6 +147,9 @@ function Run-AlCops {
                         $global:_validationResult += $line.SubString($tmpFolder.Length+1)
                     }
                 }
+            }
+            if (!$failOnError) {
+                $Parameters += @{ "ErrorAction" = "SilentlyContinue" }
             }
 
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters)
