@@ -326,3 +326,51 @@ function GetExtenedErrorMessage {
     catch{}
     $message
 }
+
+function CopyAppFilesToFolder {
+    Param(
+        $appFiles,
+        [string] $folder
+    )
+
+    if (!(Test-Path $folder)) {
+        New-Item -Path $folder -ItemType Directory | Out-Null
+    }
+    $appFiles | Where-Object{ $_ } | % {
+        $appFile = $_
+        if ($appFile -like "http://*" -or $appFile -like "https://*") {
+            $appUrl = $appFile
+            $appFile = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+            Download-File -sourceUrl $appUrl -destinationFile $appFile
+            CopyAppFilesToFolder -appFile $appFile -folder $folder
+            Remove-Item -Path $appFile -Force
+        }
+        elseif (Test-Path $appFile) {
+            if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK") {
+                $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+                $copied = $false
+                try {
+                    if ($appFile -notlike "*.zip") {
+                        $orgAppFile = $appFile
+                        $appFile = Join-Path $ENV:TEMP "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
+                        Copy-Item $orgAppFile $appFile
+                        $copied = $true
+                    }
+                    Expand-Archive $appfile -DestinationPath $tmpFolder -Force
+                    Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | % {
+                        CopyAppFilesToFolder -appFile $_.FullName -folder $folder
+                    }
+                }
+                finally {
+                    Remove-Item -Path $tmpFolder -Recurse -Force
+                    if ($copied) { Remove-Item -Path $appFile -Force }
+                }
+            }
+            else {
+                $destFile = Join-Path $folder ([System.IO.Path]::GetFileName($appFile))
+                Copy-Item -Path $appFile -Destination $destFile -Force
+                $destFile
+            }
+        }
+    }
+}

@@ -209,6 +209,8 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Sort-AppFoldersByDependencies.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sort-AppFilesByDependencies.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlPipeline.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Run-AlValidation.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Run-AlCops.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Publish-PerTenantExtensionApps.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Publish-BuildOutputToStorage.ps1")
 
