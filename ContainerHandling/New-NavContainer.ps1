@@ -157,7 +157,9 @@
   In this scriptblock you can install additional apps or import additional objects in your container.
   These apps/objects will be included in the backup if you specify bakFolder and this script will NOT run if a backup already exists in bakFolder.
  .Parameter vsixFile
-  Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this
+  Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
+  Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
  .Example
   New-BcContainer -accept_eula -containerName test
  .Example
