@@ -6,11 +6,12 @@ Add parameter -ImportTestDataInBcContainer in Run-AlPipeline to allow for overri
 Add configuration setting: timeStampServer (default timeStampServer for Sign-AppInBcContainer)
 Add parameter timeStampServer to Sign-AppInBcContainer to allow overriding the timeStampServer
 Fix Extract-AppFileToFolder to include missing properties and honor runtime version
-Add parameter useLatestAlLanguageExtension to Run-AlPipeline
+Add parameter vsixFile to Run-AlPipeline
 Add new function Run-AlCops to run AL cops in existing container
 Add new function Run-AlValidation to run and end 2 end AL validation with multiple versions and multiple countries
 Issue #1507 Sort-AppFilesByDependencies crashes if two different versions of the same app is specified
 Issue #1496 Add ruleset parameter to Run-AlPipeline
+Added new function Get-AlLanguageExtensionFromArtifacts to get path of .vsix file within artifacts
 
 1.0.14
 Add parameter -features to Compile-AppInBcContainer to add support of the alc features parameter

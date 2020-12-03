@@ -3,8 +3,6 @@
   Get the URL of the latest AL Language Extension from VS Code Marketplace
  .Description
   Get the URL of the latest AL Language Extension from VS Code Marketplace
- .Parameter containerOrImageName
-  Name of the container or container image for which you want to get the legal link
  .Example
   New-BcContainer ... -vsixFile (Get-LatestAlLanguageExtensionUrl) ...
  .Example

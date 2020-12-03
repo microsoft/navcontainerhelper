@@ -40,8 +40,10 @@
   Array or comma separated list of affixes to use for AppSourceCop validation
  .Parameter supportedCountries
   Array or comma separated list of supportedCountries to use for AppSourceCop validation
- .Parameter useLatestAlLanguageExtension
-  Include this switch if you want to use the latest AL Extension from marketplace instead of the one included in 
+ .Parameter vsixFile
+  Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
+  Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS.
  .Parameter DockerPull
@@ -79,7 +81,7 @@ Param(
     $countries,
     $affixes = @(),
     $supportedCountries = @(),
-    [switch] $useLatestAlLanguageExtension,
+    [string] $vsixFile,
     [switch] $skipVerification,
     [string] $useGenericImage = (Get-BestGenericImageName),
     [scriptblock] $DockerPull,
@@ -209,7 +211,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                     "; i
 Write-Host -NoNewLine -ForegroundColor Yellow "countries                    "; Write-Host ([string]::Join(',',$countries))
 Write-Host -NoNewLine -ForegroundColor Yellow "affixes                      "; Write-Host ([string]::Join(',',$affixes))
 Write-Host -NoNewLine -ForegroundColor Yellow "supportedCountries           "; Write-Host ([string]::Join(',',$supportedCountries))
-Write-Host -NoNewLine -ForegroundColor Yellow "useLatestAlLanguageExtension "; Write-Host $useLatestAlLanguageExtension
+Write-Host -NoNewLine -ForegroundColor Yellow "vsixFile                     "; Write-Host $vsixFile
 
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
@@ -332,15 +334,11 @@ Measure-Command {
         "Credential" = $credential
         "auth" = 'UserPassword'
         "updateHosts" = $true
+        "vsixFile" = $vsixFile
         "licenseFile" = $licenseFile
         "EnableTaskScheduler" = $true
         "AssignPremiumPlan" = $assignPremiumPlan
         "MemoryLimit" = $memoryLimit
-    }
-    if ($useLatestAlLanguageExtension) {
-        $Parameters += @{
-            "vsixFile" = Get-LatestAlLanguageExtensionUrl
-        }
     }
 
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters

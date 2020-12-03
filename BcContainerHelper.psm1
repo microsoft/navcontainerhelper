@@ -167,6 +167,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Setup-TraefikContainerForNavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Flush-ContainerHelperCache.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-LatestAlLanguageExtensionUrl.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Get-AlLanguageExtensionFromArtifacts.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
