@@ -30,6 +30,8 @@
   Include this switch if you want to also validate against next major version of Business Central. If you include this switch you need to specify a sasToken for insider builds as well.
  .Parameter failOnError
   Include this switch if you want to fail on the first error instead of returning all errors to the caller
+ .Parameter includeWarnings
+  Include this switch if you want to include Warnings
  .Parameter sasToken
   Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
  .Parameter countries
@@ -71,6 +73,7 @@ Param(
     [switch] $validateNextMinor,
     [switch] $validateNextMajor,
     [switch] $failOnError,
+    [switch] $includeWarnings,
     [string] $sasToken = "",
     [Parameter(Mandatory=$true)]
     $countries,
@@ -132,7 +135,7 @@ Write-Host -ForegroundColor Yellow @'
     if ($countries) {
         $minver = $null
         $countries | ForEach-Object {
-            $url = Get-BCArtifactUrl -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
+            $url = Get-BCArtifactUrl -version $version -country $_ -select $select -sasToken $sasToken | Select-Object -First 1
             Write-Host "Found $($url.Split('?')[0])"
             if ($url) {
                 $ver = [Version]$url.Split('/')[4]
@@ -172,6 +175,9 @@ if ($apps                           -is [String]) { $apps = @($apps.Split(',').T
 if ($countries                      -is [String]) { $countries = @($countries.Split(',').Trim() | Where-Object { $_ }) }
 if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
+
+$countries = $countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ }
+$supportedCountries = $supportedCountries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ }
 
 Write-Host -ForegroundColor Yellow @'
   _____                               _                
@@ -296,7 +302,7 @@ $progressPreference = 'SilentlyContinue'
 try {
 
 $countries | % {
-$validateCountry = $_.Trim()
+$validateCountry = $_
 
 Write-Host -ForegroundColor Yellow @'
 
@@ -391,7 +397,8 @@ $validationResult += @(Run-AlCops `
     -affixes $affixes `
     -supportedCountries $supportedCountries `
     -enableAppSourceCop `
-    -failOnError:$failOnError)
+    -failOnError:$failOnError `
+    -ignoreWarnings:(!$includeWarnings))
 
 if ($previousApps) {
 Write-Host -ForegroundColor Yellow @'
