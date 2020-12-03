@@ -114,8 +114,6 @@ function Run-AlCops {
         try {
             $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
 
-            $global:_validationResult += "Analyzing: $([System.IO.Path]::GetFileName($appFile)) on $($artifactUrl.Split('?')[0])"
-    
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
             $appJson = Get-Content (Join-Path $tmpFolder "app.json") | ConvertFrom-Json
 
@@ -207,18 +205,16 @@ function Run-AlCops {
 
             $lines = $global:_validationResult.Length - $length
             if ($lines -gt 0) {
-                if ($ignoreWarnings) {
-                    $global:_validationResult += "$lines errors"
+                $i = 0
+                $global:_validationResult = $global:_validationResult | ForEach-Object { 
+                    if ($i++ -eq $length) {
+                        "$lines $(if ($ignoreWarnings) { "errors" } else { "errors/warnings"}) found in $([System.IO.Path]::GetFileName($appFile)) on $($artifactUrl.Split('?')[0]):"
+                    }
+                    $_
                 }
-                else {
-                    $global:_validationResult += "$lines errors/warnings"
-                }
-            }
-            else {
-                $global:_validationResult += "Success"
+                $global:_validationResult += ""
             }
             Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
-            $global:_validationResult += ""
         }
         finally {
             Remove-Item -Path $tmpFolder -Recurse -Force
