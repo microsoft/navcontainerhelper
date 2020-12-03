@@ -32,9 +32,6 @@ function Sort-AppFilesByDependencies {
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
             $appJsonFile = Join-Path $tmpFolder "app.json"
             $appJson = Get-Content -Path $appJsonFile | ConvertFrom-Json
-                
-            $files += @{ "$($appJson.Id)" = $appFile }
-            $apps += @($appJson)
         }
         catch {
             throw "Unable to extract and analyze appFile $appFile - might be a runtime package"
@@ -42,6 +39,8 @@ function Sort-AppFilesByDependencies {
         finally {
             Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
         }
+        $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
+        $apps += @($appJson)
     }
     
     # Populate SortedApps and UnresolvedDependencies
@@ -49,7 +48,7 @@ function Sort-AppFilesByDependencies {
     $script:unresolvedDependencies = $()
 
     function AddAnApp { Param($anApp) 
-        $alreadyAdded = $script:sortedApps | Where-Object { $_.Id -eq $anApp.Id }
+        $alreadyAdded = $script:sortedApps | Where-Object { $_.Id -eq $anApp.Id -and $_.Version -eq $anApp.Version }
         if (-not ($alreadyAdded)) {
             AddDependencies -anApp $anApp
             $script:sortedApps += $anApp
@@ -84,7 +83,7 @@ function Sort-AppFilesByDependencies {
     $apps | ForEach-Object { AddAnApp -AnApp $_ }
 
     $script:sortedApps | ForEach-Object {
-        $files[$_.id]
+        $files["$($_.id):$($_.version)"]
     }
     if ($unknownDependencies) {
         $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
