@@ -12,6 +12,7 @@ Add new function Run-AlValidation to run and end 2 end AL validation with multip
 Issue #1507 Sort-AppFilesByDependencies crashes if two different versions of the same app is specified
 Issue #1496 Add ruleset parameter to Run-AlPipeline
 Added new function Get-AlLanguageExtensionFromArtifacts to get path of .vsix file within artifacts
+Issue #1506 Add parameter applicationInsightsInstrumentationKey to New-BcContainer and New-BcContainerTenant (note that this requires generic image version 1.0.1.0 or later)
 
 1.0.14
 Add parameter -features to Compile-AppInBcContainer to add support of the alc features parameter
