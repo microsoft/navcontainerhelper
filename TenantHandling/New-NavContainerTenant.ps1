@@ -34,7 +34,7 @@ function New-BcContainerTenant {
         [string[]] $alternateId = @(),
         [switch] $allowAppDatabaseWrite,
         [switch] $doNotCopyDatabase,
-        [string] $applicationInsightsInstrumentationKey = ""
+        [string] $applicationInsightsKey = ""
     )
 
     Write-Host "Creating Tenant $tenantId on $containerName"
@@ -43,7 +43,7 @@ function New-BcContainerTenant {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsInstrumentationKey)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsKey)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -68,8 +68,8 @@ function New-BcContainerTenant {
         if ($allowAppDatabaseWrite) {
             $Params += @{ "AllowAppDatabaseWrite" = $true }
         }
-        if ($applicationInsightsInstrumentationKey) {
-            $Params += @{ "applicationInsightsInstrumentationKey" = $applicationInsightsInstrumentationKey }
+        if ($applicationInsightsKey) {
+            $Params += @{ "applicationInsightsInstrumentationKey" = $applicationInsightsKey }
         }
 
         # Setup tenant
@@ -94,7 +94,7 @@ function New-BcContainerTenant {
             }
         }
 
-    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsInstrumentationKey
+    } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsKey
     Write-Host -ForegroundColor Green "Tenant successfully created"
 }
 Set-Alias -Name New-NavContainerTenant -Value New-BcContainerTenant

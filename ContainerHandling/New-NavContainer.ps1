@@ -253,7 +253,7 @@ function New-BcContainer {
         [switch] $doNotCheckHealth,
         [switch] $doNotUseRuntimePackages = $true,
         [string] $vsixFile = "",
-        [string] $applicationInsightsInstrumentationKey,
+        [string] $applicationInsightsKey,
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
@@ -699,8 +699,8 @@ function New-BcContainer {
         $parameters += "--env clickonce=Y"
     }
 
-    if ($applicationInsightsInstrumentationKey) {
-        $parameters += "--env applicationInsightsInstrumentationKey=$applicationInsightsInstrumentationKey"
+    if ($applicationInsightsKey) {
+        $parameters += "--env applicationInsightsInstrumentationKey=$applicationInsightsKey"
     }
 
     if ($WebClientPort) {
