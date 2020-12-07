@@ -1,3 +1,5 @@
+1.0.16
+
 1.0.15
 Use new Generic image location and SQL 2019 image as default (mcr.microsoft.com/businesscentral:{0}-0.1.0.25 is the latest with SQL 2017)
 Issue #1469 Install-NavSipCryptoProvider cannot be executed twice
