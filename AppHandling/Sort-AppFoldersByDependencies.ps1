@@ -56,7 +56,7 @@ function Sort-AppFoldersByDependencies {
                 }
             }
 
-            $folders += @{ "$($appJson.Id)" = $appFolder }
+            $folders += @{ "$($appJson.Id):$($appJson.Version)" = $appFolder }
             $apps += @($appJson)
         }
     }
@@ -101,7 +101,7 @@ function Sort-AppFoldersByDependencies {
     $apps | ForEach-Object { AddAnApp -AnApp $_ }
 
     $script:sortedApps | ForEach-Object {
-        ($folders[$_.id]).SubString($baseFolder.Length)
+        ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
     }
     if ($unknownDependencies) {
         $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
