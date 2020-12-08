@@ -552,8 +552,19 @@ function New-BcContainer {
     if (!($PSBoundParameters.ContainsKey('useTraefik'))) {
         $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         if (Test-Path -Path (Join-Path $traefikForBcBasePath "traefik.txt") -PathType Leaf) {
-            Write-Host -ForegroundColor Yellow "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
-            $useTraefik = $true
+            if (-not $PublicDnsName) {
+                $wwwRootPath = Get-WWWRootPath
+                if ($wwwRootPath) {
+                    $hostNameTxtFile = Join-Path $wwwRootPath "hostname.txt"
+                    if ((Test-Path $hostNameTxtFile) -and -not $PublicDnsName) {
+                        $PublicDnsName = Get-Content -Path $hostNameTxtFile
+                    }
+                }
+            }
+            if ($publicDnsName) {
+                Write-Host -ForegroundColor Yellow "WARNING: useTraefik not specified, but Traefik container was initialized, using Traefik. Specify -useTraefik:`$false if you do NOT want to use Traefik."
+                $useTraefik = $true
+            }
         }
     }
 
@@ -581,9 +592,12 @@ function New-BcContainer {
             Write-Host "Enabling SSL as otherwise all clients will see mixed HTTP / HTTPS request, which will cause problems e.g. on the mobile and modern windows clients"
             $useSSL = $true
         }
-
-        if ((Test-Path "C:\inetpub\wwwroot\hostname.txt") -and -not $PublicDnsName) {
-            $PublicDnsName = Get-Content -Path "C:\inetpub\wwwroot\hostname.txt" 
+        $wwwRootPath = Get-WWWRootPath
+        if ($wwwRootPath) {
+            $hostNameTxtFile = Join-Path $wwwRootPath "hostname.txt"
+            if ((Test-Path $hostNameTxtFile) -and -not $PublicDnsName) {
+                $PublicDnsName = Get-Content -Path $hostNameTxtFile
+            }
         }
         if (-not $PublicDnsName) {
             throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
