@@ -74,6 +74,7 @@ function Extract-AppFileToFolder {
         #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml"))
         $runtime = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
         $appJson = [ordered]@{
             "id" = $manifest.Package.App.Id
             "name" = $manifest.Package.App.Name
@@ -82,7 +83,13 @@ function Extract-AppFileToFolder {
             "brief" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Brief" } | % { $_.Value } )"
             "description" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Description" } | % { $_.Value } )"
             "platform" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Platform" } | % { $_.Value } )"
-            "application" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
+        }
+        if ($application) {
+            $appJson += @{
+                "application" = $application
+            }
+        }
+        $appJson += [ordered]@{
             "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
             "runtime" = $runtime
             "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
@@ -109,8 +116,14 @@ function Extract-AppFileToFolder {
         }
         $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
             $_.GetEnumerator() | % {
+                if ($runtime -gt 4.1) {
+                    $propname = "id"
+                }
+                else {
+                    $propname = "appId"
+                }
                 $appJson.dependencies += [ordered]@{
-                    "appId" = $_.Id
+                    "$propname" = $_.Id
                     "publisher" = $_.publisher
                     "name" = $_.name
                     "version" = $_.minVersion
@@ -143,6 +156,23 @@ function Extract-AppFileToFolder {
                     $first = $false
                 }
                 $appJson.supportedLocales += @($_.Local)
+            }
+        }
+        if ($runtime -ge 4.0)  {
+            $first = $true
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "internalsVisibleTo" } | % { 
+                if ($first) {
+                    $appJson += @{
+                        "internalsVisibleTo" = @()
+                    }
+                }
+                $_.GetEnumerator() | % {
+                    $appJson.internalsVisibleTo += [ordered]@{
+                        "id" = $_.Id
+                        "publisher" = $_.publisher
+                        "name" = $_.name
+                    }
+                }
             }
         }
         if ($runtime -ge 6.0)  {
