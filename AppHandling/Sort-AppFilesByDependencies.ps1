@@ -56,14 +56,17 @@ function Sort-AppFilesByDependencies {
     }
     
     function AddDependency { Param($dependency)
-        $dependentApp = $apps | Where-Object { $_.Id -eq $dependency.AppId }
+        $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
+        $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId }
         if ($dependentApp) {
             AddAnApp -AnApp $dependentApp
         }
         else {
-            if (-not ($script:unresolvedDependencies | Where-Object { $_ -and $_.AppId -eq $dependency.AppId })) {
+            if (-not ($script:unresolvedDependencies | Where-Object { $_ } | Where-Object { "$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id })" -eq $dependencyAppId })) {
                 $appFileName = "$($dependency.publisher)_$($dependency.name)_$($dependency.version)).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-                Write-Warning "Dependency $($dependency.appId):$appFileName not found"
+                if ($dependencyAppid -ne '63ca2fa4-4f03-4f2b-a480-172fef340d3f' -and $dependencyAppId -ne '437dbf0e-84ff-417a-965d-ed2bb9650972') {
+                    Write-Warning "Dependency $($dependencyAppId):$appFileName not found"
+                }
                 $script:unresolvedDependencies += @($dependency)
             }
         }
@@ -87,7 +90,7 @@ function Sort-AppFilesByDependencies {
     }
     if ($unknownDependencies) {
         $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
-			"$($_.appId):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
+			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
 		} })
     }
 }

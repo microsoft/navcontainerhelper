@@ -164,6 +164,7 @@ function Run-AlCops {
                 get-content  (Join-Path $tmpFolder "appSourceCop.json") | Out-Host
             }
             Remove-Item -Path (Join-Path $tmpFolder '*.xml') -Force
+
             $length = $global:_validationResult.Length
             $Parameters = @{
                 "containerName" = $containerName
@@ -200,7 +201,7 @@ function Run-AlCops {
 
             if ($ignoreWarnings) {
                 Write-Host "Ignoring warnings"
-                $global:_validationResult = $global:_validationResult | Where-Object { $_ -notlike "*: warning *" }
+                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" })
             }
 
             $lines = $global:_validationResult.Length - $length

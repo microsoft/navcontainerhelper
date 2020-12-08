@@ -642,3 +642,14 @@ function getCountryCode {
         throw "Country code $countryCode is illegal"
     }
 }
+
+function Get-WWWRootPath
+{
+    $inetstp = Get-Item "HKLM:\SOFTWARE\Microsoft\InetStp" -ErrorAction SilentlyContinue
+    if ($inetstp) {
+        [System.Environment]::ExpandEnvironmentVariables($inetstp.GetValue("PathWWWRoot"))
+    }
+    else {
+        ""
+    }
+}
