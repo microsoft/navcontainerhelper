@@ -2,6 +2,7 @@
 Issue #1516 Sort-AppFoldersByDependencies can't handle twice the same app in the baseFolder
 Issue #1519 Extract-AppFileToFolder doesn't extract internalsVisibleTo in app.json
 Add parameter -SkipUpgrade to allow Run-AlValidation to skip upgrade if previousApps cannot be installed on current version
+Issue #1522 Move files to correct positions
 
 1.0.15
 Use new Generic image location and SQL 2019 image as default (mcr.microsoft.com/businesscentral:{0}-0.1.0.25 is the latest with SQL 2017)

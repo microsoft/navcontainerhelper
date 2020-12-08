@@ -70,6 +70,16 @@ function Extract-AppFileToFolder {
         $filestream.Close()
     }
 
+    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/" | % {
+        $folder = Join-Path $appFolder $_
+        if (Test-Path $folder) {
+            Get-ChildItem $folder | % {
+                Copy-Item -Path $_.FullName -Destination $appFolder -Recurse -Force
+                Remove-Item -Path $_.FullName -Recurse -Force
+            }
+        }
+    }
+
     if ($generateAppJson) {
         #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml"))
