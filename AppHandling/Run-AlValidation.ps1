@@ -44,6 +44,10 @@
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+ .Parameter skipVerification
+  Include this parameter to skip verification of code signing certificate. Note that you cannot request Microsoft to set this parameter when validating for AppSource.
+ .Parameter skipUpgrade
+  Include this parameter to skip upgrade. You can request Microsoft to set this when your previous app cannot install on the version we are validating for.
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS.
  .Parameter DockerPull
@@ -83,6 +87,7 @@ Param(
     $supportedCountries = @(),
     [string] $vsixFile,
     [switch] $skipVerification,
+    [switch] $skipUpgrade,
     [string] $useGenericImage = (Get-BestGenericImageName),
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
@@ -297,7 +302,6 @@ elseif ($_ -eq 1 -and $validateNextMajor) {
 
 if ($artifactUrl) {
 
-$error = $null
 $prevProgressPreference = $progressPreference
 $progressPreference = 'SilentlyContinue'
 
@@ -398,7 +402,7 @@ $validationResult += @(Run-AlCops `
     -failOnError:$failOnError `
     -ignoreWarnings:(!$includeWarnings))
 
-if ($previousApps) {
+if ($previousApps -and !$skipUpgrade) {
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _               _____                _                                            
@@ -423,7 +427,14 @@ Measure-Command {
             "install" = $true
             "useDevEndpoint" = $false
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        try {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+        catch {
+            $error = "Unable to install previous app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipUpgrade.`nError is: $($_.Exception.Message)"
+            $validationResult += $error
+            Write-Host -ForegroundColor Red $error
+        }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -469,15 +480,31 @@ $apps | ForEach-Object {
         "upgrade" = $installedApp
     }
 
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-
+    try {
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
+    catch {
+        if ($parameters.upgrade) {
+            $action = "upgrade"
+        }
+        else {
+            $action = "install"
+        }
+        $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
+        $validationResult += $error
+        Write-Host -ForegroundColor Red $error
+    }
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
 }
 
 } catch {
-    $error = $_
+    $error = "Unexpected error while validating app. Error is: $($_.Exception.Message)"
+    $validationResult += $error
+    Write-Host -ForegroundColor Red $error
+    Write-Host -ForegroundColor Red $_.ScriptStackTrace
+
 }
 finally {
     $progressPreference = $prevProgressPreference
@@ -503,10 +530,6 @@ Measure-Command {
     Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
    
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
-
-if ($error) {
-    throw $error
-}
 
 }
 
