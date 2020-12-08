@@ -74,10 +74,7 @@ function Run-AlCops {
      
     $appsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
     New-Item -Path $appsFolder -ItemType Directory | Out-Null
-    $prevWarningPreference = $WarningPreference
-    $WarningPreference = "SilentlyContinue"
-    $apps = Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder)
-    $WarningPreference = $prevWarningPreference
+    $apps = Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
     
     $appPackFolderCreated = $false
     if (!(Test-Path $appPackagesFolder)) {

@@ -64,7 +64,9 @@ function Sort-AppFilesByDependencies {
         else {
             if (-not ($script:unresolvedDependencies | Where-Object { $_ } | Where-Object { "$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id })" -eq $dependencyAppId })) {
                 $appFileName = "$($dependency.publisher)_$($dependency.name)_$($dependency.version)).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-                Write-Warning "Dependency $($dependencyAppId):$appFileName not found"
+                if ($dependencyAppid -ne '63ca2fa4-4f03-4f2b-a480-172fef340d3f' -and $dependencyAppId -ne '437dbf0e-84ff-417a-965d-ed2bb9650972') {
+                    Write-Warning "Dependency $($dependencyAppId):$appFileName not found"
+                }
                 $script:unresolvedDependencies += @($dependency)
             }
         }
