@@ -4,6 +4,7 @@ Issue #1519 Extract-AppFileToFolder doesn't extract internalsVisibleTo in app.js
 Add parameter -SkipUpgrade to allow Run-AlValidation to skip upgrade if previousApps cannot be installed on current version
 Issue #1522 Move files to correct positions
 Issue #1517 Traefik with Run-AlValidation
+Add Text to Run-AlValidation to indicate success or failure
 
 1.0.15
 Use new Generic image location and SQL 2019 image as default (mcr.microsoft.com/businesscentral:{0}-0.1.0.25 is the latest with SQL 2017)
