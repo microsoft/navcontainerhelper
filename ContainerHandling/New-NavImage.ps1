@@ -173,7 +173,7 @@ function New-BcImage {
                     $labels = Get-BcContainerImageLabels -imageName $baseImage
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                    if ($imageArtifactUrl -ne $artifactUrl.Split('?')[0]) {
+                    if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
                         Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
                         $forceRebuild = $true
                     }

@@ -1,3 +1,6 @@
+1.0.17
+Issue #1494 Creating another container based on existing artifact
+
 1.0.16
 Issue #1516 Sort-AppFoldersByDependencies can't handle twice the same app in the baseFolder
 Issue #1519 Extract-AppFileToFolder doesn't extract internalsVisibleTo in app.json
