@@ -230,7 +230,19 @@ function Publish-BcContainerApp {
             Write-Host "Publishing $appName to $url"
             $result = $HttpClient.PostAsync($url, $multipartContent).GetAwaiter().GetResult()
             if (!$result.IsSuccessStatusCode) {
-                throw "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
+                $message = "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
+                try {
+                    $resultMsg = $result.Content.ReadAsStringAsync().Result
+                    try {
+                        $json = $resultMsg | ConvertFrom-Json
+                        $message += "`n$($json.Message)"
+                    }
+                    catch {
+                        $message += "`n$resultMsg"
+                    }
+                }
+                catch {}
+                throw $message
             }
         }
         finally {
