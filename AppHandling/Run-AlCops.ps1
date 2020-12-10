@@ -82,8 +82,8 @@ function Run-AlCops {
         $appPackFolderCreated = $true
     }
     
+    $previousAppVersions = @{}
     if ($enableAppSourceCop -and $previousApps) {
-        $previousAppVersions = @{}
         Write-Host "Copying previous apps to packages folder"
         $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
         $previousApps = Sort-AppFilesByDependencies -appFiles $appList
