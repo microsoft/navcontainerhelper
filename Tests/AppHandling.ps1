@@ -232,8 +232,7 @@
                             -Credential $credential `
                             -updateHosts `
                             -licenseFile $licenseFile `
-                            -includeTestToolkit `
-                            -useBestContainerOS
+                            -includeTestToolkit
 
             $useCALTestFwk = $false
             if ($runTestsInVersion -lt 12) {

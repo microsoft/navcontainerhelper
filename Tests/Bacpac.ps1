@@ -64,8 +64,7 @@
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
-                         -additionalParameters @("--env appBacpac=$containerAppBacpacFile","--env tenantBacpac=$containerTenantBacpacFile") `
-                         -useBestContainerOS
+                         -additionalParameters @("--env appBacpac=$containerAppBacpacFile","--env tenantBacpac=$containerTenantBacpacFile")
 
         New-NavContainerTenant -containerName $testContainerName -tenantId "test"
 
