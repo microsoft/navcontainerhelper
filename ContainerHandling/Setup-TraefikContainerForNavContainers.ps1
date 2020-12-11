@@ -149,8 +149,16 @@ function Setup-TraefikContainerForBcContainers {
             New-NetFirewallRule -DisplayName "Allow 8180" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8180
         }
 
-        Log "Pulling and running traefik"
-        docker pull $traefikDockerImage
+        $pullRequired = "$(docker images -q $traefikDockerImage)" -eq ""
+        if ($pullRequired) {
+            Log "Pulling traefik"
+            docker pull $traefikDockerImage
+        }
+        else {
+            Log "Traefik image already up to date"
+        }
+        
+        Log "Running traefik"
         if ($isolation) {
             docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always --isolation $isolation -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
         }
