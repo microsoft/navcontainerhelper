@@ -24,6 +24,11 @@ function Extract-FilesFromBcContainerImage {
         [switch] $force
     )
 
+#    $artifactUrl = Get-BcContainerArtifactUrl -containerName $imageName
+#    if ($artifactUrl) {
+#        throw "Extract-FilesFromBcContainerImage doesn't support images based on artifacts."
+#    }
+
     $ErrorActionPreference = 'Continue'
 
     Write-Host "Creating temp container from $imagename and extract necessary files"

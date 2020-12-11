@@ -24,6 +24,12 @@ function Extract-FilesFromStoppedBcContainer {
         [switch] $force
     )
 
+    $artifactUrl = Get-BcContainerArtifactUrl -containerName $imageName
+    if ($artifactUrl) {
+        throw "Extract-FilesFromStoppedBcContainer doesn't support containers based on artifacts."
+        return
+    }
+
     $startContainer = $false
     if ((docker inspect -f '{{.State.Running}}' $containerName) -eq "true") {
         if (!$force) {
@@ -85,6 +91,13 @@ function Extract-FilesFromStoppedBcContainer {
         Write-Host "Extracting Applications.$country"
         docker cp "$($containerName):\Applications.$country" "$path" 2>$null
 
+        $customConfigFile = (Get-Item "$path\ServiceTier\program files\Microsoft Dynamics NAV\*\Service\CustomSettings.config").FullName
+        [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+        if ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true") {
+            Remove-Item -Path $path -Recurse -Force
+            throw "Extract-Files cannot be performed on multitenant containers/images, use artifacts"
+        }
+
         $sourceFolder = (Get-Item "$path\ServiceTier\Program Files\Microsoft Dynamics NAV\*\Web Client").FullName
         $destFolder = $sourceFolder.Replace('\Web Client','').Replace('ServiceTier\Program Files','WebClient')
         New-Item -Path $destFolder -ItemType Directory | Out-Null
@@ -130,10 +143,11 @@ function Extract-FilesFromStoppedBcContainer {
             Download-File -dontOverwrite -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile "$path\Prerequisite Components\DotNetCore\DotNetCore.1.0.4_1.1.1-WindowsHosting.exe"
         }
     }
-   
+
     Write-Host "Performing cleanup"
     if ($extract -eq "all" -or $extract -eq "database") {
         if (Test-Path "$path\databases\*.mdf") {
+            
             Move-Item -Path (Get-Item "$path\databases\*.mdf").FullName -Destination "$path\databases\CRONUS.mdf"
             Move-Item -Path (Get-Item "$path\databases\*.ldf").FullName -Destination "$path\databases\CRONUS.ldf"
         } else {
@@ -146,6 +160,7 @@ function Extract-FilesFromStoppedBcContainer {
             } else {
                 docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL13.SQLEXPRESS\MSSQL\DATA" "$path" 2>$null
                 docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL14.SQLEXPRESS\MSSQL\DATA" "$path" 2>$null
+                docker cp "$($containerName):\Program Files\Microsoft SQL Server\MSSQL15.SQLEXPRESS\MSSQL\DATA" "$path" 2>$null
                 $mdffile = Get-Item "$path\DATA\Financials*.mdf"
                 if ($mdffile) {
                     $name = $mdffile.Name.SubString(0,$mdffile.Name.IndexOf('_'))
