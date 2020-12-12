@@ -38,7 +38,7 @@
 #>
 function Run-AlCops {
     Param(
-        $containerName = "bcserver",
+        $containerName = $bcContainerHelperConfig.defaultContainerName,
         [PSCredential] $credential,
         $previousApps,
         $apps,

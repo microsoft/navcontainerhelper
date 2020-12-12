@@ -42,6 +42,10 @@ function Get-BCArtifactUrl {
         [String] $sasToken = '',
         [switch] $doNotCheckPlatform
     )
+
+    if ("$country" -ne "" -and $bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country) {
+        $country = $bcContainerHelperConfig.mapCountryCode."$country"
+    }
     
     if ($select -eq "Current") {
         if ($storageAccount -ne '' -or $type -eq 'OnPrem' -or $version -ne '') {

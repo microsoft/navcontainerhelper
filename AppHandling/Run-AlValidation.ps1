@@ -48,6 +48,10 @@
   Include this parameter to skip verification of code signing certificate. Note that you cannot request Microsoft to set this parameter when validating for AppSource.
  .Parameter skipUpgrade
   Include this parameter to skip upgrade. You can request Microsoft to set this when your previous app cannot install on the version we are validating for.
+ .Parameter skipAppSourceCop
+  Include this parameter to skip appSourceCop. You cannot request Microsoft to set this when running validation
+ .Parameter skipConnectionTest
+  Include this parameter to skip the connection test. If Connection Test fails in validation, Microsoft will execute manual validation.
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS.
  .Parameter DockerPull
@@ -65,7 +69,7 @@
 #>
 function Run-AlValidation {
 Param(
-    [string] $containerName = "bcserver",
+    [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
     [string] $imageName = "",
     [PSCredential] $credential,
     [string] $licenseFile,
@@ -88,6 +92,8 @@ Param(
     [string] $vsixFile,
     [switch] $skipVerification,
     [switch] $skipUpgrade,
+    [switch] $skipAppSourceCop,
+    [switch] $skipConnectionTest,
     [string] $useGenericImage = (Get-BestGenericImageName),
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
@@ -183,8 +189,16 @@ if ($countries                      -is [String]) { $countries = @($countries.Sp
 if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
-$countries = $countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ }
-$supportedCountries = $supportedCountries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ }
+$countries = @($countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
+$validateCountries = @($countries | ForEach-Object {
+    if ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $countryCode) { 
+        $bcContainerHelperConfig.mapCountryCode."$countryCode"
+    }
+    else {
+        $countryCode
+    }
+} | Select-Object -Unique)
+$supportedCountries = @($supportedCountries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
 
 Write-Host -ForegroundColor Yellow @'
   _____                               _                
@@ -214,6 +228,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMinor            "; W
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMajor            "; Write-Host $validateNextMajor
 Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                     "; if ($sasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "countries                    "; Write-Host ([string]::Join(',',$countries))
+Write-Host -NoNewLine -ForegroundColor Yellow "validateCountries            "; Write-Host ([string]::Join(',',$validateCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "affixes                      "; Write-Host ([string]::Join(',',$affixes))
 Write-Host -NoNewLine -ForegroundColor Yellow "supportedCountries           "; Write-Host ([string]::Join(',',$supportedCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "vsixFile                     "; Write-Host $vsixFile
@@ -288,16 +303,16 @@ Measure-Command {
 
 $artifactUrl = ""
 if ($_ -eq 0 -and $validateVersion) {
-    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $countries -select Latest
+    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
 }
 elseif ($_ -eq 1 -and $validateCurrent) {
-    $artifactUrl = DetermineArtifactsToUse -countries $countries -select Current
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
 }
 elseif ($_ -eq 2 -and $validateNextMinor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $countries -select NextMinor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
 }
 elseif ($_ -eq 1 -and $validateNextMajor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $countries -select NextMajor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor -sasToken $sasToken
 }
 
 if ($artifactUrl) {
@@ -307,7 +322,7 @@ $progressPreference = 'SilentlyContinue'
 
 try {
 
-$countries | % {
+$validateCountries | % {
 $validateCountry = $_
 
 Write-Host -ForegroundColor Yellow @'
@@ -380,6 +395,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
 
+if (!$skipAppSourceCop) {
 Write-Host -ForegroundColor Yellow @'
   _____                   _                                    _____                           _____            
  |  __ \                 (_)                 /\               / ____|                         / ____|           
@@ -401,6 +417,7 @@ $validationResult += @(Run-AlCops `
     -enableAppSourceCop `
     -failOnError:$failOnError `
     -ignoreWarnings:(!$includeWarnings))
+}
 
 if ($previousApps -and !$skipUpgrade) {
 Write-Host -ForegroundColor Yellow @'
@@ -497,6 +514,27 @@ $apps | ForEach-Object {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
+
+if (!$skipConnectionTest) {
+Write-Host -ForegroundColor Yellow @'
+   _____                            _   _               _           _   
+  / ____|                          | | (_)             | |         | |  
+ | |     ___  _ __  _ __   ___  ___| |_ _  ___  _ __   | |_ ___ ___| |_ 
+ | |    / _ \| '_ \| '_ \ / _ \/ __| __| |/ _ \| '_ \  | __/ _ \ __| __|
+ | |____ (_) | | | | | | |  __/ (__| |_| | (_) | | | | | |_  __\__ \ |_ 
+  \_____\___/|_| |_|_| |_|\___|\___|\__|_|\___/|_| |_|  \__\___|___/\__|
+'@                                                                        
+
+    try {
+        Run-ConnectionTestToBcContainer -containerName $containerName -tenant $tenant -credential $credential
+    }
+    catch {
+        $error = "Unable to run Connection test on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipConnectionTest.`nError is: $($_.Exception.Message)"
+        $validationResult += $error
+        Write-Host -ForegroundColor Red $error
+    }
+}
+
 }
 
 } catch {
