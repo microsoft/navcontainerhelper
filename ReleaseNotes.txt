@@ -1,5 +1,7 @@
 0.7.0.27
 Issue #1243 - Get-BcContainerImageTags and Get-BcContainerImageLabels doesn't work if TLS 1.2 isn't enabled
+Use generic image from mcr.microsoft.com/businesscentral (SQL 2017 version)
+Include Warning banner at startup
 
 0.7.0.26
 Sort-AppFoldersByDependencies didn't take custom Application apps into account

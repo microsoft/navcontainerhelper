@@ -36,13 +36,28 @@ $containerHelperFolder = "C:\ProgramData\NavContainerHelper"
 
 $NavContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 
+Write-Host -ForegroundColor Red @'
+ __          __              _             _ 
+ \ \        / /             (_)           | |
+  \ \  /\  / /_ _ _ __ _ __  _ _ __   __ _| |
+   \ \/  \/ / _` | '__| '_ \| | '_ \ / _` | |
+    \  /\  / (_| | |  | | | | | | | | (_| |_|
+     \/  \/ \__,_|_|  |_| |_|_|_| |_|\__, (_)
+                                      __/ |  
+                                     |___/   
+'@
+Write-Host -ForegroundColor Red "NavContainerHelper is end of life, but still works!"
+Write-Host -ForegroundColor Red "Please shift to BcContainerHelper as soon as possible."
+Write-Host -ForegroundColor Red "Note: You need to remove all containers from the computer before you make the switch."
+Write-Host -ForegroundColor Red "Read more here: https://freddysblog.com/2020/08/11/bccontainerhelper/"
+
 $sessions = @{}
 
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script navContainerHelperConfig -ErrorAction SilentlyContinue) -and $navContainerHelperConfig)) {
         Set-Variable -scope Script -Name navContainerHelperConfig -Value @{
             "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
-            "genericImageName" = 'mcr.microsoft.com/dynamicsnav:{0}-generic'
+            "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}-0.1.0.25'
             "usePsSession" = $isAdministrator
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
