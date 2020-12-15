@@ -54,6 +54,8 @@
   Include this parameter to skip the connection test. If Connection Test fails in validation, Microsoft will execute manual validation.
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS.
+ .Parameter multitenant
+  Include this parameter to use a multitenant container for the validation tests. Default is to use single tenant as validation doesn't run tests.
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -95,6 +97,7 @@ Param(
     [switch] $skipAppSourceCop,
     [switch] $skipConnectionTest,
     [string] $useGenericImage = (Get-BestGenericImageName),
+    [switch] $multitenant,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $CompileAppInBcContainer,
@@ -356,6 +359,7 @@ Measure-Command {
         "vsixFile" = $vsixFile
         "licenseFile" = $licenseFile
         "EnableTaskScheduler" = $true
+        "Multitenant" = $multitenant
         "AssignPremiumPlan" = $assignPremiumPlan
         "MemoryLimit" = $memoryLimit
     }

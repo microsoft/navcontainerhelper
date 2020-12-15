@@ -9,6 +9,8 @@ Add mapCountryCode to $bcContainerHelperConfig
 Use mapCountryCode in Get-BcArtifactUrl to allow getting artifacts for countries which doesn't have own artifacts
 Use mapCountryCode in Run-AlValidation to allow running validation for all countries (max. 1 time per artifact)
 Issue #1536 Random running Test failure
+Run-AlValidation use single tenant containers by default for performance
+Add resilience to ClientContext::GetAllForms
 
 1.0.16
 Issue #1516 Sort-AppFoldersByDependencies can't handle twice the same app in the baseFolder
