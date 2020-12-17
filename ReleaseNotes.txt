@@ -11,6 +11,7 @@ Use mapCountryCode in Run-AlValidation to allow running validation for all count
 Issue #1536 Random running Test failure
 Run-AlValidation use single tenant containers by default for performance
 Add resilience to ClientContext::GetAllForms
+Issue #1550 and #1497 add digestAlgorithm parameter to Sign-BcContainerApp
 
 1.0.16
 Issue #1516 Sort-AppFoldersByDependencies can't handle twice the same app in the baseFolder
