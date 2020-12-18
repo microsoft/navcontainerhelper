@@ -178,7 +178,7 @@ function Run-AlCops {
                 "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
                 "outputTo" = { Param($line) 
                     Write-Host $line
-                    if ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
+                    if (($line -like "$($tmpFolder)*" -or $line -like "error *") -and $line -notlike "*: info AL1027*") {
                         $global:_validationResult += $line.SubString($tmpFolder.Length+1)
                     }
                 }

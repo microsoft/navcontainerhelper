@@ -192,8 +192,15 @@ if ($countries                      -is [String]) { $countries = @($countries.Sp
 if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
+$installApps+$previousApps+$apps | % {
+    if (!(Test-Path $_ -PathType Leaf)) {
+        throw "Unable to locate app file: $_"
+    }
+}
+
 $countries = @($countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
 $validateCountries = @($countries | ForEach-Object {
+    $countryCode = $_
     if ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $countryCode) { 
         $bcContainerHelperConfig.mapCountryCode."$countryCode"
     }
