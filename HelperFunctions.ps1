@@ -340,19 +340,19 @@ function CopyAppFilesToFolder {
         $appFile = $_
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
-            $appFile = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+            $appFile = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
             Download-File -sourceUrl $appUrl -destinationFile $appFile
             CopyAppFilesToFolder -appFile $appFile -folder $folder
             Remove-Item -Path $appFile -Force
         }
         elseif (Test-Path $appFile) {
             if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK") {
-                $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+                $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
                 $copied = $false
                 try {
                     if ($appFile -notlike "*.zip") {
                         $orgAppFile = $appFile
-                        $appFile = Join-Path $ENV:TEMP "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
+                        $appFile = Join-Path (Get-TempDir) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
                         Copy-Item $orgAppFile $appFile
                         $copied = $true
                     }
@@ -643,8 +643,7 @@ function getCountryCode {
     }
 }
 
-function Get-WWWRootPath
-{
+function Get-WWWRootPath {
     $inetstp = Get-Item "HKLM:\SOFTWARE\Microsoft\InetStp" -ErrorAction SilentlyContinue
     if ($inetstp) {
         [System.Environment]::ExpandEnvironmentVariables($inetstp.GetValue("PathWWWRoot"))
@@ -652,4 +651,8 @@ function Get-WWWRootPath
     else {
         ""
     }
+}
+
+function Get-TempDir {
+    (Get-Item -Path $env:temp).FullName
 }

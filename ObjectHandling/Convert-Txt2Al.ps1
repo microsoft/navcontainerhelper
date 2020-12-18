@@ -77,7 +77,7 @@ function Convert-Txt2Al {
                 if (-not (Test-Path (Join-Path ([System.IO.Path]::GetDirectoryName($txt2al)) "Microsoft.Dynamics.Nav.CodeAnalysis.Workspaces.dll"))) {
                     Write-Host "Copying Microsoft.Dynamics.Nav.CodeAnalysis.Workspaces.dll from vsix"
                     if (!(Test-Path "c:\build" -PathType Container)) {
-                        $tempZip = Join-Path $env:TEMP "alc.zip"
+                        $tempZip = Join-Path (Get-TempDir) "alc.zip"
                         Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
                         Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
                     }

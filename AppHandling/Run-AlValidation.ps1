@@ -486,7 +486,7 @@ $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentLis
 
 $apps | ForEach-Object {
     
-    $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
     Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
     $appJsonFile = Join-Path $tmpfolder "app.json"
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
