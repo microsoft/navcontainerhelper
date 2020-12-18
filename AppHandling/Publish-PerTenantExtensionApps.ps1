@@ -49,7 +49,7 @@ function Publish-PerTenantExtensionApps {
     if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
     if ($appFiles -is [String]) { $appFiles = @($appFiles.Split(',').Trim() | Where-Object { $_ }) }
 
-    $appFolder = Join-Path $ENV:TEMP ([guid]::NewGuid().ToString())
+    $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
     New-Item $appFolder -ItemType Directory | Out-Null
     try {
         $appFiles | % {
@@ -57,13 +57,13 @@ function Publish-PerTenantExtensionApps {
          
             $tempFile = ""
             if ($appFile -like "http://*" -or $appFile -like "https://*") {
-                $tempFile = Join-Path $ENV:TEMP "$([guid]::NewGuid().ToString()).zip"
+                $tempFile = Join-Path (Get-TempDir) "$([guid]::NewGuid().ToString()).zip"
                 (New-Object System.Net.WebClient).DownloadFile($appFile, $tempFile)
                 $appFile = $tempFile
             }
     
             if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK") {
-                $zipFolder = Join-Path $ENV:TEMP ([guid]::NewGuid().ToString())
+                $zipFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
                 Expand-Archive $appFile -DestinationPath $zipFolder -Force
                 Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | ForEach-Object { Copy-Item $_.FullName $appFolder }
                 Remove-Item $zipFolder -Recurse -Force
@@ -109,7 +109,7 @@ function Publish-PerTenantExtensionApps {
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles | ForEach-Object {
                 Write-Host "$([System.IO.Path]::GetFileName($_))"
-                $tempFolder = Join-Path $ENV:TEMP ([guid]::NewGuid().ToString())
+                $tempFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
                 Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null
                 $appJsonFile = Join-Path $tempFolder "app.json"
                 $appJson = Get-Content $appJsonFile | ConvertFrom-Json

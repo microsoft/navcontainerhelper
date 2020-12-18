@@ -89,7 +89,7 @@ function Run-AlCops {
         $previousApps = Sort-AppFilesByDependencies -appFiles $appList
         $previousApps | ForEach-Object {
             $appFile = $_
-            $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
             try {
                 Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
                 $xappJsonFile = Join-Path $tmpFolder "app.json"
