@@ -178,7 +178,10 @@ function Run-AlCops {
                 "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
                 "outputTo" = { Param($line) 
                     Write-Host $line
-                    if ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
+                    if ($line -like "error *" -or $line -like "warning *") {
+                        $global:_validationResult += $line
+                    }
+                    elseif ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
                         $global:_validationResult += $line.SubString($tmpFolder.Length+1)
                     }
                 }
@@ -201,7 +204,7 @@ function Run-AlCops {
 
             if ($ignoreWarnings) {
                 Write-Host "Ignoring warnings"
-                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" })
+                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" -and $_ -notlike "warning *" })
             }
 
             $lines = $global:_validationResult.Length - $length
