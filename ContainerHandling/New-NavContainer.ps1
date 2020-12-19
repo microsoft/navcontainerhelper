@@ -1964,7 +1964,7 @@ if (-not `$restartingInstance) {
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
-            $paths = @("C:\Windows\assembly", $serviceTierFolder)
+            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
 
             $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
             if (Test-Path $rtcFolder -PathType Container) {
@@ -1977,8 +1977,16 @@ if (-not `$restartingInstance) {
             $paths += "C:\Program Files (x86)\Open XML SDK"
 
             $paths | % {
+                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                if (!(Test-Path $localPath)) {
+                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
+                }
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                Copy-Item -Path $_ -Destination $dotnetAssembliesFolder -Force -Recurse -Filter "*.dll"
+                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
+                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                    }
+                }
             }
 
             $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
