@@ -191,13 +191,13 @@ function Run-AlCops {
             }
 
             if ($ruleset) {
-                $rulesetFile = Join-Path $tmpFolder "ruleset.json"
-                $ruleset | ConvertTo-Json -Depth 99 | Set-Content $rulesetFile
+                $myRulesetFile = Join-Path $tmpFolder "ruleset.json"
+                $ruleset | ConvertTo-Json -Depth 99 | Set-Content $myRulesetFile
                 $Parameters += @{
-                    "ruleset" = $rulesetFile
+                    "ruleset" = $myRulesetFile
                 }
                 Write-Host "Ruleset.json content:"
-                get-content  $rulesetFile | Out-Host
+                get-content  $myRulesetFile | Out-Host
             }
 
             Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters) | Out-Null
