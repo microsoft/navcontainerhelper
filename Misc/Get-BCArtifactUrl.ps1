@@ -43,10 +43,6 @@ function Get-BCArtifactUrl {
         [switch] $doNotCheckPlatform
     )
 
-    if ("$country" -ne "" -and $bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country) {
-        $country = $bcContainerHelperConfig.mapCountryCode."$country"
-    }
-    
     if ($select -eq "Current") {
         if ($storageAccount -ne '' -or $type -eq 'OnPrem' -or $version -ne '') {
             throw 'You cannot specify storageAccount, type=OnPrem or version when selecting Current release'
@@ -154,7 +150,14 @@ function Get-BCArtifactUrl {
             
                 if (!([string]::IsNullOrEmpty($country))) {
                     # avoid confusion between base and se
-                    $Artifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+                    $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+                    if (!$countryArtifacts) {
+                        if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
+                            $country = $bcContainerHelperConfig.mapCountryCode."$country"
+                            $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+                        }
+                    }
+                    $Artifacts = $countryArtifacts
                 }
                 else {
                     $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }

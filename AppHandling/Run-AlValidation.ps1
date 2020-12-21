@@ -193,7 +193,7 @@ if ($affixes                        -is [String]) { $affixes = @($affixes.Split(
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
 $installApps+$previousApps+$apps | % {
-    if (!(Test-Path $_ -PathType Leaf)) {
+    if ($_ -notlike "http://*" -and $_ -notlike "https://*" -and !(Test-Path $_ -PathType Leaf)) {
         throw "Unable to locate app file: $_"
     }
 }
@@ -444,7 +444,9 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
-    $previousApps | ForEach-Object{
+$appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+try {
+    Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $previousApps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -464,6 +466,10 @@ Measure-Command {
             Write-Host -ForegroundColor Red $error
         }
     }
+}
+finally {
+    Remove-Item -Path $appsFolder -Recurse -Force
+}
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
@@ -484,44 +490,50 @@ Measure-Command {
 
 $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 
-$apps | ForEach-Object {
+$appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+try {
+    Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
+        
+        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+        Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
+        $appJsonFile = Join-Path $tmpfolder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        Remove-Item $tmpFolder -Recurse -Force
     
-    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-    Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
-    $appJsonFile = Join-Path $tmpfolder "app.json"
-    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-    Remove-Item $tmpFolder -Recurse -Force
-
-    $installedApp = $false
-    if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
-        $installedApp = $true
-    }
-
-    $Parameters = @{
-        "containerName" = $containerName
-        "tenant" = $tenant
-        "credential" = $credential
-        "appFile" = $_
-        "skipVerification" = $skipVerification
-        "sync" = $true
-        "install" = !$installedApp
-        "upgrade" = $installedApp
-    }
-
-    try {
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-    }
-    catch {
-        if ($parameters.upgrade) {
-            $action = "upgrade"
+        $installedApp = $false
+        if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
+            $installedApp = $true
         }
-        else {
-            $action = "install"
+    
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $_
+            "skipVerification" = $skipVerification
+            "sync" = $true
+            "install" = !$installedApp
+            "upgrade" = $installedApp
         }
-        $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
-        $validationResult += $error
-        Write-Host -ForegroundColor Red $error
+    
+        try {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+        catch {
+            if ($parameters.upgrade) {
+                $action = "upgrade"
+            }
+            else {
+                $action = "install"
+            }
+            $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
+            $validationResult += $error
+            Write-Host -ForegroundColor Red $error
+        }
     }
+}
+finally {
+    Remove-Item -Path $appsFolder -Recurse -Force
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
