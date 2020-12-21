@@ -53,6 +53,7 @@ function Get-ContainerHelperConfig {
                 "ph" = "w1"
                 "pl" = "w1"
                 "rs" = "w1"
+                "ro" = "w1"
                 "sg" = "w1"
                 "si" = "w1"
                 "th" = "w1"
