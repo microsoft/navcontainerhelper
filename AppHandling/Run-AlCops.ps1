@@ -172,6 +172,7 @@ function Run-AlCops {
                 "appProjectFolder" = $tmpFolder
                 "appOutputFolder" = $tmpFolder
                 "appSymbolsFolder" = $appPackagesFolder
+                "CopySymbolsFromContainer" = $true
                 "EnableAppSourceCop" = $enableAppSourceCop
                 "EnableUICop" = $enableUICop
                 "EnableCodeCop" = $enableCodeCop

@@ -271,9 +271,6 @@ else {
 if ($CompileAppInBcContainer) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
-else {
-    $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
-}
 if ($GetBcContainerAppInfo) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
@@ -417,17 +414,27 @@ Write-Host -ForegroundColor Yellow @'
                                    __/ |          | |   | |                                              | |    
                                   |___/           |_|   |_|                                              |_|    
 '@
+Measure-Command {
+$parameters = @{
+    "containerName" = $containerName
+    "credential" = $credential
+    "previousApps" = $previousApps
+    "apps" = $apps
+    "affixes" = $affixes
+    "supportedCountries" = $supportedCountries
+    "enableAppSourceCop" = $true
+    "failOnError" = $failOnError
+    "ignoreWarnings" = !$includeWarnings
+}
+if ($CompileAppInBcContainer) {
+    $parameters += @{
+        "CompileAppInBcContainer" = $CompileAppInBcContainer
+    }
+}
+$validationResult += @(Run-AlCops @Parameters)
 
-$validationResult += @(Run-AlCops `
-    -containerName $containerName `
-    -credential $credential `
-    -previousApps $previousApps `
-    -apps $apps `
-    -affixes $affixes `
-    -supportedCountries $supportedCountries `
-    -enableAppSourceCop `
-    -failOnError:$failOnError `
-    -ignoreWarnings:(!$includeWarnings))
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning AppSourceCop took $([int]$_.TotalSeconds) seconds" }
+
 }
 
 if ($previousApps -and !$skipUpgrade) {
@@ -548,14 +555,18 @@ Write-Host -ForegroundColor Yellow @'
   \_____\___/|_| |_|_| |_|\___|\___|\__|_|\___/|_| |_|  \__\___|___/\__|
 '@                                                                        
 
-    try {
-        Run-ConnectionTestToBcContainer -containerName $containerName -tenant $tenant -credential $credential
-    }
-    catch {
-        $error = "Unable to run Connection test on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipConnectionTest.`nError is: $($_.Exception.Message)"
-        $validationResult += $error
-        Write-Host -ForegroundColor Red $error
-    }
+Measure-Command {
+try {
+    Run-ConnectionTestToBcContainer -containerName $containerName -tenant $tenant -credential $credential
+}
+catch {
+    $error = "Unable to run Connection test on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipConnectionTest.`nError is: $($_.Exception.Message)"
+    $validationResult += $error
+    Write-Host -ForegroundColor Red $error
+}
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Connection Test took $([int]$_.TotalSeconds) seconds" }
+
 }
 
 }

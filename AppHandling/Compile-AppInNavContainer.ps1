@@ -18,6 +18,8 @@
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
+ .Parameter CopySymbolsFromContainer
+  Add this switch to copy system and base application symbols from container to speed up symbol download.
  .Parameter CopyAppToSymbolsFolder
   Add this switch to copy the compiled app to the appSymbolsFolder.
  .Parameter GenerateReportLayout
@@ -65,6 +67,7 @@ function Compile-AppInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
         [switch] $UpdateSymbols,
+        [switch] $CopySymbolsFromContainer,
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
@@ -158,6 +161,19 @@ function Compile-AppInBcContainer {
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
+    }
+
+    if ($CopySymbolsFromContainer) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder) 
+            "C:\Applications\Application\Source\Microsoft_Application.app",
+            "C:\Applications\BaseApp\Source\Microsoft_Base Application.app",
+            "C:\Applications\system application\source\Microsoft_System Application.app" | ForEach-Object {
+                if (Test-Path -path $_) {
+                    Write-Host "Copying $([System.IO.Path]::GetFileName($_)) from Container"
+                    Copy-Item -Path $_ -Destination $appSymbolsFolder -Force
+                }
+            }
+        } -argumentList $containerSymbolsFolder
     }
 
     $GenerateReportLayoutParam = ""
