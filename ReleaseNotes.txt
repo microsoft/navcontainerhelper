@@ -3,6 +3,8 @@ Issue #1556 DotNet Packages for ZipArchive missing in VS Code when creating a Ba
 Issue #1559 Handling of Hungary artifacts
 Issue #1563 Run-AlValidation with multiple apps fails
 Run-AlValidation to support urls as apps, previousapps and installapps
+Add parameter CopySymbolsFromContainer to Compile-AppInBcContainer to speed up symbols download
+Use CopySymbolsFromContainer in Run-AlCops
 
 1.0.17
 Issue #1494 Creating another container based on existing artifact
