@@ -18,33 +18,41 @@
  .Parameter force
   Include this flag to indicate that you want to force uninstall the app
  .Example
-  Uninstall-BcContainerApp -containerName test2 -appName myapp
+  Uninstall-BcContainerApp -containerName test2 -name myapp
  .Example
-  Uninstall-BcContainerApp -containerName test2 -appName myapp -doNotSaveData
+  Uninstall-BcContainerApp -containerName test2 -name myapp -doNotSaveData
 #>
 function UnInstall-BcContainerApp {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
+        [Alias("appName")]
         [Parameter(Mandatory=$true)]
-        [string] $appName,
+        [string] $name,
         [Parameter(Mandatory=$false)]
-        [string] $appVersion,
+        [Alias("appPublisher")]
+        [string] $publisher,
+        [Alias("appVersion")]
+        [Parameter(Mandatory=$false)]
+        [string] $version,
         [switch] $doNotSaveData,
         [switch] $doNotSaveSchema,
         [switch] $Force
     )
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $doNotSaveData, $doNotSaveSchema, $Force)
-        Write-Host "Uninstalling $appName from $tenant"
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($name, $publisher, $version, $tenant, $doNotSaveData, $doNotSaveSchema, $Force)
+        Write-Host "Uninstalling $name from $tenant"
         $parameters = @{
             "ServerInstance" = $ServerInstance
-            "Name" = $appName
+            "Name" = $name
             "Tenant" = $tenant
         }
-        if ($appVersion) {
-            $parameters += @{ "Version" = $appVersion }
+        if ($publisher) {
+            $parameters += @{ "Publisher" = $publisher }
+        }
+        if ($version) {
+            $parameters += @{ "Version" = $version }
         }
         if ($Force) {
             $parameters += @{ "Force" = $true }
@@ -52,7 +60,7 @@ function UnInstall-BcContainerApp {
         if ($doNotSaveData) {
             Uninstall-NavApp @parameters -doNotSaveData
             if ($doNotSaveSchema) {
-                Write-Host "Cleaning Schema from $appName on $tenant"
+                Write-Host "Cleaning Schema from $name on $tenant"
                 Sync-NAVApp $parameters -mode Clean
             }
         }
@@ -60,7 +68,7 @@ function UnInstall-BcContainerApp {
             Uninstall-NavApp @parameters
         }
 
-    } -ArgumentList $appName, $appVersion, $tenant, $doNotSaveData, $doNotSaveSchema, $Force
+    } -ArgumentList $name, $publisher, $version, $tenant, $doNotSaveData, $doNotSaveSchema, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
 }
 Set-Alias -Name UnInstall-NavContainerApp -Value UnInstall-BcContainerApp
