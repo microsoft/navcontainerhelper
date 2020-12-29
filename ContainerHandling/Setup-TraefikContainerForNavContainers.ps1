@@ -165,7 +165,7 @@ function Setup-TraefikContainerForBcContainers {
         }
         
         $parameters = @("-p 443:443", "-p 80:80", "--restart always", "-v ((Join-Path $traefikForBcBasePath ""config"") + "":c:/etc/traefik"")", "-v \\.\pipe\docker_engine:\\.\pipe\docker_engine")
-        if ($doNotPublishAdminPort) {
+        if (!$doNotPublishAdminPort) {
             $parameters += @("-p 8080:8080")
         }
         if ($isolation) {
