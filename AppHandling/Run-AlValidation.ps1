@@ -176,6 +176,18 @@ Write-Host -ForegroundColor Yellow @'
     $artifactUrl
 }
 
+function GetFilePath( [string] $path ) {
+    if ($path -like "http://*" -or $path -like "https://*") {
+        return $path
+    }
+    if (!(Test-Path $path -PathType Leaf)) {
+        throw "Unable to locate app file: $path"
+    }
+    else {
+        return (Get-Item -Path $path).FullName
+    }
+}
+
 $validationResult = @()
 
 if ($memoryLimit -eq "") {
@@ -192,11 +204,9 @@ if ($countries                      -is [String]) { $countries = @($countries.Sp
 if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
-$installApps+$previousApps+$apps | % {
-    if ($_ -notlike "http://*" -and $_ -notlike "https://*" -and !(Test-Path $_ -PathType Leaf)) {
-        throw "Unable to locate app file: $_"
-    }
-}
+$installApps = $installApps | % { GetFilePath $_ }
+$previousApps = $previousApps | % { GetFilePath $_ }
+$apps = $apps | % { GetFilePath $_ }
 
 $countries = @($countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
 $validateCountries = @($countries | ForEach-Object {

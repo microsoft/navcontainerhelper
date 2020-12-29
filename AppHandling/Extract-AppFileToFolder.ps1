@@ -22,13 +22,19 @@ function Extract-AppFileToFolder {
         throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
     }
 
+    if (!(Test-Path $appFileName)) {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    }
+    $appFileName = (Get-Item $appFileName).FullName
+
     Write-Host "Extracting $appFilename"    
     if (Test-Path $appFolder -PathType Container) {
         Get-ChildItem -Path $appFolder -Include * | Remove-Item -Recurse -Force
     } else {
         New-Item -Path $appFolder -ItemType Directory -Force -ErrorAction Ignore | Out-Null
     }
-    
+   
+
     try {
         $filestream      = [System.IO.File]::OpenRead($appFileName)
         $binaryReader    = [System.IO.BinaryReader]::new($filestream)
