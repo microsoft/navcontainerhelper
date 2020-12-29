@@ -24,6 +24,10 @@
  .Parameter forceHttpWithTraefik
   Use this parameter to force http (disable SSL) although traefik is used. This will mean that the mobile apps and
   the modern Windows app won't work
+ .Parameter doNotPublishAdminPort
+  Add this switch to avoid publishing the traefik admin port 8080 on the host
+ .Parameter additionalParameters
+  Additional parameters for the traefik container. Example @("-e OVH_ENDPOINT=my-ovh-endpoing")
  .Example
   Setup-TraefikContainerForBcContainers -PublicDnsName "dev.mycorp.com" -ContactEMailForLetsEncrypt admin@mycorp.com
  .Example
@@ -47,7 +51,9 @@ function Setup-TraefikContainerForBcContainers {
         [Switch] $Recreate,
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
-        [switch] $forceHttpWithTraefik
+        [switch] $forceHttpWithTraefik,
+        [switch] $doNotPublishAdminPort,
+        [string[]] $additionalParameters = @()
     )
 
     Process {
@@ -158,13 +164,17 @@ function Setup-TraefikContainerForBcContainers {
             Log "Traefik image already up to date"
         }
         
-        Log "Running traefik"
+        $parameters = @("-p 443:443", "-p 80:80", "--restart always", "-v ((Join-Path $traefikForBcBasePath ""config"") + "":c:/etc/traefik"")", "-v \\.\pipe\docker_engine:\\.\pipe\docker_engine")
+        if (!$doNotPublishAdminPort) {
+            $parameters += @("-p 8080:8080")
+        }
         if ($isolation) {
-            docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always --isolation $isolation -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
+            $parameters += "--isolation $isolation"
         }
-        else {
-            docker run -p 8080:8080 -p 443:443 -p 80:80 --restart always -d -v ((Join-Path $traefikForBcBasePath "config") + ":c:/etc/traefik") -v \\.\pipe\docker_engine:\\.\pipe\docker_engine $traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine
-        }
+        $parameters += $additionalParameters
+
+        Log "Running traefik"
+        DockerDo -command run -imageName "$traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine" -detach -parameters $parameters
     }
 }
 Set-Alias -Name Setup-TraefikContainerForNavContainers -Value Setup-TraefikContainerForBcContainers
