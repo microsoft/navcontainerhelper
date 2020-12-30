@@ -76,10 +76,18 @@
         $navAppFile = Join-Path $navContainerPath "nav-app\output\$navAppFileName"
         Publish-NavContainerApp -containerName $navContainerName -appFile $navAppFile -skipVerification
     }
+    It 'Sign-BcContainerApp' {
+        $bcAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+        $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$bcAppFileName"
+        $certFile = Join-Path $bcContainerPath "myCert.pfx"
+        New-SelfSignedCertificate –Type CodeSigningCert –Subject “CN=FreddyK” | Export-PfxCertificate -FilePath $certFile -Password $Credential.Password
+        Sign-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -pfxFile $certFile -pfxPassword $mypwd
+        Import-PfxCertificateToBcContainer -containerName $bcContainerName -pfxCertificatePath $certFile -pfxPassword $mypwd -CertificateStoreLocation "Cert:\LocalMachine\Root"
+    }
     It 'Publish-BcContainerApp' {
         $bcAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
         $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$bcAppFileName"
-        Publish-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -skipVerification
+        Publish-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile
     }
     It 'Sync-NavContainerApp' {
         Sync-NavContainerApp -containerName $navContainerName -appName $appName -appVersion $appVersion
@@ -135,9 +143,6 @@
         Run-TestsInBcContainer -containerName $bcContainerName -credential $credential -detailed -XUnitResultFileName $testResultsFile -extensionId $bcAppId
         [xml]$testResults = Get-Content $testResultsFile
         $testResults.assemblies.assembly.passed | Should -Be $testResults.assemblies.assembly.total
-    }
-    It 'Sign-NavContainerApp' {
-        #TODO
     }
     It 'Start-NavContainerAppDataUpgrade' {
         #TODO
