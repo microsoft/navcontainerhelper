@@ -81,8 +81,8 @@
         $bcAppFile = Join-Path $bcContainerPath "bc-app\output\$bcAppFileName"
         $certFile = Join-Path $bcContainerPath "myCert.pfx"
         New-SelfSignedCertificate –Type CodeSigningCert –Subject “CN=FreddyK” | Export-PfxCertificate -FilePath $certFile -Password $Credential.Password
-        Sign-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -pfxFile $certFile -pfxPassword $mypwd
-        Import-PfxCertificateToBcContainer -containerName $bcContainerName -pfxCertificatePath $certFile -pfxPassword $mypwd -CertificateStoreLocation "Cert:\LocalMachine\Root"
+        Sign-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -pfxFile $certFile -pfxPassword $Credential.Password
+        Import-PfxCertificateToBcContainer -containerName $bcContainerName -pfxCertificatePath $certFile -pfxPassword $Credential.Password -CertificateStoreLocation "Cert:\LocalMachine\Root"
     }
     It 'Publish-BcContainerApp' {
         $bcAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
