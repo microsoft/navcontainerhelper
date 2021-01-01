@@ -50,6 +50,20 @@ function Download-File {
     }
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     Write-Host "Downloading $destinationFile"
-    (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($sourceUrl, $destinationFile)
+    try {
+        (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($sourceUrl, $destinationFile)
+    }
+    catch {
+        if ($sourceUrl -notlike "https://bcartifacts.azureedge.net/*" -and
+            $sourceUrl -notlike "https://bcinsider.azureedge.net/*" -and
+            $sourceUrl -notlike "https://bcprivate.azureedge.net/*" -and
+            $sourceUrl -notlike "https://bcpublicpreview.azureedge.net/*") {
+            throw
+        }
+        $idx = $sourceUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+        $newSourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + 14)
+        Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/..."
+        (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($newSourceUrl, $destinationFile)
+    }
 }
 Export-ModuleMember -Function Download-File
