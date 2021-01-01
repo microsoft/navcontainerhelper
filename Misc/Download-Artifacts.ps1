@@ -76,17 +76,8 @@ function Download-Artifacts {
             if (-not $exists) {
                 Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
                 $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-                try {
-                    TestSasToken -sasToken $artifactUrl
-                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
-                }
-                catch {
-                    if ($artifactUrl.Contains('.azureedge.net/')) {
-                        $artifactUrl = $artifactUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
-                        Write-Host "Retrying download..."
-                        Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
-                    }
-                }
+                TestSasToken -sasToken $artifactUrl
+                Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
                 Write-Host "Unpacking application artifact to tmp folder " -NoNewline
                 $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                 try {
@@ -162,17 +153,8 @@ function Download-Artifacts {
                 if (-not $exists) {
                     Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
                     $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-                    try {
-                        TestSasToken -sasToken $artifactUrl
-                        Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
-                    }
-                    catch {
-                        if ($platformUrl.Contains('.azureedge.net/')) {
-                            $platformUrl = $platformUrl.Replace('.azureedge.net/','.blob.core.windows.net/')
-                            Write-Host "Retrying download..."
-                            Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
-                        }
-                    }
+                    TestSasToken -sasToken $artifactUrl
+                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
                     Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                     try {

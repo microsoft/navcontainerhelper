@@ -1,3 +1,6 @@
+1.0.19
+Move retry algorithm to Download-File
+
 1.0.18
 Issue #1556 DotNet Packages for ZipArchive missing in VS Code when creating a Base App
 Issue #1559 Handling of Hungary artifacts
