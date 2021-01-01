@@ -176,6 +176,34 @@ Write-Host -ForegroundColor Yellow @'
     $artifactUrl
 }
 
+function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
+    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+    try {
+        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
+        $appJsonFile = Join-Path $tmpFolder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+    }
+    catch {
+        throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+    }
+    finally {
+        Remove-Item $tmpFolder -Recurse -Force
+    }
+    if ($appJson.PSObject.Properties.Name -eq "Application") {
+        $version = $appJson.application
+    }
+    else {
+        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | % { $_.Version }
+        if (!$version) {
+            $version = $minVersion
+        }
+    }
+    if ([System.Version]$version -lt [System.Version]$minVersion) {
+        $version = $minVersion
+    }
+    $version
+}
+
 function GetFilePath( [string] $path ) {
     if ($path -like "http://*" -or $path -like "https://*") {
         return $path
@@ -294,6 +322,44 @@ else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
 
+$currentArtifactUrl = ""
+
+if ("$validateVersion" -eq "" -and !$validateCurrent -and !$validateNextMinor -and !$validateNextMajor) {
+$currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+Write-Host -ForegroundColor Yellow @'
+  _____       _                      _       _                   _                           _                       
+ |  __ \     | |                    (_)     (_)                 | |                         | |                      
+ | |  | | ___| |_ ___ _ __ _ __ ___  _ _ __  _ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _   _ 
+ | |  | |/ _ \ __/ _ \ '__| '_ ` _ \| | '_ \| | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| | | |
+ | |__| |  __/ |_  __/ |  | | | | | | | | | | | | | | (_| | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |_| |
+ |_____/ \___|\__\___|_|  |_| |_| |_|_|_| |_|_|_| |_|\__, |  \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|\__, |
+                                                      __/ |            | |                                      __/ |
+                                                     |___/             |_|                                     |___/ 
+'@
+
+$validateCurrent = $true
+$version = [System.Version]::new($currentArtifactUrl.Split('/')[4])
+$currentVersion = "$($version.Major).$($version.Minor)"
+$validateVersion = "17.0"
+$installApps+$apps | % {
+    $appFile = $_
+    $version = GetApplicationDependency -appFile $appFile -minVersion $validateVersion
+    if ([System.Version]$version -gt [System.Version]$validateVersion) {
+        $version = [System.Version]::new($version)
+        $validateVersion = "$($version.Major).$($version.Minor)"
+    }
+}
+Write-Host "Validating against Current Version ($currentVersion)"
+if ($validateVersion -eq $currentVersion) {
+    $validateVersion = ""
+}
+else {
+    Write-Host "Additionally validating against application dependency ($validateVersion)"
+}
+}
+
+
+
 Measure-Command {
 
 Write-Host -ForegroundColor Yellow @'
@@ -319,11 +385,14 @@ Measure-Command {
 0..3 | ForEach-Object {
 
 $artifactUrl = ""
-if ($_ -eq 0 -and $validateVersion) {
-    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
+if ($_ -eq 0 -and $validateCurrent) {
+    if ($currentArtifactUrl -eq "") {
+        $currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+    }
+    $artifactUrl = $currentArtifactUrl
 }
-elseif ($_ -eq 1 -and $validateCurrent) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+elseif ($_ -eq 1 -and $validateVersion) {
+    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
 }
 elseif ($_ -eq 2 -and $validateNextMinor) {
     $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
