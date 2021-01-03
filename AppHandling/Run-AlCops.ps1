@@ -89,7 +89,7 @@ function Run-AlCops {
         $previousApps = Sort-AppFilesByDependencies -appFiles $appList
         $previousApps | ForEach-Object {
             $appFile = $_
-            $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
+            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
             try {
                 Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
                 $xappJsonFile = Join-Path $tmpFolder "app.json"
@@ -137,10 +137,14 @@ function Run-AlCops {
             if ($enableAppSourceCop) {
                 Write-Host "Analyzing: $([System.IO.Path]::GetFileName($appFile))"
                 Write-Host "Using affixes: $([string]::Join(',',$affixes))"
-                Write-Host "Using supportedCountries: $([string]::Join(',',$supportedCountries))"
                 $appSourceCopJson = @{
                     "mandatoryAffixes" = @($affixes)
-                    "supportedCountries" = @($supportedCountries)
+                }
+                if ($supportedCountries) {
+                    Write-Host "Using supportedCountries: $([string]::Join(',',$supportedCountries))"
+                    $appSourceCopJson += @{
+                        "supportedCountries" = @($supportedCountries)
+                    }
                 }
                 if ($previousAppVersions.ContainsKey("$($appJson.Publisher)_$($appJson.Name)")) {
                     $previousVersion = $previousAppVersions."$($appJson.Publisher)_$($appJson.Name)"
@@ -172,13 +176,17 @@ function Run-AlCops {
                 "appProjectFolder" = $tmpFolder
                 "appOutputFolder" = $tmpFolder
                 "appSymbolsFolder" = $appPackagesFolder
+                "CopySymbolsFromContainer" = $true
                 "EnableAppSourceCop" = $enableAppSourceCop
                 "EnableUICop" = $enableUICop
                 "EnableCodeCop" = $enableCodeCop
                 "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
                 "outputTo" = { Param($line) 
                     Write-Host $line
-                    if ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
+                    if ($line -like "error *" -or $line -like "warning *") {
+                        $global:_validationResult += $line
+                    }
+                    elseif ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
                         $global:_validationResult += $line.SubString($tmpFolder.Length+1)
                     }
                 }
@@ -188,20 +196,20 @@ function Run-AlCops {
             }
 
             if ($ruleset) {
-                $rulesetFile = Join-Path $tmpFolder "ruleset.json"
-                $ruleset | ConvertTo-Json -Depth 99 | Set-Content $rulesetFile
+                $myRulesetFile = Join-Path $tmpFolder "ruleset.json"
+                $ruleset | ConvertTo-Json -Depth 99 | Set-Content $myRulesetFile
                 $Parameters += @{
-                    "ruleset" = $rulesetFile
+                    "ruleset" = $myRulesetFile
                 }
                 Write-Host "Ruleset.json content:"
-                get-content  $rulesetFile | Out-Host
+                get-content  $myRulesetFile | Out-Host
             }
 
             Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters) | Out-Null
 
             if ($ignoreWarnings) {
                 Write-Host "Ignoring warnings"
-                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" })
+                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" -and $_ -notlike "warning *" })
             }
 
             $lines = $global:_validationResult.Length - $length

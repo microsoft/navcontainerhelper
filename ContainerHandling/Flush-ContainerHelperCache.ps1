@@ -102,7 +102,10 @@ function Flush-ContainerHelperCache {
             $artifactUrl = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
             if ($artifactUrl) {
                 $artifactUrl = $artifactUrl.Split('?')[0]
-                "artifactUrl=https://bcartifacts.azureedge.net/", "artifactUrl=https://bcinsider.azureedge.net/", "artifactUrl=https://bcpublicpreview.azureedge.net/" | % {
+                "artifactUrl=https://bcartifacts.azureedge.net/",
+                "artifactUrl=https://bcinsider.azureedge.net/",
+                "artifactUrl=https://bcprivate.azureedge.net/",
+                "artifactUrl=https://bcpublicpreview.azureedge.net/" | % {
                     if ($artifactUrl -like "$($_)*") {
                         $cacheFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder $artifactUrl.SubString($_.Length)
                         if (-not (Test-Path $cacheFolder)) {

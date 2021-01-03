@@ -18,6 +18,8 @@
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
+ .Parameter CopySymbolsFromContainer
+  Add this switch to copy system and base application symbols from container to speed up symbol download.
  .Parameter CopyAppToSymbolsFolder
   Add this switch to copy the compiled app to the appSymbolsFolder.
  .Parameter GenerateReportLayout
@@ -65,6 +67,7 @@ function Compile-AppInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
         [switch] $UpdateSymbols,
+        [switch] $CopySymbolsFromContainer,
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
@@ -160,6 +163,27 @@ function Compile-AppInBcContainer {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
     }
 
+    if ($CopySymbolsFromContainer) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder) 
+            "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app",
+            "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app",
+            "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app" | ForEach-Object {
+                $appFiles = $_.Split(',')
+                $appFile = ""
+                if (Test-Path -Path $appFiles[0]) {
+                    $appFile = (Get-Item $appFiles[0]).FullName
+                }
+                elseif (Test-Path -path $appFiles[1]) {
+                    $appFile = $appFiles[1]
+                }
+                if ($appFile) {
+                    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) from Container"
+                    Copy-Item -Path $appFile -Destination $appSymbolsFolder -Force
+                }
+            }
+        } -argumentList $containerSymbolsFolder
+    }
+
     $GenerateReportLayoutParam = ""
     if (($GenerateReportLayout -ne "NotSpecified") -and ($platformversion.Major -ge 14)) {
         if ($GenerateReportLayout -eq "Yes") {
@@ -173,7 +197,7 @@ function Compile-AppInBcContainer {
     # unpack compiler
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         if (!(Test-Path "c:\build" -PathType Container)) {
-            $tempZip = Join-Path $env:TEMP "alc.zip"
+            $tempZip = Join-Path $env:temp "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }

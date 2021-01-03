@@ -54,6 +54,8 @@
   Include this parameter to skip the connection test. If Connection Test fails in validation, Microsoft will execute manual validation.
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS.
+ .Parameter multitenant
+  Include this parameter to use a multitenant container for the validation tests. Default is to use single tenant as validation doesn't run tests.
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -95,6 +97,7 @@ Param(
     [switch] $skipAppSourceCop,
     [switch] $skipConnectionTest,
     [string] $useGenericImage = (Get-BestGenericImageName),
+    [switch] $multitenant,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $CompileAppInBcContainer,
@@ -173,6 +176,46 @@ Write-Host -ForegroundColor Yellow @'
     $artifactUrl
 }
 
+function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
+    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+    try {
+        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
+        $appJsonFile = Join-Path $tmpFolder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+    }
+    catch {
+        throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+    }
+    finally {
+        Remove-Item $tmpFolder -Recurse -Force
+    }
+    if ($appJson.PSObject.Properties.Name -eq "Application") {
+        $version = $appJson.application
+    }
+    else {
+        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | % { $_.Version }
+        if (!$version) {
+            $version = $minVersion
+        }
+    }
+    if ([System.Version]$version -lt [System.Version]$minVersion) {
+        $version = $minVersion
+    }
+    $version
+}
+
+function GetFilePath( [string] $path ) {
+    if ($path -like "http://*" -or $path -like "https://*") {
+        return $path
+    }
+    if (!(Test-Path $path -PathType Leaf)) {
+        throw "Unable to locate app file: $path"
+    }
+    else {
+        return (Get-Item -Path $path).FullName
+    }
+}
+
 $validationResult = @()
 
 if ($memoryLimit -eq "") {
@@ -189,8 +232,13 @@ if ($countries                      -is [String]) { $countries = @($countries.Sp
 if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
+$installApps = $installApps | % { GetFilePath $_ }
+$previousApps = $previousApps | % { GetFilePath $_ }
+$apps = $apps | % { GetFilePath $_ }
+
 $countries = @($countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
 $validateCountries = @($countries | ForEach-Object {
+    $countryCode = $_
     if ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $countryCode) { 
         $bcContainerHelperConfig.mapCountryCode."$countryCode"
     }
@@ -261,9 +309,6 @@ else {
 if ($CompileAppInBcContainer) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
-else {
-    $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
-}
 if ($GetBcContainerAppInfo) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
@@ -276,6 +321,44 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+
+$currentArtifactUrl = ""
+
+if ("$validateVersion" -eq "" -and !$validateCurrent -and !$validateNextMinor -and !$validateNextMajor) {
+$currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+Write-Host -ForegroundColor Yellow @'
+  _____       _                      _       _                   _                           _                       
+ |  __ \     | |                    (_)     (_)                 | |                         | |                      
+ | |  | | ___| |_ ___ _ __ _ __ ___  _ _ __  _ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _   _ 
+ | |  | |/ _ \ __/ _ \ '__| '_ ` _ \| | '_ \| | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| | | |
+ | |__| |  __/ |_  __/ |  | | | | | | | | | | | | | | (_| | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |_| |
+ |_____/ \___|\__\___|_|  |_| |_| |_|_|_| |_|_|_| |_|\__, |  \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|\__, |
+                                                      __/ |            | |                                      __/ |
+                                                     |___/             |_|                                     |___/ 
+'@
+
+$validateCurrent = $true
+$version = [System.Version]::new($currentArtifactUrl.Split('/')[4])
+$currentVersion = "$($version.Major).$($version.Minor)"
+$validateVersion = "17.0"
+$installApps+$apps | % {
+    $appFile = $_
+    $version = GetApplicationDependency -appFile $appFile -minVersion $validateVersion
+    if ([System.Version]$version -gt [System.Version]$validateVersion) {
+        $version = [System.Version]::new($version)
+        $validateVersion = "$($version.Major).$($version.Minor)"
+    }
+}
+Write-Host "Validating against Current Version ($currentVersion)"
+if ($validateVersion -eq $currentVersion) {
+    $validateVersion = ""
+}
+else {
+    Write-Host "Additionally validating against application dependency ($validateVersion)"
+}
+}
+
+
 
 Measure-Command {
 
@@ -302,11 +385,14 @@ Measure-Command {
 0..3 | ForEach-Object {
 
 $artifactUrl = ""
-if ($_ -eq 0 -and $validateVersion) {
-    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
+if ($_ -eq 0 -and $validateCurrent) {
+    if ($currentArtifactUrl -eq "") {
+        $currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+    }
+    $artifactUrl = $currentArtifactUrl
 }
-elseif ($_ -eq 1 -and $validateCurrent) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+elseif ($_ -eq 1 -and $validateVersion) {
+    $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
 }
 elseif ($_ -eq 2 -and $validateNextMinor) {
     $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
@@ -356,6 +442,7 @@ Measure-Command {
         "vsixFile" = $vsixFile
         "licenseFile" = $licenseFile
         "EnableTaskScheduler" = $true
+        "Multitenant" = $multitenant
         "AssignPremiumPlan" = $assignPremiumPlan
         "MemoryLimit" = $memoryLimit
     }
@@ -406,17 +493,27 @@ Write-Host -ForegroundColor Yellow @'
                                    __/ |          | |   | |                                              | |    
                                   |___/           |_|   |_|                                              |_|    
 '@
+Measure-Command {
+$parameters = @{
+    "containerName" = $containerName
+    "credential" = $credential
+    "previousApps" = $previousApps
+    "apps" = $apps
+    "affixes" = $affixes
+    "supportedCountries" = $supportedCountries
+    "enableAppSourceCop" = $true
+    "failOnError" = $failOnError
+    "ignoreWarnings" = !$includeWarnings
+}
+if ($CompileAppInBcContainer) {
+    $parameters += @{
+        "CompileAppInBcContainer" = $CompileAppInBcContainer
+    }
+}
+$validationResult += @(Run-AlCops @Parameters)
 
-$validationResult += @(Run-AlCops `
-    -containerName $containerName `
-    -credential $credential `
-    -previousApps $previousApps `
-    -apps $apps `
-    -affixes $affixes `
-    -supportedCountries $supportedCountries `
-    -enableAppSourceCop `
-    -failOnError:$failOnError `
-    -ignoreWarnings:(!$includeWarnings))
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning AppSourceCop took $([int]$_.TotalSeconds) seconds" }
+
 }
 
 if ($previousApps -and !$skipUpgrade) {
@@ -433,7 +530,9 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Measure-Command {
-    $previousApps | ForEach-Object{
+$appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+try {
+    Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $previousApps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -453,6 +552,10 @@ Measure-Command {
             Write-Host -ForegroundColor Red $error
         }
     }
+}
+finally {
+    Remove-Item -Path $appsFolder -Recurse -Force
+}
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
@@ -473,44 +576,50 @@ Measure-Command {
 
 $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 
-$apps | ForEach-Object {
+$appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+try {
+    Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
+        
+        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+        Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
+        $appJsonFile = Join-Path $tmpfolder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        Remove-Item $tmpFolder -Recurse -Force
     
-    $tmpFolder = Join-Path $ENV:TEMP ([Guid]::NewGuid().ToString())
-    Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
-    $appJsonFile = Join-Path $tmpfolder "app.json"
-    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-    Remove-Item $tmpFolder -Recurse -Force
-
-    $installedApp = $false
-    if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
-        $installedApp = $true
-    }
-
-    $Parameters = @{
-        "containerName" = $containerName
-        "tenant" = $tenant
-        "credential" = $credential
-        "appFile" = $_
-        "skipVerification" = $skipVerification
-        "sync" = $true
-        "install" = !$installedApp
-        "upgrade" = $installedApp
-    }
-
-    try {
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-    }
-    catch {
-        if ($parameters.upgrade) {
-            $action = "upgrade"
+        $installedApp = $false
+        if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
+            $installedApp = $true
         }
-        else {
-            $action = "install"
+    
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $_
+            "skipVerification" = $skipVerification
+            "sync" = $true
+            "install" = !$installedApp
+            "upgrade" = $installedApp
         }
-        $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
-        $validationResult += $error
-        Write-Host -ForegroundColor Red $error
+    
+        try {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+        catch {
+            if ($parameters.upgrade) {
+                $action = "upgrade"
+            }
+            else {
+                $action = "install"
+            }
+            $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
+            $validationResult += $error
+            Write-Host -ForegroundColor Red $error
+        }
     }
+}
+finally {
+    Remove-Item -Path $appsFolder -Recurse -Force
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
@@ -525,14 +634,18 @@ Write-Host -ForegroundColor Yellow @'
   \_____\___/|_| |_|_| |_|\___|\___|\__|_|\___/|_| |_|  \__\___|___/\__|
 '@                                                                        
 
-    try {
-        Run-ConnectionTestToBcContainer -containerName $containerName -tenant $tenant -credential $credential
-    }
-    catch {
-        $error = "Unable to run Connection test on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipConnectionTest.`nError is: $($_.Exception.Message)"
-        $validationResult += $error
-        Write-Host -ForegroundColor Red $error
-    }
+Measure-Command {
+try {
+    Run-ConnectionTestToBcContainer -containerName $containerName -tenant $tenant -credential $credential
+}
+catch {
+    $error = "Unable to run Connection test on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipConnectionTest.`nError is: $($_.Exception.Message)"
+    $validationResult += $error
+    Write-Host -ForegroundColor Red $error
+}
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Connection Test took $([int]$_.TotalSeconds) seconds" }
+
 }
 
 }

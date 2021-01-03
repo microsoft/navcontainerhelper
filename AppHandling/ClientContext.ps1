@@ -270,8 +270,15 @@ class ClientContext {
     }
     
     [ClientLogicalForm[]]GetAllForms() {
-        $forms = @()
-        $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object { $forms += $_ }
+        try {
+            $forms = @()
+            $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object { $forms += $_ }
+        }
+        catch {
+            Start-Sleep -Seconds 1
+            $forms = @()
+            $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object { $forms += $_ }
+        }
         return $forms
     }
     

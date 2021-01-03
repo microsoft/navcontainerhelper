@@ -27,7 +27,7 @@ function Sort-AppFilesByDependencies {
     $files = @{}
     $appFiles | ForEach-Object {
         $appFile = $_
-        $tmpFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
         try {
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
             $appJsonFile = Join-Path $tmpFolder "app.json"

@@ -29,7 +29,8 @@ function Get-ContainerHelperConfig {
             "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "defaultContainerName" = "bcserver"
-            "timeStampServer" = "http://timestamp.verisign.com/scripts/timestamp.dll"
+            "digestAlgorithm" = "SHA256"
+            "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"

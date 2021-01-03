@@ -30,7 +30,9 @@ function Sign-BcContainerApp {
         [Parameter(Mandatory=$true)]
         [SecureString] $pfxPassword,
         [Parameter(Mandatory=$false)]
-        [string] $timeStampServer = $bcContainerHelperConfig.timeStampServer
+        [string] $timeStampServer = $bcContainerHelperConfig.timeStampServer,
+        [Parameter(Mandatory=$false)]
+        [string] $digestAlgorithm = $bcContainerHelperConfig.digestAlgorithm
     )
 
     $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
@@ -51,7 +53,7 @@ function Sign-BcContainerApp {
     }
 
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm)
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
@@ -77,12 +79,34 @@ function Sign-BcContainerApp {
 
         Write-Host "Signing $appFile"
         $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
-        & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "$timeStampServer", "$appFile") | Write-Host
+        $attempt = 1
+        $maxAttempts = 5
+        do {
+            try {
+                if ($digestAlgorithm) {
+                    & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", "$timeStampServer", "$appFile") | Write-Host
+                }
+                else {
+                    & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "$timeStampServer", "$appFile") | Write-Host
+                }
+                break
+            } catch {
+                if ($attempt -ge $maxAttempts) {
+                    throw
+                }
+                else {
+                    $seconds = [Math]::Pow(4,$attempt)
+                    Write-Host "Signing failed, retrying in $seconds seconds"
+                    $attempt++
+                    Start-Sleep -Seconds $seconds
+                }
+            }
+        } while ($attempt -le $maxAttempts)
 
         if ($copied) { 
             Remove-Item $pfxFile -Force
         }
-    } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword, $timeStampServer
+    } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm
 }
 Set-Alias -Name Sign-NavContainerApp -Value Sign-BcContainerApp
 Export-ModuleMember -Function Sign-BcContainerApp -Alias Sign-NavContainerApp
