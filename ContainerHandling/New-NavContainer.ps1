@@ -580,7 +580,7 @@ function New-BcContainer {
         }
 
         if ($PublishPorts.Count -gt 0 -or
-            $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or 
+            $WebClientPort -or $FileSharePort -or $ManagementServicesPort -or 
             $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort) {
             throw "When using Traefik, all external communication comes in through port 443, so you can't change the ports"
         }
