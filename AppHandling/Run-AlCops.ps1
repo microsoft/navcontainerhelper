@@ -137,10 +137,14 @@ function Run-AlCops {
             if ($enableAppSourceCop) {
                 Write-Host "Analyzing: $([System.IO.Path]::GetFileName($appFile))"
                 Write-Host "Using affixes: $([string]::Join(',',$affixes))"
-                Write-Host "Using supportedCountries: $([string]::Join(',',$supportedCountries))"
                 $appSourceCopJson = @{
                     "mandatoryAffixes" = @($affixes)
-                    "supportedCountries" = @($supportedCountries)
+                }
+                if ($supportedCountries) {
+                    Write-Host "Using supportedCountries: $([string]::Join(',',$supportedCountries))"
+                    $appSourceCopJson += @{
+                        "supportedCountries" = @($supportedCountries)
+                    }
                 }
                 if ($previousAppVersions.ContainsKey("$($appJson.Publisher)_$($appJson.Name)")) {
                     $previousVersion = $previousAppVersions."$($appJson.Publisher)_$($appJson.Name)"

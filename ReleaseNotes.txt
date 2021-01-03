@@ -1,6 +1,7 @@
 1.0.19
 Move retry algorithm to Download-File
 Run-AlValidation will try to determine which versions to run validation against if not specified
+Run-AlValidation and Run-AlCopys to support that SupportedCountries is optional
 
 1.0.18
 Issue #1556 DotNet Packages for ZipArchive missing in VS Code when creating a Base App
