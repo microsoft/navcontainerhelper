@@ -39,18 +39,21 @@ Function Convert-AlcOutputToAzureDevOps {
                     }
             
                     $hasWarning = $true
+                    break
                 }
                 "^(.*)\((\d+),(\d+)\): error (\w{2,3}\d{4}): (.*)$"
                 #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
                 {
                     $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                     $hasError = $true
+                    break
                 }
                 "^(.*)error (\w{2}\d{4}): (.*)$"
                 #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
                 {
                     $newLine = "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
                     $hasError = $true
+                    break
                 }
                 "^(.*)\((\d+),(\d+)\): warning (\w{2}\d{4}): (.*)$"
                 #Prepared for unified warning format
@@ -58,9 +61,11 @@ Function Convert-AlcOutputToAzureDevOps {
                 {
                     $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                     $hasWarning = $true
+                    break
                 }
                 default {
                     $newLine = $line
+                    break
                 }
             }
             if ($doNotWriteToHost) {
