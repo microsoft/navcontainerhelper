@@ -2,7 +2,8 @@
 Move retry algorithm to Download-File
 Run-AlValidation will try to determine which versions to run validation against if not specified
 Run-AlValidation and Run-AlCopys to support that SupportedCountries is optional
-Issue # 1542 Convert-AlcOutputToAzureDevOps wrong error output
+Issue #1573 Regression Setup-TraefikContainerForBcContainers stopped working in 1.0.18
+Issue #1542 Convert-AlcOutputToAzureDevOps wrong error output
 
 1.0.18
 Issue #1556 DotNet Packages for ZipArchive missing in VS Code when creating a Base App
