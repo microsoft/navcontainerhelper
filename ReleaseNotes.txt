@@ -1,3 +1,5 @@
+1.0.20
+
 1.0.19
 Move retry algorithm to Download-File
 Run-AlValidation will try to determine which versions to run validation against if not specified
