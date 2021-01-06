@@ -101,7 +101,9 @@ function Run-AlCops {
                 throw "Cannot use previous app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
             }
             finally {
-                Remove-Item $tmpFolder -Recurse -Force
+                if (Test-Path $tmpFolder) {
+                    Remove-Item $tmpFolder -Recurse -Force
+                }
             }
         }
     }
@@ -226,7 +228,9 @@ function Run-AlCops {
             Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
         }
         finally {
-            Remove-Item -Path $tmpFolder -Recurse -Force
+            if (Test-Path $tmpFolder) {
+                Remove-Item -Path $tmpFolder -Recurse -Force
+            }
         }
     }
     if ($appPackFolderCreated) {
