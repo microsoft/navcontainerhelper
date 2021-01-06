@@ -187,7 +187,9 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
     }
     finally {
-        Remove-Item $tmpFolder -Recurse -Force
+        if (Test-Path $tmpFolder) {
+            Remove-Item $tmpFolder -Recurse -Force
+        }
     }
     if ($appJson.PSObject.Properties.Name -eq "Application") {
         $version = $appJson.application
@@ -341,7 +343,9 @@ $validateCurrent = $true
 $version = [System.Version]::new($currentArtifactUrl.Split('/')[4])
 $currentVersion = "$($version.Major).$($version.Minor)"
 $validateVersion = "17.0"
-$installApps+$apps | % {
+
+$tmpAppsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
+@(CopyAppFilesToFolder -appFiles @($installApps+$apps) -folder $tmpAppsFolder) | % {
     $appFile = $_
     $version = GetApplicationDependency -appFile $appFile -minVersion $validateVersion
     if ([System.Version]$version -gt [System.Version]$validateVersion) {
@@ -349,6 +353,7 @@ $installApps+$apps | % {
         $validateVersion = "$($version.Major).$($version.Minor)"
     }
 }
+Remove-Item -Path $tmpAppsFolder -Recurse -Force
 Write-Host "Validating against Current Version ($currentVersion)"
 if ($validateVersion -eq $currentVersion) {
     $validateVersion = ""
@@ -357,8 +362,6 @@ else {
     Write-Host "Additionally validating against application dependency ($validateVersion)"
 }
 }
-
-
 
 Measure-Command {
 

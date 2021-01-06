@@ -367,7 +367,7 @@ function CopyAppFilesToFolder {
                 }
             }
             else {
-                $destFile = Join-Path $folder ([System.IO.Path]::GetFileName($appFile))
+                $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
                 Copy-Item -Path $appFile -Destination $destFile -Force
                 $destFile
             }
@@ -655,4 +655,33 @@ function Get-WWWRootPath {
 
 function Get-TempDir {
     (Get-Item -Path $env:temp).FullName
+}
+
+function Parse-JWTtoken([string]$token) {
+    if ($token.Contains(".") -and $token.StartsWith("eyJ")) {
+        $tokenPayload = $token.Split(".")[1].Replace('-', '+').Replace('_', '/')
+        while ($tokenPayload.Length % 4) { $tokenPayload += "=" }
+        return [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($tokenPayload)) | ConvertFrom-Json
+    }
+    throw "Invalid token"
+}
+
+function Test-BcAuthContext {
+    Param(
+        $bcAuthContext
+    )
+
+    if (!(($bcAuthContext -is [Hashtable]) -and
+          ($bcAuthContext.ContainsKey('ClientID')) -and
+          ($bcAuthContext.ContainsKey('Credential')) -and
+          ($bcAuthContext.ContainsKey('authority')) -and
+          ($bcAuthContext.ContainsKey('RefreshToken')) -and
+          ($bcAuthContext.ContainsKey('UtcExpiresOn')) -and
+          ($bcAuthContext.ContainsKey('tenantID')) -and
+          ($bcAuthContext.ContainsKey('Resource')) -and
+          ($bcAuthContext.ContainsKey('AccessToken')) -and
+          ($bcAuthContext.ContainsKey('includeDeviceLogin')) -and
+          ($bcAuthContext.ContainsKey('deviceLoginTimeout')))) {
+        throw 'BcAuthContext should be a HashTable created by New-BcAuthContext.'
+    }
 }

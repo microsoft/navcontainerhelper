@@ -1,4 +1,5 @@
 1.0.20
+Issue #1596 support URLs in previousApps in Run-AlValidation
 
 1.0.19
 Move retry algorithm to Download-File
