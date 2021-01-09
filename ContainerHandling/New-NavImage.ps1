@@ -447,7 +447,7 @@ function New-BcImage {
                 docker images --format "{{.Repository}}:{{.Tag}}" | % { 
                     if ($_ -eq $imageName) 
                     {
-                        docker rmi $imageName -f | Out-Host
+                        docker rmi --no-prune $imageName -f | Out-Host
                     }
                 }
         
