@@ -267,6 +267,12 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadUsersInNavContainer.ps1")
 
+# BC SaaS specific functions
+. (Join-Path $PSScriptRoot "BcSaaS\New-BcAuthContext.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Renew-BcAuthContext.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Get-BcEnvironments.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Get-BcPublishedApps.ps1")
+
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
 . (Join-Path $PSScriptRoot "AzureVM\New-LetsEncryptCertificate.ps1")

@@ -15,15 +15,20 @@ Function Get-BcContainerServerConfiguration {
 
     $ResultObjectArray = @()
     $config = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
-        Get-NAVServerConfiguration -ServerInstance $ServerInstance -AsXml
+        Get-NavServerInstance | Get-NAVServerConfiguration -AsXml
     }
     
     $Object = New-Object -TypeName PSObject -Property @{
         ContainerName = $ContainerName
     }
 
-    $Config.configuration.appSettings.add | ForEach-Object{
-        $Object | Add-Member -MemberType NoteProperty -Name $_.Key -Value $_.Value
+    if ($config) {
+        $Config.configuration.appSettings.add | ForEach-Object{
+            $Object | Add-Member -MemberType NoteProperty -Name $_.Key -Value $_.Value
+        }
+    }
+    else {
+        $Object | Add-Member -MemberType NoteProperty -Name "ServerInstance" -Value ""
     }
 
     $ResultObjectArray += $Object
