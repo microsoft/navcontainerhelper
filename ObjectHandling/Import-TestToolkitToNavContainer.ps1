@@ -57,7 +57,10 @@ function Import-TestToolkitToBcContainer {
         [string] $scope,
         [string] $tenant = "default",
         [switch] $useDevEndpoint,
-        [hashtable] $replaceDependencies = $null
+        [hashtable] $replaceDependencies = $null,
+        [Hashtable] $bcAuthContext,
+        [string] $environment
+
     )
 
     if ($replaceDependencies) {
@@ -81,157 +84,186 @@ function Import-TestToolkitToBcContainer {
 
     $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
 
-    $config = Get-BcContainerServerConfiguration -ContainerName $containerName
-    $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($config.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and $config.EnableSymbolLoadingAtServerStartup -eq "True"))
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
-    $generateSymbols = $false
-    if ($version.Major -eq 14 -and !$doNotUpdateSymbols -and $config.ClientServicesCredentialType -ne "Windows") {
-        $generateSymbols = $true
-        $doNotUpdateSymbols = $true
-    }
-
-    if ($version.Major -ge 15) {
-        if ($version -lt [Version]("15.0.35528.0")) {
-            throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
-        }
-
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
-            if (Test-Path $mockAssembliesPath) {
-                $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
-                if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
-                    new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
-                    Set-NavServerInstance $serverInstance -restart
-                    while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
-                        Start-Sleep -Seconds 1
-                    }
-                }
-            }
-        }
+    if ($bcAuthContext -and $environment) {
+        
+        throw "Importing Test Toolkit to Bc Saas not yet supported"
 
         $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
-
-        if (!$doNotUseRuntimePackages) {
-            if ($isBcSandbox) {
-                $folderPrefix = "sandbox"
-            }
-            else {
-                $folderPrefix = "onprem"
-            }
-            $applicationsPath = Join-Path $extensionsFolder "$folderPrefix-Applications-$Version-$country"
-            if (!(Test-Path $applicationsPath)) {
-                New-Item -Path $applicationsPath -ItemType Directory | Out-Null
-            }
-        }
+        $publishedApps = Get-BcPublishedApps -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.state -eq "installed" }
 
         $appFiles | % {
             $appFile = $_
-            if (!$doNotUseRuntimePackages) {
-                $name = [System.IO.Path]::GetFileName($appFile)
-                $runtimeAppFile = "$applicationsPath\$($name.Replace('.app','.runtime.app'))"
-                $useRuntimeApp = $false
-                if (Test-Path $runtimeAppFile) {
-                    if ((Get-Item $runtimeAppFile).Length -eq 0) {
-                        Remove-Item $runtimeAppFile -force
-                    }
-                    else {
-                        $appFile = $runtimeAppFile
-                        $useRuntimeApp = $true
-                    }
-                }
-            }
 
-            $tenantAppInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant)
-                $navAppInfo = Get-NAVAppInfo -Path $appFile
-                (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version -tenant $tenant -tenantSpecificProperties)
-            } -argumentList $appFile, $tenant | Where-Object { $_ -isnot [System.String] }
+            $appInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile)
+                Get-NAVAppInfo -Path $appFile
+            } -argumentList $appFile | Where-Object { $_ -isnot [System.String] }
 
-            if ($tenantAppInfo) {
-                if ($tenantAppInfo.IsInstalled) {
-                    Write-Host "Skipping app '$appFile' as it is already installed"
-                }
-                else {
-                    Sync-BcContainerApp -containerName $containerName -tenant $tenant -appName $tenantAppInfo.Name -appPublisher $tenantAppInfo.Publisher -appVersion $tenantAppInfo.Version -Force
-                    Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $tenantAppInfo.Name -appPublisher $tenantAppInfo.Publisher -appVersion $tenantAppInfo.Version -Force
-                }
+            $appExists = $publishedApps | Where-Object { $_.State -eq "installed" -and $appInfo.Publisher -eq $_.Publisher -and $appInfo.Name -eq $_.Name -and $appInfo.Version -eq $_.Version }
+
+            if ($appExists) {
+                Write-Host "Skipping app '$appFile' as it is already installed"
             }
             else {
-                Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
-    
-                if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
-                    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
-                        
-                        $navAppInfo = Get-NAVAppInfo -Path $appFile
-                        $appPublisher = $navAppInfo.Publisher
-                        $appName = $navAppInfo.Name
-                        $appVersion = $navAppInfo.Version
-    
-                        Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
-                    } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
-                }
+                Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -bcAuthContext $bcAuthContext -environment $environment
             }
         }
-        Write-Host -ForegroundColor Green "TestToolkit successfully imported"
+        Write-Host -ForegroundColor Green "TestToolkit successfully published"
     }
     else {
-        $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
-        
-            $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-            [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-            $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
-            $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-            $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-            $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
-            if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
-       
-            $params = @{}
-            if ($sqlCredential) {
-                $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
-            }
-            if ($testToolkitCountry) {
-                $fileFilter = "*.$testToolkitCountry.fob"
-            }
-            else {
-                $fileFilter = "*.fob"
-            }
-            Get-ChildItem -Path "C:\TestToolKit" -Filter $fileFilter | ForEach-Object { 
-                if (!$includeTestLibrariesOnly -or $_.Name.StartsWith("CALTestLibraries")) {
-                    $objectsFile = $_.FullName
-                    Write-Host "Importing Objects from $objectsFile (container path)"
-                    $databaseServerParameter = $databaseServer
+        $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and $customConfig.EnableSymbolLoadingAtServerStartup -eq "True"))
     
-                    if (!$doNotUpdateSymbols) {
-                        Write-Host "Generating Symbols while importing"
-                        # HACK: Parameter insertion...
-                        # generatesymbolreference is not supported by Import-NAVApplicationObject yet
-                        # insert an extra parameter for the finsql command by splitting the filter property
-                        $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
+        $generateSymbols = $false
+        if ($version.Major -eq 14 -and !$doNotUpdateSymbols -and $customConfig.ClientServicesCredentialType -ne "Windows") {
+            $generateSymbols = $true
+            $doNotUpdateSymbols = $true
+        }
+    
+    
+        if ($version.Major -ge 15) {
+            if ($version -lt [Version]("15.0.35528.0")) {
+                throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
+            }
+    
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                if (Test-Path $mockAssembliesPath) {
+                    $serviceTierAddInsFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Add-ins").FullName
+                    if (!(Test-Path (Join-Path $serviceTierAddInsFolder "Mock Assemblies"))) {
+                        new-item -itemtype symboliclink -path $serviceTierAddInsFolder -name "Mock Assemblies" -value $mockAssembliesPath | Out-Null
+                        Set-NavServerInstance $serverInstance -restart
+                        while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
+                            Start-Sleep -Seconds 1
+                        }
                     }
-        
-                    Import-NAVApplicationObject @params -Path $objectsFile `
-                                                -DatabaseName $databaseName `
-                                                -DatabaseServer $databaseServerParameter `
-                                                -ImportAction $ImportAction `
-                                                -SynchronizeSchemaChanges No `
-                                                -NavServerName localhost `
-                                                -NavServerInstance $ServerInstance `
-                                                -NavServerManagementPort "$managementServicesPort" `
-                                                -Confirm:$false
-        
                 }
             }
     
-            # Sync after all objects hav been imported
-            Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
+            $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
     
-        } -ArgumentList $sqlCredential, ($includeTestLibrariesOnly -or $includeTestFrameworkOnly), $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
+            if (!$doNotUseRuntimePackages) {
+                if ($isBcSandbox) {
+                    $folderPrefix = "sandbox"
+                }
+                else {
+                    $folderPrefix = "onprem"
+                }
+                $applicationsPath = Join-Path $extensionsFolder "$folderPrefix-Applications-$Version-$country"
+                if (!(Test-Path $applicationsPath)) {
+                    New-Item -Path $applicationsPath -ItemType Directory | Out-Null
+                }
+            }
     
-        if ($generateSymbols) {
-            Write-Host "Generating symbols"
-            Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
+            $appFiles | % {
+                $appFile = $_
+                if (!$doNotUseRuntimePackages) {
+                    $name = [System.IO.Path]::GetFileName($appFile)
+                    $runtimeAppFile = "$applicationsPath\$($name.Replace('.app','.runtime.app'))"
+                    $useRuntimeApp = $false
+                    if (Test-Path $runtimeAppFile) {
+                        if ((Get-Item $runtimeAppFile).Length -eq 0) {
+                            Remove-Item $runtimeAppFile -force
+                        }
+                        else {
+                            $appFile = $runtimeAppFile
+                            $useRuntimeApp = $true
+                        }
+                    }
+                }
+    
+                $tenantAppInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant)
+                    $navAppInfo = Get-NAVAppInfo -Path $appFile
+                    (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version -tenant $tenant -tenantSpecificProperties)
+                } -argumentList $appFile, $tenant | Where-Object { $_ -isnot [System.String] }
+    
+                if ($tenantAppInfo) {
+                    if ($tenantAppInfo.IsInstalled) {
+                        Write-Host "Skipping app '$appFile' as it is already installed"
+                    }
+                    else {
+                        Sync-BcContainerApp -containerName $containerName -tenant $tenant -appName $tenantAppInfo.Name -appPublisher $tenantAppInfo.Publisher -appVersion $tenantAppInfo.Version -Force
+                        Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $tenantAppInfo.Name -appPublisher $tenantAppInfo.Publisher -appVersion $tenantAppInfo.Version -Force
+                    }
+                }
+                else {
+                    Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+        
+                    if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
+                        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
+                            
+                            $navAppInfo = Get-NAVAppInfo -Path $appFile
+                            $appPublisher = $navAppInfo.Publisher
+                            $appName = $navAppInfo.Name
+                            $appVersion = $navAppInfo.Version
+        
+                            Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
+                        } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+                    }
+                }
+            }
+            Write-Host -ForegroundColor Green "TestToolkit successfully imported"
         }
-        Write-Host -ForegroundColor Green "TestToolkit successfully imported"
+        else {
+            $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
+            Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $includeTestLibrariesOnly, $testToolkitCountry, $doNotUpdateSymbols, $ImportAction)
+            
+                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+                $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+                $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+                $managementServicesPort = $customConfig.SelectSingleNode("//appSettings/add[@key='ManagementServicesPort']").Value
+                if ($databaseInstance) { $databaseServer += "\$databaseInstance" }
+           
+                $params = @{}
+                if ($sqlCredential) {
+                    $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                }
+                if ($testToolkitCountry) {
+                    $fileFilter = "*.$testToolkitCountry.fob"
+                }
+                else {
+                    $fileFilter = "*.fob"
+                }
+                Get-ChildItem -Path "C:\TestToolKit" -Filter $fileFilter | ForEach-Object { 
+                    if (!$includeTestLibrariesOnly -or $_.Name.StartsWith("CALTestLibraries")) {
+                        $objectsFile = $_.FullName
+                        Write-Host "Importing Objects from $objectsFile (container path)"
+                        $databaseServerParameter = $databaseServer
+        
+                        if (!$doNotUpdateSymbols) {
+                            Write-Host "Generating Symbols while importing"
+                            # HACK: Parameter insertion...
+                            # generatesymbolreference is not supported by Import-NAVApplicationObject yet
+                            # insert an extra parameter for the finsql command by splitting the filter property
+                            $databaseServerParameter = '",generatesymbolreference=1,ServerName="'+$databaseServer
+                        }
+            
+                        Import-NAVApplicationObject @params -Path $objectsFile `
+                                                    -DatabaseName $databaseName `
+                                                    -DatabaseServer $databaseServerParameter `
+                                                    -ImportAction $ImportAction `
+                                                    -SynchronizeSchemaChanges No `
+                                                    -NavServerName localhost `
+                                                    -NavServerInstance $ServerInstance `
+                                                    -NavServerManagementPort "$managementServicesPort" `
+                                                    -Confirm:$false
+            
+                    }
+                }
+        
+                # Sync after all objects hav been imported
+                Get-NAVTenant -ServerInstance $ServerInstance | Sync-NavTenant -Mode ForceSync -Force
+        
+            } -ArgumentList $sqlCredential, ($includeTestLibrariesOnly -or $includeTestFrameworkOnly), $testToolkitCountry, $doNotUpdateSymbols, $ImportAction
+        
+            if ($generateSymbols) {
+                Write-Host "Generating symbols"
+                Generate-SymbolsInNavContainer -containerName $containerName -sqlCredential $sqlCredential
+            }
+            Write-Host -ForegroundColor Green "TestToolkit successfully imported"
+        }
     }
 }
 Set-Alias -Name Import-TestToolkitToNavContainer -Value Import-TestToolkitToBcContainer

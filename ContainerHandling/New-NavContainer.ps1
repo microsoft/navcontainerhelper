@@ -219,6 +219,7 @@ function New-BcContainer {
         [string] $useGenericImage,
         [switch] $assignPremiumPlan,
         [switch] $multitenant,
+        [switch] $filesOnly,
         [string] $addFontsFromPath = "",
         [hashtable] $featureKeys = $null,
         [switch] $clickonce,
@@ -1129,18 +1130,6 @@ function New-BcContainer {
         throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
-    if ($multitenant -and [System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
-        throw "Multitenancy is not supported by images with generic tag prior to 0.0.4.5"
-    }
-
-    if (($WebClientPort -or $FileSharePort -or $ManagementServicesPort -or $ClientServicesPort -or $SoapServicesPort -or $ODataServicesPort -or $DeveloperServicesPort) -and [System.Version]$genericTag -lt [System.Version]"0.0.6.5") {
-        throw "Changing endpoint ports is not supported by images with generic tag prior to 0.0.6.5"
-    }
-
-    if ($auth -eq "AAD" -and [System.Version]$genericTag -lt [System.Version]"0.0.5.0") {
-        throw "AAD authentication is not supported by images with generic tag prior to 0.0.5.0"
-    }
-
     $myFolder = Join-Path $containerFolder "my"
     New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
@@ -1315,6 +1304,10 @@ function New-BcContainer {
         }
     }
 
+    if ($filesOnly) {
+        $parameters += "--env filesOnly=$true"
+    }
+
     if ($memoryLimit) {
         $parameters += "--memory $memoryLimit"
     }
@@ -1395,41 +1388,6 @@ if (!(Test-Path "c:\navpfiles\*")) {
     $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-    }
-
-    if ([System.Version]$genericTag -le [System.Version]"0.0.9.5") {
-
-        $setupWebClientFile = "$myfolder\SetupWebClient.ps1"
-        $setupWebClientContent = '. "C:\Run\SetupWebClient.ps1"'
-        if (Test-Path $setupWebClientFile) {
-            $setupWebClientContent = Get-Content -path $setupWebClientFile -raw
-        }
-
-        $setupWebClientContent = 'Write-Host "Registering event sources"
-"MicrosoftDynamicsNAVClientWebClient","MicrosoftDynamicsNAVClientClientService" | % {
-    if (-not [System.Diagnostics.EventLog]::SourceExists($_)) {
-        $frameworkDir = (Get-Item "HKLM:\SOFTWARE\Microsoft\.NETFramework").GetValue("InstallRoot")
-        New-EventLog -LogName Application -Source $_ -MessageResourceFile (get-item (Join-Path $frameworkDir "*\EventLogMessages.dll")).FullName
-    }
-}
-'+$setupWebClientContent
-
-        $setupWebClientContent | Set-Content -path $setupWebClientFile
-    }
-    elseif ([System.Version]$genericTag -le [System.Version]"0.0.9.96") {
-        $setupWebClientFile = "$myfolder\SetupWebClient.ps1"
-        if (!(Test-Path $SetupWebClientFile)) {
-            'try {
-    . "c:\run\setupWebClient.ps1"
-}
-catch {
-    Write-Host -ForegroundColor Yellow "WARNING: SetupWebClient failed, retrying in 10 seconds"
-    Start-Sleep -seconds 10
-    . "c:\run\setupWebClient.ps1"
-}
-' | Set-Content -path $setupWebClientFile
-        }
-
     }
 
     if ($assignPremiumPlan -and !$restoreBakFolder) {
@@ -1621,462 +1579,438 @@ if (-not `$restartingInstance) {
 
     Write-Host "Creating container $containerName from image $imageName"
 
-    if ([System.Version]$genericTag -ge [System.Version]"0.0.3.0") {
-        $passwordKeyFile = "$myfolder\aes.key"
-        $passwordKey = New-Object Byte[] 16
-        [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
-        $containerPasswordKeyFile = "c:\run\my\aes.key"
-        try {
-            Set-Content -Path $passwordKeyFile -Value $passwordKey
-            $encPassword = ConvertFrom-SecureString -SecureString $credential.Password -Key $passwordKey
-            
-            $parameters += @(
-                             "--env securePassword=$encPassword",
-                             "--env passwordKeyFile=""$containerPasswordKeyFile""",
-                             "--env removePasswordKeyFile=Y"
-                            )
-
-            if ($databaseCredential -ne $null -and $databaseCredential -ne [System.Management.Automation.PSCredential]::Empty) {
-
-                $encDatabasePassword = ConvertFrom-SecureString -SecureString $databaseCredential.Password -Key $passwordKey
-                $parameters += @(
-                                 "--env databaseUsername=$($databaseCredential.UserName)",
-                                 "--env databaseSecurePassword=$encDatabasePassword"
-                                 "--env encryptionSecurePassword=$encDatabasePassword"
-                                )
-            }
-            
-            $parameters += $additionalParameters
+    $passwordKeyFile = "$myfolder\aes.key"
+    $passwordKey = New-Object Byte[] 16
+    [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
+    $containerPasswordKeyFile = "c:\run\my\aes.key"
+    try {
+        Set-Content -Path $passwordKeyFile -Value $passwordKey
+        $encPassword = ConvertFrom-SecureString -SecureString $credential.Password -Key $passwordKey
         
-            if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
-                return
-            }
-            Wait-BcContainerReady $containerName -timeout $timeout
-        } finally {
-            Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
+        $parameters += @(
+                         "--env securePassword=$encPassword",
+                         "--env passwordKeyFile=""$containerPasswordKeyFile""",
+                         "--env removePasswordKeyFile=Y"
+                        )
+
+        if ($databaseCredential -ne $null -and $databaseCredential -ne [System.Management.Automation.PSCredential]::Empty) {
+
+            $encDatabasePassword = ConvertFrom-SecureString -SecureString $databaseCredential.Password -Key $passwordKey
+            $parameters += @(
+                             "--env databaseUsername=$($databaseCredential.UserName)",
+                             "--env databaseSecurePassword=$encDatabasePassword"
+                             "--env encryptionSecurePassword=$encDatabasePassword"
+                            )
         }
-    } else {
-        $plainPassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-        $parameters += "--env password=""$plainPassword"""
+        
         $parameters += $additionalParameters
+    
         if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
         Wait-BcContainerReady $containerName -timeout $timeout
+    } finally {
+        Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
     }
 
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-
-    if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
-        Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
-            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
-            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
-            Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
-        } -argumentList ($SqlServerMemoryLimit)
-    }
-
-    if ($addFontsFromPath) {
-        Add-FontsToBcContainer -containerName $containerName -path $addFontsFromPath
-    }
-
-    if ($featureKeys) {
-        Set-BcContainerFeatureKeys -containerName $containerName -featureKeys $featureKeys
-    }
-
-    if ("$TimeZoneId" -ne "") {
-        Write-Host "Set TimeZone in Container to $TimeZoneId"
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
-            $OldTimeZoneId = (Get-TimeZone).Id
-            try { 
-                if ($OldTimeZoneId -ne $TimeZoneId) { 
-                    Set-TimeZone -ID $TimeZoneId
-                }
-            }
-            catch {
-                Write-Host -ForegroundColor Yellow "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
-            }
-        } -argumentList $TimeZoneId
-    }
-
-    if ($useSSL -and $installCertificateOnHost) {
-        $certPath = Join-Path $containerFolder "certificate.cer"
-        if (Test-Path $certPath) {
-            $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\localMachine\Root"
-            if ($cert) {
-                Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
-                Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
-            }
+    if ($customConfig.ServerInstance) {
+        if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
+            Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
+                Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
+                Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
+                Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
+            } -argumentList ($SqlServerMemoryLimit)
         }
-    }
-
-    if ($shortcuts -ne "None") {
-        Write-Host "Creating Desktop Shortcuts for $containerName"
-        if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
-            $webClientUrl = $customConfig.PublicWebBaseUrl
-            if ($multitenant) {
-                $webClientUrl += "?tenant=default"
-            }
-            New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-            if ($includeTestToolkit) {
-                if ($version -ge [Version]("15.0.35528.0")) {
-                    $pageno = 130451
-                }
-                else {
-                    $pageno = 130401
-                }
-
-                if ($webClientUrl.Contains('?')) {
-                    $webClientUrl += "&page="
-                } else {
-                    $webClientUrl += "?page="
-                }
-                New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl$pageno" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                if ($includePerformanceToolkit) {
-                    New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                }
-            }
-            
+    
+        if ($addFontsFromPath) {
+            Add-FontsToBcContainer -containerName $containerName -path $addFontsFromPath
         }
-        
-        New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
-        New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
-    }
-
-    if ([System.Version]$genericTag -lt [System.Version]"0.0.4.4") {
-        if (Test-Path -Path "C:\windows\System32\t2embed.dll" -PathType Leaf) {
-            Copy-FileToBcContainer -containerName $containerName -localPath "C:\windows\System32\t2embed.dll" -containerPath "C:\Windows\System32\t2embed.dll"
+    
+        if ($featureKeys) {
+            Set-BcContainerFeatureKeys -containerName $containerName -featureKeys $featureKeys
         }
-    }
-
-    if ($auth -eq "AAD" -and [System.Version]$genericTag -le [System.Version]"0.0.9.2") {
-        Write-Host "Using AAD authentication, Microsoft.IdentityModel.dll is missing, download and copy"
-        $wifdll = Join-Path $containerFolder "Microsoft.IdentityModel.dll"
-        Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/Microsoft.IdentityModel.dll' -destinationFile $wifdll
-        $ps = 'Join-Path (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName "Microsoft.IdentityModel.dll"'
-        $containerWifDll = docker exec $containerName powershell $ps
-        Copy-FileToBcContainer -containerName $containerName -localPath $wifdll -containerPath $containerWifDll
-    }
-
-    if ($version -eq [System.Version]"14.10.40471.0") {
-        Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
-        $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
-        Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
-            Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
-        } -argumentList $idepsm
-        Remove-BcContainerSession -containerName $containerName
-    }
-
-    if ((($version -eq [System.Version]"16.0.11240.12076") -or ($version -eq [System.Version]"16.0.11240.12085")) -and $devCountry -ne "W1") {
-        $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
-        Write-Host "Downloading new test apps for this version from $url"
-        $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
-        Download-File -sourceUrl $url -destinationFile "$zipName.zip"
-        Write-Host "Extracting new test apps for this version " -NoNewline
-        Expand-7zipArchive -Path "$zipName.zip" -DestinationPath $zipname
-        Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
-            Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
-        } -argumentList $zipName, $devcountry
-    }
-
-    $sqlCredential = $databaseCredential
-    if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
-        $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
-    }
-
-    if ($restoreBakFolder) {
-        if ($multitenant) {
-            $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
-            $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
-            }
-            Restore-DatabasesInBcContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
+    
+        if ("$TimeZoneId" -ne "") {
+            Write-Host "Set TimeZone in Container to $TimeZoneId"
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($TimeZoneId)
+                $OldTimeZoneId = (Get-TimeZone).Id
+                try { 
+                    if ($OldTimeZoneId -ne $TimeZoneId) { 
+                        Set-TimeZone -ID $TimeZoneId
+                    }
+                }
+                catch {
+                    Write-Host -ForegroundColor Yellow "WARNING: Unable to set TimeZone to $TimeZoneId, TimeZone is $OldTimeZoneId"
+                }
+            } -argumentList $TimeZoneId
         }
-    }
-    else {
-        if ($enableSymbolLoading) {
-            # Unpublish symbols when running hybrid development
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                # Unpublish only, when Apps when present
-                # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
-                #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
-                Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+    
+        if ($useSSL -and $installCertificateOnHost) {
+            $certPath = Join-Path $containerFolder "certificate.cer"
+            if (Test-Path $certPath) {
+                $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\localMachine\Root"
+                if ($cert) {
+                    Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
+                    Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
+                }
             }
         }
     
-        if ($includeTestToolkit) {
-            Import-TestToolkitToBcContainer `
-                -containerName $containerName `
-                -sqlCredential $sqlCredential `
-                -includeTestLibrariesOnly:$includeTestLibrariesOnly `
-                -includeTestFrameworkOnly:$includeTestFrameworkOnly `
-                -includePerformanceToolkit:$includePerformanceToolkit `
-                -doNotUseRuntimePackages:$doNotUseRuntimePackages
-        }
-    }
-
-    if ($includeCSide) {
-        $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
-        New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
-        New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
-
-        $databaseInstance = $customConfig.DatabaseInstance
-        $databaseName = $customConfig.DatabaseName
-        $databaseServer = $customConfig.DatabaseServer
-        if ($databaseServer -eq "host.containerhelper.internal") {
-            $databaseServer = "localhost"
-            if ($databaseInstance) {
-                $databaseServer += "\$databaseInstance"
+        if ($shortcuts -ne "None") {
+            Write-Host "Creating Desktop Shortcuts for $containerName"
+            if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
+                $webClientUrl = $customConfig.PublicWebBaseUrl
+                if ($multitenant) {
+                    $webClientUrl += "?tenant=default"
+                }
+                New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                if ($includeTestToolkit) {
+                    if ($version -ge [Version]("15.0.35528.0")) {
+                        $pageno = 130451
+                    }
+                    else {
+                        $pageno = 130401
+                    }
+    
+                    if ($webClientUrl.Contains('?')) {
+                        $webClientUrl += "&page="
+                    } else {
+                        $webClientUrl += "?page="
+                    }
+                    New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl$pageno" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                    if ($includePerformanceToolkit) {
+                        New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                    }
+                }
+                
             }
-        } 
-        elseif ($databaseServer -eq "localhost") {
-            $databaseServer = "$containerName"
-            if (("$databaseInstance" -ne "") -and ("$databaseInstance" -ne "SQLEXPRESS")) {
-                $databaseServer += "\$databaseInstance"
+            
+            New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
+            New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
+        }
+    
+        if ($version -eq [System.Version]"14.10.40471.0") {
+            Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
+            $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
+            Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
+                Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
+            } -argumentList $idepsm
+            Remove-BcContainerSession -containerName $containerName
+        }
+    
+        if ((($version -eq [System.Version]"16.0.11240.12076") -or ($version -eq [System.Version]"16.0.11240.12085")) -and $devCountry -ne "W1") {
+            $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
+            Write-Host "Downloading new test apps for this version from $url"
+            $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
+            Download-File -sourceUrl $url -destinationFile "$zipName.zip"
+            Write-Host "Extracting new test apps for this version " -NoNewline
+            Expand-7zipArchive -Path "$zipName.zip" -DestinationPath $zipname
+            Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
+                Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
+            } -argumentList $zipName, $devcountry
+        }
+    
+        $sqlCredential = $databaseCredential
+        if ($sqlCredential -eq $null -and $auth -eq "NavUserPassword") {
+            $sqlCredential = New-Object System.Management.Automation.PSCredential ('sa', $credential.Password)
+        }
+    
+        if ($restoreBakFolder) {
+            if ($multitenant) {
+                $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
+                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
+                Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                    Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
+                }
+                Restore-DatabasesInBcContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
             }
         }
         else {
-            if ($databaseInstance) {
-                $databaseServer += "\$databaseInstance"
+            if ($enableSymbolLoading) {
+                # Unpublish symbols when running hybrid development
+                Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                    # Unpublish only, when Apps when present
+                    # Due to bug in 14.x - do NOT remove application symbols - they are used by some system functionality
+                    #Get-NavAppInfo -ServerInstance $ServerInstance -Name "Application" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+                    Get-NavAppInfo -ServerInstance $ServerInstance -Name "Test" -Publisher "Microsoft" -SymbolsOnly | Unpublish-NavApp
+                }
+            }
+        
+            if ($includeTestToolkit) {
+                Import-TestToolkitToBcContainer `
+                    -containerName $containerName `
+                    -sqlCredential $sqlCredential `
+                    -includeTestLibrariesOnly:$includeTestLibrariesOnly `
+                    -includeTestFrameworkOnly:$includeTestFrameworkOnly `
+                    -includePerformanceToolkit:$includePerformanceToolkit `
+                    -doNotUseRuntimePackages:$doNotUseRuntimePackages
             }
         }
-
-        if ($auth -eq "Windows") {
-            $ntauth="1"
-        } else {
-            $ntauth="0"
-        }
-        $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
-
-        if ($enableSymbolLoading) {
-            $csideParameters += ",generatesymbolreference=1"
-        }
-
-        New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts
-    }
-
-    if (($includeCSide -or $includeAL) -and !$doNotExportObjectsToText) {
-
-        # Include oldsyntax only if IncludeCSide is specified
-        # Include newsyntax if NAV Version is greater than NAV 2017
-
+    
         if ($includeCSide) {
-            $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
-            if (!(Test-Path $originalFolder)) {
-                # Export base objects
-                Export-NavContainerObjects -containerName $containerName `
-                                           -objectsFolder $originalFolder `
-                                           -filter "" `
-                                           -sqlCredential $sqlCredential `
-                                           -ExportTo 'txt folder'
+            $winClientFolder = (Get-Item "$programFilesFolder\*\RoleTailored Client").FullName
+            New-DesktopShortcut -Name "$containerName Windows Client" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config" -Shortcuts $shortcuts
+            New-DesktopShortcut -Name "$containerName WinClient Debugger" -TargetPath "$WinClientFolder\Microsoft.Dynamics.Nav.Client.exe" -Arguments "-settings:ClientUserSettings.config ""DynamicsNAV:////debug""" -Shortcuts $shortcuts
+    
+            $databaseInstance = $customConfig.DatabaseInstance
+            $databaseName = $customConfig.DatabaseName
+            $databaseServer = $customConfig.DatabaseServer
+            if ($databaseServer -eq "host.containerhelper.internal") {
+                $databaseServer = "localhost"
+                if ($databaseInstance) {
+                    $databaseServer += "\$databaseInstance"
+                }
+            } 
+            elseif ($databaseServer -eq "localhost") {
+                $databaseServer = "$containerName"
+                if (("$databaseInstance" -ne "") -and ("$databaseInstance" -ne "SQLEXPRESS")) {
+                    $databaseServer += "\$databaseInstance"
+                }
             }
+            else {
+                if ($databaseInstance) {
+                    $databaseServer += "\$databaseInstance"
+                }
+            }
+    
+            if ($auth -eq "Windows") {
+                $ntauth="1"
+            } else {
+                $ntauth="0"
+            }
+            $csideParameters = "servername=$databaseServer, Database=$databaseName, ntauthentication=$ntauth, ID=$containerName"
+    
+            if ($enableSymbolLoading) {
+                $csideParameters += ",generatesymbolreference=1"
+            }
+    
+            New-DesktopShortcut -Name "$containerName CSIDE" -TargetPath "$WinClientFolder\finsql.exe" -Arguments "$csideParameters" -Shortcuts $shortcuts
         }
-
-        if ($version.Major -ge 15) {
-            $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
-            if (!(Test-Path $alFolder) -or (Get-ChildItem -Path $alFolder -Recurse | Measure-Object).Count -eq 0) {
-                if (!(Test-Path $alFolder)) {
-                    New-Item $alFolder -ItemType Directory | Out-Null
-                }
-                if ($version -ge [Version]("15.0.35528.0")) {
-                    Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($alFolder, $country)
-                        [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.Filesystem") | Out-Null
-                        if (Test-Path "C:\Applications.$country") {
-                            $baseAppSource = @(get-childitem -Path "C:\Applications.*\*.*" -recurse -filter "Base Application.Source.zip")
-                        }
-                        else {
-                            $baseAppSource = @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Base Application.Source.zip")
-                        }
-                        if ($baseAppSource.Count -ne 1) {
-                            throw "Unable to locate Base Application.Source.zip"
-                        }
-                        Write-Host "Extracting $($baseAppSource[0].FullName)"
-                        [System.IO.Compression.ZipFile]::ExtractToDirectory($baseAppSource[0].FullName, $alFolder)
-                    } -argumentList (Get-BCContainerPath -containerName $containerName -path $alFolder), $devCountry
-                }
-                else {
-                    $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
-                    $appName = "Base Application"
-                    if ($version -lt [Version]("15.0.35659.0")) {
-                        $appName = "BaseApp"
-                    }
-                    Get-BcContainerApp -containerName $containerName `
-                                        -publisher Microsoft `
-                                        -appName $appName `
-                                        -appFile $appFile `
-                                        -credential $credential
     
-                    $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
-                    Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
+        if (($includeCSide -or $includeAL) -and !$doNotExportObjectsToText) {
     
-                    'layout','src','translations' | ForEach-Object {
-                        if (Test-Path (Join-Path $appFolder $_)) {
-                            Copy-Item -Path (Join-Path $appFolder $_) -Destination $alFolder -Recurse -Force
-                        }
-                    }
+            # Include oldsyntax only if IncludeCSide is specified
+            # Include newsyntax if NAV Version is greater than NAV 2017
     
-                    Remove-Item -Path $appFolder -Recurse -Force
-                    Remove-Item -Path $appFile -Force
+            if ($includeCSide) {
+                $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
+                if (!(Test-Path $originalFolder)) {
+                    # Export base objects
+                    Export-NavContainerObjects -containerName $containerName `
+                                               -objectsFolder $originalFolder `
+                                               -filter "" `
+                                               -sqlCredential $sqlCredential `
+                                               -ExportTo 'txt folder'
                 }
             }
-        }
-        elseif ($version.Major -gt 10) {
-            $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
-            if (!(Test-Path $originalFolder)) {
-                # Export base objects as new syntax
-                Export-NavContainerObjects -containerName $containerName `
-                                           -objectsFolder $originalFolder `
-                                           -filter "" `
-                                           -sqlCredential $sqlCredential `
-                                           -ExportTo 'txt folder (new syntax)'
-            }
-            if ($version.Major -ge 14 -and $includeAL) {
+    
+            if ($version.Major -ge 15) {
                 $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
-                if ($runTxt2AlInContainer -ne $containerName) {
-                    Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
-                    if (Test-Path $alFolder) {
-                        Write-Host "Removing existing AL folder $alFolder"
-                        Remove-Item -Path $alFolder -Recurse -Force
+                if (!(Test-Path $alFolder) -or (Get-ChildItem -Path $alFolder -Recurse | Measure-Object).Count -eq 0) {
+                    if (!(Test-Path $alFolder)) {
+                        New-Item $alFolder -ItemType Directory | Out-Null
+                    }
+                    if ($version -ge [Version]("15.0.35528.0")) {
+                        Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($alFolder, $country)
+                            [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.Filesystem") | Out-Null
+                            if (Test-Path "C:\Applications.$country") {
+                                $baseAppSource = @(get-childitem -Path "C:\Applications.*\*.*" -recurse -filter "Base Application.Source.zip")
+                            }
+                            else {
+                                $baseAppSource = @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Base Application.Source.zip")
+                            }
+                            if ($baseAppSource.Count -ne 1) {
+                                throw "Unable to locate Base Application.Source.zip"
+                            }
+                            Write-Host "Extracting $($baseAppSource[0].FullName)"
+                            [System.IO.Compression.ZipFile]::ExtractToDirectory($baseAppSource[0].FullName, $alFolder)
+                        } -argumentList (Get-BCContainerPath -containerName $containerName -path $alFolder), $devCountry
+                    }
+                    else {
+                        $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
+                        $appName = "Base Application"
+                        if ($version -lt [Version]("15.0.35659.0")) {
+                            $appName = "BaseApp"
+                        }
+                        Get-BcContainerApp -containerName $containerName `
+                                            -publisher Microsoft `
+                                            -appName $appName `
+                                            -appFile $appFile `
+                                            -credential $credential
+        
+                        $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
+                        Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
+        
+                        'layout','src','translations' | ForEach-Object {
+                            if (Test-Path (Join-Path $appFolder $_)) {
+                                Copy-Item -Path (Join-Path $appFolder $_) -Destination $alFolder -Recurse -Force
+                            }
+                        }
+        
+                        Remove-Item -Path $appFolder -Recurse -Force
+                        Remove-Item -Path $appFile -Force
                     }
                 }
-                if (!(Test-Path $alFolder)) {
-                    $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
-                    Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+            }
+            elseif ($version.Major -gt 10) {
+                $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
+                if (!(Test-Path $originalFolder)) {
+                    # Export base objects as new syntax
+                    Export-NavContainerObjects -containerName $containerName `
+                                               -objectsFolder $originalFolder `
+                                               -filter "" `
+                                               -sqlCredential $sqlCredential `
+                                               -ExportTo 'txt folder (new syntax)'
+                }
+                if ($version.Major -ge 14 -and $includeAL) {
+                    $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
                     if ($runTxt2AlInContainer -ne $containerName) {
                         Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
+                        if (Test-Path $alFolder) {
+                            Write-Host "Removing existing AL folder $alFolder"
+                            Remove-Item -Path $alFolder -Recurse -Force
+                        }
                     }
-                    Convert-Txt2Al -containerName $runTxt2AlInContainer -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
-                }
-            }
-        }
-    }
-
-    if ($includeAL) {
-        $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
-        New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-
-        Write-Host "Creating .net Assembly Reference Folder for VS Code"
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
-
-            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-
-            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
-
-            $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
-            if (Test-Path $rtcFolder -PathType Container) {
-                $paths += (Get-Item $rtcFolder).FullName
-            }
-            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
-            if (Test-Path $mockAssembliesPath -PathType Container) {
-                $paths += $mockAssembliesPath
-            }
-            $paths += "C:\Program Files (x86)\Open XML SDK"
-
-            $paths | % {
-                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
-                if (!(Test-Path $localPath)) {
-                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
-                }
-                Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
-                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
-                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                    if (!(Test-Path $alFolder)) {
+                        $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
+                        Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
+                        if ($runTxt2AlInContainer -ne $containerName) {
+                            Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
+                        }
+                        Convert-Txt2Al -containerName $runTxt2AlInContainer -myDeltaFolder $originalFolder -myAlFolder $alFolder -startId 50100 -dotNetAddInsPackage $dotNetAddInsPackage
                     }
                 }
             }
-
-            $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
-            if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
-                if (Test-Path $RtcFolder -PathType Container) {
-                    new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
-                }
-            }
-        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
-    }
-
-    if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
-        Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential -doNotCopyEntitlements:$doNotCopyEntitlements -copyTables $copyTables
-        if ($multitenant) {
-            Write-Host "Switching to multitenant"
-            
-            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
-            
-                $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-                [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-                $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
-                $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-                $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
-
-                Set-NavserverInstance -ServerInstance $serverInstance -stop
-                Copy-NavDatabase -SourceDatabaseName $databaseName -DestinationDatabaseName "tenant"
-                Remove-NavDatabase -DatabaseName $databaseName
-                Write-Host "Exporting Application to $DatabaseName"
-                Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query 'CREATE USER "NT AUTHORITY\SYSTEM" FOR LOGIN "NT AUTHORITY\SYSTEM";'
-                Export-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -DestinationDatabaseName $databaseName -Force -ServiceAccount 'NT AUTHORITY\SYSTEM' | Out-Null
-                Write-Host "Removing Application from tenant"
-                Remove-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -Force | Out-Null
-                Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
-                Set-NavserverInstance -ServerInstance $serverInstance -start
-            }
-            $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
-            New-BcContainerTenant -containerName $containerName -tenantId default -allowAppDatabaseWrite:$allowAppDatabaseWrite
         }
-    }
-    elseif ($artifactUrl -ne "" -and $databaseServer -ne "" -and $databasePrefix -ne "" -and $databaseName -ne "" -and $replaceExternalDatabases) {
-        if ($multitenant) {
-            $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
-            New-NavContainerTenant `
+    
+        if ($includeAL) {
+            $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
+            New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+    
+            Write-Host "Creating .net Assembly Reference Folder for VS Code"
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+    
+                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+    
+                $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
+    
+                $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
+                if (Test-Path $rtcFolder -PathType Container) {
+                    $paths += (Get-Item $rtcFolder).FullName
+                }
+                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                if (Test-Path $mockAssembliesPath -PathType Container) {
+                    $paths += $mockAssembliesPath
+                }
+                $paths += "C:\Program Files (x86)\Open XML SDK"
+    
+                $paths | % {
+                    $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                    if (!(Test-Path $localPath)) {
+                        New-Item -Path $localPath -ItemType Directory -Force | Out-Null
+                    }
+                    Write-Host "Copying DLLs from $_ to assemblyProbingPath"
+                    Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
+                        if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                            Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                        }
+                    }
+                }
+    
+                $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
+                if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
+                    if (Test-Path $RtcFolder -PathType Container) {
+                        new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
+                    }
+                }
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
+        }
+    
+        if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
+            Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential -doNotCopyEntitlements:$doNotCopyEntitlements -copyTables $copyTables
+            if ($multitenant) {
+                Write-Host "Switching to multitenant"
+                
+                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
+                
+                    $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+                    [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+                    $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+                    $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+                    $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+    
+                    Set-NavserverInstance -ServerInstance $serverInstance -stop
+                    Copy-NavDatabase -SourceDatabaseName $databaseName -DestinationDatabaseName "tenant"
+                    Remove-NavDatabase -DatabaseName $databaseName
+                    Write-Host "Exporting Application to $DatabaseName"
+                    Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query 'CREATE USER "NT AUTHORITY\SYSTEM" FOR LOGIN "NT AUTHORITY\SYSTEM";'
+                    Export-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -DestinationDatabaseName $databaseName -Force -ServiceAccount 'NT AUTHORITY\SYSTEM' | Out-Null
+                    Write-Host "Removing Application from tenant"
+                    Remove-NAVApplication -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance -DatabaseName "tenant" -Force | Out-Null
+                    Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
+                    Set-NavserverInstance -ServerInstance $serverInstance -start
+                }
+                $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
+                New-BcContainerTenant -containerName $containerName -tenantId default -allowAppDatabaseWrite:$allowAppDatabaseWrite
+            }
+        }
+        elseif ($artifactUrl -ne "" -and $databaseServer -ne "" -and $databasePrefix -ne "" -and $databaseName -ne "" -and $replaceExternalDatabases) {
+            if ($multitenant) {
+                $allowAppDatabaseWrite = ($additionalparameters | Where-Object { $_ -like "*defaultTenantHasAllowAppDatabaseWrite=Y" }) -ne $null
+                New-NavContainerTenant `
+                    -containerName $containerName `
+                    -tenantId 'default' `
+                    -sqlCredential $databaseCredential `
+                    -sourceDatabase "$($databasePrefix)tenant" `
+                    -destinationDatabase "$($databasePrefix)default" `
+                    -allowAppDatabaseWrite:$allowAppDatabaseWrite
+            }
+            
+            New-NavContainerNavUser `
                 -containerName $containerName `
-                -tenantId 'default' `
-                -sqlCredential $databaseCredential `
-                -sourceDatabase "$($databasePrefix)tenant" `
-                -destinationDatabase "$($databasePrefix)default" `
-                -allowAppDatabaseWrite:$allowAppDatabaseWrite
+                -tenant 'default' `
+                -Credential $credential `
+                -PermissionSetId 'SUPER' `
+                -ChangePasswordAtNextLogOn:$false
         }
-        
-        New-NavContainerNavUser `
-            -containerName $containerName `
-            -tenant 'default' `
-            -Credential $credential `
-            -PermissionSetId 'SUPER' `
-            -ChangePasswordAtNextLogOn:$false
+    
+        if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {
+            Invoke-Command -ScriptBlock $finalizeDatabasesScriptBlock
+        }
+    
+        if ($bakFolder -and !$restoreBakFolder) {
+            Backup-BcContainerDatabases -containerName $containerName -bakFolder $bakFolder
+        }
+    
+        Write-Host -ForegroundColor Green "Container $containerName successfully created"
+    
+        if ($useTraefik) {
+            Write-Host -ForegroundColor Yellow "Because of Traefik, the following URLs need to be used when accessing the container from outside your Docker host:"
+            Write-Host "Web Client:        $webclientUrl"
+            Write-Host "SOAP WebServices:  $soapUrl"
+            Write-Host "OData WebServices: $restUrl"
+            Write-Host "Dev Service:       $devUrl"
+            Write-Host "File downloads:    $dlUrl"
+        }
+    
+        Write-Host
+        Write-Host "Use:"
+        Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog -containerName $containerName"
+        Write-Host " to retrieve a snapshot of the event log from the container"
+        Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo -containerName $containerName"
+        Write-Host  " to get debug information about the container"
+        Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer -containerName $containerName"
+        Write-Host " to open a PowerShell prompt inside the container"
+        Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer -containerName $containerName"
+        Write-Host " to remove the container again"
+        Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
+        Write-Host " to retrieve information about URL's again"
     }
-
-    if (!$restoreBakFolder -and $finalizeDatabasesScriptBlock) {
-        Invoke-Command -ScriptBlock $finalizeDatabasesScriptBlock
-    }
-
-    if ($bakFolder -and !$restoreBakFolder) {
-        Backup-BcContainerDatabases -containerName $containerName -bakFolder $bakFolder
-    }
-
-    Write-Host -ForegroundColor Green "Container $containerName successfully created"
-
-    if ($useTraefik) {
-        Write-Host -ForegroundColor Yellow "Because of Traefik, the following URLs need to be used when accessing the container from outside your Docker host:"
-        Write-Host "Web Client:        $webclientUrl"
-        Write-Host "SOAP WebServices:  $soapUrl"
-        Write-Host "OData WebServices: $restUrl"
-        Write-Host "Dev Service:       $devUrl"
-        Write-Host "File downloads:    $dlUrl"
-    }
-
-    Write-Host
-    Write-Host "Use:"
-    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerEventLog -containerName $containerName"
-    Write-Host " to retrieve a snapshot of the event log from the container"
-    Write-Host -ForegroundColor Yellow -NoNewline "Get-BcContainerDebugInfo -containerName $containerName"
-    Write-Host  " to get debug information about the container"
-    Write-Host -ForegroundColor Yellow -NoNewline "Enter-BcContainer -containerName $containerName"
-    Write-Host " to open a PowerShell prompt inside the container"
-    Write-Host -ForegroundColor Yellow -NoNewline "Remove-BcContainer -containerName $containerName"
-    Write-Host " to remove the container again"
-    Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
-    Write-Host " to retrieve information about URL's again"
 }
 Set-Alias -Name New-NavContainer -Value New-BcContainer
 Export-ModuleMember -Function New-BcContainer -Alias New-NavContainer

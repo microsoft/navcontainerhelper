@@ -70,7 +70,9 @@ function Publish-BcContainerApp {
         [hashtable] $replaceDependencies = $null,
         [ValidateSet('Ignore','True','False','Check')]
         [string] $ShowMyCode = "Ignore",
-        [string] $PublisherAzureActiveDirectoryTenantId
+        [string] $PublisherAzureActiveDirectoryTenantId,
+        [Hashtable] $bcAuthContext,
+        [string] $environment
     )
 
     Add-Type -AssemblyName System.Net.Http
@@ -86,7 +88,9 @@ function Publish-BcContainerApp {
         "language" = $language
         "replaceDependencies" = $replaceDependencies
         "ShowMyCode" = $showMyCode
-        "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId 
+        "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId
+        "bcAuthContext" = $bcAuthContext
+        "environment" = $environment
     }
     if ($syncMode) { $Params += @{ "SyncMode" = $syncMode } }
     if ($packageType) { $Params += @{ "packageType" = $packageType } }
@@ -150,60 +154,85 @@ function Publish-BcContainerApp {
         $copied = $true
     }
 
+    if ($bcAuthContext -and $environment) {
+        $useDevEndpoint = $true
+    }
+    elseif ($customconfig.ServerInstance -eq "") {
+        throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
+    }
+
     if ($useDevEndpoint) {
 
         if ($scope -eq "Global") {
             throw "You cannot publish to global scope using the dev. endpoint"
         }
 
-        $handler = New-Object  System.Net.Http.HttpClientHandler
-        if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-            $handler.UseDefaultCredentials = $true
-        }
-        $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-        if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
-            if (!($credential)) {
-                throw "You need to specify credentials when you are not using Windows Authentication"
+        $sslVerificationDisabled = $false
+        if ($bcAuthContext -and $environment) {
+            $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+            $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment -and $_.Type -eq "Sandbox" }
+            if (!$bcEnvironment) {
+                throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
             }
-            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-            $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-            $base64 = [System.Convert]::ToBase64String($bytes)
-            $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
+            $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
+            $tenant = ""
+
+            $handler = New-Object System.Net.Http.HttpClientHandler
+            $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+            $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
+            $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+            $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
         }
-        $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-        $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+        else {
+            $handler = New-Object System.Net.Http.HttpClientHandler
+            if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+                $handler.UseDefaultCredentials = $true
+            }
+            $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+            if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
+                if (!($credential)) {
+                    throw "You need to specify credentials when you are not using Windows Authentication"
+                }
+                $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+                $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+                $base64 = [System.Convert]::ToBase64String($bytes)
+                $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
+            }
+            $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+            $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+            
+            if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
+                $protocol = "https://"
+            }
+            else {
+                $protocol = "http://"
+            }
         
-        if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
-            $protocol = "https://"
-        }
-        else {
-            $protocol = "http://"
-        }
-    
-        $ip = Get-BcContainerIpAddress -containerName $containerName
-        if ($ip) {
-            $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-        }
-        else {
-            $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-        }
-    
-        $sslVerificationDisabled = ($protocol -eq "https://")
-        if ($sslVerificationDisabled) {
-            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-            {
-                Add-Type -TypeDefinition "
-                    using System.Net.Security;
-                    using System.Security.Cryptography.X509Certificates;
-                    public static class SslVerification
-                    {
-                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                    }"
+            $ip = Get-BcContainerIpAddress -containerName $containerName
+            if ($ip) {
+                $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
             }
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
+            else {
+                $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
+            }
+        
+            $sslVerificationDisabled = ($protocol -eq "https://")
+            if ($sslVerificationDisabled) {
+                if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+                {
+                    Add-Type -TypeDefinition "
+                        using System.Net.Security;
+                        using System.Security.Cryptography.X509Certificates;
+                        public static class SslVerification
+                        {
+                            private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                            public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                            public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                        }"
+                }
+                Write-Host "Disabling SSL Verification"
+                [SslVerification]::Disable()
+            }
         }
         
         $schemaUpdateMode = "synchronize"
@@ -213,7 +242,10 @@ function Publish-BcContainerApp {
         elseif ($syncMode -eq "ForceSync") {
             $schemaUpdateMode = "forcesync"
         }
-        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&tenant=$tenant"
+        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
+        if ($tenant) {
+            $url += "&tenant=$tenant"
+        }
         
         $appName = [System.IO.Path]::GetFileName($appFile)
         

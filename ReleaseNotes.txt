@@ -1,5 +1,11 @@
 1.0.20
 Issue #1596 support URLs in previousApps in Run-AlValidation
+Issue #1606 do not prune when creating images
+Remove compatibility for ancient generic image versions from New-BcContainer
+New function New-BcAuthContext to create an authContext for BC SaaS based on credentials, a refresh token or a device login
+New function Renew-BcAuthContext to renew an authContext for BC SaaS if necessary
+Added parameteres bcAuthContext and environment to Compile-AppInBcContainer to allow Compile-AppInBcContainer to download symbols from BC SaaS
+Added parameteres bcAuthContext and environment to Publish-AppToBcContainer to allow Publish-AppToBcContainer to publish apps to BC SaaS
 
 1.0.19
 Move retry algorithm to Download-File
