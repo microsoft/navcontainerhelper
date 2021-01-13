@@ -6,6 +6,7 @@ New function New-BcAuthContext to create an authContext for BC SaaS based on cre
 New function Renew-BcAuthContext to renew an authContext for BC SaaS if necessary
 Added parameteres bcAuthContext and environment to Compile-AppInBcContainer to allow Compile-AppInBcContainer to download symbols from BC SaaS
 Added parameteres bcAuthContext and environment to Publish-AppToBcContainer to allow Publish-AppToBcContainer to publish apps to BC SaaS
+Issue #1613 wrong display of reclaimed space
 
 1.0.19
 Move retry algorithm to Download-File
