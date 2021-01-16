@@ -62,6 +62,10 @@ function New-BcAuthContext {
                 "ClientSecret" = $clientSecret
                 "scopes"       = $scopes
             }
+            if ($tenantID -eq "Common") {
+                Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                $authContext.TenantId = $jwtToken.tid
+            }
 
         }
         catch {
@@ -98,6 +102,10 @@ function New-BcAuthContext {
                     "ClientSecret" = $null
                     "scopes"       = ""
                 }
+                if ($tenantID -eq "Common") {
+                    Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                    $authContext.TenantId = $jwtToken.tid
+                }
             }
             catch {
                 $exception = $_.Exception
@@ -130,6 +138,10 @@ function New-BcAuthContext {
                         "Credential"   = $null
                         "ClientSecret" = $null
                         "scopes"       = ""
+                    }
+                    if ($tenantID -eq "Common") {
+                        Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                        $authContext.TenantId = $jwtToken.tid
                     }
                 }
                 catch {
@@ -228,6 +240,10 @@ function New-BcAuthContext {
                             "Credential"   = $null
                             "ClientSecret" = $null
                             "scopes"       = ""
+                        }
+                        if ($tenantID -eq "Common") {
+                            Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                            $authContext.TenantId = $jwtToken.tid
                         }
                     }
                     catch {
