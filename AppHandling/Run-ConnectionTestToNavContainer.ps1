@@ -48,65 +48,84 @@ function Run-ConnectionTestToBcContainer {
         [switch] $debugMode,
         [switch] $usePublicWebBaseUrl,
         [string] $useUrl = "",
-        [switch] $connectFromHost
+        [switch] $connectFromHost,
+        [Hashtable] $bcAuthContext,
+        [string] $environment = "sand2"
     )
     
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
 
-    $useTraefik = $false
-    $inspect = docker inspect $containerName | ConvertFrom-Json
-    if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
-        if ($inspect.config.Labels.'traefik.enable' -eq "true") {
-            $usePublicWebBaseUrl = ($useUrl -eq "")
-            $useTraefik = $true
+    if ($bcAuthContext) {
+        $connectFromHost = $true
+
+        $response = Invoke-RestMethod -Method Get -Uri "https://businesscentral.dynamics.com/$($bcAuthContext.tenantID)/$environment/deployment/url"
+        if($response.status -ne 'Ready') {
+            throw "environment not ready, status is $($response.status)"
         }
+        $useUrl = $response.data.Split('?')[0]
+        $tenant = ($response.data.Split('?')[1]).Split('=')[1]
+
+        $bcAuthContext = Renew-BcAuthContext $bcAuthContext
+        $accessToken = $bcAuthContext.accessToken
+        $credential = New-Object pscredential -ArgumentList 'freddyk', (ConvertTo-SecureString -String 'P@ssword1' -AsPlainText -Force)
+    }
+    else {
+        $clientServicesCredentialType = $customConfig.ClientServicesCredentialType
+
+        $useTraefik = $false
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
+            if ($inspect.config.Labels.'traefik.enable' -eq "true") {
+                $usePublicWebBaseUrl = ($useUrl -eq "")
+                $useTraefik = $true
+            }
+        }
+
+        if ($usePublicWebBaseUrl -and $useUrl -ne "") {
+            throw "You cannot specify usePublicWebBaseUrl and useUrl at the same time"
+        }
+    
+        if ($customConfig.PublicWebBaseUrl -eq "") {
+            throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
+        }
+
+        if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
+            $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
+            Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
+                $companyName = $_.Company
+            }
+        }
+
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
+            $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
+            try {
+                $webConfig = [xml](Get-Content $webConfigFile)
+                $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.GetNamedItem('requestTimeout')
+                if (!($node)) {
+                    $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
+                }
+                if ($node.Value -ne $timeoutStr) {
+                    $node.Value = $timeoutStr
+                    $webConfig.Save($webConfigFile)
+                }
+            }
+            catch {
+                Write-Host "WARNING: could not set requestTimeout in web.config"
+            }
+        } -argumentList $interactionTimeout.ToString()
     }
 
     $PsTestToolFolder = Join-Path $extensionsFolder "$containerName\PsConnectionTestTool"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
-    $serverConfiguration = Get-BcContainerServerConfiguration -ContainerName $containerName
-    $clientServicesCredentialType = $serverConfiguration.ClientServicesCredentialType
-
-    if ($usePublicWebBaseUrl -and $useUrl -ne "") {
-        throw "You cannot specify usePublicWebBaseUrl and useUrl at the same time"
-    }
-
-    if ($serverConfiguration.PublicWebBaseUrl -eq "") {
-        throw "Container $containerName needs to include the WebClient in order to run tests (PublicWebBaseUrl is blank)"
-    }
 
     if (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
         New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
         Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestFunctionsPath -Force
         Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $ClientContextPath -Force
     }
-
-    if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
-        $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
-        Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
-            $companyName = $_.Company
-        }
-    }
-
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
-        $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
-        try {
-            $webConfig = [xml](Get-Content $webConfigFile)
-            $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.GetNamedItem('requestTimeout')
-            if (!($node)) {
-                $node = $webConfig.configuration.'system.webServer'.aspNetCore.Attributes.Append($webConfig.CreateAttribute('requestTimeout'))
-            }
-            if ($node.Value -ne $timeoutStr) {
-                $node.Value = $timeoutStr
-                $webConfig.Save($webConfigFile)
-            }
-        }
-        catch {
-            Write-Host "WARNING: could not set requestTimeout in web.config"
-        }
-    } -argumentList $interactionTimeout.ToString()
 
     if ($connectFromHost) {
         $newtonSoftDllPath = Join-Path $PsTestToolFolder "NewtonSoft.json.dll"
@@ -124,14 +143,12 @@ function Run-ConnectionTestToBcContainer {
             }
         } -argumentList $newtonSoftDllPath, $clientDllPath
     
-        $config = Get-BcContainerServerConfiguration -ContainerName $containerName
         if ($useUrl) {
             $publicWebBaseUrl = $useUrl.TrimEnd('/')
         }
         else {
-            $publicWebBaseUrl = $config.PublicWebBaseUrl.TrimEnd('/')
+            $publicWebBaseUrl = $customConfig.PublicWebBaseUrl.TrimEnd('/')
         }
-        $clientServicesCredentialType = $config.ClientServicesCredentialType
         $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
     
         if ($accessToken) {

@@ -14,7 +14,7 @@ if (!($clientContextScriptPath)) {
     $clientContextScriptPath = Join-Path $PSScriptRoot "ClientContext.ps1"
 }
 
-. $clientContextScriptPath
+. $clientContextScriptPath -clientDllPath $clientDllPath
 
 function New-ClientContext {
     Param(
@@ -157,7 +157,7 @@ function Get-Tests {
 
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
-        throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
+        throw "Cannot open page $testPage. You might need to import the test toolkit and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
@@ -169,7 +169,7 @@ function Get-Tests {
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
 
-    $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
+    $repeater = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientRepeaterControl])
     $index = 0
     if ($testPage -eq 130455) {
         if ($debugMode) {
@@ -432,7 +432,7 @@ function Run-Tests {
         
             if (!$connectFromHost) {
                 $cimInstance = Get-CIMInstance Win32_OperatingSystem
-                try { $cpu = "$($process.CPU.ToString("F3",[CultureInfo]::InvariantCulture))" } catch { $cpu = "n/a" }
+                try { $cpu = "$($process.CPU.ToString("F3",[cultureinfo]::InvariantCulture))" } catch { $cpu = "n/a" }
                 try { $mem = "$(($cimInstance.FreePhysicalMemory/1048576).ToString("F1",[CultureInfo]::InvariantCulture))" } catch { $mem = "n/a" }
                 $processinfostart = "{ ""CPU"": ""$cpu"", ""Free Memory (Gb)"": ""$mem"" }"
             }
@@ -670,8 +670,8 @@ function Run-Tests {
             Write-Host "Using repeater based test-runner"
         }
         
-        $filterControl = $clientContext.GetControlByType($form, [ClientFilterLogicalControl])
-        $repeater = $clientContext.GetControlByType($form, [ClientRepeaterControl])
+        $filterControl = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientFilterLogicalControl])
+        $repeater = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientRepeaterControl])
         $index = 0
         if ($testPage -eq 130455) {
             if ($debugMode) {

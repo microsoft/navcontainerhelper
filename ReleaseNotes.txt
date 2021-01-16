@@ -6,6 +6,13 @@ New function New-BcAuthContext to create an authContext for BC SaaS based on cre
 New function Renew-BcAuthContext to renew an authContext for BC SaaS if necessary
 Added parameteres bcAuthContext and environment to Compile-AppInBcContainer to allow Compile-AppInBcContainer to download symbols from BC SaaS
 Added parameteres bcAuthContext and environment to Publish-AppToBcContainer to allow Publish-AppToBcContainer to publish apps to BC SaaS
+Issue #1613 wrong display of reclaimed space
+Added parameters after and before to Get-BcArtifactUrl to filter out artifacts created before after or after before
+Added outcome First to the Select parameter in Get-BcArtifactUrl to allow grabbing the first artifact mathing a filter
+Added new function Install-BcAppFromAppSource to install an AppSource App into a BC SaaS environment
+Added parameter includeTestRunnerOnly to Import-TestToolkitToBcContainer to allow importing only Test Runner
+Added parameteres bcAuthContext and environment to Import-TestToolkitToBcContainer to allow running tests on BC SaaS Sandbox environments (Test Runner is the only app in AppSource at the moment, TestFramework apps will be added)
+Added parameteres bcAuthContext and environment to Run-TestsInBcContainer to allow running tests on BC SaaS Sandbox environments
 
 1.0.19
 Move retry algorithm to Download-File

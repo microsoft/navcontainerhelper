@@ -263,27 +263,29 @@ function GetTestToolkitApps {
         [string] $containerName,
         [switch] $includeTestLibrariesOnly,
         [switch] $includeTestFrameworkOnly,
+        [switch] $includeTestRunnerOnly,
         [switch] $includePerformanceToolkit
     )
 
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit)
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit)
     
         # Add Test Framework
-        $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
-        $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+        $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+
+        if (!$includeTestRunnerOnly) {
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
+
+            if (!$includeTestFrameworkOnly) {
+                # Add Test Libraries
+                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                    @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+                }
     
-
-        if (!$includeTestFrameworkOnly) {
-            
-            # Add Test Libraries
-            $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
-                @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
-            }
-
-            if (!$includeTestLibrariesOnly) {
-
-                # Add Tests
-                $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                if (!$includeTestLibrariesOnly) {
+    
+                    # Add Tests
+                    $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and $_ -notlike "*\Microsoft_Tests-Marketing.app" -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                }
             }
         }
 
@@ -301,7 +303,7 @@ function GetTestToolkitApps {
             }
             $appFile
         }
-    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includePerformanceToolkit
+    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
 }
 
 function GetExtenedErrorMessage {
@@ -684,4 +686,33 @@ function Test-BcAuthContext {
           ($bcAuthContext.ContainsKey('deviceLoginTimeout')))) {
         throw 'BcAuthContext should be a HashTable created by New-BcAuthContext.'
     }
+}
+
+Function CreatePsTestToolFolder {
+    Param(
+        [string] $containerName,
+        [string] $PsTestToolFolder
+    )
+
+    $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
+    $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
+    $newtonSoftDllPath = Join-Path $PsTestToolFolder "NewtonSoft.json.dll"
+    $clientDllPath = Join-Path $PsTestToolFolder "Microsoft.Dynamics.Framework.UI.Client.dll"
+
+    if (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
+        New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
+        Copy-Item -Path (Join-Path $PSScriptRoot "AppHandling\PsTestFunctions.ps1") -Destination $PsTestFunctionsPath -Force
+        Copy-Item -Path (Join-Path $PSScriptRoot "AppHandling\ClientContext.ps1") -Destination $ClientContextPath -Force
+    }
+
+    Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
+        if (!(Test-Path $myNewtonSoftDllPath)) {
+            $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+            Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
+        }
+        if (!(Test-Path $myClientDllPath)) {
+            $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
+            Copy-Item -Path $clientDllPath -Destination $myClientDllPath
+        }
+    } -argumentList $newtonSoftDllPath, $clientDllPath
 }

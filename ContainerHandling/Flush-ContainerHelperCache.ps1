@@ -118,7 +118,9 @@ function Flush-ContainerHelperCache {
                 }
             }
         }
-        docker image prune -f
+        Write-Host "Running Docker image prune"
+        docker image prune -f > $null
+        Write-Host "Completed"
     }
 }
 Export-ModuleMember -Function Flush-ContainerHelperCache

@@ -36,8 +36,10 @@ function Get-BCArtifactUrl {
         [String] $type = 'Sandbox',
         [String] $country = '',
         [String] $version = '',
-        [ValidateSet('Latest', 'All', 'Closest', 'SecondToLastMajor', 'Current', 'NextMinor', 'NextMajor')]
+        [ValidateSet('Latest', 'First', 'All', 'Closest', 'SecondToLastMajor', 'Current', 'NextMinor', 'NextMajor')]
         [String] $select = 'Latest',
+        [DateTime] $after,
+        [DateTime] $before,
         [String] $storageAccount = '',
         [String] $sasToken = '',
         [switch] $doNotCheckPlatform
@@ -140,7 +142,28 @@ function Get-BCArtifactUrl {
                     $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker"
                     $enumerationResults = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults
                     if ($enumerationResults.Blobs) {
-                        $Artifacts += $enumerationResults.Blobs.Blob.Name
+                        $enumerationResults.Blobs.Blob | % {
+                            if ($after) {
+                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                if ($before) {
+                                    if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                        $Artifacts += $_.Name
+                                    }
+                                }
+                                elseif ($blobModifiedDate -gt $after) {
+                                    $Artifacts += $_.Name
+                                }
+                            }
+                            elseif ($before) {
+                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                if ($blobModifiedDate -lt $before) {
+                                    $Artifacts += $_.Name
+                                }
+                            }
+                            else {
+                                $Artifacts += $_.Name
+                            }
+                        }
                     }
                     $nextMarker = $enumerationResults.NextMarker
                     if ($nextMarker) {
@@ -174,6 +197,11 @@ function Get-BCArtifactUrl {
                         $Artifacts = $Artifacts |
                             Sort-Object { [Version]($_.Split('/')[0]) } |
                             Select-Object -Last 1
+                    }
+                    'First' { 
+                        $Artifacts = $Artifacts |
+                            Sort-Object { [Version]($_.Split('/')[0]) } |
+                            Select-Object -First 1
                     }
                     'SecondToLastMajor' { 
                         $Artifacts = $Artifacts |

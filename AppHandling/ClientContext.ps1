@@ -1,6 +1,25 @@
 ﻿#requires -Version 5.0
-using namespace Microsoft.Dynamics.Framework.UI.Client
-using namespace Microsoft.Dynamics.Framework.UI.Client.Interactions
+Param(
+    [Parameter(Mandatory=$true)]
+    [string] $clientDllPath
+)
+
+$source = @'
+public class MyOpenFormInteraction : Microsoft.Dynamics.Framework.UI.Client.Interactions.OpenFormInteraction
+{
+    public string Filter { get; set; }
+
+    protected override void GetNamedParameters(System.Collections.Generic.IDictionary<string, object> namedParameters)
+    {
+        base.GetNamedParameters(namedParameters);
+        if (!string.IsNullOrEmpty(this.Filter)) {
+            namedParameters.Add("$FILTER", this.Filter);
+        }
+    }
+}
+'@
+$assemblies = @("System.Runtime",$clientDllPath)
+Add-Type -ReferencedAssemblies $assemblies -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
 
 class ClientContext {
 
@@ -15,36 +34,36 @@ class ClientContext {
     $currentInteraction = $null
 
     ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
-        $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture, $timezone)
+        $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture, $timezone)
     }
 
     ClientContext([string] $serviceUrl, [string] $accessToken) {
-        $this.Initialize($serviceUrl, ([AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), ([timespan]::FromMinutes(10)), 'en-US', '')
+        $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), ([timespan]::FromMinutes(10)), 'en-US', '')
     }
 
     ClientContext([string] $serviceUrl, [pscredential] $credential, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
-        $this.Initialize($serviceUrl, ([AuthenticationScheme]::UserNamePassword), (New-Object System.Net.NetworkCredential -ArgumentList $credential.UserName, $credential.Password), $interactionTimeout, $culture, $timezone)
+        $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::UserNamePassword), (New-Object System.Net.NetworkCredential -ArgumentList $credential.UserName, $credential.Password), $interactionTimeout, $culture, $timezone)
     }
 
     ClientContext([string] $serviceUrl, [pscredential] $credential) {
-        $this.Initialize($serviceUrl, ([AuthenticationScheme]::UserNamePassword), (New-Object System.Net.NetworkCredential -ArgumentList $credential.UserName, $credential.Password), ([timespan]::FromMinutes(10)), 'en-US', '')
+        $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::UserNamePassword), (New-Object System.Net.NetworkCredential -ArgumentList $credential.UserName, $credential.Password), ([timespan]::FromMinutes(10)), 'en-US', '')
     }
 
     ClientContext([string] $serviceUrl, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
-        $this.Initialize($serviceUrl, ([AuthenticationScheme]::Windows), $null, $interactionTimeout, $culture, $timezone)
+        $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::Windows), $null, $interactionTimeout, $culture, $timezone)
     }
     
     ClientContext([string] $serviceUrl) {
-        $this.Initialize($serviceUrl, ([AuthenticationScheme]::Windows), $null, ([timespan]::FromMinutes(10)), 'en-US', '')
+        $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::Windows), $null, ([timespan]::FromMinutes(10)), 'en-US', '')
     }
     
-    Initialize([string] $serviceUrl, [AuthenticationScheme] $authenticationScheme, [System.Net.ICredentials] $credential, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
+    Initialize([string] $serviceUrl, [Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme] $authenticationScheme, [System.Net.ICredentials] $credential, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
         $this.addressUri = New-Object System.Uri -ArgumentList $serviceUrl
-        $this.addressUri = [ServiceAddressProvider]::ServiceAddress($this.addressUri)
-        $jsonClient = New-Object JsonHttpClient -ArgumentList $this.addressUri, $credential, $authenticationScheme
+        $this.addressUri = [Microsoft.Dynamics.Framework.UI.Client.ServiceAddressProvider]::ServiceAddress($this.addressUri)
+        $jsonClient = New-Object Microsoft.Dynamics.Framework.UI.Client.JsonHttpClient -ArgumentList $this.addressUri, $credential, $authenticationScheme
         $httpClient = ($jsonClient.GetType().GetField("httpClient", [Reflection.BindingFlags]::NonPublic -bor [Reflection.BindingFlags]::Instance)).GetValue($jsonClient)
         $httpClient.Timeout = $interactionTimeout
-        $this.clientSession = New-Object ClientSession -ArgumentList $jsonClient, (New-Object NonDispatcher), (New-Object 'TimerFactory[TaskTimer]')
+        $this.clientSession = New-Object Microsoft.Dynamics.Framework.UI.Client.ClientSession -ArgumentList $jsonClient, (New-Object Microsoft.Dynamics.Framework.UI.Client.NonDispatcher), (New-Object 'Microsoft.Dynamics.Framework.UI.Client.TimerFactory[Microsoft.Dynamics.Framework.UI.Client.TaskTimer]')
         $this.culture = $culture
         if ($timezone -eq '') {
             $tz = Get-TimeZone
@@ -61,7 +80,7 @@ class ClientContext {
 
     OpenSession() {
         $Global:OpenClientContext = $this
-        $clientSessionParameters = New-Object ClientSessionParameters
+        $clientSessionParameters = New-Object Microsoft.Dynamics.Framework.UI.Client.ClientSessionParameters
         $clientSessionParameters.CultureId = $this.culture
         $clientSessionParameters.UICultureId = $this.culture
         $clientSessionParameters.TimeZoneId = "Romance Standard Time"
@@ -156,17 +175,26 @@ class ClientContext {
                     $formInfo = $Global:OpenClientContext.GetFormInfo($form)
                     if ($formInfo) {
                         Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-                        $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                        #$formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
                     }
                 }
                 if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
-                    $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
+                    $errorControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
                     Write-Host -ForegroundColor Red "ERROR DIALOG: $($errorControl.StringValue)"
                     $Global:OpenClientContext.CloseForm($form)
                 }
                 elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
-                    $errorControl = $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | Select-Object -First 1                
-                    Write-Host -ForegroundColor Yellow "WARNING DIALOG: $($errorControl.StringValue)"
+                    $warningControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
+                    Write-Host -ForegroundColor Yellow "WARNING DIALOG: $($warningControl.StringValue)"
+                    $Global:OpenClientContext.CloseForm($form)
+                }
+                elseif ( $form.ControlIdentifier -eq "{000009ce-0000-0001-0c00-0000836bd2d2}" -or
+                         $form.ControlIdentifier -eq "{000009cd-0000-0001-0c00-0000836bd2d2}" ) {
+                    $Global:PsTestRunnerCaughtForm = $form
+                }
+                elseif ( $form.ControlIdentifier -eq '8da61efd-0002-0003-0507-0b0d1113171d') {
+                    $infoControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
+                    Write-Host "INFO DIALOG: $($infoControl.StringValue)"
                     $Global:OpenClientContext.CloseForm($form)
                 }
                 else {
@@ -185,7 +213,7 @@ class ClientContext {
         })
     
         $this.clientSession.OpenSessionAsync($clientSessionParameters)
-        $this.Awaitstate([ClientSessionState]::Ready)
+        $this.Awaitstate([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Ready)
     }
     #
     
@@ -196,30 +224,27 @@ class ClientContext {
         $this.events = @()
     
         try {
-            if ($this.clientSession -and ($this.clientSession.State -ne ([ClientSessionState]::Closed))) {
+            if ($this.clientSession -and ($this.clientSession.State -ne ([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Closed))) {
                 $this.clientSession.CloseSessionAsync()
-                $this.AwaitState([ClientSessionState]::Closed)
+                $this.AwaitState([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Closed)
             }
         }
         catch {
         }
     }
     
-    AwaitState([ClientSessionState] $state) {
-        if ($this.debugMode) {
-            Write-Host "Await State $state (state is $($this.clientSession.State))"
-        }
+    AwaitState([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState] $state) {
         $now = [DateTime]::Now
         While ($this.clientSession.State -ne $state) {
             Start-Sleep -Milliseconds 100
             $thisstate = $this.clientSession.State
-            if ($thisstate -eq [ClientSessionState]::InError) {
+            if ($thisstate -eq [Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::InError) {
                 throw "ClientSession State is InError (Wait time $(([DateTime]::Now - $now).Seconds) seconds)"
             }
-            if ($thisstate -eq [ClientSessionState]::TimedOut) {
+            if ($thisstate -eq [Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::TimedOut) {
                 throw "ClientSession State is TimedOut (Wait time $(([DateTime]::Now - $now).Seconds) seconds)"
             }
-            if ($thisstate -eq [ClientSessionState]::Uninitialized) {
+            if ($thisstate -eq [Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Uninitialized) {
                 $waited = ([DateTime]::Now - $now).Seconds
                 if ($waited -ge 10) {
                     throw "ClientSession State is Uninitialized (Wait time $waited seconds)"
@@ -229,17 +254,26 @@ class ClientContext {
         Start-Sleep -Milliseconds 100
     }
     
-    InvokeInteraction([ClientInteraction] $interaction) {
+    InvokeInteraction([Microsoft.Dynamics.Framework.UI.Client.ClientInteraction] $interaction) {
         $this.interactionStart = [DateTime]::Now
         $this.currentInteraction = $interaction
         $this.clientSession.InvokeInteractionAsync($interaction)
-        $this.AwaitState([ClientSessionState]::Ready)
+        $this.AwaitState([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Ready)
     }
     
-    [ClientLogicalForm] InvokeInteractionAndCatchForm([ClientInteraction] $interaction) {
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] InvokeInteractionAndCatchForm([Microsoft.Dynamics.Framework.UI.Client.ClientInteraction] $interaction) {
         $Global:PsTestRunnerCaughtForm = $null
         $formToShowEvent = Register-ObjectEvent -InputObject $this.clientSession -EventName FormToShow -Action { 
-            $Global:PsTestRunnerCaughtForm = $EventArgs.FormToShow
+            $form = $EventArgs.FormToShow
+            $Global:PsTestRunnerCaughtForm = $form
+            if ($Global:OpenClientContext.debugMode) {
+                Write-Host -ForegroundColor Yellow "Show form $($form.ControlIdentifier)"
+                $formInfo = $Global:OpenClientContext.GetFormInfo($form)
+                if ($formInfo) {
+                    Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
+#                    $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                }
+            }
         }
         try {
             $this.InvokeInteraction($interaction)
@@ -254,10 +288,11 @@ class ClientContext {
         return $form
     }
     
-    [ClientLogicalForm] OpenForm([int] $page) {
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] OpenFormWithFilter([int] $page, [string] $filter) {
         try {
-            $interaction = New-Object OpenFormInteraction
+            $interaction = New-Object MyOpenFormInteraction
             $interaction.Page = $page
+            $interaction.Filter = $filter
             return $this.InvokeInteractionAndCatchForm($interaction)
         }
         catch {
@@ -265,11 +300,34 @@ class ClientContext {
         }
     }
     
-    CloseForm([ClientLogicalControl] $form) {
-        $this.InvokeInteraction((New-Object CloseFormInteraction -ArgumentList $form))
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] OpenFormWithBookmark([int] $page, [string] $bookmark) {
+        try {
+            $interaction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.OpenFormInteraction
+            $interaction.Page = $page
+            $interaction.Bookmark = $bookmark
+            return $this.InvokeInteractionAndCatchForm($interaction)
+        }
+        catch {
+            return $null
+        }
+    }
+
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] OpenForm([int] $page) {
+        try {
+            $interaction = New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.OpenFormInteraction
+            $interaction.Page = $page
+            return $this.InvokeInteractionAndCatchForm($interaction)
+        }
+        catch {
+            return $null
+        }
+    }
+
+    CloseForm([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $form) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.CloseFormInteraction -ArgumentList $form))
     }
     
-    [ClientLogicalForm[]]GetAllForms() {
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm[]]GetAllForms() {
         try {
             $forms = @()
             $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object { $forms += $_ }
@@ -287,7 +345,7 @@ class ClientContext {
         $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object {
             $form = $_
             if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
-                $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | ForEach-Object {
+                $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | ForEach-Object {
                     $errorText = $_.StringValue
                 }
             }
@@ -300,7 +358,7 @@ class ClientContext {
         $this.clientSession.OpenedForms.GetEnumerator() | ForEach-Object {
             $form = $_
             if ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
-                $form.ContainedControls | Where-Object { $_ -is [ClientStaticStringControl] } | ForEach-Object {
+                $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | ForEach-Object {
                     $warningText = $_.StringValue
                 }
             }
@@ -308,11 +366,11 @@ class ClientContext {
         return $warningText
     }
 
-    [Hashtable]GetFormInfo([ClientLogicalForm] $form) {
+    [Hashtable]GetFormInfo([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] $form) {
     
         function Dump-RowControl {
             Param(
-                [ClientLogicalControl] $control
+                [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control
             )
             @{
                 "$($control.Name)" = $control.ObjectValue
@@ -321,7 +379,7 @@ class ClientContext {
     
         function Dump-Control {
             Param(
-                [ClientLogicalControl] $control
+                [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control
             )
     
             $output = @{
@@ -329,30 +387,30 @@ class ClientContext {
                 "type" = $control.GetType().Name
                 "identifier" = $control.ControlIdentifier
             }
-            if ($control -is [ClientGroupControl]) {
+            if ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientGroupControl]) {
                 $output += @{
                     "caption" = $control.Caption
                     "mappingHint" = $control.MappingHint
                     "children" = @($control.Children | ForEach-Object { Dump-Control -control $_ })
                 }
-            } elseif ($control -is [ClientStaticStringControl]) {
+            } elseif ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl]) {
                 $output += @{
                     "value" = $control.StringValue
                 }
-            } elseif ($control -is [ClientInt32Control]) {
+            } elseif ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientInt32Control]) {
                 $output += @{
                     "value" = $control.ObjectValue
                 }
-            } elseif ($control -is [ClientStringControl]) {
+            } elseif ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientStringControl]) {
                 $output += @{
                     "value" = $control.stringValue
                 }
-            } elseif ($control -is [ClientActionControl]) {
+            } elseif ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientActionControl]) {
                 $output += @{
                     "caption" = $control.Caption
                 }
-            } elseif ($control -is [ClientFilterLogicalControl]) {
-            } elseif ($control -is [ClientRepeaterControl]) {
+            } elseif ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientFilterLogicalControl]) {
+            } elseif ($control -is [Microsoft.Dynamics.Framework.UI.Client.ClientRepeaterControl]) {
                 $output += @{
                     "$($control.name)" = @()
                 }
@@ -404,63 +462,71 @@ class ClientContext {
         }
     }
     
-    [ClientLogicalControl]GetControlByCaption([ClientLogicalControl] $control, [string] $caption) {
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl]GetControlByCaption([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control, [string] $caption) {
         return $control.ContainedControls | Where-Object { $_.Caption.Replace("&","") -eq $caption } | Select-Object -First 1
     }
     
-    [ClientLogicalControl]GetControlByName([ClientLogicalControl] $control, [string] $name) {
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl]GetControlByName([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control, [string] $name) {
         $result = $control.ContainedControls | Where-Object { $_.Name -eq $name } | Select-Object -First 1
         if (-not $result) {
             $result = $control.ContainedControls | Where-Object { $_.Caption -eq $name } | Select-Object -First 1
         }
         return $result
     }
-    
-    [ClientLogicalControl]GetControlByType([ClientLogicalControl] $control, [Type] $type) {
+
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl]GetControlByType([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control, [Type] $type) {
         return $control.ContainedControls | Where-Object { $_ -is $type } | Select-Object -First 1
     }
     
-    SaveValue([ClientLogicalControl] $control, [string] $newValue) {
-        $this.InvokeInteraction((New-Object SaveValueInteraction -ArgumentList $control, $newValue))
+    SaveValue([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control, [string] $newValue) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.SaveValueInteraction -ArgumentList $control, $newValue))
     }
     
-    SelectFirstRow([ClientLogicalControl] $control) {
-        $this.InvokeInteraction((New-Object InvokeActionInteraction -ArgumentList $control, SelectFirstRow))
+    SelectFirstRow([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $control, SelectFirstRow))
     }
 
-    SelectLastRow([ClientLogicalControl] $control) {
-        $this.InvokeInteraction((New-Object InvokeActionInteraction -ArgumentList $control, SelectLastRow))
+    SelectLastRow([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $control, SelectLastRow))
     }
 
-    Refresh([ClientLogicalControl] $control) {
-        $this.InvokeInteraction((New-Object InvokeActionInteraction -ArgumentList $control, Refresh))
+    Refresh([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $control, Refresh))
     }
 
-    ScrollRepeater([ClientRepeaterControl] $repeater, [int] $by) {
-        $this.InvokeInteraction((New-Object ScrollRepeaterInteraction -ArgumentList $repeater, $by))
+    ScrollRepeater([Microsoft.Dynamics.Framework.UI.Client.ClientRepeaterControl] $repeater, [int] $by) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.ScrollRepeaterInteraction -ArgumentList $repeater, $by))
     }
     
-    ActivateControl([ClientLogicalControl] $control) {
-        $this.InvokeInteraction((New-Object ActivateControlInteraction -ArgumentList $control))
+    ActivateControl([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.ActivateControlInteraction -ArgumentList $control))
     }
     
-    [ClientActionControl]GetActionByCaption([ClientLogicalControl] $control, [string] $caption) {
-        return $control.ContainedControls | Where-Object { ($_ -is [ClientActionControl]) -and ($_.Caption.Replace("&","") -eq $caption) } | Select-Object -First 1
+    [Microsoft.Dynamics.Framework.UI.Client.ClientActionControl]GetActionByCaption([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control, [string] $caption) {
+        return $control.ContainedControls | Where-Object { ($_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientActionControl]) -and ($_.Caption.Replace("&","") -eq $caption) } | Select-Object -First 1
     }
     
-    [ClientActionControl]GetActionByName([ClientLogicalControl] $control, [string] $name) {
-        $result = $control.ContainedControls | Where-Object { ($_ -is [ClientActionControl]) -and ($_.Name -eq $name) } | Select-Object -First 1
+    [Microsoft.Dynamics.Framework.UI.Client.ClientActionControl]GetActionByName([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $control, [string] $name) {
+        $result = $control.ContainedControls | Where-Object { ($_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientActionControl]) -and ($_.Name -eq $name) } | Select-Object -First 1
         if (-not $result) {
-            $result = $control.ContainedControls | Where-Object { ($_ -is [ClientActionControl]) -and ($_.Caption -eq $name) } | Select-Object -First 1
+            $result = $control.ContainedControls | Where-Object { ($_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientActionControl]) -and ($_.Caption -eq $name) } | Select-Object -First 1
         }
         return $result
     }
-    
-    InvokeAction([ClientActionControl] $action) {
-        $this.InvokeInteraction((New-Object InvokeActionInteraction -ArgumentList $action))
+
+    InvokeAction([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $action) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $action))
     }
     
-    [ClientLogicalForm]InvokeActionAndCatchForm([ClientActionControl] $action) {
-        return $this.InvokeInteractionAndCatchForm((New-Object InvokeActionInteraction -ArgumentList $action))
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm]InvokeActionAndCatchForm([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $action) {
+        return $this.InvokeInteractionAndCatchForm((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $action))
+    }
+
+    InvokeSystemAction([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $action, [string] $systemAction) {
+        $this.InvokeInteraction((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $action, $systemAction))
+    }
+
+    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm]InvokeSystemActionAndCatchForm([Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $action, [string] $systemAction) {
+        return $this.InvokeInteractionAndCatchForm((New-Object Microsoft.Dynamics.Framework.UI.Client.Interactions.InvokeActionInteraction -ArgumentList $action, $systemAction))
     }
 }
