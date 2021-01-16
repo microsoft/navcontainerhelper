@@ -7,6 +7,8 @@ New function Renew-BcAuthContext to renew an authContext for BC SaaS if necessar
 Added parameteres bcAuthContext and environment to Compile-AppInBcContainer to allow Compile-AppInBcContainer to download symbols from BC SaaS
 Added parameteres bcAuthContext and environment to Publish-AppToBcContainer to allow Publish-AppToBcContainer to publish apps to BC SaaS
 Issue #1613 wrong display of reclaimed space
+Added parameters after and before to Get-BcArtifactUrl to filter out artifacts created before after or after before
+Added outcome First to the Select parameter in Get-BcArtifactUrl to allow grabbing the first artifact mathing a filter
 
 1.0.19
 Move retry algorithm to Download-File
