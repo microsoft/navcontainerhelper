@@ -37,7 +37,7 @@
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
  .Parameter Failon
-  Specify if you want Compilation to fail on Error or Warning (Works only if you specify -AzureDevOps)
+  Specify if you want Compilation to fail on Error or Warning
  .Parameter nowarn
   Specify a nowarn parameter for the compiler
  .Parameter assemblyProbingPaths
@@ -477,12 +477,19 @@ function Compile-AppInBcContainer {
 
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam, $features
     
+    $devOpsResult = ""
+    if ($result) {
+        $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+    }
     if ($AzureDevOps) {
-        if ($result) {
-            $result = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        $devOpsResult | % { $outputTo.Invoke($_) }
+    }
+    else {
+        $result | % { $outputTo.Invoke($_) }
+        if ($devOpsResult -like "*task.complete result=Failed*") {
+            throw "App generation failed"
         }
     }
-    $result | % { $outputTo.Invoke($_) }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName
@@ -501,7 +508,7 @@ function Compile-AppInBcContainer {
         }
     }
     else {
-        Write-Error "App generation failed"
+        throw "App generation failed"
     }
     $appFile
 }
