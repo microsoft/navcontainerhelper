@@ -13,6 +13,7 @@ Added new function Install-BcAppFromAppSource to install an AppSource App into a
 Added parameter includeTestRunnerOnly to Import-TestToolkitToBcContainer to allow importing only Test Runner
 Added parameteres bcAuthContext and environment to Import-TestToolkitToBcContainer to allow running tests on BC SaaS Sandbox environments (Test Runner is the only app in AppSource at the moment, TestFramework apps will be added)
 Added parameteres bcAuthContext and environment to Run-TestsInBcContainer to allow running tests on BC SaaS Sandbox environments
+Better stacktrace when exception happens in Invoke-ScriptInBcContainer
 
 1.0.19
 Move retry algorithm to Download-File
