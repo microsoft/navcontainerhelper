@@ -58,6 +58,8 @@
   If this folder is specified, the build artifacts will be copied to this folder.
  .Parameter createRuntimePackages
   Include this switch if you want to create runtime packages of all apps. The runtime packages will also be signed (if certificate is provided) and copied to artifacts folder.
+ .Parameter installTestRunner
+  Include this switch to include the test runner in the container before compiling apps and test apps. The Test Runner includes the following apps: Microsoft Test Runner.
  .Parameter installTestFramework
   Include this switch to include the test framework in the container before compiling apps and test apps. The Test Framework includes the following apps: Microsoft Any, Microsoft Library Assert, Microsoft Library Variable Storage and Microsoft Test Runner.
  .Parameter installTestLibraries
@@ -77,7 +79,7 @@
  .Parameter keepContainer
   Including the keepContainer switch causes the container to not be deleted after the pipeline finishes.
  .Parameter updateLaunchJson
-  Including the updateLaunchJson switch causes the launch.json file in each project to be updated with container information to be able to start debugging right away.
+  Specifies the name of the configuration in launch.json, which should be updated with container information to be able to start debugging right away.
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
@@ -159,9 +161,11 @@ Param(
     [string] $useGenericImage = (Get-BestGenericImageName),
     [string] $buildArtifactFolder = "",
     [switch] $createRuntimePackages,
+    [switch] $installTestRunner,
     [switch] $installTestFramework,
     [switch] $installTestLibraries,
     [switch] $installPerformanceToolkit,
+    [switch] $CopySymbolsFromContainer,
     [switch] $azureDevOps,
     [switch] $gitLab,
     [switch] $gitHubActions,
@@ -177,6 +181,8 @@ Param(
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
     [switch] $escapeFromCops,
+    [Hashtable] $bcAuthContext,
+    [string] $environment,
     $AppSourceCopMandatoryAffixes = @(),
     $AppSourceCopSupportedCountries = @(),
     [scriptblock] $DockerPull,
@@ -229,27 +235,12 @@ function GetRandomPassword {
 Function UpdateLaunchJson {
     Param(
         [string] $launchJsonFile,
-        [string] $configuration,
-        [string] $Name,
-        [string] $Server,
-        [int] $Port,
-        [string] $ServerInstance,
-        [string] $tenant
+        [System.Collections.Specialized.OrderedDictionary] $launchSettings
     )
-    
-    $launchSettings = [ordered]@{
-        "type" = 'al';
-        "request" = 'launch';
-        "name" = $configuration; 
-        "server" = $Server
-        "serverInstance" = $serverInstance
-        "port" = $Port
-        "tenant" = $tenant
-        "authentication" =  'UserPassword'
-    }
 
     if (Test-Path $launchJsonFile) {
         Write-Host "Modifying $launchJsonFile"
+        $launchSettings | ConvertTo-Json | Out-Host
         $launchJson = Get-Content $LaunchJsonFile | ConvertFrom-Json
         $oldSettings = $launchJson.configurations | Where-Object { $_.name -eq $launchsettings.name }
         if ($oldSettings) {
@@ -290,6 +281,29 @@ if (Test-Path $testResultsFile) {
     Remove-Item -Path $testResultsFile -Force
 }
 
+$artifactUrl = ""
+if ($bcAuthContext) {
+    if ("$environment" -eq "") {
+        throw "When specifying bcAuthContext, you also have to specify the name of the pre-setup online environment to use."
+    }
+    if ($additionalCountries) {
+        throw "You cannot specify additional countries when using an online environment."
+    }
+    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+    $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
+    if (!($bcEnvironment)) {
+        throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
+    }
+    $bcBaseApp = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
+    $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
+}
+
+if ($updateLaunchJson) {
+    if (!$useDevEndpoint) {
+        throw "UpdateLaunchJson cannot be specified if not using DevEndpoint"
+    }
+}
+
 if ($useDevEndpoint) {
     $packagesFolder = ""
     $outputFolder = ""
@@ -323,8 +337,8 @@ if ($useDevEndpoint) {
     $additionalCountries = @()
 }
 
-if (!$artifact) {
-    $artifactUrl = ""    
+if ("$artifact" -eq "" -or "$artifactUrl" -ne "") {
+    # Do nothing
 }
 elseif ($artifact -like "https://*") {
     $artifactUrl = $artifact
@@ -396,6 +410,7 @@ else {
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                 "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler       "; Write-Host $enableTaskScheduler
 Write-Host -NoNewLine -ForegroundColor Yellow "Assign Premium Plan         "; Write-Host $assignPremiumPlan
+Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Runner         "; Write-Host $installTestRunner
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework      "; Write-Host $installTestFramework
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries      "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit       "; Write-Host $installPerformanceToolkit
@@ -550,8 +565,23 @@ Measure-Command {
         $artifactUrl = $artifactUrl.Replace("/$($artifactSegments[4])/$($artifactSegments[5])","/$($artifactSegments[4])/$testCountry")
         Write-Host -ForegroundColor Yellow "Creating container for additional country $testCountry"
     }
-    
-    $Parameters = @{
+
+    $Parameters = @{}
+    $useExistingContainer = $false
+
+    if ($bcAuthContext) {
+        if (Test-BcContainer -containerName $containerName) {
+            if ($artifactUrl -eq (Get-BcContainerArtifactUrl -containerName $containerName)) {
+                $useExistingContainer = $true
+            }
+        }
+        $Parameters += @{
+            "FilesOnly" = $true
+        }
+        $imageName = ""
+    }
+
+    $Parameters += @{
         "accept_eula" = $true
         "containerName" = $containerName
         "imageName" = $imageName
@@ -568,7 +598,9 @@ Measure-Command {
         "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
     }
 
-    Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
+    if (!$useExistingContainer) {
+        Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
+    }
 
     if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq "default" })) {
 
@@ -633,13 +665,19 @@ Measure-Command {
             "sync" = $true
             "install" = $true
         }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
+        }
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
 
-if ($testCountry  -and ($installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if ($testCountry  -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
  |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
@@ -656,8 +694,15 @@ Measure-Command {
         "containerName" = $containerName
         "includeTestLibrariesOnly" = $installTestLibraries
         "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
+        "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
         "includePerformanceToolkit" = $installPerformanceToolkit
         "doNotUseRuntimePackages" = $true
+    }
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
+        }
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
@@ -688,7 +733,7 @@ $sortedFolders | Select-Object -Unique | ForEach-Object {
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
 
-    if ($testApp -and !$testToolkitInstalled -and ($installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+    if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
@@ -706,8 +751,15 @@ Measure-Command {
             "containerName" = $containerName
             "includeTestLibrariesOnly" = $installTestLibraries
             "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
+            "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
             "includePerformanceToolkit" = $installPerformanceToolkit
             "doNotUseRuntimePackages" = $true
+        }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
         }
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
         $testToolkitInstalled = $true
@@ -726,6 +778,14 @@ Write-Host -ForegroundColor Yellow @'
 
     $Parameters = @{ }
     $CopParameters = @{ }
+
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
+        }
+    }
+
     if ($app) {
         $CopParameters += @{ 
             "EnableCodeCop" = $enableCodeCop
@@ -797,6 +857,7 @@ Write-Host -ForegroundColor Yellow @'
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
+        "CopySymbolsFromContainer" = $CopySymbolsFromContainer
     }
     if ($enableAppSourceCop -and $app) {
         if (!$previousAppsCopied) {
@@ -883,39 +944,67 @@ Write-Host -ForegroundColor Yellow @'
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
-            "useDevEndpoint" = $true
+            "useDevEndpoint" = $useDevEndpoint
+        }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
         }
 
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 
         if ($updateLaunchJson) {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
-            $config = Get-BcContainerServerConfiguration $containerName
-            $webUri = [Uri]::new($config.PublicWebBaseUrl)
-            try {
-                $inspect = docker inspect $containerName | ConvertFrom-Json
-                if ($inspect.config.Labels.'traefik.enable' -eq 'true') {
-                    $server = "$($inspect.config.Labels.'traefik.protocol')://$($webUri.Authority)"
-                    if ($inspect.config.Labels.'traefik.protocol' -eq 'http') {
-                        $port = 80
+            if ($bcAuthContext) {
+                $launchSettings = [ordered]@{
+                    "type" = 'al'
+                    "request" = 'launch'
+                    "name" = $updateLaunchJson
+                    "environmentType" = "Sandbox"
+                    "environmentName" = $environment
+                }
+            }
+            else {
+                $config = Get-BcContainerServerConfiguration $containerName
+                $webUri = [Uri]::new($config.PublicWebBaseUrl)
+                try {
+                    $inspect = docker inspect $containerName | ConvertFrom-Json
+                    if ($inspect.config.Labels.'traefik.enable' -eq 'true') {
+                        $server = "$($inspect.config.Labels.'traefik.protocol')://$($webUri.Authority)"
+                        if ($inspect.config.Labels.'traefik.protocol' -eq 'http') {
+                            $port = 80
+                        }
+                        else {
+                            $port = 443
+                        }
+                        $serverInstance = "$($containerName)dev"
                     }
                     else {
-                        $port = 443
+                        $server = "$($webUri.Scheme)://$($webUri.Authority)"
+                        $port = $config.DeveloperServicesPort
+                        $serverInstance = $webUri.AbsolutePath.Trim('/')
                     }
-                    $serverInstance = "$($containerName)dev"
                 }
-                else {
+                catch {
                     $server = "$($webUri.Scheme)://$($webUri.Authority)"
                     $port = $config.DeveloperServicesPort
                     $serverInstance = $webUri.AbsolutePath.Trim('/')
                 }
+        
+                $launchSettings = [ordered]@{
+                    "type" = 'al'
+                    "request" = 'launch'
+                    "name" = $updateLaunchJson
+                    "server" = $Server
+                    "serverInstance" = $serverInstance
+                    "port" = $Port
+                    "tenant" = $tenant
+                    "authentication" =  'UserPassword'
+                }
             }
-            catch {
-                $server = "$($webUri.Scheme)://$($webUri.Authority)"
-                $port = $config.DeveloperServicesPort
-                $serverInstance = $webUri.AbsolutePath.Trim('/')
-            }
-            UpdateLaunchJson -launchJsonFile $launchJsonFile -configuration $updateLaunchJson -Name $pipelineName -Server $server -Port $port -ServerInstance $serverInstance -tenant $tenant
+            UpdateLaunchJson -launchJsonFile $launchJsonFile -launchSettings $launchSettings
         }
     }
 
@@ -990,6 +1079,12 @@ Measure-Command {
                 "install" = $true
                 "useDevEndpoint" = $false
             }
+            if ($bcAuthContext) {
+                $Parameters += @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                }
+            }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
     }
@@ -1014,11 +1109,13 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Publishing apps for additional country $testCountry"
 }
 
-$installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+$installedApps = @()
+if (!($bcAuthContext)) {
+    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+}
 
 $apps | ForEach-Object {
    
-    
     $folder = $appsFolder[$_]
     $appJsonFile = Join-Path $folder "app.json"
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
@@ -1039,6 +1136,13 @@ $apps | ForEach-Object {
         "upgrade" = $installedApp
     }
 
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
+        }
+    }
+
     Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 
 }
@@ -1053,6 +1157,13 @@ $testApps | ForEach-Object {
         "skipVerification" = $true
         "sync" = $true
         "install" = $true
+    }
+
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
+        }
     }
 
     Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
@@ -1147,6 +1258,13 @@ $testFolders | ForEach-Object {
         $Parameters += @{
             "JUnitResultFileName" = $resultsFile
             "AppendToJUnitResultFile" = $true
+        }
+    }
+
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
         }
     }
 
