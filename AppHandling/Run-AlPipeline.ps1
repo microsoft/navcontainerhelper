@@ -601,7 +601,10 @@ Measure-Command {
         "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
     }
 
-    if (!$useExistingContainer) {
+    if ($useExistingContainer) {
+        Write-Host "Reusing existing container"
+    }
+    else {
         Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
     }
 
