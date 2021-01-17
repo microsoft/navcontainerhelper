@@ -76,8 +76,14 @@ Function Convert-AlcOutputToAzureDevOps {
             }
         }
 
+        $errLine = ""
         if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
             $errLine = "##vso[task.complete result=Failed;]Failed."
+        }
+        elseif ($failOn -eq 'error' -and $hasWarning) {
+            $errLine = "##vso[task.complete result=SucceededWithIssues;]Succeeded With Issues."
+        }
+        if ($errLine) {
             if ($doNotWriteToHost) {
                 $errLine
             }

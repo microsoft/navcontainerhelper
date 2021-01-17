@@ -72,6 +72,8 @@
   Include this switch if you want compile errors and test errors to surface directly in GitLab.
  .Parameter gitHubActions
   Include this switch if you want compile errors and test errors to surface directly in GitHubActions.
+ .Parameter Failon
+  Specify if you want Compilation to fail on Error or Warning
  .Parameter useDevEndpoint
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotRunTests
@@ -169,6 +171,8 @@ Param(
     [switch] $azureDevOps,
     [switch] $gitLab,
     [switch] $gitHubActions,
+    [ValidateSet('error','warning')]
+    [string] $failOn = "error",
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
     [switch] $keepContainer,
@@ -601,7 +605,10 @@ Measure-Command {
         "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
     }
 
-    if (!$useExistingContainer) {
+    if ($useExistingContainer) {
+        Write-Host "Reusing existing container"
+    }
+    else {
         Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
     }
 
@@ -860,6 +867,7 @@ Write-Host -ForegroundColor Yellow @'
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
+        "failOn" = $failOn
         "CopySymbolsFromContainer" = $CopySymbolsFromContainer
     }
     if ($enableAppSourceCop -and $app) {

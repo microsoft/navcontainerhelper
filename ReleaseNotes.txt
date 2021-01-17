@@ -15,6 +15,7 @@ Added parameteres bcAuthContext and environment to Import-TestToolkitToBcContain
 Added parameteres bcAuthContext and environment to Run-TestsInBcContainer to allow running tests on BC SaaS Sandbox environments
 Better stacktrace when exception happens in Invoke-ScriptInBcContainer
 Added parameteres bcAuthContext and environment to Run-AlPipeline to allow running a pipeline using BC SaaS Sandbox environments
+Issue #1591 added parameter failOn to Run-AlPipeline to allow builds to fail on warnings
 
 1.0.19
 Move retry algorithm to Download-File
