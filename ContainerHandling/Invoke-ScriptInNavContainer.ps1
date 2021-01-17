@@ -41,7 +41,8 @@ function Invoke-ScriptInBcContainer {
         catch {
             Write-Host -ForegroundColor Red $_.Exception.Message
             Write-Host -ForegroundColor Red $_.ScriptStackTrace
-            throw
+            Get-PSCallStack | Write-Host -ForegroundColor Red
+            throw $_.Exception.Message
         }
     } else {
         $file = Join-Path $containerHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
