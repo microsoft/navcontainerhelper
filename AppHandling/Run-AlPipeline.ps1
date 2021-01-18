@@ -579,7 +579,7 @@ Measure-Command {
     if ($bcAuthContext) {
         if (Test-BcContainer -containerName $containerName) {
             if ($artifactUrl -eq (Get-BcContainerArtifactUrl -containerName $containerName)) {
-                $useExistingContainer = $true
+                $useExistingContainer = ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -ne "")
             }
         }
         $Parameters += @{
