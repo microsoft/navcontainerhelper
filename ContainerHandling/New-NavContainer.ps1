@@ -1698,7 +1698,7 @@ if (-not `$restartingInstance) {
             Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
                 Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
-            } -argumentList $idepsm
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $sidepsm)
             Remove-BcContainerSession -containerName $containerName
         }
     
@@ -1712,7 +1712,7 @@ if (-not `$restartingInstance) {
             Write-Host "Patching .app files in C:\Applications\BaseApp\Test due to issue #925"
             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($zipName, $devCountry)
                 Copy-Item -Path (Join-Path $zipName "$devCountry\*.app") -Destination "c:\Applications\BaseApp\Test" -Force
-            } -argumentList $zipName, $devcountry
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $zipName), $devcountry
         }
     
         $sqlCredential = $databaseCredential
