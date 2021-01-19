@@ -375,7 +375,7 @@ function Run-Tests {
 
     $process = $null
     if (!$connectFromHost) {
-        $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server"
+        $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server" -ErrorAction SilentlyContinue
     }
 
     if ($XUnitResultFileName) {
