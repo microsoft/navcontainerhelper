@@ -19,6 +19,7 @@ Issue #1591 added parameter failOn to Run-AlPipeline to allow builds to fail on 
 Issue #1623 Unable to create BC 16.0 container with tests
 Support FilesOnly when generating images
 Use FilesOnly generic image for better performance
+Publish-PerTenantExtensionApps to support bcAuthContext as parameter set (as well as clientId, clientSecret and tenantId for compatibility)
 
 1.0.19
 Move retry algorithm to Download-File
