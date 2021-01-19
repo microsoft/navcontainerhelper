@@ -243,7 +243,6 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlPipeline.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlValidation.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlCops.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Publish-PerTenantExtensionApps.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Publish-BuildOutputToStorage.ps1")
 
 # Tenant Handling functions
@@ -274,6 +273,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "BcSaaS\Get-BcEnvironments.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\Get-BcPublishedApps.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\Install-BcAppFromAppSource")
+. (Join-Path $PSScriptRoot "BcSaaS\Publish-PerTenantExtensionApps.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")

@@ -335,6 +335,7 @@ function CopyAppFilesToFolder {
         [string] $folder
     )
 
+    if ($appFiles -is [String]) { $appFiles = @($appFiles.Split(',').Trim() | Where-Object { $_ }) }
     if (!(Test-Path $folder)) {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
