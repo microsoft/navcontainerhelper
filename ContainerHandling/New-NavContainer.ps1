@@ -381,7 +381,7 @@ function New-BcContainer {
     
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
-    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
+    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
 
     $isServerHost = $os.ProductType -eq 3
 
@@ -537,7 +537,8 @@ function New-BcContainer {
                 -includeTestLibrariesOnly:$includeTestLibrariesOnly `
                 -includePerformanceToolkit:$includePerformanceToolkit `
                 -skipIfImageAlreadyExists:(!$forceRebuild) `
-                -allImages $allImages
+                -allImages $allImages `
+                -filesOnly:$filesOnly
 
             if (-not ($allImages | Where-Object { $_ -eq $imageName })) {
                 $allImages += $imageName
@@ -623,7 +624,7 @@ function New-BcContainer {
                 $imageName = $useGenericImage
             }
             else {
-                $imageName = Get-BestGenericImageName
+                $imageName = Get-BestGenericImageName -filesOnly:$filesOnly
             }
         }
         elseif ("$dvdPath" -ne "") {
@@ -631,7 +632,7 @@ function New-BcContainer {
                 $imageName = $useGenericImage
             }
             else {
-                $imageName = Get-BestGenericImageName
+                $imageName = Get-BestGenericImageName -filesOnly:$filesOnly
             }
         } elseif (Test-BcContainer -containerName $bcContainerHelperConfig.defaultContainerName) {
             $artifactUrl = Get-BcContainerArtifactUrl -containerName $bcContainerHelperConfig.defaultContainerName
@@ -640,7 +641,7 @@ function New-BcContainer {
                     $imageName = $useGenericImage
                 }
                 else {
-                    $imageName = Get-BestGenericImageName
+                    $imageName = Get-BestGenericImageName -filesOnly:$filesOnly
                 }
             }
             else {
@@ -1304,9 +1305,7 @@ function New-BcContainer {
         }
     }
 
-    if ($filesOnly) {
-        $parameters += "--env filesOnly=$true"
-    }
+    $parameters += "--env filesOnly=$filesOnly"
 
     if ($memoryLimit) {
         $parameters += "--memory $memoryLimit"

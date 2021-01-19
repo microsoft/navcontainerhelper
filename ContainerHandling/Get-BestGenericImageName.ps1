@@ -9,7 +9,8 @@
 function Get-BestGenericImageName {
     Param (
         [switch] $onlyMatchingBuilds,
-        [Version] $hostOsVersion = $null
+        [Version] $hostOsVersion = $null,
+        [switch] $filesOnly
     )
 
     if ($hostOsVersion -eq $null) {
@@ -29,7 +30,12 @@ function Get-BestGenericImageName {
         $hostOsVersion = [System.Version]::new($hostOsVersion.Major, $hostOsVersion.Minor, $build, $revision)
     }
 
-    $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageName
+    if ($filesOnly) {
+        $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageNameFilesOnly
+    }
+    else {
+        $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageName
+    }
     $repo = $genericImageNameSetting.Split(':')[0]
     $tag = $genericImageNameSetting.Split(':')[1].Replace('{0}','*')
 

@@ -160,7 +160,7 @@ Param(
     [string] $packagesFolder = ".packages",
     [string] $outputFolder = ".output",
     [string] $artifact = "///us/Current",
-    [string] $useGenericImage = (Get-BestGenericImageName),
+    [string] $useGenericImage = "",
     [string] $buildArtifactFolder = "",
     [switch] $createRuntimePackages,
     [switch] $installTestRunner,
@@ -286,6 +286,7 @@ if (Test-Path $testResultsFile) {
 }
 
 $artifactUrl = ""
+$filesOnly = $false
 if ($bcAuthContext) {
     if ("$environment" -eq "") {
         throw "When specifying bcAuthContext, you also have to specify the name of the pre-setup online environment to use."
@@ -300,6 +301,7 @@ if ($bcAuthContext) {
     }
     $bcBaseApp = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
     $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
+    $filesOnly = $true
 }
 
 if ($updateLaunchJson) {
@@ -537,6 +539,10 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 
+if (!$useGenericImage) {
+    $useGenericImage = Get-BestGenericImageName -filesOnly:$filesOnly
+}
+
 Write-Host "Pulling $useGenericImage"
 
 Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
@@ -583,9 +589,8 @@ Measure-Command {
             }
         }
         $Parameters += @{
-            "FilesOnly" = $true
+            "FilesOnly" = $filesOnly
         }
-        $imageName = ""
     }
 
     $Parameters += @{
