@@ -8,6 +8,7 @@ function Get-BcPublishedApps {
     Param(
         [Parameter(Mandatory=$true)]
         [Hashtable] $bcAuthContext,
+        [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory=$true)]
         [string] $environment
     )
@@ -15,6 +16,6 @@ function Get-BcPublishedApps {
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
-    (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/BusinessCentral/environments/$environment/apps" -Headers $headers).Value
+    (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
 }
 Export-ModuleMember -Function Get-BcPublishedApps

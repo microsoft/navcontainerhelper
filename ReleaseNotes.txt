@@ -20,6 +20,7 @@ Issue #1623 Unable to create BC 16.0 container with tests
 Support FilesOnly when generating images
 Use FilesOnly generic image for better performance
 Publish-PerTenantExtensionApps to support bcAuthContext as parameter set (as well as clientId, clientSecret and tenantId for compatibility)
+Add functions New-BcEnvironment, Remove-BcEnvironment and Set-BcEnvironmentApplicationInsightsKey
 
 1.0.19
 Move retry algorithm to Download-File

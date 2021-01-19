@@ -274,6 +274,9 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "BcSaaS\Get-BcPublishedApps.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\Install-BcAppFromAppSource")
 . (Join-Path $PSScriptRoot "BcSaaS\Publish-PerTenantExtensionApps.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\New-BcEnvironment.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Remove-BcEnvironment.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Set-BcEnvironmentApplicationInsightsKey.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
