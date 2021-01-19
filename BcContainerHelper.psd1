@@ -79,7 +79,7 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Create-MyDeltaFolder', 'Create-MyOriginalFolder', 
                'Create-AadAppsForNav', 'Create-AadUsersInBcContainer', 
                'New-BcAuthContext', 'Renew-BcAuthContext', 'Get-BcEnvironments', 'Get-BcPublishedApps', 
-               'Install-BcAppFromAppSource', 'New-BcEnvironment', 'Remove-BcEnvironment', 'Set-BcEnvironmentApplicationInsightsKey'
+               'Install-BcAppFromAppSource', 'New-BcEnvironment', 'Remove-BcEnvironment', 'Set-BcEnvironmentApplicationInsightsKey',
                'Download-Artifacts', 'Download-File', 'Enter-BcContainer', 
                'Export-BcContainerDatabasesAsBacpac', 'Restore-BcDatabaseFromArtifacts',
                'Remove-BcDatabase.ps1', 'Export-ModifiedObjectsAsDeltas', 'Export-NavContainerObjects', 
