@@ -324,6 +324,10 @@ function GetExtenedErrorMessage {
         catch {
             $message += " $result"
         }
+        try {
+            $message += " (ms-correlation-x = $($webResponse.GetResponseHeader('ms-correlation-x')))"
+        }
+        catch {}
     }
     catch{}
     $message
