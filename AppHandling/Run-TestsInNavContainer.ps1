@@ -118,8 +118,6 @@ function Run-TestsInBcContainer {
     $version = [System.Version]($navversion.split('-')[0])
 
     if ($bcAuthContext) {
-        $connectFromHost = $true
-
         $response = Invoke-RestMethod -Method Get -Uri "https://businesscentral.dynamics.com/$($bcAuthContext.tenantID)/$environment/deployment/url"
         if($response.status -ne 'Ready') {
             throw "environment not ready, status is $($response.status)"
@@ -358,7 +356,11 @@ function Run-TestsInBcContainer {
                         $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
                     }
             
-                    if ($clientServicesCredentialType -eq "Windows") {
+                    if ($accessToken) {
+                        $clientServicesCredentialType = "AAD"
+                        $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+                    }
+                    elseif ($clientServicesCredentialType -eq "Windows") {
                         $windowsUserName = whoami
                         $NavServerUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore | Where-Object { $_.UserName -eq $windowsusername }
                         if (!($NavServerUser)) {
@@ -366,10 +368,6 @@ function Run-TestsInBcContainer {
                             New-NavServerUser -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername
                             New-NavServerUserPermissionSet -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername -PermissionSetId SUPER
                         }
-                    }
-                    elseif ($accessToken) {
-                        $clientServicesCredentialType = "AAD"
-                        $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                     }
             
                     if ($companyName) {

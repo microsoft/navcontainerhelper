@@ -373,9 +373,9 @@ function Run-Tests {
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
 
+    $process = $null
     if (!$connectFromHost) {
-        $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server"
-        if (!($process)) { throw "Cannot find Server process" }
+        $process = Get-Process -Name "Microsoft.Dynamics.Nav.Server" -ErrorAction SilentlyContinue
     }
 
     if ($XUnitResultFileName) {
@@ -430,7 +430,7 @@ function Run-Tests {
 
         while ($true) {
         
-            if (!$connectFromHost) {
+            if ($process) {
                 $cimInstance = Get-CIMInstance Win32_OperatingSystem
                 try { $cpu = "$($process.CPU.ToString("F3",[cultureinfo]::InvariantCulture))" } catch { $cpu = "n/a" }
                 try { $mem = "$(($cimInstance.FreePhysicalMemory/1048576).ToString("F1",[CultureInfo]::InvariantCulture))" } catch { $mem = "n/a" }
@@ -495,7 +495,7 @@ function Run-Tests {
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
 
-                if (!$connectfromHost) {
+                if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.start")
                     $property.SetAttribute("value", $processinfostart)
@@ -651,7 +651,7 @@ function Run-Tests {
                 $JUnitTestSuite.SetAttribute("failures", $failed)
                 $JUnitTestSuite.SetAttribute("skipped", $skipped)
                 $JUnitTestSuite.SetAttribute("time", [Math]::Round($totalduration.TotalSeconds,3).ToString([System.Globalization.CultureInfo]::InvariantCulture))
-                if (!$connectfromHost) {
+                if ($process) {
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.end")

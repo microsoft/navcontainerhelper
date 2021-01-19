@@ -17,6 +17,9 @@ Better stacktrace when exception happens in Invoke-ScriptInBcContainer
 Added parameteres bcAuthContext and environment to Run-AlPipeline to allow running a pipeline using BC SaaS Sandbox environments
 Issue #1591 added parameter failOn to Run-AlPipeline to allow builds to fail on warnings
 Issue #1623 Unable to create BC 16.0 container with tests
+Support FilesOnly when generating images
+
+Use FilesOnly generic image for better performance
 
 1.0.19
 Move retry algorithm to Download-File

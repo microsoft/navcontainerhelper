@@ -35,6 +35,7 @@ function New-BcImage {
         $myScripts = @(),
         [switch] $skipDatabase,
         [switch] $multitenant,
+        [switch] $filesOnly,
         [string] $addFontsFromPath = "",
         [string] $licenseFile = "",
         [switch] $includeTestToolkit,
@@ -70,11 +71,11 @@ function New-BcImage {
     
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
-    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds
+    $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
 
     if ("$baseImage" -eq "") {
         if ("$bestGenericImageName" -eq "") {
-            $bestGenericImageName = Get-BestGenericImageName
+            $bestGenericImageName = Get-BestGenericImageName -filesOnly:$filesOnly
             Write-Host "WARNING: Unable to find matching generic image for your host OS. Using $bestGenericImageName"
         }
         $baseImage = $bestGenericImageName
@@ -127,14 +128,20 @@ function New-BcImage {
     if (!$imageName.Contains(':')) {
         $appUri = [Uri]::new($artifactUrl)
         $imageName += ":$($appUri.AbsolutePath.ToLowerInvariant().Replace('/','-').TrimStart('-'))"
-        if ($skipDatabase) {
-            $imageName += "-nodb"
-            $dbstr = " without database"
-
+        if ($filesOnly) {
+            $imageName += "-filesonly"
+            $dbstr = " with files only"
         }
-        if ($multitenant) {
-            $imageName += "-mt"
-            $mtstr = " multitenant"
+        else {
+            if ($skipDatabase) {
+                $imageName += "-nodb"
+                $dbstr = " without database"
+    
+            }
+            if ($multitenant) {
+                $imageName += "-mt"
+                $mtstr = " multitenant"
+            }
         }
     }
 
@@ -510,7 +517,7 @@ function New-BcImage {
 @"
 FROM $baseimage
 
-ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsBcSandbox=$isBcSandbox artifactUrl=$artifactUrl
+ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsBcSandbox=$isBcSandbox artifactUrl=$artifactUrl filesOnly=$filesOnly
 
 COPY my /run/
 COPY NAVDVD /NAVDVD/
