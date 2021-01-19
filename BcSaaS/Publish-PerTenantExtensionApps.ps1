@@ -52,7 +52,6 @@ function Publish-PerTenantExtensionApps {
         if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
         if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
 
-        $loginURL     = "https://login.microsoftonline.com"
         $bcauthContext = New-BcAuthContext `
             -clientID $clientID `
             -clientSecret $clientSecret `
