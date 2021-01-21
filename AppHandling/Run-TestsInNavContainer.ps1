@@ -52,6 +52,10 @@
   Include this switch to output debug information if running the tests fails.
  .Parameter usePublicWebBaseUrl
   Connect to the public Url and not to localhost
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the function will run tests on the online Business Central Environment specified
+ .Parameter environment
+  Environment to use for the running tests
  .Parameter restartContainerAndRetry
   Include this switch to restart container and retry the operation (everything) on non-recoverable errors.
   This is NOT test failures, but more things like out of memory, communication errors or that kind.

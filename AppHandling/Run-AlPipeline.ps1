@@ -98,6 +98,10 @@
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
   Filename of the custom ruleset file
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the pipeline will run using the online Business Central Environment as target
+ .Parameter environment
+  Environment to use for the pipeline
  .Parameter escapeFromCops
   If One of the cops causes an error in an app, then show the error, recompile the app without cops and continue
  .Parameter AppSourceCopMandatoryAffixes

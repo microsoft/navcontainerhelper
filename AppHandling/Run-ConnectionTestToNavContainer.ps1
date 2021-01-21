@@ -26,6 +26,10 @@
   Connect to the public Url and not to localhost
  .Parameter connectFromHost
   Run the Test Runner PS functions on the host connecting to the public Web BaseUrl to allow web debuggers like fiddler to trace connections
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the function will run connection test to the online Business Central Environment specified
+ .Parameter environment
+  Environment to use for the connection test
  .Example
   Run-ConnectionTestsToBcContainer -containerName test -credential $credential
 #>
