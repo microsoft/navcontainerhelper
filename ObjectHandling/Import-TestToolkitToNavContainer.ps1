@@ -34,6 +34,11 @@
   Include the doNotUseRuntimePackages switch if you do not want to cache and use the test apps as runtime packages (only 15.x containers)
  .Parameter replaceDependencies
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the function will import test toolkit to the online Business Central Environment specified
+  Only Test Runner and Test Framework are/will be available in the online Business Central environment
+ .Parameter environment
+  Environment in which you want to import test toolkit.
  .Example
   Import-TestToolkitToBcContainer -containerName test2
   .Example

@@ -34,6 +34,10 @@
   With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Parameter PublisherAzureActiveDirectoryTenantId
   AAD Tenant of the publisher to ensure access to keyvault (unless publisher check is disables in server config)
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the function will publish the app to the online Business Central Environment specified
+ .Parameter environment
+  Environment to use for publishing
  .Example
   Publish-BcContainerApp -appFile c:\temp\myapp.app
  .Example
