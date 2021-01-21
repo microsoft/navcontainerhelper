@@ -1,8 +1,30 @@
 ﻿<# 
  .Synopsis
-  Preview function for creating Bc Environments
+  Function for creating a Business Central online environment
  .Description
-  Preview function for creating Bc Environments
+  Function for creating a Business Central online environment
+  This function is a wrapper for https://docs.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api#create-new-environment
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext.
+ .Parameter applicationFamily
+  Application Family in which the environment is located. Default is BusinessCentral.
+ .Parameter environment
+  Name of the new environment
+ .Parameter countryCode
+  Country code of the new environment
+ .Parameter environmentType
+  Type of the new environment. Default is Sandbox.
+ .Parameter ringName
+  The logical ring group to create the environment within
+ .Parameter applicationVersion
+  The version of the application the environment should be created on
+ .Parameter applicationInsightsKey
+  Application Insights Key to add to the environment
+ .Parameter doNotWait
+  Include this switch if you don't want to wait for completion of the environment
+ .Example
+  $authContext = New-BcAuthContext -includeDeviceLogin
+  New-BcEnvironment -bcAuthContext $authContext -countryCode 'us' -environment 'usSandbox'
 #>
 function New-BcEnvironment {
     Param(
@@ -13,6 +35,7 @@ function New-BcEnvironment {
         [string] $environment,
         [Parameter(Mandatory=$true)]
         [string] $countryCode,
+        [ValidateSet('Sandbox','Production')]
         [string] $environmentType = "Sandbox",
         [string] $ringName = "",
         [string] $applicationVersion = "",
@@ -43,7 +66,7 @@ function New-BcEnvironment {
         throw (GetExtenedErrorMessage $_.Exception)
     }
     Write-Host "New environment request submitted"
-    if (!$doNotWait) {
+    if (!$doNotWait -and !$applicationInsightsKey) {
         Write-Host -NoNewline "Preparing."
         do {
             Start-Sleep -Seconds 2

@@ -1,8 +1,18 @@
 ﻿<# 
  .Synopsis
-  Preview function for setting Bc Environment Application Insights Key
+  Function for setting Application Insights Key on a Business Central online environment
  .Description
-  Preview function for setting Bc Environment Application Insights Key
+  Function for setting Application Insights Key on a Business Central online environment
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext.
+ .Parameter applicationFamily
+  Application Family in which the environment is located. Default is BusinessCentral.
+ .Parameter environment
+  Name of the new environment on which you want to set the Application Insights Key
+ .Parameter applicationInsightsKey
+  The Application Insights key
+ .Example
+  Set-BcEnvironmentApplicationInsightsKey -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -environment $environment -applicationInsightsKey $applicationInsightsKey
 #>
 function Set-BcEnvironmentApplicationInsightsKey {
     Param(
