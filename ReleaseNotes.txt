@@ -21,6 +21,7 @@ Support FilesOnly when generating images
 Use FilesOnly generic image for better performance
 Publish-PerTenantExtensionApps to support bcAuthContext as parameter set (as well as clientId, clientSecret and tenantId for compatibility)
 Add functions New-BcEnvironment, Remove-BcEnvironment and Set-BcEnvironmentApplicationInsightsKey
+Issue #1636 Signing fails in FilesOnly-container
 
 1.0.19
 Move retry algorithm to Download-File
