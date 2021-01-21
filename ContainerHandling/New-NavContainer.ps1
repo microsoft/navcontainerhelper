@@ -85,6 +85,9 @@
   Specify a private (or special) generic image to use for the Container OS.
  .Parameter assignPremiumPlan
   Assign Premium plan to admin user
+ .Parameter filesOnly
+  Include this switch to create a filesOnly container. A filesOnly container does not contain SQL Server, IIS or the ServiceTier, it only contains the files from BC in the same locations as a normal container.
+  A FilesOnly container can be used to compile apps and it can be used as a proxy container for an online Business Central environment
  .Parameter multitenant
   Setup container for multitenancy by adding this switch
  .Parameter addFontsFromPath

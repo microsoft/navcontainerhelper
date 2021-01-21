@@ -1,8 +1,18 @@
 ﻿<# 
  .Synopsis
-  Preview function for retrieving Bc Published Apps from Environment
+  Function for retrieving Bc Published Apps from an online Business Central environment
  .Description
-  Preview function for retrieving Bc Published Apps from Environment
+  Function for retrieving Bc Published Apps from an online Business Central environment
+  Wrapper for https://docs.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api#get-installed-apps
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext.
+ .Parameter applicationFamily
+  Application Family in which the environment is located. Default is BusinessCentral.
+ .Parameter environment
+  Environment from which you want to return the published Apps.
+ .Example
+  $authContext = New-BcAuthContext -includeDeviceLogin
+  Get-BcPublishedApps -bcAuthContext $authContext -environment "Sandbox"
 #>
 function Get-BcPublishedApps {
     Param(
