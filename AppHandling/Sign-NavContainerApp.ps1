@@ -62,6 +62,17 @@ function Sign-BcContainerApp {
             $copied = $true
         }
 
+        if (!(Test-Path "C:\Windows\System32\msvcr120.dll")) {
+            Write-Host "Downloading vcredist_x86"
+            (New-Object System.Net.WebClient).DownloadFile('https://bcartifacts.azureedge.net/prerequisites/vcredist_x86.exe','c:\run\install\vcredist_x86.exe')
+            Write-Host "Installing vcredist_x86"
+            start-process -Wait -FilePath c:\run\install\vcredist_x86.exe -ArgumentList /q, /norestart
+            Write-Host "Downloading vcredist_x64"
+            (New-Object System.Net.WebClient).DownloadFile('https://bcartifacts.azureedge.net/prerequisites/vcredist_x64.exe','c:\run\install\vcredist_x64.exe')
+            Write-Host "Installing vcredist_x64"
+            start-process -Wait -FilePath c:\run\install\vcredist_x64.exe -ArgumentList /q, /norestart
+        }
+
         if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe") {
             $signToolExe = (get-item "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe").FullName
         } else {
