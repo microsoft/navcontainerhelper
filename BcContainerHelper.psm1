@@ -227,6 +227,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sign-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppRuntimePackage.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Convert-BcAppsToRuntimePackages.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Replace-DependenciesInAppFile.ps1")

@@ -216,26 +216,6 @@ function CheckRelativePath([string] $baseFolder, $path, $name) {
     $path
 }
 
-function RandomChar([string]$str) {
-    $rnd = Get-Random -Maximum $str.length
-    [string]$str[$rnd]
-}
-
-function GetRandomPassword {
-    $cons = 'bcdfghjklmnpqrstvwxz'
-    $voc = 'aeiouy'
-    $numbers = '0123456789'
-
-    ((RandomChar $cons).ToUpper() + `
-     (RandomChar $voc) + `
-     (RandomChar $cons) + `
-     (RandomChar $voc) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers))
-}
-
 Function UpdateLaunchJson {
     Param(
         [string] $launchJsonFile,
@@ -335,9 +315,6 @@ if ($buildArtifactFolder) {
 if (!($appFolders)) {
     throw "No app folders found"
 }
-
-$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
-                 @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue)
 
 if ($useDevEndpoint) {
     $additionalCountries = @()
@@ -742,6 +719,8 @@ $appsFolder = @{}
 $apps = @()
 $testApps = @()
 $testToolkitInstalled = $false
+$sortedFolders = @(Sort-AppFoldersByDependencies -containerName $containerName -appFolders $appFolders -WarningAction SilentlyContinue) + 
+                 @(Sort-AppFoldersByDependencies -containerName $containerName -appFolders $testFolders -WarningAction SilentlyContinue)
 $sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 

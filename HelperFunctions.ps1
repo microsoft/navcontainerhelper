@@ -721,3 +721,23 @@ Function CreatePsTestToolFolder {
         }
     } -argumentList $newtonSoftDllPath, $clientDllPath
 }
+
+function RandomChar([string]$str) {
+    $rnd = Get-Random -Maximum $str.length
+    [string]$str[$rnd]
+}
+
+function GetRandomPassword {
+    $cons = 'bcdfghjklmnpqrstvwxz'
+    $voc = 'aeiouy'
+    $numbers = '0123456789'
+
+    ((RandomChar $cons).ToUpper() + `
+     (RandomChar $voc) + `
+     (RandomChar $cons) + `
+     (RandomChar $voc) + `
+     (RandomChar $numbers) + `
+     (RandomChar $numbers) + `
+     (RandomChar $numbers) + `
+     (RandomChar $numbers))
+}

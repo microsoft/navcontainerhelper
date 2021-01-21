@@ -106,27 +106,6 @@ Param(
     [scriptblock] $RemoveBcContainer
 )
 
-
-function RandomChar([string]$str) {
-    $rnd = Get-Random -Maximum $str.length
-    [string]$str[$rnd]
-}
-
-function GetRandomPassword {
-    $cons = 'bcdfghjklmnpqrstvwxz'
-    $voc = 'aeiouy'
-    $numbers = '0123456789'
-
-    ((RandomChar $cons).ToUpper() + `
-     (RandomChar $voc) + `
-     (RandomChar $cons) + `
-     (RandomChar $voc) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers))
-}
-
 function DetermineArtifactsToUse {
     Param(
         [string] $version = "",
@@ -535,7 +514,7 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
 try {
-    Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $previousApps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
+    Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $previousApps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -581,7 +560,7 @@ $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentLis
 
 $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
 try {
-    Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
+    Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
         
         $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
         Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson

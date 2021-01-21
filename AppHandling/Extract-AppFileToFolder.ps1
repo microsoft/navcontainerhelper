@@ -56,6 +56,9 @@ function Extract-AppFileToFolder {
         Add-Type -Assembly System.IO.Compression
         Add-Type -Assembly System.IO.Compression.FileSystem
         $content = $binaryReader.ReadBytes($contentLength)
+        if ([bitConverter]::ToInt64($content,0) -eq 72057595132988974) {
+            throw "You cannot extract a runtime package"
+        }
         $memoryStream = [System.IO.MemoryStream]::new($content)
         $zipArchive = [System.IO.Compression.ZipArchive]::new($memoryStream, [System.IO.Compression.ZipArchiveMode]::Read)
         $prevdir = ""
