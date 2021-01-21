@@ -1,8 +1,20 @@
 ﻿<# 
  .Synopsis
-  Preview function for refreshing BC Auth Context
+  Function for refreshing a Business Central Authorization Context
  .Description
-  Preview function for refreshing BC Auth Context
+  Function for refreshing a Business Central Authorization Context
+  If AccessToken is about to expire or has expired, refresh it
+  If authentication was obtained using client_credentials flow, then Renew-BcAuthContext with authenticate using the same client credentials (ClientID+ClientSecret)
+  If authentication was obtained using password, refresh_token or devicecode, then the refresh token in the auth context will be used to refresh the access token
+ .Parameter bcAuthContext
+  Authorization Context obtained by New-BcAuthContext.
+ .Parameter minValidityPeriodInSeconds
+  If the access token has a validity period lower than this number of seconds, trigger a refresh
+ .Example
+  $authContext = New-BcAuthContext -includeDeviceLogin
+  # do a lot of work
+  $authContext = Renew-BcAuthContext -bcAuthContext $authContext
+  # do more work
 #>
 function Renew-BcAuthContext {
     Param(

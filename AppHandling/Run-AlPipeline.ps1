@@ -719,8 +719,8 @@ $appsFolder = @{}
 $apps = @()
 $testApps = @()
 $testToolkitInstalled = $false
-$sortedFolders = @(Sort-AppFoldersByDependencies -containerName $containerName -appFolders $appFolders -WarningAction SilentlyContinue) + 
-                 @(Sort-AppFoldersByDependencies -containerName $containerName -appFolders $testFolders -WarningAction SilentlyContinue)
+$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
+                 @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue)
 $sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 

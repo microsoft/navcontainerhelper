@@ -1,8 +1,20 @@
 ﻿<# 
  .Synopsis
-  Preview function for removing Bc Environments
+  Function for removing a Business Central online environment
  .Description
-  Preview function for removing Bc Environments
+  Function for removing a Business Central online environment
+  This function is a wrapper for https://docs.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api#delete-environment
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext.
+ .Parameter applicationFamily
+  Application Family in which the environment is located. Default is BusinessCentral.
+ .Parameter environment
+  Name of the environment to delete
+ .Parameter doNotWait
+  Include this switch if you don't want to wait for completion of the deletion
+ .Example
+  $authContext = New-BcAuthContext -includeDeviceLogin
+  Remove-BcEnvironment -bcAuthContext $authContext -environment 'usSandbox'
 #>
 function Remove-BcEnvironment {
     Param(

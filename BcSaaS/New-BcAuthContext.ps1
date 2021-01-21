@@ -1,8 +1,37 @@
 ﻿<# 
  .Synopsis
-  Preview function for creating new BC Auth Context
+  Function for creating a new Business Central Authorization Context
  .Description
-  Preview function for creating new BC Auth Context
+  Function for creating a new Business Central Authorization Context
+  The Authorization Context can be used to authenticate to a Business Central online tenant/environment in various function from ContainerHelper.
+  The Authorization Context contains an AccessToken and you can renew the accesstoken (if necessary) by calling Renew-BcAuthContext
+  Order of priority of OAuth2 flows: client_credentials, password, refresh_token, devicecode
+ .Parameter clientID
+  ClientID of AAD app to use for authentication. Default is a well known PowerShell AAD App ID (1950a258-227b-4e31-a9cf-717495945fc2)
+ .Parameter Resource
+  Resource used for OAuth2 flow. Default is https://api.businesscentral.dynamics.com/
+ .Parameter tenantID
+  TenantID to use for OAuth2 flow. Default is Common
+ .Parameter authority
+  Authority to use for OAuth2 login. Default is https://login.microsoftonline.com/$TenantID
+ .Parameter scopes
+  Scopes to use for OAuth2 flow. Default is https://api.businesscentral.dynamics.com/.default
+ .Parameter refreshToken
+  If Refresh token is specified, the refresh_token flow will be included in the list of OAuth2 flows to try
+ .Parameter clientSecret
+  If ClientSecret is specified, the client_credentials flow will be included in the list of OAuth2 flows to try
+ .Parameter credential
+  If Credential is specified, the password flow will be included in the list of OAuth2 flows to try
+ .Parameter includeDeviceLogin
+  Include this switch if you want to include a device login prompt if no other way to authenticate succeeds
+ .Parameter deviceLoginTimeout
+  Timespan indicating the timeout while waiting for user to perform devicelogin. Default is 5 minutes.
+ .Example
+  $authContext = New-BcAuthContext -refreshToken $refreshTokenSecret.SecretValueText
+ .Example
+  $authContext = New-BcAuthContext -clientID $clientID -clientSecret $clientSecret
+ .Example
+  $authContext = New-BcAuthContext -includeDeviceLogin -deviceLoginTimeout ([TimeSpan]::FromHours(1))
 #>
 function New-BcAuthContext {
     Param(

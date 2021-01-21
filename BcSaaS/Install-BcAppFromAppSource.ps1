@@ -1,22 +1,47 @@
 ﻿<# 
  .Synopsis
-  Preview function for installing an AppSource App in an online tenant
+  Function for installing an AppSource App in an online Business Central environment
  .Description
-  Preview function for installing an AppSource App in an online tenant
+  Function for installing an AppSource App in an online Business Central environment
+  Current implementation uses client service to invoke page 2503 and install the app
+  WARNING: The implementation of this function will change when admin center API contains functionality for this
+ .Parameter containerName
+  ContainerName from which the client service connection is created (this parameter will be removed later)
+ .Parameter companyName
+  Company name in which the client service connection is done (this parameter will be removed later)
+ .Parameter profile
+  Profile name for the user which is performing the client service connection (this parameter will be removed later)
+ .Parameter culture
+  Culture of the user performing the client service connection (this parameter will be removed later)
+ .Parameter timeZone
+  Timezone of the user performing the client service connection  (this parameter will be removed later)
+ .Parameter debugMode
+  Include this switch if you want to enable debugMode for the client Service connection (this parameter will be removed later)
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext.
+ .Parameter environment
+  Environment in which you want to install an AppSource App
+ .Parameter appId
+  AppId of the AppSource App you want to install
+ .Parameter appId
+  Name of the AppSource App you want to install
+ .Example
+  $authContext = New-BcAuthContext -includeDeviceLogin
+  Install-BcAppFromAppSource -containerName proxy -bcAuthContext $authContext -AppId '55ba54a3-90c7-4d3f-bc73-68eaa51fd5f8'
 #>
 function Install-BcAppFromAppSource {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $companyName = "",
         [string] $profile = "",
-        [Parameter(Mandatory=$true)]
-        [Hashtable] $bcAuthContext,
-        [Parameter(Mandatory=$true)]
-        [string] $environment,
         [timespan] $interactionTimeout = [timespan]::FromHours(24),
         [string] $culture = "en-US",
         [string] $timezone = "",
         [switch] $debugMode,
+        [Parameter(Mandatory=$true)]
+        [Hashtable] $bcAuthContext,
+        [Parameter(Mandatory=$true)]
+        [string] $environment,
         [Parameter(Mandatory=$true)]
         [string] $appId,
         [string] $appName = $appId
