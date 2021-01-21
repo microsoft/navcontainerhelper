@@ -118,13 +118,8 @@ function Publish-BcContainerApp {
             $copied = $true
         }
         Expand-Archive $appfile -DestinationPath $zipFolder -Force
-        $apps = Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | ForEach-Object { $_.FullName }
-        try {
-            $apps = Sort-AppFilesByDependencies -appFiles $apps -WarningAction SilentlyContinue
-        }
-        catch {
-            # use alphabetic sorting if runtime apps
-        }
+        $apps = @(Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | ForEach-Object { $_.FullName })
+        $apps = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $apps -WarningAction SilentlyContinue)
         $apps | ForEach-Object { Publish-BcContainerApp @Params -appFile $_ }
         if ($copied) { Remove-Item $appFile -Force }
         Remove-Item -Path $zipFolder -Recurse -Force

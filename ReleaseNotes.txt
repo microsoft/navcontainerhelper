@@ -22,6 +22,8 @@ Use FilesOnly generic image for better performance
 Publish-PerTenantExtensionApps to support bcAuthContext as parameter set (as well as clientId, clientSecret and tenantId for compatibility)
 Add functions New-BcEnvironment, Remove-BcEnvironment and Set-BcEnvironmentApplicationInsightsKey
 Issue #1636 Signing fails in FilesOnly-container
+Added function Convert-BcAppsToRuntimePackages to convert a set of Apps to runtime packages matching a specific BC version and localization
+Added Parameter ContainerName to Sort-AppFilesByDependencies to allow the function to sort runtime packages using Get-NavAppInfo in container
 
 1.0.19
 Move retry algorithm to Download-File

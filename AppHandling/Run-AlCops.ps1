@@ -74,7 +74,7 @@ function Run-AlCops {
      
     $appsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
     New-Item -Path $appsFolder -ItemType Directory | Out-Null
-    $apps = Sort-AppFilesByDependencies -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
+    $apps = Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
     
     $appPackFolderCreated = $false
     if (!(Test-Path $appPackagesFolder)) {
@@ -86,7 +86,7 @@ function Run-AlCops {
     if ($enableAppSourceCop -and $previousApps) {
         Write-Host "Copying previous apps to packages folder"
         $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
-        $previousApps = Sort-AppFilesByDependencies -appFiles $appList
+        $previousApps = Sort-AppFilesByDependencies -containerName $containerName -appFiles $appList -WarningAction SilentlyContinue
         $previousApps | ForEach-Object {
             $appFile = $_
             $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
