@@ -790,6 +790,7 @@ Write-Host -ForegroundColor Yellow @'
             "EnableAppSourceCop" = $enableAppSourceCop
             "EnableUICop" = $enableUICop
             "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
+            "failOn" = $failOn
         }
         if ("$rulesetFile" -ne "" -or $useDefaultAppSourceRuleSet) {
             if ($useDefaultAppSourceRuleSet) {
@@ -855,7 +856,6 @@ Write-Host -ForegroundColor Yellow @'
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
-        "failOn" = $failOn
         "CopySymbolsFromContainer" = $CopySymbolsFromContainer
     }
     if ($enableAppSourceCop -and $app) {
