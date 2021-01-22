@@ -1,4 +1,4 @@
-1.0.20
+2.0.0
 Issue #1596 support URLs in previousApps in Run-AlValidation
 Issue #1606 do not prune when creating images
 Remove compatibility for ancient generic image versions from New-BcContainer
