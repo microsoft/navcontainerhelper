@@ -175,8 +175,8 @@ Param(
     [switch] $azureDevOps,
     [switch] $gitLab,
     [switch] $gitHubActions,
-    [ValidateSet('error','warning')]
-    [string] $failOn = "error",
+    [ValidateSet('none','error','warning')]
+    [string] $failOn = "none",
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
     [switch] $keepContainer,
