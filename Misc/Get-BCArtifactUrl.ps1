@@ -139,30 +139,32 @@ function Get-BCArtifactUrl {
                 $nextMarker = ""
                 do {
                     Write-verbose "Invoke-RestMethod -Method Get -Uri $GetListUrl$nextMarker"
-                    $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker"
+                    $Response = Invoke-RestMethod -Method Get -Uri "$GetListUrl$nextMarker" -UseBasicParsing
                     $enumerationResults = ([xml] $Response.ToString().Substring($Response.IndexOf("<EnumerationResults"))).EnumerationResults
                     if ($enumerationResults.Blobs) {
-                        $enumerationResults.Blobs.Blob | % {
-                            if ($after) {
-                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                                if ($before) {
-                                    if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                        if (($After) -or ($Before)) {
+                            $enumerationResults.Blobs.Blob | % {
+                                if ($after) {
+                                    $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                    if ($before) {
+                                        if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                            $Artifacts += $_.Name
+                                        }
+                                    }
+                                    elseif ($blobModifiedDate -gt $after) {
                                         $Artifacts += $_.Name
                                     }
                                 }
-                                elseif ($blobModifiedDate -gt $after) {
-                                    $Artifacts += $_.Name
+                                else {
+                                    $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                    if ($blobModifiedDate -lt $before) {
+                                        $Artifacts += $_.Name
+                                    }
                                 }
                             }
-                            elseif ($before) {
-                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                                if ($blobModifiedDate -lt $before) {
-                                    $Artifacts += $_.Name
-                                }
-                            }
-                            else {
-                                $Artifacts += $_.Name
-                            }
+                        }
+                        else {
+                            $Artifacts += $enumerationResults.Blobs.Blob.Name
                         }
                     }
                     $nextMarker = $enumerationResults.NextMarker

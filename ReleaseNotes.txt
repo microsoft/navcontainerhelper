@@ -1,3 +1,7 @@
+2.0.1
+Issue #1646 Get-BcArtifactUrl has decome a low slower with 2.0.0
+Issue #1645 Build Partially Succeeded - revert behavior
+
 2.0.0
 Issue #1596 support URLs in previousApps in Run-AlValidation
 Issue #1606 do not prune when creating images
