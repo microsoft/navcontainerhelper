@@ -45,7 +45,6 @@ function Sort-AppFilesByDependencies {
                 $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
                 if ($appJson.Dependencies) {
                     $appJson.Dependencies | % { if ($_) { 
-                        Write-Host $_.GetType()
                         $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
                         $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue $_.MinVersion.ToString()
                     } }

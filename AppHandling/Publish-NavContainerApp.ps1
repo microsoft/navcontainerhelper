@@ -51,9 +51,9 @@
 #>
 function Publish-BcContainerApp {
     Param (
-        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [string] $containerName = "",
         [Parameter(Mandatory=$true)]
-        [string] $appFile,
+        $appFile,
         [switch] $skipVerification,
         [switch] $sync,
         [Parameter(Mandatory=$false)]
@@ -80,276 +80,244 @@ function Publish-BcContainerApp {
     )
 
     Add-Type -AssemblyName System.Net.Http
-    $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
-    $Params = @{
-        "containerName" = $containerName
-        "skipVerification" = $skipVerification
-        "sync" = $sync
-        "install" = $install
-        "tenant" = $tenant
-        "useDevEndpoint" = $useDevEndpoint
-        "language" = $language
-        "replaceDependencies" = $replaceDependencies
-        "ShowMyCode" = $showMyCode
-        "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId
-        "bcAuthContext" = $bcAuthContext
-        "environment" = $environment
-    }
-    if ($syncMode) { $Params += @{ "SyncMode" = $syncMode } }
-    if ($packageType) { $Params += @{ "packageType" = $packageType } }
-    if ($scope) { $Params += @{ "scope" = $scope } }
-    if ($credential) { $Params += @{ "credential" = $credential } }
-
-    if ($appFile.ToLower().StartsWith("http://") -or $appFile.ToLower().StartsWith("https://")) {
-        $appUrl = $appFile
-        $name = [System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl).split("?")[0])
-        $appFile = Join-Path $extensionsFolder "$containerName\_$name"
-        Download-File -sourceUrl $appUrl -destinationFile $appFile
-
-        Publish-BcContainerApp @Params -appFile $appFile
-
-        Remove-Item $appFile -Force
-        return
+    if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
+        $containerName = $bcContainerHelperConfig.defaultContainerName
     }
 
-    if (!($appFile.StartsWith(':')) -and (Test-Path $appFile) -and ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK")) {
-        $copied = $false
-        $zipFolder = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
-        if ($appFile -notlike "*.zip") {
-            Copy-Item $appFile "$appFile.zip"
-            $appFile = "$appFile.zip"
-            $copied = $true
-        }
-        Expand-Archive $appfile -DestinationPath $zipFolder -Force
-        $apps = @(Get-ChildItem -Path $zipFolder -Filter '*.app' -Recurse | Sort-Object -Property "Name" | ForEach-Object { $_.FullName })
-        $apps = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $apps -WarningAction SilentlyContinue)
-        $apps | ForEach-Object { Publish-BcContainerApp @Params -appFile $_ }
-        if ($copied) { Remove-Item $appFile -Force }
-        Remove-Item -Path $zipFolder -Recurse -Force
-        return
-    }
-
-    $copied = $false
-    $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
-    if ("$containerAppFile" -eq "" -or $ShowMyCode -ne "Ignore" -or ($replaceDependencies) -or $appFile.StartsWith(':')) {
-        $sharedAppFile = Join-Path $extensionsFolder "$containerName\_$([System.IO.Path]::GetFileName($appFile))"
-        if ($appFile.StartsWith(':')) {
-            Copy-FileFromBCContainer -containerName $containerName -containerPath $appFile.Substring(1) -localPath $sharedAppFile
-            if ($ShowMyCode -ne "Ignore" -or ($replaceDependencies)) {
-                Write-Host "Checking dependencies in $sharedAppFile"
-                Replace-DependenciesInAppFile -containerName $containerName -Path $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
-            }
-        }
-        elseif ($ShowMyCode -ne "Ignore" -or ($replaceDependencies)) {
-            Write-Host "Checking dependencies in $appFile"
-            Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -Destination $sharedAppFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+    if ($containerName) {
+        $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+        $appFolder = Join-Path $extensionsFolder "$containerName\$([guid]::NewGuid().ToString())"
+        if ($appFile -is [string] -and $appFile.Startswith(':')) {
+            $destFile = Join-Path $appFolder ([System.IO.Path]::GetFileName($appFile.SubString(1)))
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile, $destFile)
+                Copy-Item -Path $appFile -Destination $destFile -Force
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $destFile) | Out-Null
+            $appFiles = @($destFile)
         }
         else {
-            Copy-Item -Path $appFile -Destination $sharedAppFile
+            $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         }
-        $appFile = $sharedAppFile
-        $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
-        $copied = $true
-    }
-
-    if ($bcAuthContext -and $environment) {
-        $useDevEndpoint = $true
-    }
-    elseif ($customconfig.ServerInstance -eq "") {
-        throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
-    }
-
-    if ($useDevEndpoint) {
-
-        if ($scope -eq "Global") {
-            throw "You cannot publish to global scope using the dev. endpoint"
-        }
-
-        $sslVerificationDisabled = $false
-        if ($bcAuthContext -and $environment) {
-            $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-            $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment -and $_.Type -eq "Sandbox" }
-            if (!$bcEnvironment) {
-                throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
-            }
-            $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
-            $tenant = ""
-
-            $handler = New-Object System.Net.Http.HttpClientHandler
-            $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-            $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
-            $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-            $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-        }
-        else {
-            $handler = New-Object System.Net.Http.HttpClientHandler
-            if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-                $handler.UseDefaultCredentials = $true
-            }
-            $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-            if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
-                if (!($credential)) {
-                    throw "You need to specify credentials when you are not using Windows Authentication"
-                }
-                $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
-                $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-                $base64 = [System.Convert]::ToBase64String($bytes)
-                $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
-            }
-            $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-            $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-            
-            if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
-                $protocol = "https://"
-            }
-            else {
-                $protocol = "http://"
-            }
-        
-            $ip = Get-BcContainerIpAddress -containerName $containerName
-            if ($ip) {
-                $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-            }
-            else {
-                $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-            }
-        
-            $sslVerificationDisabled = ($protocol -eq "https://")
-            if ($sslVerificationDisabled) {
-                if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-                {
-                    Add-Type -TypeDefinition "
-                        using System.Net.Security;
-                        using System.Security.Cryptography.X509Certificates;
-                        public static class SslVerification
-                        {
-                            private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                            public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                            public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                        }"
-                }
-                Write-Host "Disabling SSL Verification"
-                [SslVerification]::Disable()
-            }
-        }
-        
-        $schemaUpdateMode = "synchronize"
-        if ($syncMode -eq "Clean") {
-            $schemaUpdateMode = "recreate";
-        }
-        elseif ($syncMode -eq "ForceSync") {
-            $schemaUpdateMode = "forcesync"
-        }
-        $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
-        if ($tenant) {
-            $url += "&tenant=$tenant"
-        }
-        
-        $appName = [System.IO.Path]::GetFileName($appFile)
-        
-        $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
-        $FileStream = [System.IO.FileStream]::new($appFile, [System.IO.FileMode]::Open)
-        try {
-            $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
-            $fileHeader.Name = "$AppName"
-            $fileHeader.FileName = "$appName"
-            $fileHeader.FileNameStar = "$appName"
-            $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
-            $fileContent.Headers.ContentDisposition = $fileHeader
-            $multipartContent.Add($fileContent)
-            Write-Host "Publishing $appName to $url"
-            $result = $HttpClient.PostAsync($url, $multipartContent).GetAwaiter().GetResult()
-            if (!$result.IsSuccessStatusCode) {
-                $message = "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
-                try {
-                    $resultMsg = $result.Content.ReadAsStringAsync().Result
-                    try {
-                        $json = $resultMsg | ConvertFrom-Json
-                        $message += "`n$($json.Message)"
-                    }
-                    catch {
-                        $message += "`n$resultMsg"
-                    }
-                }
-                catch {}
-                throw $message
-            }
-        }
-        finally {
-            $FileStream.Close()
-        }
-    
-        if ($sslverificationdisabled) {
-            Write-Host "Re-enablssing SSL Verification"
-            [SslVerification]::Enable()
-        }
-
     }
     else {
+        if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+            throw "Publishing to online tenants doesn't support changing ShowMyCode or replacing Dependencies"
+        }
+        $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+        $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
+    }
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId)
+    try {
+        if ($appFolder) {
+            $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -WarningAction SilentlyContinue)
+        }
+        $appFiles | Where-Object { $_ } | ForEach-Object {
 
-            $publishArgs = @{ "packageType" = $packageType }
-            if ($scope) {
-                $publishArgs += @{ "Scope" = $scope }
-                if ($scope -eq "Tenant") {
-                    $publishArgs += @{ "Tenant" = $tenant }
-                }
+            $appFile = $_
+
+            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+                Write-Host "Checking dependencies in $appFile"
+                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
             }
-            if ($PublisherAzureActiveDirectoryTenantId) {
-                $publishArgs += @{ "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId }
+        
+            if ($bcAuthContext -and $environment) {
+                $useDevEndpoint = $true
             }
-    
-            Write-Host "Publishing $appFile"
-            Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
-
-            if ($sync -or $install -or $upgrade) {
-
-                $navAppInfo = Get-NAVAppInfo -Path $appFile
-                $appPublisher = $navAppInfo.Publisher
-                $appName = $navAppInfo.Name
-                $appVersion = $navAppInfo.Version
-
-                $syncArgs = @{}
-                if ($syncMode) {
-                    $syncArgs += @{ "Mode" = $syncMode }
-                }
-    
-                if ($sync) {
-                    Write-Host "Synchronizing $appName on tenant $tenant"
-                    Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
-                    Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+            elseif ($customconfig.ServerInstance -eq "") {
+                throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
+            }
+        
+            if ($useDevEndpoint) {
+        
+                if ($scope -eq "Global") {
+                    throw "You cannot publish to global scope using the dev. endpoint"
                 }
         
-                if ($install) {
-
-                    $languageArgs = @{}
-                    if ($language) {
-                        $languageArgs += @{ "Language" = $language }
+                $sslVerificationDisabled = $false
+                if ($bcAuthContext -and $environment) {
+                    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+                    $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment -and $_.Type -eq "Sandbox" }
+                    if (!$bcEnvironment) {
+                        throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
                     }
-                    Write-Host "Installing $appName on tenant $tenant"
-                    Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                    $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
+                    $tenant = ""
+        
+                    $handler = New-Object System.Net.Http.HttpClientHandler
+                    $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+                    $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
+                    $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+                    $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
                 }
-
-                if ($upgrade) {
-
-                    $languageArgs = @{}
-                    if ($language) {
-                        $languageArgs += @{ "Language" = $language }
+                else {
+                    $handler = New-Object System.Net.Http.HttpClientHandler
+                    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+                        $handler.UseDefaultCredentials = $true
                     }
-                    Write-Host "Upgrading $appName on tenant $tenant"
-                    Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                    $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+                    if ($customConfig.ClientServicesCredentialType -eq "NavUserPassword") {
+                        if (!($credential)) {
+                            throw "You need to specify credentials when you are not using Windows Authentication"
+                        }
+                        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+                        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+                        $base64 = [System.Convert]::ToBase64String($bytes)
+                        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
+                    }
+                    $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+                    $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+                    
+                    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
+                        $protocol = "https://"
+                    }
+                    else {
+                        $protocol = "http://"
+                    }
+                
+                    $ip = Get-BcContainerIpAddress -containerName $containerName
+                    if ($ip) {
+                        $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
+                    }
+                    else {
+                        $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
+                    }
+                
+                    $sslVerificationDisabled = ($protocol -eq "https://")
+                    if ($sslVerificationDisabled) {
+                        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
+                        {
+                            Add-Type -TypeDefinition "
+                                using System.Net.Security;
+                                using System.Security.Cryptography.X509Certificates;
+                                public static class SslVerification
+                                {
+                                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+                                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
+                                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+                                }"
+                        }
+                        Write-Host "Disabling SSL Verification"
+                        [SslVerification]::Disable()
+                    }
                 }
+                
+                $schemaUpdateMode = "synchronize"
+                if ($syncMode -eq "Clean") {
+                    $schemaUpdateMode = "recreate";
+                }
+                elseif ($syncMode -eq "ForceSync") {
+                    $schemaUpdateMode = "forcesync"
+                }
+                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
+                if ($tenant) {
+                    $url += "&tenant=$tenant"
+                }
+                
+                $appName = [System.IO.Path]::GetFileName($appFile)
+                
+                $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
+                $FileStream = [System.IO.FileStream]::new($appFile, [System.IO.FileMode]::Open)
+                try {
+                    $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+                    $fileHeader.Name = "$AppName"
+                    $fileHeader.FileName = "$appName"
+                    $fileHeader.FileNameStar = "$appName"
+                    $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
+                    $fileContent.Headers.ContentDisposition = $fileHeader
+                    $multipartContent.Add($fileContent)
+                    Write-Host "Publishing $appName to $url"
+                    $result = $HttpClient.PostAsync($url, $multipartContent).GetAwaiter().GetResult()
+                    if (!$result.IsSuccessStatusCode) {
+                        $message = "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
+                        try {
+                            $resultMsg = $result.Content.ReadAsStringAsync().Result
+                            try {
+                                $json = $resultMsg | ConvertFrom-Json
+                                $message += "`n$($json.Message)"
+                            }
+                            catch {
+                                $message += "`n$resultMsg"
+                            }
+                        }
+                        catch {}
+                        throw $message
+                    }
+                }
+                finally {
+                    $FileStream.Close()
+                }
+            
+                if ($sslverificationdisabled) {
+                    Write-Host "Re-enablssing SSL Verification"
+                    [SslVerification]::Enable()
+                }
+        
             }
-
-        } -ArgumentList $containerAppFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId
+            else {
+        
+                Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId)
+        
+                    $publishArgs = @{ "packageType" = $packageType }
+                    if ($scope) {
+                        $publishArgs += @{ "Scope" = $scope }
+                        if ($scope -eq "Tenant") {
+                            $publishArgs += @{ "Tenant" = $tenant }
+                        }
+                    }
+                    if ($PublisherAzureActiveDirectoryTenantId) {
+                        $publishArgs += @{ "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId }
+                    }
+            
+                    Write-Host "Publishing $appFile"
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
+        
+                    if ($sync -or $install -or $upgrade) {
+        
+                        $navAppInfo = Get-NAVAppInfo -Path $appFile
+                        $appPublisher = $navAppInfo.Publisher
+                        $appName = $navAppInfo.Name
+                        $appVersion = $navAppInfo.Version
+        
+                        $syncArgs = @{}
+                        if ($syncMode) {
+                            $syncArgs += @{ "Mode" = $syncMode }
+                        }
+            
+                        if ($sync) {
+                            Write-Host "Synchronizing $appName on tenant $tenant"
+                            Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
+                            Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
+                        }
+                
+                        if ($install) {
+        
+                            $languageArgs = @{}
+                            if ($language) {
+                                $languageArgs += @{ "Language" = $language }
+                            }
+                            Write-Host "Installing $appName on tenant $tenant"
+                            Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                        }
+        
+                        if ($upgrade) {
+        
+                            $languageArgs = @{}
+                            if ($language) {
+                                $languageArgs += @{ "Language" = $language }
+                            }
+                            Write-Host "Upgrading $appName on tenant $tenant"
+                            Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                        }
+                    }
+        
+                } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId
+            }
+            Write-Host -ForegroundColor Green "App $([System.IO.Path]::GetFileName($appFile)) successfully published"
+        }
     }
-
-    if ($copied) { 
-        Remove-Item $appFile -Force
+    finally {
+        Remove-Item $appFolder -Recurse -Force
     }
-    Write-Host -ForegroundColor Green "App successfully published"
 }
 Set-Alias -Name Publish-NavContainerApp -Value Publish-BcContainerApp
 Export-ModuleMember -Function Publish-BcContainerApp -Alias Publish-NavContainerApp
