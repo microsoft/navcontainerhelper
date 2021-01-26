@@ -336,7 +336,10 @@ function New-BcContainer {
     }
 
     if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
-        if ($auth -eq "Windows") {
+        if ($filesOnly) {
+            $credential = New-Object pscredential -ArgumentList 'admin', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force) 
+        }
+        elseif ($auth -eq "Windows") {
             $credential = get-credential -UserName $env:USERNAME -Message "Using Windows Authentication. Please enter your Windows credentials."
         } else {
             $credential = get-credential -Message "Using $auth Authentication. Please enter username/password for the Containter."

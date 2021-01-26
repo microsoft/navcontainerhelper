@@ -1,3 +1,8 @@
+2.0.2
+Allow no credentials with filesOnly containers
+Connect from inside the container to SaaS environment in Install-BcAppFromAppSource and Run-ConnectionTestToBcContainer to avoid file locks
+Add parameter allowInstallationOnProduction to Install-BcAppFromAppSource to allow installation in production environments
+
 2.0.1
 Issue #1646 Get-BcArtifactUrl has decome a low slower with 2.0.0
 Issue #1645 Build Partially Succeeded - revert behavior
