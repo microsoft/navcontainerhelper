@@ -105,7 +105,7 @@ function Install-BcAppFromAppSource {
             }
         }
         else {
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param ($psTestToolFolder, $serviceUrl, $credential, $appId, $appName, $debugMode, $connectFromHost)
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param ($psTestToolFolder, $serviceUrl, $interactionTimeout, $culture, $timezone, $credential, $appId, $appName, $debugMode, $connectFromHost)
 
                 $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                 $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -132,7 +132,7 @@ function Install-BcAppFromAppSource {
                 }
 
 
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $PsTestToolFolder), $serviceUrl, $credential, $appId, $appName, $debugMode, $connectFromHost
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $PsTestToolFolder), $serviceUrl, $interactionTimeout, $culture, $timezone, $credential, $appId, $appName, $debugMode, $connectFromHost
         }
     }
 }
