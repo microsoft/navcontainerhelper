@@ -1,3 +1,6 @@
+2.0.3
+Issue #1655 variable $scopes not set
+
 2.0.2
 Allow no credentials with filesOnly containers
 Connect from inside the container to SaaS environment in Install-BcAppFromAppSource and Run-ConnectionTestToBcContainer to avoid file locks

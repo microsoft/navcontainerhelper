@@ -56,7 +56,7 @@ function Publish-PerTenantExtensionApps {
             -clientID $clientID `
             -clientSecret $clientSecret `
             -tenantID $tenantId `
-            -scopes $scopes `
+            -scopes "https://api.businesscentral.dynamics.com/.default"
     }
     else {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
