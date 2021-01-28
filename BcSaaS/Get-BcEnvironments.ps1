@@ -22,6 +22,11 @@ function Get-BcEnvironments {
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
-    (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments" -Headers $headers).Value
+    try {
+       (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments" -Headers $headers).Value
+    }
+    catch {
+        throw (GetExtenedErrorMessage $_.Exception)
+    }
 }
 Export-ModuleMember -Function Get-BcEnvironments

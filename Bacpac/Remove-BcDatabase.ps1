@@ -34,9 +34,11 @@ function Remove-BcDatabase {
     else {
         $op = "="
     }
-    $dbFiles = Invoke-SqlCmd `
-                   -ServerInstance $databaseserverinstance `
-                   -Query "SELECT f.physical_name FROM sys.sysdatabases db INNER JOIN sys.master_files f ON f.database_id = db.dbid WHERE db.name $op '$DatabaseName'" | ForEach-Object { $_.physical_name }
+    if ($databaseServer -eq "localhost") {
+        $dbFiles = Invoke-SqlCmd `
+                       -ServerInstance $databaseserverinstance `
+                       -Query "SELECT f.physical_name FROM sys.sysdatabases db INNER JOIN sys.master_files f ON f.database_id = db.dbid WHERE db.name $op '$DatabaseName'" | ForEach-Object { $_.physical_name }
+    }
 
     $databases = Invoke-SqlCmd `
         -ServerInstance $databaseserverinstance `
@@ -55,11 +57,13 @@ function Remove-BcDatabase {
             -Query "DROP DATABASE [$_]"
     }
 
-    $dbFiles | ForEach-Object {
-        if (Test-Path $_) { Remove-Item -Path $_ -Force }
-        $dirname = [System.IO.Path]::GetDirectoryName($_)
-        if ((Get-ChildItem -Path $dirname | Measure-Object).Count -eq 0) {
-            Remove-Item -Path $dirname -Force
+    if ($databaseServer -eq "localhost") {
+        $dbFiles | ForEach-Object {
+            if (Test-Path $_) { Remove-Item -Path $_ -Force }
+            $dirname = [System.IO.Path]::GetDirectoryName($_)
+            if ((Get-ChildItem -Path $dirname | Measure-Object).Count -eq 0) {
+                Remove-Item -Path $dirname -Force
+            }
         }
     }
 }
