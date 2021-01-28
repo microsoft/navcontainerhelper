@@ -1,6 +1,9 @@
 2.0.3
 Issue #1655 variable $scopes not set
 Issue #1654 and #1656 Publish-BcContainerApp where the filename contains a comma fails.
+New Function Get-BcInstalledExtensions to return installed extensions (including PTEs) from an online Business Central environment
+New function New-BcDatabaseExport to start a new Database Export from an online Business Central environment
+New function Get-BcDatabaseExportHistory to get the Database Export History from an online Business Central tenant/environment
 
 2.0.2
 Allow no credentials with filesOnly containers

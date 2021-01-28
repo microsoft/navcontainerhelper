@@ -1,8 +1,8 @@
 ﻿<# 
  .Synopsis
-  Function for retrieving Bc Published Apps from an online Business Central environment
+  Function for retrieving Published AppSource Apps from an online Business Central environment
  .Description
-  Function for retrieving Bc Published Apps from an online Business Central environment
+  Function for retrieving Published AppSource Apps from an online Business Central environment
   Wrapper for https://docs.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api#get-installed-apps
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
@@ -26,6 +26,11 @@ function Get-BcPublishedApps {
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
-    (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+    try {
+        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+    }
+    catch {
+        throw (GetExtenedErrorMessage $_.Exception)
+    }
 }
 Export-ModuleMember -Function Get-BcPublishedApps
