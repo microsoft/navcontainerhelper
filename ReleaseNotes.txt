@@ -1,3 +1,7 @@
+2.0.4
+Remove-BcEnvironment fails after waiting for environment removal
+Import-TestToolkitToBcContainer fails when installing apps in online environment unless a container called bcserver exists
+
 2.0.3
 Issue #1655 variable $scopes not set
 Issue #1654 and #1656 Publish-BcContainerApp where the filename contains a comma fails.
