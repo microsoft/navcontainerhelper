@@ -56,13 +56,11 @@ function Remove-BcEnvironment {
                 $env = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
             } while ($env -and $env.Status -eq "Removing")
             if ($env) {
-                Write-Host $env.Status
+                Write-Host -ForegroundColor Red $env.Status
+                throw "Could not remove environment"
             }
             else {
-                Write-Host "Removed"
-            }
-            if ($status -ne "Active") {
-                throw "Could not remove environment"
+                Write-Host -ForegroundColor Green "Removed"
             }
         }
     }
