@@ -2,6 +2,7 @@
 Remove-BcEnvironment fails after waiting for environment removal
 Import-TestToolkitToBcContainer fails when installing apps in online environment unless a container called bcserver exists
 Add parameter -replacePackageId to Replace-DependenciesInAppFile to allow process to change package id in an app
+Add parameter -replacePackageId to Publish-BcContainerApp to allow process to change package id in an app
 
 2.0.3
 Issue #1655 variable $scopes not set
