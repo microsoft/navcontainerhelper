@@ -44,6 +44,16 @@ function New-BcEnvironment {
     )
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+    if (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Status -eq 'Preparing'}) {
+        Write-Host -NoNewline "Waiting for other environments."
+        while (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Status -eq 'Preparing'}) {
+            Start-Sleep -Seconds 2
+            Write-Host -NoNewline "."
+        }
+        Write-Host " done"
+    }
+
+    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{
         "Authorization" = $bearerAuthValue
@@ -57,6 +67,7 @@ function New-BcEnvironment {
             }
         }
     }
+
     Write-Host "Submitting new environment request for $applicationFamily/$environment"
     $body | ConvertTo-Json | Out-Host
     try {
