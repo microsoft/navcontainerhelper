@@ -74,6 +74,7 @@ function Publish-BcContainerApp {
         [hashtable] $replaceDependencies = $null,
         [ValidateSet('Ignore','True','False','Check')]
         [string] $ShowMyCode = "Ignore",
+        [switch] $replacePackageId,
         [string] $PublisherAzureActiveDirectoryTenantId,
         [Hashtable] $bcAuthContext,
         [string] $environment
@@ -101,9 +102,6 @@ function Publish-BcContainerApp {
         }
     }
     else {
-        if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
-            throw "Publishing to online tenants doesn't support changing ShowMyCode or replacing Dependencies"
-        }
         $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
     }
@@ -116,9 +114,9 @@ function Publish-BcContainerApp {
 
             $appFile = $_
 
-            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies) {
+            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId) {
                 Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode
+                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
             }
         
             if ($bcAuthContext -and $environment) {
