@@ -1082,9 +1082,14 @@ Measure-Command {
                 $Parameters += @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
+                    "replacePackageId" = $true
                 }
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+        if ($bcAuthContext) {
+            Write-Host "Wait for online environment to process apps"
+            Start-Sleep -Seconds 30
         }
     }
 
