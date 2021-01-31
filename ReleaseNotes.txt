@@ -5,6 +5,7 @@ Add parameter -replacePackageId to Replace-DependenciesInAppFile to allow proces
 Add parameter -replacePackageId to Publish-BcContainerApp to allow process to change package id in an app
 Run-AlPipeline using a BcSaaS Sandbox environment to use replacePackageId when publishing previousApps and add delay to avoid conflicts
 New-BcEnvironment to wait for other environments being created before creating
+Specifying TestRunnerOnly installs all tests when not using online SaaS environments
 
 2.0.3
 Issue #1655 variable $scopes not set

@@ -135,7 +135,7 @@ function Import-TestToolkitToBcContainer {
                 }
             }
     
-            $appFiles = GetTestToolkitApps -containerName $containerName -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+            $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
     
             if (!$doNotUseRuntimePackages) {
                 if ($isBcSandbox) {
