@@ -42,6 +42,8 @@
   Build number for build. Will be stamped into the build part of the app.json version number property.
  .Parameter appRevision
   Revision number for build. Will be stamped into the revision part of the app.json version number property.
+ .Parameter applicationInsightsKey
+  ApplicationInsightsKey to be stamped into app.json for all apps
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter testResultsFormat
@@ -157,6 +159,7 @@ Param(
     $additionalCountries = @(),
     [int] $appBuild = 0,
     [int] $appRevision = 0,
+    [string] $applicationInsightsKey,
     [string] $testResultsFile = "TestResults.xml",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
@@ -828,6 +831,7 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    $appJsonChanges = $false
     $appJsonFile = Join-Path $folder "app.json"
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
     if ($appBuild -or $appRevision) {
@@ -835,6 +839,20 @@ Write-Host -ForegroundColor Yellow @'
         $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
         Write-Host "Using Version $version"
         $appJson.version = "$version"
+        $appJsonChanges = $true
+    }
+
+    if ($applicationInsightsKey) {
+        if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
+            $appJson.applicationInsightsKey = $applicationInsightsKey
+        }
+        else {
+            Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightskey" -Value $applicationInsightsKey
+        }
+        $appJsonChanges = $true
+    }
+
+    if ($appJsonChanges) {
         $appJson | ConvertTo-Json -Depth 99 | Set-Content $appJsonFile
     }
 

@@ -6,6 +6,7 @@ Add parameter -replacePackageId to Publish-BcContainerApp to allow process to ch
 Run-AlPipeline using a BcSaaS Sandbox environment to use replacePackageId when publishing previousApps and add delay to avoid conflicts
 New-BcEnvironment to wait for other environments being created before creating
 Specifying TestRunnerOnly installs all tests when not using online SaaS environments
+Add parameter applicationInsightsKey to Run-AlPipeline to stamp applicationInsightsKey into app.json for all apps
 
 2.0.3
 Issue #1655 variable $scopes not set
