@@ -479,8 +479,8 @@ Measure-Command {
 $parameters = @{
     "containerName" = $containerName
     "credential" = $credential
-    "previousApps" = $previousApps
-    "apps" = $apps
+    "previousApps" = @($previousApps)
+    "apps" = @($apps)
     "affixes" = $affixes
     "supportedCountries" = $supportedCountries
     "enableAppSourceCop" = $true
