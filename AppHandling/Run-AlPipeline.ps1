@@ -831,8 +831,8 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    $appJsonChanges = $false
     $appJsonFile = Join-Path $folder "app.json"
+    $appJsonChanges = $false
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
     if ($appBuild -or $appRevision) {
         $appJsonVersion = [System.Version]$appJson.Version
@@ -842,12 +842,12 @@ Write-Host -ForegroundColor Yellow @'
         $appJsonChanges = $true
     }
 
-    if ($applicationInsightsKey) {
+    if ($app -and $applicationInsightsKey) {
         if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
             $appJson.applicationInsightsKey = $applicationInsightsKey
         }
         else {
-            Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightskey" -Value $applicationInsightsKey
+            Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
         }
         $appJsonChanges = $true
     }
