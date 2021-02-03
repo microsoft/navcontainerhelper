@@ -94,7 +94,12 @@ function Setup-BcContainerTestUsers {
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
-                $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_15.0.app"
+                if (([System.Version]$version).Major -ge 17) {
+                    $createTestUsersAppUrl = "https://businesscentralapps.azureedge.net/createtestusers/latest/apps.zip"
+                }
+                else {
+                    $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_15.0.app"
+                }
             }
         }
         else {
