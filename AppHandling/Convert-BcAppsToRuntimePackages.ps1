@@ -24,7 +24,7 @@ function Convert-BcAppsToRuntimePackages {
 
     $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
     try {
-        $apps = Sort-AppFilesByDependencies -appFiles (CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
+        $apps = @(Sort-AppFilesByDependencies -appFiles (CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue)
         if ($apps.Count -eq 0) {
             throw "No apps specified"
         }
