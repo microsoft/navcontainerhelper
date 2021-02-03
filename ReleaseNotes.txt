@@ -1,6 +1,7 @@
 2.0.5
 Issue #1668 Run-AlValidation fails if app filename has a comma (and there is only one app)
 Issue #1675 Convert-BcAppsToRuntimePackages doesn't work with only one app.
+Issue #1678 Setup-BcContainerTestUsers fails on version 18
 
 2.0.4
 Remove-BcEnvironment fails after waiting for environment removal
