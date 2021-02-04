@@ -1,5 +1,9 @@
 #Requires -PSEdition Desktop 
 
+param(
+    [switch] $Silent
+)
+
 Set-StrictMode -Version 2.0
 
 $verbosePreference = "SilentlyContinue"
@@ -69,7 +73,9 @@ function Get-ContainerHelperConfig {
             $keys = $bcContainerHelperConfig.Keys | % { $_ }
             $keys | % {
                 if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-                    Write-Host "Setting $_ = $($savedConfig."$_")"
+                    if (!$silent) {
+                        Write-Host "Setting $_ = $($savedConfig."$_")"
+                    }
                     $bcContainerHelperConfig."$_" = $savedConfig."$_"
         
                 }
@@ -127,7 +133,9 @@ $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
 
 $BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
-Write-Host "BcContainerHelper version $BcContainerHelperVersion"
+if (!$silent) {
+    Write-Host "BcContainerHelper version $BcContainerHelperVersion"
+}
 
 $sessions = @{}
 
