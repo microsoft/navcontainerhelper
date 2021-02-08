@@ -94,7 +94,13 @@ function Flush-ContainerHelperCache {
     }
 
     if ($caches.Contains('all') -or $caches.Contains('images')) {
+        $bestGenericImageName = Get-BestGenericImageName
         $allImages = @(docker images --no-trunc --format "{{.Repository}}:{{.Tag}}|{{.ID}}")
+        $bestGenericImage = $allImages | Where-Object { $_.Split('|')[0] -eq $bestGenericImageName }
+        if ($bestGenericImage) {
+            $bestGenericImageId = $bestGenericImage.Split('|')[1]
+            $bestGenericImageInspect = docker inspect $bestGenericImageID | ConvertFrom-Json
+        }
         $allImages | ForEach-Object {
             $imageName = $_.Split('|')[0]
             $imageID = $_.Split('|')[1]
@@ -116,6 +122,18 @@ function Flush-ContainerHelperCache {
                         }
                     }
                 }
+            }
+            elseif ($bestGenericImage) {
+                try {
+                    if ($inspect.config.Labels.maintainer -eq "Dynamics SMB" -and 
+                        $inspect.Config.Labels.tag -ne "" -and 
+                        $inspect.Config.Labels.osversion -ne $bestGenericImageInspect.Config.Labels.osversion) {
+                        Write-Host "$imageName is a generic image for an old version of your OS, removing image"
+                        if (-not (DockerDo -command rmi -parameters @("--force") -imageName $imageID -ErrorAction SilentlyContinue)) {
+                            Write-Host "WARNING: Unable to remove image"
+                        }
+                    }
+                } catch {}
             }
         }
         Write-Host "Running Docker image prune"

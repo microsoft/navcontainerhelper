@@ -30,7 +30,8 @@ function Replace-BcServerContainer {
         [string] $enableSymbolLoading = 'Default',
         [ValidateSet('Yes','No','Default')]
         [string] $includeCSIDE = 'Default',
-        [string] $aadAccessToken
+        [string] $aadAccessToken,
+        [hashtable] $bcAuthContext
     )
 
     $SetupBcContainerScript = "C:\DEMO\Setup*Container.ps1"
@@ -63,6 +64,15 @@ function Replace-BcServerContainer {
     }
 
     . $settingsScript
+
+    if ($bcAuthContext) {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $jwtToken = Parse-JWTtoken -token $bcAuthContext.accessToken
+        if ($jwtToken.aud -ne 'https://graph.windows.net') {
+            Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.windows.net"
+        }
+        $aadAccessToken = $bcAuthContext.AccessToken
+    }
 
     if ($aadAccessToken) {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$Office365Password = ') }
