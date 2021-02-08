@@ -36,7 +36,8 @@ function Create-AadAppsForNav {
         [switch] $IncludeExcelAadApp,
         [switch] $IncludePowerBiAadApp,
         [switch] $IncludeEmailAadApp,
-        [switch] $useCurrentAzureAdConnection
+        [switch] $useCurrentAzureAdConnection,
+        [Hashtable] $bcAuthContext
     )
 
     function Create-AesKey {
@@ -62,6 +63,14 @@ function Create-AadAppsForNav {
     # Connect to AzureAD
     if ($useCurrentAzureAdConnection) {
         $account = Get-AzureADCurrentSessionInfo
+    }
+    elseif ($bcAuthContext) {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $jwtToken = Parse-JWTtoken -token $bcAuthContext.accessToken
+        if ($jwtToken.aud -ne 'https://graph.windows.net') {
+            Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.windows.net"
+        }
+        Connect-AzureAD -AadAccessToken $bcAuthContext.accessToken -AccountId $jwtToken.upn
     }
     else {
         if ($AadAdminCredential) {
