@@ -130,9 +130,11 @@ function Run-AlCops {
             }
 
             if ($rulesetFile) {
+                $customRulesetFile = Join-Path $tmpFolder "custom.ruleset.json"
+                Copy-Item -Path $rulesetFile -Destination $customRulesetFile
                 $ruleset.includedRuleSets += @(@{ 
                     "action" = "Default"
-                    "path" = $ruleSetFile
+                    "path" = Get-BcContainerPath -containerName $containerName -path $customRulesetFile
                 })
             }
 
@@ -163,7 +165,7 @@ function Run-AlCops {
                 Download-File -sourceUrl "https://bcartifacts.azureedge.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
                 $ruleset.includedRuleSets += @(@{ 
                     "action" = "Default"
-                    "path" = $appSourceRulesetFile
+                    "path" = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
                 })
 
                 Write-Host "AppSourceCop.json content:"

@@ -5,6 +5,7 @@ Issue #1678 Setup-BcContainerTestUsers fails on version 18
 Issue #1682 add silent mode to import module
 Flush-ContainerHelperCache will also cleanup generic images not matching your OS
 Add BcAuthContext parameter to functions Create-AadAppsForNav, Create-AadUsersInBcContainer and Replace-BcServerContainer (note that resource should be https://graph.windows.net)
+Modify Run-ConnectionTestToBcContainer to connect and open Extension Management. Basically check whether people can uninstall your app.
 
 2.0.4
 Remove-BcEnvironment fails after waiting for environment removal

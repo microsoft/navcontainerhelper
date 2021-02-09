@@ -30,6 +30,8 @@
   Password for the code signing certificate specified by codeSignCertPfxFile. Apps will only be signed if useDevEndpoint is NOT specified.
  .Parameter installApps
   Array or comma separated list of 3rd party apps to install before compiling apps.
+ .Parameter installTestApps
+  Array or comma separated list of 3rd party apps to install before compiling test apps.
  .Parameter previousApps
   Array or comma separated list of previous version of apps
  .Parameter appFolders
@@ -153,6 +155,7 @@ Param(
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
     $installApps = @(),
+    $installTestApps = @(),
     $previousApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
@@ -257,6 +260,7 @@ if ($memoryLimit -eq "") {
 }
 
 if ($installApps                    -is [String]) { $installApps = @($installApps.Split(',').Trim() | Where-Object { $_ }) }
+if ($installTestApps                -is [String]) { $installTestApps = @($installTestApps.Split(',').Trim() | Where-Object { $_ }) }
 if ($previousApps                   -is [String]) { $previousApps = @($previousApps.Split(',').Trim() | Where-Object { $_ }) }
 if ($appFolders                     -is [String]) { $appFolders = @($appFolders.Split(',').Trim()  | Where-Object { $_ }) }
 if ($testFolders                    -is [String]) { $testFolders = @($testFolders.Split(',').Trim() | Where-Object { $_ }) }
@@ -432,6 +436,8 @@ if ($enableAppSourceCop) {
 }
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "Install Test Apps"
+if ($installTestApps) { $installTestApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Previous Apps"
 if ($previousApps) { $previousApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Application folders"
@@ -705,6 +711,48 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
+
+if ($installTestApps) {
+Write-Host -ForegroundColor Yellow @'
+
+  _____           _        _ _ _               _______       _                              
+ |_   _|         | |      | | (_)             |__   __|     | |       /\                    
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     | | ___ ___| |_     /  \   _ __  _ __  ___ 
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |    | |/ _ \ __| __|   / /\ \ | '_ \| '_ \/ __|
+  _| |_| | | \__ \ |_ (_| | | | | | | | (_| |    | |  __\__ \ |_   / ____ \| |_) | |_) \__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |    |_|\___|___/\__| /_/    \_\ .__/| .__/|___/
+                                        __/ |                              | |   | |        
+                                       |___/                               |_|   |_|        
+
+'@
+Measure-Command {
+
+    if ($testCountry) {
+        Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
+    }
+
+    $installTestApps | ForEach-Object{
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $_
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+        }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
+        }
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+}
+
 }
 else {
 Write-Host -ForegroundColor Yellow @'
@@ -765,6 +813,48 @@ Measure-Command {
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
         $testToolkitInstalled = $true
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
+
+if ($installTestApps) {
+Write-Host -ForegroundColor Yellow @'
+
+  _____           _        _ _ _               _______       _                              
+ |_   _|         | |      | | (_)             |__   __|     | |       /\                    
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     | | ___ ___| |_     /  \   _ __  _ __  ___ 
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |    | |/ _ \ __| __|   / /\ \ | '_ \| '_ \/ __|
+  _| |_| | | \__ \ |_ (_| | | | | | | | (_| |    | |  __\__ \ |_   / ____ \| |_) | |_) \__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |    |_|\___|___/\__| /_/    \_\ .__/| .__/|___/
+                                        __/ |                              | |   | |        
+                                       |___/                               |_|   |_|        
+
+'@
+Measure-Command {
+
+    if ($testCountry) {
+        Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
+    }
+
+    $installTestApps | ForEach-Object{
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $_
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+        }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
+        }
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+}
+
 Write-Host -ForegroundColor Yellow @'
    _____                      _ _ _               _           _                           
   / ____|                    (_) (_)             | |         | |                          
@@ -1256,15 +1346,35 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running Tests for additional country $testCountry"
 }
 
+$testAppIds = @()
+$installTestApps | ForEach-Object {
+    $appFile = $_
+    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+    try {
+        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
+        $appJsonFile = Join-Path $tmpFolder "app.json"
+        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        $testAppIds += @( $appJson.Id )
+    }
+    catch {
+        Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+    }
+    finally {
+        Remove-Item $tmpFolder -Recurse -Force
+    }
+}
 $testFolders | ForEach-Object {
-    
     $appJson = Get-Content -Path (Join-Path $_ "app.json") | ConvertFrom-Json
+    $testAppIds += @( $appJson.Id )
+}
+
+$testAppIds | ForEach-Object {
 
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
         "credential" = $credential
-        "extensionId" = $appJson.id
+        "extensionId" = $_
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
         "detailed" = $true
         "returnTrueIfAllPassed" = $true

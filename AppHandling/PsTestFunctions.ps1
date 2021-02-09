@@ -282,34 +282,14 @@ function Run-ConnectionTest {
     }
     Write-Host "Rolecenter 9022 opened successfully"
 
-    $salesSetup = $clientContext.OpenForm(459)
-    if (!($salesSetup)) {
-        throw "Cannnot open Sales and Receivables setup"
+    $extensionManagement = $clientContext.OpenForm(2500)
+    if (!($extensionManagement)) {
+        throw "Cannnot open Extension Management page"
     }
-    Write-Host "Sales and receivables setup successfully opened"
+    Write-Host "Extension Management opened successfully"
 
-    $customerList = $clientContext.OpenForm(22)
-    if (!($customerList)) {
-        throw "Cannnot open Customer List page"
-    }
-    Write-Host "Customer List opened successfully, title is ($($customerList.name) - $($customerList.caption))"
-    
-    $newCustomerAction = $clientContext.GetActionByName($customerList, 'New')
-    if (!($newCustomerAction)) {
-        throw "Cannot locate new Customer action"
-    }
-
-    $customerPage = $clientContext.InvokeActionAndCatchForm($newCustomerAction)
-    if (!($customerPage)) {
-        throw "Cannot invoke new customer action"
-    }
-    Write-Host "New Customer Action successfully invoked, opened page has title $($customerPage.name) $($customerPage.caption)"
-
-    $clientContext.CloseForm($customerPage)
-    Write-Host "Customer page successfully closed"
-
-    $clientContext.CloseForm($customerList)
-    Write-Host "Customer list successfully closed"
+    $clientContext.CloseForm($extensionManagement)
+    Write-Host "Extension Management successfully closed"
 }
 
 function Install-AppSourceApp {
