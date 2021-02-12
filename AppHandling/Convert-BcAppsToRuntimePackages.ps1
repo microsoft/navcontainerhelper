@@ -14,6 +14,8 @@ function Convert-BcAppsToRuntimePackages {
         [Parameter(Mandatory=$false)]
         [string] $licenseFile = "",
         [Parameter(Mandatory=$false)]
+        [string] $addinsFolder,
+        [Parameter(Mandatory=$false)]
         $publishApps = "",
         [Parameter(Mandatory=$true)]
         $apps,
@@ -37,7 +39,7 @@ function Convert-BcAppsToRuntimePackages {
             New-Item -Path $destinationFolder -ItemType Directory | Out-Null
         }
         elseif (Test-Path $destinationFolder) {
-            if ((Get-ChildItem -Path $destinationFolder).Count -gt 0) {
+            if (Get-ChildItem -Path $destinationFolder) {
                 throw "Destination folder is not empty"
             }
         }
@@ -47,22 +49,31 @@ function Convert-BcAppsToRuntimePackages {
     
         $password = GetRandomPassword
         $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
-    
-        New-BcContainer `
-            -containerName $containerName `
-            -imageName $imageName `
-            -accept_eula `
-            -artifactUrl $artifactUrl `
-            -auth UserPassword `
-            -multitenant:$false `
-            -Credential $credential `
-            -licenseFile $licenseFile `
-            -additionalParameters @(
+
+        $additionalParameters = @(
                 "--volume ""$($appsFolder):c:\apps"""
                 "--volume ""$($destinationFolder):c:\dest"""
                 "--env WebClient=N"
                 "--env httpSite=N"
              )
+
+        if ($addinsFolder) {
+            $additionalParameters += @(
+               "--volume ""$($addInsFolder):c:\run\Add-ins"""
+            )
+        }
+    
+        New-BcContainer `
+            -containerName $containerName `
+            -imageName $imageName `
+            -accept_eula `
+            -shortcuts None `
+            -artifactUrl $artifactUrl `
+            -auth UserPassword `
+            -multitenant:$false `
+            -Credential $credential `
+            -licenseFile $licenseFile `
+            -additionalParameters $additionalParameters
 
         $bcVersion = (Get-BcContainerNavVersion -containerOrImageName $containerName).ToLowerInvariant()
     
