@@ -51,7 +51,8 @@ function Convert-ModifiedObjectsToAl {
         [string] $alFilePattern = "*",
         [string] $dotNetAddInsPackage,
         [ScriptBlock] $alFileStructure,
-        [string] $runTxt2AlInContainer = $containerName
+        [string] $runTxt2AlInContainer = $containerName,
+        [string] $originalFolder = ""
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -80,7 +81,7 @@ function Convert-ModifiedObjectsToAl {
         if ($filter -eq "None") {
             $filter = "Modified=1"
         }
-        Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter
+        Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter -originalFolder $originalFolder
         $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\delta$suffix"
     }
 
