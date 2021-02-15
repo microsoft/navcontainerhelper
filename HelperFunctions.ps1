@@ -726,7 +726,7 @@ Function CreatePsTestToolFolder {
             $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
             Copy-Item -Path $clientDllPath -Destination $myClientDllPath
         }
-    } -argumentList $newtonSoftDllPath, $clientDllPath
+    } -argumentList (Get-BcContainerPath -containerName $containerName -Path $newtonSoftDllPath), (Get-BcContainerPath -containerName $containerName -Path $clientDllPath)
 }
 
 function RandomChar([string]$str) {
