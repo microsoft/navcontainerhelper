@@ -478,8 +478,8 @@ function Compile-AppInBcContainer {
         Write-Host ".\alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
-        if (!$?)  {
-            throw "App generation failed"
+        if ($lastexitcode -ne 0)  {
+            throw "App generation failed with exit code $lastexitcode"
         }
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam, $features
     
