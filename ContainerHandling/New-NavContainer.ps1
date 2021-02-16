@@ -1476,6 +1476,7 @@ if ($multitenant) {
         $restPart = "/${containerName}rest" 
         $soapPart = "/${containerName}soap"
         $devPart = "/${containerName}dev"
+        $snapPart = "/${containerName}snap"
         $dlPart = "/${containerName}dl"
         $webclientPart = "/$containerName"
 
@@ -1484,6 +1485,7 @@ if ($multitenant) {
         $soapUrl = $baseUrl + $soapPart
         $webclientUrl = $baseUrl + $webclientPart
         $devUrl = $baseUrl + $devPart
+        $snapUrl = $baseUrl + $snapPart
         $dlUrl = $baseUrl + $dlPart
 
         $customNavSettings += @("PublicODataBaseUrl=$restUrl/odata","PublicSOAPBaseUrl=$soapUrl/ws","PublicWebBaseUrl=$webclientUrl")
@@ -1499,6 +1501,7 @@ if ($multitenant) {
         $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
         $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
         $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
+        $snapRule="PathPrefix:${snapPart};ReplacePathRegex: ^${snapPart}(.*) /$ServerInstance`$1"
         $dlRule="PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Split(".")[0]
@@ -1524,6 +1527,8 @@ if ($multitenant) {
                                    "-l `"traefik.rest.port=7048`"",
                                    "-l `"traefik.dev.frontend.rule=$devRule`"", 
                                    "-l `"traefik.dev.port=7049`"",
+                                   "-l `"traefik.dev.frontend.rule=$snapRule`"", 
+                                   "-l `"traefik.dev.port=7083`"",
                                    "-l `"traefik.dl.frontend.rule=$dlRule`"", 
                                    "-l `"traefik.dl.port=8080`"",
                                    "-l `"traefik.dl.protocol=http`"",
@@ -2000,6 +2005,7 @@ if (-not `$restartingInstance) {
             Write-Host "SOAP WebServices:  $soapUrl"
             Write-Host "OData WebServices: $restUrl"
             Write-Host "Dev Service:       $devUrl"
+            Write-Host "Snapshot Service:  $snapUrl"
             Write-Host "File downloads:    $dlUrl"
         }
     
