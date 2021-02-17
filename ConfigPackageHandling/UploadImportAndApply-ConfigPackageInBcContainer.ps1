@@ -33,7 +33,8 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
             return
         }
         $configPackage = $configFile.FullName
-        $packageId = ([System.IO.Path]::GetFileNameWithoutExtension($configPackage)).SubString(0,20)
+        $packageId = [System.IO.Path]::GetFileNameWithoutExtension($configPackage)
+        $packageId = $packageId.SubString(0,[System.Math]::Min(20, $packageId.Length))
     }
     else {
         $packageId = $configPackage
