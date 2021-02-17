@@ -69,7 +69,7 @@ function Get-BcContainerAppRuntimePackage {
 
         $appFile
 
-    } -ArgumentList $appName, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode
+    } -ArgumentList $appName, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode | Select-Object -Last 1
 }
 Set-Alias -Name Get-NavContainerAppRuntimePackage -Value Get-BcContainerAppRuntimePackage
 Export-ModuleMember -Function Get-BcContainerAppRuntimePackage -Alias Get-NavContainerAppRuntimePackage

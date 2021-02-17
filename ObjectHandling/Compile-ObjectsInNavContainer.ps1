@@ -22,7 +22,8 @@ function Compile-ObjectsInNavContainer {
         [string] $filter = "compiled=0", 
         [PSCredential] $sqlCredential = $null,
         [ValidateSet('Force','Yes','No')]
-        [string] $SynchronizeSchemaChanges = 'Force'
+        [string] $SynchronizeSchemaChanges = 'Force',
+        [switch] $generatesymbolreference
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -45,7 +46,7 @@ function Compile-ObjectsInNavContainer {
             Write-Host "Compiling all objects"
         }
         $enableSymbolLoadingKey = $customConfig.SelectSingleNode("//appSettings/add[@key='EnableSymbolLoadingAtServerStartup']")
-        if ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True") {
+        if ($generatesymbolreference -or ($enableSymbolLoadingKey -ne $null -and $enableSymbolLoadingKey.Value -eq "True")) {
             Write-Host "Generating symbols for objects compiled"
             # HACK: Parameter insertion...
             # generatesymbolreference is not supported by Compile-NAVApplicationObject yet
