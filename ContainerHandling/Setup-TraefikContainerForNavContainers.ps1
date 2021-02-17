@@ -58,7 +58,7 @@ function Setup-TraefikContainerForBcContainers {
 
     Process {
         $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
-        $traefikDockerImage = "stefanscherer/traefik-windows:v1.7.12"
+        $traefikDockerImage = "traefik:v1.7-windowsservercore-1809"
         $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
         if ($forceHttpWithTraefik) {
             $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml")
