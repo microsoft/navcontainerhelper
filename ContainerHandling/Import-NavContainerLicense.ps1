@@ -34,14 +34,14 @@ function Import-BcContainerLicense {
             Write-Error "Specified license file is empty"
         }
 
-        if ($text.Contains("<html") || $text.Contains("<body")) {
+        if ($text -like "*<html*" -or $text -like "*<body*") {
             Remove-Item -Path $containerlicenseFile -Force
             Write-Error "Specified license URI provides HTML instead of a license file. Ensure that the Uri is a direct download Uri"
         }
 
         if (!($text.StartsWith("Microsoft Software License Information"))) {
             Remove-Item -Path $containerlicenseFile -Force
-            Write-Error "Specified license file appears to be corrupted"
+            Write-Error "Specified license file appears to be corrupt"
         }
     } else {
         if ($containerLicenseFile -ne $licenseFile) {
