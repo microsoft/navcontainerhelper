@@ -3,6 +3,7 @@ Issue #1696 Compile-AppInBcContainer does not throw error on missing RDLC
 Add AddInsFolder parameter to Convert-BcAppsToRuntimePackages
 Issue #1712 Get-NavContainerAppRuntimePackage doesn't return a path when the license is about to expire
 Issue #1710 UploadImportAndApply-ConfigPackageInBcContainer doesn't work with filename
+Issue #1709 Add switch GenerateSymbolReference to Compile-ObjectsInNavContainer.ps1
 
 2.0.5
 Issue #1668 Run-AlValidation fails if app filename has a comma (and there is only one app)
