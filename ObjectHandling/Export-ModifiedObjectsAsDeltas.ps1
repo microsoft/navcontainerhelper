@@ -35,7 +35,8 @@ function Export-ModifiedObjectsAsDeltas {
         [string] $filter = "Modified=1",
         [string] $deltaFolder = "",
         [string] $fullObjectsFolder = "",
-        [switch] $openFolder
+        [switch] $openFolder,
+        [string] $originalFolder = ""
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -52,9 +53,11 @@ function Export-ModifiedObjectsAsDeltas {
         $suffix = "-newsyntax"
         $exportTo = 'txt folder (new syntax)'
     }
-    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-    $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
-
+    if (!$originalFolder) {
+      $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+      $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
+    }
+    
     if (!(Test-Path $originalFolder)) {
         throw "Folder $originalFolder must contain all Nav base objects (original). You can use Export-NavContainerObjects on a fresh container or create your development container using New-CSideDevContainer, which does this automatically."
     }
