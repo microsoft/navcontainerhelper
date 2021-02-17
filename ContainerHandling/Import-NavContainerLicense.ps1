@@ -28,9 +28,20 @@ function Import-BcContainerLicense {
         (New-Object System.Net.WebClient).DownloadFile($licensefile, $containerlicensefile)
         $bytes = [System.IO.File]::ReadAllBytes($containerlicenseFile)
         $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
+
+        if ($bytes.Length -eq 0) {
+            Remove-Item -Path $containerlicenseFile -Force
+            Write-Error "Specified license file is empty"
+        }
+
+        if ($text.Contains("<html") || $text.Contains("<body")) {
+            Remove-Item -Path $containerlicenseFile -Force
+            Write-Error "Specified license URI provides HTML instead of a license file. Ensure that the Uri is a direct download Uri"
+        }
+
         if (!($text.StartsWith("Microsoft Software License Information"))) {
             Remove-Item -Path $containerlicenseFile -Force
-            Write-Error "Specified license file Uri isn't a direct download Uri"
+            Write-Error "Specified license file appears to be corrupted"
         }
     } else {
         if ($containerLicenseFile -ne $licenseFile) {
