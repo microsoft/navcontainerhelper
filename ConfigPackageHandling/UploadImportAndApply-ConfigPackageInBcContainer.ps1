@@ -23,7 +23,8 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
         [string] $companyName = "",
         [PSCredential] $Credential = $null,
         [Parameter(Mandatory=$true)]
-        [string] $configPackage
+        [string] $configPackage,
+        [string] $packageId = ""
     )
 
     if (Test-Path $configPackage -PathType Leaf) {
@@ -33,8 +34,10 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
             return
         }
         $configPackage = $configFile.FullName
-        $packageId = [System.IO.Path]::GetFileNameWithoutExtension($configPackage)
-        $packageId = $packageId.SubString(0,[System.Math]::Min(20, $packageId.Length))
+        if (!$packageId) {
+            $packageId = [System.IO.Path]::GetFileNameWithoutExtension($configPackage)
+            $packageId = $packageId.SubString(0,[System.Math]::Min(20, $packageId.Length))
+        }
     }
     else {
         $packageId = $configPackage
