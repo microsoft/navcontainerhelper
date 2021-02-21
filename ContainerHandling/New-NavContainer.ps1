@@ -24,6 +24,8 @@
   When you are spinning up a Generic image, you can specify the platform version (default is the version of the executables)
  .Parameter locale
   Optional locale for the container. Default is to deduct the locale from the country version of the container.
+ .Parameter setServiceTierUserLocale
+  Include this switch if you want to set the locale for the Service Tier User (NT AUTHORITY\SYSTEM)
  .Parameter licenseFile
   Path or Secure Url of the licenseFile you want to use
  .Parameter credential
@@ -190,6 +192,7 @@ function New-BcContainer {
         [Alias('navDvdPlatform')]
         [string] $dvdPlatform = "",
         [string] $locale = "",
+        [switch] $setServiceTierUserLocale,
         [string] $licenseFile = "",
         [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
@@ -1657,6 +1660,10 @@ if (-not `$restartingInstance) {
                 }
             } -argumentList $TimeZoneId
         }
+        if ($setServiceTierUserLocale) {
+            Write-Host "Set locale for Service Tier User to $locale and restart Service Tier"
+            docker exec --user "NT AUTHORITY\SYSTEM" $containerName powershell.exe "set-culture '$locale'; . 'c:\run\prompt.ps1' -silent; . 'c:\run\serviceSettings.ps1'; Set-NavServerInstance -ServerInstance `$serverInstance -restart"
+        }
     
         if ($useSSL -and $installCertificateOnHost) {
             $certPath = Join-Path $containerFolder "certificate.cer"
@@ -1698,10 +1705,17 @@ if (-not `$restartingInstance) {
                 
             }
             
-            New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd" -Shortcuts $shortcuts
-            New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit c:\run\prompt.ps1" -Shortcuts $shortcuts
+            $vs = "Business Central"
+            if ($version.Major -le 14) {
+                $vs = "NAV"
+            }
+            $cmdPrompt = "/S /K ""prompt [$($containerName.ToUpperInvariant())] `$p`$g & echo Welcome to the $vs Container Command prompt & echo Microsoft Windows Version $($containerOsVersion.ToString())"
+            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; Write-Host 'Welcome to the $vs Container PowerShell prompt'; Write-Host 'Microsoft Windows Version $($containerOsVersion.ToString())'; Write-Host 'Windows PowerShell Version $($PSVersionTable.psversion.ToString())'; Write-Host; . 'c:\run\prompt.ps1' -silent"""
+
+            New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd $cmdPrompt" -Shortcuts $shortcuts
+            New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit $psPrompt" -Shortcuts $shortcuts
         }
-    
+
         if ($version -eq [System.Version]"14.10.40471.0") {
             Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
             $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
