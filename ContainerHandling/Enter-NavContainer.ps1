@@ -19,10 +19,10 @@ function Enter-BcContainer {
 
     Process {
         if ((Get-ContainerHelperConfig).usePsSession) {
-            $session = Get-BcContainerSession $containerName
+            $session = Get-BcContainerSession $containerName -silent
             Enter-PSSession -Session $session
             Invoke-Command -Session $session -ScriptBlock {
-                function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+                function prompt {"[$env:COMPUTERNAME] PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
             }
         } else {
             if ($isAdministrator) {

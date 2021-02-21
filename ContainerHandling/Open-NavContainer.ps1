@@ -16,7 +16,19 @@ function Open-BcContainer {
     )
 
     Process {
-        Start-Process "cmd.exe" @("/C";"docker exec -it $containerName powershell -noexit C:\Run\prompt.ps1")
+        try {
+            $inspect = docker inspect $containerName | ConvertFrom-Json
+            $version = [Version]$inspect.Config.Labels.version
+            $vs = "Business Central"
+            if ($version.Major -le 14) {
+                $vs = "NAV"
+            }
+            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; Write-Host 'Welcome to the $vs Container PowerShell prompt'; Write-Host 'Microsoft Windows Version $($inspect.Config.Labels.osversion)'; Write-Host 'Windows PowerShell Version $($PSVersionTable.psversion.ToString())'; Write-Host; . 'c:\run\prompt.ps1' -silent"""
+        }
+        catch {
+            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; . 'c:\run\prompt.ps1'"""
+        }
+        Start-Process "cmd.exe" @("/C";"docker exec -it $containerName powershell -noexit $psPrompt")
     }
 }
 Set-Alias -Name Open-NavContainer -Value Open-BcContainer
