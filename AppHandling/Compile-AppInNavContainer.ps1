@@ -478,8 +478,9 @@ function Compile-AppInBcContainer {
         Write-Host ".\alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
-        if ($lastexitcode -ne 0)  {
-            throw "App generation failed with exit code $lastexitcode"
+        
+        if ($lastexitcode -ne 0) {
+            "App generation failed with exit code $lastexitcode"
         }
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam, $features
     
@@ -496,6 +497,8 @@ function Compile-AppInBcContainer {
             throw "App generation failed"
         }
     }
+
+    $result | Where-Object { $_ -like "App generation failed*" } | % { throw $_ }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName
