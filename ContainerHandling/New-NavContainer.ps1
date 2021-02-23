@@ -512,6 +512,9 @@ function New-BcContainer {
     Write-Host "Fetching all docker images"
     $allImages = @(docker images --format "{{.Repository}}:{{.Tag}}")
 
+    Write-Host "Fetching all docker volumes"
+    $allVolumes = @(docker volume ls --format "{{.Mountpoint}}|{{.Name}}")
+
     if ($imageName -ne "") {
 
         if ($artifactUrl -eq "") {
@@ -798,8 +801,7 @@ function New-BcContainer {
     }
 
     if ($artifactUrl) {
-
-        $parameters += "--volume ""$($downloadsPath):c:\dl"""
+        $parameters += getVolumeMountParameter -volumes $allVolumes -hostPath $downloadsPath -containerPath "c:\dl"
 
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
@@ -1281,7 +1283,7 @@ function New-BcContainer {
                     "--env locale=$locale",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    "--volume ""$($hostHelperFolder):$containerHelperFolder""",
+                    (getVolumeMountParameter -volumes $allVolumes -hostPath $hostHelperFolder -containerPath $containerHelperFolder),
                     "--volume ""$($myFolder):C:\Run\my""",
                     "--isolation $isolation",
                     "--restart $restart"
@@ -1437,7 +1439,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     }
 
     if ("$dvdPath" -ne "") {
-        $parameters += "--volume ""$($dvdPath):c:\NAVDVD"""
+        $parameters += getVolumeMountParameter -volumes $allVolumes -hostPath $dvdPath -containerPath "C:\NAVDVD"
     }
 
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
