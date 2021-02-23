@@ -6,6 +6,7 @@ Issue #1710 UploadImportAndApply-ConfigPackageInBcContainer doesn't work with fi
 Issue #1709 Add switch GenerateSymbolReference to Compile-ObjectsInNavContainer.ps1
 Issue #1722 add containername to PowerShell and Command prompts
 Issue #1706 App generation failed without info after fixing #1696
+Issue Cannot download symbols for apps with special characters
 
 2.0.5
 Issue #1668 Run-AlValidation fails if app filename has a comma (and there is only one app)
