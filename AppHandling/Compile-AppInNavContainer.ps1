@@ -357,6 +357,7 @@ function Compile-AppInBcContainer {
                 Write-Host "Downloading symbols: $symbolsName"
     
                 $publisher = [uri]::EscapeDataString($publisher)
+                $name = [uri]::EscapeDataString($name)
                 $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
                 Write-Host "Url : $Url"
                 try {

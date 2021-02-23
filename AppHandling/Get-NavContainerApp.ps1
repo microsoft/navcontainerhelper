@@ -105,6 +105,8 @@ function Get-BcContainerApp {
         [SslVerification]::Enable()
     }
 
+    $appFile
+
 }
 Set-Alias -Name Get-NavContainerApp -Value Get-BcContainerApp
 Export-ModuleMember -Function Get-BcContainerApp -Alias Get-NavContainerApp

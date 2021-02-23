@@ -67,7 +67,7 @@ function Get-ContainerHelperConfig {
                 "za" = "w1"
             }
         }
-        $bcContainerHelperConfigFile = Join-Path $bcContainerHelperConfig.HostHelperFolder "BcContainerHelper.config.json"
+        $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
             $savedConfig = Get-Content $bcContainerHelperConfigFile | ConvertFrom-Json
             $keys = $bcContainerHelperConfig.Keys | % { $_ }
@@ -140,8 +140,10 @@ if (!$silent) {
 $sessions = @{}
 
 if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
-    New-Item -Path $hostHelperFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
-    New-Item -Path $extensionsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+    if (!(Test-Path -Path $hostHelperFolder -PathType Container)) {
+        New-Item -Path $hostHelperFolder -ItemType Container -Force | Out-Null
+    }
+    New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
 
     if (!$isAdministrator) {
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
