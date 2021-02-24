@@ -152,12 +152,14 @@ function Run-AlCops {
                 }
                 if ($previousAppVersions.ContainsKey("$($appJson.Publisher)_$($appJson.Name)")) {
                     $previousVersion = $previousAppVersions."$($appJson.Publisher)_$($appJson.Name)"
-                    $appSourceCopJson += @{
-                        "Publisher" = $appJson.Publisher
-                        "Name" = $appJson.Name
-                        "Version" = $previousVersion
+                    if ($previousVersion -ne $appJson.Version) {
+                        $appSourceCopJson += @{
+                            "Publisher" = $appJson.Publisher
+                            "Name" = $appJson.Name
+                            "Version" = $previousVersion
+                        }
+                        Write-Host "Using previous app: $($appJson.Publisher)_$($appJson.Name)_$previousVersion.app"
                     }
-                    Write-Host "Using previous app: $($appJson.Publisher)_$($appJson.Name)_$previousVersion.app"
                 }
                 $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content (Join-Path $tmpFolder "appSourceCop.json")
 
