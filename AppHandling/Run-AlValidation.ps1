@@ -568,35 +568,36 @@ try {
         $appJson = Get-Content $appJsonFile | ConvertFrom-Json
         Remove-Item $tmpFolder -Recurse -Force
     
-        $installedApp = $false
-        if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
-            $installedApp = $true
+        $installedApp = $installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }
+        if ($installedApp.Version -eq $appJson.Version) {
+            Write-Host "Skipping installation of $($installedApp.Name) version $($installedApp.Version), version already installed."
         }
-    
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $skipVerification
-            "sync" = $true
-            "install" = !$installedApp
-            "upgrade" = $installedApp
-        }
-    
-        try {
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-        }
-        catch {
-            if ($parameters.upgrade) {
-                $action = "upgrade"
+        else {
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "appFile" = $_
+                "skipVerification" = $skipVerification
+                "sync" = $true
+                "install" = ($installedApp -eq $null)
+                "upgrade" = ($installedApp -ne $null)
             }
-            else {
-                $action = "install"
+        
+            try {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
             }
-            $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
-            $validationResult += $error
-            Write-Host -ForegroundColor Red $error
+            catch {
+                if ($parameters.upgrade) {
+                    $action = "upgrade"
+                }
+                else {
+                    $action = "install"
+                }
+                $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
+                $validationResult += $error
+                Write-Host -ForegroundColor Red $error
+            }
         }
     }
 }
