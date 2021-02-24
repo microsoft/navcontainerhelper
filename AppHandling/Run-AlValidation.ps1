@@ -569,7 +569,7 @@ try {
         Remove-Item $tmpFolder -Recurse -Force
     
         $installedApp = $installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }
-        if ($installedApp.Version -eq $appJson.Version) {
+        if ($installedApp -ne $null -and $installedApp.Version -eq $appJson.Version) {
             Write-Host "Skipping installation of $($installedApp.Name) version $($installedApp.Version), version already installed."
         }
         else {
