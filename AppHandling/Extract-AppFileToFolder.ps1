@@ -195,6 +195,16 @@ function Extract-AppFileToFolder {
             }
         }
         if ($runtime -ge 6.0)  {
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "preprocessorSymbols" } | % { 
+                $first = $true
+                $_.GetEnumerator() | % {
+                    if ($first) {
+                        $appJson += @{ "preprocessorSymbols" = @() }
+                        $first = $false
+                    }
+                    $appJson.preprocessorSymbols += @($_.Name)
+                }
+            }
             $appJson += @{ "keyVaultUrls" = @() }
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "KeyVaultUrls" } | % { 
                 $_.GetEnumerator() | % {
