@@ -15,6 +15,7 @@ Issue #1704 Run-AlValidation with "preprocessorSymbols"
 Issue #1729 Second container on same external database causes previous containers to stop working
 Issue #1739 Publish-BcContainerApp fails with "The remote server returned an error: (403) Forbidden
 Issue #1736 Support specifying a folder (of apps) to Run-AlValidation, Run-AlCops, Run-AlPipeline, Publish-BcContainerApp, Publish-PerTenantExtensionApps and Convert-BcAppsToRuntimePackages
+Issue #1740 Missing help for disabledTests parameter
 
 2.0.5
 Issue #1668 Run-AlValidation fails if app filename has a comma (and there is only one app)
