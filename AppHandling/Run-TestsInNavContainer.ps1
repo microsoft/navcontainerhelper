@@ -52,6 +52,9 @@
   Include this switch to output debug information if running the tests fails.
  .Parameter usePublicWebBaseUrl
   Connect to the public Url and not to localhost
+ .Parameter disabledTests
+  DisabledTests is an array of disabled tests. Example: @( @{ "codeunitName" = "name"; "method" = "*" } )
+  If you have the disabledTests in a file, you need to convert the file to Json: -disabledTests (Get-Content $filename | ConvertFrom-Json)
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the function will run tests on the online Business Central Environment specified
  .Parameter environment

@@ -135,10 +135,6 @@ function Publish-BcContainerApp {
                 $sslVerificationDisabled = $false
                 if ($bcAuthContext -and $environment) {
                     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                    $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment -and $_.Type -eq "Sandbox" }
-                    if (!$bcEnvironment) {
-                        throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
-                    }
                     $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
                     $tenant = ""
         
