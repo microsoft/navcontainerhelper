@@ -13,6 +13,7 @@ Run-AlValidation doesn't fail getting the same app in apps and previousApps (if 
 Run-AlCops doesn't use previousApp if it is the same version as the app
 Issue #1704 Run-AlValidation with "preprocessorSymbols"
 Issue #1729 Second container on same external database causes previous containers to stop working
+Issue #1739 Publish-BcContainerApp fails with "The remote server returned an error: (403) Forbidden
 
 2.0.5
 Issue #1668 Run-AlValidation fails if app filename has a comma (and there is only one app)
