@@ -37,6 +37,7 @@ function Get-ContainerHelperConfig {
             "digestAlgorithm" = "SHA256"
             "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true
+            "useSharedEncryptionKeys" = $true
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"
                 "br" = "w1"

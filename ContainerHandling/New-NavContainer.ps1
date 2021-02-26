@@ -1594,6 +1594,10 @@ if (-not `$restartingInstance) {
 
     Write-Host "Creating container $containerName from image $imageName"
 
+    $sharedEncryptionKeyFile = ""
+    $containerEncryptionKeyFile = Join-Path $myFolder "DynamicsNAV.key"
+    $encryptionKeyExists = Test-Path $containerEncryptionKeyFile
+
     $passwordKeyFile = "$myfolder\aes.key"
     $passwordKey = New-Object Byte[] 16
     [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($passwordKey)
@@ -1616,6 +1620,17 @@ if (-not `$restartingInstance) {
                              "--env databaseSecurePassword=$encDatabasePassword"
                              "--env encryptionSecurePassword=$encDatabasePassword"
                             )
+
+            if ("$databaseServer" -ne "" -and $bcContainerHelperConfig.useSharedEncryptionKeys -and !$encryptionKeyExists) {
+                $sharedEncryptionKeyFile = Join-Path $hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV.key"
+                if (Test-Path $sharedEncryptionKeyFile) {
+                    Write-Host "Using Shared Encryption Key file"
+                    Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
+                }
+                else {
+                    New-Item -Path ([System.IO.Path]::GetDirectoryName($sharedEncryptionKeyFile)) -ItemType Directory | Out-Null
+                }
+            }
         }
         
         $parameters += $additionalParameters
@@ -1624,6 +1639,11 @@ if (-not `$restartingInstance) {
             return
         }
         Wait-BcContainerReady $containerName -timeout $timeout
+
+        if ($sharedEncryptionKeyFile -and !(Test-Path $sharedEncryptionKeyFile)) {
+            Write-Host "Storing Container Encryption Key file"
+            Copy-Item -Path $containerEncryptionKeyFile -Destination $sharedEncryptionKeyFile
+        }
     } finally {
         Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
     }
