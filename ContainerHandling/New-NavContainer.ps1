@@ -148,6 +148,8 @@
   Add this switch if you want to uninstall all extensions and remove the base app from the container
  .Parameter useNewDatabase
   Add this switch if you want to create a new and empty database in the container
+ .Parameter runSandboxAsOnPrem
+  This parameter will attempt to run sandbox artifacts as onprem (will only work with version 18 and later)
  .Parameter doNotCopyEntitlements
   Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter copyTables
@@ -254,6 +256,7 @@ function New-BcContainer {
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
+        [switch] $runSandboxAsOnPrem,
         [switch] $doNotCopyEntitlements,
         [string[]] $copyTables = @(),
         [switch] $dumpEventLog,
@@ -488,8 +491,13 @@ function New-BcContainer {
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
+        if ($runSandboxAsOnPrem -and $appManifest.version -lt [Version]"18.0.0.0") {
+            $runSandboxAsOnPrem = $false
+            Write-Host -ForegroundColor Red "Cannot run sandbox artifacts before version 18 as onprem"
+        }
+
         $bcstyle = "onprem"
-        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+        if (!$runSandboxAsOnPrem -and ($appManifest.PSObject.Properties.name -eq "isBcSandbox")) {
             if ($appManifest.isBcSandbox) {
                 $bcstyle = "sandbox"
                 if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
@@ -810,8 +818,13 @@ function New-BcContainer {
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
+        if ($runSandboxAsOnPrem -and $appManifest.version -lt [Version]"18.0.0.0") {
+            $runSandboxAsOnPrem = $false
+            Write-Host -ForegroundColor Red "Cannot run sandbox artifacts before version 18 as onprem"
+        }
+
         $bcstyle = "onprem"
-        if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+        if (!$runSandboxAsOnPrem -and ($appManifest.PSObject.Properties.name -eq "isBcSandbox")) {
             if ($appManifest.isBcSandbox) {
                 $bcstyle = "sandbox"
                 if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
@@ -831,6 +844,9 @@ function New-BcContainer {
         }
         if ($bcStyle -eq "sandbox") {
             $parameters += @("--env isBcSandbox=Y")
+        }
+        else {
+            $parameters += @("--env isBcSandbox=N")
         }
 
         $dvdVersion = $appmanifest.Version
