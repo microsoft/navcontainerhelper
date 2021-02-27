@@ -499,7 +499,7 @@ function New-BcContainer {
         }
 
         if ($databaseServer -ne "" -and $databasePrefix -ne "" -and $databaseName -ne "" -and $replaceExternalDatabases) {
-            if ($bcstyle = "sandbox" -and (!($PSBoundParameters.ContainsKey('multitenant')))) {
+            if ($bcstyle -eq "sandbox" -and (!($PSBoundParameters.ContainsKey('multitenant')))) {
                 $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
             }
             Remove-BcDatabase -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName "$($databasePrefix)%"
