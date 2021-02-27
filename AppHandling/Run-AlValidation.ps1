@@ -52,6 +52,8 @@
   Include this parameter to skip appSourceCop. You cannot request Microsoft to set this when running validation
  .Parameter skipConnectionTest
   Include this parameter to skip the connection test. If Connection Test fails in validation, Microsoft will execute manual validation.
+ .Parameter throwOnError
+  Include this switch if you want Run-AlValidation to throw an error with the validation results instead of returning them to the caller
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS.
  .Parameter multitenant
@@ -96,6 +98,7 @@ Param(
     [switch] $skipUpgrade,
     [switch] $skipAppSourceCop,
     [switch] $skipConnectionTest,
+    [switch] $throwOnError,
     [string] $useGenericImage = (Get-BestGenericImageName),
     [switch] $multitenant,
     [scriptblock] $DockerPull,
@@ -693,6 +696,13 @@ Write-Host -ForegroundColor Red @'
 
 '@
 
+if ($throwOnError) {
+    ($validationResult -join "`n") | Write-Error
+}
+else {
+    $validationResult
+}
+
 }
 else {
 Write-Host -ForegroundColor Green @'
@@ -705,8 +715,6 @@ Write-Host -ForegroundColor Green @'
                                                                                                   
 '@
 }
-
-$validationResult
 
 }
 Export-ModuleMember -Function Run-AlValidation
