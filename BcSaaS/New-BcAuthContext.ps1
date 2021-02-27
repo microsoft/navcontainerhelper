@@ -99,7 +99,7 @@ function New-BcAuthContext {
         }
         catch {
             $exception = $_.Exception
-            Write-Host -ForegroundColor Red $exception.Message.Replace('{EmailHidden}',$credential.UserName)
+            Write-Host -ForegroundColor Red $exception.Message
             $accessToken = $null
         }
     }
