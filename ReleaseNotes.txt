@@ -18,8 +18,9 @@ Issue #1736 Support specifying a folder (of apps) to Run-AlValidation, Run-AlCop
 Issue #1740 Missing help for disabledTests parameter
 Issue #1744 if New-BcAuthContext with client credentials fails, the real error is not shown
 Issue #1726 Add switch -throwOnError to Run-AlValidation
-Issue #1747 Unwanted multitenant image
+Issue #1747 Unwanted multitenant image when using replaceExternalDatabases
 Allow running sandbox artifacts in "onprem mode" (from version 18.0 with generic image tag 1.0.1.4 or higher)
+Issue #1749 User not created when using replaceExternalDatabases and cached images
 
 2.0.5
 Issue #1668 Run-AlValidation fails if app filename has a comma (and there is only one app)
