@@ -48,7 +48,7 @@ function Restore-BcDatabaseFromArtifacts {
         if (Test-Path $successFileName) { Remove-Item $successFileName -Force }
     }
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"
-    $job = Start-Job -ScriptBlock { Param( $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName )
+    $job = Start-Job -ScriptBlock { Param( $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
         Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
         $artifactPath = Download-Artifacts $artifactUrl -includePlatform
         
@@ -62,6 +62,7 @@ function Restore-BcDatabaseFromArtifacts {
             if (!(Test-Path $bakFile)) {
                 throw "Database backup ($bakFile) doesn't exist"
             }
+            Write-Host "Using bakFile $bakfile"
         }
         else {
             $bakFile = Join-Path $artifactPath[0] $manifest.database
@@ -125,7 +126,7 @@ function Restore-BcDatabaseFromArtifacts {
         if ($successFileName) {
             Set-Content -Path $successFileName -Value "Success"
         }
-    } -ArgumentList $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName
+    } -ArgumentList $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile
 
     if (!$async) {
         While ($job.State -eq "Running") {
