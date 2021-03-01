@@ -102,6 +102,8 @@
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
   Filename of the custom ruleset file
+ .Parameter preProcessorSymbols
+  PreProcessorSymbols to set when compiling the app.
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the pipeline will run using the online Business Central Environment as target
  .Parameter environment
@@ -194,6 +196,7 @@ Param(
     [switch] $enablePerTenantExtensionCop,
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
+    [string[]] $preProcessorSymbols = @(),
     [switch] $escapeFromCops,
     [Hashtable] $bcAuthContext,
     [string] $environment,
@@ -965,6 +968,7 @@ Write-Host -ForegroundColor Yellow @'
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
         "CopySymbolsFromContainer" = $CopySymbolsFromContainer
+        "preProcessorSymbols" = $preProcessorSymbols
     }
     if ($enableAppSourceCop -and $app) {
         if (!$previousAppsCopied) {
