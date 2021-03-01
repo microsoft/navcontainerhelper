@@ -1,5 +1,6 @@
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer
+Support for preProcessorSymbols in Compile-AppInBcContainer and Run-AlPipeline
 
 2.0.6
 Issue #1696 Compile-AppInBcContainer does not throw error on missing RDLC
