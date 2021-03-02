@@ -49,6 +49,7 @@ function Restore-BcDatabaseFromArtifacts {
     }
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"
     $job = Start-Job -ScriptBlock { Param( $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
+        $ErrorActionPreference = "Stop"
         Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
         $artifactPath = Download-Artifacts $artifactUrl -includePlatform
         
