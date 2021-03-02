@@ -26,7 +26,8 @@ function Import-ObjectsToNavContainer {
         [ValidateSet("Overwrite","Skip")]
         [string] $ImportAction = "Overwrite",
         [ValidateSet("Force","Yes","No")]
-        [string] $SynchronizeSchemaChanges = "Force"
+        [string] $SynchronizeSchemaChanges = "Force",
+        [switch] $suppressBuildSearchIndex
     )
 
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
@@ -40,7 +41,7 @@ function Import-ObjectsToNavContainer {
         $copied = $true
     }
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($objectsFile, [System.Management.Automation.PSCredential]$sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($objectsFile, [System.Management.Automation.PSCredential]$sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied, $suppressBuildSearchIndex)
     
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -54,6 +55,9 @@ function Import-ObjectsToNavContainer {
         $params = @{}
         if ($sqlCredential) {
             $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+        }
+        if ($suppressBuildSearchIndex) {
+            $params += @{ "suppressBuildSearchIndex" = $suppressBuildSearchIndex }
         }
         Write-Host "Importing Objects from $objectsFile (container path)"
         $databaseServerParameter = $databaseServer
@@ -77,7 +81,7 @@ function Import-ObjectsToNavContainer {
             Remove-Item -Path $objectsFile -Force
         }
     
-    } -ArgumentList $containerObjectsFile, $sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied
+    } -ArgumentList $containerObjectsFile, $sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied, $suppressBuildSearchIndex
     Write-Host -ForegroundColor Green "Objects successfully imported"
 }
 Export-ModuleMember -Function Import-ObjectsToNavContainer
