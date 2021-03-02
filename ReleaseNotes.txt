@@ -2,6 +2,7 @@
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer
 Support for preProcessorSymbols in Compile-AppInBcContainer and Run-AlPipeline
 Issue #1720 add suppressBuildSearchIndex to Import-ObjectsToNavContainer
+Add function Get-PlainText
 
 2.0.6
 Issue #1696 Compile-AppInBcContainer does not throw error on missing RDLC
