@@ -59,7 +59,7 @@ function Convert-BcAppsToRuntimePackages {
 
         if ($addinsFolder) {
             $additionalParameters += @(
-               "--volume ""$($addInsFolder):c:\run\Add-ins"""
+               "--volume ""$($addInsFolder):c:\run\add-ins"""
             )
         }
     

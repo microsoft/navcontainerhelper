@@ -40,9 +40,7 @@ function Generate-SymbolsInNavContainer {
         Write-Host "Creating application symbols in $containerName"
     
         $Process = Start-Process -FilePath (Join-Path (Get-Item $roleTailoredBasePath).FullName "finsql.exe") -ArgumentList $ProcessArguments -PassThru
-    
-        Wait-Process -Id $Process.Id
-    
+        $process | Wait-Process
         if ($Process.ExitCode -ne 0) {
             $Result = Get-Content -Path (Join-Path (Get-Item $roleTailoredBasePath).FullName "naverrorlog.txt")
             Write-Error ([system.String]::Join("`n", $result))

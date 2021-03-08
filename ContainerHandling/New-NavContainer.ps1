@@ -1763,7 +1763,7 @@ if (-not `$restartingInstance) {
             Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
                 Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $sidepsm)
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $idepsm)
             Remove-BcContainerSession -containerName $containerName
         }
     
