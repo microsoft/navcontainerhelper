@@ -326,9 +326,9 @@ Check-BcContainerHelperPermissions -Silent
 # Symbol Handling
 . (Join-Path $PSScriptRoot "SymbolHandling\Generate-SymbolsInNavContainer.ps1")
 
-# ArtifactHandling
-. (Join-Path $PSScriptRoot "ArtifactHandling\Resolve-DependenciesFromAzureFeed.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling\Publish-BuildOutputToAzureFeed.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling\Publish-BuildOutputToStorage.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling\Get-AzureFeedWildcardVersion.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling\Install-AzDevops.ps1")
+# PackageHandling
+. (Join-Path $PSScriptRoot "PackageHandling\Resolve-DependenciesFromAzureFeed.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToAzureFeed.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
