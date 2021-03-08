@@ -255,7 +255,6 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlPipeline.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlValidation.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlCops.ps1")
-. (Join-Path $PSScriptRoot "AppHandling\Publish-BuildOutputToStorage.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
@@ -328,3 +327,10 @@ Check-BcContainerHelperPermissions -Silent
 
 # Symbol Handling
 . (Join-Path $PSScriptRoot "SymbolHandling\Generate-SymbolsInNavContainer.ps1")
+
+# PackageHandling
+. (Join-Path $PSScriptRoot "PackageHandling\Resolve-DependenciesFromAzureFeed.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToAzureFeed.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
+. (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
