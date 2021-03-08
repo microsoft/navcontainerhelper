@@ -52,13 +52,16 @@ function Publish-BuildOutputToStorage {
 
     "RuntimePackages", "Apps", "TestApps" | % {
         if (Test-Path (Join-Path $path "$_\*")) {
-            $tempFile = Join-Path (Get-TempDir) "$([Guid]::newguid().ToString()).zip"
-            Compress-Archive -path (Get-Item (Join-Path $path $_)).FullName -DestinationPath $tempFile
-            Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$appVersion/$_.zip".ToLowerInvariant() -Force | Out-Null
-            if ($setLatest) {
-                Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "latest/$_.zip".ToLowerInvariant() -Force | Out-Null
-            }
-            Remove-Item $tempFile -Force
+            try {
+                $tempFile = Join-Path (Get-TempDir) "$([Guid]::newguid().ToString()).zip"
+                Compress-Archive -path (Get-Item (Join-Path $path $_)).FullName -DestinationPath $tempFile
+                Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$appVersion/$_.zip".ToLowerInvariant() -Force | Out-Null
+                if ($setLatest) {
+                    Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "latest/$_.zip".ToLowerInvariant() -Force | Out-Null
+                }
+            } finally {
+                Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+            }  
         }
     }
 }

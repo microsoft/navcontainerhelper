@@ -72,7 +72,7 @@ function Publish-BuildOutputToAzureFeed {
                 --path (Join-Path $tempAppOutFolder '.')   
         }
         finally {
-            Remove-Item -Path $tempAppFolder -Recurse -Force
+            Remove-Item -Path $tempAppFolder -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 }

@@ -1,3 +1,12 @@
+<# 
+ .Synopsis
+  Function for transforming appVersion to wildcard appVersion
+ .Description
+  Function for transforming appVersion to wildcard appVersion. 
+  0s in the appVersion will be replaced with * to be able to resolve min version dependencies 
+ .Parameter appVerison
+  appVersion to be transfromed.
+#>
 function Get-AzureFeedWildcardVersion {
     param (
         [Parameter(Mandatory=$true)]

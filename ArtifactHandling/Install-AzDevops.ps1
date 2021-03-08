@@ -1,3 +1,9 @@
+<# 
+ .Synopsis
+  Function to install Az Cli and enable Devops extension
+ .Description
+  Function to install Az Cli and enable Devops extension. If az cli is installed, an update will be done. Otherwise the installation will be performed.
+#>
 function Install-AzDevops {
     Param(
     )
