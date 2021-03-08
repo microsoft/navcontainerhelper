@@ -18,10 +18,14 @@ function Resolve-DependenciesFromAzureFeed {
         [Parameter(Mandatory = $true)]
         [string] $appsPath,
         [string] $outPath = (Join-Path $appsPath '.alpackages'),
-        [string] $spaces = ''
+        [int] $lvl = -1
     )
+    $spaces = ''
+    $lvl++
 
-    $spaces += '   '
+    For ($i=0; $i -le $lvl; $i++) {
+        $spaces += '   '
+    }
 
     # Create outPath if not exits 
     if (!(Test-Path $outPath)) {
@@ -101,7 +105,7 @@ function Resolve-DependenciesFromAzureFeed {
 
                     Write-Host "$($spaces)Copied to $($outPath)"
 
-                    Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outPath $outPath -appsPath $tempAppDependencyFolder -spaces $spaces
+                    Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outPath $outPath -appsPath $tempAppDependencyFolder -lvl $lvl
                 } else {
                     Write-Host "$($spaces)$($dep.Name) exists"
                 }
