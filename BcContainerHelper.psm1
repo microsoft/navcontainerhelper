@@ -330,3 +330,5 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ArtifactHandling\Resolve-DependenciesFromAzureFeed.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling\Publish-BuildOutputToAzureFeed.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling\Publish-BuildOutputToStorage.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling\Get-AzureFeedWildcardVersion.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling\Install-AzDevops.ps1")

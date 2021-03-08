@@ -1,7 +1,8 @@
 Describe 'ArtifactHandling' {
-    $appName = "test";
-    $appVersion = "1.1.1";
-    It 'Publish-BuildOutputToAzureFeed' {
-        Publish-BuildOutputToAzureFeed -organization "https://dev.azure.com/bynd365/" -feed "BCApps"  -path "C:\temp\test\output" -pat "qa5jj2ngjopds7nkqyessdvr72flghg6fl5r63cbtbvhnl4ghhsa"
+    It 'Get-AzureFeedWildcardVersion' {
+        (Get-AzureFeedWildcardVersion -appVersion "1.0.0") | Should Be "1.*.*"
+        (Get-AzureFeedWildcardVersion -appVersion "1.0.0") | Should Not Be "1.0.*"
+        (Get-AzureFeedWildcardVersion -appVersion "1.0.319") | Should Be "1.0.319"
+        (Get-AzureFeedWildcardVersion -appVersion "1.0.319") | Should Not Be "1.*.319"
     }
 }

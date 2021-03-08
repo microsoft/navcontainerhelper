@@ -28,21 +28,10 @@ function Publish-BuildOutputToAzureFeed {
         [Parameter(Mandatory=$true)]
         [string] $pat
     )
-
-    Try {
-        az upgrade
-    } catch {
-        Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
-    }
-
-    az extension add --name azure-devops
-    
-    $pat | az devops login --organization $organization
-
     Get-Childitem –Path (Join-Path $path "\Apps\*.app") | % {
         $basename = $_.Basename
 
-        $tempAppFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+        $tempAppFolder = Join-Path ((Get-Item -Path $env:temp).FullName) ([Guid]::NewGuid().ToString())
         $tempAppOutFolder = Join-Path $tempAppFolder "out"
         $tempAppSourceFolder = Join-Path $tempAppFolder "source" 
         New-Item -path $tempAppFolder -ItemType Directory -Force 
