@@ -1449,6 +1449,7 @@ if ($createRuntimePackages) {
     if (!(Test-Path $destFolder -PathType Container)) {
         New-Item $destFolder -ItemType Directory | Out-Null
     }
+    $no = 1
     $apps | ForEach-Object {
         $appFile = $_
         $tempRuntimeAppFile = "$($appFile.TrimEnd('.app')).runtime.app"
@@ -1480,7 +1481,8 @@ if ($createRuntimePackages) {
         }
 
         Write-Host "Copying runtime package to build artifact"
-        Copy-Item -Path $tempRuntimeAppFile -Destination (Join-Path $destFolder "$([System.IO.Path]::GetFileName($tempRuntimeAppFile))" ) -Force
+        Copy-Item -Path $tempRuntimeAppFile -Destination (Join-Path $destFolder "$($no.ToString('00')) - $([System.IO.Path]::GetFileName($tempRuntimeAppFile))" ) -Force
+        $no++
     }
 }
 
