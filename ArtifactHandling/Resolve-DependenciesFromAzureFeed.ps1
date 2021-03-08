@@ -23,7 +23,7 @@ function Resolve-DependenciesFromAzureFeed {
     $spaces = ''
     $lvl++
 
-    For ($i=0; $i -le $lvl; $i++) {
+    For ($i = 0; $i -le $lvl; $i++) {
         $spaces += '   '
     }
 
@@ -38,7 +38,8 @@ function Resolve-DependenciesFromAzureFeed {
         # Look for a single app.json in root
         try {
             $apps = @(Get-ChildItem -Path (Join-Path $appsPath '/app.json'))
-        } catch {}
+        }
+        catch {}
     }
     if ($apps.Count -eq 0) {
         # If no app.jsons found look for .app files.
@@ -49,72 +50,75 @@ function Resolve-DependenciesFromAzureFeed {
 
     $apps | % {
 
-        if($_.Name -eq "app.json") {
+        if ($_.Name -eq "app.json") {
             Write-Host "$($spaces)$($_.DirectoryName | Split-Path -Leaf)"
-        } else {
+        }
+        else {
             Write-Host "$($spaces)$($_.Name)"
         }
-
         # Create temp folders
         $tempAppFolder = Join-Path ((Get-Item -Path $env:temp).FullName) ([Guid]::NewGuid().ToString())
         $tempAppDependenciesFolder = Join-Path $tempAppFolder 'dependencies'
+        try {
+            New-Item -path $tempAppFolder -ItemType Directory -Force | Out-Null
+            New-Item -path $tempAppDependenciesFolder -ItemType Directory -Force | Out-Null
+            # Read app.json
+            if ($_.Extension -eq ".app") {
+                $tempAppSourceFolder = Join-Path $tempAppFolder 'source'
+                New-Item -path $tempAppSourceFolder -ItemType Directory -Force | Out-Null
 
-        New-Item -path $tempAppFolder -ItemType Directory -Force | Out-Null
-        New-Item -path $tempAppDependenciesFolder -ItemType Directory -Force | Out-Null
+                Extract-AppFileToFolder -appFilename $_ -generateAppJson -appFolder $tempAppSourceFolder 6>$null
 
-        # Read app.json
-        if ($_.Extension -eq ".app") {
-            $tempAppSourceFolder = Join-Path $tempAppFolder 'source'
-            New-Item -path $tempAppSourceFolder -ItemType Directory -Force | Out-Null
-
-            Extract-AppFileToFolder -appFilename $_ -generateAppJson -appFolder $tempAppSourceFolder 6>$null
-
-            $appJson = Get-Content (Join-Path $tempAppSourceFolder "app.json") | ConvertFrom-Json
-        }
-        else {
-            $appJson = Get-Content $_ | ConvertFrom-Json
-        }
+                $appJson = Get-Content (Join-Path $tempAppSourceFolder "app.json") | ConvertFrom-Json
+            }
+            else {
+                $appJson = Get-Content $_ | ConvertFrom-Json
+            }
         
-        #Resolving dpendencies
-        $appJson.dependencies | % {
-            $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $_.id
-            New-Item -path $tempAppDependencyFolder -ItemType Directory -Force | Out-Null
-            Write-Host "$($spaces)Downloading: $($_.id)"
-            try {
-                if( $(az artifacts universal download `
-                    --organization $organization `
-                    --feed $feed `
-                    --name $_.id `
-                    --version (AzureFeedWildcardVersion -appVersion $_.version) `
-                    --path $tempAppDependencyFolder >$null 2>&1; $?)) {
+            #Resolving dpendencies
+            $appJson.dependencies | % {
+                $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $_.id
+                New-Item -path $tempAppDependencyFolder -ItemType Directory -Force | Out-Null
+                Write-Host "$($spaces)Downloading: $($_.id)"
+                try {
+                    if ( $(az artifacts universal download `
+                                --organization $organization `
+                                --feed $feed `
+                                --name $_.id `
+                                --version (AzureFeedWildcardVersion -appVersion $_.version) `
+                                --path $tempAppDependencyFolder >$null 2>&1; $?)) {
                         Write-Host "$($spaces)Downloaded!"
                     }
-            }
-            catch {
-                Write-Warning "$($spaces)Cannot find the package $($_.id)"
-            }
-            
-            $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.app') -Exclude '*.runtime.app')
-            if ($dependency.Count -eq 0) {
-                $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.runtime.app'))
-            }
-            if ($dependency.Count -gt 0) {
-                $dep = $dependency[0]
-                if(!(Test-Path (Join-Path $outPath $dep.Name))) {
-                    Copy-Item -Path $dep -Destination $outPath -Force
-
-                    Write-Host "$($spaces)Copied to $($outPath)"
-
-                    Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outPath $outPath -appsPath $tempAppDependencyFolder -lvl $lvl
-                } else {
-                    Write-Host "$($spaces)$($dep.Name) exists"
                 }
-            } 
+                catch {
+                    Write-Warning "$($spaces)Cannot find the package $($_.id)"
+                }
+            
+                $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.app') -Exclude '*.runtime.app')
+                if ($dependency.Count -eq 0) {
+                    $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.runtime.app'))
+                }
+                if ($dependency.Count -gt 0) {
+                    $dep = $dependency[0]
+                    if (!(Test-Path (Join-Path $outPath $dep.Name))) {
+                        Copy-Item -Path $dep -Destination $outPath -Force
+
+                        Write-Host "$($spaces)Copied to $($outPath)"
+
+                        Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outPath $outPath -appsPath $tempAppDependencyFolder -lvl $lvl
+                    }
+                    else {
+                        Write-Host "$($spaces)$($dep.Name) exists"
+                    }
+                } 
+            }
+            if ($appJson.dependencies.Count -eq 0) {
+                Write-Host "$($spaces)No more dependencies."
+            }
         }
-        if ($appJson.dependencies.Count -eq 0) {
-            Write-Host "$($spaces)No more dependencies."
+        finally {
+            Remove-Item -Path $tempAppFolder -Recurse -Force
         }
-        Remove-Item -Path $tempAppFolder -Recurse -Force
     }
 
 }
