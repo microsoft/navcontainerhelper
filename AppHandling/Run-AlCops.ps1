@@ -211,7 +211,12 @@ function Run-AlCops {
                 get-content  $myRulesetFile | Out-Host
             }
 
-            Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters) | Out-Null
+            try {
+                Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters) | Out-Null
+            }
+            catch {
+                $global:_validationResult += $_.Exception.Message
+            }
 
             if ($ignoreWarnings) {
                 Write-Host "Ignoring warnings"
