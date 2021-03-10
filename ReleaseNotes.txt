@@ -4,6 +4,7 @@ Support for preProcessorSymbols in Compile-AppInBcContainer and Run-AlPipeline
 Issue #1720 add suppressBuildSearchIndex to Import-ObjectsToNavContainer
 Add function Get-PlainText
 Run-AlCops sometimes shows the exception instead of the AppSource failures
+Get-BcArtifactUrl returns an older publicpreview version instead of a newer insider build
 
 2.0.6
 Issue #1696 Compile-AppInBcContainer does not throw error on missing RDLC
