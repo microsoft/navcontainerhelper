@@ -67,17 +67,35 @@ function Get-BCArtifactUrl {
         $publicpreviews = Get-BcArtifactUrl -country $country -storageAccount bcpublicpreview -select All -doNotCheckPlatform:$doNotCheckPlatform
         $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform
 
-        $nextmajor = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
-        if (!($nextmajor)) {
-            $nextmajor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
+        $publicpreview = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
+        $insider = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
+        
+        $nextmajor = $insider
+        if (!($insider)) {
+            $nextmajor = $publicpreview
+        }
+        elseif ($publicpreview) {
+            if ([version]($publicpreview.Split('/')[4]) -ge [version]($insider.Split('/')[4])) {
+                $nextmajor = $publicpreview
+            }
         }
 
-        $nextminor = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
-        if (!($nextminor)) {
-            $nextminor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
+        $insider = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
+        $publicpreview = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
+
+        $nextminor = $insider
+        if (!($insider)) {
+            if ($publicpreview) {
+                $nextminor = $publicpreview
+            }
+            else {
+                $nextminor = $nextmajor
+            }
         }
-        if (!($nextminor)) {
-            $nextminor = $nextmajor
+        elseif ($publicpreview) {
+            if ([version]($publicpreview.Split('/')[4]) -ge [version]($insider.Split('/')[4])) {
+                $nextminor = $publicpreview
+            }
         }
 
         if ($select -eq 'NextMinor') {

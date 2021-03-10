@@ -459,7 +459,10 @@ function New-BcContainer {
     $dockerClientVersion = $dockerVersion.Split('/')[1]
     $dockerServerVersion = $dockerVersion.Split('/')[2]
 
-    if ($dockerOS -ne "Windows") {
+    if ("$dockerOS" -eq "") {
+        throw "Docker service is not yet ready."
+    }
+    elseif ($dockerOS -ne "Windows") {
         throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
    	}
     Write-Host "Docker Client Version is $dockerClientVersion"
