@@ -45,6 +45,7 @@ function Get-ContainerHelperConfig {
                 "ee" = "w1"
                 "fo" = "dk"
                 "gl" = "dk"
+                "gr" = "w1"
                 "hk" = "w1"
                 "hr" = "w1"
                 "hu" = "w1"
