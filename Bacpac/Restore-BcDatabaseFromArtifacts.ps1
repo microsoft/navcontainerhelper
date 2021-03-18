@@ -84,8 +84,12 @@ function Restore-BcDatabaseFromArtifacts {
         if ($multitenant) {
             $dbName = "$($databasePrefix)tenant"
         }
-        Write-Host "Restoring database $dbName"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $smoServer.RootDirectory "DATA\$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
+        $DefaultDataPath = (Invoke-SqlCmd `
+            -ServerInstance $databaseServerInstance `
+            -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
+            
+        Write-Host "Restoring database $dbName into $DefaultDataPath"
+        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $DefaultDataPath "$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
    
         if ($multitenant) {
             Import-Module sqlps -ErrorAction SilentlyContinue
