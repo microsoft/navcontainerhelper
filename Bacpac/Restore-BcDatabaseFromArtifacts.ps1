@@ -84,17 +84,25 @@ function Restore-BcDatabaseFromArtifacts {
         if ($multitenant) {
             $dbName = "$($databasePrefix)tenant"
         }
+        Import-Module sqlps -ErrorAction SilentlyContinue
+        $sqlpsModule = get-module sqlps
+        if (-not $sqlpsModule) {
+            import-module SqlServer
+            $SqlModule = get-module SqlServer
+            if (-not $SqlModule) {
+                throw "You need to have a local installation of SQL or you need the SqlServer PowerShell module installed"
+            }
+        }
+
         $DefaultDataPath = (Invoke-SqlCmd `
             -ServerInstance $databaseServerInstance `
             -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
             
-        Write-Host "Restoring database $dbName into $DefaultDataPath"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $DefaultDataPath "$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
+        Write-Host "Restoring database $dbName into $(Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', ''))"
+        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')) | Out-Null
    
         if ($multitenant) {
-            Import-Module sqlps -ErrorAction SilentlyContinue
-            $sqlModule = get-module sqlps
-            if ($sqlModule) {
+            if ($sqlpsModule) {
                 $smoServer = New-Object Microsoft.SqlServer.Management.Smo.Server $databaseServerInstance
                 $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
                 $SmoExtended = [reflection.assembly]::Load("Microsoft.SqlServer.SmoExtended, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
@@ -102,8 +110,6 @@ function Restore-BcDatabaseFromArtifacts {
                 $SqlEnum = [reflection.assembly]::Load("Microsoft.SqlServer.SqlEnum, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
             }           
             else {
-                import-module SqlServer
-                $SqlModule = get-module SqlServer
                 if ($SqlModule) {
                     $Path = Split-Path $SqlModule.Path
                     $Smo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.Smo.dll'))
