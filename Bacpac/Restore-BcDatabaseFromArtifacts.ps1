@@ -123,6 +123,8 @@ function Restore-BcDatabaseFromArtifacts {
                 -DatabaseInstance $databaseInstance `
                 -DatabaseName "$($databasePrefix)tenant" `
                 -Force | Out-Null
+                
+            [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($OnAssemblyResolve)
         }
         Write-Host "Success"
         if ($successFileName) {
