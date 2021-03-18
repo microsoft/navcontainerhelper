@@ -88,14 +88,30 @@ function Restore-BcDatabaseFromArtifacts {
         New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $smoServer.RootDirectory "DATA\$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
    
         if ($multitenant) {
-            import-module SqlServer
-            $SqlModule = get-module SqlServer
-            $Path = Split-Path $SqlModule.Path
-            $Smo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.Smo.dll'))
-            $SmoExtended = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SmoExtended.dll'))
-            $ConnectionInfo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.ConnectionInfo.dll'))
-            $SqlEnum = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SqlEnum.dll'))
-          
+            Import-Module sqlps -ErrorAction SilentlyContinue
+            $sqlModule = get-module sqlps
+            if ($sqlModule) {
+                $smoServer = New-Object Microsoft.SqlServer.Management.Smo.Server $databaseServerInstance
+                $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                $SmoExtended = [reflection.assembly]::Load("Microsoft.SqlServer.SmoExtended, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                $ConnectionInfo = [reflection.assembly]::Load("Microsoft.SqlServer.ConnectionInfo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                $SqlEnum = [reflection.assembly]::Load("Microsoft.SqlServer.SqlEnum, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+            }           
+            else {
+                import-module SqlServer
+                $SqlModule = get-module SqlServer
+                if ($SqlModule) {
+                    $Path = Split-Path $SqlModule.Path
+                    $Smo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.Smo.dll'))
+                    $SmoExtended = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SmoExtended.dll'))
+                    $ConnectionInfo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.ConnectionInfo.dll'))
+                    $SqlEnum = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SqlEnum.dll'))
+                } 
+                else {
+                    throw "You need to have a local installation of SQL or you need the SqlServer PowerShell module installed"
+                }
+            }
+                
             $OnAssemblyResolve = [System.ResolveEventHandler] {
                 param($sender, $e)
                 if ($e.Name -like "Microsoft.SqlServer.Smo, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $Smo }
