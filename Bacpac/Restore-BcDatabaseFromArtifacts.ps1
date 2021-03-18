@@ -79,22 +79,44 @@ function Restore-BcDatabaseFromArtifacts {
         if ($databaseInstance) {
             $databaseServerInstance += "\$databaseInstance"
         }
-        Import-Module sqlps
-        $smoServer = New-Object Microsoft.SqlServer.Management.Smo.Server $databaseServerInstance
 
         $dbName = "$databasePrefix$databaseName"
         if ($multitenant) {
             $dbName = "$($databasePrefix)tenant"
         }
-        Write-Host "Restoring database $dbName"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $smoServer.RootDirectory "DATA\$($databaseprefix -replace '[^a-zA-Z0-9]', '')") | Out-Null
+        Import-Module sqlps -ErrorAction SilentlyContinue
+        $sqlpsModule = get-module sqlps
+        if (-not $sqlpsModule) {
+            import-module SqlServer
+            $SqlModule = get-module SqlServer
+            if (-not $SqlModule) {
+                throw "You need to have a local installation of SQL or you need the SqlServer PowerShell module installed"
+            }
+        }
+
+        $DefaultDataPath = (Invoke-SqlCmd `
+            -ServerInstance $databaseServerInstance `
+            -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
+            
+        Write-Host "Restoring database $dbName into $(Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', ''))"
+        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')) | Out-Null
    
         if ($multitenant) {
-            $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-            $SmoExtended = [reflection.assembly]::Load("Microsoft.SqlServer.SmoExtended, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-            $ConnectionInfo = [reflection.assembly]::Load("Microsoft.SqlServer.ConnectionInfo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-            $SqlEnum = [reflection.assembly]::Load("Microsoft.SqlServer.SqlEnum, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-            
+            if ($sqlpsModule) {
+                $smoServer = New-Object Microsoft.SqlServer.Management.Smo.Server $databaseServerInstance
+                $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                $SmoExtended = [reflection.assembly]::Load("Microsoft.SqlServer.SmoExtended, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                $ConnectionInfo = [reflection.assembly]::Load("Microsoft.SqlServer.ConnectionInfo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                $SqlEnum = [reflection.assembly]::Load("Microsoft.SqlServer.SqlEnum, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+            }           
+            else {
+                $Path = Split-Path $SqlModule.Path
+                $Smo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.Smo.dll'))
+                $SmoExtended = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SmoExtended.dll'))
+                $ConnectionInfo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.ConnectionInfo.dll'))
+                $SqlEnum = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SqlEnum.dll'))
+            }
+                
             $OnAssemblyResolve = [System.ResolveEventHandler] {
                 param($sender, $e)
                 if ($e.Name -like "Microsoft.SqlServer.Smo, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $Smo }
@@ -122,6 +144,8 @@ function Restore-BcDatabaseFromArtifacts {
                 -DatabaseInstance $databaseInstance `
                 -DatabaseName "$($databasePrefix)tenant" `
                 -Force | Out-Null
+                
+            [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($OnAssemblyResolve)
         }
         Write-Host "Success"
         if ($successFileName) {
