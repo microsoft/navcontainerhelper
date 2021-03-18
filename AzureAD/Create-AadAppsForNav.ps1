@@ -94,7 +94,11 @@ function Create-AadAppsForNav {
     $aadTenant = $account.TenantId
     $AdProperties["AadTenant"] = $AadTenant
 
-    $adUser = Get-AzureADUser -ObjectId $account.Account.Id
+    if ($account.Account.Type -eq 'ServicePrincipal') {
+        $adUser = Get-AzureADServicePrincipal -Filter "AppId eq '$($account.Account.Id)'"
+    } else {
+        $adUser = Get-AzureADUser -ObjectId $account.Account.Id
+    }
     if (!$adUser) {
         throw "Could not identify Aad Tenant"
     }
@@ -152,7 +156,7 @@ function Create-AadAppsForNav {
 
         # Create AD Application
         Write-Host "Creating AAD App for Excel Add-in"
-        $excelAdApp = New-AzureADApplication –DisplayName "Excel AddIn for $appIdUri" `
+        $excelAdApp = New-AzureADApplication -DisplayName "Excel AddIn for $appIdUri" `
                                              -HomePage $publicWebBaseUrl `
                                              -IdentifierUris $ExcelIdentifierUri `
                                              -ReplyUrls $publicWebBaseUrl, "https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*"
@@ -187,7 +191,7 @@ function Create-AadAppsForNav {
     
         # Create AD Application
         Write-Host "Creating AAD App for PowerBI Service"
-        $powerBiAdApp = New-AzureADApplication –DisplayName "PowerBI Service for $appIdUri" `
+        $powerBiAdApp = New-AzureADApplication -DisplayName "PowerBI Service for $appIdUri" `
                                                -HomePage $publicWebBaseUrl `
                                                -IdentifierUris $PowerBiIdentifierUri `
                                                -ReplyUrls "${publicWebBaseUrl}OAuthLanding.htm"
@@ -226,7 +230,7 @@ function Create-AadAppsForNav {
     
         # Create AD Application
         Write-Host "Creating AAD App for EMail Service"
-        $EMailAdApp = New-AzureADApplication –DisplayName $EMailDisplayName `
+        $EMailAdApp = New-AzureADApplication -DisplayName $EMailDisplayName `
                                              -HomePage $publicWebBaseUrl `
                                              -ReplyUrls "${publicWebBaseUrl}OAuthLanding.htm" `
                                              -AvailableToOtherTenants 1
