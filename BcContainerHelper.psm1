@@ -38,6 +38,7 @@ function Get-ContainerHelperConfig {
             "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true
             "useSharedEncryptionKeys" = $true
+            "PsSessionTimeout" = 0
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"
                 "br" = "w1"
