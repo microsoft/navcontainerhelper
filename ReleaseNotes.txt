@@ -1,5 +1,6 @@
 2.0.8
 Issue #1803 Set PSSession Timeout to 0 (no timeout) overridable in config
+PR #1799 Add support for Service principal in Create-AadAppsForNav
 
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer
