@@ -32,8 +32,7 @@ function Get-BcContainerSession {
             }
         }
         $containerId = Get-BcContainerId -containerName $containerName
-        $so = New-PSSessionOption -IdleTimeout $bcContainerHelperConfig.PsSessionTimeout
-        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -SessionOption $so
+        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'

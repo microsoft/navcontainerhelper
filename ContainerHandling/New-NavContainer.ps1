@@ -1422,7 +1422,7 @@ if (!(Test-Path "c:\navpfiles\*")) {
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
-    if ($assignPremiumPlan -and !$restoreBakFolder) {
+    if ($assignPremiumPlan -and !$restoreBakFolder -and !$skipDatabase) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
