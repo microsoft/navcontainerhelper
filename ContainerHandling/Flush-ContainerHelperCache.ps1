@@ -11,6 +11,7 @@
   - applicationCache are the test applications runtime cache (15.x containers)
   - bakFolderCache are version specific backup sets
   - bcartifacts are artifacts downloaded for spinning up containers
+  - sandboxartifacts are artifacts downloaded for spinning up containers
   - images are images built on artifacts using New-BcImage or New-BcContainer
  .Parameter keepDays
   When specifying a value in keepDays, the function will try to keep cached information, which has been used during the last keepDays days. Default is 0 - to flush all cache.
@@ -35,12 +36,16 @@ function Flush-ContainerHelperCache {
         $folders += @("*-??-files")
     }
 
-    if ($caches.Contains('all') -or $caches.Contains('bcartifacts')) {
+    if ($caches.Contains('all') -or $caches.Contains('bcartifacts') -or $caches.Contains('sandboxartifacts')) {
         $bcartifactsCacheFolder = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+        $subfolder = "*"
+        if (!($caches.Contains('all') -or $caches.Contains('bcartifacts'))) {
+            $subfolder = "sandbox"
+        }
         if (Test-Path $bcartifactsCacheFolder) {
             if ($keepDays) {
                 $removeBefore = [DateTime]::Now.Subtract([timespan]::FromDays($keepDays))
-                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                     $level1 = $_.FullName
                     Get-ChildItem -Path $level1 | ?{ $_.PSIsContainer } | ForEach-Object {
                         $level2 = $_.FullName
@@ -65,7 +70,7 @@ function Flush-ContainerHelperCache {
                 }
             }
             else {
-                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer } | ForEach-Object {
+                Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                     Write-Host "Removing Cache $($_.FullName)"
                     [System.IO.Directory]::Delete($_.FullName, $true)
                 }
