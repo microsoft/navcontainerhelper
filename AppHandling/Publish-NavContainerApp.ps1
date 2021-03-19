@@ -264,7 +264,7 @@ function Publish-BcContainerApp {
                     }
             
                     Write-Host "Publishing $appFile"
-                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs -force
         
                     if ($sync -or $install -or $upgrade) {
         
