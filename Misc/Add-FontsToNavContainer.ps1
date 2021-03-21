@@ -6,7 +6,7 @@
  .Parameter containerName
   Name of the container to which you want to copy fonts
  .Parameter path
-  Path to fonts to copy and register in the container
+  Path or array of paths to fonts to copy and register in the container.
  .Example
   Add-FontsToBcContainer
  .Example
@@ -15,13 +15,15 @@
   Add-FontsToBcContainer -containerName test2 -path "C:\Windows\Fonts\ming*.*"
  .Example
   Add-FontsToBcContainer -containerName test2 -path "C:\Windows\Fonts\mingliu.ttc"
+ .Example
+  Add-FontsToBcContainer -containerName test2 -path @("C:\Windows\Fonts\", ".\myfonts\")
 #>
 function Add-FontsToBcContainer {
    Param (
         [Parameter(Mandatory=$false)]
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [Parameter(Mandatory=$false)]
-        [string] $path = "C:\Windows\Fonts"
+        [string[]] $path = @("C:\Windows\Fonts")
     )
 
     $ExistingFonts = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
