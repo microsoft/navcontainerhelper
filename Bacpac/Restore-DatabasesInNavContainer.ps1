@@ -10,6 +10,8 @@
   The folder to which the bak files are exported (default is the container folder c:\programdata\bccontainerhelper\extensions\<containername>)
  .Parameter tenant
   The tenant database(s) to restore, only applies to multi-tenant containers. Omit to restore all tenants
+ .Parameter sqlTimeout
+  SQL Timeout for database restore operations
  .Example
   Restore-DatabasesInBcContainer -containerName test
  .Example

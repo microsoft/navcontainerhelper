@@ -167,6 +167,8 @@
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+ .Parameter sqlTimeout
+  SQL Timeout for database restore operations
  .Example
   New-BcContainer -accept_eula -containerName test
  .Example
@@ -240,6 +242,7 @@ function New-BcContainer {
         [ValidateSet('Windows','NavUserPassword','UserPassword','AAD')]
         [string] $auth='Windows',
         [int] $timeout = 1800,
+        [int] $sqlTimeout = 300,
         [string[]] $additionalParameters = @(),
         $myScripts = @(),
         [string] $TimeZoneId = $null,
@@ -736,6 +739,10 @@ function New-BcContainer {
 
     Write-Host "Using image $imageName"
     $inspect = docker inspect $imageName | ConvertFrom-Json
+
+    if ($sqlTimeout -ne 300) {
+        $parameters += "--env sqlTimeout=$sqlTimeout"
+    }
 
     if ($clickonce) {
         $parameters += "--env clickonce=Y"
@@ -1795,7 +1802,7 @@ if (-not `$restartingInstance) {
                 Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                     Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 }
-                Restore-DatabasesInBcContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants
+                Restore-DatabasesInBcContainer -containerName $containerName -bakFolder $bakFolder -tenant $tenants -sqlTimeout $sqlTimeout
             }
         }
         else {

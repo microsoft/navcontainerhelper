@@ -5,6 +5,8 @@ PR #1801 Support SqlServer PS module in Restore-BcDatabaseFromArtifacts.ps1
 Issue #1794 AssignPremiumPlan fails when using external database
 Issue #1810 Publish-NavContainerApp is not using Publish-NAVApp -Force which leads to user interaction in some situations
 Issue #1790 Add caching option SandboxArtifacts to flush-ContainerHelperCache to only flush sandbox artifacts
+Issue #1822 Copy-AlSourceFiles doesn't support entitlement, permissionset and permissionsetextension
+Issue #1820 Add SqlTimeout to New-BcContainer - default is and was always 300 (= 5 minutes)
 
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer
