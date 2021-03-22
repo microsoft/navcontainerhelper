@@ -100,10 +100,14 @@ function Publish-BcContainerApp {
         else {
             $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         }
+        $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
+        $version = [System.Version]($navversion.split('-')[0])
+        $force = ($version.Major -ge 14)
     }
     else {
         $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
+        $force = $true
     }
 
     try {
@@ -250,7 +254,7 @@ function Publish-BcContainerApp {
             }
             else {
         
-                Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId)
+                Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force)
         
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
@@ -262,9 +266,12 @@ function Publish-BcContainerApp {
                     if ($PublisherAzureActiveDirectoryTenantId) {
                         $publishArgs += @{ "PublisherAzureActiveDirectoryTenantId" = $PublisherAzureActiveDirectoryTenantId }
                     }
+                    if ($force) {
+                        $publishArgs += @{ "Force" = $true }
+                    }
             
                     Write-Host "Publishing $appFile"
-                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs -force
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
         
                     if ($sync -or $install -or $upgrade) {
         
@@ -305,7 +312,7 @@ function Publish-BcContainerApp {
                         }
                     }
         
-                } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId
+                } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force
             }
             Write-Host -ForegroundColor Green "App $([System.IO.Path]::GetFileName($appFile)) successfully published"
         }
