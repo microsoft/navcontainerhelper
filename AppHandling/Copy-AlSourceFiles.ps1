@@ -27,7 +27,7 @@ function Copy-AlSourceFiles {
     Write-Host "Copying Al Source Files from $Path to $Destination"
 
     if ($alFileStructure) {
-        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement')
+        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension')
         $extensions = @(".al",".xlf",".lcl")
 
         $files = Get-ChildItem -Path $Path -Recurse:$Recurse
