@@ -1,0 +1,37 @@
+debug = false
+defaultEntryPoints = ["https","http"]
+insecureSkipVerify = true
+
+[api]
+# Check https://docs.traefik.io/v1.7/configuration/api/#security
+# to enable authentication on the dashboard for extra security
+
+[docker]
+domain = "$PublicDnsName"
+watch = true
+endpoint = "npipe:////./pipe/docker_engine"
+
+[entryPoints]
+  [entryPoints.http]
+  address = ":80"
+    [entryPoints.http.redirect]
+    entryPoint = "https"
+  [entryPoints.https]
+  address = ":443"
+  [entryPoints.https.tls]
+  minVersion = "VersionTLS12"
+    [[entryPoints.https.tls.certificates]]
+    certFile = "c:/etc/traefik/certificate.crt"
+    keyFile = "c:/etc/traefik/certificate.key"
+
+[file]
+[backends]
+  [backends.host]
+    [backends.host.servers.server1]
+       url = "http://${IP}:8180"
+
+ [frontends]
+  [frontends.host]
+    backend = "host"
+    [frontends.host.routes.route1]
+      rule = "PathPrefix:/" 
