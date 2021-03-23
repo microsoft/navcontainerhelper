@@ -27,7 +27,7 @@ function Get-BcPublishedApps {
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
     try {
-        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)

@@ -4,48 +4,38 @@
  .Description
   Function for installing an AppSource App in an online Business Central environment
   Current implementation uses client service to invoke page 2503 and install the app
-  WARNING: The implementation of this function will change when admin center API contains functionality for this
- .Parameter containerName
-  ContainerName from which the client service connection is created (this parameter will be removed later)
- .Parameter companyName
-  Company name in which the client service connection is done (this parameter will be removed later)
- .Parameter profile
-  Profile name for the user which is performing the client service connection (this parameter will be removed later)
- .Parameter culture
-  Culture of the user performing the client service connection (this parameter will be removed later)
- .Parameter timeZone
-  Timezone of the user performing the client service connection  (this parameter will be removed later)
- .Parameter debugMode
-  Include this switch if you want to enable debugMode for the client Service connection (this parameter will be removed later)
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
  .Parameter environment
   Environment in which you want to install an AppSource App
  .Parameter appId
   AppId of the AppSource App you want to install
- .Parameter appId
-  Name of the AppSource App you want to install
+ .Parameter appVersion
+  Version of the AppSource App you want to install
+ .Parameter languageId
+  languageId
+ .Parameter acceptIsvEula
+  By including this switch you acknowledge that you have read and accept the Isv Eula
+ .Parameter installOrUpdateNeededDependencies
+  Include this switch to Install or Update needed dependencies
+ .Parameter allowInstallationOnProduction
+  Include this switch if you want to allow this function to install AppSource apps on a production environment
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Install-BcAppFromAppSource -containerName proxy -bcAuthContext $authContext -AppId '55ba54a3-90c7-4d3f-bc73-68eaa51fd5f8'
+  Install-BcAppFromAppSource -bcAuthContext $authContext -AppId '55ba54a3-90c7-4d3f-bc73-68eaa51fd5f8' -acceptIsvEula
 #>
 function Install-BcAppFromAppSource {
     Param (
-        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [string] $companyName = "",
-        [string] $profile = "",
-        [timespan] $interactionTimeout = [timespan]::FromHours(24),
-        [string] $culture = "en-US",
-        [string] $timezone = "",
-        [switch] $debugMode,
         [Parameter(Mandatory=$true)]
         [Hashtable] $bcAuthContext,
         [Parameter(Mandatory=$true)]
         [string] $environment,
         [Parameter(Mandatory=$true)]
         [string] $appId,
-        [string] $appName = $appId,
-        [switch] $connectFromHost,
+        [string] $appVersion = "",
+        [string] $languageId = "",
+        [switch] $acceptIsvEula,
+        [switch] $installOrUpdateNeededDependencies,
         [switch] $allowInstallationOnProduction
     )
 
@@ -57,9 +47,6 @@ function Install-BcAppFromAppSource {
     if ($bcEnvironment.Type -eq 'Production' -and !$allowInstallationOnProduction) {
         throw "If you want to install an app in a production environment, you need to specify -allowInstallOnProduction"
     }
-    
-    Write-Host -ForegroundColor Yellow "NOTE: The implementation of Install-BcAppFromAppSource will be replaced by the Admin Center API implementation when available"
-
     $appExists = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.id -eq $appid -and $_.state -eq "installed" }
     if ($appExists) {
         Write-Host -ForegroundColor Green "App $($appExists.Name) from $($appExists.Publisher) version $($appExists.Version) is already installed"
@@ -69,71 +56,55 @@ function Install-BcAppFromAppSource {
         if($response.status -ne 'Ready') {
             throw "environment not ready, status is $($response.status)"
         }
-        $useUrl = $response.data.Split('?')[0]
-        $tenant = ($response.data.Split('?')[1]).Split('=')[1]
 
-        $PsTestToolFolder = Join-Path $extensionsFolder "$containerName\PsConnectionTestTool"
-        CreatePsTestToolFolder -containerName $containerName -PsTestToolFolder $PsTestToolFolder
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
+        $headers = @{ "Authorization" = $bearerAuthValue }
+        $body = @{ "AcceptIsvEula" = $acceptIsvEula.ToBool() }
+        if ($appVersion) { $body += @{ "appVersion" = $appVersion } }
+        if ($languageId) { $body += @{ "languageId" = $languageId } }
+        if ($installOrUpdateNeededDependencies) { $body += @{ "installOrUpdateNeededDependencies" = $installOrUpdateNeededDependencies.ToBool() } }
     
-        $serviceUrl = "$($useUrl.TrimEnd('/'))/cs?tenant=$tenant"
-        $credential = New-Object pscredential 'user', (ConvertTo-SecureString -String $bcAuthContext.AccessToken -AsPlainText -Force)
+        Write-Host "Installing $appId on $($environment)"
+        try {
+            $operation = Invoke-RestMethod -Method Post -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/install" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
+        }
+        catch {
+            throw (GetExtenedErrorMessage $_.Exception)
+        }
     
-        if ($companyName) { $serviceUrl += "&company=$([Uri]::EscapeDataString($companyName))" }
-        if ($profile) { $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))" }
-
-        if ($connectFromHost) {
-    
-            . (Join-Path $PsTestToolFolder "PsTestFunctions.ps1") -newtonSoftDllPath (Join-Path $PsTestToolFolder "NewtonSoft.json.dll") -clientDllPath (Join-Path $PsTestToolFolder "Microsoft.Dynamics.Framework.UI.Client.dll") -clientContextScriptPath (Join-Path $PsTestToolFolder "ClientContext.ps1")
-        
-            $clientContext = $null
+        Write-Host "Operation ID $($operation.id)"
+        $status = $operation.status
+        Write-Host -NoNewline "$($status)."
+        $completed = $operation.Status -eq "succeeded"
+        $errCount = 0
+        while (-not $completed) {
+            Start-Sleep -Seconds 3
             try {
-                $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth 'AAD' -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
-
-                Install-AppSourceApp -clientContext $clientContext -debugMode:$debugMode -connectFromHost:$connectFromHost -appId $appId -appName $appName
+                $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/operations" -UseBasicParsing
+                $appInstallStatus = (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id }
+                if ($status -ne $appInstallStatus.status) {
+                    Write-Host
+                    Write-Host -NoNewline "$($appInstallStatus.status)"
+                    $status = $appInstallStatus.status
+                }
+                $completed = $status -eq "succeeded"
+                if ($status -eq "running" -or $status -eq "scheduled") {
+                    Write-Host -NoNewline "."
+                }
+                elseif (!$completed) {
+                    throw $status
+                }
+                $errCount = 0
             }
             catch {
-                Write-Host $_.ScriptStackTrace
-                if ($debugMode -and $clientContext) {
-                    Dump-ClientContext -clientcontext $clientContext 
+                if ($errCount++ -gt 3) {
+                    throw (GetExtenedErrorMessage $_.Exception)
                 }
-                throw
-            }
-            finally {
-                if ($clientContext) {
-                    Remove-ClientContext -clientContext $clientContext
-                }
+                $completed = $false
             }
         }
-        else {
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param ($psTestToolFolder, $serviceUrl, $interactionTimeout, $culture, $timezone, $credential, $appId, $appName, $debugMode, $connectFromHost)
-
-                $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
-                $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
-
-                . (Join-Path $PsTestToolFolder "PsTestFunctions.ps1") -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath (Join-Path $PsTestToolFolder "ClientContext.ps1")
-            
-                $clientContext = $null
-                try {
-                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth 'AAD' -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
-    
-                    Install-AppSourceApp -clientContext $clientContext -debugMode:$debugMode -connectFromHost:$connectFromHost -appId $appId -appName $appName
-                }
-                catch {
-                    Write-Host $_.ScriptStackTrace
-                    if ($debugMode -and $clientContext) {
-                        Dump-ClientContext -clientcontext $clientContext 
-                    }
-                    throw
-                }
-                finally {
-                    if ($clientContext) {
-                        Remove-ClientContext -clientContext $clientContext
-                    }
-                }
-
-
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $PsTestToolFolder), $serviceUrl, $interactionTimeout, $culture, $timezone, $credential, $appId, $appName, $debugMode, $connectFromHost
-        }
+        Write-Host
     }
 }
 Export-ModuleMember -Function Install-BcAppFromAppSource
