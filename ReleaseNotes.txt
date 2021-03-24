@@ -8,6 +8,7 @@ Issue #1822 Copy-AlSourceFiles doesn't support entitlement, permissionset and pe
 Issue #1820 Add SqlTimeout to New-BcContainer - default is and was always 300 (= 5 minutes)
 Issue #1829 Import-module fails with no good error when config file is bad or empty
 Breaking change: Fix Install-BcAppFromAppSource to use new admin center API (remove old hack)
+Issue #1815 Page 810 Web Service takes very long to open
 
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer

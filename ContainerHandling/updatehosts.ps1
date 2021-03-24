@@ -94,11 +94,17 @@ function UpdateHostsFile {
 }
 
 if ($theHostname) {
-    if ($theIpAddress) {
-        Write-Host "Setting $theHostname to $theIpAddress in host hosts file"
+    if ($hostsFile -eq "c:\windows\system32\drivers\etc\hosts") {
+        $loc = "container"
     }
     else {
-        Write-Host "Removing $theHostname from host hosts file"
+        $loc = "host"
+    }
+    if ($theIpAddress) {
+        Write-Host "Setting $theHostname to $theIpAddress in $loc hosts file"
+    }
+    else {
+        Write-Host "Removing $theHostname from $loc hosts file"
     }
     $hosts = UpdateHostsFile -hostsFile $hostsFile -theHostname $theHostname -theIpAddress $theIpAddress
 }
