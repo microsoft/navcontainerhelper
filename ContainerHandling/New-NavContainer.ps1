@@ -138,6 +138,8 @@
  .Parameter PublicDnsName
   Use this parameter to specify which public dns name is pointing to this container.
   This parameter is necessary if you want to be able to connect to the container from outside the host.
+ .Parameter network
+  Use this parameter to override the default network settings in the container (corresponds to --network on docker run)
  .Parameter dns
   Use this parameter to override the default dns settings in the container (corresponds to --dns on docker run)
  .Parameter runTxt2AlInContainer
@@ -255,6 +257,7 @@ function New-BcContainer {
         [int] $DeveloperServicesPort,
         [int[]] $PublishPorts = @(),
         [string] $PublicDnsName,
+        [string] $network,
         [string] $dns,
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
@@ -782,6 +785,10 @@ function New-BcContainer {
 
     if ($dns) {
         $parameters += "--dns $dns"
+    }
+
+    if ($network) {
+        $parameters += "--network $network"
     }
 
     $publishPorts | ForEach-Object {
@@ -1488,6 +1495,7 @@ if ($multitenant) {
     Get-NavTenant -serverInstance $serverInstance | % {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
+        . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress $ip
     }
 }
 ') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
@@ -1500,6 +1508,16 @@ if ($multitenant) {
     else {
 
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatecontainerhosts.ps1") -Force
+        ('
+if ($multitenant) {
+    $dotidx = $hostname.indexOf(".")
+    if ($dotidx -eq -1) { $dotidx = $hostname.Length }
+    Get-NavTenant -serverInstance $serverInstance | % {
+        $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
+        . (Join-Path $PSScriptRoot "updatecontainerhosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress "127.0.0.1"
+    }
+}
+') | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     ('
 . (Join-Path $PSScriptRoot "updatecontainerhosts.ps1")
 ') | Add-Content -Path "$myfolder\SetupVariables.ps1"

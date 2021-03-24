@@ -58,6 +58,10 @@ function Remove-BcContainerTenant {
             $tenantHostname = $hostname.insert($dotidx,"-$tenantId")
 
             . "c:\run\my\updatehosts.ps1" -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress ""
+            . "c:\run\my\updatehosts.ps1" -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
+        }
+        elseif (Test-Path "c:\run\my\updatecontainerhosts.ps1") {
+            . "c:\run\my\updatecontainerhosts.ps1" -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
     } -ArgumentList $tenantId, $sqlCredential, $databaseName, $doNotRemoveDatabase
