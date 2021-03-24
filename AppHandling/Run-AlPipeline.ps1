@@ -126,6 +126,8 @@
   Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
   Override function parameter for Publish-BcContainerApp
+ .Parameter InstallBcAppFromAppSource
+  Override function parameter for Install-BcAppFromAppSource
  .Parameter SignBcContainerApp
   Override function parameter for Sign-BcContainerApp
  .Parameter RunTestsInBcContainer
@@ -208,6 +210,7 @@ Param(
     [scriptblock] $CompileAppInBcContainer,
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
+    [scriptblock] $InstallBcAppFromAppSource,
     [scriptblock] $SignBcContainerApp,
     [scriptblock] $ImportTestDataInBcContainer,
     [scriptblock] $RunTestsInBcContainer,
@@ -484,6 +487,12 @@ if ($PublishBcContainerApp) {
 else {
     $PublishBcContainerApp = { Param([Hashtable]$parameters) Publish-BcContainerApp @parameters }
 }
+if ($InstallBcAppFromAppSource) {
+    Write-Host -ForegroundColor Yellow "InstallBcAppFromAppSource override"; Write-Host $InstallBcAppFromAppSource.ToString()
+}
+else {
+    $InstallBcAppFromAppSource = { Param([Hashtable]$parameters) Install-BcAppFromAppSource @parameters }
+}
 if ($SignBcContainerApp) {
     Write-Host -ForegroundColor Yellow "SignBcContainerApp override"; Write-Host $SignBcContainerApp.ToString()
 }
@@ -664,22 +673,39 @@ Measure-Command {
     }
 
     $installApps | ForEach-Object{
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-        }
-        if ($bcAuthContext) {
-            $Parameters += @{
+        $appId = [Guid]::Empty
+        if ([Guid]::TryParse($_, [ref] $appId)) {
+            if (-not $bcAuthContext) {
+                throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
+            }
+            $Parameters = @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "appId" = "$appId"
+                "acceptIsvEula" = $true
+                "installOrUpdateNeededDependencies" = $true
             }
+            Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        else {
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "appFile" = $_
+                "skipVerification" = $true
+                "sync" = $true
+                "install" = $true
+            }
+            if ($bcAuthContext) {
+                $Parameters += @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                }
+            }
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -735,22 +761,38 @@ Measure-Command {
     }
 
     $installTestApps | ForEach-Object{
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-        }
-        if ($bcAuthContext) {
-            $Parameters += @{
+        $appId = [Guid]::Empty
+        if ([Guid]::TryParse($_, [ref] $appId)) {
+            if (-not $bcAuthContext) {
+                throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
+            }
+            $Parameters = @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+                "appId" = "$appId"
+                "acceptIsvEula" = $true
+                "installOrUpdateNeededDependencies" = $true
             }
+            Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        else {
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "appFile" = $_
+                "skipVerification" = $true
+                "sync" = $true
+                "install" = $true
+            }
+            if ($bcAuthContext) {
+                $Parameters += @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                }
+            }
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }

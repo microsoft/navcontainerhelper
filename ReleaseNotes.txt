@@ -7,6 +7,8 @@ Issue #1810 Publish-NavContainerApp is not using Publish-NAVApp -Force which lea
 Issue #1790 Add caching option SandboxArtifacts to flush-ContainerHelperCache to only flush sandbox artifacts
 Issue #1822 Copy-AlSourceFiles doesn't support entitlement, permissionset and permissionsetextension
 Issue #1820 Add SqlTimeout to New-BcContainer - default is and was always 300 (= 5 minutes)
+Issue #1829 Import-module fails with no good error when config file is bad or empty
+Breaking change: Fix Install-BcAppFromAppSource to use new admin center API (remove old hack)
 
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer

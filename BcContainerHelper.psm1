@@ -72,16 +72,23 @@ function Get-ContainerHelperConfig {
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
-            $savedConfig = Get-Content $bcContainerHelperConfigFile | ConvertFrom-Json
-            $keys = $bcContainerHelperConfig.Keys | % { $_ }
-            $keys | % {
-                if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-                    if (!$silent) {
-                        Write-Host "Setting $_ = $($savedConfig."$_")"
+            try {
+                $savedConfig = Get-Content $bcContainerHelperConfigFile | ConvertFrom-Json
+                if ("$savedConfig") {
+                    $keys = $bcContainerHelperConfig.Keys | % { $_ }
+                    $keys | % {
+                        if ($savedConfig.PSObject.Properties.Name -eq "$_") {
+                            if (!$silent) {
+                                Write-Host "Setting $_ = $($savedConfig."$_")"
+                            }
+                            $bcContainerHelperConfig."$_" = $savedConfig."$_"
+            
+                        }
                     }
-                    $bcContainerHelperConfig."$_" = $savedConfig."$_"
-        
                 }
+            }
+            catch {
+                throw "Error reading configuration file $bcContainerHelperConfigFile, cannot import module."
             }
         }
         Export-ModuleMember -Variable bcContainerHelperConfig
