@@ -43,7 +43,7 @@ function Setup-TraefikContainerForBcContainers {
         [switch] $overrideDefaultBinding,
         [string] $IP = "",
         [Parameter(Mandatory=$false)]
-        [string] $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml"),
+        [string] $traefikToml = "",
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
@@ -60,8 +60,24 @@ function Setup-TraefikContainerForBcContainers {
         $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
         $traefikDockerImage = "traefik:v1.7-windowsservercore-1809"
         $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
-        if ($forceHttpWithTraefik) {
-            $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml")
+        
+        if ("$traefikToml" -eq "") {
+            if ($PSCmdlet.ParameterSetName -eq "OwnCertificate") {
+                if ($forceHttpWithTraefik) {
+                    $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_own.toml")
+                }
+                else {
+                    $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https_own.toml")
+                }
+            }
+            else {
+                if ($forceHttpWithTraefik) {
+                    $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml")
+                }
+                else {
+                    $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml")
+                }
+            }
         }
         $CrtFilePath = (Join-Path $traefikForBcBasePath "config\certificate.crt")
         $CrtKeyFilePath = (Join-Path $traefikForBcBasePath "config\certificate.key")

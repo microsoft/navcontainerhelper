@@ -24,7 +24,7 @@
  .Parameter multitenant
   Adding this parameter creates an image with multitenancy
  .Parameter addFontsFromPath
-  Enumerate all fonts from this path and install them in the container
+  Enumerate all fonts from this path or array of paths and install them in the container
 #>
 function New-BcImage {
     Param (
@@ -39,7 +39,7 @@ function New-BcImage {
         [switch] $skipDatabase,
         [switch] $multitenant,
         [switch] $filesOnly,
-        [string] $addFontsFromPath = "",
+        [string[]] $addFontsFromPath = @(""),
         [string] $licenseFile = "",
         [switch] $includeTestToolkit,
         [switch] $includeTestLibrariesOnly,

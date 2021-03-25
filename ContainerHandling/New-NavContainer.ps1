@@ -93,7 +93,7 @@
  .Parameter multitenant
   Setup container for multitenancy by adding this switch
  .Parameter addFontsFromPath
-  Enumerate all fonts from this path and install them in the container
+  Enumerate all fonts from this path or array of paths and install them in the container
  .Parameter featureKeys
   Optional hashtable of featureKeys, which can be applied to the container database
  .Parameter clickonce
@@ -232,7 +232,7 @@ function New-BcContainer {
         [switch] $assignPremiumPlan,
         [switch] $multitenant,
         [switch] $filesOnly,
-        [string] $addFontsFromPath = "",
+        [string[]] $addFontsFromPath = @(""),
         [hashtable] $featureKeys = $null,
         [switch] $clickonce,
         [switch] $includeTestToolkit,
