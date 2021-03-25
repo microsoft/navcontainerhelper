@@ -457,7 +457,7 @@ Measure-Command {
             "tenant" = $tenant
             "credential" = $credential
             "appFile" = $_
-            "skipVerification" = $skipVerification
+            "skipVerification" = $true
             "sync" = $true
             "install" = $true
         }
@@ -523,7 +523,7 @@ try {
             "tenant" = $tenant
             "credential" = $credential
             "appFile" = $_
-            "skipVerification" = $skipVerification
+            "skipVerification" = $true
             "sync" = $true
             "install" = $true
             "useDevEndpoint" = $false

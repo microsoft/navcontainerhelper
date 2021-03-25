@@ -11,6 +11,9 @@ Issue #1829 Import-module fails with no good error when config file is bad or em
 Breaking change: Fix Install-BcAppFromAppSource to use new admin center API (remove old hack)
 Issue #1815 Page 810 Web Service takes very long to open
 Added parameter -network to New-BcContainer to select which docker network the container should use
+Issue #1833 Add warning if using ClickOnce and useTraefik
+Issue #1793 Setup-TraefikContainerForNavContainers | Use my own certificate | traefik.toml missing link to certificate
+Use SkipVerification on installApps and previousApps as the certificate on old apps might have expired
 
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer
