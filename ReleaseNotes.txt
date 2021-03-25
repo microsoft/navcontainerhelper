@@ -14,6 +14,7 @@ Added parameter -network to New-BcContainer to select which docker network the c
 Issue #1833 Add warning if using ClickOnce and useTraefik
 Issue #1793 Setup-TraefikContainerForNavContainers | Use my own certificate | traefik.toml missing link to certificate
 Use SkipVerification on installApps and previousApps as the certificate on old apps might have expired
+Issue #1842 JIT initialize $bccontainerhelperconfig variable
 
 2.0.7
 Support -bakFile and -replaceExternalDatabases together on New-BcContainer
