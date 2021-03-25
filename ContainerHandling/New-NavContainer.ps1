@@ -748,6 +748,9 @@ function New-BcContainer {
     }
 
     if ($clickonce) {
+        if ($useTraefik) {
+            Write-Host "WARNING: ClickOnce doesn't work with traefik v1 (which is the one used in this version of ContainerHelper)"
+        }
         $parameters += "--env clickonce=Y"
     }
 
