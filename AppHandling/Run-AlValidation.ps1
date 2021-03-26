@@ -434,6 +434,18 @@ Measure-Command {
 
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
 
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+        "credential" = $credential
+        "appFile" = "https://businesscentralapps.blob.core.windows.net/enableencryption/latest/apps.zip"
+        "skipVerification" = $true
+        "sync" = $true
+        "install" = $true
+        "useDevEndpoint" = $false
+    }
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 
 if ($installApps) {
