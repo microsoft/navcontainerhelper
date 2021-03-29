@@ -98,7 +98,7 @@ function New-BcEnvironment {
     Write-Host "Companies in environment:"
     $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
     $company = $companies.value | Select-Object -First 1
-    $users = Invoke-RestMethod -Method Get -Uri "$baseUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $authHeaders
+    $users = Invoke-RestMethod -Method Get -Uri "$baseUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
     Write-Host "Users in $($company.name):"
     $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
 }
