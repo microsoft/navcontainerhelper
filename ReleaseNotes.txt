@@ -1,3 +1,6 @@
+2.0.9
+Regression in New-BcEnvironment - use of uninitialized variable
+
 2.0.8
 Issue #1812: Allow passing an array of paths to all "font" parameters
 PR #1799 Add support for Service principal in Create-AadAppsForNav
