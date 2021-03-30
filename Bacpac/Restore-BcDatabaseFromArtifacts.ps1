@@ -1,4 +1,4 @@
-<# 
+﻿<# 
  .Synopsis
   Restore Business Central Database(s) from artifacts
  .Description
@@ -97,7 +97,22 @@ function Restore-BcDatabaseFromArtifacts {
         $DefaultDataPath = (Invoke-SqlCmd `
             -ServerInstance $databaseServerInstance `
             -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
+        
+        if($databaseServer -ne 'localhost'){
+            # Copy local database to SQL Server
+            $defaultBackupPath = (Invoke-SqlCmd `
+                -ServerInstance $databaseServerInstance `
+                -Query "SELECT SERVERPROPERTY('InstanceDefaultBackupPath') AS InstanceDefaultBackupPath" ).InstanceDefaultBackupPath
             
+            $qualifier = $defaultBackupPath | Split-Path -Qualifier
+            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+            $uncDefaultBackupPath = $defaultBackupPath.Replace($qualifier, $newQualifier)
+            
+            Copy-Item -Path $bakFile -Destination $uncDefaultBackupPath -Force
+
+            $bakFile = Join-Path $defaultBackupPath ($bakFile | Split-Path -Leaf)
+        }
+
         $destinationPath = Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')
         
         # Create destination folder
