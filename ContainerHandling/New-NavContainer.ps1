@@ -1677,8 +1677,8 @@ if (-not `$restartingInstance) {
                     Write-Host "Using Shared Encryption Key file"
                     Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
                 }
-                else {
-                    New-Item -Path ([System.IO.Path]::GetDirectoryName($sharedEncryptionKeyFile)) -ItemType Directory | Out-Null
+                elseif((Test-Path ($sharedEncryptionKeyFile | Split-Path -Parent)) -eq $false) {
+                    New-Item -Path ($sharedEncryptionKeyFile | Split-Path -Parent) -ItemType Directory | Out-Null
                 }
             }
         }
