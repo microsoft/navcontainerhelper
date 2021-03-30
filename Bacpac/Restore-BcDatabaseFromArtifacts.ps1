@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Restore Business Central Database(s) from artifacts
  .Description
@@ -98,8 +98,23 @@ function Restore-BcDatabaseFromArtifacts {
             -ServerInstance $databaseServerInstance `
             -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
             
-        Write-Host "Restoring database $dbName into $(Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', ''))"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')) | Out-Null
+        $destinationPath = Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')
+        
+        # Create destination folder
+        if($databaseServer -ne 'localhost'){
+            $qualifier = $destinationPath | Split-Path -Qualifier
+            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+            if((Test-Path $destinationPath.Replace($qualifier, $newQualifier)) -eq $false){
+                New-Item -Path $destinationPath.Replace($qualifier, $newQualifier) -ItemType Directory -Force
+            }
+        } else {
+            if((Test-Path $destinationPath) -eq $false){
+                New-Item -Path $destinationPath -ItemType Directory -Force
+            }
+        }
+
+        Write-Host "Restoring database $dbName into $destinationPath"
+        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath $destinationPath | Out-Null
    
         if ($multitenant) {
             if ($sqlpsModule) {
