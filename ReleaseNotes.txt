@@ -1,3 +1,7 @@
+2.0.10
+Issue #1857 Compile-AppInBcContainer doesn't work with 19.0 containers
+Issue #1860 Wizard unaware of new license rules for 18.0
+
 2.0.9
 Regression in New-BcEnvironment - use of uninitialized variable
 

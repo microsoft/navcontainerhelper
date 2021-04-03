@@ -738,6 +738,13 @@ $Step.Country {
 
 $Step.TestToolkit {
 
+    if ($majorVersion -ge 18) {
+        $licenseNote = "Full Test Toolkit requires a license in order to be used"
+    }
+    else {
+        $licenseNote = "Test Libraries requires a license in order to be used"
+    }
+
     $testtoolkit = Select-Value `
         -title @'
   _______       _     _______          _ _    _ _   
@@ -748,7 +755,7 @@ $Step.TestToolkit {
     |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
 
 '@ `
-        -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: Test Libraries requires a license in order to be used" `
+        -description "Do you need the test toolkit to be installed?`nThe Test Toolkit is needed in order to develop and run tests in the container.`n`nNote: $licenseNote" `
         -options ([ordered]@{"All" = "Full Test Toolkit (Test Framework, Test Libraries and Microsoft tests)"; "Libraries" = "Test Framework and Test Libraries"; "Framework" = "Test Framework"; "No" = "No Test Toolkit needed"}) `
         -question "Test Toolkit" `
         -default "No" `
@@ -971,7 +978,12 @@ $Step.CreateTestUsers {
 
 $Step.License {
 
-    $licenserequired = ($testtoolkit -ne "No" -or $createTestUsers -eq "Y" -or $exportCAlSource -eq "Y" -or $exportAlSource -eq "Y")
+    if ($majorVersion -ge 18) {
+        $licenserequired = ($testtoolkit -eq "All" -or $createTestUsers -eq "Y" -or $exportCAlSource -eq "Y" -or $exportAlSource -eq "Y")
+    }
+    else {
+        $licenserequired = ($testtoolkit -eq "All" -or $testtoolkit -eq "Libraries" -or $performanceToolkit -eq "Y" -or $createTestUsers -eq "Y" -or $exportCAlSource -eq "Y" -or $exportAlSource -eq "Y")
+    }
     if ($licenserequired) {
         $description = "Please specify a license file url.`nDue to other selections, you need to specify a license file."
         $default = ""
