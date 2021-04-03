@@ -375,15 +375,16 @@ function Compile-AppInBcContainer {
                         While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
     
                         if ($platformversion.Major -ge 15) {
-                            $alcPath = 'C:\build\vsix\extension\bin'
                             Add-Type -AssemblyName System.IO.Compression.FileSystem
                             Add-Type -AssemblyName System.Text.Encoding
             
-                            # Import types needed to invoke the compiler
-                            Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
-                            Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-        
                             try {
+                                # Import types needed to invoke the compiler
+                                $alcPath = 'C:\build\vsix\extension\bin'
+                                Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
+                                Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                                Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+
                                 $packageStream = [System.IO.File]::OpenRead($symbolsFile)
                                 $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                                 $manifest = $package.ReadNavAppManifest()
@@ -395,6 +396,14 @@ function Compile-AppInBcContainer {
                                 foreach ($dependency in $manifest.dependencies) {
                                     @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
                                 }
+                            }
+                            catch [System.Reflection.ReflectionTypeLoadException] {
+                                if ($_.Exception.LoaderExceptions) {
+                                    $_.Exception.LoaderExceptions | % {
+                                        Write-Host "LoaderException: $($_.Message)"
+                                    }
+                                }
+                                throw
                             }
                             finally {
                                 if ($package) {
