@@ -6,7 +6,9 @@
  .Parameter pipelineName
   The name of the pipeline or project.
  .Parameter baseFolder
-  The baseFolder serves as the base Folder for all other parameters including a path (appFolders, testFolders, testResultFile, outputFolder, packagesFolder and buildArtifactsFodler).
+  The baseFolder serves as the base Folder for all other parameters including a path (appFolders, testFolders, testResultFile, outputFolder, packagesFolder and buildArtifactsFodler). This folder will be shared with the container as c:\sources
+ .Parameter sharedFolder
+  If a folder on the host computer is specified in the sharedFolder parameter, it will be shared with the container as c:\shared
  .Parameter licenseFile
   License file to use for AL Pipeline.
  .Parameter containerName
@@ -150,6 +152,7 @@ function Run-AlPipeline {
 Param(
     [string] $pipelineName,
     [string] $baseFolder = "",
+    [string] $sharedFolder = "",
     [string] $licenseFile,
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
@@ -221,14 +224,19 @@ Param(
     [scriptblock] $RemoveBcContainer
 )
 
-function CheckRelativePath([string] $baseFolder, $path, $name) {
+function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path) {
         if (!$path.contains(':')) {
             $path = Join-Path $baseFolder $path
         }
         else {
-            if ($path -notlike "$($baseFolder)*") {
-                throw "$name is ($path) must be a subfolder to baseFolder ($baseFolder)"
+            if (!(($path -like "$($baseFolder)*") -or (($sharedFolder) -and ($path -like "$($sharedFolder)*")))) {
+                if ($sharedFolder) {
+                    throw "$name is ($path) must be a subfolder to baseFolder ($baseFolder) or sharedFolder ($sharedFolder)"
+                }
+                else {
+                    throw "$name is ($path) must be a subfolder to baseFolder ($baseFolder)"
+                }
             }
         }
     }
@@ -263,6 +271,9 @@ Function UpdateLaunchJson {
 if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
     throw "baseFolder must be an existing folder"
 }
+if ($sharedFolder -and !(Test-Path $sharedFolder -PathType Container)) {
+    throw "If sharedFolder is specified, it must be an existing folder"
+}
 
 if ($memoryLimit -eq "") {
     $memoryLimit = "8G"
@@ -277,10 +288,10 @@ if ($additionalCountries            -is [String]) { $additionalCountries = @($ad
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
-$appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
-$testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
-$testResultsFile = CheckRelativePath -baseFolder $baseFolder -path $testResultsFile -name "testResultsFile"
-$rulesetFile = CheckRelativePath -baseFolder $baseFolder -path $rulesetFile -name "rulesetFile"
+$appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
+$testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
+$testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
+$rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 if (Test-Path $testResultsFile) {
     Remove-Item -Path $testResultsFile -Force
 }
@@ -315,12 +326,12 @@ if ($useDevEndpoint) {
     $outputFolder = ""
 }
 else {
-    $packagesFolder = CheckRelativePath -baseFolder $baseFolder -path $packagesFolder -name "packagesFolder"
+    $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
     if (Test-Path $packagesFolder) {
         Remove-Item $packagesFolder -Recurse -Force
     }
 
-    $outputFolder = CheckRelativePath -baseFolder $baseFolder -path $outputFolder -name "outputFolder"
+    $outputFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $outputFolder -name "outputFolder"
     if (Test-Path $outputFolder) {
         Remove-Item $outputFolder -Recurse -Force
     }
@@ -398,6 +409,8 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name               "; Write-Host $pipelineName
 Write-Host -NoNewLine -ForegroundColor Yellow "Container name              "; Write-Host $containerName
+Write-Host -NoNewLine -ForegroundColor Yellow "BaseFolder                  "; Write-Host $baseFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "SharedFolder                "; Write-Host $sharedFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "Image name                  "; Write-Host $imageName
 Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                 "; Write-Host $artifactUrl.Split('?')[0]
 Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                    "; if ($artifactUrl.Contains('?')) { Write-Host "Specified" } else { Write-Host "Not Specified" }
@@ -607,37 +620,39 @@ Measure-Command {
         }
     }
 
-    if ($bcAuthContext) {
-        $Parameters += @{
-            "FilesOnly" = $filesOnly
-        }
-    }
-
-    $Parameters += @{
-        "accept_eula" = $true
-        "containerName" = $containerName
-        "imageName" = $imageName
-        "artifactUrl" = $artifactUrl
-        "useGenericImage" = $useGenericImage
-        "Credential" = $credential
-        "auth" = 'UserPassword'
-        "vsixFile" = $vsixFile
-        "updateHosts" = $true
-        "licenseFile" = $licenseFile
-        "EnableTaskScheduler" = $enableTaskScheduler
-        "AssignPremiumPlan" = $assignPremiumPlan
-        "MemoryLimit" = $memoryLimit
-        "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
-    }
-
     if ($useExistingContainer) {
         Write-Host "Reusing existing container"
     }
     else {
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "FilesOnly" = $filesOnly
+            }
+        }
+    
+        $Parameters += @{
+            "accept_eula" = $true
+            "containerName" = $containerName
+            "imageName" = $imageName
+            "artifactUrl" = $artifactUrl
+            "useGenericImage" = $useGenericImage
+            "Credential" = $credential
+            "auth" = 'UserPassword'
+            "vsixFile" = $vsixFile
+            "updateHosts" = $true
+            "licenseFile" = $licenseFile
+            "EnableTaskScheduler" = $enableTaskScheduler
+            "AssignPremiumPlan" = $assignPremiumPlan
+            "MemoryLimit" = $memoryLimit
+            "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
+        }
+        if ($sharedFolder) {
+            $Parameters.additionalParameters += @("--volume ""$($sharedFolder):c:\shared""")
+        }
         Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
     }
 
-    if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq "default" })) {
+    if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq $tenant })) {
 
         $Parameters = @{
             "containerName" = $containerName
