@@ -1,5 +1,6 @@
 2.0.11
 Add parameter reUseContainer to Run-AlPipeline to use existing container for the pipeline
+Include Tests-Marketing when installing test apps
 
 2.0.10
 Issue #1857 Compile-AppInBcContainer doesn't work with 19.0 containers
