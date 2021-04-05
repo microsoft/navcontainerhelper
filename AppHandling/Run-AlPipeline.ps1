@@ -409,8 +409,6 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name               "; Write-Host $pipelineName
 Write-Host -NoNewLine -ForegroundColor Yellow "Container name              "; Write-Host $containerName
-Write-Host -NoNewLine -ForegroundColor Yellow "BaseFolder                  "; Write-Host $baseFolder
-Write-Host -NoNewLine -ForegroundColor Yellow "SharedFolder                "; Write-Host $sharedFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "Image name                  "; Write-Host $imageName
 Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                 "; Write-Host $artifactUrl.Split('?')[0]
 Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                    "; if ($artifactUrl.Contains('?')) { Write-Host "Specified" } else { Write-Host "Not Specified" }
@@ -543,9 +541,8 @@ $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
+if (!$reUseContainer -and $artifactUrl) {
 Measure-Command {
-
-if ($artifactUrl) {
 Write-Host -ForegroundColor Yellow @'
 
   _____       _ _ _                                          _        _                            
@@ -566,8 +563,8 @@ if (!$useGenericImage) {
 Write-Host "Pulling $useGenericImage"
 
 Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
-}
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
+}
 
 $error = $null
 $prevProgressPreference = $progressPreference
