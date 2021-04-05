@@ -82,6 +82,8 @@
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotRunTests
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
+ .Parameter reUseContainer
+  Including the reUseContainer switch causes pipeline to reuse the container with the given name if it exists
  .Parameter keepContainer
   Including the keepContainer switch causes the container to not be deleted after the pipeline finishes.
  .Parameter updateLaunchJson
@@ -189,6 +191,7 @@ Param(
     [string] $failOn = "none",
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
+    [switch] $reUseContainer,
     [switch] $keepContainer,
     [string] $updateLaunchJson = "",
     [string] $vsixFile = "",
@@ -400,6 +403,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                 "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                    "; if ($artifactUrl.Contains('?')) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext               "; if ($bcauthcontext) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "Environment                 "; Write-Host $environment
+Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer              "; Write-Host $reUseContainer
+Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer               "; Write-Host $keepContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                  ";
 if ($credential) {
     Write-Host "Specified"
@@ -584,12 +589,25 @@ Measure-Command {
     $Parameters = @{}
     $useExistingContainer = $false
 
-    if ($bcAuthContext) {
-        if (Test-BcContainer -containerName $containerName) {
+    if (Test-BcContainer -containerName $containerName) {
+        if ($bcAuthContext) {
             if ($artifactUrl -eq (Get-BcContainerArtifactUrl -containerName $containerName)) {
                 $useExistingContainer = ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -ne "")
             }
         }
+        elseif ($reUseContainer) {
+            $containerArtifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
+            if ($artifactUrl -ne $containerArtifactUrl) {
+                Write-Host "WARNING: Reusing a container based on $($containerArtifactUrl.Split('?')[0]), should be $($ArtifactUrl.Split('?')[0])"
+            }
+            if ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -eq "") {
+                throw "$baseFolder is not shared with container $containerName"
+            }
+            $useExistingContainer = $true
+        }
+    }
+
+    if ($bcAuthContext) {
         $Parameters += @{
             "FilesOnly" = $filesOnly
         }
