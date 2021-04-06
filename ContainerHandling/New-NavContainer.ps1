@@ -636,6 +636,10 @@ function New-BcContainer {
         if (-not $PublicDnsName) {
             throw "Using Traefik only makes sense if you allow external access, so you have to provide the public DNS name (param -PublicDnsName)"
         }
+        
+        Add-DomainToTraefikConfig `
+            -PublicDnsName $PublicDnsName `
+            -BcContainerHelperPath $bcContainerHelperConfig.containerHelperFolder
     }
 
     $parameters = @()
@@ -1560,6 +1564,8 @@ if ($multitenant) {
         $dlRule="PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Split(".")[0]
+        
+        $traefikConfig = Get-Content
 
         $webPort = "443"
         if ($forceHttpWithTraefik) {
