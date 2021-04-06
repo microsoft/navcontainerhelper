@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Create or refresh a NAV/BC Container
  .Description
@@ -1564,7 +1564,7 @@ if ($multitenant) {
         $dlRule="PathPrefixStrip:${dlPart}"
 
         $traefikHostname = $publicDnsName.Split(".")[0]
-        
+
         $traefikConfig = Get-Content
 
         $webPort = "443"
