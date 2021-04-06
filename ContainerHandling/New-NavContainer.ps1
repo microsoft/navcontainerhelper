@@ -1565,8 +1565,6 @@ if ($multitenant) {
 
         $traefikHostname = $publicDnsName.Split(".")[0]
 
-        $traefikConfig = Get-Content
-
         $webPort = "443"
         if ($forceHttpWithTraefik) {
             $webPort = "80"
