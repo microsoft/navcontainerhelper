@@ -1,4 +1,4 @@
-<# 
+﻿<# 
  .Synopsis
   Create or refresh a NAV/BC Container
  .Description
@@ -1574,8 +1574,7 @@ if ($multitenant) {
             $traefikProtocol = "http"
         }
 
-        $additionalParameters += @("--hostname $traefikHostname",
-                                   "-e webserverinstance=$containerName",
+        $additionalParameters += @("-e webserverinstance=$containerName",
                                    "-e publicdnsname=$publicDnsName", 
                                    "-l `"traefik.protocol=$traefikProtocol`"",
                                    "-l `"traefik.web.frontend.rule=$webclientRule`"", 
