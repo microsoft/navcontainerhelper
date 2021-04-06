@@ -33,7 +33,7 @@
  .Parameter installApps
   Array or comma separated list of 3rd party apps to install before compiling apps.
  .Parameter installTestApps
-  Array or comma separated list of 3rd party apps to install before compiling test apps.
+  Array or comma separated list of 3rd party test apps to install before compiling test apps.
  .Parameter previousApps
   Array or comma separated list of previous version of apps
  .Parameter appFolders
@@ -344,7 +344,7 @@ if ($buildArtifactFolder) {
 }
 
 if (!($appFolders)) {
-    throw "No app folders found"
+    Write-Host "WARNING: No app folders found"
 }
 
 if ($useDevEndpoint) {
@@ -741,7 +741,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
 
-if ($testCountry  -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if ((($testCountry) -or ($installTestApps)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
  |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
@@ -827,9 +827,10 @@ Measure-Command {
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
 }
-
 }
-else {
+
+if (-not $testCountry) {
+if ($appFolders -or $testFolders) {
 Write-Host -ForegroundColor Yellow @'
 
    _____                      _ _ _                                     
@@ -842,6 +843,7 @@ Write-Host -ForegroundColor Yellow @'
                        |_|                |___/        |_|   |_|        
 
 '@
+}
 $measureText = ""
 Measure-Command {
 $previousAppsCopied = $false
@@ -1199,7 +1201,7 @@ Write-Host -ForegroundColor Yellow @'
         $appsFolder += @{ "$appFile" = $folder }
     }
 }
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { if ($appFolders -or $testFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
 
 if ($signApps -and !$useDevEndpoint) {
 Write-Host -ForegroundColor Yellow @'
@@ -1280,6 +1282,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
 
+if ($apps+$testApps) {
 Write-Host -ForegroundColor Yellow @'
 
   _____       _     _ _     _     _                                        
@@ -1360,6 +1363,7 @@ $testApps | ForEach-Object {
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
 }
+}
 
 if (!$doNotRunTests) {
 if ($ImportTestDataInBcContainer) {
@@ -1404,7 +1408,7 @@ if (!$enableTaskScheduler) {
 }
 $allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
-if ($testFolders) {
+if (($testFolders) -or ($installTestApps)) {
 Write-Host -ForegroundColor Yellow @'
 
   _____                   _               _______       _       
@@ -1424,19 +1428,30 @@ if ($testCountry) {
 
 $testAppIds = @()
 $installTestApps | ForEach-Object {
-    $appFile = $_
-    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-    try {
-        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
-        $appJsonFile = Join-Path $tmpFolder "app.json"
-        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-        $testAppIds += @( $appJson.Id )
+    $appId = [Guid]::Empty
+    if ([Guid]::TryParse($_, [ref] $appId)) {
+        $testAppIds += @( $appId )
     }
-    catch {
-        Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
-    }
-    finally {
-        Remove-Item $tmpFolder -Recurse -Force
+    else {
+        $appFile = $_
+        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+        try {
+            $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
+            $appList | ForEach-Object {
+                $appFile = $_
+                $appFolder = "$($_).source"
+                Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
+                $appJsonFile = Join-Path $appFolder "app.json"
+                $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+                $testAppIds += @( $appJson.Id )
+            }
+        }
+        catch {
+            Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+        }
+        finally {
+            Remove-Item $tmpFolder -Recurse -Force
+        }
     }
 }
 $testFolders | ForEach-Object {
