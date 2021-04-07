@@ -268,6 +268,8 @@ Function UpdateLaunchJson {
     }
 }
 
+$warningsToShow = @()
+
 if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
     throw "baseFolder must be an existing folder"
 }
@@ -1009,6 +1011,13 @@ Write-Host -ForegroundColor Yellow @'
         $appJsonChanges = $true
     }
 
+    try {
+        if ($app -and $appJson.ShowMyCode) {
+            $warningsToShow += "NOTE: The app in $folder has ShowMyCode set to true. This means that people will be able to debug and see the source code of your app. (see https://aka.ms/showMyCode)"
+        }
+    }
+    catch {}
+
     if ($app -and $applicationInsightsKey) {
         if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
             $appJson.applicationInsightsKey = $applicationInsightsKey
@@ -1610,6 +1619,10 @@ Measure-Command {
    
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
 
+}
+
+if ($warningsToShow) {
+    ($warningsToShow -join "`n") | Write-Host -ForegroundColor Yellow
 }
 
 if ($error) {

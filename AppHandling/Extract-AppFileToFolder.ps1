@@ -23,7 +23,7 @@ function Extract-AppFileToFolder {
     }
 
     if (!(Test-Path $appFileName)) {
-        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+        throw "Unable to find $appFileName"
     }
     $appFileName = (Get-Item $appFileName).FullName
 

@@ -3,6 +3,7 @@ Add parameter reUseContainer to Run-AlPipeline to use existing container for the
 Include Tests-Marketing when installing test apps
 Add parameter SharedFolder to Run-AlPipeline to share a folder from the host to the container
 Allow to Run-AlPipeline without source and only installApps and/or installTestApps
+Display Note in Run-AlPipeline and Run-AlValidation if ShowMyCode is true (https://aka.ms/showMyCode)
 
 2.0.10
 Issue #1857 Compile-AppInBcContainer doesn't work with 19.0 containers
