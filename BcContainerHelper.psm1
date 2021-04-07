@@ -69,6 +69,7 @@ function Get-ContainerHelperConfig {
                 "vn" = "w1"
                 "za" = "w1"
             }
+            "TraefikUseDnsNameAsHostName" = $false
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {

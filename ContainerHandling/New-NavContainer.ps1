@@ -1563,8 +1563,6 @@ if ($multitenant) {
         $snapRule="PathPrefix:${snapPart};ReplacePathRegex: ^${snapPart}(.*) /$ServerInstance`$1"
         $dlRule="PathPrefixStrip:${dlPart}"
 
-        $traefikHostname = $publicDnsName.Split(".")[0]
-
         $webPort = "443"
         if ($forceHttpWithTraefik) {
             $webPort = "80"
@@ -1572,6 +1570,11 @@ if ($multitenant) {
         $traefikProtocol = "https"
         if ($forceHttpWithTraefik) {
             $traefikProtocol = "http"
+        }
+
+        if ($bcContainerHelperConfig.TraefikUseDnsNameAsHostName) {
+            $traefikHostname = $publicDnsName.Split(".")[0]
+            $additionalParameters += @("--hostname $traefikHostname")
         }
 
         $additionalParameters += @("-e webserverinstance=$containerName",
