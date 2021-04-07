@@ -6,22 +6,17 @@
   If public dns name does not exist it will be extended as a subdomain configuration (sans).
  .Parameter PublicDnsName
   Specifies the public dns name to add in traefik configuration.
- .Parameter BcContainerHelperPath
-  Specifies the path to BcContainerHelper. Usally this is 'C:\ProgramData\BcContainerHelper' (optional)
- .Example
-  Add-DomainToTraefikConfig -PublicDnsName "businesscentral.dynamics.com" -BcContainerHelperPath "C:\ProgramData\NavContainerHelper"
  .Example
   Add-DomainToTraefikConfig -PublicDnsName "businesscentral.dynamics.com" 
 #>
 function Add-DomainToTraefikConfig {
     Param (
-        [string]$PublicDnsName,
-        [string]$BcContainerHelperPath = "C:\ProgramData\BcContainerHelper"
+        [string]$PublicDnsName
     )
 
     Write-Host "Looking up for dns Name '$PublicDnsName' in Traefik configuration . . ."
 
-    $tomlFile = (Join-Path -Path $BcContainerHelperPath -ChildPath "traefikforbc\config\traefik.toml")
+    $tomlFile = (Join-Path -Path $hostHelperFolder -ChildPath "traefikforbc\config\traefik.toml")
     if (-not (Test-Path -Path $tomlFile)) {
         throw "Traefik configuration could not been found! Please call Setup-TraefikContainerForBcContainers before using -useTraefik"
     }
