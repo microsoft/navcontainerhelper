@@ -4,6 +4,9 @@ Include Tests-Marketing when installing test apps
 Add parameter SharedFolder to Run-AlPipeline to share a folder from the host to the container
 Allow to Run-AlPipeline without source and only installApps and/or installTestApps
 Display Note in Run-AlPipeline and Run-AlValidation if ShowMyCode is true (https://aka.ms/showMyCode)
+Add function Add-DomainToTraefikConfig to add a domain to traefik v1 config
+Change traefik containers to use ContainerName as hostname
+Add config setting TraefikUseDnsNameAsHostName to revert the behavior and use the public DNS name as hostname
 
 2.0.10
 Issue #1857 Compile-AppInBcContainer doesn't work with 19.0 containers
