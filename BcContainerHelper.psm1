@@ -69,6 +69,7 @@ function Get-ContainerHelperConfig {
                 "vn" = "w1"
                 "za" = "w1"
             }
+            "TraefikUseDnsNameAsHostName" = $false
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -219,6 +220,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "ContainerHandling\Flush-ContainerHelperCache.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-LatestAlLanguageExtensionUrl.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-AlLanguageExtensionFromArtifacts.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\traefik\Add-DomainToTraefikConfig.ps1")
 
 # Object Handling functions
 . (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
