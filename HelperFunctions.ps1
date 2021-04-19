@@ -272,7 +272,10 @@ function GetTestToolkitApps {
         $version = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
 
         # Add Test Framework
-        $apps = @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
+        $apps = @()
+        if (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock') {
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
+        }
         $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
 
         if (!$includeTestRunnerOnly) {
