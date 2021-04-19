@@ -8,6 +8,7 @@ Add function Add-DomainToTraefikConfig to add a domain to traefik v1 config
 Change traefik containers to use ContainerName as hostname
 Add config setting TraefikUseDnsNameAsHostName to revert the behavior and use the public DNS name as hostname
 Issue #1886 Error creating BC 19 container (Test Runner on Permissions Mock by Microsoft 19.0.0.0)
+Issue #1870 Do not remove images currently in use in Flush-BcContainerHelperCache
 
 2.0.10
 Issue #1857 Compile-AppInBcContainer doesn't work with 19.0 containers
