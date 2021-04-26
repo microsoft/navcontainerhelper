@@ -1,5 +1,6 @@
 2.0.12
 Issue #1894 Error when creating a new "clean" v18 container
+Issue #1900 Code signing (Sign-NavContainerApp) does not work with a SAS URL
 
 2.0.11
 Add parameter reUseContainer to Run-AlPipeline to use existing container for the pipeline

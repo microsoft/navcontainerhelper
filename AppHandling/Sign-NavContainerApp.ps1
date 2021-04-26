@@ -57,7 +57,7 @@ function Sign-BcContainerApp {
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
-            $pfxFile = Join-Path "c:\run" ([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($pfxUrl).split("?")[0]))
+            $pfxFile = Join-Path "c:\run" ([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($pfxUrl.split("?")[0])))
             (New-Object System.Net.WebClient).DownloadFile($pfxUrl, $pfxFile)
             $copied = $true
         }
