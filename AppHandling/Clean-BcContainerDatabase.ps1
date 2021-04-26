@@ -161,6 +161,17 @@ function Clean-BcContainerDatabase {
         Write-Host "Importing license file"
         Import-BcContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
         
+        Write-Host "Publishing System Symbols"
+        Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification -ignoreIfAppExists
+
+        Write-Host "Creating Company"
+        New-CompanyInBcContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
+        
+        if ($SystemApplicationFile) {
+            Write-Host "Publishing System Application"
+            Publish-BcContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync -ignoreIfAppExists
+        }
+
         if ($customconfig.ClientServicesCredentialType -eq "Windows") {
             Write-Host "Creating user $($env:USERNAME)"
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($username)
@@ -171,17 +182,6 @@ function Clean-BcContainerDatabase {
         else {
             Write-Host "Creating user $($credential.UserName)"
             New-BcContainerBcUser -containerName $containerName -Credential $credential -PermissionSetId SUPER -ChangePasswordAtNextLogOn:$false
-        }
-        
-        Write-Host "Publishing System Symbols"
-        Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification
-
-        Write-Host "Creating Company"
-        New-CompanyInBcContainer -containerName $containerName -companyName $companyName -evaluationCompany:$evaluationCompany
-        
-        if ($SystemApplicationFile) {
-            Write-Host "Publishing System Application"
-            Publish-BcContainerApp -containerName $containerName -appFile $SystemApplicationFile -skipVerification -install -sync
         }
 
         if ($customconfig.Multitenant -eq "True") {
