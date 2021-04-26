@@ -1,3 +1,6 @@
+2.0.12
+Issue #1894 Error when creating a new "clean" v18 container
+
 2.0.11
 Add parameter reUseContainer to Run-AlPipeline to use existing container for the pipeline
 Include Tests-Marketing when installing test apps
