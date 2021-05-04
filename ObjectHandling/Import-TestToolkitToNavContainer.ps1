@@ -102,7 +102,11 @@ function Import-TestToolkitToBcContainer {
                 Get-NAVAppInfo -Path $appFile
             } -argumentList $_ | Where-Object { $_ -isnot [System.String] }
 
-            Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appInfo.AppId -acceptIsvEula
+            $targetVersion = ""
+            if ($appInfo.Version.Major -eq 18 -and $appInfo.Version.Minor -eq 0) {
+                $targetVersion = "18.0.23013.23913"
+            }
+            Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appInfo.AppId -appVersion $targetVersion -acceptIsvEula
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully published"
     }

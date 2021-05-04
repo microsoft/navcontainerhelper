@@ -273,7 +273,7 @@ function GetTestToolkitApps {
 
         # Add Test Framework
         $apps = @()
-        if (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock') {
+        if (($version -ge [Version]"19.0.0.0") -and (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock')) {
             $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
         }
         $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
@@ -314,11 +314,12 @@ function GetTestToolkitApps {
 
 function GetExtenedErrorMessage {
     Param(
-        [System.Net.WebException] $webException
+        $exception
     )
 
-    $message = $webException.Message
+    $message = $exception.Message
     try {
+        $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
         $reqstream = $webResponse.GetResponseStream()
         $sr = new-object System.IO.StreamReader $reqstream
