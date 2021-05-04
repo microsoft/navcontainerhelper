@@ -84,6 +84,8 @@
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotRunTests
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
+ .Parameter doNotPerformUpgrade
+  Include this switch to indicate that you do not want to perform the upgrade. This means that the previousApps are never actually published to the container.
  .Parameter reUseContainer
   Including the reUseContainer switch causes pipeline to reuse the container with the given name if it exists
  .Parameter keepContainer
@@ -194,6 +196,7 @@ Param(
     [string] $failOn = "none",
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
+    [switch] $doNotPerformUpgrade,
     [switch] $reUseContainer,
     [switch] $keepContainer,
     [string] $updateLaunchJson = "",
@@ -995,9 +998,9 @@ Write-Host -ForegroundColor Yellow @'
                 "ruleset" = $rulesetFile
             }
         }
-        if ($testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
-            Write-Host -ForegroundColor Yellow "WARNING: A Test App cannot be published to production tenants online"
-        }
+    }
+    if ($testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
+        Write-Host -ForegroundColor Yellow "WARNING: A Test App cannot be published to production tenants online"
     }
 
     $appJsonFile = Join-Path $folder "app.json"
@@ -1244,7 +1247,7 @@ $apps | ForEach-Object {
 
 if (!$useDevEndpoint) {
 
-if ($previousApps) {
+if ((!$doNotPerformUpgrade) -and ($previousApps)) {
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _               _____                _                                            
