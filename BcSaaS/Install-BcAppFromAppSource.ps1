@@ -61,11 +61,11 @@ function Install-BcAppFromAppSource {
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $headers = @{ "Authorization" = $bearerAuthValue }
         $body = @{ "AcceptIsvEula" = $acceptIsvEula.ToBool() }
-        if ($appVersion) { $body += @{ "appVersion" = $appVersion } }
+        if ($appVersion) { $body += @{ "targetVersion" = $appVersion } }
         if ($languageId) { $body += @{ "languageId" = $languageId } }
         if ($installOrUpdateNeededDependencies) { $body += @{ "installOrUpdateNeededDependencies" = $installOrUpdateNeededDependencies.ToBool() } }
     
-        Write-Host "Installing $appId on $($environment)"
+        Write-Host "Installing $appId $appVersion on $($environment)"
         try {
             $operation = Invoke-RestMethod -Method Post -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/install" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
         }
@@ -93,7 +93,11 @@ function Install-BcAppFromAppSource {
                     Write-Host -NoNewline "."
                 }
                 elseif (!$completed) {
-                    throw $status
+                    $errorMessage = $status
+                    try {
+                        (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id } | % { $errorMessage = $_.errorMessage }
+                    } catch {}
+                    throw $errorMessage
                 }
                 $errCount = 0
             }
