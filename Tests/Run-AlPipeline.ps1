@@ -23,7 +23,7 @@
             -appRevision 0 `
             -testResultsFile $resultsFile `
             -testResultsFormat JUnit `
-            -artifact (Get-BCArtifactUrl -country us -select Current) `
+            -artifact "///us/Current" `
             -imageName '' `
             -outputFolder $outputFolder `
             -buildArtifactFolder $buildArtifactFolder `
