@@ -240,7 +240,7 @@ function Expand-7zipArchive {
     $use7zip = $false
     if ((Get-ContainerHelperConfig).use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
         try {
-            $use7zip = [decimal]::Parse([System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileVersion, [System.Globalization.CultureInfo]::InvariantCulture) -ge 19
+            $use7zip = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileMajorPart -ge 19
         }
         catch {
             $use7zip = $false
