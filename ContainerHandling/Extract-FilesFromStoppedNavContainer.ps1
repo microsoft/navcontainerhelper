@@ -24,7 +24,7 @@ function Extract-FilesFromStoppedBcContainer {
         [switch] $force
     )
 
-    $artifactUrl = Get-BcContainerArtifactUrl -containerName $imageName
+    $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
     if ($artifactUrl) {
         throw "Extract-FilesFromStoppedBcContainer doesn't support containers based on artifacts."
         return
