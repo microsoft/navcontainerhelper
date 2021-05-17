@@ -84,7 +84,10 @@ function New-BcImage {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 19042) { 
+    if ($os.BuildNumber -eq 19043) { 
+        $hostOs = "21H1"
+    }
+    elseif ($os.BuildNumber -eq 19042) { 
         $hostOs = "20H2"
     }
     elseif ($os.BuildNumber -eq 19041) { 
@@ -284,6 +287,9 @@ function New-BcImage {
             }
             elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
                 $containerOs = "20H2"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+                $containerOs = "21H1"
             }
             else {
                 $containerOs = "unknown"
@@ -537,7 +543,22 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder | Out-Host
+                $success = $false
+                try {
+                    docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder | % {
+                        $_ | Out-Host
+                        if ($_ -like "Successfully built*") {
+                            $success = $true
+                        }
+                    }
+                } catch {}
+                if (!$success) {
+                    if ($LASTEXITCODE -ne 0) {
+                        throw "Docker Build failed with exit code $LastExitCode"
+                    } else {
+                        throw "Docker Build didn't indicate successfully built"
+                    }
+                }
 
                 $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
                 Write-Host "Building image took $timespend seconds"
