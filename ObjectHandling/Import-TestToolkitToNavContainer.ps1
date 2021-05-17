@@ -106,7 +106,7 @@ function Import-TestToolkitToBcContainer {
             if ($appInfo.Version.Major -eq 18 -and $appInfo.Version.Minor -eq 0) {
                 $targetVersion = "18.0.23013.23913"
             }
-            Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appInfo.AppId -appVersion $targetVersion -acceptIsvEula
+            Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appInfo.AppId -appVersion $targetVersion -acceptIsvEula -installOrUpdateNeededDependencies
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully published"
     }

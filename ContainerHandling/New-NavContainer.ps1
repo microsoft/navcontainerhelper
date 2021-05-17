@@ -403,7 +403,10 @@ function New-BcContainer {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 19042) { 
+    if ($os.BuildNumber -eq 19043) { 
+        $hostOs = "21H1"
+    }
+    elseif ($os.BuildNumber -eq 19042) { 
         $hostOs = "20H2"
     }
     elseif ($os.BuildNumber -eq 19041) { 
@@ -999,6 +1002,9 @@ function New-BcContainer {
     }
     elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
         $containerOs = "20H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+        $containerOs = "21H1"
     }
     else {
         $containerOs = "unknown"

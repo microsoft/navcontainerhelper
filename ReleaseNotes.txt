@@ -3,6 +3,9 @@ Issue #1894 Error when creating a new "clean" v18 container
 Issue #1900 Code signing (Sign-NavContainerApp) does not work with a SAS URL
 Issue #1906 Run-AlPipeline / Compile-AppInBcContainer problem
 Unable to install Test Runner in 18.0 online tenant
+Issue #1928 latest version of Docker throws an exception when using Docker Build in PowerShell (even though nothing is wrong...!!!)
+Add Windows 10 21H1 known version number
+Add additional countries to w1 mapping in configuration
 
 2.0.11
 Add parameter reUseContainer to Run-AlPipeline to use existing container for the pipeline
