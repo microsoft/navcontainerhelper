@@ -182,6 +182,7 @@ class ClientContext {
                     $errorControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
                     Write-Host -ForegroundColor Red "ERROR DIALOG: $($errorControl.StringValue)"
                     $Global:OpenClientContext.CloseForm($form)
+                    throw "$($errorControl.StringValue)"
                 }
                 elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
                     $warningControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
