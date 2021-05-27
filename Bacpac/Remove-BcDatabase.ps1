@@ -34,11 +34,10 @@ function Remove-BcDatabase {
     else {
         $op = "="
     }
-    if ($databaseServer -eq "localhost") {
-        $dbFiles = Invoke-SqlCmd `
-                       -ServerInstance $databaseserverinstance `
-                       -Query "SELECT f.physical_name FROM sys.sysdatabases db INNER JOIN sys.master_files f ON f.database_id = db.dbid WHERE db.name $op '$DatabaseName'" | ForEach-Object { $_.physical_name }
-    }
+
+    $dbFiles = Invoke-SqlCmd `
+                    -ServerInstance $databaseserverinstance `
+                    -Query "SELECT f.physical_name FROM sys.sysdatabases db INNER JOIN sys.master_files f ON f.database_id = db.dbid WHERE db.name $op '$DatabaseName'" | ForEach-Object { $_.physical_name }
 
     $databases = Invoke-SqlCmd `
         -ServerInstance $databaseserverinstance `
@@ -57,14 +56,23 @@ function Remove-BcDatabase {
             -Query "DROP DATABASE [$_]"
     }
 
-    if ($databaseServer -eq "localhost") {
-        $dbFiles | ForEach-Object {
-            if (Test-Path $_) { Remove-Item -Path $_ -Force }
-            $dirname = [System.IO.Path]::GetDirectoryName($_)
-            if ((Get-ChildItem -Path $dirname | Measure-Object).Count -eq 0) {
-                Remove-Item -Path $dirname -Force
-            }
+    $dbFiles | ForEach-Object {
+        if ($databaseServer -ne "localhost") {
+            $qualifier = $_ | Split-Path -Qualifier
+            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+            $path = $_.Replace($qualifier, $newQualifier)
+        } else {
+            $path = $_
         }
+        if (Test-Path $path) { Remove-Item -Path $path -Force }
     }
+
+    if ([string]::IsNullOrEmpty($path) -eq $false -and
+       (Test-Path ($path | Split-Path -Parent)) -eq $true -and
+       [string]::IsNullOrEmpty((Get-ChildItem -Path ($path | Split-Path -Parent))) -eq $true) {
+
+        Remove-Item -Path ($path | Split-Path -Parent) -Force -ErrorAction Continue
+    } 
+
 }
 Export-ModuleMember -Function Remove-BcDatabase
