@@ -97,9 +97,39 @@ function Restore-BcDatabaseFromArtifacts {
         $DefaultDataPath = (Invoke-SqlCmd `
             -ServerInstance $databaseServerInstance `
             -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
+        
+        if($databaseServer -ne 'localhost'){
+            # Copy local database to SQL Server
+            $defaultBackupPath = (Invoke-SqlCmd `
+                -ServerInstance $databaseServerInstance `
+                -Query "SELECT SERVERPROPERTY('InstanceDefaultBackupPath') AS InstanceDefaultBackupPath" ).InstanceDefaultBackupPath
             
-        Write-Host "Restoring database $dbName into $(Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', ''))"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath (Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')) | Out-Null
+            $qualifier = $defaultBackupPath | Split-Path -Qualifier
+            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+            $uncDefaultBackupPath = $defaultBackupPath.Replace($qualifier, $newQualifier)
+            
+            Copy-Item -Path $bakFile -Destination $uncDefaultBackupPath -Force
+
+            $bakFile = Join-Path $defaultBackupPath ($bakFile | Split-Path -Leaf)
+        }
+
+        $destinationPath = Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')
+        
+        # Create destination folder
+        if($databaseServer -ne 'localhost'){
+            $qualifier = $destinationPath | Split-Path -Qualifier
+            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+            if((Test-Path $destinationPath.Replace($qualifier, $newQualifier)) -eq $false){
+                New-Item -Path $destinationPath.Replace($qualifier, $newQualifier) -ItemType Directory -Force
+            }
+        } else {
+            if((Test-Path $destinationPath) -eq $false){
+                New-Item -Path $destinationPath -ItemType Directory -Force
+            }
+        }
+
+        Write-Host "Restoring database $dbName into $destinationPath"
+        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath $destinationPath | Out-Null
    
         if ($multitenant) {
             if ($sqlpsModule) {
