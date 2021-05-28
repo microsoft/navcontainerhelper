@@ -96,6 +96,7 @@ function Compile-AppInBcContainer {
         [string[]] $features,
         [Hashtable] $bcAuthContext,
         [string] $environment,
+        [string[]] $treatWarningsAsErrors = $bcContainerHelperConfig.TreatWarningsAsErrors,
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
@@ -499,6 +500,11 @@ function Compile-AppInBcContainer {
         }
     } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam, $features, $preProcessorSymbols
     
+    if ($treatWarningsAsErrors) {
+        $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
+        $result = $result | ForEach-Object { $_ -replace "^(.*)warning ($regexp):(.*)`$", '$1error $2:$3' }
+    }
+
     $devOpsResult = ""
     if ($result) {
         $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
