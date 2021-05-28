@@ -1,5 +1,8 @@
 2.0.13
 Allow absolute GenericImageName in config (no reference to host OS)
+Application errors in are thrown as errors in ClientContext (Run-TestsInBcContainer) (thanks @hemisphera)
+Add support for remote SQL Servers in Remove-BcDatabase and Restore-BcDatabaseFromArtifacts (thanks Remko and Theo)
+Issue #1941 XML validation error leads to warnings instead of errors in Compile-AppInBcContainer
 
 2.0.12
 Issue #1894 Error when creating a new "clean" v18 container
