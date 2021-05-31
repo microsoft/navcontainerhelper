@@ -1124,6 +1124,9 @@ function New-BcContainer {
         elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
             $containerOs = "20H2"
         }
+        elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+            $containerOs = "21H1"
+        }
         else {
             $containerOs = "unknown"
         }
