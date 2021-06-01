@@ -91,7 +91,7 @@ function Extract-AppFileToFolder {
 
     if ($generateAppJson) {
         #Set-StrictMode -Off
-        $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml"))
+        $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
         $runtime = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
         $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
         $appJson = [ordered]@{
@@ -212,7 +212,7 @@ function Extract-AppFileToFolder {
                 }
             }
         }
-        $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json")
+        $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json") -Encoding UTF8
         Set-StrictMode -Version 2.0
     }
 }
