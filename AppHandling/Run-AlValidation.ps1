@@ -217,9 +217,9 @@ if ($countries                      -is [String]) { $countries = @($countries.Sp
 if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($supportedCountries             -is [String]) { $supportedCountries = @($supportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 
-$installApps = $installApps | % { GetFilePath $_ }
-$previousApps = $previousApps | % { GetFilePath $_ }
-$apps = $apps | % { GetFilePath $_ }
+$installApps = @($installApps | ForEach-Object { GetFilePath $_ })
+$previousApps = @($previousApps | ForEach-Object { GetFilePath $_ })
+$apps = @($apps | ForEach-Object { GetFilePath $_ })
 
 $countries = @($countries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
 $validateCountries = @($countries | ForEach-Object {
