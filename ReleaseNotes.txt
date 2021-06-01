@@ -6,6 +6,7 @@ Issue #1941 XML validation error leads to warnings instead of errors in Compile-
 Update generic tag list in Get-BestGenericImageName
 Default to build 19041 if 19043 doesn't exist (as 19041 is found to work better with 21H1)
 Issue #1944 Extract-AppFileToFolder doesn't handle special characters in manifest correctly
+Issue #1933 Run-ALValidation fails sometimes with single installApps and multiple apps specified
 
 2.0.12
 Issue #1894 Error when creating a new "clean" v18 container
