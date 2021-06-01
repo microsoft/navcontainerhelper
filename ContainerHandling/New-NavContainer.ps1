@@ -1170,6 +1170,10 @@ function New-BcContainer {
     }
     Write-Host "Using locale $locale"
 
+    if ($filesOnly -and $version.Major -lt 15) {
+        throw "FilesOnly containers are not supported for version prior to 15"
+    }
+
     if ((!$doNotExportObjectsToText) -and ($version -lt [System.Version]"8.0.0.0")) {
         throw "PowerShell Cmdlets to export objects as text are not included before NAV 2015, please specify -doNotExportObjectsToText."
     }
