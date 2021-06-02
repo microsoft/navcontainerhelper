@@ -161,7 +161,7 @@ function Run-AlCops {
                         Write-Host "Using previous app: $($appJson.Publisher)_$($appJson.Name)_$previousVersion.app"
                     }
                 }
-                $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content (Join-Path $tmpFolder "appSourceCop.json")
+                $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content (Join-Path $tmpFolder "appSourceCop.json") -Encoding UTF8
 
                 $appSourceRulesetFile = Join-Path $tmpFolder "appsource.default.ruleset.json"
                 Download-File -sourceUrl "https://bcartifacts.azureedge.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
@@ -203,7 +203,7 @@ function Run-AlCops {
 
             if ($ruleset) {
                 $myRulesetFile = Join-Path $tmpFolder "ruleset.json"
-                $ruleset | ConvertTo-Json -Depth 99 | Set-Content $myRulesetFile
+                $ruleset | ConvertTo-Json -Depth 99 | Set-Content $myRulesetFile -Encoding UTF8
                 $Parameters += @{
                     "ruleset" = $myRulesetFile
                 }
@@ -215,6 +215,7 @@ function Run-AlCops {
                 Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters) | Out-Null
             }
             catch {
+                Write-Host "ERROR $($_.Exception.Message)"
                 $global:_validationResult += $_.Exception.Message
             }
 
@@ -234,7 +235,11 @@ function Run-AlCops {
                 }
                 $global:_validationResult += ""
             }
-            Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile, $appPackagesFolder)
+                # Copy inside container to ensure files are ready
+                Write-Host "Copy $appFile to $appPackagesFolder"
+                Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $appPackagesFolder)
         }
         finally {
             if (Test-Path $tmpFolder) {
