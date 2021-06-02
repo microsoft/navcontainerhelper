@@ -245,7 +245,11 @@ function Compile-AppInBcContainer {
 
     if (!$updateSymbols) {
         $existingApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
-            Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object { Get-NavAppInfo -Path $_.FullName }
+            Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
+                $appInfo = Get-NavAppInfo -Path $_.FullName
+                #Write-Host "FileName=$($_.FullName), AppId=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
+                $appInfo
+            }
         } -ArgumentList $containerSymbolsFolder
     }
     $publishedApps = @()
@@ -368,6 +372,7 @@ function Compile-AppInBcContainer {
                     $webClient.DownloadFile($url, $symbolsFile)
                 }
                 catch [System.Net.WebException] {
+                    Write-Host "ERROR $($_.Exception.Message)"
                     throw (GetExtenedErrorMessage $_.Exception)
                 }
                 if (Test-Path -Path $symbolsFile) {
