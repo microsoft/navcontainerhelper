@@ -110,6 +110,8 @@
   Filename of the custom ruleset file
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
+ .Parameter generatecrossreferences
+  Include this flag to generate cross references when compiling
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the pipeline will run using the online Business Central Environment as target
  .Parameter environment
@@ -208,6 +210,7 @@ Param(
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
     [string[]] $preProcessorSymbols = @(),
+    [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
     [Hashtable] $bcAuthContext,
     [string] $environment,
@@ -1055,6 +1058,7 @@ Write-Host -ForegroundColor Yellow @'
         "AzureDevOps" = $azureDevOps
         "CopySymbolsFromContainer" = $CopySymbolsFromContainer
         "preProcessorSymbols" = $preProcessorSymbols
+        "generatecrossreferences" = $generatecrossreferences
     }
     if ($enableAppSourceCop -and $app) {
         if (!$previousAppsCopied) {
