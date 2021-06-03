@@ -42,6 +42,8 @@
   Specify a nowarn parameter for the compiler
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
+ .Parameter generatecrossreferences
+  Include this flag to generate cross references when compiling
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the compile function will use the online Business Central Environment as target for the compilation
  .Parameter environment
@@ -89,6 +91,7 @@ function Compile-AppInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
         [string[]] $preProcessorSymbols = @(),
+        [switch] $GenerateCrossReferences,
         [Parameter(Mandatory=$false)]
         [string] $assemblyProbingPaths,
         [Parameter(Mandatory=$false)]
@@ -446,7 +449,7 @@ function Compile-AppInBcContainer {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $generateReportLayoutParam, $features, $preProcessorSymbols )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $generateReportLayoutParam, $features, $preProcessorSymbols )
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -486,6 +489,10 @@ function Compile-AppInBcContainer {
             $alcParameters += @("/nowarn:$nowarn")
         }
 
+        if ($GenerateCrossReferences) {
+            $alcParameters += @("/generatecrossreferences")
+        }
+
         if ($assemblyProbingPaths) {
             $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
@@ -503,7 +510,7 @@ function Compile-AppInBcContainer {
         if ($lastexitcode -ne 0) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateReportLayoutParam, $features, $preProcessorSymbols
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
