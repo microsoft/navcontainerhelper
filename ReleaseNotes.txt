@@ -9,6 +9,7 @@ Issue #1944 Extract-AppFileToFolder doesn't handle special characters in manifes
 Issue #1933 Run-ALValidation fails sometimes with single installApps and multiple apps specified
 Issue #1931 Throw understandable error when trying to create a pre-15 filesonly container
 Issue #1921 Add /GenerateCrossReferences switch from alc.exe to Compile-AppInBcContainer and Run-AlPipeline
+Issue #1826 Add additional error info to UploadImportAndApply-ConfigPackageInBcContainer
 
 2.0.12
 Issue #1894 Error when creating a new "clean" v18 container
