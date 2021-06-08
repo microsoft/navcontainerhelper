@@ -137,9 +137,16 @@ function Create-AadAppsForNav {
     $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
 
     # Dynamics 365 Business Central -> Delegated permissions for Access as the signed-in user (Financials.ReadWrite.All)
+    # Dynamics 365 Business Central -> Application permissions for Full access to Web Services API (API.ReadWrite.All)
+    # Dynamics 365 Business Central -> Application permissions Full access to automation (Automation.ReadWrite.All)
     $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
     $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"
     $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+    $req2.ResourceAccess = @(
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"
+    )
 
     Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1, $req2)
 
