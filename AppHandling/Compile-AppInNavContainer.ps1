@@ -517,8 +517,6 @@ function Compile-AppInBcContainer {
         $result = $result | ForEach-Object { $_ -replace "^(.*)warning ($regexp):(.*)`$", '$1error $2:$3' }
     }
 
-    $result | Out-Host
-
     $devOpsResult = ""
     if ($result) {
         $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
