@@ -20,8 +20,6 @@
   Add this switch to request the function to also create an AAD app for the EMail service
  .Parameter useCurrentAzureAdConnection
   Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
- .Parameter GrantAdminConsent
-  Add this switch to grant admin consent to the roles API.ReadWrite.All and Automation.ReadWrite.All
  .Example
   Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/bc/
 #>
@@ -39,7 +37,6 @@ function Create-AadAppsForNav {
         [switch] $IncludePowerBiAadApp,
         [switch] $IncludeEmailAadApp,
         [switch] $useCurrentAzureAdConnection,
-        [switch] $GrantAdminConsent,
         [Hashtable] $bcAuthContext
     )
 
@@ -156,17 +153,6 @@ function Create-AadAppsForNav {
     # Set Logo Image for App
     if ($iconPath) {
         Set-AzureADApplicationLogo -ObjectId $ssoAdApp.ObjectId -FilePath $iconPath
-    }
-
-    if ($GrantAdminConsent) {
-        $accessToken = [Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens['AccessToken']
-        $headers = @{
-            'Authorization' = "Bearer $accessToken"
-            'X-Requested-With'= 'XMLHttpRequest'
-            'x-ms-client-request-id'= [guid]::NewGuid()
-            'x-ms-correlation-id' = [guid]::NewGuid()}
-        $url = "https://main.iam.ad.ext.azure.com/api/RegisteredApplications/$($ssoAdApp.ObjectId)/Consent?onBehalfOfAll=true"
-        Invoke-RestMethod -Uri $url -Headers $headers -Method POST -ErrorAction Stop -UseBasicParsing
     }
 
     # Excel Ad App
