@@ -70,7 +70,7 @@ function Create-AadAppsForNav {
         if ($jwtToken.aud -ne 'https://graph.windows.net') {
             Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.windows.net"
         }
-        Connect-AzureAD -AadAccessToken $bcAuthContext.accessToken -AccountId $jwtToken.upn
+        $account = Connect-AzureAD -AadAccessToken $bcAuthContext.accessToken -AccountId $jwtToken.upn
     }
     else {
         if ($AadAdminCredential) {
