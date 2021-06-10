@@ -10,6 +10,7 @@ Issue #1933 Run-ALValidation fails sometimes with single installApps and multipl
 Issue #1931 Throw understandable error when trying to create a pre-15 filesonly container
 Issue #1921 Add /GenerateCrossReferences switch from alc.exe to Compile-AppInBcContainer and Run-AlPipeline
 Issue #1826 Add additional error info to UploadImportAndApply-ConfigPackageInBcContainer
+Add role permissions API.ReadWrite.All and Automation.ReadWrite.All to AAD apps when using Create-AzureAdAppsForBC
 
 2.0.12
 Issue #1894 Error when creating a new "clean" v18 container

@@ -522,7 +522,7 @@ function Compile-AppInBcContainer {
         $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
     }
     if ($AzureDevOps) {
-        $devOpsResult | % { $outputTo.Invoke($_) }
+        $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
     }
     else {
         $result | % { $outputTo.Invoke($_) }
