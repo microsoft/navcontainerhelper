@@ -56,6 +56,7 @@ function Remove-BcDatabase {
             -Query "DROP DATABASE [$_]"
     }
 
+    $path = ''
     $dbFiles | ForEach-Object {
         if ($databaseServer -ne "localhost") {
             $qualifier = $_ | Split-Path -Qualifier
