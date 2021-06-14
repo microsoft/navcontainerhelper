@@ -1,3 +1,6 @@
+2.0.14
+Issue #1967 add parameter IncludeApiAccess to Create-AadAppsForBC to ensure that API permissions are only added when needed
+
 2.0.13
 Allow absolute GenericImageName in config (no reference to host OS)
 Application errors in are thrown as errors in ClientContext (Run-TestsInBcContainer) (thanks @hemisphera)
