@@ -18,6 +18,8 @@
   Add this switch to request the function to also create an AAD app for the PowerBI service
  .Parameter IncludeEMailAadApp
   Add this switch to request the function to also create an AAD app for the EMail service
+ .Parameter IncludeApiAccess
+  Add this switch to add application permissions for Web Services API and automation API
  .Parameter useCurrentAzureAdConnection
   Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
@@ -36,6 +38,7 @@ function Create-AadAppsForNav {
         [switch] $IncludeExcelAadApp,
         [switch] $IncludePowerBiAadApp,
         [switch] $IncludeEmailAadApp,
+        [switch] $IncludeApiAccess,
         [switch] $useCurrentAzureAdConnection,
         [Hashtable] $bcAuthContext
     )
@@ -141,12 +144,16 @@ function Create-AadAppsForNav {
     # Dynamics 365 Business Central -> Application permissions Full access to automation (Automation.ReadWrite.All)
     $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
     $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"
-    $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
-    $req2.ResourceAccess = @(
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"
-    )
+    if ($IncludeApiAccess) {
+        $req2.ResourceAccess = @(
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"
+        )
+    }
+    else {
+        $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+    }
 
     Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1, $req2)
 
