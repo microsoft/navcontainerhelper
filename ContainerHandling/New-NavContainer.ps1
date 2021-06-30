@@ -1142,6 +1142,12 @@ function New-BcContainer {
             $isolation = "process"
         }
     }
+    elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+        if ($isolation -eq "") {
+            Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
+            $isolation = "process"
+        }
+    }
     else {
         if ($isolation -eq "") {
             if ($isAdministrator) {
