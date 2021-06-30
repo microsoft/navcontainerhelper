@@ -1,3 +1,7 @@
+2.0.15
+Default to process isolation when Host OS is 21H1 and Container OS is 2004
+New-BcEnvironment should not enumerate companies and users if -doNotWait is specified
+
 2.0.14
 Issue #1967 add parameter IncludeApiAccess to Create-AadAppsForBC to ensure that API permissions are only added when needed
 
