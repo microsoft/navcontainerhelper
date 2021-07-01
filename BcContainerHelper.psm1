@@ -38,6 +38,7 @@ function Get-ContainerHelperConfig {
             "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true
             "useSharedEncryptionKeys" = $true
+            "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"
@@ -166,6 +167,7 @@ if (!$silent) {
     Write-Host "BcContainerHelper version $BcContainerHelperVersion"
 }
 
+$ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 $sessions = @{}
 
 if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
