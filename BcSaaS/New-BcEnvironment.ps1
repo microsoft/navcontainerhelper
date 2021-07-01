@@ -43,6 +43,9 @@ function New-BcEnvironment {
         [switch] $doNotWait
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     if (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Status -eq 'Preparing'}) {
         Write-Host -NoNewline "Waiting for other environments."
@@ -93,13 +96,22 @@ function New-BcEnvironment {
         Set-BcEnvironmentApplicationInsightsKey -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -environment $environment -applicationInsightsKey $applicationInsightsKey
     }
 
-    $baseUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v2.0"
-    $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
-    Write-Host "Companies in environment:"
-    $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
-    $company = $companies.value | Select-Object -First 1
-    $users = Invoke-RestMethod -Method Get -Uri "$baseUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
-    Write-Host "Users in $($company.name):"
-    $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
+    if (-not $doNotWait) {
+        $baseUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v2.0"
+        $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+        Write-Host "Companies in environment:"
+        $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
+        $company = $companies.value | Select-Object -First 1
+        $users = Invoke-RestMethod -Method Get -Uri "$baseUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
+        Write-Host "Users in $($company.name):"
+        $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
+    }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function New-BcEnvironment

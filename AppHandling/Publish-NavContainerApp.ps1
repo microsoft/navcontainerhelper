@@ -83,6 +83,9 @@ function Publish-BcContainerApp {
         [string] $environment
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     Add-Type -AssemblyName System.Net.Http
 
     if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
@@ -346,6 +349,13 @@ function Publish-BcContainerApp {
     finally {
         Remove-Item $appFolder -Recurse -Force
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Publish-NavContainerApp -Value Publish-BcContainerApp
 Export-ModuleMember -Function Publish-BcContainerApp -Alias Publish-NavContainerApp

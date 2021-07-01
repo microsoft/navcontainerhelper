@@ -274,6 +274,9 @@ Function UpdateLaunchJson {
     }
 }
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
 $warningsToShow = @()
 
 if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
@@ -1638,6 +1641,12 @@ if ($error) {
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
 
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Run-AlPipeline
 

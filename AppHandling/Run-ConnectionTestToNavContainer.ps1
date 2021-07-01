@@ -56,6 +56,9 @@ function Run-ConnectionTestToBcContainer {
         [Hashtable] $bcAuthContext,
         [string] $environment = "sand2"
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
     
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
@@ -270,6 +273,13 @@ function Run-ConnectionTestToBcContainer {
     
         } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $interactionTimeout, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Run-ConnectionTestToNavContainer -Value Run-ConnectionTestToBcContainer
 Export-ModuleMember -Function Run-ConnectionTestToBcContainer -Alias Run-ConnectionTestToNavContainer

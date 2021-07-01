@@ -23,11 +23,21 @@ function New-CompanyInBcContainer {
         [switch] $evaluationCompany
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($companyName, $evaluationCompany, $tenant)
         Write-Host "Creating company $companyName in $tenant"
         New-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
     } -ArgumentList $companyName, $evaluationCompany, $tenant
     Write-Host -ForegroundColor Green "Company successfully created"
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name New-CompanyInNavContainer -Value New-CompanyInBcContainer
 Export-ModuleMember -Function New-CompanyInBcContainer -Alias New-CompanyInNavContainer
