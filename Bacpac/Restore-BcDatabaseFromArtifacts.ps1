@@ -39,6 +39,9 @@ function Restore-BcDatabaseFromArtifacts {
         [switch] $async
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     if ($databaseServer -eq 'host.containerhelper.internal') {
         $databaseServer = 'localhost'
     }
@@ -190,5 +193,12 @@ function Restore-BcDatabaseFromArtifacts {
         }
         $job | Receive-Job
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Restore-BcDatabaseFromArtifacts

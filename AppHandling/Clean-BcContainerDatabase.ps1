@@ -42,6 +42,9 @@ function Clean-BcContainerDatabase {
         [switch] $evaluationCompany
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
     if ("$platform" -eq "") {
         $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
@@ -274,5 +277,12 @@ function Clean-BcContainerDatabase {
             }
         }
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Clean-BcContainerDatabase

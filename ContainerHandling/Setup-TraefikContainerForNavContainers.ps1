@@ -173,11 +173,11 @@ function Setup-TraefikContainerForBcContainers {
 
         $pullRequired = "$(docker images -q $traefikDockerImage)" -eq ""
         if ($pullRequired) {
-            Log "Pulling traefik"
+            Write-Host "Pulling traefik"
             docker pull $traefikDockerImage
         }
         else {
-            Log "Traefik image already up to date"
+            Write-Host "Traefik image already up to date"
         }
         
         $parameters = @("-p 443:443", "-p 80:80", "--restart always", "-v ""$(Join-Path $traefikForBcBasePath "config"):c:/etc/traefik""", "-v \\.\pipe\docker_engine:\\.\pipe\docker_engine")
@@ -189,7 +189,7 @@ function Setup-TraefikContainerForBcContainers {
         }
         $parameters += $additionalParameters
 
-        Log "Running traefik"
+        Write-Host "Running traefik"
         DockerDo -command run -imageName "$traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine" -detach -parameters $parameters
     }
 }

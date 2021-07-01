@@ -273,6 +273,9 @@ function New-BcContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("accept_eula")
+try {
+
     $defaultNewContainerParameters = (Get-ContainerHelperConfig).defaultNewContainerParameters
     if ($defaultNewContainerParameters -is [HashTable]) {
         $defaultNewContainerParameters.GetEnumerator() | ForEach-Object {
@@ -475,6 +478,7 @@ function New-BcContainer {
         throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
    	}
     Write-Host "Docker Client Version is $dockerClientVersion"
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value $dockerClientVersion
 
     $myClientVersion = [System.Version]"0.0.0"
     if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
@@ -482,6 +486,7 @@ function New-BcContainer {
     }
 
     Write-Host "Docker Server Version is $dockerServerVersion"
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerServerVersion" -value $dockerServerVersion
 
     $doNotGetBestImageName = $false
     $skipDatabase = $false
@@ -971,6 +976,7 @@ function New-BcContainer {
 
     $genericTag = $inspect.Config.Labels.tag
     Write-Host "Generic Tag: $genericTag"
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "GenericTag" -value $genericTag
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -1011,6 +1017,11 @@ function New-BcContainer {
     }
     Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
     Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
+
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "HostOs" -value $hostOs
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "HostOsVersion" -value $hostOsVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "ContainerOs" -value $containerOs
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "ContainerOsVersion" -value $containerOsVersion
 
     if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
@@ -1171,10 +1182,16 @@ function New-BcContainer {
     }
     Write-Host "Using $isolation isolation"
 
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "Isolation" -value $isolation
+
+
     if ("$locale" -eq "") {
         $locale = Get-LocaleFromCountry $devCountry
     }
     Write-Host "Using locale $locale"
+
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "Locale" -value $locale
+
 
     if ($filesOnly -and $version.Major -lt 15) {
         throw "FilesOnly containers are not supported for version prior to 15"
@@ -1719,6 +1736,9 @@ if (-not `$restartingInstance) {
         Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
     }
 
+    $dockerLogs = docker logs $containerName
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerLogs" -value ($dockerlogs -join "`n")
+
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     if ($customConfig.ServerInstance) {
@@ -2129,6 +2149,13 @@ if (-not `$restartingInstance) {
         Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
         Write-Host " to retrieve information about URL's again"
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name New-NavContainer -Value New-BcContainer
 Export-ModuleMember -Function New-BcContainer -Alias New-NavContainer

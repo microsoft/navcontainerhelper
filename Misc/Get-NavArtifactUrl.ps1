@@ -31,6 +31,9 @@ function Get-NavArtifactUrl {
         [String] $select = 'Latest'
     )
     
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $version = (@{ "2016" = "9.0"; "2017" = "10.0"; "2018" = "11.0" })[$nav]
 
     if ($cu) {
@@ -47,5 +50,12 @@ function Get-NavArtifactUrl {
     else {
         Get-BCArtifactUrl -type OnPrem -country $country -version $version -select $select
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Get-NAVArtifactUrl

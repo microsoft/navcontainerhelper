@@ -20,6 +20,9 @@ function Sort-AppFilesByDependencies {
         [ref] $unknownDependencies
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     if (!$appFiles) {
         return @()
     }
@@ -129,5 +132,12 @@ function Sort-AppFilesByDependencies {
             Remove-Item $sharedFolder -Recurse -Force
         }
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Sort-AppFilesByDependencies

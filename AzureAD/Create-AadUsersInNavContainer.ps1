@@ -35,6 +35,9 @@ function Create-AadUsersInBcContainer {
         [Hashtable] $bcAuthContext
     )
     
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
         Write-Host "Installing NuGet Package Provider"
         Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -WarningAction Ignore | Out-Null
@@ -82,6 +85,13 @@ function Create-AadUsersInBcContainer {
             New-BcContainerBcUser -containerName $containerName -tenant $tenant -AuthenticationEmail $authenticationEMail -Credential $Credential -PermissionSetId $permissionSetId -ChangePasswordAtNextLogOn $ChangePasswordAtNextLogOn
         }
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Create-AadUsersInNavContainer -Value Create-AadUsersInBcContainer
 Export-ModuleMember -Function Create-AadUsersInBcContainer -Alias Create-AadUsersInNavContainer

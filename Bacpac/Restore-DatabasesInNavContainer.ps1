@@ -31,6 +31,9 @@ function Restore-DatabasesInBcContainer {
         [int] $sqlTimeout = 300
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $containerBakFile = ""
     $containerBakFolder = ""
 
@@ -137,6 +140,12 @@ function Restore-DatabasesInBcContainer {
         }
     }
 
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Restore-DatabasesInNavContainer -Value Restore-DatabasesInBcContainer
 Export-ModuleMember -Function Restore-DatabasesInBcContainer -Alias Restore-DatabasesInNavContainer

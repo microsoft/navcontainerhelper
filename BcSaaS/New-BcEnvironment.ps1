@@ -43,6 +43,9 @@ function New-BcEnvironment {
         [switch] $doNotWait
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     if (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Status -eq 'Preparing'}) {
         Write-Host -NoNewline "Waiting for other environments."
@@ -108,5 +111,12 @@ function New-BcEnvironment {
         Write-Host "Users in $($company.name):"
         $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function New-BcEnvironment
