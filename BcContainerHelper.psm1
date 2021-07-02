@@ -86,7 +86,7 @@ function Get-ContainerHelperConfig {
             }
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @('AL1026')
-            "InstrumentationKey" = ""
+            "TelemetryConnectionString" = ""
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -169,6 +169,13 @@ if (!$silent) {
 }
 
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
+
+try {
+    Add-Type -path (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -ErrorAction SilentlyContinue
+} catch {}
+$telemetryClient = New-Object Microsoft.ApplicationInsights.TelemetryClient
+$telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+
 $sessions = @{}
 
 if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
