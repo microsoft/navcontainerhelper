@@ -96,9 +96,14 @@ try {
         Set-BcEnvironmentApplicationInsightsKey -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -environment $environment -applicationInsightsKey $applicationInsightsKey
     }
 
-    if (-not $doNotWait) {
+    if (!$doNotWait) {
         $baseUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v2.0"
-        $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+        try {
+            $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+        } catch {
+            start-sleep -seconds 10
+            $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+        }
         Write-Host "Companies in environment:"
         $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
         $company = $companies.value | Select-Object -First 1
