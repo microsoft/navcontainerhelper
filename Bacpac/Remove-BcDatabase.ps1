@@ -21,6 +21,9 @@ function Remove-BcDatabase {
         [string] $databaseName
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     if ($databaseServer -eq 'host.containerhelper.internal') {
         $databaseServer = 'localhost'
     }
@@ -75,5 +78,11 @@ function Remove-BcDatabase {
         Remove-Item -Path ($path | Split-Path -Parent) -Force -ErrorAction Continue
     } 
 
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Remove-BcDatabase

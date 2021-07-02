@@ -86,6 +86,7 @@ function Get-ContainerHelperConfig {
             }
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @('AL1026')
+            "InstrumentationKey" = ""
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -185,6 +186,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 }
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
 . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
 
 Check-BcContainerHelperPermissions -Silent

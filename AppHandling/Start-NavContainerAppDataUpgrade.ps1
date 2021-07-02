@@ -24,6 +24,9 @@ function  Start-BcContainerAppDataUpgrade {
         [string] $appVersion
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
         Write-Host "Upgrading app $appName"
         $parameters = @{
@@ -38,6 +41,13 @@ function  Start-BcContainerAppDataUpgrade {
         Start-NAVAppDataUpgrade @parameters
     } -ArgumentList $appName, $appVersion, $tenant
     Write-Host -ForegroundColor Green "App successfully upgraded"
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Start-NavContainerAppDataUpgrade -Value Start-BcContainerAppDataUpgrade
 Export-ModuleMember -Function Start-BcContainerAppDataUpgrade -Alias Start-NavContainerAppDataUpgrade

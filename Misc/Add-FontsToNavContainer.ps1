@@ -26,6 +26,9 @@ function Add-FontsToBcContainer {
         [string[]] $path = @("C:\Windows\Fonts")
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $ExistingFonts = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         $fontsFolderPath = "C:\Windows\Fonts"
         Get-ChildItem -Path $fontsFolderPath | % { $_.Name }
@@ -58,6 +61,13 @@ function Add-FontsToBcContainer {
             . $addFontsScript
         } -argumentList (Get-BcContainerPath -containerName $containerName -path (Join-Path $fontsFolder "AddFonts.ps1"))
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Add-FontsToNavContainer -Value Add-FontsToBcContainer
 Export-ModuleMember -Function Add-FontsToBcContainer -Alias Add-FontsToNavContainer

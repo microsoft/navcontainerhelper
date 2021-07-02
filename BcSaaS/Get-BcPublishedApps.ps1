@@ -23,6 +23,9 @@ function Get-BcPublishedApps {
         [string] $environment
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
@@ -32,5 +35,11 @@ function Get-BcPublishedApps {
     catch {
         throw (GetExtenedErrorMessage $_.Exception)
     }
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Get-BcPublishedApps

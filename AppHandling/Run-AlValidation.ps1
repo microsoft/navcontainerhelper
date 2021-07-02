@@ -200,6 +200,9 @@ function GetFilePath( [string] $path ) {
     }
 }
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
 $warningsToShow = @()
 $validationResult = @()
 
@@ -736,5 +739,11 @@ if ($warningsToShow) {
     ($warningsToShow -join "`n") | Write-Host -ForegroundColor Yellow
 }
 
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Run-AlValidation

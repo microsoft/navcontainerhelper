@@ -39,6 +39,9 @@ function Install-BcAppFromAppSource {
         [switch] $allowInstallationOnProduction
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment }
     if (!$bcEnvironment) {
@@ -110,5 +113,12 @@ function Install-BcAppFromAppSource {
         }
         Write-Host
     }
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Export-ModuleMember -Function Install-BcAppFromAppSource

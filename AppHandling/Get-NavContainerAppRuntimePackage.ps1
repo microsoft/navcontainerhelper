@@ -34,6 +34,9 @@ function Get-BcContainerAppRuntimePackage {
         [string] $appFile = (Join-Path $extensionsFolder ("$containerName\$appName.app" -replace '[~#%&*{}|:<>?/|"]', '_'))
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+try {
+
     $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
     if ("$containerAppFile" -eq "") {
         throw "The app filename ($appFile)needs to be in a folder, which is shared with the container $containerName"
@@ -70,6 +73,13 @@ function Get-BcContainerAppRuntimePackage {
         $appFile
 
     } -ArgumentList $appName, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode | Select-Object -Last 1
+
+    TrackTrace -telemetryScope $telemetryScope
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
 }
 Set-Alias -Name Get-NavContainerAppRuntimePackage -Value Get-BcContainerAppRuntimePackage
 Export-ModuleMember -Function Get-BcContainerAppRuntimePackage -Alias Get-NavContainerAppRuntimePackage

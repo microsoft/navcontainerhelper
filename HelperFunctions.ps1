@@ -1,8 +1,4 @@
-﻿function Log([string]$line, [string]$color = "Gray") { 
-    Write-Host -ForegroundColor $color $line
-}
-
-function Get-DefaultCredential {
+﻿function Get-DefaultCredential {
     Param(
         [string]$Message,
         [string]$DefaultUserName,
