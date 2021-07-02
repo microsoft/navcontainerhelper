@@ -25,7 +25,7 @@ function Copy-FileFromBcContainer {
         if (!(Test-BcContainer -containerName $containerName)) {
             throw "Container $containerName does not exist"
         }
-        Log "Copy from container $containerName ($containerPath) to $localPath"
+        Write-Host "Copy from container $containerName ($containerPath) to $localPath"
         $id = Get-BcContainerId -containerName $containerName 
 
         # running hyperv containers doesn't support docker cp
