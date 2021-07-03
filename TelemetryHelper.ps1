@@ -53,7 +53,7 @@ function AddTelemetryProperty {
     )
 
     if ($telemetryScope) {
-        #Write-Host "Add Telemetry property $key = $((FormatValue -value $value))"
+        Write-Host "Add Telemetry property $key = $((FormatValue -value $value))"
         $telemetryScope.properties.Add($key, (FormatValue -value $value))
     }
 }
@@ -69,10 +69,10 @@ function InitTelemetryScope {
         if ($telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
             $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
             $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
-            #Write-Host "telemetry client initialized"
+            Write-Host "telemetry client initialized"
         }
         if ($telemetryClient.IsEnabled()) {
-            #Write-Host "init telemetry scope"
+            Write-Host "init telemetry scope ($name)"
             $scope = @{
                 "Name" = $name
                 "StartTime" = [DateTime]::Now
@@ -106,7 +106,7 @@ function TrackTrace {
     )
 
     if ($telemetryClient.IsEnabled()) {
-        #Write-Host "emit telemetry trace"
+        Write-Host "emit telemetry trace"
         $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
         $telemetryClient.TrackTrace($telemetryScope.Name, $telemetryScope.SeverityLevel, $telemetryScope.Properties)
     }
@@ -120,7 +120,7 @@ function TrackException {
     )
 
     if ($telemetryClient.IsEnabled()) {
-        #Write-Host "emit telemetry exception"
+        Write-Host "emit telemetry exception"
         $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
         $telemetryScope.Properties.Add("StackTrace", $errorRecord.ScriptStackTrace)
         $telemetryClient.TrackException($errorRecord.Exception, $telemetryScope.Properties)
