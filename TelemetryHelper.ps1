@@ -53,7 +53,7 @@ function AddTelemetryProperty {
     )
 
     if ($telemetryScope) {
-        Write-Host "Add Telemetry property $key = $((FormatValue -value $value))"
+        Write-Host "Telemetry scope $($telemetryScope.Name), add property $key = $((FormatValue -value $value))"
         $telemetryScope.properties.Add($key, (FormatValue -value $value))
     }
 }
@@ -105,10 +105,13 @@ function TrackTrace {
         $telemetryScope
     )
 
-    if ($telemetryClient.IsEnabled()) {
-        Write-Host "emit telemetry trace"
-        $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
-        $telemetryClient.TrackTrace($telemetryScope.Name, $telemetryScope.SeverityLevel, $telemetryScope.Properties)
+    if ($telemetryScope) {
+        Write-Host "TrackTrace"
+        if ($telemetryClient.IsEnabled()) {
+            Write-Host "Emit telemetry trace"
+            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
+            $telemetryClient.TrackTrace($telemetryScope.Name, $telemetryScope.SeverityLevel, $telemetryScope.Properties)
+        }
     }
 
 }
@@ -119,10 +122,13 @@ function TrackException {
         $errorRecord
     )
 
-    if ($telemetryClient.IsEnabled()) {
-        Write-Host "emit telemetry exception"
-        $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
-        $telemetryScope.Properties.Add("StackTrace", $errorRecord.ScriptStackTrace)
-        $telemetryClient.TrackException($errorRecord.Exception, $telemetryScope.Properties)
+    if ($telemetryScope) {
+        Write-Host "TrackTrace"
+        if ($telemetryClient.IsEnabled()) {
+            Write-Host "emit telemetry exception"
+            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
+            $telemetryScope.Properties.Add("StackTrace", $errorRecord.ScriptStackTrace)
+            $telemetryClient.TrackException($errorRecord.Exception, $telemetryScope.Properties)
+        }
     }
 }
