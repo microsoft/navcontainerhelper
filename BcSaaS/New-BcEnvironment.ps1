@@ -111,12 +111,13 @@ try {
         Write-Host "Users in $($company.name):"
         $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function New-BcEnvironment

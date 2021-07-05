@@ -28,12 +28,13 @@ try {
         Remove-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -ForceImmediateDataDeletion -Force
     } -ArgumentList $companyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully removed"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Remove-CompanyInNavContainer -Value Remove-CompanyInBcContainer

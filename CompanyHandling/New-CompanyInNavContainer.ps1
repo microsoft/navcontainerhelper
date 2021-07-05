@@ -31,12 +31,13 @@ try {
         New-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -EvaluationCompany:$evaluationCompany
     } -ArgumentList $companyName, $evaluationCompany, $tenant
     Write-Host -ForegroundColor Green "Company successfully created"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name New-CompanyInNavContainer -Value New-CompanyInBcContainer

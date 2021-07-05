@@ -738,12 +738,13 @@ Write-Host -ForegroundColor Green @'
 if ($warningsToShow) {
     ($warningsToShow -join "`n") | Write-Host -ForegroundColor Yellow
 }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Run-AlValidation

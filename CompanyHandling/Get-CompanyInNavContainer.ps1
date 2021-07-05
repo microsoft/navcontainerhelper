@@ -22,12 +22,13 @@ try {
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($tenant)
         Get-NavCompany -ServerInstance $ServerInstance -Tenant $tenant
     } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Get-CompanyInNavContainer -Value Get-CompanyInBcContainer

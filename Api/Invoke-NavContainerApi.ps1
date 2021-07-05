@@ -158,12 +158,13 @@ try {
     if ($sslverificationdisabled) {
         [SslVerification]::Enable()
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Invoke-NavContainerApi -Value Invoke-BcContainerApi

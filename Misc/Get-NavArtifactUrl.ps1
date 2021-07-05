@@ -50,12 +50,13 @@ try {
     else {
         Get-BCArtifactUrl -type OnPrem -country $country -version $version -select $select
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Get-NAVArtifactUrl

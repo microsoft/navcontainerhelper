@@ -64,11 +64,13 @@ try {
     
     $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion $APIVersion -Query "companies?`$filter=$companyFilter" -credential $credential -silent:$silent
     $result.value | Select-Object -First 1 -ExpandProperty id
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Get-NavContainerApiCompanyId -Value Get-BcContainerApiCompanyId

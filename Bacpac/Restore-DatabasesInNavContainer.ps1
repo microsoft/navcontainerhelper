@@ -139,12 +139,13 @@ try {
             Remove-Item -Path $_.FullName -Force -Recurse
         }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Restore-DatabasesInNavContainer -Value Restore-DatabasesInBcContainer

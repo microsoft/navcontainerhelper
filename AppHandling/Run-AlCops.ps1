@@ -257,12 +257,13 @@ try {
 
     $global:_validationResult
     Clear-Variable -Scope global -Name "_validationResult"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Run-AlCops

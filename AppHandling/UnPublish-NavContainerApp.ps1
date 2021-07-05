@@ -89,12 +89,13 @@ try {
         Unpublish-NavApp -ServerInstance $ServerInstance -Name $name @params
     } -ArgumentList $name, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $doNotSaveSchema, $force
     Write-Host -ForegroundColor Green "App successfully unpublished"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name UnPublish-NavContainerApp -Value UnPublish-BcContainerApp

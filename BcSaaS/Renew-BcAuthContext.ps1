@@ -43,12 +43,13 @@ try {
             -includeDeviceLogin:$bcAuthContext.includeDeviceLogin `
             -deviceLoginTimeout $bcAuthContext.deviceLoginTimeout
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Renew-BcAuthContext

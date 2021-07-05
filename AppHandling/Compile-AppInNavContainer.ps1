@@ -556,12 +556,13 @@ try {
         throw "App generation failed"
     }
     $appFile
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Compile-AppInNavContainer -Value Compile-AppInBcContainer

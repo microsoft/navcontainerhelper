@@ -25,12 +25,13 @@ try {
         Remove-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Code $configPackageCode -Force
     } -ArgumentList $configPackageCode
     Write-Host -ForegroundColor Green "Configuration package removed"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Remove-ConfigPackageInNavContainer -Value Remove-ConfigPackageInBcContainer

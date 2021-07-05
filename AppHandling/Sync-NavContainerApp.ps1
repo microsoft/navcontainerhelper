@@ -60,12 +60,13 @@ try {
         Sync-NavApp @parameters
     } -ArgumentList $appName, $appPublisher, $appVersion, $tenant, $Mode, $force
     Write-Host -ForegroundColor Green "App successfully synchronized"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Sync-NavContainerApp -Value Sync-BcContainerApp
