@@ -28,7 +28,7 @@ function Get-BcDatabaseExportHistory {
         [DateTime] $endTime = (Get-Date).AddDays(1)
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -40,12 +40,13 @@ try {
     catch {
         throw (GetExtenedErrorMessage $_.Exception)
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Get-BcDatabaseExportHistory

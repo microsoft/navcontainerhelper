@@ -43,7 +43,7 @@ function New-BcEnvironment {
         [switch] $doNotWait
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -111,12 +111,13 @@ try {
         Write-Host "Users in $($company.name):"
         $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function New-BcEnvironment

@@ -33,7 +33,7 @@ function Install-BcContainerApp {
         [switch] $Force
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appPublisher, $appVersion, $tenant, $language, $Force)
@@ -56,12 +56,13 @@ try {
         Install-NavApp @parameters
     } -ArgumentList $appName, $appPublisher, $appVersion, $tenant, $language, $Force
     Write-Host -ForegroundColor Green "App successfully installed"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Install-NavContainerApp -Value Install-BcContainerApp

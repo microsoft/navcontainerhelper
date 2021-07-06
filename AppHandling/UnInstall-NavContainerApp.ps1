@@ -41,7 +41,7 @@ function UnInstall-BcContainerApp {
         [switch] $Force
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($name, $publisher, $version, $tenant, $doNotSaveData, $doNotSaveSchema, $Force)
@@ -73,12 +73,13 @@ try {
 
     } -ArgumentList $name, $publisher, $version, $tenant, $doNotSaveData, $doNotSaveSchema, $Force
     Write-Host -ForegroundColor Green "App successfully uninstalled"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name UnInstall-NavContainerApp -Value UnInstall-BcContainerApp

@@ -66,6 +66,9 @@ function Setup-BcContainerTestUsers {
         [string] $createTestUsersAppUrl = ''
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $inspect = docker inspect $containerName | ConvertFrom-Json
     $version = [Version]$($inspect.Config.Labels.version)
     $systemAppTestLibrary = $null
@@ -124,6 +127,14 @@ function Setup-BcContainerTestUsers {
             UnPublish-BcContainerApp -containerName $containerName -appName "System Application Test Library" -tenant $tenant -unInstall
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Setup-NavContainerTestUsers -Value Setup-BcContainerTestUsers
 Export-ModuleMember -Function Setup-BcContainerTestUsers -Alias Setup-NavContainerTestUsers

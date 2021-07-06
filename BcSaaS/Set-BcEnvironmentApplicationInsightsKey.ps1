@@ -25,7 +25,7 @@ function Set-BcEnvironmentApplicationInsightsKey {
         [switch] $doNotWait
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -57,12 +57,13 @@ try {
             throw "Could not create environment"
         }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Set-BcEnvironmentApplicationInsightsKey

@@ -21,7 +21,9 @@ function Copy-FileToBcContainer {
         [string] $containerPath = $localPath
     )
 
-    Process {
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+    try {
+
         if (!(Test-BcContainer -containerName $containerName)) {
             throw "Container $containerName does not exist"
         }
@@ -47,6 +49,13 @@ function Copy-FileToBcContainer {
                 Remove-Item $tempFile -ErrorAction Ignore
             }
         }
+    }
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
+    }
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
     }
 }
 Set-Alias -Name Copy-FileToNavContainer -Value Copy-FileToBcContainer

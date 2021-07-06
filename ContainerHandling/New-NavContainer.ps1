@@ -2149,12 +2149,13 @@ if (-not `$restartingInstance) {
         Write-Host -ForegroundColor Yellow -NoNewline "docker logs $containerName"
         Write-Host " to retrieve information about URL's again"
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name New-NavContainer -Value New-BcContainer

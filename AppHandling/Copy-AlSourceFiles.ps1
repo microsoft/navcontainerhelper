@@ -24,7 +24,7 @@ function Copy-AlSourceFiles {
         [ScriptBlock] $alFileStructure
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Write-Host "Copying Al Source Files from $Path to $Destination"
@@ -205,12 +205,13 @@ try {
     else {
         Copy-Item -Path $Path -Destination $Destination -Recurse:$Recurse -Force | Out-Null
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Copy-AlSourceFiles

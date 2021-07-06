@@ -40,6 +40,9 @@ function Export-NavContainerObjects {
         [switch] $PreserveFormatting
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     if (!$exportToNewSyntax) {
@@ -149,5 +152,13 @@ function Export-NavContainerObjects {
         }
     
     }  -ArgumentList $filter, $containerObjectsFolder, $sqlCredential, $exportTo, $ignoreSystemObjects, $preserveFormatting
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Export-NavContainerObjects

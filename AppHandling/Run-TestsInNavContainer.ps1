@@ -120,7 +120,7 @@ function Run-TestsInBcContainer {
         [string] $environment = "sand2"
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -471,12 +471,13 @@ try {
             }
         }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Run-TestsInNavContainer -Value Run-TestsInBcContainer

@@ -25,6 +25,8 @@ function Import-PfxCertificateToBcContainer {
         [String] $CertificateStoreLocation = "cert:\localmachine\my"
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
     $containerPfxCertificatePath = Get-BcContainerPath -containerName $containerName -path $pfxCertificatePath
     $copied = $false
     if ("$containerPfxCertificatePath" -eq "") {
@@ -40,6 +42,14 @@ function Import-PfxCertificateToBcContainer {
             Remove-Item -Path $pfxCertificatePath -Force
         }
     } -ArgumentList $containerPfxCertificatePath, $pfxPassword, $CertificateStoreLocation, $copied
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Import-PfxCertificateToNavContainer -Value Import-PfxCertificateToBcContainer
 Export-ModuleMember -Function Import-PfxCertificateToBcContainer -Alias Import-PfxCertificateToNavContainer

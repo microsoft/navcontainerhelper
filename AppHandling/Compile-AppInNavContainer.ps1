@@ -103,7 +103,7 @@ function Compile-AppInBcContainer {
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $startTime = [DateTime]::Now
@@ -556,12 +556,13 @@ try {
         throw "App generation failed"
     }
     $appFile
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Compile-AppInNavContainer -Value Compile-AppInBcContainer

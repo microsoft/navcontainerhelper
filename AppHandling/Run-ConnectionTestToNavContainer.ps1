@@ -57,7 +57,7 @@ function Run-ConnectionTestToBcContainer {
         [string] $environment = "sand2"
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -273,12 +273,13 @@ try {
     
         } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $interactionTimeout, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Run-ConnectionTestToNavContainer -Value Run-ConnectionTestToBcContainer

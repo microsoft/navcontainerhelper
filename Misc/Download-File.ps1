@@ -24,6 +24,9 @@ function Download-File {
         [int]    $timeout = 100
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $replaceUrls = @{
         "https://go.microsoft.com/fwlink/?LinkID=844461" = "https://bcartifacts.azureedge.net/prerequisites/DotNetCore.1.0.4_1.1.1-WindowsHosting.exe"
         "https://download.microsoft.com/download/C/9/E/C9E8180D-4E51-40A6-A9BF-776990D8BCA9/rewrite_amd64.msi" = "https://bcartifacts.azureedge.net/prerequisites/rewrite_2.0_rtw_x64.msi"
@@ -65,5 +68,13 @@ function Download-File {
         Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/..."
         (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($newSourceUrl, $destinationFile)
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Download-File

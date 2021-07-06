@@ -266,12 +266,13 @@ try {
             "$BaseUrl$($Artifact)$sasToken"
         }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function Get-BCArtifactUrl

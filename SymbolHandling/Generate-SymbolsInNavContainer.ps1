@@ -18,6 +18,9 @@ function Generate-SymbolsInNavContainer {
         [PSCredential] $sqlCredential = $null
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($containerName, $sqlCredential)
@@ -52,5 +55,13 @@ function Generate-SymbolsInNavContainer {
     } -ArgumentList $containerName, $sqlCredential
     
     Write-Host -ForegroundColor Green "Symbols successfully generated"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Generate-SymbolsInNavContainer

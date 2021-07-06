@@ -38,7 +38,7 @@ function New-BcDatabaseExport {
         [switch] $doNotWait
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -82,12 +82,13 @@ try {
             }
         }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function New-BcDatabaseExport

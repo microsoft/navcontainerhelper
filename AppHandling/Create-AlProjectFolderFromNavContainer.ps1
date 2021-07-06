@@ -58,7 +58,7 @@ function Create-AlProjectFolderFromBcContainer {
         [PSCredential] $credential = $null
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
@@ -272,12 +272,13 @@ try {
     }
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Create-AlProjectFolderFromNavContainer -Value Create-AlProjectFolderFromBcContainer

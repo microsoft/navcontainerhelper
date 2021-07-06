@@ -24,7 +24,7 @@ function Copy-CompanyInBcContainer {
         [string] $destinationCompanyName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($sourceCompanyName, $destinationCompanyName, $tenant)
@@ -32,12 +32,13 @@ try {
         Copy-NAVCompany -ServerInstance $ServerInstance -Tenant $tenant -SourceCompanyName $sourceCompanyName -DestinationCompanyName $destinationCompanyName
     } -ArgumentList $sourceCompanyName, $destinationCompanyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully copied"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Copy-CompanyInNavContainer -Value Copy-CompanyInBcContainer

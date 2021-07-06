@@ -35,7 +35,7 @@ function Sign-BcContainerApp {
         [string] $digestAlgorithm = $bcContainerHelperConfig.digestAlgorithm
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile
@@ -121,12 +121,13 @@ try {
             Remove-Item $pfxFile -Force
         }
     } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Sign-NavContainerApp -Value Sign-BcContainerApp

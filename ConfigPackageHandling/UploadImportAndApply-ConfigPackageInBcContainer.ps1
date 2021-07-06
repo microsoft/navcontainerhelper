@@ -27,7 +27,7 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
         [string] $packageId = ""
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if (Test-Path $configPackage -PathType Leaf) {
@@ -180,12 +180,13 @@ try {
             }
         }
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Export-ModuleMember -Function UploadImportAndApply-ConfigPackageInBcContainer

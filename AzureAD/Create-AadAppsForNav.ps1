@@ -53,7 +53,7 @@ function Create-AadAppsForNav {
         [System.Convert]::ToBase64String($aesManaged.Key)
     }
     
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
@@ -275,12 +275,13 @@ try {
     }
 
     $AdProperties
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Create-AadAppsForBC -Value Create-AadAppsForNav

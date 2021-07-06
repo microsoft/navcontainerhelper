@@ -15,7 +15,7 @@ function Install-NAVSipCryptoProviderFromBcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $msvcr120Path = "C:\Windows\System32\msvcr120.dll"
@@ -44,12 +44,13 @@ try {
 
     RegSvr32 /s $navSip32Path
     RegSvr32 /s $navSip64Path
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Install-NAVSipCryptoProviderFromNavContainer -Value Install-NAVSipCryptoProviderFromBcContainer

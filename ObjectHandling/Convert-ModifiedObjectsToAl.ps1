@@ -55,6 +55,9 @@ function Convert-ModifiedObjectsToAl {
         [string] $originalFolder = ""
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -107,5 +110,13 @@ function Convert-ModifiedObjectsToAl {
         Start-Process $myAlFolder
     }
     $myAlFolder
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Convert-ModifiedObjectsToAl

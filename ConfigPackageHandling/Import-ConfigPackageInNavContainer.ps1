@@ -17,7 +17,7 @@ function Import-ConfigPackageInBcContainer {
         [string] $configPackageFile
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $containerConfigPackageFile = Get-BcContainerPath -containerName $containerName -path $configPackageFile -throw
@@ -27,12 +27,13 @@ try {
         Import-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Path $configPackageFile
     } -ArgumentList $containerConfigPackageFile
     Write-Host -ForegroundColor Green "Configuration package imported"
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Import-ConfigPackageInNavContainer -Value Import-ConfigPackageInBcContainer

@@ -30,6 +30,9 @@ function Import-ObjectsToNavContainer {
         [switch] $suppressBuildSearchIndex
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -83,5 +86,13 @@ function Import-ObjectsToNavContainer {
     
     } -ArgumentList $containerObjectsFile, $sqlCredential, $ImportAction, $SynchronizeSchemaChanges, $copied, $suppressBuildSearchIndex
     Write-Host -ForegroundColor Green "Objects successfully imported"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Import-ObjectsToNavContainer

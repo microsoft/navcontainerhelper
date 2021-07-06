@@ -68,7 +68,7 @@ function Get-TestsFromBcContainer {
         [string] $useUrl
     )
     
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
@@ -256,12 +256,13 @@ try {
     else {
         $result | ConvertFrom-Json
     }
-
-    TrackTrace -telemetryScope $telemetryScope
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
     throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
 }
 }
 Set-Alias -Name Get-TestsFromNavContainer -Value Get-TestsFromBcContainer
