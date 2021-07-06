@@ -18,7 +18,7 @@ function Extract-AppFileToFolder {
         [switch] $generateAppJson
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
@@ -82,7 +82,7 @@ try {
         $filestream.Close()
     }
 
-    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/" | % {
+    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/", "/layout/" | % {
         $folder = Join-Path $appFolder $_
         if (Test-Path $folder) {
             Get-ChildItem $folder | % {
