@@ -33,7 +33,7 @@ function Get-BcContainerApp {
         [PSCredential] $credential = $null
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $startTime = [DateTime]::Now

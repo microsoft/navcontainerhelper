@@ -19,7 +19,7 @@ function Add-GitToAlProjectFolder {
         [string] $commitMessage
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Write-Host "Initializing Git repository"

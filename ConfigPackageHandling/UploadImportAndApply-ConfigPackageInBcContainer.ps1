@@ -27,7 +27,7 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
         [string] $packageId = ""
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if (Test-Path $configPackage -PathType Leaf) {

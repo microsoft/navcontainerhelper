@@ -45,7 +45,7 @@ function Export-BcContainerDatabasesAsBacpac {
         [string[]] $additionalArguments = @()
     )
     
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $genericTag = Get-BcContainerGenericTag -containerOrImageName $containerName

@@ -41,7 +41,7 @@ function Publish-PerTenantExtensionApps {
         [switch] $useNewLine
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $newLine = @{}

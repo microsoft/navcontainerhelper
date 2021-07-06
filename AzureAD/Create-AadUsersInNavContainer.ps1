@@ -35,7 +35,7 @@ function Create-AadUsersInBcContainer {
         [Hashtable] $bcAuthContext
     )
     
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {

@@ -26,7 +26,7 @@ function Add-FontsToBcContainer {
         [string[]] $path = @("C:\Windows\Fonts")
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $ExistingFonts = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {

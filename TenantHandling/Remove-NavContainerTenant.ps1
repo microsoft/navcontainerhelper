@@ -25,6 +25,9 @@ function Remove-BcContainerTenant {
         [switch] $doNotRemoveDatabase
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Write-Host "Removing Tenant $tenantId from $containerName"
 
     if ($tenantId -eq "tenant") {
@@ -66,6 +69,14 @@ function Remove-BcContainerTenant {
 
     } -ArgumentList $tenantId, $sqlCredential, $databaseName, $doNotRemoveDatabase
     Write-Host -ForegroundColor Green "Tenant successfully removed"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Remove-NavContainerTenant -Value Remove-BcContainerTenant
 Export-ModuleMember -Function Remove-BcContainerTenant -Alias Remove-NavContainerTenant

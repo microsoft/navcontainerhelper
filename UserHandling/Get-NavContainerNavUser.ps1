@@ -20,12 +20,19 @@ function Get-BcContainerBcUser {
         [string] $tenant = "default"
     )
 
-    PROCESS
-    {
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param($tenant)
-            Get-NavServerUser -ServerInstance $ServerInstance -tenant $tenant
-        } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
-    }
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param($tenant)
+        Get-NavServerUser -ServerInstance $ServerInstance -tenant $tenant
+    } -ArgumentList $tenant | Where-Object {$_ -isnot [System.String]}
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerNavUser -Value Get-BcContainerBcUser
 Export-ModuleMember -Function Get-BcContainerBcUser -Alias Get-NavContainerNavUser

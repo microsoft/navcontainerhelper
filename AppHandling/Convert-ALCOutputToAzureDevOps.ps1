@@ -25,7 +25,7 @@ Function Convert-AlcOutputToAzureDevOps {
         [switch] $doNotWriteToHost
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $hasError = $false

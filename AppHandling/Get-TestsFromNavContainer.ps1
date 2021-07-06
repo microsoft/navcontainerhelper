@@ -68,7 +68,7 @@ function Get-TestsFromBcContainer {
         [string] $useUrl
     )
     
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName

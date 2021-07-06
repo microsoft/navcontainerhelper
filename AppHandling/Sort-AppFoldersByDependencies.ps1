@@ -22,7 +22,7 @@ function Sort-AppFoldersByDependencies {
         [ref] $unknownDependencies
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if (!$appFolders) {

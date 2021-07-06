@@ -37,6 +37,9 @@ function New-BcContainerTenant {
         [string] $applicationInsightsKey = ""
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Write-Host "Creating Tenant $tenantId on $containerName"
 
     if ($tenantId -eq "tenant") {
@@ -101,6 +104,14 @@ function New-BcContainerTenant {
 
     } -ArgumentList $containerName, $tenantId, $sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsKey
     Write-Host -ForegroundColor Green "Tenant successfully created"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name New-NavContainerTenant -Value New-BcContainerTenant
 Export-ModuleMember -Function New-BcContainerTenant -Alias New-NavContainerTenant

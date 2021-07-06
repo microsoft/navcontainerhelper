@@ -21,7 +21,7 @@ function Remove-BcDatabase {
         [string] $databaseName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if ($databaseServer -eq 'host.containerhelper.internal') {

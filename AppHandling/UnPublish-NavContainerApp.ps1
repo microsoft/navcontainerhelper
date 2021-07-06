@@ -46,7 +46,7 @@ function UnPublish-BcContainerApp {
         [switch] $force
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($name, $unInstall, $tenant, $publisher, $version, $doNotSaveData, $doNotSaveSchema, $force)

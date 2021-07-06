@@ -26,7 +26,7 @@ Function Replace-DependenciesInAppFile {
         [switch] $replacePackageId
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if ($path -ne $Destination) {

@@ -35,7 +35,7 @@ function Sign-BcContainerApp {
         [string] $digestAlgorithm = $bcContainerHelperConfig.digestAlgorithm
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $containerAppFile = Get-BcContainerPath -containerName $containerName -path $appFile

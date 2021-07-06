@@ -22,7 +22,7 @@ function Renew-BcAuthContext {
         [int] $minValidityPeriodInSeconds = 300
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Test-BcAuthContext -bcAuthContext $bcAuthContext

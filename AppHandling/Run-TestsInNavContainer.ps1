@@ -120,7 +120,7 @@ function Run-TestsInBcContainer {
         [string] $environment = "sand2"
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName

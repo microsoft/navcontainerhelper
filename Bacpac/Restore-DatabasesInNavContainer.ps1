@@ -31,7 +31,7 @@ function Restore-DatabasesInBcContainer {
         [int] $sqlTimeout = 300
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $containerBakFile = ""

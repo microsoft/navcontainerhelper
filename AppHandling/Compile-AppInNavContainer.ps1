@@ -103,7 +103,7 @@ function Compile-AppInBcContainer {
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $startTime = [DateTime]::Now

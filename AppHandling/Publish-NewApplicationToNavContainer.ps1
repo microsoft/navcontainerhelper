@@ -67,7 +67,7 @@ function Publish-NewApplicationToBcContainer {
         [hashtable] $replaceDependencies = $null
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName

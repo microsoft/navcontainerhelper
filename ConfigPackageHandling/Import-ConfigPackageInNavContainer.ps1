@@ -17,7 +17,7 @@ function Import-ConfigPackageInBcContainer {
         [string] $configPackageFile
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $containerConfigPackageFile = Get-BcContainerPath -containerName $containerName -path $configPackageFile -throw

@@ -24,7 +24,7 @@ function Convert-BcAppsToRuntimePackages {
         [switch] $skipVerification
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())

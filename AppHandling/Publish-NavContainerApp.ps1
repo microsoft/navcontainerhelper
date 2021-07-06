@@ -83,7 +83,7 @@ function Publish-BcContainerApp {
         [string] $environment
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Add-Type -AssemblyName System.Net.Http

@@ -33,7 +33,7 @@ function Install-BcContainerApp {
         [switch] $Force
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appPublisher, $appVersion, $tenant, $language, $Force)

@@ -22,6 +22,9 @@ function Set-BcContainerFeatureKeys {
         [hashtable] $featureKeys
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("featureKeys")
+try {
+
     if ($featureKeys.Keys.Count -ne 0) {    
         Invoke-ScriptInBCContainer -containerName $containerName -ScriptBlock { Param([string] $tenant, [hashtable] $featureKeys) 
             $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -85,5 +88,13 @@ function Set-BcContainerFeatureKeys {
             }
         } -argumentList $tenant, $featureKeys
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Set-BcContainerFeatureKeys

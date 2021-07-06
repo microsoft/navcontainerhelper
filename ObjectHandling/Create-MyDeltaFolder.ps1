@@ -29,6 +29,9 @@ function Create-MyDeltaFolder {
         [switch] $useNewSyntax
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $containerModifiedFolder = Get-NavContainerPath -containerName $containerName -path $modifiedFolder -throw
@@ -85,5 +88,13 @@ function Create-MyDeltaFolder {
             }
         }
     } -ArgumentList $containerModifiedFolder, $containerMyOriginalFolder, $containerMyDeltaFolder, $useNewSyntax
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Create-MyDeltaFolder

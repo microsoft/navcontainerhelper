@@ -43,7 +43,7 @@ function New-BcEnvironment {
         [switch] $doNotWait
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext

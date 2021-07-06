@@ -200,7 +200,7 @@ function GetFilePath( [string] $path ) {
     }
 }
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
 $warningsToShow = @()

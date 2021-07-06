@@ -30,7 +30,7 @@ function Backup-BcContainerDatabases {
         [switch] $compress
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $containerFolder = Join-Path $ExtensionsFolder $containerName

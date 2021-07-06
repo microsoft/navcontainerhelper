@@ -20,7 +20,7 @@ function Sort-AppFilesByDependencies {
         [ref] $unknownDependencies
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     if (!$appFiles) {

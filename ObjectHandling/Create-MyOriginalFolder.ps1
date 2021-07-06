@@ -23,6 +23,9 @@ function Create-MyOriginalFolder {
         [string] $myoriginalFolder
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $containerOriginalFolder = Get-NavContainerPath -containerName $containerName -path $originalFolder -throw
@@ -60,5 +63,13 @@ function Create-MyOriginalFolder {
             }
         }
     } -argumentList $containerOriginalFolder, $containerModifiedFolder, $containerMyOriginalFolder
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Create-MyOriginalFolder

@@ -27,6 +27,10 @@ function Get-BcContainerTenants {
 
         [switch] $Force
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $Params = @{ "Force" = $Force }
     If ($ForceRefresh) {
         $Params += @{ "ForceRefresh" = $ForceRefresh }
@@ -41,6 +45,14 @@ function Get-BcContainerTenants {
         Param( [PsCustomObject] $Params)
         Get-NavTenant -ServerInstance $ServerInstance @Params
     } -argumentList $Params
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerTenants -Value Get-BcContainerTenants
 Export-ModuleMember -Function Get-BcContainerTenants -Alias Get-NavContainerTenants

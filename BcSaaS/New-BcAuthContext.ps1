@@ -47,7 +47,7 @@ function New-BcAuthContext {
         [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5)
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $authContext = @{

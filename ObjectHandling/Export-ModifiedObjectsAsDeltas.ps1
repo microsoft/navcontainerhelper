@@ -39,6 +39,9 @@ function Export-ModifiedObjectsAsDeltas {
         [string] $originalFolder = ""
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -104,5 +107,13 @@ function Export-ModifiedObjectsAsDeltas {
         Remove-Item -Path "$fullObjectsFolder\*.txt" -Force
         Copy-Item -Path "$modifiedFolder\*.txt" -Destination $fullObjectsFolder
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Export-ModifiedObjectsAsDeltas

@@ -42,7 +42,7 @@ function Clean-BcContainerDatabase {
         [switch] $evaluationCompany
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
     $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName

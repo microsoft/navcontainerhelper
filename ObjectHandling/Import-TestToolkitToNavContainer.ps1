@@ -71,6 +71,9 @@ function Import-TestToolkitToBcContainer {
 
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($replaceDependencies) {
         $doNotUseRuntimePackages = $true
     }
@@ -264,6 +267,14 @@ function Import-TestToolkitToBcContainer {
             Write-Host -ForegroundColor Green "TestToolkit successfully imported"
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Import-TestToolkitToNavContainer -Value Import-TestToolkitToBcContainer
 Export-ModuleMember -Function Import-TestToolkitToBcContainer -Alias Import-TestToolkitToNavContainer
