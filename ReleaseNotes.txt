@@ -2,6 +2,7 @@
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
 New-BcEnvironment should not enumerate companies and users if -doNotWait is specified
 Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
+Issue #1998 New-BCContainer ERROR: Database Backup File not found. when hosthelper folder changed
 
 2.0.14
 Issue #1967 add parameter IncludeApiAccess to Create-AadAppsForBC to ensure that API permissions are only added when needed
