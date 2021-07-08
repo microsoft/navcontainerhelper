@@ -1295,13 +1295,13 @@ try {
             throw "Database backup $bakFile doesn't exist"
         }
         
-        if ($bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
-            $bakFile = "$containerHelperFolder$($bakFile.Substring($hostHelperFolder.Length))"
-        }
-        else {
+        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
             $containerBakFile = Join-Path $containerFolder "database.bak"
             Copy-Item -Path $bakFile -Destination $containerBakFile
             $bakFile = $containerBakFile
+        }
+        if ($bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+            $bakFile = "$containerHelperFolder$($bakFile.Substring($hostHelperFolder.Length))"
         }
         $parameters += "--env bakfile=$bakFile"
     }
