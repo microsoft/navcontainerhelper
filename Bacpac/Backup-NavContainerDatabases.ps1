@@ -30,6 +30,9 @@ function Backup-BcContainerDatabases {
         [switch] $compress
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $containerFolder = Join-Path $ExtensionsFolder $containerName
     if ("$bakFolder" -eq "") {
         $bakFolder = $containerFolder
@@ -109,6 +112,14 @@ function Backup-BcContainerDatabases {
             Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
         }
     } -ArgumentList $containerbakFolder, $tenant, $databasecredential, $compress
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Backup-NavContainerDatabases -Value Backup-BcContainerDatabases
 Export-ModuleMember -Function Backup-BcContainerDatabases -Alias Backup-NavContainerDatabases

@@ -41,6 +41,9 @@ function Publish-PerTenantExtensionApps {
         [switch] $useNewLine
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $newLine = @{}
     if (!$useNewLine) {
         $newLine = @{ "NoNewLine" = $true }
@@ -147,5 +150,13 @@ function Publish-PerTenantExtensionApps {
             Remove-Item $appFolder -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Publish-PerTenantExtensionApps

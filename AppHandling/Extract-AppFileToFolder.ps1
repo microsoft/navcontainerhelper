@@ -18,6 +18,9 @@ function Extract-AppFileToFolder {
         [switch] $generateAppJson
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
         throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
     }
@@ -79,7 +82,7 @@ function Extract-AppFileToFolder {
         $filestream.Close()
     }
 
-    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/" | % {
+    "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/", "/layout/" | % {
         $folder = Join-Path $appFolder $_
         if (Test-Path $folder) {
             Get-ChildItem $folder | % {
@@ -215,5 +218,13 @@ function Extract-AppFileToFolder {
         $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json") -Encoding UTF8
         Set-StrictMode -Version 2.0
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Extract-AppFileToFolder

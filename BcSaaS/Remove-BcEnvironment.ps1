@@ -26,6 +26,9 @@ function Remove-BcEnvironment {
         [switch] $doNotWait
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
     if (!($bcEnvironment)) {
@@ -64,5 +67,13 @@ function Remove-BcEnvironment {
             }
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Remove-BcEnvironment

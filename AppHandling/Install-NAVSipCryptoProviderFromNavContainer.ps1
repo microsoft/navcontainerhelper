@@ -15,6 +15,9 @@ function Install-NAVSipCryptoProviderFromBcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $msvcr120Path = "C:\Windows\System32\msvcr120.dll"
     if (!(Test-Path $msvcr120Path)) {
         Copy-FileFromBcContainer -containerName $containerName -ContainerPath $msvcr120Path
@@ -27,20 +30,28 @@ function Install-NAVSipCryptoProviderFromBcContainer {
     RegSvr32 /u /s $navSip32Path
 
     if (Test-Path $navSip64Path) {
-        Log "Remove existing $navsip64Path"
+        Write-Host "Remove existing $navsip64Path"
         Remove-Item -Path $navSip64Path -Force
     }
     if (Test-Path $navSip32Path) {
-        Log "Remove existing $navsip32Path"
+        Write-Host "Remove existing $navsip32Path"
         Remove-Item -Path $navSip32Path -Force
     }
 
-    Log "Copy SIP crypto provider from container $containerName"
+    Write-Host "Copy SIP crypto provider from container $containerName"
     Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip64Path
     Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path
 
     RegSvr32 /s $navSip32Path
     RegSvr32 /s $navSip64Path
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Install-NAVSipCryptoProviderFromNavContainer -Value Install-NAVSipCryptoProviderFromBcContainer
 Export-ModuleMember -Function Install-NAVSipCryptoProviderFromBcContainer -Alias Install-NAVSipCryptoProviderFromNavContainer

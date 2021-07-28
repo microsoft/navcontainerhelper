@@ -29,7 +29,8 @@ function Convert-Txt2Al {
         [string] $dotNetAddInsPackage
     )
 
-    #AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
 
     $containerMyDeltaFolder = Get-NavContainerPath -containerName $containerName -path $myDeltaFolder -throw
     $containerMyAlFolder = Get-NavContainerPath -containerName $containerName -path $myAlFolder -throw
@@ -101,5 +102,13 @@ function Convert-Txt2Al {
         $erroractionpreference = 'Stop'
 
     } -ArgumentList $containerMyDeltaFolder, $containerMyAlFolder, $startId, $containerDotNetAddInsPackage, $platformVersion
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Convert-Txt2Al

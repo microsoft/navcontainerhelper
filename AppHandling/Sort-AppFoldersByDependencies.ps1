@@ -22,6 +22,9 @@ function Sort-AppFoldersByDependencies {
         [ref] $unknownDependencies
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if (!$appFolders) {
         return @()
     }
@@ -111,5 +114,13 @@ function Sort-AppFoldersByDependencies {
             "$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
 		} })
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Sort-AppFoldersByDependencies

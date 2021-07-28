@@ -40,6 +40,9 @@ function Invoke-NavContainerCodeunit {
         [string] $TimeZone
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
@@ -73,5 +76,13 @@ function Invoke-NavContainerCodeunit {
         }
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Invoke-NavContainerCodeunit

@@ -21,11 +21,13 @@ function Copy-FileToBcContainer {
         [string] $containerPath = $localPath
     )
 
-    Process {
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+    try {
+
         if (!(Test-BcContainer -containerName $containerName)) {
             throw "Container $containerName does not exist"
         }
-        Log "Copy $localPath to container ${containerName} ($containerPath)"
+        Write-Host "Copy $localPath to container ${containerName} ($containerPath)"
         $id = Get-BcContainerId -containerName $containerName 
 
         # running hyperv containers doesn't support docker cp
@@ -47,6 +49,13 @@ function Copy-FileToBcContainer {
                 Remove-Item $tempFile -ErrorAction Ignore
             }
         }
+    }
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
+    }
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
     }
 }
 Set-Alias -Name Copy-FileToNavContainer -Value Copy-FileToBcContainer

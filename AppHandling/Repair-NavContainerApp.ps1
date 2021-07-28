@@ -22,6 +22,9 @@ function Repair-BcContainerApp {
         [string] $appVersion
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion)
         Write-Host "Repairing $appName"
         $parameters = @{
@@ -34,6 +37,14 @@ function Repair-BcContainerApp {
         }
         Repair-NavApp @parameters
     } -ArgumentList $appName, $appVersion
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Repair-NavContainerApp -Value Repair-BcContainerApp
 Export-ModuleMember -Function Repair-BcContainerApp -Alias Repair-NavContainerApp

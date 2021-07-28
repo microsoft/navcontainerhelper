@@ -20,11 +20,22 @@ function Remove-CompanyInBcContainer {
         [string] $companyName
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($companyName, $tenant)
         Write-Host "Removing company $companyName from $tenant"
         Remove-NavCompany -ServerInstance $ServerInstance -Tenant $tenant -CompanyName $companyName -ForceImmediateDataDeletion -Force
     } -ArgumentList $companyName, $tenant
     Write-Host -ForegroundColor Green "Company successfully removed"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Remove-CompanyInNavContainer -Value Remove-CompanyInBcContainer
 Export-ModuleMember -Function Remove-CompanyInBcContainer -Alias Remove-CompanyInNavContainer

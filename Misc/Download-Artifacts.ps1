@@ -33,6 +33,9 @@ function Download-Artifacts {
         [int]    $timeout = 300
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl")
+try {
+
     if ($basePath -eq "") {
         $basePath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
     }
@@ -216,5 +219,13 @@ function Download-Artifacts {
     finally {
         $appMutex.ReleaseMutex()
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Download-Artifacts

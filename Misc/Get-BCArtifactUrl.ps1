@@ -45,6 +45,9 @@ function Get-BCArtifactUrl {
         [switch] $doNotCheckPlatform
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("type","country","version","select","after","before","StorageAccount")
+try {
+
     if ($select -eq "Current") {
         if ($storageAccount -ne '' -or $type -eq 'OnPrem' -or $version -ne '') {
             throw 'You cannot specify storageAccount, type=OnPrem or version when selecting Current release'
@@ -263,5 +266,13 @@ function Get-BCArtifactUrl {
             "$BaseUrl$($Artifact)$sasToken"
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Get-BCArtifactUrl

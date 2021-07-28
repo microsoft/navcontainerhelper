@@ -67,6 +67,9 @@ function Publish-NewApplicationToBcContainer {
         [hashtable] $replaceDependencies = $null
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
     if ("$platform" -eq "") {
         $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
@@ -215,6 +218,14 @@ function Publish-NewApplicationToBcContainer {
             }
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Publish-NewApplicationToNavContainer -Value Publish-NewApplicationToBcContainer
 Export-ModuleMember -Function Publish-NewApplicationToBcContainer -Alias Publish-NewApplicationToNavContainer

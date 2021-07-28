@@ -24,6 +24,9 @@ function Convert-BcAppsToRuntimePackages {
         [switch] $skipVerification
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
     try {
         $apps = @(Sort-AppFilesByDependencies -appFiles (CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue)
@@ -110,5 +113,13 @@ function Convert-BcAppsToRuntimePackages {
             Remove-Item $appsFolder -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Convert-BcAppsToRuntimePackages

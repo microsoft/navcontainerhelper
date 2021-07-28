@@ -45,6 +45,9 @@ function Export-BcContainerDatabasesAsBacpac {
         [string[]] $additionalArguments = @()
     )
     
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $genericTag = Get-BcContainerGenericTag -containerOrImageName $containerName
     if ([System.Version]$genericTag -lt [System.Version]"0.0.4.5") {
         throw "Export-DatabasesAsBacpac is not supported in images with generic tag prior to 0.0.4.5"
@@ -330,6 +333,14 @@ function Export-BcContainerDatabasesAsBacpac {
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
     } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Export-NavContainerDatabasesAsBacpac -Value Export-BcContainerDatabasesAsBacpac
 Export-ModuleMember -Function Export-BcContainerDatabasesAsBacpac -Alias Export-NavContainerDatabasesAsBacpac

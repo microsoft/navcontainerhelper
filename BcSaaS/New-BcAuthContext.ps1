@@ -47,6 +47,9 @@ function New-BcAuthContext {
         [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5)
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $authContext = @{
         "clientID"           = $clientID
         "Resource"           = $Resource
@@ -289,5 +292,13 @@ function New-BcAuthContext {
         return $null
     }
     return $authContext
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function New-BcAuthContext

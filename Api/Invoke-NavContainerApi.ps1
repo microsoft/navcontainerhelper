@@ -66,6 +66,9 @@ function Invoke-BcContainerApi {
         [switch] $silent
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
 
     $parameters = @{}
@@ -155,7 +158,14 @@ function Invoke-BcContainerApi {
     if ($sslverificationdisabled) {
         [SslVerification]::Enable()
     }
-
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Invoke-NavContainerApi -Value Invoke-BcContainerApi
 Export-ModuleMember -Function Invoke-BcContainerApi -Alias Invoke-NavContainerApi

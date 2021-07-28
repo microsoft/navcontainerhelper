@@ -33,6 +33,9 @@ function Get-BcContainerAppInfo {
         [switch] $publishedOnly
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $args = @{}
     if ($symbolsOnly) {
         $args += @{ "SymbolsOnly" = $true }
@@ -87,6 +90,14 @@ function Get-BcContainerAppInfo {
         }
 
     } -ArgumentList $args, $sort | Where-Object {$_ -isnot [System.String]}
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerAppInfo -Value Get-BcContainerAppInfo
 Export-ModuleMember -Function Get-BcContainerAppInfo -Alias Get-NavContainerAppInfo

@@ -187,19 +187,19 @@ function New-BcImage {
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
                     if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
-                        Write-Host "Image $imageName was build with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
+                        Write-Host "Image $imageName was built with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
                         $forceRebuild = $true
                     }
                     if ($inspect.Config.Labels.version -ne $appManifest.Version) {
-                        Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                        Write-Host "Image $imageName was built with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                        Write-Host "Image $imageName was build with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                        Write-Host "Image $imageName was built with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
-                        Write-Host "Image $imageName was build for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
+                        Write-Host "Image $imageName was built for OS Version $($inspect.Config.Labels.osversion), should be $($labels.osversion)"
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.tag -ne $labels.tag) {
@@ -209,20 +209,20 @@ function New-BcImage {
                    
                     if (($inspect.Config.Labels.PSObject.Properties.Name -eq "Multitenant") -and ($inspect.Config.Labels.Multitenant -eq "Y")) {
                         if (!$multitenant) {
-                            Write-Host "Image $imageName was build multi tenant, should have been single tenant"
+                            Write-Host "Image $imageName was built multi tenant, should have been single tenant"
                             $forceRebuild = $true
                         }
                     }
                     else {
                         if ($multitenant) {
-                            Write-Host "Image $imageName was build single tenant, should have been multi tenant"
+                            Write-Host "Image $imageName was built single tenant, should have been multi tenant"
                             $forceRebuild = $true
                         }
                     }
             
                     if (($inspect.Config.Labels.PSObject.Properties.Name -eq "SkipDatabase") -and ($inspect.Config.Labels.SkipDatabase -eq "Y")) {
                         if (!$skipdatabase) {
-                            Write-Host "Image $imageName was build without a database, should have a database"
+                            Write-Host "Image $imageName was built without a database, should have a database"
                             $forceRebuild = $true
                         }
                     }
@@ -307,6 +307,12 @@ function New-BcImage {
         
             if ($hostOsVersion -eq $containerOsVersion) {
                 if ($isolation -eq "") { 
+                    $isolation = "process"
+                }
+            }
+            elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+                if ($isolation -eq "") {
+                    Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
                     $isolation = "process"
                 }
             }

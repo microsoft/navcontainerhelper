@@ -38,6 +38,7 @@ function Get-ContainerHelperConfig {
             "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true
             "useSharedEncryptionKeys" = $true
+            "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"
@@ -85,6 +86,7 @@ function Get-ContainerHelperConfig {
             }
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @('AL1026')
+            "TelemetryConnectionString" = ""
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -166,6 +168,14 @@ if (!$silent) {
     Write-Host "BcContainerHelper version $BcContainerHelperVersion"
 }
 
+$ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
+
+try {
+    Add-Type -path (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -ErrorAction SilentlyContinue
+} catch {}
+$telemetryClient = New-Object Microsoft.ApplicationInsights.TelemetryClient
+$telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+
 $sessions = @{}
 
 if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
@@ -183,6 +193,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 }
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
 . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
 
 Check-BcContainerHelperPermissions -Silent

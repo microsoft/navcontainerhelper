@@ -53,6 +53,9 @@ function Create-AadAppsForNav {
         [System.Convert]::ToBase64String($aesManaged.Key)
     }
     
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
         Write-Host "Installing NuGet Package Provider"
         Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -WarningAction Ignore | Out-Null
@@ -272,6 +275,14 @@ function Create-AadAppsForNav {
     }
 
     $AdProperties
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Create-AadAppsForBC -Value Create-AadAppsForNav
 Export-ModuleMember -Function Create-AadAppsForNav -Alias Create-AadAppsForBC

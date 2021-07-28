@@ -47,8 +47,8 @@ function New-BcContainerBcUser {
         [PSCredential] $databaseCredential
     )
 
-    PROCESS
-    {
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+    try {
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential)
                         
             $TenantParam = @{}
@@ -122,6 +122,13 @@ INSERT INTO [dbo].[$_] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-44
                 }                   
             }
         } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential
+    }
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
+    }
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
     }
 }
 Set-Alias -Name New-NavContainerNavUser -Value New-BcContainerBcUser

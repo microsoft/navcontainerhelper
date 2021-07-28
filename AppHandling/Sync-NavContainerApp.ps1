@@ -33,6 +33,10 @@ function Sync-BcContainerApp {
         [string] $Mode,
         [switch] $Force
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName,$appPublisher,$appVersion,$tenant,$mode,$force)
         Write-Host "Synchronizing $appName on $tenant"
         Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
@@ -56,6 +60,14 @@ function Sync-BcContainerApp {
         Sync-NavApp @parameters
     } -ArgumentList $appName, $appPublisher, $appVersion, $tenant, $Mode, $force
     Write-Host -ForegroundColor Green "App successfully synchronized"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Sync-NavContainerApp -Value Sync-BcContainerApp
 Export-ModuleMember -Function Sync-BcContainerApp -Alias Sync-NavContainerApp

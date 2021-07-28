@@ -55,6 +55,9 @@ function Run-AlCops {
         [scriptblock] $CompileAppInBcContainer
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($previousApps                   -is [String]) { $previousApps = @($previousApps.Split(',').Trim() | Where-Object { $_ }) }
     if ($apps                           -is [String]) { $apps = @($apps.Split(',').Trim()  | Where-Object { $_ }) }
     if ($affixes                        -is [String]) { $affixes = @($affixes.Split(',').Trim() | Where-Object { $_ }) }
@@ -183,6 +186,7 @@ function Run-AlCops {
                 "appOutputFolder" = $tmpFolder
                 "appSymbolsFolder" = $appPackagesFolder
                 "CopySymbolsFromContainer" = $true
+                "GenerateReportLayout" = "No"
                 "EnableAppSourceCop" = $enableAppSourceCop
                 "EnableUICop" = $enableUICop
                 "EnableCodeCop" = $enableCodeCop
@@ -254,5 +258,13 @@ function Run-AlCops {
 
     $global:_validationResult
     Clear-Variable -Scope global -Name "_validationResult"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Run-AlCops

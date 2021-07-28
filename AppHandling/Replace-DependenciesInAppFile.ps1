@@ -26,6 +26,9 @@ Function Replace-DependenciesInAppFile {
         [switch] $replacePackageId
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($path -ne $Destination) {
         Copy-Item -Path $path -Destination $Destination -Force
         $path = $Destination
@@ -139,5 +142,13 @@ Function Replace-DependenciesInAppFile {
             }
         }
     } -argumentList (Get-BCContainerPath -containerName $containerName -path $path -throw), (Get-BCContainerPath -containerName $containerName -path $Destination -throw), $replaceDependencies, $ShowMyCode, $replacePackageId
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Replace-DependenciesInAppFile

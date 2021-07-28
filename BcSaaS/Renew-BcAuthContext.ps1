@@ -22,6 +22,9 @@ function Renew-BcAuthContext {
         [int] $minValidityPeriodInSeconds = 300
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Test-BcAuthContext -bcAuthContext $bcAuthContext
 
     if ($bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds -ge $minValidityPeriodInSeconds) {
@@ -40,5 +43,13 @@ function Renew-BcAuthContext {
             -includeDeviceLogin:$bcAuthContext.includeDeviceLogin `
             -deviceLoginTimeout $bcAuthContext.deviceLoginTimeout
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Renew-BcAuthContext

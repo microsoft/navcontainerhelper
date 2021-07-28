@@ -17,11 +17,22 @@ function Remove-ConfigPackageInBcContainer {
         [string] $configPackageCode
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($configPackageCode)
         Write-Host "Removing configuration package $configPackageCode"
         Remove-NAVConfigurationPackageFile -ServerInstance $ServerInstance -Code $configPackageCode -Force
     } -ArgumentList $configPackageCode
     Write-Host -ForegroundColor Green "Configuration package removed"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Remove-ConfigPackageInNavContainer -Value Remove-ConfigPackageInBcContainer
 Export-ModuleMember -Function Remove-ConfigPackageInBcContainer -Alias Remove-ConfigPackageInNavContainer

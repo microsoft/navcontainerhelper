@@ -58,6 +58,9 @@ function Create-AlProjectFolderFromBcContainer {
         [PSCredential] $credential = $null
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $ver = [System.Version]($navversion.split('-')[0])
     $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
@@ -269,6 +272,14 @@ function Create-AlProjectFolderFromBcContainer {
     }
     
     Write-Host -ForegroundColor Green "Al Project Folder Created"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Create-AlProjectFolderFromNavContainer -Value Create-AlProjectFolderFromBcContainer
 Export-ModuleMember -Function Create-AlProjectFolderFromBcContainer -Alias Create-AlProjectFolderFromNavContainer

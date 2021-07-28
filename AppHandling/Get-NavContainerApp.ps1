@@ -33,6 +33,9 @@ function Get-BcContainerApp {
         [PSCredential] $credential = $null
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $startTime = [DateTime]::Now
 
     $platform = Get-BcContainerPlatformversion -containerOrImageName $containerName
@@ -106,7 +109,14 @@ function Get-BcContainerApp {
     }
 
     $appFile
-
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerApp -Value Get-BcContainerApp
 Export-ModuleMember -Function Get-BcContainerApp -Alias Get-NavContainerApp

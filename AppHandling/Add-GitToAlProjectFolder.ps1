@@ -19,6 +19,9 @@ function Add-GitToAlProjectFolder {
         [string] $commitMessage
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Write-Host "Initializing Git repository"
 
     $gitIgnoreFile = Join-Path $AlProjectFolder ".gitignore"
@@ -33,5 +36,13 @@ function Add-GitToAlProjectFolder {
     Write-Host "Committing files"
     & git commit -m $commitMessage --quiet
     Set-Location $oldLocation
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Add-GitToAlProjectFolder

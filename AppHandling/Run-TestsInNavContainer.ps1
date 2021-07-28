@@ -119,6 +119,9 @@ function Run-TestsInBcContainer {
         [Hashtable] $bcAuthContext,
         [string] $environment = "sand2"
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
     
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
@@ -468,6 +471,14 @@ function Run-TestsInBcContainer {
             }
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Run-TestsInNavContainer -Value Run-TestsInBcContainer
 Export-ModuleMember -Function Run-TestsInBcContainer -Alias Run-TestsInNavContainer

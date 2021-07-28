@@ -26,6 +26,9 @@ function Compile-ObjectsInNavContainer {
         [switch] $generatesymbolreference
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     AssumeNavContainer -containerOrImageName $containerName -functionName $MyInvocation.MyCommand.Name
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -69,5 +72,13 @@ function Compile-ObjectsInNavContainer {
 
     } -ArgumentList $filter, $sqlCredential, $SynchronizeSchemaChanges
     Write-Host -ForegroundColor Green "Objects successfully compiled"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Compile-ObjectsInNavContainer
