@@ -186,6 +186,7 @@ try {
                 "appOutputFolder" = $tmpFolder
                 "appSymbolsFolder" = $appPackagesFolder
                 "CopySymbolsFromContainer" = $true
+                "GenerateReportLayout" = "No"
                 "EnableAppSourceCop" = $enableAppSourceCop
                 "EnableUICop" = $enableUICop
                 "EnableCodeCop" = $enableCodeCop
