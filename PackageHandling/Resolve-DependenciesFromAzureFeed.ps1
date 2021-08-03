@@ -29,7 +29,8 @@ function Resolve-DependenciesFromAzureFeed {
         [Parameter(Mandatory = $true)]
         [string] $appsFolder,
         [string] $outputFolder = (Join-Path $appsFolder '.alpackages'),
-        [int] $lvl = -1
+        [int] $lvl = -1,
+        [string[]] $ignoredDependencies = @()
     )
     $spaces = ''
     $lvl++
@@ -86,44 +87,51 @@ function Resolve-DependenciesFromAzureFeed {
                 $appJson = Get-Content $_ | ConvertFrom-Json
             }
             if ($appJson.psobject.Properties.name -contains "dependencies") {
+                if ($appJson.psobject.Properties.name -contains "id" -and $lvl -eq 0) {
+                    $ignoredDependencies += $appJson.Id
+                }
                 #Resolving dpendencies
                 $appJson.dependencies | % {
                     if ($_.psobject.Properties.name -contains "id") {
                         $id = $_.id
-                        try {
-                            $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $id
-                            New-Item -path $tempAppDependencyFolder -ItemType Directory -Force | Out-Null
-                            Write-Host "$($spaces)Downloading: $($id)"
-                            if ( $(az artifacts universal download `
-                                        --organization $organization `
-                                        --feed $feed `
-                                        --name $id `
-                                        --version (AzureFeedWildcardVersion -appVersion $_.version) `
-                                        --path $tempAppDependencyFolder >$null 2>&1; $?)) {
-                                Write-Host "$($spaces)Downloaded!"
-                            }
+                        if ($id -notin $ignoredDependencies) {
+                            try {
+                                $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $id
+                                New-Item -path $tempAppDependencyFolder -ItemType Directory -Force | Out-Null
+                                Write-Host "$($spaces)Downloading: $($id)"
+                                if ( $(az artifacts universal download `
+                                            --organization $organization `
+                                            --feed $feed `
+                                            --name $id `
+                                            --version (AzureFeedWildcardVersion -appVersion $_.version) `
+                                            --path $tempAppDependencyFolder >$null 2>&1; $?)) {
+                                    Write-Host "$($spaces)Downloaded!"
+                                }
+            
         
-    
-                            $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.app') -Exclude '*.runtime.app')
-                            if ($dependency.Count -eq 0) {
-                                $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.runtime.app'))
+                                $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.app') -Exclude '*.runtime.app')
+                                if ($dependency.Count -eq 0) {
+                                    $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.runtime.app'))
+                                }
+                                if ($dependency.Count -gt 0) {
+                                    $dep = $dependency[0]
+                                    if (!(Test-Path (Join-Path $outputFolder $dep.Name))) {
+                                        Copy-Item -Path $dep -Destination $outputFolder -Force
+
+                                        Write-Host "$($spaces)Copied to $($outputFolder)"
+
+                                        Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outputFolder $outputFolder -appsFolder $tempAppDependencyFolder -lvl $lvl
+                                    }
+                                    else {
+                                        Write-Host "$($spaces)$($dep.Name) exists"
+                                    }
+                                }
                             }
-                            if ($dependency.Count -gt 0) {
-                                $dep = $dependency[0]
-                                if (!(Test-Path (Join-Path $outputFolder $dep.Name))) {
-                                    Copy-Item -Path $dep -Destination $outputFolder -Force
-
-                                    Write-Host "$($spaces)Copied to $($outputFolder)"
-
-                                    Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outputFolder $outputFolder -appsFolder $tempAppDependencyFolder -lvl $lvl
-                                }
-                                else {
-                                    Write-Host "$($spaces)$($dep.Name) exists"
-                                }
-                            } 
-                        }
-                        catch {
-                            Write-Warning "$($spaces) Cannot find the package $($id)"
+                            catch {
+                                Write-Warning "$($spaces) Cannot find the package $($id)"
+                            }
+                        } else {
+                            Write-Warning "$($id) is ignored"
                         }
                     }   
                 }
