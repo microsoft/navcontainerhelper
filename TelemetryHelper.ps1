@@ -65,7 +65,7 @@ function InitTelemetryScope {
         $parameterValues = $null
     )
 
-    if ($bcContainerHelperConfig.TelemetryConnectionString) {
+    if (($telemetryClient) -and ($bcContainerHelperConfig.TelemetryConnectionString)) {
         if ($telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
             $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
             $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
