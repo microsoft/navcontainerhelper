@@ -166,13 +166,16 @@ try {
             throw "The rulesetFile ($rulesetFile) is not shared with the container."
         }
     }
-
+    
+    $CustomCodeCopFiles = @()
     if ($CustomCodeCops.Count -gt 0) {
         $CustomCodeCops | ForEach-Object {
-            $testCustomCopPath = Get-BcContainerPath -containerName $containerName -path $_
-            if ("$testCustomCopPath" -eq "") {
+            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+            if ("$customCopPath" -eq "") {
                 throw "The custom code cop ($_) is not shared with the container."
             }
+
+            $CustomCodeCopFiles += $customCopPath
         }
     }
 
@@ -529,7 +532,7 @@ try {
         if ($lastexitcode -ne 0) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
