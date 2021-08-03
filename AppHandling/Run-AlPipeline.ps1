@@ -104,6 +104,8 @@
   Include this switch to include UI Cop during compilation.
  .Parameter enablePerTenantExtensionCop
   Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+ .Parameter installCustomCops
+  Install custom AL Cops into the container and include them during compilation.
  .Parameter useDefaultAppSourceRuleSet
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
@@ -207,6 +209,7 @@ Param(
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    $installCustomCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
     [string[]] $preProcessorSymbols = @(),
@@ -298,9 +301,11 @@ if ($testFolders                    -is [String]) { $testFolders = @($testFolder
 if ($additionalCountries            -is [String]) { $additionalCountries = @($additionalCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
+if ($installCustomCops              -is [String]) { $installCustomCops = @($installCustomCops.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
+$installCustomCops = @($installCustomCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCops" } | Where-Object { Test-Path $_ } )
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 if (Test-Path $testResultsFile) {
@@ -477,6 +482,8 @@ Write-Host -ForegroundColor Yellow "Application folders"
 if ($appFolders) { $appFolders | ForEach-Object { Write-Host "- $_" } }  else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Test application folders"
 if ($testFolders) { $testFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "Install Custom Cops"
+if ($installCustomCops) { $installCustomCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
