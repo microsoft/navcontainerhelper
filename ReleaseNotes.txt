@@ -6,6 +6,7 @@ Issue #1998 New-BCContainer ERROR: Database Backup File not found. when hosthelp
 Issue #2003 Change GenerateReportLayout default to 'No' in Run-AlValidation and Run-AlCops
 Issue #2006 spelling mistake
 Issue #2014 telemetryclient cannot be initialized
+Issue #2008 Run-ALValidation - InstallApps/SortByDependencies
 
 2.0.14
 Issue #1967 add parameter IncludeApiAccess to Create-AadAppsForBC to ensure that API permissions are only added when needed
