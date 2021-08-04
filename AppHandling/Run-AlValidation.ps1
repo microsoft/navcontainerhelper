@@ -467,18 +467,16 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    $installApps | ForEach-Object{
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-        }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+        "credential" = $credential
+        "appFile" = $installApps
+        "skipVerification" = $true
+        "sync" = $true
+        "install" = $true
     }
+    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 }
