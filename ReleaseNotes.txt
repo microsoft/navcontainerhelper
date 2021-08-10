@@ -1,7 +1,7 @@
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
 New-BcEnvironment should not enumerate companies and users if -doNotWait is specified
-Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
+Issue #1979 Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
 Issue #1998 New-BCContainer ERROR: Database Backup File not found. when hosthelper folder changed
 Issue #2003 Change GenerateReportLayout default to 'No' in Run-AlValidation and Run-AlCops
 Issue #2006 spelling mistake
