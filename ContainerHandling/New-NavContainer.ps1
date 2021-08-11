@@ -974,10 +974,6 @@ try {
         Write-Host "Platform: $platformversion"
     }
 
-    if ($filesOnly -and $version.Major -lt 15) {
-        throw "filesOnly is only supported for Business Central containers version 15.0 and up"
-    }
-
     $genericTag = $inspect.Config.Labels.tag
     Write-Host "Generic Tag: $genericTag"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "GenericTag" -value $genericTag
