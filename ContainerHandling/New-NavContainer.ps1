@@ -1742,6 +1742,8 @@ if (-not `$restartingInstance) {
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     if ($customConfig.ServerInstance) {
+        # Only if not -filesOnly
+
         if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
             Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
@@ -2024,50 +2026,54 @@ if (-not `$restartingInstance) {
                 }
             }
         }
+    }
     
-        if ($includeAL) {
-            $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
-            New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-    
-            Write-Host "Creating .net Assembly Reference Folder for VS Code"
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
-    
-                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-    
-                $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
-    
-                $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
-                if (Test-Path $rtcFolder -PathType Container) {
-                    $paths += (Get-Item $rtcFolder).FullName
+    if ($includeAL) {
+        $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
+        New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+
+            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+
+            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
+
+            $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
+            if (Test-Path $rtcFolder -PathType Container) {
+                $paths += (Get-Item $rtcFolder).FullName
+            }
+            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+            if (Test-Path $mockAssembliesPath -PathType Container) {
+                $paths += $mockAssembliesPath
+            }
+            $paths += "C:\Program Files (x86)\Open XML SDK"
+
+            $paths | % {
+                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                if (!(Test-Path $localPath)) {
+                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
                 }
-                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
-                if (Test-Path $mockAssembliesPath -PathType Container) {
-                    $paths += $mockAssembliesPath
-                }
-                $paths += "C:\Program Files (x86)\Open XML SDK"
-    
-                $paths | % {
-                    $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
-                    if (!(Test-Path $localPath)) {
-                        New-Item -Path $localPath -ItemType Directory -Force | Out-Null
-                    }
-                    Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                    Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
-                        if (!(Test-Path (Join-Path $localPath $_.Name))) {
-                            Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
-                        }
-                    }
-                }
-    
-                $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
-                if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
-                    if (Test-Path $RtcFolder -PathType Container) {
-                        new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
+                Write-Host "Copying DLLs from $_ to assemblyProbingPath"
+                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
+                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
                     }
                 }
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
-        }
-    
+            }
+
+            $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
+            if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
+                if (Test-Path $RtcFolder -PathType Container) {
+                    new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
+                }
+            }
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
+    }
+
+    if ($customConfig.ServerInstance) {
+        # Only if not -filesOnly
+
         if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
             Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential -doNotCopyEntitlements:$doNotCopyEntitlements -copyTables $copyTables
             if ($multitenant) {

@@ -511,7 +511,7 @@ try {
             $alcParameters += @("/nowarn:$nowarn")
         }
 
-        if ($GenerateCrossReferences) {
+        if ($GenerateCrossReferences -and $platformversion.Major -ge 18) {
             $alcParameters += @("/generatecrossreferences")
         }
 
