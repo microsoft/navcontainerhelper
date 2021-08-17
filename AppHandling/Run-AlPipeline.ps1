@@ -1030,24 +1030,39 @@ Write-Host -ForegroundColor Yellow @'
     }
     catch {}
 
-    if ($app -and $applicationInsightsKey) {
-        if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
-            $appJson.applicationInsightsKey = $applicationInsightsKey
+    $bcVersion = [System.Version]$artifactUrl.Split('/')[4]
+    if($app) {
+        if(($appJson.runtime -ge 7.2) -or (!$appJson.runtime -and $bcVersion -ge [System.Version]"18.2")) {
+            if($applicationInsightsConnectionString) {
+                if ($appJson.psobject.Properties.name -eq "applicationInsightsConnectionString") {
+                $appJson.applicationInsightsConnectionString = $applicationInsightsConnectionString
+                }
+                else {
+                    Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsConnectionString" -Value $applicationInsightsConnectionString
+                }
+                $appJsonChanges = $true
+            }
+            else if($applicationInsightsKey) {
+                if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
+                    $appJson.applicationInsightsKey = $applicationInsightsKey
+                }
+                else {
+                    Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
+                }
+                $appJsonChanges = $true
+            }
         }
         else {
-            Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
+            if($applicationInsightsKey) {
+                if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
+                    $appJson.applicationInsightsKey = $applicationInsightsKey
+                }
+                else {
+                    Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
+                }
+                $appJsonChanges = $true
+            }
         }
-        $appJsonChanges = $true
-    }
-    
-    if ($app -and $applicationInsightsConnectionString) {
-        if ($appJson.psobject.Properties.name -eq "applicationInsightsConnectionString") {
-            $appJson.applicationInsightsConnectionString = $applicationInsightsConnectionString
-        }
-        else {
-            Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsConnectionString" -Value $applicationInsightsConnectionString
-        }
-        $appJsonChanges = $true
     }
 
     if ($appJsonChanges) {
