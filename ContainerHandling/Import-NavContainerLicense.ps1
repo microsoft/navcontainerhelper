@@ -22,7 +22,7 @@ function Import-BcContainerLicense {
         [switch] $restart
     )
 
-    $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license.flf"
+    $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license$([System.IO.Path]::GetExtension($licenseFile))"
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         Write-Host "Downloading license file '$licensefile' to container"
         (New-Object System.Net.WebClient).DownloadFile($licensefile, $containerlicensefile)
