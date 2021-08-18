@@ -1331,7 +1331,7 @@ try {
         } elseif ($licensefile -like "https://*" -or $licensefile -like "http://*") {
             Write-Host "Using license file $($licenseFile.Split('?')[0])"
             $licensefileUri = $licensefile
-            if ($licenseFile.Split('?')[0]  -like '*.bclicense') { $ext = '.bclicense' } else { $ext = '.flf' }
+            $ext = [System.IO.Path]::GetExtension($licenseFile.Split('?')[0])
             $licenseFile = "$myFolder\license$ext"
             Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
             $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
