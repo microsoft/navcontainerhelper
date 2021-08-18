@@ -81,6 +81,7 @@ function Get-ContainerHelperConfig {
                 "th" = "w1"
                 "tn" = "w1"
                 "tw" = "w1"
+                "ua" = "w1"
                 "vn" = "w1"
                 "za" = "w1"
             }
