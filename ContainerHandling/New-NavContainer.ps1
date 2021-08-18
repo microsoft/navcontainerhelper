@@ -1331,7 +1331,8 @@ try {
         } elseif ($licensefile -like "https://*" -or $licensefile -like "http://*") {
             Write-Host "Using license file $($licenseFile.Split('?')[0])"
             $licensefileUri = $licensefile
-            $licenseFile = "$myFolder\license.flf"
+            if ($licenseFile.Split('?')[0]  -like '*.bclicense') { $ext = '.bclicense' } else { $ext = '.flf' }
+            $licenseFile = "$myFolder\license$ext"
             Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
             $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
             $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
@@ -1339,11 +1340,12 @@ try {
                 Remove-Item -Path $licenseFile -Force
                 throw "Specified license file Uri isn't a direct download Uri"
             }
-            $containerLicenseFile = "c:\run\my\license.flf"
+            $containerLicenseFile = "c:\run\my\license$ext"
         } else {
             Write-Host "Using license file $licenseFile"
-            Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
-            $containerLicenseFile = "c:\run\my\license.flf"
+            $ext = [System.IO.Path]::GetExtension($licenseFile)
+            Copy-Item -Path $licenseFile -Destination "$myFolder\license$ext" -Force
+            $containerLicenseFile = "c:\run\my\license$ext"
         }
         $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
     }
