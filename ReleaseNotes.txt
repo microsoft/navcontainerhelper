@@ -1,5 +1,9 @@
 2.0.16
 Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
+Add ApplicationInsightsConnectionString to Run-AlPipeline to support new app.json property. This value will be used instead of ApplicationInsightsKey if runtime >= 7.2 or bcVersion >= 18.2. (Thanks TheNCuber)
+Support different extension on license files (thanks SBalslev)
+Map Ukraine to w1 in mapCountryCode, allowing to create ua containers (thanks Sergeyol)
+Add parameter CustomCodeCops to Run-AlPipeline and Compile-AppInBcContainer to allow for specifying custom code cops (thanks jfamvg)
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
