@@ -233,7 +233,7 @@ function Get-BestGenericImageName {
             if (-not $onlyMatchingBuilds) {
                 if ($hostOsVersion.Build -eq 19043) {
                     # 21H1 doesn't work well with 20H2 servercore images - grab 2004 if no corresponding image exists
-                    Write-Host -ForegroundColor Yellow "INFO: Windows 10 21H1 images are not yet available, use 2004 as these are found to work better than 20H2 on 21H1"
+                    Write-Host -ForegroundColor Yellow "INFO: Windows 10 21H1 images are not yet available, using 2004 as these are found to work better than 20H2 on 21H1"
                     $myversions = $versions | Where-Object { $_.Build -eq 19041 } | Sort-Object
                 }
                 else {

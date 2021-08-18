@@ -386,9 +386,10 @@ function New-BcImage {
         
                 $licenseFilePath = ""
                 if ($licenseFile) {
-                    $licenseFilePath = Join-Path $myFolder "license.flf"
                     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-                        Write-Host "Using license file $licenseFile"
+                        Write-Host "Using license file $($licenseFile.Split('?')[0])"
+                        $ext = [System.IO.Path]::GetExtension($licenseFile.Split('?')[0])
+                        $licenseFilePath = Join-Path $myFolder "license$ext"
                         Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
                         $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
                         $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)

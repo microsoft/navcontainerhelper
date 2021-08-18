@@ -1,3 +1,6 @@
+2.0.16
+Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
+
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
 New-BcEnvironment should not enumerate companies and users if -doNotWait is specified
