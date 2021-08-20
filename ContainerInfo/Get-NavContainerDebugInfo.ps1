@@ -45,66 +45,75 @@ function Get-BcContainerDebugInfo {
         [switch] $CopyToClipboard
     )
 
-    Process {
-        $debugInfo = @{}
-        $inspect = docker inspect $containerName | ConvertFrom-Json
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
 
-        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-            throw "Container $containerName is not a NAV/BC container"
-        }
-        
-        $debugInfo.Add('container.labels', $inspect.Config.Labels)
-        
-        if (!$ExcludeEnvVars) {
-            $envs = $inspect.Config.Env.GetEnumerator() | ForEach-Object {
-                if ($includeSensitiveInformation) {
-                    $_
-                } elseif ($_.ToLowerInvariant().Contains("password=") -or 
-                          $_.ToLowerInvariant().Startswith("navdvdurl=") -or 
-                          $_.ToLowerInvariant().Startswith("countryurl=") -or 
-                          $_.ToLowerInvariant().Startswith("licensefile=") -or 
-                          $_.ToLowerInvariant().Startswith("bakfile=") -or 
-                          $_.ToLowerInvariant().Startswith("folders=") -or 
-                          $_.ToLowerInvariant().Startswith("vsixurl=")) {
-                    ($_.Split("=")[0] + "=<specified>")
-                } else {
-                    $_
-                }
-            }
-            if ($envs) {
-                $debugInfo.Add('container.env', $envs)
-            }
-        }
+    $debugInfo = @{}
+    $inspect = docker inspect $containerName | ConvertFrom-Json
 
-        if (!$ExcludeDockerInfo) {
-            $dockerInfo = docker info
-            if ($dockerInfo) {
-                $debugInfo.Add('docker.info', $dockerInfo)
-            }
-        }
-
-        if (!$ExcludeDockerLogs) {
-            $logs = docker logs $containerName
-            if ($logs) {
-                $debugInfo.Add('container.logs', $logs)
-            }
-        }
-
-        if (!$ExcludePing) {
-            $ping = ping $containerName
-            if ($ping) {
-                $debugInfo.Add('container.ping', $ping)
-            }
-        }
-
-        $debugInfoJson = ConvertTo-Json $debugInfo
-
-        if ($CopyToClipboard) {
-            $debugInfoJson | Set-Clipboard
-        }
-        
-        return $debugInfoJson
+    if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
+        throw "Container $containerName is not a NAV/BC container"
     }
+    
+    $debugInfo.Add('container.labels', $inspect.Config.Labels)
+    
+    if (!$ExcludeEnvVars) {
+        $envs = $inspect.Config.Env.GetEnumerator() | ForEach-Object {
+            if ($includeSensitiveInformation) {
+                $_
+            } elseif ($_.ToLowerInvariant().Contains("password=") -or 
+                      $_.ToLowerInvariant().Startswith("navdvdurl=") -or 
+                      $_.ToLowerInvariant().Startswith("countryurl=") -or 
+                      $_.ToLowerInvariant().Startswith("licensefile=") -or 
+                      $_.ToLowerInvariant().Startswith("bakfile=") -or 
+                      $_.ToLowerInvariant().Startswith("folders=") -or 
+                      $_.ToLowerInvariant().Startswith("vsixurl=")) {
+                ($_.Split("=")[0] + "=<specified>")
+            } else {
+                $_
+            }
+        }
+        if ($envs) {
+            $debugInfo.Add('container.env', $envs)
+        }
+    }
+
+    if (!$ExcludeDockerInfo) {
+        $dockerInfo = docker info
+        if ($dockerInfo) {
+            $debugInfo.Add('docker.info', $dockerInfo)
+        }
+    }
+
+    if (!$ExcludeDockerLogs) {
+        $logs = docker logs $containerName
+        if ($logs) {
+            $debugInfo.Add('container.logs', $logs)
+        }
+    }
+
+    if (!$ExcludePing) {
+        $ping = ping $containerName
+        if ($ping) {
+            $debugInfo.Add('container.ping', $ping)
+        }
+    }
+
+    $debugInfoJson = ConvertTo-Json $debugInfo
+
+    if ($CopyToClipboard) {
+        $debugInfoJson | Set-Clipboard
+    }
+    
+    return $debugInfoJson
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerDebugInfo -Value Get-BcContainerDebugInfo
 Export-ModuleMember -Function Get-BcContainerDebugInfo -Alias Get-NavContainerDebugInfo

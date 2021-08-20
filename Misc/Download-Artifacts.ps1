@@ -33,7 +33,7 @@ function Download-Artifacts {
         [int]    $timeout = 300
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl")
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl","includePlatform")
 try {
 
     if ($basePath -eq "") {

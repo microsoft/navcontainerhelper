@@ -8,6 +8,9 @@ function Install-AzDevops {
     Param(
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Try {
         az upgrade
     } catch {
@@ -26,5 +29,13 @@ function Install-AzDevops {
     if ($devopsFound -eq $False){
         az extension add -n azure-devops
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Install-AzDevops

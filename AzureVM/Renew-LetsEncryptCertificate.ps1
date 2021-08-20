@@ -27,6 +27,9 @@ function Renew-LetsEncryptCertificate {
         [string] $dnsAlias = "dnsAlias"
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
     Import-Module ACME-PS
 
@@ -87,5 +90,13 @@ function Renew-LetsEncryptCertificate {
     # As soon as the url shows up we can create the PFX
     Write-Host "Exporting certificate to $certificatePfxFilename"
     Export-ACMECertificate $state -Order $order -CertificateKey $certKey -Path $certificatePfxFilename -Password $certificatePfxPassword
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Renew-LetsEncryptCertificate

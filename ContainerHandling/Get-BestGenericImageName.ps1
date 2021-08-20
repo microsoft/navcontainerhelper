@@ -13,6 +13,9 @@ function Get-BestGenericImageName {
         [switch] $filesOnly
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($hostOsVersion -eq $null) {
         $os = (Get-CimInstance Win32_OperatingSystem)
         if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
@@ -250,5 +253,13 @@ function Get-BestGenericImageName {
         }
         $genericImageName
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Get-BestGenericImageName

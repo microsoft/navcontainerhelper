@@ -17,13 +17,22 @@ function Get-BcContainerGenericTag {
         [string] $containerOrImageName
     )
 
-    Process {
-        $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('tag').Count -eq 0) {
-            throw "Container $containerOrImageName is not a NAV/BC container"
-        }
-        return "$($inspect.Config.Labels.tag)"
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
+    $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('tag').Count -eq 0) {
+        throw "Container $containerOrImageName is not a NAV/BC container"
     }
+    return "$($inspect.Config.Labels.tag)"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerGenericTag -Value Get-BcContainerGenericTag
 Export-ModuleMember -Function Get-BcContainerGenericTag -Alias Get-NavContainerGenericTag

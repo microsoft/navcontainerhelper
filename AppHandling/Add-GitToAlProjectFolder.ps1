@@ -36,6 +36,7 @@ try {
     Write-Host "Committing files"
     & git commit -m $commitMessage --quiet
     Set-Location $oldLocation
+
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
