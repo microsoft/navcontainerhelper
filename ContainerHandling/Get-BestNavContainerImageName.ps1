@@ -15,6 +15,9 @@ function Get-BestBcContainerImageName {
         [string] $imageName
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if (!(
           $imagename.EndsWith('-ltsc2016') -or
           $imagename.EndsWith('-1709') -or
@@ -55,6 +58,14 @@ function Get-BestBcContainerImageName {
     }
     
     $imageName
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-BestNavContainerImageName -Value Get-BestBcContainerImageName
 Export-ModuleMember -Function Get-BestBcContainerImageName -Alias Get-BestNavContainerImageName

@@ -16,16 +16,25 @@ function Get-BcContainerArtifactUrl {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-    Process {
-        $inspect = docker inspect $containerName | ConvertFrom-Json
-        $artifactUrlEnv = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
-        if ($artifactUrlEnv) {
-            return $artifactUrlEnv.SubString("artifactUrl=".Length)
-        }
-        else {
-            return ""
-        }
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
+    $inspect = docker inspect $containerName | ConvertFrom-Json
+    $artifactUrlEnv = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
+    if ($artifactUrlEnv) {
+        return $artifactUrlEnv.SubString("artifactUrl=".Length)
     }
+    else {
+        return ""
+    }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerArtifactUrl -Value Get-BcContainerArtifactUrl
 Export-ModuleMember -Function Get-BcContainerArtifactUrl -Alias Get-NavContainerArtifactUrl

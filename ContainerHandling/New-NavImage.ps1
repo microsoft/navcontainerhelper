@@ -49,6 +49,9 @@ function New-BcImage {
         $allImages
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($memory -eq "") {
         $memory = "8G"
     }
@@ -579,6 +582,14 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
     finally {
         $buildMutex.ReleaseMutex()
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name New-NavImage -Value New-BcImage
 Export-ModuleMember -Function New-BcImage -Alias New-NavImage

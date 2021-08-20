@@ -34,6 +34,9 @@ function Replace-BcServerContainer {
         [hashtable] $bcAuthContext
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $SetupBcContainerScript = "C:\DEMO\Setup*Container.ps1"
     $setupDesktopScript = "C:\DEMO\SetupDesktop.ps1"
     $settingsScript = "C:\DEMO\settings.ps1"
@@ -121,6 +124,14 @@ function Replace-BcServerContainer {
     Write-Host -ForegroundColor Green "Setup new Container"
     . $SetupBcContainerScript
     . $setupDesktopScript
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Replace-NavServerContainer -Value Replace-BcServerContainer
 Export-ModuleMember -Function Replace-BcServerContainer -Alias Replace-NavServerContainer

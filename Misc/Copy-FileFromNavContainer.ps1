@@ -21,38 +21,38 @@ function Copy-FileFromBcContainer {
         [string] $localPath = $containerPath
     )
 
-    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
+    if (!(Test-BcContainer -containerName $containerName)) {
+        throw "Container $containerName does not exist"
+    }
+    Write-Host "Copy from container $containerName ($containerPath) to $localPath"
+    $id = Get-BcContainerId -containerName $containerName 
+
+    # running hyperv containers doesn't support docker cp
+    $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
     try {
-
-        if (!(Test-BcContainer -containerName $containerName)) {
-            throw "Container $containerName does not exist"
+        if (Test-Path $localPath -PathType Container) {
+            throw "localPath ($localPath) already exists as a folder. Cannot copy file, LocalPath needs to specify a filename."
         }
-        Write-Host "Copy from container $containerName ($containerPath) to $localPath"
-        $id = Get-BcContainerId -containerName $containerName 
-
-        # running hyperv containers doesn't support docker cp
-        $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
-        try {
-            if (Test-Path $localPath -PathType Container) {
-                throw "localPath ($localPath) already exists as a folder. Cannot copy file, LocalPath needs to specify a filename."
-            }
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($containerPath, $tempFile)
-                Copy-Item -Path $containerPath -Destination $tempFile
-            } -argumentList $containerPath, (Get-BcContainerPath -containerName $containerName -Path $tempFile)
-            Move-Item -Path $tempFile -Destination $localPath -Force
-        } finally {
-            if (Test-Path $tempFile) {
-                Remove-Item $tempFile -ErrorAction Ignore
-            }
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($containerPath, $tempFile)
+            Copy-Item -Path $containerPath -Destination $tempFile
+        } -argumentList $containerPath, (Get-BcContainerPath -containerName $containerName -Path $tempFile)
+        Move-Item -Path $tempFile -Destination $localPath -Force
+    } finally {
+        if (Test-Path $tempFile) {
+            Remove-Item $tempFile -ErrorAction Ignore
         }
     }
-    catch {
-        TrackException -telemetryScope $telemetryScope -errorRecord $_
-        throw
-    }
-    finally {
-        TrackTrace -telemetryScope $telemetryScope
-    }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Copy-FileFromNavContainer -Value Copy-FileFromBcContainer
 Export-ModuleMember -Function Copy-FileFromBcContainer -Alias Copy-FileFromNavContainer

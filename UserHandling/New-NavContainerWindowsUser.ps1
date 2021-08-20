@@ -22,25 +22,25 @@ function New-BcContainerWindowsUser {
         [string] $group = "administrators"
     )
 
-    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-    try {
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$group)
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([System.Management.Automation.PSCredential]$Credential, [string]$group)
 
-            Write-Host "Creating Windows user $($Credential.username)"
-            New-LocalUser -AccountNeverExpires -FullName $Credential.username -Name $Credential.username -Password $Credential.Password | Out-Null
-            Write-Host "Adding Windows user $($Credential.username) to $group"
-            Add-LocalGroupMember -Group $group -Member $Credential.username -ErrorAction Ignore
-                        
-        } `
-        -ArgumentList $Credential, $group
-    }
-    catch {
-        TrackException -telemetryScope $telemetryScope -errorRecord $_
-        throw
-    }
-    finally {
-        TrackTrace -telemetryScope $telemetryScope
-    }
+        Write-Host "Creating Windows user $($Credential.username)"
+        New-LocalUser -AccountNeverExpires -FullName $Credential.username -Name $Credential.username -Password $Credential.Password | Out-Null
+        Write-Host "Adding Windows user $($Credential.username) to $group"
+        Add-LocalGroupMember -Group $group -Member $Credential.username -ErrorAction Ignore
+                    
+    } `
+    -ArgumentList $Credential, $group
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name New-NavContainerWindowsUser -Value New-BcContainerWindowsUser
 Export-ModuleMember -Function New-BcContainerWindowsUser -Alias New-NavContainerWindowsUser

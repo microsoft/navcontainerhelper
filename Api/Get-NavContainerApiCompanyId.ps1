@@ -30,7 +30,7 @@ function Get-BcContainerApiCompanyId {
         [switch] $silent
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("accept_eula")
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("")
 try {
 
     if (!($CompanyName)) {

@@ -18,13 +18,21 @@ function Get-BcContainerEula {
         [string] $containerOrImageName
     )
 
-    Process {
-        $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-            throw "Container $containerOrImageName is not a NAV/BC container"
-        }
-        return "$($inspect.Config.Labels.Eula)"
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+    $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
+        throw "Container $containerOrImageName is not a NAV/BC container"
     }
+    return "$($inspect.Config.Labels.Eula)"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerEula -Value Get-BcContainerEula
 Export-ModuleMember -Function Get-BcContainerEula -Alias Get-NavContainerEula

@@ -479,6 +479,7 @@ try {
    	}
     Write-Host "Docker Client Version is $dockerClientVersion"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value $dockerClientVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value 55
 
     $myClientVersion = [System.Version]"0.0.0"
     if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {

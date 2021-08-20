@@ -13,6 +13,8 @@ Function Get-BcContainerServerConfiguration {
         [String] $ContainerName = $bcContainerHelperConfig.defaultContainerName
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
     $ResultObjectArray = @()
     $config = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
         Get-NavServerInstance | Get-NAVServerConfiguration -AsXml
@@ -34,6 +36,14 @@ Function Get-BcContainerServerConfiguration {
     $ResultObjectArray += $Object
     
     Write-Output $ResultObjectArray
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerServerConfiguration -Value Get-BcContainerServerConfiguration
 Export-ModuleMember -Function Get-BcContainerServerConfiguration -Alias Get-NavContainerServerConfiguration

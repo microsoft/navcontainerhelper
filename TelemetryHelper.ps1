@@ -53,8 +53,13 @@ function AddTelemetryProperty {
     )
 
     if ($telemetryScope) {
-        Write-Host "Telemetry scope $($telemetryScope.Name), add property $key = $((FormatValue -value $value))"
-        $telemetryScope.properties.Add($key, (FormatValue -value $value))
+#        Write-Host "Telemetry scope $($telemetryScope.Name), add property $key = $((FormatValue -value $value))"
+        if ($telemetryScope.properties.ContainsKey($Key)) {
+            $telemetryScope.properties."$key" += "`n$(FormatValue -value $value)"
+        }
+        else {
+            $telemetryScope.properties.Add($key, (FormatValue -value $value))
+        }
     }
 }
 
@@ -64,13 +69,19 @@ function InitTelemetryScope {
         [string[]] $includeParameters = @(),
         $parameterValues = $null
     )
-
     if ($telemetryClient) {
         if ($bcContainerHelperConfig.TelemetryConnectionString) {
-            if ($telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
-                $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
-                $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
-                Write-Host "Telemetry client initialized"
+            if ($telemetryClient.TelemetryConfiguration.DisableTelemetry -or $telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
+                if ($bcContainerHelperConfig.TelemetryConnectionString) {
+                    try {
+                        $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
+                        $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
+                        Write-Host "Telemetry client initialized"
+                    }
+                    catch {
+                        $telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+                    }
+                }
             }
             if ($telemetryClient.IsEnabled()) {
                 Write-Host "Init telemetry scope $name"

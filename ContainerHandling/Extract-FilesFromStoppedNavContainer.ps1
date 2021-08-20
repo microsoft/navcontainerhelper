@@ -24,6 +24,9 @@ function Extract-FilesFromStoppedBcContainer {
         [switch] $force
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
     if ($artifactUrl) {
         throw "Extract-FilesFromStoppedBcContainer doesn't support containers based on artifacts."
@@ -204,6 +207,14 @@ function Extract-FilesFromStoppedBcContainer {
     if ($startContainer) {
         Start-BcContainer -containerName $containerName
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Extract-FilesFromStoppedNavContainer -Value Extract-FilesFromStoppedBcContainer
 Export-ModuleMember -Function Extract-FilesFromStoppedBcContainer -Alias Extract-FilesFromStoppedNavContainer

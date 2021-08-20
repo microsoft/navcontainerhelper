@@ -31,6 +31,9 @@ function Set-BcContainerKeyVaultAadAppAndCertificate {
         [switch] $doNotRestartServiceTier
     )
     
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $ExtensionsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions"
     $containerPfxFile = Join-Path $ExtensionsFolder "$containerName\my\certificate.pfx"
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
@@ -70,5 +73,13 @@ function Set-BcContainerKeyVaultAadAppAndCertificate {
             Set-NAVServerInstance -ServerInstance $serverInstance -Restart
         }
     } -argumentList $containerPfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Set-BcContainerKeyVaultAadAppAndCertificate
