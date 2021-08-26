@@ -479,7 +479,6 @@ try {
    	}
     Write-Host "Docker Client Version is $dockerClientVersion"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value $dockerClientVersion
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value 55
 
     $myClientVersion = [System.Version]"0.0.0"
     if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
@@ -1738,9 +1737,6 @@ if (-not `$restartingInstance) {
     } finally {
         Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
     }
-
-    $dockerLogs = docker logs $containerName
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerLogs" -value ($dockerlogs -join "`n")
 
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName

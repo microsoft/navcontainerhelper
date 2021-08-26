@@ -44,6 +44,8 @@
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use . to specify that you want to use the AL Language extension from the container spun up for validation
+  Default is to use the latest AL Language extension from Marketplace for non-insider containers and the Language extension in the container for insider containers
  .Parameter skipVerification
   Include this parameter to skip verification of code signing certificate. Note that you cannot request Microsoft to set this parameter when validating for AppSource.
  .Parameter skipUpgrade
@@ -93,7 +95,7 @@ Param(
     $countries,
     $affixes = @(),
     $supportedCountries = @(),
-    [string] $vsixFile,
+    [string] $vsixFile = "",
     [switch] $skipVerification,
     [switch] $skipUpgrade,
     [switch] $skipAppSourceCop,
@@ -235,6 +237,8 @@ $validateCountries = @($countries | ForEach-Object {
     }
 } | Select-Object -Unique)
 $supportedCountries = @($supportedCountries | Where-Object { $_ } | ForEach-Object { getCountryCode -countryCode $_ })
+
+$latestAlLanguageUrl = Get-LatestAlLanguageExtensionUrl
 
 Write-Host -ForegroundColor Yellow @'
   _____                               _                
@@ -419,6 +423,21 @@ Measure-Command {
     $artifactUrl = $artifactUrl.Replace("/$($artifactSegments[4])/$($artifactSegments[5])","/$($artifactSegments[4])/$validateCountry")
     Write-Host -ForegroundColor Yellow "Creating container for country $validateCountry"
 
+    if ($vsixFile -eq ".") {
+        $useVsix = ""
+    }
+    elseif ($vsixFile -eq "") {
+        if (($artifactSegments[2] -like "bcinsider.*") -or ($artifactSegments[2] -like "bcpublicpreview.*")) {
+            $useVsix = ""
+        }
+        else {
+            $useVsix = $latestAlLanguageUrl
+        }
+    }
+    else {
+        $useVsix = $vsixFile
+    }
+
     $Parameters = @{
         "accept_eula" = $true
         "containerName" = $containerName
@@ -428,7 +447,7 @@ Measure-Command {
         "Credential" = $credential
         "auth" = 'UserPassword'
         "updateHosts" = $true
-        "vsixFile" = $vsixFile
+        "vsixFile" = $useVsix
         "licenseFile" = $licenseFile
         "EnableTaskScheduler" = $true
         "Multitenant" = $multitenant
@@ -714,10 +733,13 @@ Write-Host -ForegroundColor Red @'
 '@
 
 if ($throwOnError) {
-    ($validationResult -join "`n") | Write-Error
+    throw ($validationResult -join "`n")
 }
 else {
     $validationResult
+
+    $exception = New-Object System.Exception -ArgumentList ($validationResult -join "`n")
+    TrackException -telemetryScope $telemetryScope -exception $exception
 }
 
 }
