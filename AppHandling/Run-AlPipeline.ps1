@@ -1103,23 +1103,18 @@ Write-Host -ForegroundColor Yellow @'
                 Write-Host "Copying previous apps to packages folder"
                 $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
 
-                $previousApps = Sort-AppFilesByDependencies -appFiles $appList
+                $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName;
                 $previousApps | ForEach-Object {
                     $appFile = $_
-                    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-                    try {
-                        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
-                        $xappJsonFile = Join-Path $tmpFolder "app.json"
-                        $xappJson = Get-Content $xappJsonFile | ConvertFrom-Json
-                        Write-Host "$($xappJson.Publisher)_$($xappJson.Name) = $($xappJson.Version)"
-                        $previousAppVersions += @{ "$($xappJson.Publisher)_$($xappJson.Name)" = $xappJson.Version }
-                    }
-                    catch {
-                        throw "Cannot use previous app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
-                    }
-                    finally {
-                        Remove-Item $tmpFolder -Recurse -Force
-                    }
+
+                    $xappJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                        param($appFile)
+
+                        Get-NavAppInfo -Path $appFile;
+                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile);
+
+                    Write-Host "$($xappJson.Publisher)_$($xappJson.Name) = $($xappJson.Version.ToString())"
+                    $previousAppVersions += @{ "$($xappJson.Publisher)_$($xappJson.Name)" = $xappJson.Version.ToString() }
                 }
             }
         }
@@ -1682,4 +1677,3 @@ finally {
 }
 }
 Export-ModuleMember -Function Run-AlPipeline
-
