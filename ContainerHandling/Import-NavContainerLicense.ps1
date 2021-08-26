@@ -22,7 +22,10 @@ function Import-BcContainerLicense {
         [switch] $restart
     )
 
-    $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license.flf"
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
+    $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license$([System.IO.Path]::GetExtension($licenseFile))"
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         Write-Host "Downloading license file '$licensefile' to container"
         (New-Object System.Net.WebClient).DownloadFile($licensefile, $containerlicensefile)
@@ -61,6 +64,14 @@ function Import-BcContainerLicense {
         }
     
     }  -ArgumentList (Get-BcContainerPath -ContainerName $containerName -Path $containerLicenseFile), $restart
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Import-NavContainerLicense -Value Import-BcContainerLicense
 Export-ModuleMember -Function Import-BcContainerLicense -Alias Import-NavContainerLicense

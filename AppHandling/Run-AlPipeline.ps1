@@ -48,6 +48,8 @@
   Revision number for build. Will be stamped into the revision part of the app.json version number property.
  .Parameter applicationInsightsKey
   ApplicationInsightsKey to be stamped into app.json for all apps
+ .Parameter applicationInsightsConnectionString
+  ApplicationInsightsConnectionString to be stamped into app.json for all apps
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter testResultsFormat
@@ -104,6 +106,8 @@
   Include this switch to include UI Cop during compilation.
  .Parameter enablePerTenantExtensionCop
   Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+ .Parameter customCodeCops
+  Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
@@ -176,6 +180,7 @@ Param(
     [int] $appBuild = 0,
     [int] $appRevision = 0,
     [string] $applicationInsightsKey,
+    [string] $applicationInsightsConnectionString,
     [string] $testResultsFile = "TestResults.xml",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
@@ -207,6 +212,7 @@ Param(
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
     [string[]] $preProcessorSymbols = @(),
@@ -298,9 +304,11 @@ if ($testFolders                    -is [String]) { $testFolders = @($testFolder
 if ($additionalCountries            -is [String]) { $additionalCountries = @($additionalCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
+if ($customCodeCops                 -is [String]) { $customCodeCops = @($customCodeCops.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
+$customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { Test-Path $_ } )
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 if (Test-Path $testResultsFile) {
@@ -477,6 +485,8 @@ Write-Host -ForegroundColor Yellow "Application folders"
 if ($appFolders) { $appFolders | ForEach-Object { Write-Host "- $_" } }  else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Test application folders"
 if ($testFolders) { $testFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "Custom CodeCops"
+if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
@@ -973,6 +983,13 @@ Write-Host -ForegroundColor Yellow @'
             "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
             "failOn" = $failOn
         }
+
+        if ($customCodeCops.Count -gt 0) {
+            $CopParameters += @{
+                "CustomCodeCops" = $customCodeCops
+            }
+        }
+
         if ("$rulesetFile" -ne "" -or $useDefaultAppSourceRuleSet) {
             if ($useDefaultAppSourceRuleSet) {
                 Write-Host "Creating ruleset for pipeline"
@@ -1027,14 +1044,28 @@ Write-Host -ForegroundColor Yellow @'
     }
     catch {}
 
-    if ($app -and $applicationInsightsKey) {
-        if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
-            $appJson.applicationInsightsKey = $applicationInsightsKey
+    $bcVersion = [System.Version]$artifactUrl.Split('/')[4]
+    if($app) {
+        $runtime = -1
+        if ($appJson.psobject.Properties.name -eq "runtime") { $runtime = [double]$appJson.runtime }
+        if(($applicationInsightsConnectionString) -and (($runtime -ge 7.2) -or (($runtime -eq -1) -and ($bcVersion -ge [System.Version]"18.2")))) {
+            if ($appJson.psobject.Properties.name -eq "applicationInsightsConnectionString") {
+                $appJson.applicationInsightsConnectionString = $applicationInsightsConnectionString
+            }
+            else {
+                Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsConnectionString" -Value $applicationInsightsConnectionString
+            }
+            $appJsonChanges = $true
         }
-        else {
-            Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
+        elseif($applicationInsightsKey) {
+            if ($appJson.psobject.Properties.name -eq "applicationInsightskey") {
+                $appJson.applicationInsightsKey = $applicationInsightsKey
+            }
+            else {
+                Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
+            }
+            $appJsonChanges = $true
         }
-        $appJsonChanges = $true
     }
 
     if ($appJsonChanges) {

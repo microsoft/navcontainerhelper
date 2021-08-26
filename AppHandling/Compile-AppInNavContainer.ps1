@@ -36,6 +36,8 @@
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
+ .Parameter CustomCodeCops
+  Add custom AL code Cops when compiling apps.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning
  .Parameter nowarn
@@ -88,6 +90,7 @@ function Compile-AppInBcContainer {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
         [string[]] $preProcessorSymbols = @(),
@@ -161,6 +164,18 @@ try {
         $containerRulesetFile = Get-BcContainerPath -containerName $containerName -path $rulesetFile
         if ("$containerRulesetFile" -eq "") {
             throw "The rulesetFile ($rulesetFile) is not shared with the container."
+        }
+    }
+    
+    $CustomCodeCopFiles = @()
+    if ($CustomCodeCops.Count -gt 0) {
+        $CustomCodeCops | ForEach-Object {
+            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+            if ("$customCopPath" -eq "") {
+                throw "The custom code cop ($_) is not shared with the container."
+            }
+
+            $CustomCodeCopFiles += $customCopPath
         }
     }
 
@@ -452,7 +467,7 @@ try {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $generateReportLayoutParam, $features, $preProcessorSymbols )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $generateReportLayoutParam, $features, $preProcessorSymbols )
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -484,6 +499,10 @@ try {
             $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
+        if ($CustomCodeCops.Count -gt 0) {
+            $CustomCodeCops | ForEach-Object { $alcParameters += @("/analyzer:$_") }
+        }
+
         if ($rulesetFile) {
             $alcParameters += @("/ruleset:$rulesetfile")
         }
@@ -492,7 +511,7 @@ try {
             $alcParameters += @("/nowarn:$nowarn")
         }
 
-        if ($GenerateCrossReferences) {
+        if ($GenerateCrossReferences -and $platformversion.Major -ge 18) {
             $alcParameters += @("/generatecrossreferences")
         }
 
@@ -510,10 +529,10 @@ try {
 
         & .\alc.exe $alcParameters
         
-        if ($lastexitcode -ne 0) {
+        if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'

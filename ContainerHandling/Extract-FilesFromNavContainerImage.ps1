@@ -24,10 +24,8 @@ function Extract-FilesFromBcContainerImage {
         [switch] $force
     )
 
-#    $artifactUrl = Get-BcContainerArtifactUrl -containerName $imageName
-#    if ($artifactUrl) {
-#        throw "Extract-FilesFromBcContainerImage doesn't support images based on artifacts."
-#    }
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
 
     $ErrorActionPreference = 'Continue'
 
@@ -46,6 +44,14 @@ function Extract-FilesFromBcContainerImage {
     docker rm $containerName 2>$null | Out-null
 
     $ErrorActionPreference = 'Stop'
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Extract-FilesFromNavContainerImage -Value Extract-FilesFromBcContainerImage
 Export-ModuleMember -Function Extract-FilesFromBcContainerImage -Alias Extract-FilesFromNavContainerImage

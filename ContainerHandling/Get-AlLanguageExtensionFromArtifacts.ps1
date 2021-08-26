@@ -11,6 +11,9 @@ function Get-AlLanguageExtensionFromArtifacts {
         [string] $artifactUrl
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $paths = Download-Artifacts $artifactUrl -includePlatform
     $vsixFile = Get-Item -Path (Join-Path $paths[1] "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment\*.vsix")
     if ($vsixFile) {
@@ -19,5 +22,13 @@ function Get-AlLanguageExtensionFromArtifacts {
     else {
         throw "Unable to locate AL Language Extension from artifacts $($artifactUrl.Split('?')[0])"
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Get-AlLanguageExtensionFromArtifacts

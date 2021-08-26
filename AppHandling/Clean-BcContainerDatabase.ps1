@@ -56,8 +56,12 @@ try {
     }
 
     $myFolder = Join-Path $ExtensionsFolder "$containerName\my"
-    if (!(Test-Path "$myFolder\license.flf")) {
-        throw "Container must be started with a developer license to perform this operation"
+    $licenseFile = @(Get-Item "$myFolder\license.*")
+    if ($licenseFile.Count -eq 0) {
+        throw "Container must be started with a developer license to perform this operation."
+    }
+    elseif ($licenseFile.Count -lt 1) {
+        throw "There can only be one license file in the my folder to perform this operation."
     }
 
     $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -162,7 +166,7 @@ try {
         } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables, ($customconfig.Multitenant -eq "True")
         
         Write-Host "Importing license file"
-        Import-BcContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
+        Import-BcContainerLicense -containerName $containerName -licenseFile $licenseFile[0].FullName
         
         Write-Host "Publishing System Symbols"
         Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification -ignoreIfAppExists

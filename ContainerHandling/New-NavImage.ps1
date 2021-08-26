@@ -49,6 +49,9 @@ function New-BcImage {
         $allImages
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($memory -eq "") {
         $memory = "8G"
     }
@@ -386,9 +389,10 @@ function New-BcImage {
         
                 $licenseFilePath = ""
                 if ($licenseFile) {
-                    $licenseFilePath = Join-Path $myFolder "license.flf"
                     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-                        Write-Host "Using license file $licenseFile"
+                        Write-Host "Using license file $($licenseFile.Split('?')[0])"
+                        $ext = [System.IO.Path]::GetExtension($licenseFile.Split('?')[0])
+                        $licenseFilePath = Join-Path $myFolder "license$ext"
                         Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
                         $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
                         $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
@@ -578,6 +582,14 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
     finally {
         $buildMutex.ReleaseMutex()
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name New-NavImage -Value New-BcImage
 Export-ModuleMember -Function New-BcImage -Alias New-NavImage

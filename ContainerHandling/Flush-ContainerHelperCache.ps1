@@ -25,6 +25,9 @@ function Flush-ContainerHelperCache {
         [int] $keepDays = 0
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $caches = $cache.ToLowerInvariant().Split(',')
 
     $folders = @()
@@ -148,5 +151,13 @@ function Flush-ContainerHelperCache {
         docker image prune -f > $null
         Write-Host "Completed"
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Flush-ContainerHelperCache

@@ -53,8 +53,13 @@ function AddTelemetryProperty {
     )
 
     if ($telemetryScope) {
-        Write-Host "Telemetry scope $($telemetryScope.Name), add property $key = $((FormatValue -value $value))"
-        $telemetryScope.properties.Add($key, (FormatValue -value $value))
+#        Write-Host "Telemetry scope $($telemetryScope.Name), add property $key = $((FormatValue -value $value))"
+        if ($telemetryScope.properties.ContainsKey($Key)) {
+            $telemetryScope.properties."$key" += "`n$(FormatValue -value $value)"
+        }
+        else {
+            $telemetryScope.properties.Add($key, (FormatValue -value $value))
+        }
     }
 }
 
@@ -64,40 +69,48 @@ function InitTelemetryScope {
         [string[]] $includeParameters = @(),
         $parameterValues = $null
     )
-
-    if ($bcContainerHelperConfig.TelemetryConnectionString) {
-        if ($telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
-            $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
-            $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
-            Write-Host "Telemetry client initialized"
-        }
-        if ($telemetryClient.IsEnabled()) {
-            Write-Host "Init telemetry scope $name"
-            $scope = @{
-                "Name" = $name
-                "StartTime" = [DateTime]::Now
-                "SeverityLevel" = 1
-                "Properties" = [Collections.Generic.Dictionary[string, string]]::new()
-                "Emitted" = $false
-            }
-            if ($includeParameters) {
-                $parameterValues.GetEnumerator() | % {
-                    $includeParameter = $false
-                    $key = $_.key
-                    $includeParameters | ForEach-Object { if ($key -like $_) { $includeParameter = $true } }
-                    if ($includeParameter) {
-                        AddTelemetryProperty -telemetryScope $scope -key "Parameter[$Key]" -value $_.Value
+    if ($telemetryClient) {
+        if ($bcContainerHelperConfig.TelemetryConnectionString) {
+            if ($telemetryClient.TelemetryConfiguration.DisableTelemetry -or $telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
+                if ($bcContainerHelperConfig.TelemetryConnectionString) {
+                    try {
+                        $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
+                        $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
+                        Write-Host "Telemetry client initialized"
+                    }
+                    catch {
+                        $telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
                     }
                 }
             }
-            AddTelemetryProperty -telemetryScope $scope -key "BcContainerHelperVersion" -value $BcContainerHelperVersion
-            AddTelemetryProperty -telemetryScope $scope -key "IsAdministrator" -value $isAdministrator
-            AddTelemetryProperty -telemetryScope $scope -key "StackTrace" -value (Get-PSCallStack | % { "$($_.Command) at $($_.Location)" }) -join "`n"
-            $scope
+            if ($telemetryClient.IsEnabled()) {
+                Write-Host "Init telemetry scope $name"
+                $scope = @{
+                    "Name" = $name
+                    "StartTime" = [DateTime]::Now
+                    "SeverityLevel" = 1
+                    "Properties" = [Collections.Generic.Dictionary[string, string]]::new()
+                    "Emitted" = $false
+                }
+                if ($includeParameters) {
+                    $parameterValues.GetEnumerator() | % {
+                        $includeParameter = $false
+                        $key = $_.key
+                        $includeParameters | ForEach-Object { if ($key -like $_) { $includeParameter = $true } }
+                        if ($includeParameter) {
+                            AddTelemetryProperty -telemetryScope $scope -key "Parameter[$Key]" -value $_.Value
+                        }
+                    }
+                }
+                AddTelemetryProperty -telemetryScope $scope -key "BcContainerHelperVersion" -value $BcContainerHelperVersion
+                AddTelemetryProperty -telemetryScope $scope -key "IsAdministrator" -value $isAdministrator
+                AddTelemetryProperty -telemetryScope $scope -key "StackTrace" -value (Get-PSCallStack | % { "$($_.Command) at $($_.Location)" }) -join "`n"
+                $scope
+            }
         }
-    }
-    else {
-        $telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+        else {
+            $telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+        }
     }
 }
 

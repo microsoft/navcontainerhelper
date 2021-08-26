@@ -31,6 +31,10 @@ function Resolve-DependenciesFromAzureFeed {
         [string] $outputFolder = (Join-Path $appsFolder '.alpackages'),
         [int] $lvl = -1
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $spaces = ''
     $lvl++
 
@@ -138,5 +142,13 @@ function Resolve-DependenciesFromAzureFeed {
         }
     }
 
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Resolve-DependenciesFromAzureFeed

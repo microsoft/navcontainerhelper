@@ -18,13 +18,22 @@ function Get-BcContainerLegal {
         [string] $containerOrImageName
     )
 
-    Process {
-        $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
-        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-            throw "Container $containerOrImageName is not a NAV/BC container"
-        }
-        return "$($inspect.Config.Labels.legal)"
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
+    $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
+    if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
+        throw "Container $containerOrImageName is not a NAV/BC container"
     }
+    return "$($inspect.Config.Labels.legal)"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerLegal -Value Get-BcContainerLegal
 Export-ModuleMember -Function Get-BcContainerLegal -Alias Get-NavContainerLegal

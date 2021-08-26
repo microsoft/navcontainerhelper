@@ -34,6 +34,8 @@ function New-LetsEncryptCertificate {
         [Parameter(Mandatory=$false)]
         [string] $dnsAlias = "dnsAlias"
     )
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
 
     $stateDir = Join-Path $hostHelperFolder "acmeState"
     Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
@@ -49,5 +51,13 @@ function New-LetsEncryptCertificate {
     New-ACMEAccount $state -EmailAddresses $ContactEMailForLetsEncrypt -AcceptTOS | Out-Null
 
     Renew-LetsEncryptCertificate -publicDnsName $publicDnsName -certificatePfxFilename $certificatePfxFilename -certificatePfxPassword $certificatePfxPassword
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function New-LetsEncryptCertificate
