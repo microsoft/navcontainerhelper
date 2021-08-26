@@ -733,10 +733,13 @@ Write-Host -ForegroundColor Red @'
 '@
 
 if ($throwOnError) {
-    ($validationResult -join "`n") | Write-Error
+    throw ($validationResult -join "`n")
 }
 else {
     $validationResult
+
+    $exception = New-Object System.Exception -ArgumentList ($validationResult -join "`n")
+    TrackException -telemetryScope $telemetryScope -exception $exception
 }
 
 }
