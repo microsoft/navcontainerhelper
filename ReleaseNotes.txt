@@ -1,8 +1,20 @@
+2.0.16
+Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
+Add ApplicationInsightsConnectionString to Run-AlPipeline to support new app.json property. This value will be used instead of ApplicationInsightsKey if runtime >= 7.2 or bcVersion >= 18.2. (Thanks TheNCuber)
+Support different extension on license files (thanks SBalslev)
+Map Ukraine to w1 in mapCountryCode, allowing to create ua containers (thanks Sergeyol)
+Add parameter CustomCodeCops to Run-AlPipeline and Compile-AppInBcContainer to allow for specifying custom code cops (thanks jfamvg)
+
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
 New-BcEnvironment should not enumerate companies and users if -doNotWait is specified
-Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
+Issue #1979 Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
 Issue #1998 New-BCContainer ERROR: Database Backup File not found. when hosthelper folder changed
+Issue #2003 Change GenerateReportLayout default to 'No' in Run-AlValidation and Run-AlCops
+Issue #2006 spelling mistake
+Issue #2014 telemetryclient cannot be initialized
+Issue #2008 Run-ALValidation - InstallApps/SortByDependencies
+Issue #2018 Create .net Assembly Reference folder when using filesonly and includeAL
 
 2.0.14
 Issue #1967 add parameter IncludeApiAccess to Create-AadAppsForBC to ensure that API permissions are only added when needed

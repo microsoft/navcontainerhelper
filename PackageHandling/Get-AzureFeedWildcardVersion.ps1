@@ -13,6 +13,9 @@ function Get-AzureFeedWildcardVersion {
         [string] $appVersion
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $version = $appVersion.split('.')
 
     $major = $version[0]
@@ -32,5 +35,13 @@ function Get-AzureFeedWildcardVersion {
     } 
 
     return ($major + '.' + $minor + '.' + $patch)     
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Get-AzureFeedWildcardVersion

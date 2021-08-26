@@ -15,7 +15,18 @@ function Get-BcContainerName {
         [string] $containerId
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     docker ps --format='{{.Names}}' -a --filter "id=$containerId"
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerName -Value Get-BcContainerName
 Export-ModuleMember -Function Get-BcContainerName -Alias Get-NavContainerName

@@ -81,6 +81,7 @@ function Get-ContainerHelperConfig {
                 "th" = "w1"
                 "tn" = "w1"
                 "tw" = "w1"
+                "ua" = "w1"
                 "vn" = "w1"
                 "za" = "w1"
             }
@@ -172,9 +173,12 @@ $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToL
 
 try {
     Add-Type -path (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -ErrorAction SilentlyContinue
-} catch {}
-$telemetryClient = New-Object Microsoft.ApplicationInsights.TelemetryClient
-$telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+    $telemetryClient = New-Object Microsoft.ApplicationInsights.TelemetryClient
+    $telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
+} catch {
+    Write-Host -ForegroundColor Yellow "Unable to initialize Telemetry Client (Error: $($_.Exception.Message))"
+    $telemetryClient = $null
+}
 
 $sessions = @{}
 
