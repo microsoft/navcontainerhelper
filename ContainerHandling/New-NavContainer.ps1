@@ -1334,9 +1334,7 @@ try {
             $ext = [System.IO.Path]::GetExtension($licenseFile.Split('?')[0])
             $licenseFile = "$myFolder\license$ext"
             Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
-            $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
-            $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-            if (!($text.StartsWith("Microsoft Software License Information"))) {
+            if ((Get-Content $licenseFile -First 1) -ne "Microsoft Software License Information") {
                 Remove-Item -Path $licenseFile -Force
                 throw "Specified license file Uri isn't a direct download Uri"
             }
