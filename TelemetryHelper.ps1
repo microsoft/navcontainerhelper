@@ -170,14 +170,14 @@ function TrackTrace {
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "H" }
             $traceTelemetry = $telemetry.Client.GetType().Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "I" }
-            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+            $traceTelemetry.Message = "$($telemetryScope.Name)"   #`n$transcript"
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "J" }
             $traceTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "K" }
-#            $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-#            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "L $($_.Key) = $($_.Value)" }
-#                [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
-#            }
+            $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "L $($_.Key) = $($_.Value)" }
+                [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+            }
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "M" }
             $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "N" }
