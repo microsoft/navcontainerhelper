@@ -101,7 +101,7 @@ Param(
     [switch] $skipAppSourceCop,
     [switch] $skipConnectionTest,
     [switch] $throwOnError,
-    [string] $useGenericImage = (Get-BestGenericImageName),
+    [string] $useGenericImage = "",
     [switch] $multitenant,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
@@ -204,6 +204,10 @@ function GetFilePath( [string] $path ) {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+if ($useGenericImage -eq "") {
+    $useGenericImage = Get-BestGenericImageName
+}
 
 $warningsToShow = @()
 $validationResult = @()
@@ -732,14 +736,13 @@ Write-Host -ForegroundColor Red @'
 
 '@
 
+AddTelemetryProperty -telemetryScope $telemetryScope -key "Validation" -value "Failure"
+AddTelemetryProperty -telemetryScope $telemetryScope -key "Result" -value ($validationResult -join "`n")
 if ($throwOnError) {
     throw ($validationResult -join "`n")
 }
 else {
     $validationResult
-
-    $exception = New-Object System.Exception -ArgumentList ($validationResult -join "`n")
-    TrackException -telemetryScope $telemetryScope -exception $exception
 }
 
 }
@@ -753,6 +756,8 @@ Write-Host -ForegroundColor Green @'
  |_|  \_\__,_|_| |_|   /_/    \_\_|   \/ \__,_|_|_|\__,_|\__,_|\__|_|\___/|_| |_| |_____/ \__,_|\___\___\___|___/___/
                                                                                                   
 '@
+
+AddTelemetryProperty -telemetryScope $telemetryScope -key "Validation" -value "Success"
 }
 
 if ($warningsToShow) {
