@@ -3,7 +3,10 @@
         $value
     )
 
-    if ($value -is [switch]) {
+    if ($value -eq $null) {
+        "[null]"
+    }
+    elseif ($value -is [switch]) {
         $value.IsPresent
     }
     elseif ($value -is [boolean]) {
@@ -108,7 +111,7 @@ function InitTelemetryScope {
                 }
                 $telemetry.CorrelationId = $CorrelationId
                 if ($includeParameters) {
-                    $parameterValues.GetEnumerator() | % {
+                    $parameterValues.GetEnumerator() | ForEach-Object {
                         $includeParameter = $false
                         $key = $_.key
                         $includeParameters | ForEach-Object { if ($key -like $_) { $includeParameter = $true } }
