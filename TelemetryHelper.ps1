@@ -174,7 +174,7 @@ function TrackTrace {
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "J" }
             $traceTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "K" }
-            $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+#            $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
 #            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "L $($_.Key) = $($_.Value)" }
 #                [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
 #            }
