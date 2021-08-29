@@ -155,8 +155,8 @@ function TrackTrace {
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "C" }
                 $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "D" }
-                if ($transcript.Length -gt 30000) {
-                    $transcript = "$($transcript.SubString(0,15000))`n`n...`n`n$($transcript.SubString($transcript.Length-15000))"
+                if ($transcript.Length -gt 28000) {
+                    $transcript = "$($transcript.SubString(0,14000))`n`n...`n`n$($transcript.SubString($transcript.Length-14000))"
                 }
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "E $($transcript.Length)" }
                 Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
