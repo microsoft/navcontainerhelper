@@ -94,10 +94,11 @@ function InitTelemetryScope {
                 }
             }
             if ($telemetry.Client.IsEnabled() -and ($always -or ($telemetry.CorrelationId -eq ""))) {
+                $CorrelationId = [GUID]::NewGuid().ToString()
+                Start-Transcript -Path (Join-Path $env:TEMP $CorrelationId) | Out-Null
                 if ($telemetry.Debug) {
                     Write-Host -ForegroundColor Yellow "Init telemetry scope $name"
                 }
-                $CorrelationId = [GUID]::NewGuid().ToString()
                 if ($telemetry.TopId -eq "") { $telemetry.TopId = $CorrelationId }
                 $scope = @{
                     "Name" = $name
@@ -123,7 +124,6 @@ function InitTelemetryScope {
                 AddTelemetryProperty -telemetryScope $scope -key "BcContainerHelperVersion" -value $BcContainerHelperVersion
                 AddTelemetryProperty -telemetryScope $scope -key "IsAdministrator" -value $isAdministrator
                 AddTelemetryProperty -telemetryScope $scope -key "StackTrace" -value (Get-PSCallStack | % { "$($_.Command) at $($_.Location)" }) -join "`n"
-                Start-Transcript -Path (Join-Path $env:TEMP $CorrelationId) | Out-Null
                 $scope
             }
         }
@@ -175,9 +175,9 @@ function TrackTrace {
             $traceTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "K" }
             $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "L $($_.Key) = $($_.Value)" }
-                [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
-            }
+#            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "L $($_.Key) = $($_.Value)" }
+#                [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+#            }
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "M" }
             $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
             if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "N" }
