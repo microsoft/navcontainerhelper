@@ -273,7 +273,7 @@ function New-BcContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("accept_eula","artifactUrl","imageName")
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -always -parameterValues $PSBoundParameters -includeParameters @("accept_eula","artifactUrl","imageName")
 try {
 
     $defaultNewContainerParameters = (Get-ContainerHelperConfig).defaultNewContainerParameters

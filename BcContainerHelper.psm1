@@ -173,11 +173,13 @@ $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToL
 
 $telemetry = @{
     "Client" = $null
-    "Transcripting" = ""
+    "CorrelationId" = ""
+    "TopId" = ""
+    "Debug" = $true
 }
 try {
-    Add-Type -path (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -ErrorAction SilentlyContinue
-    $telemetry.Client = New-Object Microsoft.ApplicationInsights.TelemetryClient
+    $assembly = [System.Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll"))
+    $telemetry.Client = $assembly.CreateInstance('Microsoft.ApplicationInsights.TelemetryClient')
     $telemetry.Client.TelemetryConfiguration.DisableTelemetry = $true
 } catch {
     Write-Host -ForegroundColor Yellow "Unable to initialize Telemetry Client (Error: $($_.Exception.Message))"

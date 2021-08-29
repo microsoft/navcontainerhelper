@@ -1639,6 +1639,7 @@ finally {
 }
 
 if (!$keepContainer) {
+if (!($error)) {
 Write-Host -ForegroundColor Yellow @'
 
   _____                           _                _____            _        _                 
@@ -1651,6 +1652,7 @@ Write-Host -ForegroundColor Yellow @'
                                           |___/                                                
 
 '@
+}
 Measure-Command {
 
     $Parameters = @{
@@ -1658,7 +1660,7 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
    
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { if (!($error)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
 
 }
 
