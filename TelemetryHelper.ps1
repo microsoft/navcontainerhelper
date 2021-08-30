@@ -29,19 +29,18 @@
     elseif ($value -is [System.Collections.IDictionary]) {
         $str = ""
         $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += ", " } else { $str = "{ " }
+            if ($str) { $str += "`n  " } else { $str = "{`n" }
             $str += "$($_.Key): $(FormatValue -value $_.Value)"
         }
-        "$str }"
+        "$str`n}"
     }
-    elseif ($value -is [System.Collections.IEnumerable]
-    ) {
+    elseif ($value -is [System.Collections.IEnumerable]) {
         $str = ""
         $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += ", " } else { $str = "[ " }
+            if ($str) { $str += "`n  " } else { $str = "[`n" }
             $str += "$(FormatValue -value $_)"
         }
-        "$str ]"
+        "$str`n]"
     }
     else {
         $value
@@ -147,47 +146,31 @@ function TrackTrace {
             if ($telemetry.CorrelationId -eq "") {
                 $telemetry.TopId = ""
             }
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "A" }
+            $telemetryScope.Emitted = $true
             $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "B" }
             try {
                 Stop-Transcript | Out-Null
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "C" }
                 $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "D" }
-                if ($transcript.Length -gt 28000) {
-                    $transcript = "$($transcript.SubString(0,14000))`n`n...`n`n$($transcript.SubString($transcript.Length-14000))"
+                if ($transcript.Length -gt 32000) {
+                    $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
                 }
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "E $($transcript.Length)" }
                 Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "F" }
             }
             catch {
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "G" }
                 $transcript = ""
             }
 
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "H" }
             $traceTelemetry = $telemetry.Client.GetType().Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "I" }
-            $traceTelemetry.Message = "$($telemetryScope.Name)"   #`n$transcript"
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "J" }
+            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
             $traceTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "K" }
             $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "L $($_.Key) = $($_.Value)" }
                 [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
             }
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "M" }
             $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "N" }
             $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "O" }
             $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "P" }
             $telemetry.Client.TrackTrace($traceTelemetry)
-            if ($telemetry.Debug) { Write-Host -ForegroundColor Yellow "Q" }
-            $telemetryScope.Emitted = $true
+            $telemetry.Client.Flush()
         }
     }
 }
@@ -217,6 +200,7 @@ function TrackException {
             if ($telemetry.CorrelationId -eq "") {
                 $telemetry.TopId = ""
             }
+            $telemetryScope.Emitted = $true
             $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
             if ($scriptStackTrace) {
                 $telemetryScope.Properties.Add("Error StackTrace", $scriptStackTrace)
@@ -228,8 +212,8 @@ function TrackException {
             try {
                 Stop-Transcript | Out-Null
                 $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
-                if ($transcript.Length -gt 30000) {
-                    $transcript = "$($transcript.SubString(0,15000))`n`n...`n`n$($transcript.SubString($transcript.Length-15000))"
+                if ($transcript.Length -gt 32000) {
+                    $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
                 }
                 Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
             }
@@ -260,7 +244,7 @@ function TrackException {
             $exceptionTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
             $exceptionTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
             $telemetry.Client.TrackException($exceptionTelemetry)
-            $telemetryScope.Emitted = $true
+            $telemetry.Client.Flush()
         }
     }
 }
