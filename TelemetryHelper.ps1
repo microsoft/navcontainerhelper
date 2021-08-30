@@ -29,19 +29,18 @@
     elseif ($value -is [System.Collections.IDictionary]) {
         $str = ""
         $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += ", " } else { $str = "{ " }
+            if ($str) { $str += "`n  " } else { $str = "{`n" }
             $str += "$($_.Key): $(FormatValue -value $_.Value)"
         }
-        "$str }"
+        "$str`n}"
     }
-    elseif ($value -is [System.Collections.IEnumerable]
-    ) {
+    elseif ($value -is [System.Collections.IEnumerable]) {
         $str = ""
         $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += ", " } else { $str = "[ " }
+            if ($str) { $str += "`n  " } else { $str = "[`n" }
             $str += "$(FormatValue -value $_)"
         }
-        "$str ]"
+        "$str`n]"
     }
     else {
         $value
@@ -94,10 +93,11 @@ function InitTelemetryScope {
                 }
             }
             if ($telemetry.Client.IsEnabled() -and ($always -or ($telemetry.CorrelationId -eq ""))) {
+                $CorrelationId = [GUID]::NewGuid().ToString()
+                Start-Transcript -Path (Join-Path $env:TEMP $CorrelationId) | Out-Null
                 if ($telemetry.Debug) {
                     Write-Host -ForegroundColor Yellow "Init telemetry scope $name"
                 }
-                $CorrelationId = [GUID]::NewGuid().ToString()
                 if ($telemetry.TopId -eq "") { $telemetry.TopId = $CorrelationId }
                 $scope = @{
                     "Name" = $name
@@ -123,7 +123,6 @@ function InitTelemetryScope {
                 AddTelemetryProperty -telemetryScope $scope -key "BcContainerHelperVersion" -value $BcContainerHelperVersion
                 AddTelemetryProperty -telemetryScope $scope -key "IsAdministrator" -value $isAdministrator
                 AddTelemetryProperty -telemetryScope $scope -key "StackTrace" -value (Get-PSCallStack | % { "$($_.Command) at $($_.Location)" }) -join "`n"
-                Start-Transcript -Path (Join-Path $env:TEMP $CorrelationId) | Out-Null
                 $scope
             }
         }
@@ -147,12 +146,13 @@ function TrackTrace {
             if ($telemetry.CorrelationId -eq "") {
                 $telemetry.TopId = ""
             }
+            $telemetryScope.Emitted = $true
             $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
             try {
                 Stop-Transcript | Out-Null
                 $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
-                if ($transcript.Length -gt 30000) {
-                    $transcript = "$($transcript.SubString(0,15000))`n`n...`n`n$($transcript.SubString($transcript.Length-15000))"
+                if ($transcript.Length -gt 32000) {
+                    $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
                 }
                 Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
             }
@@ -170,7 +170,7 @@ function TrackTrace {
             $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
             $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
             $telemetry.Client.TrackTrace($traceTelemetry)
-            $telemetryScope.Emitted = $true
+            $telemetry.Client.Flush()
         }
     }
 }
@@ -200,6 +200,7 @@ function TrackException {
             if ($telemetry.CorrelationId -eq "") {
                 $telemetry.TopId = ""
             }
+            $telemetryScope.Emitted = $true
             $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
             if ($scriptStackTrace) {
                 $telemetryScope.Properties.Add("Error StackTrace", $scriptStackTrace)
@@ -211,8 +212,8 @@ function TrackException {
             try {
                 Stop-Transcript | Out-Null
                 $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
-                if ($transcript.Length -gt 30000) {
-                    $transcript = "$($transcript.SubString(0,15000))`n`n...`n`n$($transcript.SubString($transcript.Length-15000))"
+                if ($transcript.Length -gt 32000) {
+                    $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
                 }
                 Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
             }
@@ -243,7 +244,7 @@ function TrackException {
             $exceptionTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
             $exceptionTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
             $telemetry.Client.TrackException($exceptionTelemetry)
-            $telemetryScope.Emitted = $true
+            $telemetry.Client.Flush()
         }
     }
 }
