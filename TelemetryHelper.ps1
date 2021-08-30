@@ -27,20 +27,21 @@
         }
     }
     elseif ($value -is [System.Collections.IDictionary]) {
-        $str = ""
-        $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += "`n  " } else { $str = "{`n" }
-            $str += "$($_.Key): $(FormatValue -value $_.Value)"
+        $arr = $value.GetEnumerator() | ForEach-Object { $_ }
+        $str = "{"
+        $arr | ForEach-Object {
+            $str += "`n  $($_.Key): $(FormatValue -value $_.Value)"
         }
         "$str`n}"
     }
     elseif ($value -is [System.Collections.IEnumerable]) {
-        $str = ""
-        $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += "`n  " } else { $str = "[`n" }
+        $arr = $value.GetEnumerator() | ForEach-Object { $_ }
+        if ($arr.Count -gt 1) { $str = "[" } else { $str = "" }
+        $arr | ForEach-Object {
+            if ($arr.Count -gt 1) { $str += "`n  " }
             $str += "$(FormatValue -value $_)"
         }
-        "$str`n]"
+        if ($arr.Count -gt 1) { "$str`n]" } else { $str }
     }
     else {
         $value
@@ -147,7 +148,6 @@ function TrackTrace {
                 $telemetry.TopId = ""
             }
             $telemetryScope.Emitted = $true
-            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
             try {
                 Stop-Transcript | Out-Null
                 $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
@@ -159,6 +159,7 @@ function TrackTrace {
             catch {
                 $transcript = ""
             }
+            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
 
             $traceTelemetry = $telemetry.Client.GetType().Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
             $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
@@ -201,13 +202,6 @@ function TrackException {
                 $telemetry.TopId = ""
             }
             $telemetryScope.Emitted = $true
-            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
-            if ($scriptStackTrace) {
-                $telemetryScope.Properties.Add("Error StackTrace", $scriptStackTrace)
-            }
-            if ($exception) {
-                $telemetryScope.Properties.Add("Error Message", $exception.Message)
-            }
 
             try {
                 Stop-Transcript | Out-Null
@@ -219,6 +213,13 @@ function TrackException {
             }
             catch {
                 $transcript = ""
+            }
+            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
+            if ($scriptStackTrace) {
+                $telemetryScope.Properties.Add("Error StackTrace", $scriptStackTrace)
+            }
+            if ($exception) {
+                $telemetryScope.Properties.Add("Error Message", $exception.Message)
             }
 
             # emit trace telemetry with Error info
