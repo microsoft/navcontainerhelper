@@ -172,6 +172,8 @@ function TrackTrace {
             $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
             $telemetry.Client.TrackTrace($traceTelemetry)
             $telemetry.Client.Flush()
+
+            Write-Host "Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
         }
     }
 }
@@ -246,6 +248,8 @@ function TrackException {
             $exceptionTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
             $telemetry.Client.TrackException($exceptionTelemetry)
             $telemetry.Client.Flush()
+
+            Write-Host "Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
         }
     }
 }
