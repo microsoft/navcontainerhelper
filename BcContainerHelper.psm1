@@ -175,7 +175,7 @@ $telemetry = @{
     "Client" = $null
     "CorrelationId" = ""
     "TopId" = ""
-    "Debug" = $true
+    "Debug" = $false
 }
 try {
     $assembly = [System.Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll"))
