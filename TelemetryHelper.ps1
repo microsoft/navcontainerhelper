@@ -27,7 +27,7 @@
         }
     }
     elseif ($value -is [System.Collections.IDictionary]) {
-        $arr = $value.GetEnumerator() | ForEach-Object { $_ }
+        $arr = @($value.GetEnumerator() | ForEach-Object { $_ })
         $str = "{"
         $arr | ForEach-Object {
             $str += "`n  $($_.Key): $(FormatValue -value $_.Value)"
@@ -35,7 +35,7 @@
         "$str`n}"
     }
     elseif ($value -is [System.Collections.IEnumerable]) {
-        $arr = $value.GetEnumerator() | ForEach-Object { $_ }
+        $arr = @($value.GetEnumerator() | ForEach-Object { $_ })
         if ($arr.Count -gt 1) { $str = "[" } else { $str = "" }
         $arr | ForEach-Object {
             if ($arr.Count -gt 1) { $str += "`n  " }
