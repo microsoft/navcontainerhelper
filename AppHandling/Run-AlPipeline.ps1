@@ -460,6 +460,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet  "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                 "; Write-Host $rulesetFile
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                 "; Write-Host $azureDevOps
+Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                      "; Write-Host $gitLab
+Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions               "; Write-Host $gitHubActions
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
@@ -1090,6 +1092,7 @@ Write-Host -ForegroundColor Yellow @'
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
+        "GitHubActions" = $gitHubActions
         "CopySymbolsFromContainer" = $CopySymbolsFromContainer
         "preProcessorSymbols" = $preProcessorSymbols
         "generatecrossreferences" = $generatecrossreferences
@@ -1517,6 +1520,7 @@ $testAppIds | ForEach-Object {
         "credential" = $credential
         "extensionId" = $_
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
+        "GitHubActions" = "$(if($githubActions){'error'}else{'no'})"
         "detailed" = $true
         "returnTrueIfAllPassed" = $true
     }
