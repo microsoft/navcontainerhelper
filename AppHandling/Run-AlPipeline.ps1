@@ -417,6 +417,7 @@ else {
 
 $escapeFromCops = $escapeFromCops -and ($enableCodeCop -or $enableAppSourceCop -or $enableUICop -or $enablePerTenantExtensionCop)
 
+if ($gitHubActions) { Write-Host "::group::Parameters" }
 Write-Host -ForegroundColor Yellow @'
   _____                               _                
  |  __ \                             | |               
@@ -559,12 +560,14 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 
 $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
 if (!$reUseContainer -and $artifactUrl) {
+if ($gitHubActions) { Write-Host "::group::Pulling Generic Image" }
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
 
@@ -587,6 +590,7 @@ Write-Host "Pulling $useGenericImage"
 
 Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 $error = $null
@@ -598,6 +602,7 @@ try {
 @("")+$additionalCountries | % {
 $testCountry = $_.Trim()
 
+if ($gitHubActions) { Write-Host "::group::Creating Container" }
 Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                               _        _                 
@@ -705,8 +710,10 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($installApps) {
+if ($gitHubActions) { Write-Host "::group::Installing apps" }
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _                                     
@@ -762,9 +769,11 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if ((($testCountry) -or ($installTestApps)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
  |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
@@ -793,8 +802,10 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($installTestApps) {
+if ($gitHubActions) { Write-Host "::group::Installing Test Apps" }
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _               _______       _                              
@@ -849,11 +860,13 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
 if (-not $testCountry) {
 if ($appFolders -or $testFolders) {
+if ($gitHubActions) { Write-Host "::group::Compiling apps" }
 Write-Host -ForegroundColor Yellow @'
 
    _____                      _ _ _                                     
@@ -884,6 +897,8 @@ $sortedFolders | Select-Object -Unique | ForEach-Object {
 
     if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
+if ($gitHubActions) { Write-Host "::endgroup::" }
+if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
  |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
@@ -915,6 +930,8 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 
 if ($installTestApps) {
+if ($gitHubActions) { Write-Host "::endgroup::" }
+if ($gitHubActions) { Write-Host "::group::Installing Test Apps" }
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _               _______       _                              
@@ -955,6 +972,8 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
 }
 
+if ($gitHubActions) { Write-Host "::endgroup::" }
+if ($gitHubActions) { Write-Host "::group::Compiling test apps" }
 Write-Host -ForegroundColor Yellow @'
    _____                      _ _ _               _           _                           
   / ____|                    (_) (_)             | |         | |                          
@@ -1255,8 +1274,10 @@ Write-Host -ForegroundColor Yellow @'
     }
 }
 } | ForEach-Object { if ($appFolders -or $testFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($signApps -and !$useDevEndpoint) {
+if ($gitHubActions) { Write-Host "::group::Signing Apps" }
 Write-Host -ForegroundColor Yellow @'
 
    _____ _             _                                        
@@ -1283,12 +1304,14 @@ $apps | ForEach-Object {
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nSigning apps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
 if (!$useDevEndpoint) {
 
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
+if ($gitHubActions) { Write-Host "::group::Installing Previous Apps" }
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _               _____                _                                            
@@ -1333,9 +1356,11 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if ($apps+$testApps) {
+if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
 Write-Host -ForegroundColor Yellow @'
 
   _____       _     _ _     _     _                                        
@@ -1415,11 +1440,13 @@ $testApps | ForEach-Object {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
 if (!$doNotRunTests) {
 if ($ImportTestDataInBcContainer) {
+if ($gitHubActions) { Write-Host "::group::Importing Test Data" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _____        _        
  |_   _|                          | | (_)             |__   __|     | |   |  __ \      | |       
@@ -1458,10 +1485,12 @@ if (!$enableTaskScheduler) {
         }
     }
 }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 $allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
 if (($testFolders) -or ($installTestApps)) {
+if ($gitHubActions) { Write-Host "::group::Running Tests" }
 Write-Host -ForegroundColor Yellow @'
 
   _____                   _               _______       _       
@@ -1551,6 +1580,7 @@ $testAppIds | ForEach-Object {
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
@@ -1562,6 +1592,7 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
 }
 
 if ($buildArtifactFolder) {
+if ($gitHubActions) { Write-Host "::group::Copy to Build Artifacts" }
 Write-Host -ForegroundColor Yellow @'
    _____                    _          ____        _ _     _                 _   _  __           _       
   / ____|                  | |        |  _ \      (_) |   | |     /\        | | (_)/ _|         | |      
@@ -1632,7 +1663,7 @@ if ($createRuntimePackages) {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
-
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 } catch {
@@ -1643,6 +1674,7 @@ finally {
 }
 
 if (!$keepContainer) {
+if ($gitHubActions) { Write-Host "::group::Removing Container" }
 if (!($error)) {
 Write-Host -ForegroundColor Yellow @'
 
@@ -1665,7 +1697,7 @@ Measure-Command {
     Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
    
 } | ForEach-Object { if (!($error)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
-
+if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if ($warningsToShow) {
