@@ -5,6 +5,7 @@ Support different extension on license files (thanks SBalslev)
 Map Ukraine to w1 in mapCountryCode, allowing to create ua containers (thanks Sergeyol)
 Add parameter CustomCodeCops to Run-AlPipeline and Compile-AppInBcContainer to allow for specifying custom code cops (thanks jfamvg)
 Use Latest shipped AL Language Extension by default for all shipped version in Run-AlValidation
+Increased support for Github Actions in Run-AlPipeline and Run-TestsInBcContainer
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
