@@ -8,6 +8,8 @@ Use Latest shipped AL Language Extension by default for all shipped version in R
 Increased support for Github Actions in Run-AlPipeline and Run-TestsInBcContainer
 Convert-BcAppsToRuntimePackages: Allow to skip failing apps, run scriptblock after each processed runtime (Thanks MODUSCarstenScholling)
 Allow runtime packages as previous apps run Run-AlPipeline (Thanks MODUSCarstenScholling)
+Unpublish app in multitenant container fails if the app is installed in multiple tenants (Thanks lktraser)
+Fixing bug in Resolve-DependenciesFromAzureFeed that downloaded all apps from first lvl (Thanks jonaswer)
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
