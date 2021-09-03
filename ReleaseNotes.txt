@@ -7,6 +7,7 @@ Add parameter CustomCodeCops to Run-AlPipeline and Compile-AppInBcContainer to a
 Use Latest shipped AL Language Extension by default for all shipped version in Run-AlValidation
 Increased support for Github Actions in Run-AlPipeline and Run-TestsInBcContainer
 Convert-BcAppsToRuntimePackages: Allow to skip failing apps, run scriptblock after each processed runtime (Thanks MODUSCarstenScholling)
+Allow runtime packages as previous apps run Run-AlPipeline (Thanks MODUSCarstenScholling)
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004

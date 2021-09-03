@@ -1129,14 +1129,14 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps | ForEach-Object {
                     $appFile = $_
 
-                    $xappJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                    $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                         param($appFile)
 
                         Get-NavAppInfo -Path $appFile;
                     } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile);
 
-                    Write-Host "$($xappJson.Publisher)_$($xappJson.Name) = $($xappJson.Version.ToString())"
-                    $previousAppVersions += @{ "$($xappJson.Publisher)_$($xappJson.Name)" = $xappJson.Version.ToString() }
+                    Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
+                    $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                 }
             }
         }
