@@ -954,7 +954,6 @@ try {
         }
     }
 
-    Write-Host "Version: $navversion"
     Write-Host "Style: $bcStyle"
     if ($multitenant) {
         Write-Host "Multitenant: Yes"
@@ -964,6 +963,8 @@ try {
     }
 
     $version = [System.Version]($navversion.split('-')[0])
+    Write-Host "Version: $version"
+
     if ($dvdPlatform) {
         $platformVersion = $dvdPlatform
     }
