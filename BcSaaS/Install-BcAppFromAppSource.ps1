@@ -6,6 +6,10 @@
   Current implementation uses client service to invoke page 2503 and install the app
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
+ .Parameter baseUrl
+  Use this parameter to override the default base url (https://businesscentral.dynamics.com)
+ .Parameter baseApiUrl
+  Use this parameter to override the default base api url (https://api.businesscentral.dynamics.com)
  .Parameter environment
   Environment in which you want to install an AppSource App
  .Parameter appId
@@ -28,6 +32,8 @@ function Install-BcAppFromAppSource {
     Param (
         [Parameter(Mandatory=$true)]
         [Hashtable] $bcAuthContext,
+        [string] $baseUrl = "https://businesscentral.dynamics.com",
+        [string] $baseApiUrl = "https://api.businesscentral.dynamics.com",
         [Parameter(Mandatory=$true)]
         [string] $environment,
         [Parameter(Mandatory=$true)]
@@ -55,7 +61,7 @@ try {
         Write-Host -ForegroundColor Green "App $($appExists.Name) from $($appExists.Publisher) version $($appExists.Version) is already installed"
     }
     else {
-        $response = Invoke-RestMethod -Method Get -Uri "https://businesscentral.dynamics.com/$($bcAuthContext.tenantID)/$environment/deployment/url"
+        $response = Invoke-RestMethod -Method Get -Uri "$baseUrl/$($bcAuthContext.tenantID)/$environment/deployment/url"
         if($response.status -ne 'Ready') {
             throw "environment not ready, status is $($response.status)"
         }
@@ -70,7 +76,7 @@ try {
     
         Write-Host "Installing $appId $appVersion on $($environment)"
         try {
-            $operation = Invoke-RestMethod -Method Post -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/install" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
+            $operation = Invoke-RestMethod -Method Post -UseBasicParsing -Uri "$baseApiUrl/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/install" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
         }
         catch {
             throw (GetExtenedErrorMessage $_.Exception)
@@ -84,7 +90,7 @@ try {
         while (-not $completed) {
             Start-Sleep -Seconds 3
             try {
-                $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/operations" -UseBasicParsing
+                $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri "$baseApiUrl/admin/v2.6/applications/BusinessCentral/environments/$environment/apps/$appId/operations" -UseBasicParsing
                 $appInstallStatus = (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id }
                 if ($status -ne $appInstallStatus.status) {
                     Write-Host

@@ -6,6 +6,8 @@
   This function is a wrapper for https://docs.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api#create-new-environment
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
+ .Parameter baseUrl
+  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
@@ -30,6 +32,7 @@ function New-BcEnvironment {
     Param(
         [Parameter(Mandatory=$true)]
         [Hashtable] $bcAuthContext,
+        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory=$true)]
         [string] $environment,
@@ -74,7 +77,7 @@ try {
     Write-Host "Submitting new environment request for $applicationFamily/$environment"
     $body | ConvertTo-Json | Out-Host
     try {
-        Invoke-RestMethod -Method PUT -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
+        Invoke-RestMethod -Method PUT -Uri "$baseUrl/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)
@@ -97,17 +100,17 @@ try {
     }
 
     if (!$doNotWait) {
-        $baseUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v2.0"
+        $automationApiUrl = "$baseUrl/v2.0/$environment/api/microsoft/automation/v2.0"
         try {
-            $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+            $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
         } catch {
             start-sleep -seconds 10
-            $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+            $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
         }
         Write-Host "Companies in environment:"
         $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
         $company = $companies.value | Select-Object -First 1
-        $users = Invoke-RestMethod -Method Get -Uri "$baseUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
+        $users = Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
         Write-Host "Users in $($company.name):"
         $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
     }
