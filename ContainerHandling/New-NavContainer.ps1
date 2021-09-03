@@ -273,7 +273,11 @@ function New-BcContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -always -parameterValues $PSBoundParameters -includeParameters @("accept_eula","artifactUrl","imageName")
+$telemetryScope = InitTelemetryScope `
+                    -name $MyInvocation.InvocationName `
+                    -always `
+                    -parameterValues $PSBoundParameters `
+                    -includeParameters @("containerName","artifactUrl","isolation","imageName","multitenant","filesOnly")
 try {
 
     $defaultNewContainerParameters = (Get-ContainerHelperConfig).defaultNewContainerParameters
@@ -972,10 +976,15 @@ try {
     }
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "Platform" -value $platformVersion
     }
 
     $genericTag = $inspect.Config.Labels.tag
     Write-Host "Generic Tag: $genericTag"
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "Version" -value $navVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "Country" -value $devCountry
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "Style" -value $bcStyle
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "Multitenant" -value $multitenant
     AddTelemetryProperty -telemetryScope $telemetryScope -key "GenericTag" -value $genericTag
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"

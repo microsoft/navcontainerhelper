@@ -88,6 +88,7 @@ function Get-ContainerHelperConfig {
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @('AL1026')
             "TelemetryConnectionString" = ""
+            "UseExtendedTelemetry" = $false
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {

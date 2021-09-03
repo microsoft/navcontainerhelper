@@ -71,7 +71,11 @@ function Import-TestToolkitToBcContainer {
 
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+$telemetryScope = InitTelemetryScope `
+                    -name $MyInvocation.InvocationName `
+                    -always `
+                    -parameterValues $PSBoundParameters `
+                    -includeParameters @("containerName","includeTestLibrariesOnly","includeTestFrameworkOnly","includeTestRunnerOnly","includePerformanceToolkit","testToolkitCountry")
 try {
 
     if ($replaceDependencies) {

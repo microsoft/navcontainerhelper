@@ -49,7 +49,11 @@ function New-BcImage {
         $allImages
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+$telemetryScope = InitTelemetryScope `
+                    -name $MyInvocation.InvocationName `
+                    -always `
+                    -parameterValues $PSBoundParameters `
+                    -includeParameters @("containerName","artifactUrl","isolation","imageName","baseImage","multitenant","filesOnly")
 try {
 
     if ($memory -eq "") {

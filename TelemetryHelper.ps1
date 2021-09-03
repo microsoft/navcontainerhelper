@@ -30,7 +30,17 @@
         $arr = @($value.GetEnumerator() | ForEach-Object { $_ })
         $str = "{"
         $arr | ForEach-Object {
-            $str += "`n  $($_.Key): $(FormatValue -value $_.Value)"
+            if ($_.Key -eq "RefreshToken" -or $_.Key -eq "AccessToken") {
+                if ($_.Value) {
+                    $str += "`n  $($_.Key): [token]"
+                }
+                else {
+                    $str += "`n  $($_.Key): [null]"
+                }
+            }
+            else {
+                $str += "`n  $($_.Key): $(FormatValue -value $_.Value)"
+            }
         }
         "$str`n}"
     }
@@ -76,7 +86,6 @@ function InitTelemetryScope {
         [string[]] $includeParameters = @(),
         $parameterValues = $null
     )
-    $includeParameters = "*"
     if ($telemetry.Client) {
         if ($bcContainerHelperConfig.TelemetryConnectionString) {
             if ($telemetry.Client.TelemetryConfiguration.DisableTelemetry -or $telemetry.Client.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
@@ -103,8 +112,9 @@ function InitTelemetryScope {
                 $scope = @{
                     "Name" = $name
                     "StartTime" = [DateTime]::Now
-                    "SeverityLevel" = 1
                     "Properties" = [Collections.Generic.Dictionary[string, string]]::new()
+                    "Parameters" = [Collections.Generic.Dictionary[string, string]]::new()
+                    "AllParameters" = [Collections.Generic.Dictionary[string, string]]::new()
                     "CorrelationId" = $CorrelationId
                     "ParentId" = $telemetry.CorrelationId
                     "TopId" = $telemetry.TopId
@@ -115,9 +125,11 @@ function InitTelemetryScope {
                     $parameterValues.GetEnumerator() | ForEach-Object {
                         $includeParameter = $false
                         $key = $_.key
+                        $value = FormatValue -value $_.value
+                        $scope.allParameters.Add($key, $value)
                         $includeParameters | ForEach-Object { if ($key -like $_) { $includeParameter = $true } }
                         if ($includeParameter) {
-                            AddTelemetryProperty -telemetryScope $scope -key "Parameter[$Key]" -value $_.Value
+                            $scope.parameters.Add($key, $value)
                         }
                     }
                 }
@@ -162,8 +174,20 @@ function TrackTrace {
             $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
 
             $traceTelemetry = $telemetry.Client.GetType().Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
-            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-            $traceTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
+            if ($bcContainerHelperConfig.UseExtendedTelemetry) {
+                $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                $traceTelemetry.SeverityLevel = 0
+                $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                    [void]$traceTelemetry.Properties.TryAdd("Parameter[$($_.Key)]", $_.Value)
+                }
+            }
+            else {
+                $traceTelemetry.Message = "$($telemetryScope.Name)"
+                $traceTelemetry.SeverityLevel = 1
+                $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                    [void]$traceTelemetry.Properties.TryAdd("Parameter[$($_.Key)]", $_.Value)
+                }
+            }
             $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
                 [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
             }
@@ -226,8 +250,20 @@ function TrackException {
 
             # emit trace telemetry with Error info
             $traceTelemetry = $telemetry.Client.GetType().Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
-            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-            $traceTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
+            if ($bcContainerHelperConfig.UseExtendedTelemetry) {
+                $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                $traceTelemetry.SeverityLevel = 0
+                $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                    [void]$traceTelemetry.Properties.TryAdd("Parameter[$($_.Key)]", $_.Value)
+                }
+            }
+            else {
+                $traceTelemetry.Message = "$($telemetryScope.Name)"
+                $traceTelemetry.SeverityLevel = 1
+                $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                    [void]$traceTelemetry.Properties.TryAdd("Parameter[$($_.Key)]", $_.Value)
+                }
+            }
             $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
                 [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
             }
@@ -238,8 +274,20 @@ function TrackException {
 
             # emit exception telemetry
             $exceptionTelemetry = $telemetry.Client.GetType().Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry')
-            $exceptionTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-            $exceptionTelemetry.SeverityLevel = $telemetryScope.SeverityLevel
+            if ($bcContainerHelperConfig.UseExtendedTelemetry) {
+                $exceptionTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                $exceptionTelemetry.SeverityLevel = 3
+                $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                    [void]$exceptionTelemetry.Properties.TryAdd("Parameter[$($_.Key)]", $_.Value)
+                }
+            }
+            else {
+                $exceptionTelemetry.Message = "$($telemetryScope.Name)"
+                $exceptionTelemetry.SeverityLevel = 1
+                $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                    [void]$exceptionTelemetry.Properties.TryAdd("Parameter[$($_.Key)]", $_.Value)
+                }
+            }
             $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
                 [void]$exceptionTelemetry.Properties.TryAdd($_.Key, $_.Value)
             }
