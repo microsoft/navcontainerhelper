@@ -13,15 +13,18 @@
  .Example
   Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -AzureDevOps
  .Example
+  Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -GitHubActions
+ .Example
   & .\alc.exe /project:$appProjectFolder /packagecachepath:$appSymbolsFolder /out:$appOutputFile | Convert-AlcOutputToAzureDevOps
 #>
-Function Convert-AlcOutputToAzureDevOps {
+Function Convert-AlcOutputToDevOps {
     Param (
         [Parameter(Position=0, Mandatory=$true, ValueFromPipeline=$true, ValueFromPipelineByPropertyName=$true)]
         $AlcOutput,
         [Parameter(Position=1)]
         [ValidateSet('none','error','warning')]
         [string] $FailOn,
+        [switch] $gitHubActions,
         [switch] $doNotWriteToHost
     )
 
@@ -35,9 +38,19 @@ try {
         switch -regex ($line) {
             "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
-                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);code=$($Matches[1]);]$($Matches[2])"
+                    if ($gitHubActions) {
+                        $newLine = "::warning file=$($Matches[3])::code=$($Matches[1]) $($Matches[2])"
+                    }
+                    else {
+                        $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);$($Matches[1]);]$($Matches[2])"
+                    }
                 } else {
-                    $newLine = "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
+                    if ($gitHubActions) {
+                        $newLine = "::warning::$($Matches[1]) $($Matches[2])"
+                    }
+                    else {
+                        $newLine = "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
+                    }
                 }
         
                 $hasWarning = $true
@@ -46,14 +59,24 @@ try {
             "^(.*)\((\d+),(\d+)\): error (\w{2,3}\d{4}): (.*)$"
             #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
             {
-                $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                if ($gitHubActions) {
+                    $newLine = "::error file=$($Matches[1]),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                }
+                else {
+                    $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                }
                 $hasError = $true
                 break
             }
             "^(.*)error (\w{2}\d{4}): (.*)$"
             #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
             {
-                $newLine = "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
+                if ($gitHubActions) {
+                    $newLine = "::error::$($Matches[2]) $($Matches[3])"
+                }
+                else {
+                    $newLine = "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
+                }
                 $hasError = $true
                 break
             }
@@ -61,7 +84,12 @@ try {
             #Prepared for unified warning format
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
-                $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                if ($gitHubActions) {
+                    $newLine = "::warning file=$($Matches[1]),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                }
+                else {
+                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                }
                 $hasWarning = $true
                 break
             }
@@ -79,11 +107,13 @@ try {
     }
 
     $errLine = ""
-    if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
-        $errLine = "##vso[task.complete result=Failed;]Failed."
-    }
-    elseif ($failOn -eq 'error' -and $hasWarning) {
-        $errLine = "##vso[task.complete result=SucceededWithIssues;]Succeeded With Issues."
+    if (-not $gitHubActions) {
+        if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
+            $errLine = "##vso[task.complete result=Failed;]Failed."
+        }
+        elseif ($failOn -eq 'error' -and $hasWarning) {
+            $errLine = "##vso[task.complete result=SucceededWithIssues;]Succeeded With Issues."
+        }
     }
     if ($errLine) {
         if ($doNotWriteToHost) {
@@ -102,4 +132,5 @@ finally {
     TrackTrace -telemetryScope $telemetryScope
 }
 }
-Export-ModuleMember -Function Convert-AlcOutputToAzureDevOps
+Set-Alias -Name Convert-AlcOutputToAzureDevOps -Value Convert-AlcOutputToDevOps
+Export-ModuleMember -Function Convert-AlcOutputToDevOps -Alias Convert-AlcOutputToAzureDevOps

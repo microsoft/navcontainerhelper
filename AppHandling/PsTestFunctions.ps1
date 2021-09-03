@@ -311,6 +311,8 @@ function Run-Tests {
         [switch] $ReRun,
         [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no',
+        [ValidateSet('no','error','warning')]
+        [string] $GitHubActions = 'no',
         [switch] $connectFromHost
     )
 
@@ -563,6 +565,9 @@ function Run-Tests {
                     elseif ($_.result -eq 1) {
                         if ($AzureDevOps -ne 'no') {
                             Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$($_.method);]$($_.message)"
+                        }
+                        if ($GitHubActions -ne 'no') {
+                            Write-Host "::$($GitHubActions)::Function $($_.method) $($_.message)"
                         }
                         Write-Host -ForegroundColor Red "    Testfunction $($_.method) Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                         if ($XUnitResultFileName) {
@@ -933,6 +938,9 @@ function Run-Tests {
                             $firstError = $clientContext.GetControlByName($row, $firstErrorName).StringValue
                             if ($AzureDevOps -ne 'no') {
                                 Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$name;]$firstError"
+                            }
+                            if ($GitHubActions -ne 'no') {
+                                Write-Host "::$($GitHubActions)::Function $name $firstError"
                             }
                             Write-Host -ForegroundColor Red "    Testfunction $name Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                             $allPassed = $false

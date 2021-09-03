@@ -26,6 +26,8 @@
   Add this switch to invoke report layout generation during compile. Default is default alc.exe behavior, which is to generate report layout
  .Parameter AzureDevOps
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
+ .Parameter gitHubActions
+  Include this switch to convert the output to GitHub Actions compatible output
  .Parameter EnableCodeCop
   Add this switch to Enable CodeCop to run
  .Parameter EnableAppSourceCop
@@ -82,6 +84,7 @@ function Compile-AppInBcContainer {
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
         [switch] $AzureDevOps,
+        [switch] $gitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
@@ -541,9 +544,9 @@ try {
 
     $devOpsResult = ""
     if ($result) {
-        $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions:$gitHubActions
     }
-    if ($AzureDevOps) {
+    if ($AzureDevOps -or $gitHubActions) {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
     }
     else {
