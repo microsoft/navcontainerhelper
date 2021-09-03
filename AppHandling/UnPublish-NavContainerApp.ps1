@@ -79,7 +79,13 @@ try {
             $params += @{ 'Version' = $version }
         }
         $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $name @params)
-        if ([bool]($appInfo.Scope -contains 'Tenant')) {
+        $tenantScope = $false
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Name $name @params | ForEach-Object {
+            if ([bool]($_.PSObject.Properties.Name -eq 'Scope')) {
+                if ($_.Scope -eq "Tenant") { $tenantScope = $true }
+            }
+        }
+        if ($tenantScope) {
             $params += @{ 'Tenant' = $tenant }
         }
 
