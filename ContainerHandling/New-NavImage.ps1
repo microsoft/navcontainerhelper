@@ -91,7 +91,15 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 19043) { 
+    if ($os.BuildNumber -eq 20348) { 
+        if ($isServerHost) {
+            $hostOs = "ltsc2022"
+        }
+        else {
+            $hostOs = "11"
+        }
+    }
+    elseif ($os.BuildNumber -eq 19043) { 
         $hostOs = "21H1"
     }
     elseif ($os.BuildNumber -eq 19042) { 
@@ -298,6 +306,9 @@ try {
             elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
                 $containerOs = "21H1"
             }
+            elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+                $containerOs = "ltsc2022"
+            }
             else {
                 $containerOs = "unknown"
             }
@@ -315,6 +326,14 @@ try {
             if ($hostOsVersion -eq $containerOsVersion) {
                 if ($isolation -eq "") { 
                     $isolation = "process"
+                }
+            }
+            elseif ("$hostOsVersion".StartsWith('10.0.20348.') -and "$containerOsVersion".StartsWith("10.0.20348.")) {
+                if ($containerOsVersion -le $hostOsVersion) {
+                    $isolation = "process"
+                }
+                else {
+                    $isolation = "hyperv"
                 }
             }
             elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
