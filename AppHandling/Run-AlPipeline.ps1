@@ -24,6 +24,8 @@
   If you specify a tenant name, a tenant with this name will be created and used for the entire process.
  .Parameter memoryLimit
   MemoryLimit is default set to 8Gb. This is fine for compiling small and medium size apps, but if your have a number of apps or your apps are large and complex, you might need to assign more memory.
+ .Parameter auth
+  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
  .Parameter credential
   These are the credentials used for the container. If not provided, the Run-AlPipeline function will generate a random password and use that.
  .Parameter codeSignCertPfxFile
@@ -168,6 +170,7 @@ Param(
     [switch] $assignPremiumPlan,
     [string] $tenant = "default",
     [string] $memoryLimit,
+    [string] $auth = 'UserPassword',
     [PSCredential] $credential,
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
@@ -436,6 +439,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext               "; if
 Write-Host -NoNewLine -ForegroundColor Yellow "Environment                 "; Write-Host $environment
 Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer              "; Write-Host $reUseContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer               "; Write-Host $keepContainer
+Write-Host -NoNewLine -ForegroundColor Yellow "Auth                        "; Write-Host $auth
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                  ";
 if ($credential) {
     Write-Host "Specified"
@@ -662,7 +666,7 @@ Measure-Command {
             "artifactUrl" = $artifactUrl
             "useGenericImage" = $useGenericImage
             "Credential" = $credential
-            "auth" = 'UserPassword'
+            "auth" = $auth
             "vsixFile" = $vsixFile
             "updateHosts" = $true
             "licenseFile" = $licenseFile
