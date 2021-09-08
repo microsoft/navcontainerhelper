@@ -563,6 +563,10 @@ function Run-Tests {
                         $passed++
                     }
                     elseif ($_.result -eq 1) {
+                        $stacktrace = $_.stacktrace
+                        if ($stacktrace.EndsWith(';')) {
+                            $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
+                        }
                         if ($AzureDevOps -ne 'no') {
                             Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$($_.method);]$($_.message)"
                         }
@@ -576,10 +580,6 @@ function Run-Tests {
                         $failed++
             
                         if ($detailed) {
-                            $stacktrace = $_.stacktrace
-                            if ($stacktrace.EndsWith(';')) {
-                                $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
-                            }
                             Write-Host -ForegroundColor Red "      Error:"
                             Write-Host -ForegroundColor Red "        $($_.message)"
                             Write-Host -ForegroundColor Red "      Call Stack:"
@@ -936,6 +936,8 @@ function Run-Tests {
                         }
                         elseif ($result -eq "1") {
                             $firstError = $clientContext.GetControlByName($row, $firstErrorName).StringValue
+                            $callStack = $clientContext.GetControlByName($row, $callStackName).StringValue
+                            if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                             if ($AzureDevOps -ne 'no') {
                                 Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$name;]$firstError"
                             }
@@ -944,8 +946,6 @@ function Run-Tests {
                             }
                             Write-Host -ForegroundColor Red "    Testfunction $name Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                             $allPassed = $false
-                            $callStack = $clientContext.GetControlByName($row, $callStackName).StringValue
-                            if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                             if ($XUnitResultFileName) {
                                 $XUnitAssembly.SetAttribute("failed",([int]$XUnitAssembly.GetAttribute("failed")+1))
                                 $XUnitTest.SetAttribute("result", "Fail")
