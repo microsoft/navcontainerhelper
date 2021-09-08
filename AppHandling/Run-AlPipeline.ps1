@@ -44,6 +44,8 @@
   Array or comma separated list of folders with test apps to be compiled, published and run
  .Parameter additionalCountries
   Array or comma separated list of countries to test
+ .Parameter appVersion
+  Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
   Build number for build. Will be stamped into the build part of the app.json version number property.
  .Parameter appRevision
@@ -180,6 +182,7 @@ Param(
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
     $additionalCountries = @(),
+    [string] $appVersion = "",
     [int] $appBuild = 0,
     [int] $appRevision = 0,
     [string] $applicationInsightsKey,
@@ -476,6 +479,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                "; Write-Host $outputFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Write-Host $buildArtifactFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages       "; Write-Host $createRuntimePackages
+Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion                  "; Write-Host $appVersion
 Write-Host -NoNewLine -ForegroundColor Yellow "AppBuild                    "; Write-Host $appBuild
 Write-Host -NoNewLine -ForegroundColor Yellow "AppRevision                 "; Write-Host $appRevision
 if ($enableAppSourceCop) {
@@ -1054,9 +1058,14 @@ Write-Host -ForegroundColor Yellow @'
     $appJsonFile = Join-Path $folder "app.json"
     $appJsonChanges = $false
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-    if ($appBuild -or $appRevision) {
-        $appJsonVersion = [System.Version]$appJson.Version
-        $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+    if ($appVersion -or $appBuild -or $appRevision) {
+        if ($appVersion) {
+            $version = [System.Version]"$($appVersion).$($appBuild).$($appRevision)"
+        }
+        else {
+            $appJsonVersion = [System.Version]$appJson.Version
+            $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+        }
         Write-Host "Using Version $version"
         $appJson.version = "$version"
         $appJsonChanges = $true
