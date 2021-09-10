@@ -10,6 +10,8 @@
   Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
   BaseImage to use. Default is using Get-BestGenericImage to get the best generic image to use.
+ .Parameter registryCredential
+  Credentials for the registry for baseImage if you are using a private registry (incl. bcinsider)
  .Parameter isolation
   Isolation mode for the image build process (default is process if baseImage OS matches host OS)
  .Parameter memory
@@ -32,6 +34,7 @@ function New-BcImage {
         [string] $artifactUrl,
         [string] $imageName = "myimage",
         [string] $baseImage = "",
+        [PSCredential] $registryCredential,
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
         [string] $memory = "",
@@ -53,7 +56,7 @@ $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
                     -always `
                     -parameterValues $PSBoundParameters `
-                    -includeParameters @("containerName","artifactUrl","isolation","imageName","baseImage","multitenant","filesOnly")
+                    -includeParameters @("containerName","artifactUrl","isolation","imageName","baseImage","registryCredential","multitenant","filesOnly")
 try {
 
     if ($memory -eq "") {
@@ -198,7 +201,7 @@ try {
                 try {
                     Write-Host "Image $imageName already exists"
                     $inspect = docker inspect $imageName | ConvertFrom-Json
-                    $labels = Get-BcContainerImageLabels -imageName $baseImage
+                    $labels = Get-BcContainerImageLabels -imageName $baseImage -registryCredential $registryCredential
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
                     if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
@@ -210,7 +213,7 @@ try {
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                        Write-Host "Image $imageName was built with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                        Write-Host "Image $imageName was built with country $($inspect.Config.Labels.country), should be $($appManifest.country)"
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {

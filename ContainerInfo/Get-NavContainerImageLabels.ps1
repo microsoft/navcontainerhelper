@@ -23,56 +23,56 @@ try {
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $webclient = New-Object System.Net.WebClient
 
-    if ($imageName.IndexOf("/") -lt 0) {
+    if ($imageName.IndexOf('/') -ge 0) {
+        $registry = $imageName.Split("/")[0]
+        $repository = $imageName.Substring($registry.Length+1).Split(":")[0]
+        $tag = $imageName.Split(":")[1]
+        if ("$tag" -eq "") {
+            $tag = "w1"
+        }
+    
+        $authorization = ""
+    
+        if ("$registry" -eq "mcr.microsoft.com") {
+    
+            # public repository - no authorization needed
+    
+        } elseif ($registryCredential) {
+    
+            $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
+            $authorization = "Basic $credentials"
+    
+        } elseif ("$registry" -eq "bcinsider.azurecr.io" -or "$registry" -eq "bcprivate.azurecr.io") {
+    
+            throw "$registry registry requires authorization. Please specify username and password for the registry in registryCredential."
+    
+        } else {
+    
+            $repository = "$registry/$repository"
+            $registry = "registry.hub.docker.com"
+            $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:${repository}:pull&service=registry.docker.io") | ConvertFrom-Json).token
+            $authorization = "Bearer $token"
+    
+        }
+    
+        $webclient.Headers.Add('Accept', “application/vnd.docker.distribution.manifest.v1+json”)
+        if ($authorization) {
+            $webclient.Headers.Add("Authorization", $authorization )
+        }
+    
         try {
-            return (docker inspect $imageName | ConvertFrom-Json).Config.Labels
+            return (($webclient.DownloadString("https://$registry/v2/$repository/manifests/$tag") | ConvertFrom-Json).history[0].v1Compatibility | ConvertFrom-Json).container_config.Labels
         }
         catch {
-            return
         }
-    }
-
-    $registry = $imageName.Split("/")[0]
-    $repository = $imageName.Substring($registry.Length+1).Split(":")[0]
-    $tag = $imageName.Split(":")[1]
-    if ("$tag" -eq "") {
-        $tag = "w1"
-    }
-
-    $authorization = ""
-
-    if ("$registry" -eq "mcr.microsoft.com") {
-
-        # public repository - no authorization needed
-
-    } elseif ($registryCredential) {
-
-        $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
-        $authorization = "Basic $credentials"
-
-    } elseif ("$registry" -eq "bcinsider.azurecr.io" -or "$registry" -eq "bcprivate.azurecr.io") {
-
-        throw "$registry registry requires authorization. Please specify username and password for the registry in registryCredential."
-
-    } else {
-
-        $repository = "$registry/$repository"
-        $registry = "registry.hub.docker.com"
-        $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:${repository}:pull&service=registry.docker.io") | ConvertFrom-Json).token
-        $authorization = "Bearer $token"
-
-    }
-
-    $webclient.Headers.Add('Accept', “application/vnd.docker.distribution.manifest.v1+json”)
-    if ($authorization) {
-        $webclient.Headers.Add("Authorization", $authorization )
     }
 
     try {
-        (($webclient.DownloadString("https://$registry/v2/$repository/manifests/$tag") | ConvertFrom-Json).history[0].v1Compatibility | ConvertFrom-Json).container_config.Labels
+        return (docker inspect $imageName | ConvertFrom-Json).Config.Labels
     }
     catch {
     }
+
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
