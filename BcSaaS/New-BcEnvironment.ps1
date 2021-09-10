@@ -40,7 +40,7 @@ function New-BcEnvironment {
         [string] $countryCode,
         [ValidateSet('Sandbox','Production')]
         [string] $environmentType = "Sandbox",
-        [string] $ringName = "",
+        [string] $ringName = "PROD",
         [string] $applicationVersion = "",
         [string] $applicationInsightsKey = "",
         [switch] $doNotWait
@@ -49,7 +49,7 @@ function New-BcEnvironment {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-	$baseUrl = $baseUrl.TrimEnd('/')
+    $baseUrl = $baseUrl.TrimEnd('/')
 	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     if (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Status -eq 'Preparing'}) {

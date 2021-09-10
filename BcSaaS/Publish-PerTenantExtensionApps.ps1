@@ -48,7 +48,7 @@ function Publish-PerTenantExtensionApps {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
-	$baseUrl = $baseUrl.TrimEnd('/')
+    $baseUrl = $baseUrl.TrimEnd('/')
     $newLine = @{}
     if (!$useNewLine) {
         $newLine = @{ "NoNewLine" = $true }

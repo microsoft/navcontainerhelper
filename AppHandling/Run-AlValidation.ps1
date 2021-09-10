@@ -99,7 +99,7 @@ Param(
     [switch] $skipVerification,
     [switch] $skipUpgrade,
     [switch] $skipAppSourceCop,
-    [switch] $skipConnectionTest,
+    [switch] $skipConnectionTest = $true,
     [switch] $throwOnError,
     [string] $useGenericImage = "",
     [switch] $multitenant,

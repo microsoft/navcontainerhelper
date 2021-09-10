@@ -48,8 +48,8 @@ function Install-BcAppFromAppSource {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-	$baseUrl = $baseUrl.TrimEnd('/')
-	$apiBaseUrl = $apiBaseUrl.TrimEnd('/')
+    $baseUrl = $baseUrl.TrimEnd('/')
+    $apiBaseUrl = $apiBaseUrl.TrimEnd('/')
 	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment }

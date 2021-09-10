@@ -24,6 +24,8 @@
   If you specify a tenant name, a tenant with this name will be created and used for the entire process.
  .Parameter memoryLimit
   MemoryLimit is default set to 8Gb. This is fine for compiling small and medium size apps, but if your have a number of apps or your apps are large and complex, you might need to assign more memory.
+ .Parameter auth
+  Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
  .Parameter credential
   These are the credentials used for the container. If not provided, the Run-AlPipeline function will generate a random password and use that.
  .Parameter codeSignCertPfxFile
@@ -42,6 +44,8 @@
   Array or comma separated list of folders with test apps to be compiled, published and run
  .Parameter additionalCountries
   Array or comma separated list of countries to test
+ .Parameter appVersion
+  Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
   Build number for build. Will be stamped into the build part of the app.json version number property.
  .Parameter appRevision
@@ -168,6 +172,7 @@ Param(
     [switch] $assignPremiumPlan,
     [string] $tenant = "default",
     [string] $memoryLimit,
+    [string] $auth = 'UserPassword',
     [PSCredential] $credential,
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
@@ -177,6 +182,7 @@ Param(
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
     $additionalCountries = @(),
+    [string] $appVersion = "",
     [int] $appBuild = 0,
     [int] $appRevision = 0,
     [string] $applicationInsightsKey,
@@ -436,6 +442,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext               "; if
 Write-Host -NoNewLine -ForegroundColor Yellow "Environment                 "; Write-Host $environment
 Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer              "; Write-Host $reUseContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer               "; Write-Host $keepContainer
+Write-Host -NoNewLine -ForegroundColor Yellow "Auth                        "; Write-Host $auth
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                  ";
 if ($credential) {
     Write-Host "Specified"
@@ -472,6 +479,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "OutputFolder                "; Write-Host $outputFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildArtifactFolder         "; Write-Host $buildArtifactFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages       "; Write-Host $createRuntimePackages
+Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion                  "; Write-Host $appVersion
 Write-Host -NoNewLine -ForegroundColor Yellow "AppBuild                    "; Write-Host $appBuild
 Write-Host -NoNewLine -ForegroundColor Yellow "AppRevision                 "; Write-Host $appRevision
 if ($enableAppSourceCop) {
@@ -662,7 +670,7 @@ Measure-Command {
             "artifactUrl" = $artifactUrl
             "useGenericImage" = $useGenericImage
             "Credential" = $credential
-            "auth" = 'UserPassword'
+            "auth" = $auth
             "vsixFile" = $vsixFile
             "updateHosts" = $true
             "licenseFile" = $licenseFile
@@ -1050,9 +1058,14 @@ Write-Host -ForegroundColor Yellow @'
     $appJsonFile = Join-Path $folder "app.json"
     $appJsonChanges = $false
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-    if ($appBuild -or $appRevision) {
-        $appJsonVersion = [System.Version]$appJson.Version
-        $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+    if ($appVersion -or $appBuild -or $appRevision) {
+        if ($appVersion) {
+            $version = [System.Version]"$($appVersion).$($appBuild).$($appRevision)"
+        }
+        else {
+            $appJsonVersion = [System.Version]$appJson.Version
+            $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+        }
         Write-Host "Using Version $version"
         $appJson.version = "$version"
         $appJsonChanges = $true

@@ -126,8 +126,19 @@ try {
             "features" = @()
         }
         if ($runtime -ge 5.0)  {
-            $appJson += @{
-                "applicationInsightsKey" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } )"
+            $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
+            if ($appInsightsKey) {
+                $appJson += @{
+                    "applicationInsightsKey" = "$appInsightsKey"
+                }
+            }
+            elseif ($runtime -ge 7.2)  {
+                $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | % { $_.Value } 
+                if ($appInsightsConnectionString) {
+                    $appJson += @{
+                        "applicationInsightsConnectionString" = "$appInsightsConnectionString"
+                    }
+                }
             }
         }
         $contextSensitiveHelpUrl = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "contextSensitiveHelpUrl" } | % { $_.Value } )"

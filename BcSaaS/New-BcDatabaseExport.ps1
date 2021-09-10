@@ -44,7 +44,7 @@ function New-BcDatabaseExport {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
-	$baseUrl = $baseUrl.TrimEnd('/')
+    $baseUrl = $baseUrl.TrimEnd('/')
 
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
