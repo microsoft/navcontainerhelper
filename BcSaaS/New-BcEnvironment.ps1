@@ -40,7 +40,7 @@ function New-BcEnvironment {
         [string] $countryCode,
         [ValidateSet('Sandbox','Production')]
         [string] $environmentType = "Sandbox",
-        [string] $ringName = "",
+        [string] $ringName = "PROD",
         [string] $applicationVersion = "",
         [string] $applicationInsightsKey = "",
         [switch] $doNotWait
