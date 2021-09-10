@@ -49,6 +49,8 @@ function New-BcEnvironment {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+	$baseUrl = $baseUrl.TrimEnd('/')
+	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     if (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Status -eq 'Preparing'}) {
         Write-Host -NoNewline "Waiting for other environments."

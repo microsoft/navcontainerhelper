@@ -32,6 +32,8 @@ function Remove-BcEnvironment {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+	$baseUrl = $baseUrl.TrimEnd('/')
+	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
     if (!($bcEnvironment)) {
