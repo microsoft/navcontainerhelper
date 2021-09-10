@@ -15,6 +15,7 @@ Add Windows 11 / ltsc2022 support
 Run-AlValidation sometimes returns error AL1040: The guid number '' does not match the expected pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".
 Add Parameter appVersion to Run-AlPipeline to stamp in full version number during build
 Skip ConnectionTest by default on Run-AlValidation
+Issue #2069 New-BcImage - incorrect evaluation resulting $forceRebuild is true always for us.
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
