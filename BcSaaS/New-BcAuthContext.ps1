@@ -36,11 +36,11 @@
 function New-BcAuthContext {
     Param(
         [string] $clientID = "1950a258-227b-4e31-a9cf-717495945fc2",
-        [string] $Resource = "https://api.businesscentral.dynamics.com/",
+        [string] $Resource = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/",
         [string] $tenantID = "Common",
         [string] $authority = "https://login.microsoftonline.com/$TenantID",
         [string] $refreshToken,
-        [string] $scopes = "https://api.businesscentral.dynamics.com/.default",
+        [string] $scopes = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default",
         [SecureString] $clientSecret,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,

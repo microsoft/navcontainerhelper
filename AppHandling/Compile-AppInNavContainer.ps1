@@ -309,7 +309,7 @@ try {
             throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
         }
         $publishedApps = Get-BcPublishedApps -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.state -eq "installed" }
-        $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
+        $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $webclient = [System.Net.WebClient]::new()
         $webClient.Headers.Add("Authorization", $bearerAuthValue)

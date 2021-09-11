@@ -9,8 +9,6 @@
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter companyName
   CompanyName to use in the request. Default is the first company.
- .Parameter baseUrl
-  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter environment
   Environment from which you want to return the published Apps.
  .Example
@@ -24,20 +22,17 @@ function Get-BcInstalledExtensions {
         [string] $applicationFamily = "BusinessCentral",
         [string] $companyName = "",
         [Parameter(Mandatory=$true)]
-        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [string] $environment
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
-    $baseUrl = $baseUrl.TrimEnd('/')
-	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
 
-    $automationApiUrl = "$baseUrl/v2.0/$environment/api/microsoft/automation/v1.0"
+    $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v1.0"
 
     $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
     $company = $companies.value | Where-Object { ($companyName -eq "") -or ($_.name -eq $companyName) } | Select-Object -First 1

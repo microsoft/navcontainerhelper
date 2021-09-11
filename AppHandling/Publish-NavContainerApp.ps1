@@ -145,7 +145,7 @@ try {
                 $sslVerificationDisabled = $false
                 if ($bcAuthContext -and $environment) {
                     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                    $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
+                    $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
                     $tenant = ""
         
                     $handler = New-Object System.Net.Http.HttpClientHandler

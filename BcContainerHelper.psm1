@@ -40,6 +40,8 @@ function Get-ContainerHelperConfig {
             "useSharedEncryptionKeys" = $true
             "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
+            "baseUrl" = "https://businesscentral.dynamics.com"
+            "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"
                 "bd" = "w1"

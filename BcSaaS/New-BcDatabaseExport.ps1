@@ -8,8 +8,6 @@
   Authorization Context created by New-BcAuthContext.
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
- .Parameter baseUrl
-  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter environment
   Environment from which you want to return the published Apps.
  .Parameter storageAccountSasUri
@@ -29,7 +27,6 @@ function New-BcDatabaseExport {
         [Parameter(Mandatory=$true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
-        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [Parameter(Mandatory=$true)]
         [string] $environment,
         [Parameter(Mandatory=$true)]
@@ -44,8 +41,6 @@ function New-BcDatabaseExport {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
-    $baseUrl = $baseUrl.TrimEnd('/')
-
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
@@ -55,7 +50,7 @@ try {
         "blob" = $blobName
     } | ConvertTo-Json
     try {
-        Invoke-RestMethod -Method POST -Uri "$baseUrl/admin/v2.3/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
+        Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)
