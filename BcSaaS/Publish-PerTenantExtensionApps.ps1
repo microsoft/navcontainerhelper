@@ -4,6 +4,8 @@
  .Description
   Function for publishing PTE apps to an online tenant
   Please consult the CI/CD Workshop document at http://aka.ms/cicdhol to learn more about this function
+ .Parameter baseUrl
+  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter clientId
   ClientID of Azure AD App for authenticating to Business Central (SecureString or String)
  .Parameter clientSecret
@@ -20,10 +22,12 @@
  .Parameter useNewLine
   Add this switch to add a newline to progress indicating periods during wait.
   Azure DevOps doesn't update logs until a newline is added.
+
 #>
 function Publish-PerTenantExtensionApps {
     [CmdletBinding(DefaultParameterSetName="AC")]
     Param(
+        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [Parameter(Mandatory=$true, ParameterSetName="CC")]
         $clientId,
         [Parameter(Mandatory=$true, ParameterSetName="CC")]
@@ -43,7 +47,8 @@ function Publish-PerTenantExtensionApps {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+	
+    $baseUrl = $baseUrl.TrimEnd('/')
     $newLine = @{}
     if (!$useNewLine) {
         $newLine = @{ "NoNewLine" = $true }
@@ -68,10 +73,10 @@ try {
     $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
     try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFiles -folder $appFolder
-        $baseUrl      = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v1.0"
+        $automationApiUrl = "$baseUrl/v2.0/$environment/api/microsoft/automation/v1.0"
         
         $authHeaders = @{ "Authorization" = "Bearer $($bcauthcontext.AccessToken)" }
-        $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+        $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
         $company = $companies.value | Where-Object { ($companyName -eq "") -or ($_.name -eq $companyName) } | Select-Object -First 1
         if (!($company)) {
             throw "No company $companyName"
@@ -98,7 +103,7 @@ try {
                 Write-Host @newLine "Publishing and Installing"
                 Invoke-WebRequest -Headers ($authHeaders+(@{"If-Match" = "*"})) `
                     -Method Patch -UseBasicParsing `
-                    -Uri "$baseUrl/companies($companyId)/extensionUpload(0)/content" `
+                    -Uri "$automationApiUrl/companies($companyId)/extensionUpload(0)/content" `
                     -ContentType "application/octet-stream" `
                     -InFile $_ | Out-Null
                 Write-Host @newLine "."    
@@ -108,7 +113,7 @@ try {
                 {
                     Start-Sleep -Seconds 5
                     try {
-                        $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$baseUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
+                        $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
                         $extensionDeploymentStatuses = (ConvertFrom-Json $extensionDeploymentStatusResponse.Content).value
                         $completed = $true
                         $extensionDeploymentStatuses | Where-Object { $_.publisher -eq $appJson.publisher -and $_.name -eq $appJson.name -and $_.appVersion -eq $appJson.version } | % {
@@ -137,7 +142,7 @@ try {
             }
         }
         finally {
-            $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$baseUrl/companies($companyId)/extensions" -UseBasicParsing
+            $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
             $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
             
             Write-Host

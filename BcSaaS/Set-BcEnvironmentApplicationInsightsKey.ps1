@@ -7,6 +7,8 @@
   Authorization Context created by New-BcAuthContext.
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
+ .Parameter baseUrl
+  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter environment
   Name of the new environment on which you want to set the Application Insights Key
  .Parameter applicationInsightsKey
@@ -20,6 +22,7 @@ function Set-BcEnvironmentApplicationInsightsKey {
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory=$true)]
+        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [string] $environment,
         [string] $applicationInsightsKey = "",
         [switch] $doNotWait
@@ -28,6 +31,8 @@ function Set-BcEnvironmentApplicationInsightsKey {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    $baseUrl = $baseUrl.TrimEnd('/')
+	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{
@@ -39,7 +44,7 @@ try {
     Write-Host "Submitting new Application Insights Key for $applicationFamily/$environment"
     $body | ConvertTo-Json | Out-Host
     try {
-        Invoke-RestMethod -Method POST -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment/settings/appInsightsKey" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
+        Invoke-RestMethod -Method POST -Uri "$baseUrl/admin/v2.3/applications/$applicationFamily/environments/$environment/settings/appInsightsKey" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)
