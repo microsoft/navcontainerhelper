@@ -8,8 +8,6 @@
   Authorization Context created by New-BcAuthContext.
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
- .Parameter baseUrl
-  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter environment
   Name of the environment to delete
  .Parameter doNotWait
@@ -23,7 +21,6 @@ function Remove-BcEnvironment {
         [Parameter(Mandatory=$true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
-        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [Parameter(Mandatory=$true)]
         [string] $environment,
         [switch] $doNotWait
@@ -32,8 +29,6 @@ function Remove-BcEnvironment {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $baseUrl = $baseUrl.TrimEnd('/')
-	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
     if (!($bcEnvironment)) {
@@ -50,7 +45,7 @@ try {
         }
         Write-Host "Submitting environment removal request for $applicationFamily/$environment"
         try {
-            Invoke-RestMethod -Method DELETE -Uri "$baseUrl/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers
+            Invoke-RestMethod -Method DELETE -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers
         }
         catch {
             throw (GetExtenedErrorMessage $_.Exception)

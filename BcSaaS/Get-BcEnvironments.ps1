@@ -26,7 +26,7 @@ try {
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
     try {
-       (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments" -Headers $headers).Value
+       (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments" -Headers $headers).Value
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)

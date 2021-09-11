@@ -4,8 +4,6 @@
  .Description
   Function for publishing PTE apps to an online tenant
   Please consult the CI/CD Workshop document at http://aka.ms/cicdhol to learn more about this function
- .Parameter baseUrl
-  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter clientId
   ClientID of Azure AD App for authenticating to Business Central (SecureString or String)
  .Parameter clientSecret
@@ -27,7 +25,6 @@
 function Publish-PerTenantExtensionApps {
     [CmdletBinding(DefaultParameterSetName="AC")]
     Param(
-        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [Parameter(Mandatory=$true, ParameterSetName="CC")]
         $clientId,
         [Parameter(Mandatory=$true, ParameterSetName="CC")]
@@ -48,7 +45,6 @@ function Publish-PerTenantExtensionApps {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
-    $baseUrl = $baseUrl.TrimEnd('/')
     $newLine = @{}
     if (!$useNewLine) {
         $newLine = @{ "NoNewLine" = $true }
@@ -64,7 +60,7 @@ try {
             -clientID $clientID `
             -clientSecret $clientSecret `
             -tenantID $tenantId `
-            -scopes "https://api.businesscentral.dynamics.com/.default"
+            -scopes "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default"
     }
     else {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -73,7 +69,7 @@ try {
     $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
     try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFiles -folder $appFolder
-        $automationApiUrl = "$baseUrl/v2.0/$environment/api/microsoft/automation/v1.0"
+        $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v1.0"
         
         $authHeaders = @{ "Authorization" = "Bearer $($bcauthcontext.AccessToken)" }
         $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
@@ -84,7 +80,7 @@ try {
         $companyId = $company.id
         Write-Host "Company $companyName has id $companyId"
         
-        $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$baseUrl/companies($companyId)/extensions" -UseBasicParsing
+        $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
         $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
         
         Write-Host "Extensions before:"
