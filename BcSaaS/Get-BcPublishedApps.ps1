@@ -8,6 +8,8 @@
   Authorization Context created by New-BcAuthContext.
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
+ .Parameter baseUrl
+  Use this parameter to override the default api base url (https://api.businesscentral.dynamics.com)
  .Parameter environment
   Environment from which you want to return the published Apps.
  .Example
@@ -20,17 +22,20 @@ function Get-BcPublishedApps {
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory=$true)]
+        [string] $baseUrl = "https://api.businesscentral.dynamics.com",
         [string] $environment
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+	
+    $baseUrl = $baseUrl.TrimEnd('/')
+	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
     try {
-        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "https://api.businesscentral.dynamics.com/admin/v2.6/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$baseUrl/admin/v2.6/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)
