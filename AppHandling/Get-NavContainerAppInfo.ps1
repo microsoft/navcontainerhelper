@@ -30,7 +30,8 @@ function Get-BcContainerAppInfo {
         [switch] $tenantSpecificProperties,
         [ValidateSet('None','DependenciesFirst','DependenciesLast')]
         [string] $sort = 'None',
-        [switch] $publishedOnly
+        [switch] $publishedOnly,
+        [switch] $installedOnly
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -39,7 +40,11 @@ try {
     $args = @{}
     if ($symbolsOnly) {
         $args += @{ "SymbolsOnly" = $true }
-    } elseif (!$publishedOnly) {
+    }
+    elseif (!$publishedOnly) {
+        if ($installedOnly) {
+            $tenantSpecificProperties = $true
+        }
         $args += @{ "TenantSpecificProperties" = $tenantSpecificProperties }
         if ("$tenant" -eq "") {
             $tenant = "default"
@@ -47,13 +52,13 @@ try {
         $args += @{ "Tenant" = $tenant }
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly)
 
         $script:installedApps = @()
 
         function AddAnApp { Param($anApp) 
             #Write-Host "AddAnApp $($anapp.Name)"
-            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId }
+            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.Version -eq $anApp.Version }
             if (-not ($alreadyAdded)) {
                 #Write-Host "add dependencies"
                 AddDependencies -anApp $anApp
@@ -64,7 +69,7 @@ try {
     
         function AddDependency { Param($dependency)
             #Write-Host "Add Dependency $($dependency.Name)"
-            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId }
+            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId -and $_.Version -eq $dependency.Version }
             if ($dependentApp) {
                 AddAnApp -AnApp $dependentApp
             }
@@ -77,7 +82,7 @@ try {
             }
         }
 
-        $apps = Get-NavAppInfo -ServerInstance $ServerInstance @inArgs | ForEach-Object { Get-NavAppInfo -ServerInstance $serverInstance -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
+        $apps = Get-NavAppInfo -ServerInstance $ServerInstance @inArgs | Where-Object { (!$installedOnly) -or ($_.IsInstalled -eq $true) } | ForEach-Object { Get-NavAppInfo -ServerInstance $serverInstance -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
         if ($sort -eq "None") {
             $apps
         }
@@ -89,7 +94,7 @@ try {
             $script:installedApps
         }
 
-    } -ArgumentList $args, $sort | Where-Object {$_ -isnot [System.String]}
+    } -ArgumentList $args, $sort, $installedOnly | Where-Object {$_ -isnot [System.String]}
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
