@@ -16,6 +16,9 @@ Run-AlValidation sometimes returns error AL1040: The guid number '' does not mat
 Add Parameter appVersion to Run-AlPipeline to stamp in full version number during build
 Skip ConnectionTest by default on Run-AlValidation
 Issue #2069 New-BcImage - incorrect evaluation resulting $forceRebuild is true always for us.
+Issue #2060 Add BaseUrl and ApiBaseUrl to ContainerHelper config to support embed SaaS environments
+Issue #2050 Get-BcContainerAppInfo does not work properly with multiple published apps
+Issue #2050 Add parameter -installedOnly to Get-BcContainerAppInfo to only take installed apps into account
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
