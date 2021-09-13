@@ -8,18 +8,31 @@
   Path of the folder in which the application File will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
  .Parameter GenerateAppJson
   Add this switch to generate an sample app.json file in the AppFolder, containing the manifest properties.
+ .Parameter OpenFolder
+  Add this parameter to open the destination folder in explorer
  .Example
   Extract-AppFileToFolder -appFilename c:\temp\baseapp.app
 #>
 function Extract-AppFileToFolder {
     Param (
         [string] $appFilename,
-        [string] $appFolder = "$($appFilename).source",
-        [switch] $generateAppJson
+        [string] $appFolder = "",
+        [switch] $generateAppJson,
+        [switch] $openFolder
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+    if ($appFolder -eq "") {
+        if ($openFolder) {
+            $generateAppJson = $true
+            $appFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+        }
+        else {
+            $appFolder = "$($appFilename).source"
+        }
+    }
 
     if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
         throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
@@ -228,6 +241,10 @@ try {
         }
         $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json") -Encoding UTF8
         Set-StrictMode -Version 2.0
+    }
+
+    if ($openFolder) {
+        Start-Process $appFolder
     }
 }
 catch {
