@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Copy AL Source Files
  .Description
@@ -30,12 +30,12 @@ try {
     Write-Host "Copying Al Source Files from $Path to $Destination"
 
     if ($alFileStructure) {
-        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension')
+        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'pagecustomization','tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension')
         $extensions = @(".al",".xlf",".lcl")
 
         $files = Get-ChildItem -Path $Path -Recurse:$Recurse
         $files | Where-Object { ($extensions.Contains($_.Extension.ToLowerInvariant())) -and !($_.Attributes.HasFlag([System.IO.FileAttributes]::Directory)) } | ForEach-Object {
-    
+
             $filename = $_.Name
             $content = [System.IO.File]::ReadAllLines($_.FullName)
 
@@ -44,7 +44,7 @@ try {
                     $type = $_.Extension
                     $id = ''
                     $name = $_.BaseName
-                } 
+                }
                 else {
                     $found = $false
                     foreach($Line in $content) {
@@ -61,16 +61,16 @@ try {
                                 $found = $true
                                 break
                             }
-                        } 
+                        }
                     }
-    
+
                     if ($type -eq "dotnet") {
                         $id = ''
                         $name = $_.BaseName
                     }
                     else {
                         $line = $line.SubString($type.Length).TrimStart()
-                        if ($type -eq "profile" -or $type -eq "interface" -or $type -eq "entitlement") {
+                        if ($type -eq "profile" -or $type -eq "interface" -or $type -eq "entitlement" -or $type -eq "pagecustomization") {
                             $id = ''
                         }
                         else {
@@ -92,14 +92,14 @@ try {
                 else {
                     $newFilename = "$($alFileStructure.Invoke($type, $id, $name, [ref] $content))"
                 }
-    
+
                 if ($newFilename) {
                     $newFilename = $newFilename -replace '[~#%&*{}|:<>?/"]', ''
- 
+
                     $destFilename = Join-Path $Destination $newFilename
                     $destPath = [System.IO.Path]::GetDirectoryName($destFilename)
                     $destName = [System.IO.Path]::GetFileName($destFilename)
-                    
+
                     if (-not (Test-Path $destPath)) {
                         New-Item $destPath -ItemType Directory | Out-Null
                     }
@@ -128,7 +128,7 @@ try {
                                 $layoutFile = $Files | Where-Object { $_.name -eq $layoutFilename }
                                 if ($layoutFile) {
                                     $layoutcontent = [System.IO.File]::ReadAllBytes($layoutFile.FullName)
-        
+
                                     if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
                                         $layoutNewFilename = "$($alFileStructure.Invoke($layoutFile.Extension, $id, $name))"
                                     }
@@ -153,16 +153,16 @@ try {
                                         }
                                         else {
                                             $layoutNewFilename = $layoutNewFilename -replace '[~#%&*{}|:<>?/"]', ''
-    
+
                                             $layoutDestFilename = Join-Path $Destination $layoutNewFilename
                                             $layoutDestPath = [System.IO.Path]::GetDirectoryName($layoutDestFilename)
                                             $layoutDestName = [System.IO.Path]::GetFileName($layoutDestFilename)
                                         }
-    
+
                                         if (-not (Test-Path $layoutDestPath)) {
                                             New-Item $layoutDestPath -ItemType Directory | Out-Null
                                         }
-    
+
                                         if (Test-Path -Path $layoutDestFilename) {
                                             Write-Warning "$layoutDestFilename already exists, adding sequence number"
                                             $seq = 1
@@ -182,7 +182,7 @@ try {
                                         if ($filename.StartsWith($Destination,"InvariantCultureIgnoreCase")) {
                                             $layoutDestFilename = $filename
                                         }
-            
+
                                         $content[$_] = $line.SubString(0,$startIdx) + $layoutDestFilename.Substring($destination.Length+1).Replace('\','/') + $line.SubString($endIdx)
                                     }
                                 }
@@ -192,7 +192,7 @@ try {
                             }
                         }
                     }
-        
+
                     [System.IO.File]::WriteAllLines($destFileName, $content)
                 }
             }
