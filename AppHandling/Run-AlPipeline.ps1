@@ -1169,7 +1169,7 @@ Write-Host -ForegroundColor Yellow @'
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                     $previousAppInfos += @(@{
-                        "Id" = $appInfo.Id.ToLowerInvariant()
+                        "AppId" = $appInfo.AppId.ToLowerInvariant()
                         "Publisher" = $appInfo.Publisher
                         "Name" = $appInfo.Name
                         "Version" = $appInfo.Version
@@ -1455,8 +1455,8 @@ $apps | ForEach-Object {
 if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     [array]::Reverse($previousAppInfos)
     $previousAppInfos | ForEach-Object {
-        Write-Host "check $($_.Id)"
-        if ($upgradedApps.NotContains($_.Id)) {
+        Write-Host "check $($_.AppId)"
+        if ($upgradedApps.NotContains($_.AppId)) {
             Write-Host "Uninstall"
             $Parameters = @{
                 "containerName" = $containerName
