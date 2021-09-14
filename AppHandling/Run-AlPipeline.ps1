@@ -474,6 +474,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                 "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade         "; Write-Host $doNotPerformUpgrade
+Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps        "; Write-Host $uninstallRemovedApps
 Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Write-Host $escapeFromCops
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet  "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                 "; Write-Host $rulesetFile
@@ -1339,6 +1341,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
+$previousAppsInstalled = @()
 if (!$useDevEndpoint) {
 
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
@@ -1449,9 +1452,11 @@ $apps | ForEach-Object {
 }
 
 if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
-    [array]::Reverse($previousApps)
+    [array]::Reverse($previousAppInfos)
     $previousAppInfos | ForEach-Object {
+        Write-Host "check $($_.Id)"
         if ($upgradedApps.NotContains($_.Id)) {
+            Write-Host "Uninstall"
             $Parameters = @{
                 "containerName" = $containerName
                 "tenant" = $tenant
