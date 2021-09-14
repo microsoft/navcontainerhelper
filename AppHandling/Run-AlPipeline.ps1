@@ -1148,7 +1148,7 @@ Write-Host -ForegroundColor Yellow @'
         "preProcessorSymbols" = $preProcessorSymbols
         "generatecrossreferences" = $generatecrossreferences
     }
-    if ($enableAppSourceCop -and $app) {
+    if ($app) {
         if (!$previousAppsCopied) {
             $previousAppsCopied = $true
             $AppList = @()
@@ -1156,16 +1156,15 @@ Write-Host -ForegroundColor Yellow @'
             if ($previousApps) {
                 Write-Host "Copying previous apps to packages folder"
                 $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
-
-                $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName;
+                $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName
                 $previousApps | ForEach-Object {
                     $appFile = $_
 
                     $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                         param($appFile)
 
-                        Get-NavAppInfo -Path $appFile;
-                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile);
+                        Get-NavAppInfo -Path $appFile
+                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
 
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
@@ -1178,7 +1177,9 @@ Write-Host -ForegroundColor Yellow @'
                 }
             }
         }
-
+    }
+    
+    if ($enableAppSourceCop -and $app) {
         $appSourceCopJson = @{}
         $saveit = $false
 
