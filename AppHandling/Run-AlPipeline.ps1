@@ -1456,7 +1456,7 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     [array]::Reverse($previousAppInfos)
     $previousAppInfos | ForEach-Object {
         Write-Host "check $($_.AppId)"
-        if ($upgradedApps.NotContains($_.AppId)) {
+        if (!$upgradedApps.Contains($_.AppId)) {
             Write-Host "Uninstall"
             $Parameters = @{
                 "containerName" = $containerName
