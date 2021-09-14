@@ -1455,13 +1455,11 @@ $apps | ForEach-Object {
 if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     [array]::Reverse($previousAppInfos)
     $previousAppInfos | ForEach-Object {
-        Write-Host "check $($_.AppId)"
         if (!$upgradedApps.Contains($_.AppId)) {
-            Write-Host "Uninstall"
+            Write-Host "Uninstalling $($_.Name) version $($_.Version) from $($_.Publisher)"
             $Parameters = @{
                 "containerName" = $containerName
                 "tenant" = $tenant
-                "credential" = $credential
                 "name" = $_.Name
                 "publisher" = $_.Publisher
                 "version" = $_.Version
