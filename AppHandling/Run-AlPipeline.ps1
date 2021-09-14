@@ -1464,8 +1464,6 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
                 "publisher" = $_.Publisher
                 "version" = $_.Version
                 "uninstall" = $true
-                "doNotSaveData" = $true
-                "doNotSaveSchema" = $true
             }
         
             Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
