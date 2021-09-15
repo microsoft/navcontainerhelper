@@ -22,6 +22,7 @@ Issue #2050 Add parameter -installedOnly to Get-BcContainerAppInfo to only take 
 Add OpenFolder parameter to Extract-AppFileToFolder
 Fix dropbox download url (common mistake, replace dl=0 with dl=1) in Download-File
 Issue #2076 CmdLet Copy-AlSourceFiles can't be used on BC 19x
+Issue #2079 don't create a user if no users are in the database when running Run-TestsInBcContainer
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004

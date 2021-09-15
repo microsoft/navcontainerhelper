@@ -377,11 +377,14 @@ try {
                     }
                     elseif ($clientServicesCredentialType -eq "Windows") {
                         $windowsUserName = whoami
-                        $NavServerUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore | Where-Object { $_.UserName -eq $windowsusername }
-                        if (!($NavServerUser)) {
-                            Write-Host "Creating $windowsusername as user"
-                            New-NavServerUser -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername
-                            New-NavServerUserPermissionSet -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername -PermissionSetId SUPER
+                        $allUsers = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore
+                        if ($allUsers.count -gt 0) {
+                            $NavServerUser = $allUsers | Where-Object { $_.UserName -eq $windowsusername }
+                            if (!($NavServerUser)) {
+                                Write-Host "Creating $windowsusername as user"
+                                New-NavServerUser -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername
+                                New-NavServerUserPermissionSet -ServerInstance $ServerInstance -tenant $tenant -WindowsAccount $windowsusername -PermissionSetId SUPER
+                            }
                         }
                     }
             
