@@ -92,6 +92,8 @@
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
  .Parameter doNotPerformUpgrade
   Include this switch to indicate that you do not want to perform the upgrade. This means that the previousApps are never actually published to the container.
+ .Parameter uninstallRemovedApps
+  Include this switch to indicate that you want to uninstall apps, which are included in previousApps, but not included (upgraded) in apps, i.e. removed apps
  .Parameter reUseContainer
   Including the reUseContainer switch causes pipeline to reuse the container with the given name if it exists
  .Parameter keepContainer
@@ -142,6 +144,8 @@
   Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
   Override function parameter for Publish-BcContainerApp
+ .Parameter UnPublishBcContainerApp
+  Override function parameter for UnPublish-BcContainerApp
  .Parameter InstallBcAppFromAppSource
   Override function parameter for Install-BcAppFromAppSource
  .Parameter SignBcContainerApp
@@ -210,6 +214,7 @@ Param(
     [switch] $useDevEndpoint,
     [switch] $doNotRunTests,
     [switch] $doNotPerformUpgrade,
+    [switch] $uninstallRemovedApps,
     [switch] $reUseContainer,
     [switch] $keepContainer,
     [string] $updateLaunchJson = "",
@@ -234,6 +239,7 @@ Param(
     [scriptblock] $CompileAppInBcContainer,
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
+    [scriptblock] $UnPublishBcContainerApp,
     [scriptblock] $InstallBcAppFromAppSource,
     [scriptblock] $SignBcContainerApp,
     [scriptblock] $ImportTestDataInBcContainer,
@@ -329,6 +335,10 @@ if ($bcAuthContext) {
     }
     if ($additionalCountries) {
         throw "You cannot specify additional countries when using an online environment."
+    }
+    if ($uninstallRemovedApps) {
+        Write-Host -ForegroundColor Yellow "Uninstalling removed apps from online environments are not supported"
+        $uninstallRemovedApps = $false
     }
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
@@ -464,6 +474,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                 "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade         "; Write-Host $doNotPerformUpgrade
+Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps        "; Write-Host $uninstallRemovedApps
 Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Write-Host $escapeFromCops
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet  "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                 "; Write-Host $rulesetFile
@@ -534,6 +546,12 @@ if ($PublishBcContainerApp) {
 }
 else {
     $PublishBcContainerApp = { Param([Hashtable]$parameters) Publish-BcContainerApp @parameters }
+}
+if ($UnPublishBcContainerApp) {
+    Write-Host -ForegroundColor Yellow "UnPublishBcContainerApp override"; Write-Host $UnPublishBcContainerApp.ToString()
+}
+else {
+    $UnPublishBcContainerApp = { Param([Hashtable]$parameters) UnPublish-BcContainerApp @parameters }
 }
 if ($InstallBcAppFromAppSource) {
     Write-Host -ForegroundColor Yellow "InstallBcAppFromAppSource override"; Write-Host $InstallBcAppFromAppSource.ToString()
@@ -891,6 +909,7 @@ Write-Host -ForegroundColor Yellow @'
 $measureText = ""
 Measure-Command {
 $previousAppsCopied = $false
+$previousAppInfos = @()
 $appsFolder = @{}
 $apps = @()
 $testApps = @()
@@ -1129,7 +1148,7 @@ Write-Host -ForegroundColor Yellow @'
         "preProcessorSymbols" = $preProcessorSymbols
         "generatecrossreferences" = $generatecrossreferences
     }
-    if ($enableAppSourceCop -and $app) {
+    if ($app) {
         if (!$previousAppsCopied) {
             $previousAppsCopied = $true
             $AppList = @()
@@ -1137,23 +1156,30 @@ Write-Host -ForegroundColor Yellow @'
             if ($previousApps) {
                 Write-Host "Copying previous apps to packages folder"
                 $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $appPackagesFolder
-
-                $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName;
+                $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName
                 $previousApps | ForEach-Object {
                     $appFile = $_
 
                     $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                         param($appFile)
 
-                        Get-NavAppInfo -Path $appFile;
-                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile);
+                        Get-NavAppInfo -Path $appFile
+                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
 
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
+                    $previousAppInfos += @(@{
+                        "AppId" = $appInfo.AppId.ToLowerInvariant()
+                        "Publisher" = $appInfo.Publisher
+                        "Name" = $appInfo.Name
+                        "Version" = $appInfo.Version
+                    } )
                 }
             }
         }
-
+    }
+    
+    if ($enableAppSourceCop -and $app) {
         $appSourceCopJson = @{}
         $saveit = $false
 
@@ -1316,6 +1342,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
+$previousAppsInstalled = @()
 if (!$useDevEndpoint) {
 
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
@@ -1391,11 +1418,13 @@ if (!($bcAuthContext)) {
     $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 }
 
+$upgradedApps = @()
 $apps | ForEach-Object {
    
     $folder = $appsFolder[$_]
     $appJsonFile = Join-Path $folder "app.json"
     $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+    $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
     $installedApp = $false
     if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
@@ -1421,7 +1450,25 @@ $apps | ForEach-Object {
     }
 
     Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+}
 
+if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
+    [array]::Reverse($previousAppInfos)
+    $previousAppInfos | ForEach-Object {
+        if (!$upgradedApps.Contains($_.AppId)) {
+            Write-Host "Uninstalling $($_.Name) version $($_.Version) from $($_.Publisher)"
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "name" = $_.Name
+                "publisher" = $_.Publisher
+                "version" = $_.Version
+                "uninstall" = $true
+            }
+        
+            Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
+        }
+    }
 }
 
 $testApps | ForEach-Object {

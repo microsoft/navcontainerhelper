@@ -54,7 +54,6 @@ function New-BcImage {
 
 $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
-                    -always `
                     -parameterValues $PSBoundParameters `
                     -includeParameters @("containerName","artifactUrl","isolation","imageName","baseImage","registryCredential","multitenant","filesOnly")
 try {
