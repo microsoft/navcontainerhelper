@@ -275,7 +275,6 @@ function New-BcContainer {
 
 $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
-                    -always `
                     -parameterValues $PSBoundParameters `
                     -includeParameters @("containerName","artifactUrl","isolation","imageName","multitenant","filesOnly")
 try {
@@ -490,7 +489,7 @@ try {
         throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
    	}
     Write-Host "Docker Client Version is $dockerClientVersion"
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value $dockerClientVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerClientVersion" -value $dockerClientVersion
 
     $myClientVersion = [System.Version]"0.0.0"
     if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
@@ -498,7 +497,7 @@ try {
     }
 
     Write-Host "Docker Server Version is $dockerServerVersion"
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerServerVersion" -value $dockerServerVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerServerVersion" -value $dockerServerVersion
 
     $doNotGetBestImageName = $false
     $skipDatabase = $false
@@ -985,16 +984,16 @@ try {
     }
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
-        AddTelemetryProperty -telemetryScope $telemetryScope -key "Platform" -value $platformVersion
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "platformVersion" -value $platformVersion
     }
 
     $genericTag = $inspect.Config.Labels.tag
     Write-Host "Generic Tag: $genericTag"
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Version" -value $navVersion
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Country" -value $devCountry
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Style" -value $bcStyle
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Multitenant" -value $multitenant
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "GenericTag" -value $genericTag
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "applicationVersion" -value $navVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "country" -value $devCountry
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "style" -value $bcStyle
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "multitenant" -value $multitenant
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "genericTag" -value $genericTag
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -1039,10 +1038,10 @@ try {
     Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
     Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
 
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "HostOs" -value $hostOs
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "HostOsVersion" -value $hostOsVersion
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "ContainerOs" -value $containerOs
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "ContainerOsVersion" -value $containerOsVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "hostOs" -value $hostOs
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "hostOsVersion" -value $hostOsVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "containerOs" -value $containerOs
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "containerOsVersion" -value $containerOsVersion
 
     if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
@@ -1214,7 +1213,7 @@ try {
     }
     Write-Host "Using $isolation isolation"
 
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Isolation" -value $isolation
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "isolation" -value $isolation
 
 
     if ("$locale" -eq "") {
@@ -1222,7 +1221,7 @@ try {
     }
     Write-Host "Using locale $locale"
 
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Locale" -value $locale
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "locale" -value $locale
 
 
     if ($filesOnly -and $version.Major -lt 15) {
