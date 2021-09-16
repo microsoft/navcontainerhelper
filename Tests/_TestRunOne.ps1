@@ -1,7 +1,7 @@
 ﻿Param(
-    [string] $licenseFile = "c:\temp\nchlicense.flf",
-    [string] $buildlicenseFile = "c:\temp\build.flf",
-    [string] $insiderSasToken = ""
+    [string] $licenseFile = ($nchLicensefileSecret.secretValue | Get-PlainText),
+    [string] $buildlicenseFile = ($LicensefileSecret.secretValue | Get-PlainText),
+    [string] $insiderSasToken = ($InsiderSasTokenSecret.SecretValue | Get-PlainText)
 )
 
 . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
