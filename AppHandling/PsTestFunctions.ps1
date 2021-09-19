@@ -101,6 +101,26 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-TestRunnerCodeunitId
+(
+    [string] $testRunnerCodeunitId,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if(!$testRunnerCodeunitId)
+    {
+        return
+    }
+    
+    if ($debugMode) {
+        Write-Host "Setting Test Runner Codeunit Id $testRunnerCodeunitId"
+    }
+    $testRunnerCodeunitIdControl = $ClientContext.GetControlByName($Form, "TestRunnerCodeunitId")
+    $ClientContext.SaveValue($testRunnerCodeunitIdControl, $testRunnerCodeunitId)
+}
+
 function Set-RunFalseOnDisabledTests
 (
     [ClientContext] $ClientContext,
@@ -132,6 +152,7 @@ function Get-Tests {
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
         [string] $extensionId = "",
+        [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
         [switch] $debugMode,
         [switch] $ignoreGroups,
@@ -149,6 +170,9 @@ function Get-Tests {
         if ($extensionId) {
             throw "Specifying extensionId is not supported when using the C/AL test runner"
         }
+        if ($testRunnerCodeunitId) {
+            throw "Specifying testRunnerCodeunitId is not supported when using the C/AL test runner"
+        }
     }
 
     if ($debugMode) {
@@ -165,6 +189,7 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
@@ -301,6 +326,7 @@ function Run-Tests {
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $testRunnerCodeunitId,
         [array]  $disabledtests = @(),
         [switch] $detailed,
         [switch] $debugMode,
@@ -333,6 +359,9 @@ function Run-Tests {
         if ($extensionId) {
             throw "Specifying extensionId is not supported when using the C/AL test runner"
         }
+        if ($testRunnerCodeunitId) {
+            throw "Specifying testRunnerCodeunitId is not supported when using the C/AL test runner"
+        }
     }
     $allPassed = $true
     $dumpAppsToTestOutput = $true
@@ -351,6 +380,7 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
