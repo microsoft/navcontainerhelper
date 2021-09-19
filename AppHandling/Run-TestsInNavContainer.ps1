@@ -294,6 +294,7 @@ try {
     
                 . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
         
+                Write-Host "Connecting to $serviceUrl"
                 $clientContext = $null
                 try {
                     $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
@@ -398,6 +399,7 @@ try {
             
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
+                    Write-Host "Connecting to $serviceUrl"
                     $clientContext = $null
                     try {
 
