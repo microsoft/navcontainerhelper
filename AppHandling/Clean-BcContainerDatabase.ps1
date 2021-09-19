@@ -36,6 +36,8 @@ function Clean-BcContainerDatabase {
         [switch] $doNotUnpublish,
         [switch] $useNewDatabase,
         [switch] $doNotCopyEntitlements,
+        [Switch] $keepBaseApp,
+        [string[]] $keepApps = @(),
         [string[]] $copyTables = @(),
         [string] $companyName = "My Company",
         [PSCredential] $credential,
@@ -231,7 +233,9 @@ try {
             Get-CompanyInBcContainer -containerName $containerName -tenant Default | % { Remove-CompanyInBcContainer -containerName $containerName -companyName $_.CompanyName -tenant Default }
         }
 
-        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
+        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | 
+            Where-Object { (-not (($_.Name -eq "System Application") -or ($keepApps -contains $_.AppId) -or ($keepBaseApp -and ($_.Name -eq "BaseApp" -or $_.Name -eq "Base Application" -or $_.Name -eq "Application")))) }
+
         $installedApps | % {
             $app = $_
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData, $onlySaveBaseAppData)

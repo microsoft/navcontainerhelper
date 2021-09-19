@@ -24,6 +24,10 @@
   Name or ID of test codeunit to run. Wildcards (? and *) are supported. Default is *.
  .Parameter testFunction
   Name of test function to run. Wildcards (? and *) are supported. Default is *.
+ .Parameter ExtensionId
+  Specifying an extensionId causes the test tool to run all tests in the app with this app id.
+ .Parameter TestRunnerCodeunitId
+  Specifying a TestRunnerCodeunitId causes the test tool to switch to this test runner.
  .Parameter XUnitResultFileName
   Filename where the function should place an XUnit compatible result file
  .Parameter AppendToXUnitResultFile
@@ -97,6 +101,7 @@ function Run-TestsInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $testRunnerCodeunitId = "",
         [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
         [string] $XUnitResultFileName,
@@ -294,6 +299,7 @@ try {
     
                 . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
         
+                Write-Host "Connecting to $serviceUrl"
                 $clientContext = $null
                 try {
                     $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
@@ -304,6 +310,7 @@ try {
                               -TestCodeunit $testCodeunit `
                               -TestFunction $testFunction `
                               -ExtensionId $extensionId `
+                              -TestRunnerCodeunitId $testRunnerCodeunitId `
                               -DisabledTests $disabledtests `
                               -XUnitResultFileName $XUnitResultFileName `
                               -AppendToXUnitResultFile:$AppendToXUnitResultFile `
@@ -348,7 +355,7 @@ try {
                     }
                 }
 
-                $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests)
     
                     $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -398,6 +405,7 @@ try {
             
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
+                    Write-Host "Connecting to $serviceUrl"
                     $clientContext = $null
                     try {
 
@@ -413,6 +421,7 @@ try {
                                   -TestCodeunit $testCodeunit `
                                   -TestFunction $testFunction `
                                   -ExtensionId $extensionId `
+                                  -TestRunnerCodeunitId $testRunnerCodeunitId `
                                   -DisabledTests $disabledtests `
                                   -XUnitResultFileName $XUnitResultFileName `
                                   -AppendToXUnitResultFile:$AppendToXUnitResultFile `
@@ -443,7 +452,7 @@ try {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }

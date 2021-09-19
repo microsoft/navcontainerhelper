@@ -28,6 +28,8 @@
   Set auth to Windows, NavUserPassword or AAD depending on which authentication mechanism your container should use
  .Parameter credential
   These are the credentials used for the container. If not provided, the Run-AlPipeline function will generate a random password and use that.
+ .Parameter companyName
+  company to use for test execution (blank for default)
  .Parameter codeSignCertPfxFile
   A secure url to a code signing certificate for signing apps. Apps will only be signed if useDevEndpoint is NOT specified.
  .Parameter codeSignCertPfxPassword
@@ -178,6 +180,7 @@ Param(
     [string] $memoryLimit,
     [string] $auth = 'UserPassword',
     [PSCredential] $credential,
+    [string] $companyName = "",
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
     $installApps = @(),
@@ -462,6 +465,7 @@ else {
     Write-Host "admin/$password"
     $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
+Write-Host -NoNewLine -ForegroundColor Yellow "CompanyName                 "; Write-Host $companyName
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                 "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler       "; Write-Host $enableTaskScheduler
 Write-Host -NoNewLine -ForegroundColor Yellow "Assign Premium Plan         "; Write-Host $assignPremiumPlan
@@ -1602,6 +1606,7 @@ $testAppIds | ForEach-Object {
         "containerName" = $containerName
         "tenant" = $tenant
         "credential" = $credential
+        "companyName" = $companyName
         "extensionId" = $_
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
         "GitHubActions" = "$(if($githubActions){'error'}else{'no'})"
