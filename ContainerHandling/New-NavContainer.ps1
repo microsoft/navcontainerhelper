@@ -155,7 +155,7 @@
  .Parameter doNotCopyEntitlements
   Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter copyTables
-  Array if table names to copy from original database when using -useNewDatabase
+  Array of table names to copy from original database when using -useNewDatabase
  .Parameter dumpEventLog
   Add this switch if you want the container to dump new entries in the eventlog to the output (docker logs) every 2 seconds
  .Parameter doNotCheckHealth
