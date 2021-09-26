@@ -26,6 +26,8 @@ Issue #2079 don't create a user if no users are in the database when running Run
 Add CompanyName to Run-AlPipeline to support running tests in a specific company
 Issue #2084 Add parameter TestRunnerCodeunitId to Run-TestsInBcContainer
 Run-AlPipeline should create launch.json if it doesn't exist
+Add function ConvertTo-HashTable to convert PSCustomObject to HashTable
+Add function ConvertTo-OrderedDictionary to convert PSCustomObject to OrderedDictionary
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
