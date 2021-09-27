@@ -28,6 +28,7 @@ Issue #2084 Add parameter TestRunnerCodeunitId to Run-TestsInBcContainer
 Run-AlPipeline should create launch.json if it doesn't exist
 Add function ConvertTo-HashTable to convert PSCustomObject to HashTable
 Add function ConvertTo-OrderedDictionary to convert PSCustomObject to OrderedDictionary
+Add function ConvertTo-GitHubGoCredentials to convert an auth context hashtable to GitHub-Go credentials
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
