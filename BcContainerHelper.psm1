@@ -345,6 +345,9 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "Misc\Set-BcContainerFeatureKeys.ps1")
 . (Join-Path $PSScriptRoot "Misc\Import-PfxCertificateToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Get-PlainText.ps1")
+. (Join-Path $PSScriptRoot "Misc\ConvertTo-HashTable.ps1")
+. (Join-Path $PSScriptRoot "Misc\ConvertTo-OrderedDictionary.ps1")
+. (Join-Path $PSScriptRoot "Misc\ConvertTo-GitHubGoCredentials.ps1")
 
 # Company Handling functions
 . (Join-Path $PSScriptRoot "CompanyHandling\Copy-CompanyInNavContainer.ps1")

@@ -278,21 +278,30 @@ Function UpdateLaunchJson {
 
     if (Test-Path $launchJsonFile) {
         Write-Host "Modifying $launchJsonFile"
-        $launchSettings | ConvertTo-Json | Out-Host
         $launchJson = Get-Content $LaunchJsonFile | ConvertFrom-Json
-        $oldSettings = $launchJson.configurations | Where-Object { $_.name -eq $launchsettings.name }
-        if ($oldSettings) {
-            $oldSettings.PSObject.Properties | % {
-                $prop = $_.Name
-                if (!($launchSettings.Keys | Where-Object { $_ -eq $prop } )) {
-                    $launchSettings += @{ "$prop" = $oldSettings."$prop" }
-                }
+    }
+    else {
+        Write-Host "Creating $launchJsonFile"
+        $dir = [System.IO.Path]::GetDirectoryName($launchJsonFile)
+        if (!(Test-Path $dir)) {
+            New-Item -Path $dir -ItemType Directory | Out-Null
+        }
+        $launchJson = @{ "version" = "0.2.0"; "configurations" = @() } | ConvertTo-Json | ConvertFrom-Json
+    }
+    $launchSettings | ConvertTo-Json | Out-Host
+    $oldSettings = $launchJson.configurations | Where-Object { $_.name -eq $launchsettings.name }
+    if ($oldSettings) {
+        $oldSettings.PSObject.Properties | % {
+            $prop = $_.Name
+            if (!($launchSettings.Keys | Where-Object { $_ -eq $prop } )) {
+                $launchSettings += @{ "$prop" = $oldSettings."$prop" }
             }
         }
-        $launchJson.configurations = @($launchJson.configurations | Where-Object { $_.name -ne $launchsettings.name })
-        $launchJson.configurations += $launchSettings
-        $launchJson | ConvertTo-Json -Depth 10 | Set-Content $launchJsonFile
     }
+    $launchJson.configurations = @($launchJson.configurations | Where-Object { $_.name -ne $launchsettings.name })
+    $launchJson.configurations += $launchSettings
+    $launchJson | ConvertTo-Json -Depth 10 | Set-Content $launchJsonFile
+
 }
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
