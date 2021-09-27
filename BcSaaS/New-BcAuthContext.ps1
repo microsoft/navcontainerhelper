@@ -51,6 +51,9 @@ function New-BcAuthContext {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    if ($deviceCode) {
+        $includeDeviceLogin = $true
+    }
     $authContext = @{
         "clientID"           = $clientID
         "Resource"           = $Resource
