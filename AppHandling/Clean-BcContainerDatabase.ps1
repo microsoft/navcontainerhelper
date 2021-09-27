@@ -18,7 +18,7 @@
  .Parameter doNotCopyEntitlements
   Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter copyTables
-  Array if table names to copy from original database when using -useNewDatabase
+  Array of table names to copy from original database when using -useNewDatabase
  .Parameter companyName
   CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter credential
