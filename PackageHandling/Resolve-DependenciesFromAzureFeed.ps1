@@ -115,9 +115,6 @@ function Resolve-DependenciesFromAzureFeed {
 
                                 $hasDependencyApp = $dependencyApp.Count -gt 0
                                 $hasDependencyRuntimeApp = $dependencyRuntimeApp.Count -gt 0
-                                Write-Host $runtimePackages
-                                Write-Host $hasDependencyApp
-                                Write-Host $hasDependencyRuntimeApp
                                 if ($hasDependencyApp -or $hasDependencyRuntimeApp) {
                                     if($hasDependencyRuntimeApp -and ($runtimePackages -or (-not $hasDependencyApp))) {
                                         $dep = $dependencyRuntimeApp[0]
