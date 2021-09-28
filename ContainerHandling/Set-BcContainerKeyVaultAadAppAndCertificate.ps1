@@ -71,6 +71,9 @@ try {
         if (!$doNotRestartServiceTier) {
             Write-Host "Restarting Service Tier"
             Set-NAVServerInstance -ServerInstance $serverInstance -Restart
+            while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
+                Start-Sleep -Seconds 1
+            }
         }
     } -argumentList $containerPfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
 }
