@@ -744,6 +744,7 @@ Measure-Command {
                     "pfxFile" = $keyVaultCertPfxFile
                     "pfxPassword" = $keyVaultCertPfxPassword
                     "clientId" = $keyVaultClientId
+                    "importCertificate" = $true
                 }
                 Invoke-Command -ScriptBlock $SetBcContainerKeyVaultAadAppAndCertificate -ArgumentList $Parameters
             }

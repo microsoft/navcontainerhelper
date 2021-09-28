@@ -32,7 +32,8 @@ function Sign-BcContainerApp {
         [Parameter(Mandatory=$false)]
         [string] $timeStampServer = $bcContainerHelperConfig.timeStampServer,
         [Parameter(Mandatory=$false)]
-        [string] $digestAlgorithm = $bcContainerHelperConfig.digestAlgorithm
+        [string] $digestAlgorithm = $bcContainerHelperConfig.digestAlgorithm,
+        [switch] $importCertificate
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -56,13 +57,17 @@ try {
     }
 
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
 
         if ($pfxFile.ToLower().StartsWith("http://") -or $pfxFile.ToLower().StartsWith("https://")) {
             $pfxUrl = $pfxFile
             $pfxFile = Join-Path "c:\run" ([System.Uri]::UnescapeDataString([System.IO.Path]::GetFileName($pfxUrl.split("?")[0])))
             (New-Object System.Net.WebClient).DownloadFile($pfxUrl, $pfxFile)
             $copied = $true
+        }
+
+        if ($importCertificate) {
+            Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\my" | Out-Null
         }
 
         if (!(Test-Path "C:\Windows\System32\msvcr120.dll")) {
@@ -120,7 +125,7 @@ try {
         if ($copied) { 
             Remove-Item $pfxFile -Force
         }
-    } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm
+    } -ArgumentList $containerAppFile, $containerPfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
