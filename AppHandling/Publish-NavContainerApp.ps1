@@ -322,10 +322,11 @@ try {
                             Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
                         }
 
-                        $navAppInfoFromDb = Get-NAVAppInfo -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant -TenantSpecificProperties
-                        if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version -and $upgrade -and $install){
-                            $install = $true
-                            $upgrade = $false
+                        if($upgrade -and $install){
+                            $navAppInfoFromDb = Get-NAVAppInfo -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant -TenantSpecificProperties
+                            if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version){
+                                $upgrade = $false
+                            }
                         }
                         
                         if ($install) {
