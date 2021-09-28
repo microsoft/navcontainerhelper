@@ -30,6 +30,8 @@ Add function ConvertTo-HashTable to convert PSCustomObject to HashTable
 Add function ConvertTo-OrderedDictionary to convert PSCustomObject to OrderedDictionary
 Add function ConvertTo-GitHubGoCredentials to convert an auth context hashtable to GitHub-Go credentials
 Add parameter deviceCode to New-BcAuthContext to allow initiating the device code flow in one call and finish in another
+Add function Import-CertificateToBcContainer to import a .cer certificate to the container
+Add support for URLs in Import-PfxCertificateToBcContainer and Import-CertificateToBcContainer
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004

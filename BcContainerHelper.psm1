@@ -344,6 +344,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "Misc\Add-FontsToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Set-BcContainerFeatureKeys.ps1")
 . (Join-Path $PSScriptRoot "Misc\Import-PfxCertificateToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Import-CertificateToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Get-PlainText.ps1")
 . (Join-Path $PSScriptRoot "Misc\ConvertTo-HashTable.ps1")
 . (Join-Path $PSScriptRoot "Misc\ConvertTo-OrderedDictionary.ps1")
