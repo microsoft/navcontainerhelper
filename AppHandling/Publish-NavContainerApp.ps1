@@ -323,7 +323,7 @@ try {
                         }
 
                         $navAppInfoFromDb = Get-NAVAppInfo -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant -TenantSpecificProperties
-                        if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version -and $upgrade){
+                        if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version -and $upgrade -and $install){
                             $install = $true
                             $upgrade = $false
                         }
