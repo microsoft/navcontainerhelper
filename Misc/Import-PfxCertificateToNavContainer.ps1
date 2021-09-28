@@ -27,21 +27,37 @@ function Import-PfxCertificateToBcContainer {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    $containerPfxCertificatePath = Get-BcContainerPath -containerName $containerName -path $pfxCertificatePath
+    Write-Host "Importing certificate $([System.IO.Path]::GetFileName($pfxCertificatePath.Split('?')[0]))"
+
     $copied = $false
-    if ("$containerPfxCertificatePath" -eq "") {
-        $containerPfxCertificatePath = Join-Path "c:\run" ([System.IO.Path]::GetFileName($pfxCertificatePath))
-        Copy-FileToBcContainer -containerName $containerName -localPath $pfxCertificatePath -containerPath $containerPfxCertificatePath
-        $copied = $true
+    if ($pfxCertificatePath -like "http://*" -or $pfxCertificatePath -like "https://*") {
+        $containerPfxCertificatePath = $pfxCertificatePath
+    } else {
+        $containerPfxCertificatePath = Get-BcContainerPath -containerName $containerName -path $pfxCertificatePath
+        if ("$containerPfxCertificatePath" -eq "") {
+            $containerPfxCertificatePath = Join-Path "c:\run" "$([Guid]::NewGuid().ToString()).pfx"
+            Copy-FileToBcContainer -containerName $containerName -localPath $pfxCertificatePath -containerPath $containerPfxCertificatePath
+            $copied = $true
+        }
     }
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($pfxCertificatePath, [SecureString]$pfxPassword, $CertificateStoreLocation, $copied)
 
+        if ($pfxCertificatePath -like "http://*" -or $pfxCertificatePath -like "https://*") {
+            $pfxUrl = $pfxCertificatePath
+            $pfxCertificatePath = Join-Path "c:\run" "$([Guid]::NewGuid().ToString()).pfx"
+            (New-Object System.Net.WebClient).DownloadFile($pfxUrl, $pfxCertificatePath)
+            $copied = $true
+        }
+
         Import-PfxCertificate -FilePath $pfxCertificatePath -CertStoreLocation $CertificateStoreLocation -Password $pfxPassword | Out-Null
+        Write-Host
         if ($copied) {
             Remove-Item -Path $pfxCertificatePath -Force
         }
     } -ArgumentList $containerPfxCertificatePath, $pfxPassword, $CertificateStoreLocation, $copied
+
+    Write-Host -ForegroundColor Green "Certificate $([System.IO.Path]::GetFileName($pfxCertificatePath.Split('?')[0])) successfully imported"
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
