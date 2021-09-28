@@ -744,7 +744,6 @@ Measure-Command {
                     "pfxFile" = $keyVaultCertPfxFile
                     "pfxPassword" = $keyVaultCertPfxPassword
                     "clientId" = $keyVaultClientId
-                    "importCertificate" = $true
                 }
                 Invoke-Command -ScriptBlock $SetBcContainerKeyVaultAadAppAndCertificate -ArgumentList $Parameters
             }
@@ -1380,6 +1379,7 @@ $apps | ForEach-Object {
         "appFile" = $_
         "pfxFile" = $codeSignCertPfxFile
         "pfxPassword" = $codeSignCertPfxPassword
+        "importCertificate" = $true
     }
 
     Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
