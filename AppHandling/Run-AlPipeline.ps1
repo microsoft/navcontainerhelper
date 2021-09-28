@@ -34,6 +34,12 @@
   A secure url to a code signing certificate for signing apps. Apps will only be signed if useDevEndpoint is NOT specified.
  .Parameter codeSignCertPfxPassword
   Password for the code signing certificate specified by codeSignCertPfxFile. Apps will only be signed if useDevEndpoint is NOT specified.
+ .Parameter keyVaultCertPfxFile
+  A secure url to a certificate for keyVault accessing from the container. This will be used in a call to Set-BcContainerKeyVaultAadAppAndCertificate after the container is created.
+ .Parameter keyVaultCertPfxPassword
+  Password for the keyVault certificate specified by keyVaultCertPfxFile. This will be used in a call to Set-BcContainerKeyVaultAadAppAndCertificate after the container is created.
+ .Parameter keyVaultClientId
+  ClientId for the keyVault certificate specified by keyVaultCertPfxFile. This will be used in a call to Set-BcContainerKeyVaultAadAppAndCertificate after the container is created.
  .Parameter installApps
   Array or comma separated list of 3rd party apps to install before compiling apps.
  .Parameter installTestApps
@@ -138,6 +144,8 @@
   Override function parameter for docker pull
  .Parameter NewBcContainer
   Override function parameter for New-BcContainer
+ .Parameter SetBcContainerKeyVaultAadAppAndCertificate
+  Override function parameter for Set-BcContainerKeyVaultAadAppAndCertificate
  .Parameter ImportTestToolkitToBcContainer
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
@@ -183,6 +191,9 @@ Param(
     [string] $companyName = "",
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
+    [string] $keyVaultCertPfxFile = "",
+    [SecureString] $keyVaultCertPfxPassword = $null,
+    [string] $keyVaultClientId = "",
     $installApps = @(),
     $installTestApps = @(),
     $previousApps = @(),
@@ -238,6 +249,7 @@ Param(
     $AppSourceCopSupportedCountries = @(),
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
+    [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
     [scriptblock] $GetBcContainerAppInfo,
@@ -497,6 +509,10 @@ Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                      "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions               "; Write-Host $gitHubActions
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxPassword     "; if ($codeSignCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxFile         "; if ($keyVaultCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxPassword     "; if ($keyVaultCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultClientId            "; Write-Host $keyVaultClientId
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat           "; Write-Host $testResultsFormat
 Write-Host -NoNewLine -ForegroundColor Yellow "AdditionalCountries         "; Write-Host ([string]::Join(',',$additionalCountries))
@@ -535,6 +551,12 @@ if ($NewBcContainer) {
 }
 else {
     $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
+}
+if ($SetBcContainerKeyVaultAadAppAndCertificate) {
+    Write-Host -ForegroundColor Yellow "SetBcContainerKeyVaultAadAppAndCertificate override"; Write-Host $SetBcContainerKeyVaultAadAppAndCertificate.ToString()
+}
+else {
+    $SetBcContainerKeyVaultAadAppAndCertificate = { Param([Hashtable]$parameters) Set-BcContainerKeyVaultAadAppAndCertificate @parameters }
 }
 if ($ImportTestToolkitToBcContainer) {
     Write-Host -ForegroundColor Yellow "ImportTestToolkitToBcContainer override"; Write-Host $ImportTestToolkitToBcContainer.ToString()
@@ -714,6 +736,18 @@ Measure-Command {
             $Parameters.additionalParameters += @("--volume ""$($sharedFolder):c:\shared""")
         }
         Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
+
+        if (-not $bcAuthContext) {
+            if ($keyVaultCertPfxFile -and $KeyVaultClientId -and $keyVaultCertPfxPassword) {
+                $Parameters = @{
+                    "containerName" = $containerName
+                    "pfxFile" = $keyVaultCertPfxFile
+                    "pfxPassword" = $keyVaultCertPfxPassword
+                    "clientId" = $keyVaultClientId
+                }
+                Invoke-Command -ScriptBlock $SetBcContainerKeyVaultAadAppAndCertificate -ArgumentList $Parameters
+            }
+        }
     }
 
     if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq $tenant })) {
