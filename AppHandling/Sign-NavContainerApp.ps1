@@ -81,7 +81,7 @@ try {
     }
 
     try {
-        TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword
+        TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "Codesign"
 
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
     

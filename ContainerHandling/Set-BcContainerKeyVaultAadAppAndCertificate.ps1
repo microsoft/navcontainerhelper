@@ -53,7 +53,7 @@ try {
     }
 
     try {
-        TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword
+        TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "KeyVault"
     
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($pfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier)
     
