@@ -35,47 +35,63 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     $ExtensionsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions"
-    $containerPfxFile = Join-Path $ExtensionsFolder "$containerName\my\certificate.pfx"
+    $sharedPfxFile = Join-Path $ExtensionsFolder "$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
+    $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
         Write-Host "Downloading certificate file to container"
-        (New-Object System.Net.WebClient).DownloadFile($pfxFile, $containerPfxFile)
-    } else {
-        if ($containerPfxFile -ne $pfxFile) {
+        (New-Object System.Net.WebClient).DownloadFile($pfxFile, $sharedPfxFile)
+    }
+    else {
+        if (Get-BcContainerPath -containerName $containerName -path $pfxFile) {
+            $sharedPfxFile = $pfxFile
+            $removeSharedPfxFile = $false
+        }
+        else {
             Write-Host "Copying certificate file to container"
-            Copy-Item -Path $pfxFile -Destination $containerPfxFile -Force
+            Copy-Item -Path $pfxFile -Destination $sharedPfxFile -Force
         }
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($pfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier)
-
-        Set-NAVServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultAppSecretsPublisherValidationEnabled -KeyValue $enablePublisherValidation.ToString().ToLowerInvariant() -WarningAction SilentlyContinue
-        
-        $importedPfxCertificate = Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation Cert:\LocalMachine\My
-        Write-Host "Keyvault Certificate Thumbprint: $($importedPfxCertificate.Thumbprint)"
-        
-        # Give SYSTEM permission to use the PFX file's private key
-        $keyName = $importedPfxCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName
-        $keyPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$keyName"
-        $acl = (Get-Item $keyPath).GetAccessControl('Access')
-        $permission = 'NT AUTHORITY\SYSTEM',"Full","Allow"
-        $accessRule = new-object System.Security.AccessControl.FileSystemAccessRule $permission
-        $acl.AddAccessRule($accessRule)
-        Set-Acl $keyPath $acl
-        #$acl.Access
-        
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreLocation -KeyValue "LocalMachine" -WarningAction SilentlyContinue
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreName     -KeyValue "My" -WarningAction SilentlyContinue
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateThumbprint    -KeyValue $importedPfxCertificate.Thumbprint -WarningAction SilentlyContinue
-        Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientId                       -KeyValue $clientId -WarningAction SilentlyContinue
-        
-        if (!$doNotRestartServiceTier) {
-            Write-Host "Restarting Service Tier"
-            Set-NAVServerInstance -ServerInstance $serverInstance -Restart
-            while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
-                Start-Sleep -Seconds 1
+    try {
+        TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword
+    
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($pfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier)
+    
+            # Set AzureKeyVaultAppSecretsPublisherValidationEnabled to false to avoid having to publish with PublisherAzureActiveDirectoryTenantId
+            Set-NAVServerConfiguration -ServerInstance $serverInstance -KeyName "AzureKeyVaultAppSecretsPublisherValidationEnabled" -KeyValue $enablePublisherValidation.ToString().ToLowerInvariant() -WarningAction SilentlyContinue
+            
+            $importedPfxCertificate = Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation Cert:\LocalMachine\My
+            Write-Host "Keyvault Certificate Thumbprint: $($importedPfxCertificate.Thumbprint)"
+            
+            # Give SYSTEM permission to use the PFX file's private key
+            $keyName = $importedPfxCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName
+            $keyPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$keyName"
+            $acl = (Get-Item $keyPath).GetAccessControl('Access')
+            $permission = 'NT AUTHORITY\SYSTEM',"Full","Allow"
+            $accessRule = new-object System.Security.AccessControl.FileSystemAccessRule $permission
+            $acl.AddAccessRule($accessRule)
+            Set-Acl $keyPath $acl
+            #$acl.Access
+            
+            Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreLocation -KeyValue "LocalMachine" -WarningAction SilentlyContinue
+            Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateStoreName     -KeyValue "My" -WarningAction SilentlyContinue
+            Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientCertificateThumbprint    -KeyValue $importedPfxCertificate.Thumbprint -WarningAction SilentlyContinue
+            Set-NavServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultClientId                       -KeyValue $clientId -WarningAction SilentlyContinue
+            
+            if (!$doNotRestartServiceTier) {
+                Write-Host "Restarting Service Tier"
+                Set-NAVServerInstance -ServerInstance $serverInstance -Restart
+                while (Get-NavTenant $serverInstance | Where-Object { $_.State -eq "Mounting" }) {
+                    Start-Sleep -Seconds 1
+                }
             }
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path $sharedPfxFile), $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
+    }
+    finally {
+        if ($removeSharedPfxFile -and (Test-Path $sharedPfxFile)) {
+            Remove-Item -Path $sharedPfxFile -Force
         }
-    } -argumentList (Get-BcContainerPath -containerName $containerName -path $containerPfxFile), $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
