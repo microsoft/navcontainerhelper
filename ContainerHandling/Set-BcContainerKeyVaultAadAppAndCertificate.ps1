@@ -46,9 +46,14 @@ try {
         }
     }
 
+    Write-Host "Download complete"
+
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($pfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier)
 
+        Write-Host "go"
         Set-NAVServerConfiguration -ServerInstance $serverInstance -KeyName AzureKeyVaultAppSecretsPublisherValidationEnabled -KeyValue $enablePublisherValidation.ToString().ToLowerInvariant() -WarningAction SilentlyContinue
+
+        Write-Host "go"
         
         $importedPfxCertificate = Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation Cert:\LocalMachine\My
         Write-Host "Keyvault Certificate Thumbprint: $($importedPfxCertificate.Thumbprint)"
@@ -75,7 +80,7 @@ try {
                 Start-Sleep -Seconds 1
             }
         }
-    } -argumentList $containerPfxFile, $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
+    } -argumentList (Get-BcContainerPath -containerName $containerName -path $containerPfxFile), $pfxPassword, $clientId, $enablePublisherValidation, $doNotRestartServiceTier
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
