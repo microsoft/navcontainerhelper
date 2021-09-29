@@ -183,6 +183,9 @@ function Get-Tests {
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the test toolkit and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
+    if ($extensionId -ne "" -and $testSuite -ne "DEFAULT") {
+        throw "You cannot specify testSuite and extensionId at the same time"
+    }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
@@ -373,6 +376,9 @@ function Run-Tests {
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
+    }
+    if ($extensionId -ne "" -and $testSuite -ne "DEFAULT") {
+        throw "You cannot specify testSuite and extensionId at the same time"
     }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
