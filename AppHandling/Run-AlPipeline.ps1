@@ -739,7 +739,6 @@ Measure-Command {
 
         if (-not $bcAuthContext) {
             if ($keyVaultCertPfxFile -and $KeyVaultClientId -and $keyVaultCertPfxPassword) {
-                Write-Host "ContainerName $containerName"
                 $Parameters = @{
                     "containerName" = $containerName
                     "pfxFile" = $keyVaultCertPfxFile
