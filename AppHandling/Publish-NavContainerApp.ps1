@@ -18,6 +18,8 @@
   Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
  .Parameter install
   Include this parameter if you want to install the app after publishing
+ .Parameter upgrade
+  Include this parameter if you want to upgrade the app after publishing. if no upgrade is necessary then its just installed instead.
  .Parameter tenant
   If you specify the install switch, then you can specify the tenant in which you want to install the app
  .Parameter packageType
@@ -319,7 +321,14 @@ try {
                             Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
                             Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
                         }
-                
+
+                        if($upgrade -and $install){
+                            $navAppInfoFromDb = Get-NAVAppInfo -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant -TenantSpecificProperties
+                            if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version){
+                                $upgrade = $false
+                            }
+                        }
+                        
                         if ($install) {
         
                             $languageArgs = @{}

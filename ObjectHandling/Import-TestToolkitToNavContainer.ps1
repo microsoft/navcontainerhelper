@@ -195,15 +195,15 @@ try {
                     Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
         
                     if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
-                        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
+                        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant, $runtimeAppFile)
                             
                             $navAppInfo = Get-NAVAppInfo -Path $appFile
                             $appPublisher = $navAppInfo.Publisher
                             $appName = $navAppInfo.Name
                             $appVersion = $navAppInfo.Version
         
-                            Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
-                        } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+                            Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant $tenant
+                        } -argumentList $appFile, $tenant, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
                     }
                 }
             }
