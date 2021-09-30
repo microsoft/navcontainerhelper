@@ -18,11 +18,14 @@ function Start-BcContainer {
         [int] $timeout = 1800
     )
 
+    $logs = @(docker logs $containerName)
+    $startlog = [string]::Join("`r`n",$logs)
+
     if (!(DockerDo -command start -imageName $containerName)) {
         return
     }
     if ($timeout -ne 0) {
-        Wait-BcContainerReady -containerName $containerName -timeout $timeout
+        Wait-BcContainerReady -containerName $containerName -timeout $timeout -startlog $startlog
     }
 }
 Set-Alias -Name Start-NavContainer -Value Start-BcContainer

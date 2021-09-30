@@ -32,11 +32,14 @@ try {
         }
     }
 
+    $logs = @(docker logs $containerName)
+    $startlog = [string]::Join("`r`n",$logs)
+
     if (!(DockerDo -command restart -imageName $containerName)) {
         return
     }
     if ($timeout -ne 0) {
-        Wait-BcContainerReady -containerName $containerName -timeout $timeout
+        Wait-BcContainerReady -containerName $containerName -timeout $timeout -startlog $startlog
     }
 }
 catch {

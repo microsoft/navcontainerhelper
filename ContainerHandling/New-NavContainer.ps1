@@ -1757,7 +1757,7 @@ if (-not `$restartingInstance) {
         if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
-        Wait-BcContainerReady $containerName -timeout $timeout
+        Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
 
         if ($sharedEncryptionKeyFile -and !(Test-Path $sharedEncryptionKeyFile)) {
             Write-Host "Storing Container Encryption Key file"
