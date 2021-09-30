@@ -98,7 +98,7 @@ try {
     "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/", "/layout/" | % {
         $folder = Join-Path $appFolder $_
         if (Test-Path $folder) {
-            Get-ChildItem $folder | % {
+            @(Get-ChildItem $folder) | % {
                 Copy-Item -Path $_.FullName -Destination $appFolder -Recurse -Force
                 Remove-Item -Path $_.FullName -Recurse -Force
             }

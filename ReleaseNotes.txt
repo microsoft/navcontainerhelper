@@ -33,6 +33,7 @@ Add parameter deviceCode to New-BcAuthContext to allow initiating the device cod
 Add function Import-CertificateToBcContainer to import a .cer certificate to the container
 Add support for URLs in Import-PfxCertificateToBcContainer and Import-CertificateToBcContainer
 Add KeyVault access parameters to Run-AlPipeline
+Bug with recursive copy of report layouts during Extract-AppFileToFolder
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
