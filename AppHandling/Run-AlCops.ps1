@@ -243,7 +243,7 @@ try {
                 # Copy inside container to ensure files are ready
                 Write-Host "Copy $appFile to $appPackagesFolder"
                 Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $appPackagesFolder)
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $appPackagesFolder) | Out-Null
         }
         finally {
             if (Test-Path $tmpFolder) {
