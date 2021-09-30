@@ -15,13 +15,12 @@ function Wait-BcContainerReady {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [int] $timeout = 1800
+        [int] $timeout = 1800,
+        [string] $startlog = ""
     )
 
     Process {
-        $startLog = ""
         $logs = docker logs $containerName
-        if ($logs) { $startlog = [string]::Join("`r`n",$logs) }
         $prevLog = ""
         Write-Host "Waiting for container $containerName to be ready"
         $cnt = $timeout
