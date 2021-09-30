@@ -44,33 +44,39 @@ $hashFontFileTypes.Add(".otf", " (OpenType)")
 $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
 
 Get-ChildItem $PSScriptRoot -ErrorAction Ignore | % {
-    if ($_.Extension -ne ".ini" -and $_.Extension -ne ".ps1") {
+    if ($hashFontFileTypes.ContainsKey($_.Extension)) {
         $path = Join-Path "c:\Windows\Fonts" $_.Name
         if ($ExistingFonts.Contains($_.Name)) {
             Write-Host "Skipping font '$path' as it is already installed"
         }
         else {
-            Copy-Item -Path $_.FullName -Destination $path
+            Write-Host "Installing font '$path' " -NoNewline
+            try {
+                Copy-Item -Path $_.FullName -Destination $path
     
-            $fileDir  = split-path $path
-            $fileName = split-path $path -leaf
-            $fileExt = (Get-Item $path).extension
-            $fileBaseName = $fileName -replace($fileExt ,"")
-            
-            $shell = new-object -com shell.application
-            $myFolder = $shell.Namespace($fileDir)
-            $fileobj = $myFolder.Items().Item($fileName)
-            $fontName = $myFolder.GetDetailsOf($fileobj,21)
-            
-            if ($fontName -eq "") { $fontName = $fileBaseName }
-            
-            $retVal = [FontResource.AddRemoveFonts]::AddFont($path)
-            
-            if ($retVal -eq 0) {
-                Write-Host -ForegroundColor Red "Font '$path' installation failed"
-            } else {
-                Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
-                Write-Host -ForegroundColor Green "Font '$path' installed successfully"
+                $fileDir  = split-path $path
+                $fileName = split-path $path -leaf
+                $fileExt = (Get-Item $path).extension
+                $fileBaseName = $fileName -replace($fileExt ,"")
+                
+                $shell = new-object -com shell.application
+                $myFolder = $shell.Namespace($fileDir)
+                $fileobj = $myFolder.Items().Item($fileName)
+                $fontName = $myFolder.GetDetailsOf($fileobj,21)
+                
+                if ($fontName -eq "") { $fontName = $fileBaseName }
+                
+                $retVal = [FontResource.AddRemoveFonts]::AddFont($path)
+                
+                if ($retVal -eq 0) {
+                    Write-Host -ForegroundColor Red "failed"
+                } else {
+                    Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
+                    Write-Host -ForegroundColor Green "succeeded"
+                }
+            }
+            catch {
+                Write-Host -ForegroundColor Red "exception: $($_.Exception.Message)"
             }
         }
     }

@@ -769,3 +769,21 @@ function getVolumeMountParameter($volumes, $hostPath, $containerPath) {
         "--volume ""$($hostPath):$($containerPath)"""
     }
 }
+
+function testPfxCertificate([string] $pfxFile, [SecureString] $pfxPassword, [string] $certkind) {
+    if (!(Test-Path $pfxFile)) {
+        throw "$certkind certificate file does not exist"
+    }
+    try {
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxFile, $pfxPassword)
+    }
+    catch {
+        throw "Unable to read $certkind certificate. Error was $($_.Exception.Message)"
+    }
+    if ([DateTime]::Now -gt $cert.NotAfter) {
+        throw "$certkind certificate expired on $($cert.GetExpirationDateString())"
+    }
+    if ([DateTime]::Now -gt $cert.NotAfter.AddDays(-14)) {
+        Write-Host -ForegroundColor Yellow "$certkind certificate will expire on $($cert.GetExpirationDateString())"
+    }
+}
