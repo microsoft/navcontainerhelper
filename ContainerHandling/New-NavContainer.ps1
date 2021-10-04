@@ -505,6 +505,10 @@ try {
         $skipDatabase = $true
     }
 
+    if ($imageName -eq "" -and $artifactUrl -eq "" -and $dvdPath -eq "") {
+        throw "You have to specify artifactUrl or imageName when creating a new container."            
+    }
+
     # Remove if it already exists
     Remove-BcContainer $containerName
 

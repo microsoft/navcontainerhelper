@@ -41,7 +41,7 @@ function New-BcAuthContext {
         [string] $authority = "https://login.microsoftonline.com/$TenantID",
         [string] $refreshToken,
         [string] $scopes = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default",
-        [SecureString] $clientSecret,
+        $clientSecret,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
         [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5),
@@ -50,6 +50,10 @@ function New-BcAuthContext {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+    if ($clientSecret -isnot [SecureString]) {
+        $clientSecret = ConvertTo-SecureString -String "$clientSecret" -AsPlainText -Force
+    }
 
     if ($deviceCode) {
         $includeDeviceLogin = $true
