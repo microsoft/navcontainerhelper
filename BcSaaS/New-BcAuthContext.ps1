@@ -51,7 +51,7 @@ function New-BcAuthContext {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($clientSecret -isnot [SecureString]) {
+    if ($clientSecret -and ($clientSecret -isnot [SecureString])) {
         $clientSecret = ConvertTo-SecureString -String "$clientSecret" -AsPlainText -Force
     }
 
