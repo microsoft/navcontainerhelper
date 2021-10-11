@@ -1,5 +1,6 @@
 2.0.17
 Add paramater internalsVisibleTo to Publish-BcContainerApp and Replace-DependenciesInAppFile in order to publish an app with internals visible to another app during development
+Support Windows 11 build numbers
 
 2.0.16
 Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
