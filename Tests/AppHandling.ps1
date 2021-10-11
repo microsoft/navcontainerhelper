@@ -216,7 +216,7 @@
     It 'Get/RunTests for all versions' {
         $runTestsContainerName = "runtests"
 
-        9,10,11,14,15,16,17 | % {
+        9,10,11,14,15,16,17,18,19 | % {
 
             
             $runTestsInVersion  = $_
