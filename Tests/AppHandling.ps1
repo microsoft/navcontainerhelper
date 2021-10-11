@@ -218,7 +218,10 @@
 
         9,10,11,14,15,16,17,18,19 | % {
 
-            
+            $useLicense = $licenseFile
+            if ($_ -ge 18) {
+                $useLicense = $buildLicenseFile
+            }
             $runTestsInVersion  = $_
             $artifactUrl = Get-BCArtifactUrl -type OnPrem -version "$runTestsInVersion" -country "w1" -select Latest
             $containerParams = @{ }
@@ -236,7 +239,7 @@
                             -auth NavUserPassword `
                             -Credential $credential `
                             -updateHosts `
-                            -licenseFile $licenseFile `
+                            -licenseFile $useLicense `
                             -includeTestToolkit
 
             $useCALTestFwk = $false
