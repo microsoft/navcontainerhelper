@@ -146,6 +146,18 @@ try {
             }
     
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+
+            $publishParams = @{}
+            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" })) {
+                $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "..\AppHandling\BCPTLogEntryAPI"
+                $appJson = Get-Content -path (Join-Path $BCPTLogEntryAPIsrc "app.json") | ConvertFrom-Json
+                $internalsVisibleTo = @{ "id" = $appJson.id; "name" = $appJson.name; "publisher" = $appjson.publisher }
+                $publishParams += @{
+                    "internalsVisibleTo" = $internalsVisibleTo
+                    "replacePackageId" = $true
+                }
+                UnPublish-BcContainerApp -containerName $containerName -publisher "microsoft" -name "Performance Toolkit" -unInstall -force
+            }
     
             if (!$doNotUseRuntimePackages) {
                 if ($isBcSandbox) {
@@ -181,7 +193,7 @@ try {
                     $navAppInfo = Get-NAVAppInfo -Path $appFile
                     (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version -tenant $tenant -tenantSpecificProperties)
                 } -argumentList $appFile, $tenant | Where-Object { $_ -isnot [System.String] }
-    
+
                 if ($tenantAppInfo) {
                     if ($tenantAppInfo.IsInstalled) {
                         Write-Host "Skipping app '$appFile' as it is already installed"
@@ -192,7 +204,12 @@ try {
                     }
                 }
                 else {
-                    Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+                    if ([System.IO.Path]::GetFileName($appfile) -eq "Microsoft_Performance Toolkit.app") {
+                        Publish-BcContainerApp -containerName $containerName @publishParams -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+                    }
+                    else {
+                        Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+                    }
         
                     if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
                         Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant, $runtimeAppFile)

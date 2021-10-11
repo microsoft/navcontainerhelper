@@ -1,0 +1,34 @@
+{
+    "id": "7948b639-3865-4e08-b04c-3a9db52e9ac2",
+    "name": "BCPTLogEntryAPI",
+    "publisher": "BcContainerHelper",
+    "brief": "",
+    "description": "",
+    "version": "1.0.0.0",
+    "privacyStatement": "",
+    "EULA": "",
+    "help": "",
+    "url": "",
+    "dependencies": [
+        {
+            "id": "75f1590f-55c5-4501-ae63-bada5534e852",
+            "name": "Performance Toolkit",
+            "publisher": "Microsoft",
+            "version": "18.0.0.0"
+        }
+    ],
+    "screenshots": [],
+    "platform": "18.0.0.0",
+    "application": "18.0.0.0",
+    "idRanges": [
+        {
+            "from": 88123,
+            "to": 88123
+        }
+    ],
+    "target": "Cloud",
+    "supportedLocales": [
+        "en-US"
+    ],
+    "runtime": "7.0"
+}
