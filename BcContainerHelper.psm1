@@ -70,6 +70,7 @@ function Get-ContainerHelperConfig {
             "TreatWarningsAsErrors" = @('AL1026')
             "TelemetryConnectionString" = ""
             "UseExtendedTelemetry" = $false
+            "ObjectIdForInternalUse" = 88123
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
         if (Test-Path $bcContainerHelperConfigFile) {
@@ -275,6 +276,7 @@ Check-BcContainerHelperPermissions -Silent
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Replace-DependenciesInAppFile.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Run-BCPTTestsInBcContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-ConnectionTestToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-TestsFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Create-AlProjectFolderFromNavContainer.ps1")

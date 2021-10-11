@@ -409,12 +409,13 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 20348) { 
+
+    if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
         if ($isServerHost) {
             $hostOs = "ltsc2022"
         }
         else {
-            $hostOs = "11"
+            $hostOs = "21H2"
         }
     }
     elseif ($os.BuildNumber -eq 19043) { 
@@ -503,6 +504,10 @@ try {
     $skipDatabase = $false
     if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or "$databasePrefix$databaseName" -ne "") {
         $skipDatabase = $true
+    }
+
+    if ($imageName -eq "" -and $artifactUrl -eq "" -and $dvdPath -eq "") {
+        throw "You have to specify artifactUrl or imageName when creating a new container."            
     }
 
     # Remove if it already exists
@@ -1176,7 +1181,7 @@ try {
             $isolation = "process"
         }
     }
-    elseif ("$hostOsVersion".StartsWith('10.0.20348.') -and "$containerOsVersion".StartsWith("10.0.20348.")) {
+    elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
         if ($containerOsVersion -le $hostOsVersion) {
             $isolation = "process"
         }

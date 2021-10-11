@@ -24,7 +24,7 @@ function Get-BcContainerApiCompanyId {
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
-        [string] $APIVersion = "beta",
+        [string] $APIVersion = "v1.0",
         [Parameter(Mandatory=$false)]
         [string] $CompanyName = "",
         [switch] $silent

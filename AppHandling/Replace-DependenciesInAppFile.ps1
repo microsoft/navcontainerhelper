@@ -9,10 +9,14 @@
   Path of the modified application file, where dependencies was replaced (default is to rewrite the original file)
  .Parameter replaceDependencies
   A hashtable, describring the dependencies, which needs to be replaced
+ .Parameter internalsVisibleTo
+  An Array of hashtable, containing id, name and publisher of an app, which should be added to internals Visible to
  .Parameter showMyCode
   With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Example
   Replace-DependenciesInAppFile -containerName test -Path c:\temp\myapp.app -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
+ .Example
+  Replace-DependenciesInAppFile -containerName test -Path c:\temp\myapp.app -internalsVisibleTo @( @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen" } )
 #>
 Function Replace-DependenciesInAppFile {
     Param (
@@ -23,7 +27,8 @@ Function Replace-DependenciesInAppFile {
         [hashtable] $replaceDependencies = $null,
         [ValidateSet('Ignore','True','False','Check')]
         [string] $ShowMyCode = "Ignore",
-        [switch] $replacePackageId
+        [switch] $replacePackageId,
+        [HashTable[]] $internalsVisibleTo = $null
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -34,7 +39,7 @@ try {
         $path = $Destination
     }
     
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($path, $Destination, $replaceDependencies, $ShowMyCode, $replacePackageId)
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($path, $Destination, $replaceDependencies, $ShowMyCode, $replacePackageId, $internalsVisibleTo)
     
         add-type -path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\system.io.packaging.dll").FullName
     
@@ -72,7 +77,11 @@ try {
             $package = [System.IO.Packaging.Package]::Open($memoryStream, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
             $manifestPart = $package.GetPart('/NavxManifest.xml')
             $manifest = [xml]([System.IO.StreamReader]::new($manifestPart.GetStream())).ReadToEnd()
-            $changes = $false
+            $manifestChanges = $false
+            $symbolReferencePart = $package.GetPart('/SymbolReference.json')
+            $symbolJson = ([System.IO.StreamReader]::new($symbolReferencePart.GetStream())).ReadToEnd()
+            $symbolReference = $symbolJson | ConvertFrom-Json
+            $symbolReferenceChanges = $false
     
             if ($ShowMyCode -ne "Ignore") {
                 if ($ShowMyCode -eq "Check") {
@@ -82,7 +91,7 @@ try {
                 } elseif ($manifest.Package.App.ShowMyCode -ne $ShowMyCode) {
                     Write-Host "Changing ShowMyCode to $ShowMyCOde"
                     $manifest.Package.App.ShowMyCode = "$ShowMyCode"
-                    $changes = $true
+                    $manifestChanges = $true
                 }
             }
 
@@ -96,21 +105,57 @@ try {
                         $dependency.name = $newDependency.name
                         $dependency.publisher = $newDependency.publisher
                         $dependency.minVersion = $newDependency.minVersion
-                        $changes = $true
+                        $manifestChanges = $true
+                    }
+                }
+            }
+
+            if ($internalsVisibleTo) {
+                $internalsVisibleTo | % {
+                    $ivt = $_
+                    $existing = $manifest.Package.InternalsVisibleTo.GetEnumerator() | Where-Object { $_.id -eq $ivt.id -and $_.name -eq $ivt.name -and $_.publisher -eq $ivt.publisher }
+                    if (-not ($existing)) {
+                        Write-Host "Adding Id=$($ivt.Id), Name=$($ivt.Name), Publisher=$($ivt.Publisher) to InternalsVisibleTo"
+                        $element = $manifest.CreateElement("Module","http://schemas.microsoft.com/navx/2015/manifest")
+                        $element.SetAttribute('Id',$ivt.Id)
+                        $element.SetAttribute('Name',$ivt.Name)
+                        $element.SetAttribute('Publisher',$ivt.Publisher)
+                        $manifest.Package.InternalsVisibleTo.AppendChild($element) | Out-Null
+                        $manifestChanges = $true
+
+                        $symbolReference.InternalsVisibleToModules += @(@{
+                            "AppId" = $ivt.Id
+                            "Name" = $ivt.Name
+                            "Publisher" = $ivt.Publisher
+                        })
+                        $symbolReferenceChanges = $true
                     }
                 }
             }
 
             if ($replacePackageId) {
                 $packageId = [Guid]::NewGuid()
-                $changes = $true
+                $manifestChanges = $true
             }
     
-            if ($changes) {
+            if ($manifestChanges) {
     
                 $partStream = $manifestPart.GetStream([System.IO.FileMode]::Create)
                 $manifest.Save($partStream)
                 $partStream.Flush()
+                
+                if ($symbolReferenceChanges) {
+                    $partStream = $symbolReferencePart.GetStream([System.IO.FileMode]::Create)
+                    $memStream = [System.IO.MemoryStream]::new()
+                    $strWriter = [System.IO.StreamWriter]::new($memStream)
+                    $json = $symbolreference | ConvertTo-Json -depth 99
+                    $strWriter.Write($json)
+                    $strWriter.Flush()
+                    $memStream.Position = 0
+                    $memStream.CopyTo($partStream)
+                    $partStream.Flush()
+                }
+
                 $package.Close()
                 
                 $fs = [System.IO.FileStream]::new($Destination, [System.IO.FileMode]::Create)
@@ -141,7 +186,7 @@ try {
                 $fs.Close()
             }
         }
-    } -argumentList (Get-BCContainerPath -containerName $containerName -path $path -throw), (Get-BCContainerPath -containerName $containerName -path $Destination -throw), $replaceDependencies, $ShowMyCode, $replacePackageId
+    } -argumentList (Get-BCContainerPath -containerName $containerName -path $path -throw), (Get-BCContainerPath -containerName $containerName -path $Destination -throw), $replaceDependencies, $ShowMyCode, $replacePackageId, $internalsVisibleTo
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
