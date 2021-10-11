@@ -418,6 +418,9 @@ try {
             $hostOs = "21H2"
         }
     }
+    elseif ($os.BuildNumber -eq 19044) { 
+        $hostOs = "21H2"
+    }
     elseif ($os.BuildNumber -eq 19043) { 
         $hostOs = "21H1"
     }
@@ -1034,6 +1037,9 @@ try {
     elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
         $containerOs = "21H1"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+        $containerOs = "21H2"
+    }
     elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
         $containerOs = "ltsc2022"
     }
@@ -1163,6 +1169,9 @@ try {
         elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
             $containerOs = "21H1"
         }
+        elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+            $containerOs = "21H2"
+        }
         elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
             $containerOs = "ltsc2022"
         }
@@ -1189,7 +1198,7 @@ try {
             $isolation = "hyperv"
         }
     }
-    elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
         if ($isolation -eq "") {
             Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
             $isolation = "process"

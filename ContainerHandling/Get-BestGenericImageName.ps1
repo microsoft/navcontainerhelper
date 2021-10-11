@@ -234,9 +234,9 @@ try {
         $myversions = $versions | Where-Object { $_.Major -eq $hostOsVersion.Major -and $_.Minor -eq $hostOsVersion.Minor -and $_.Build -eq $hostOsVersion.Build } | Sort-Object
         if (-not $myversions) {
             if (-not $onlyMatchingBuilds) {
-                if ($hostOsVersion.Build -eq 19043) {
+                if ($hostOsVersion.Build -eq 19043 -or $hostOsVersion.Build -eq 19044) {
                     # 21H1 doesn't work well with 20H2 servercore images - grab 2004 if no corresponding image exists
-                    Write-Host -ForegroundColor Yellow "INFO: Windows 10 21H1 images are not yet available, using 2004 as these are found to work better than 20H2 on 21H1"
+                    Write-Host -ForegroundColor Yellow "INFO: Windows 10 21H1/21H2 images are not yet available, using 2004 as these are found to work better than 20H2 on 21H1/21H2"
                     $myversions = $versions | Where-Object { $_.Build -eq 19041 } | Sort-Object
                 }
                 else {
