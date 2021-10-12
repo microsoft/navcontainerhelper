@@ -266,7 +266,12 @@ Param(
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path) {
         if (!$path.contains(':')) {
-            $path = Join-Path $baseFolder $path
+            if (Test-Path -path (Join-Path $baseFolder $path)) {
+                $path = Join-Path $baseFolder $path -Resolve
+            }
+            else {
+                $path = Join-Path $baseFolder $path
+            }
         }
         else {
             if (!(($path -like "$($baseFolder)*") -or (($sharedFolder) -and ($path -like "$($sharedFolder)*")))) {
