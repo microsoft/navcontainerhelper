@@ -137,11 +137,13 @@ function Set-RunFalseOnDisabledTests
     $removeTestMethodControl = $ClientContext.GetControlByName($Form, "DisableTestMethod")
     foreach($disabledTestMethod in $DisabledTests)
     {
-        if ($debugMode) {
-            Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$($disabledTestMethod.method)"
+        $disabledTestMethod.method | ForEach-Object {
+            if ($debugMode) {
+                Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$_"
+            }
+            $testKey = $disabledTestMethod.codeunitName + "," + $_
+            $ClientContext.SaveValue($removeTestMethodControl, $testKey)
         }
-        $testKey = $disabledTestMethod.codeunitName + "," + $disabledTestMethod.method
-        $ClientContext.SaveValue($removeTestMethodControl, $testKey)
     }
 }
 
