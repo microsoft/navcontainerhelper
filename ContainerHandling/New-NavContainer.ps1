@@ -1185,7 +1185,7 @@ try {
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ($version.Major -lt 15 -and ($genericTagVersion -le [System.Version]"1.0.1.7")) {
+    if ($version.Major -lt 15 -and ($genericTag -eq "1.0.1.7")) {
         Write-Host "Patching start.ps1 due to issue #2130"
         $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/start.ps1" )
     }
