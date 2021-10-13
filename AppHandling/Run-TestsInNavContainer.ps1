@@ -375,7 +375,7 @@ try {
                     else {
                         $uri = [Uri]::new($publicWebBaseUrl)
                         $disableSslVerification = ($Uri.Scheme -eq "https")
-                        $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
+                        $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)$($Uri.PathAndQuery)/cs?tenant=$tenant"
                     }
             
                     if ($accessToken) {

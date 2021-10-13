@@ -266,7 +266,12 @@ Param(
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path) {
         if (!$path.contains(':')) {
-            $path = Join-Path $baseFolder $path
+            if (Test-Path -path (Join-Path $baseFolder $path)) {
+                $path = Join-Path $baseFolder $path -Resolve
+            }
+            else {
+                $path = Join-Path $baseFolder $path
+            }
         }
         else {
             if (!(($path -like "$($baseFolder)*") -or (($sharedFolder) -and ($path -like "$($sharedFolder)*")))) {
@@ -1611,11 +1616,16 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running Tests for additional country $testCountry"
 }
 
-$testAppIds = @()
+$testAppIds = @{}
 $installTestApps | ForEach-Object {
     $appId = [Guid]::Empty
     if ([Guid]::TryParse($_, [ref] $appId)) {
-        $testAppIds += @( $appId )
+        if ($testAppIds.ContainsKey($appId)) {
+            Write-Host -ForegroundColor Red "$($appId) already exists in the list of apps to test!"
+        }
+        else {
+            $testAppIds += @{ "$appId" = "" }
+        }
     }
     else {
         $appFile = $_
@@ -1628,7 +1638,12 @@ $installTestApps | ForEach-Object {
                 Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
                 $appJsonFile = Join-Path $appFolder "app.json"
                 $appJson = Get-Content $appJsonFile | ConvertFrom-Json
-                $testAppIds += @( $appJson.Id )
+                if ($testAppIds.ContainsKey($appJson.Id)) {
+                    Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (do you have the same app twice in installTestApps?)"
+                }
+                else {
+                    $testAppIds += @{ "$($appJson.Id)" = "" }
+                }
             }
         }
         catch {
@@ -1641,17 +1656,33 @@ $installTestApps | ForEach-Object {
 }
 $testFolders | ForEach-Object {
     $appJson = Get-Content -Path (Join-Path $_ "app.json") | ConvertFrom-Json
-    $testAppIds += @( $appJson.Id )
+    if ($testAppIds.ContainsKey($appJson.Id)) {
+        Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (are you installing apps with the same ID as your test apps?)"
+        $testAppIds."$($appJson.Id)" = $_
+    }
+    else {
+        $testAppIds += @{ "$($appJson.Id)" = $_ }
+    }
 }
 
-$testAppIds | ForEach-Object {
-
+$testAppIds.Keys | ForEach-Object {
+    $disabledTests = @()
+    $id = $_
+    $folder = $testAppIds."$id"
+    if ($folder) {
+        $disabledTestsFileName = Join-Path $folder "disabledTests.json"
+        if (Test-Path $disabledTestsFileName) {
+            Write-Host -ForegroundColor Red "Disabled Tests:"
+            $disabledTests = @(Get-Content $disabledTestsFileName | ConvertFrom-Json)
+        }
+    }
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
         "credential" = $credential
         "companyName" = $companyName
-        "extensionId" = $_
+        "extensionId" = $id
+        "disabledTests" = $disabledTests
         "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
         "GitHubActions" = "$(if($githubActions){'error'}else{'no'})"
         "detailed" = $true
