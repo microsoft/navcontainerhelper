@@ -1677,10 +1677,10 @@ $testAppIds.Keys | ForEach-Object {
         Write-Host "Running tests for App $id"
     }
     if ($folder) {
-        $disabledTestsFileName = Join-Path $folder "disabledTests.json"
-        if (Test-Path $disabledTestsFileName) {
-            Write-Host "Disabled Tests:`n$(Get-Content $disabledTestsFileName -Raw)"
-            $disabledTests = @(Get-Content $disabledTestsFileName | ConvertFrom-Json)
+        Get-ChildItem -Path $folder -Filter "disabledTests.json" -Recurse | ForEach-Object {
+            $disabledTestsStr = Get-Content $_.FullName -Raw
+            Write-Host "Disabled Tests:`n$disabledTestsStr"
+            $disabledTests += @($disabledTestsStr | ConvertFrom-Json)
         }
     }
     $Parameters = @{
