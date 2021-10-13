@@ -3,6 +3,7 @@ Add paramater internalsVisibleTo to Publish-BcContainerApp and Replace-Dependenc
 Support Windows 11 build numbers
 Add new function Run-BCPTTestsInBcContainer
 Issue #2129 add Windows 10 21H2
+Support disabledTests.json in testfolders
 
 2.0.16
 Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
