@@ -1676,6 +1676,12 @@ $testAppIds.Keys | ForEach-Object {
             $disabledTests = @(Get-Content $disabledTestsFileName | ConvertFrom-Json)
         }
     }
+    if ($folder) {
+        Write-Host "Running tests for App $id in $folder"
+    }
+    else {
+        Write-Host "Running tests for App $id"
+    }
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
