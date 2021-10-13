@@ -1669,8 +1669,6 @@ $testAppIds.Keys | ForEach-Object {
     $disabledTests = @()
     $id = $_
     $folder = $testAppIds."$id"
-Write-Host $id
-Write-Host $folder
 
     if ($folder) {
         Write-Host "Running tests for App $id in $folder"
@@ -1681,7 +1679,7 @@ Write-Host $folder
     if ($folder) {
         $disabledTestsFileName = Join-Path $folder "disabledTests.json"
         if (Test-Path $disabledTestsFileName) {
-            Write-Host -ForegroundColor Red "Disabled Tests:"
+            Write-Host "Disabled Tests:`n$(Get-Content $disabledTestsFileName -Raw)"
             $disabledTests = @(Get-Content $disabledTestsFileName | ConvertFrom-Json)
         }
     }
