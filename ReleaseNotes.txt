@@ -4,6 +4,7 @@ Support Windows 11 build numbers
 Add new function Run-BCPTTestsInBcContainer
 Issue #2129 add Windows 10 21H2
 Support disabledTests.json in testfolders
+Issue #2130 patch start.ps1 if using an old generic image on pre 15.0 NAV/BC
 
 2.0.16
 Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
