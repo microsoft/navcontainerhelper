@@ -96,6 +96,8 @@
   Specify if you want Compilation to fail on Error or Warning
  .Parameter useDevEndpoint
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
+ .Parameter doNotBuildTests
+  Include this switch to indicate that you do not want to build nor tests.
  .Parameter doNotRunTests
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
  .Parameter doNotPerformUpgrade
@@ -507,6 +509,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade         "; Write-Host $doNotPerformUpgrade
 Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps        "; Write-Host $uninstallRemovedApps
 Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Write-Host $escapeFromCops
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotBuildTests             "; Write-Host $doNotBuildTests
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests               "; Write-Host $doNotRunTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet  "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                 "; Write-Host $rulesetFile
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                 "; Write-Host $azureDevOps
@@ -544,6 +548,15 @@ Write-Host -ForegroundColor Yellow "Test application folders"
 if ($testFolders) { $testFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+
+if ($doNotBuildTests) {
+    $testFolders = @()
+    $installTestRunner = $false
+    $installTestFramework = $false
+    $installTestLibraries = $false
+    $installPerformanceToolkit = $false
+    $doNotRunTests = $true
+}
 
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
