@@ -228,6 +228,7 @@ Param(
     [ValidateSet('none','error','warning')]
     [string] $failOn = "none",
     [switch] $useDevEndpoint,
+    [switch] $doNotBuildTests,
     [switch] $doNotRunTests,
     [switch] $doNotPerformUpgrade,
     [switch] $uninstallRemovedApps,
