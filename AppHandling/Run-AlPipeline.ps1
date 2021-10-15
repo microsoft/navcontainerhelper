@@ -750,10 +750,15 @@ Measure-Command {
             }
         }
 
+        if ($imageName) {
+            $Parameters += @{
+                "imageName" = $imageName
+            }
+        }
+
         $Parameters += @{
             "accept_eula" = $true
             "containerName" = $containerName
-            "imageName" = $imageName
             "artifactUrl" = $artifactUrl
             "useGenericImage" = $useGenericImage
             "Credential" = $credential
