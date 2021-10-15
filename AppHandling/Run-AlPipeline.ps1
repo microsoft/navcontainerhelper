@@ -995,6 +995,7 @@ $previousAppInfos = @()
 $appsFolder = @{}
 $apps = @()
 $testApps = @()
+$bcptTestApps = @()
 $testToolkitInstalled = $false
 $sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
                  @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue) +
@@ -1383,6 +1384,9 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    if ($bcptTestApp) {
+        $bcptTestApps += $appFile
+    }
     if ($testApp) {
         $testApps += $appFile
     }
@@ -1479,7 +1483,7 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ($apps+$testApps) {
+if ($apps+$testApps+$bcptTestApps) {
 if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
 Write-Host -ForegroundColor Yellow @'
 
@@ -1556,7 +1560,7 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
-$testApps | ForEach-Object {
+$testApps+$bcptTestApps | ForEach-Object {
    
     $Parameters = @{
         "containerName" = $containerName
