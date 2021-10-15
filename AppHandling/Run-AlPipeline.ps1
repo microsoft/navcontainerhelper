@@ -750,11 +750,8 @@ Measure-Command {
             }
         }
 
-        if ($imageName) {
-            $Parameters += @{
-                "imageName" = $imageName
-            }
-        }
+        if ($imageName)   { $Parameters += @{ "imageName"   = $imageName } }
+        if ($memoryLimit) { $Parameters += @{ "memoryLimit" = $memoryLimit } }
 
         $Parameters += @{
             "accept_eula" = $true
@@ -768,7 +765,6 @@ Measure-Command {
             "licenseFile" = $licenseFile
             "EnableTaskScheduler" = $enableTaskScheduler
             "AssignPremiumPlan" = $assignPremiumPlan
-            "MemoryLimit" = $memoryLimit
             "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
         }
         if ($sharedFolder) {
