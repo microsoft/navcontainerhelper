@@ -1786,7 +1786,7 @@ $bcptTestFolders | ForEach-Object {
         "tenant" = $tenant
         "credential" = $credential
         "companyName" = $companyName
-        "BCPTsuite" = Get-Content (Join-Path $_ "Suite\10UserTest.json") | ConvertFrom-Json
+        "BCPTsuite" = Get-Content (Join-Path $_ "Suite\10UserTest.Sample.json") | ConvertFrom-Json
     }
 
     if ($bcAuthContext) {
