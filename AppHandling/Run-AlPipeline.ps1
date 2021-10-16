@@ -1793,8 +1793,6 @@ $bcptTestFolders | ForEach-Object {
         throw "BCPT Tests are not supported on cloud pipelines yet!"
     }
 
-$Parameters | Out-Host
-
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
     $result
 
