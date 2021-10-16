@@ -21,10 +21,9 @@ function Invoke-ScriptInBcContainer {
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]
-        [Object[]] $argumentList
+        [Object[]] $argumentList,
+        [bool] $useSession = $bcContainerHelperConfig.usePsSession
     )
-
-    $useSession = (Get-ContainerHelperConfig).usePsSession
 
     if ($useSession) {
         try {

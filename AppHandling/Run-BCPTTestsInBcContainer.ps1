@@ -127,10 +127,8 @@ try {
         Write-Host "Using Suitecode $suitecode"
     }
 
-    Remove-BcContainerSession -containerName $containerName
-
     $config = Get-BcContainerServerConfiguration -containerName $containerName
-    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $testPage, $auth, $credential, $suitecode)
+    Invoke-ScriptInBcContainer -containerName $containerName -useSession $false -scriptblock { Param($webBaseUrl, $testPage, $auth, $credential, $suitecode)
         Set-Location C:\Applications\testframework\TestRunner
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
@@ -144,8 +142,6 @@ try {
             -TestRunnerPage ([int]$testPage)
 
     } -argumentList $config.PublicWebBaseUrl, $testPage, $auth, $credential, $suitecode
-
-    Remove-BcContainerSession -containerName $containerName
 
     if (!$doNotGetResults) {
         $response = Invoke-BcContainerApi `
