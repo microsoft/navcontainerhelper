@@ -80,6 +80,17 @@ try {
                 -install
         }
     }
+
+    if ("$companyName" -eq "") {
+        $myName = $credential.UserName.SubString($credential.UserName.IndexOf('\')+1)
+        Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName -like "*\$MyName" -or $_.UserName -eq $myName } | % {
+            $companyName = $_.Company
+        }
+    }
+
+    if ("$companyName" -eq "") {
+        $companyName = (Get-CompanyInBcContainer -containerName $containerName -tenant $tenant | Select-Object -First 1).CompanyName
+    }
     
     if (($BCPTSuite) -or (!$doNotGetResults)) {
         $companyId = Get-BcContainerApiCompanyId `
