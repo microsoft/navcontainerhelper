@@ -1786,12 +1786,14 @@ $bcptTestFolders | ForEach-Object {
         "tenant" = $tenant
         "credential" = $credential
         "companyName" = $companyName
-        "BCPTsuite" = Get-Content (Join-Path $_ "Suite\10UserTest.Sample.json") | ConvertFrom-Json
+        "BCPTsuite" = Get-Content (Join-Path $_ "Suite\10UserTest.sample.json") | ConvertFrom-Json
     }
 
     if ($bcAuthContext) {
         throw "BCPT Tests are not supported on cloud pipelines yet!"
     }
+
+$Parameters | Out-Host
 
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
     $result

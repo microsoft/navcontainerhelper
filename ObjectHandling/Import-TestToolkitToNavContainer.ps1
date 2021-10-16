@@ -147,8 +147,6 @@ try {
     
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
 
-    $appfiles
-
             $publishParams = @{}
             if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" -or $_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" })) {
                 $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "..\AppHandling\BCPTLogEntryAPI"
