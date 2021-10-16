@@ -86,10 +86,12 @@ try {
         Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName -like "*\$MyName" -or $_.UserName -eq $myName } | % {
             $companyName = $_.Company
         }
+        if ($companyName) { Write-Host "Using CompanyName $companyName" }
     }
 
     if ("$companyName" -eq "") {
-        $companyName = (Get-CompanyInBcContainer -containerName $containerName -tenant $tenant | Select-Object -First 1).CompanyName
+        $companyName = Get-CompanyInBcContainer -containerName $containerName -tenant $tenant | Select-Object -First 1 | ForEach-Object { $_.CompanyName }
+        if ($companyName) { Write-Host "Using CompanyName $companyName" }
     }
     
     if (($BCPTSuite) -or (!$doNotGetResults)) {
@@ -98,6 +100,7 @@ try {
             -tenant $tenant `
             -credential $credential `
             -CompanyName $companyName
+        Write-Host "Using Company ID $companyId"
     }
 
     if ($BCPTSuite) {
@@ -121,7 +124,10 @@ try {
             -Query 'bcptSuites'
 
         $suiteCode = $BCPTSuite.Code
+        Write-Host "Using Suitecode $suitecode"
     }
+
+    Remove-BcContainerSession -containerName $containerName
 
     $config = Get-BcContainerServerConfiguration -containerName $containerName
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $testPage, $auth, $credential, $suitecode)
@@ -129,13 +135,17 @@ try {
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
+
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
             -SuiteCode $suitecode `
             -ServiceUrl "$($webBaseUrl.TrimEnd('/'))/cs/" `
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
+
     } -argumentList $config.PublicWebBaseUrl, $testPage, $auth, $credential, $suitecode
+
+    Remove-BcContainerSession -containerName $containerName
 
     if (!$doNotGetResults) {
         $response = Invoke-BcContainerApi `
