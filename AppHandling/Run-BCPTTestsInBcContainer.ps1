@@ -159,7 +159,7 @@ public static class SslVerification
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-        $serviceUrl = "http://localhost/$serverInstance/cs?tenant=$tenant"
+        $serviceUrl = "http://localhost/$serverInstance/cs"
         Write-Host "Service Url $serviceUrl"
 
         .\RunBCPTTests.ps1 @params `
