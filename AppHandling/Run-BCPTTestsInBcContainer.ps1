@@ -127,14 +127,23 @@ try {
         Write-Host "Using Suitecode $suitecode"
     }
 
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+        Write-Host ([System.Management.Automation.PSTypeName]'ClientContext').Type
+    }
+
+    Restart-BcContainer $containerName
+
     $config = Get-BcContainerServerConfiguration -containerName $containerName
-    Invoke-ScriptInBcContainer -containerName $containerName -useSession $false -scriptblock { Param($webBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode)
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode)
+
+        Write-Host ([System.Management.Automation.PSTypeName]'ClientContext').Type
+
         Set-Location C:\Applications\testframework\TestRunner
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
         $serviceUrl = "$($webBaseUrl.TrimEnd('/'))/cs?tenant=$tenant"
-        Write-Host "Service URL $serviceUrl"
+        Write-Host "Service Url $serviceUrl"
 
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
@@ -142,6 +151,8 @@ try {
             -ServiceUrl $serviceUrl `
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
+
+        Write-Host ([System.Management.Automation.PSTypeName]'ClientContext').Type
 
     } -argumentList $config.PublicWebBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode
 
