@@ -144,6 +144,7 @@ try {
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
         $serviceUrl = "$($webBaseUrl.TrimEnd('/'))/cs?tenant=$tenant"
         Write-Host "Service Url $serviceUrl"
+        $serviceUrl = "http://localhost/BC/cs?tenant=default"
 
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
