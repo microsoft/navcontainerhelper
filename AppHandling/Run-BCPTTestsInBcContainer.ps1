@@ -127,32 +127,8 @@ try {
         $suiteCode = $BCPTSuite.Code
     }
 
-    Restart-BcContainer $containerName
-
     $config = Get-BcContainerServerConfiguration -containerName $containerName
     if ($connectFromHost) {
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
-
-            Set-Location C:\Applications\testframework\TestRunner
-            if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
-            $params = @{ "AuthorizationType" = $auth }
-            if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-            $serviceUrl = "http://localhost:80/$serverInstance/cs?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
-            Write-Host "Using testpage $testpage"
-            Write-Host "Using Suitecode $suitecode"
-            Write-Host "Service Url $serviceUrl"
-            $params | Out-Host
-    
-            .\RunBCPTTests.ps1 @params `
-                -BCPTTestRunnerInternalFolderPath Internal `
-                -SuiteCode $suitecode `
-                -ServiceUrl $serviceUrl `
-                -Environment OnPrem `
-                -TestRunnerPage ([int]$testPage)
-    
-        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
-    }
-    else {
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             Copy-Item -path "C:\Applications\testframework\TestRunner" -Destination "c:\run\my" -Recurse -Force
         }
@@ -176,6 +152,29 @@ try {
             -ServiceUrl $serviceUrl `
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
+    }
+    else {
+        Restart-BcContainer $containerName
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
+
+            Set-Location C:\Applications\testframework\TestRunner
+            if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
+            $params = @{ "AuthorizationType" = $auth }
+            if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
+            $serviceUrl = "http://localhost:80/$serverInstance/cs?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
+            Write-Host "Using testpage $testpage"
+            Write-Host "Using Suitecode $suitecode"
+            Write-Host "Service Url $serviceUrl"
+            $params | Out-Host
+    
+            .\RunBCPTTests.ps1 @params `
+                -BCPTTestRunnerInternalFolderPath Internal `
+                -SuiteCode $suitecode `
+                -ServiceUrl $serviceUrl `
+                -Environment OnPrem `
+                -TestRunnerPage ([int]$testPage)
+    
+        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
     }
 
     if (!$doNotGetResults) {
