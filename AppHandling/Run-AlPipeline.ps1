@@ -1593,7 +1593,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if (!($doNotRunTests -or $doNotRunBcptTests)) {
+if (!($doNotRunTests -and $doNotRunBcptTests)) {
 if ($ImportTestDataInBcContainer) {
 if ($gitHubActions) { Write-Host "::group::Importing Test Data" }
 Write-Host -ForegroundColor Yellow @'
