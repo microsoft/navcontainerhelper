@@ -133,11 +133,13 @@ try {
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
+        $serviceUrl = "$($webBaseUrl.TrimEnd('/'))/cs?tenant=$tenant"
+        Write-Host "Service URL $serviceUrl"
 
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
             -SuiteCode $suitecode `
-            -ServiceUrl "$($webBaseUrl.TrimEnd('/'))/cs?tenant=$tenant" `
+            -ServiceUrl $serviceUrl `
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
 
