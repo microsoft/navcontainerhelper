@@ -135,7 +135,7 @@ try {
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-        $serviceUrl = "http://localhost/$serverInstance/cs?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
+        $serviceUrl = "http://localhost/$serverInstance/cs"   # ?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
         Write-Host "Using testpage $testpage"
         Write-Host "Using Suitecode $suitecode"
         Write-Host "Service Url $serviceUrl"
