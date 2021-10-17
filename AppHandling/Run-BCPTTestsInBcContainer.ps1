@@ -127,39 +127,16 @@ try {
         Write-Host "Using Suitecode $suitecode"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-        Write-Host ([System.Management.Automation.PSTypeName]'ClientContext').Type
-    }
-
     Restart-BcContainer $containerName
 
     $config = Get-BcContainerServerConfiguration -containerName $containerName
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode)
 
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
-            Add-Type -TypeDefinition  @"
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-public static class SslVerification
-{
-    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-}
-"@
-        }
-
-        if ($webBaseUrl -like "https://*") {
-            [SslVerification]::Disable()
-        }
-
-        Write-Host ([System.Management.Automation.PSTypeName]'ClientContext').Type
-
         Set-Location C:\Applications\testframework\TestRunner
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-        $serviceUrl = "http://localhost/$serverInstance/cs"
+        $serviceUrl = "http://localhost/$serverInstance/cs?tenant=$tenant"
         Write-Host "Service Url $serviceUrl"
 
         .\RunBCPTTests.ps1 @params `
@@ -169,13 +146,7 @@ public static class SslVerification
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
 
-        Write-Host ([System.Management.Automation.PSTypeName]'ClientContext').Type
-
-        if ($webBaseUrl -like "https://*") {
-            [SslVerification]::Enable()
-        }
-
-    } -argumentList $config.PublicWebBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode
+    } -argumentList $config.PublicWebBaseUrl, $tenant, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
 
     if (!$doNotGetResults) {
         $response = Invoke-BcContainerApi `
