@@ -128,7 +128,7 @@ try {
     }
 
     $config = Get-BcContainerServerConfiguration -containerName $containerName
-    Invoke-ScriptInBcContainer -containerName $containerName -useSession $false -scriptblock { Param($webBaseUrl, $testPage, $auth, $credential, $suitecode)
+    Invoke-ScriptInBcContainer -containerName $containerName -useSession $false -scriptblock { Param($webBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode)
         Set-Location C:\Applications\testframework\TestRunner
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
@@ -137,11 +137,11 @@ try {
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
             -SuiteCode $suitecode `
-            -ServiceUrl "$($webBaseUrl.TrimEnd('/'))/cs/" `
+            -ServiceUrl "$($webBaseUrl.TrimEnd('/'))/cs?tenant=$tenant" `
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
 
-    } -argumentList $config.PublicWebBaseUrl, $testPage, $auth, $credential, $suitecode
+    } -argumentList $config.PublicWebBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode
 
     if (!$doNotGetResults) {
         $response = Invoke-BcContainerApi `
