@@ -129,13 +129,13 @@ try {
     Restart-BcContainer $containerName
 
     $config = Get-BcContainerServerConfiguration -containerName $containerName
-    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $testPage, $auth, $credential, $suitecode)
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
 
         Set-Location C:\Applications\testframework\TestRunner
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-        $serviceUrl = "http://localhost/$serverInstance/cs"
+        $serviceUrl = "http://localhost/$serverInstance/cs&tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
         Write-Host "Using testpage $testpage"
         Write-Host "Using Suitecode $suitecode"
         Write-Host "Service Url $serviceUrl"
@@ -148,7 +148,7 @@ try {
             -Environment OnPrem `
             -TestRunnerPage ([int]$testPage)
 
-    } -argumentList $config.PublicWebBaseUrl, $tenant, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
+    } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
 
     if (!$doNotGetResults) {
         $response = Invoke-BcContainerApi `
