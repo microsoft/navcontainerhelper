@@ -100,6 +100,8 @@
   Include this switch to indicate that you do not want to build nor tests.
  .Parameter doNotRunTests
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
+ .Parameter doNotRunBcptTests
+  Include this switch to indicate that you do not want to execute bcpt tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
  .Parameter doNotPerformUpgrade
   Include this switch to indicate that you do not want to perform the upgrade. This means that the previousApps are never actually published to the container.
  .Parameter uninstallRemovedApps
@@ -233,6 +235,7 @@ Param(
     [switch] $useDevEndpoint,
     [switch] $doNotBuildTests,
     [switch] $doNotRunTests,
+    [switch] $doNotRunBcptTests,
     [switch] $doNotPerformUpgrade,
     [switch] $uninstallRemovedApps,
     [switch] $reUseContainer,
@@ -518,6 +521,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps        "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Write-Host $escapeFromCops
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotBuildTests             "; Write-Host $doNotBuildTests
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests               "; Write-Host $doNotRunTests
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests           "; Write-Host $doNotRunBcptTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet  "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                 "; Write-Host $rulesetFile
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                 "; Write-Host $azureDevOps
@@ -566,6 +570,7 @@ if ($doNotBuildTests) {
     $installTestLibraries = $false
     $installPerformanceToolkit = $false
     $doNotRunTests = $true
+    $doNotRunBcptTests = $true
 }
 
 if ($DockerPull) {
@@ -1588,7 +1593,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if (!$doNotRunTests) {
+if (!($doNotRunTests -or $doNotRunBcptTests)) {
 if ($ImportTestDataInBcContainer) {
 if ($gitHubActions) { Write-Host "::group::Importing Test Data" }
 Write-Host -ForegroundColor Yellow @'
@@ -1633,7 +1638,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 $allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
-if (($testFolders) -or ($installTestApps)) {
+if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
 if ($gitHubActions) { Write-Host "::group::Running Tests" }
 Write-Host -ForegroundColor Yellow @'
 
@@ -1761,7 +1766,7 @@ $testAppIds.Keys | ForEach-Object {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ($bcptTestFolders) {
+if (!$doNotRunBcptTests -and $bcptTestFolders) {
 if ($gitHubActions) { Write-Host "::group::Running BCPT Tests" }
 Write-Host -ForegroundColor Yellow @'
 
