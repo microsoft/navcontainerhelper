@@ -104,7 +104,7 @@ Set-Location $runPath
 
             '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
             'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
-            docker exec $containerName powershell $file | Out-Host
+            docker exec $containerName powershell $file
             if($LASTEXITCODE -ne 0) {
                 Remove-Item $file -Force -ErrorAction SilentlyContinue
                 Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
