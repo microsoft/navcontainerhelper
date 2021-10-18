@@ -376,7 +376,7 @@ if (Test-Path $bcptTestResultsFile) {
 }
 
 if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object {
-    if (-not (Test-Path $_ "bcptSuite.json")) {
+    if (-not (Test-Path (Join-Path $_ "bcptSuite.json"))) {
         throw "no bcptsuite.json found in bcpt test folder $_"        
     }
 } }
