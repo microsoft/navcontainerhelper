@@ -1815,7 +1815,9 @@ $bcptTestFolders | ForEach-Object {
     }
 
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
-    $result | Set-Content $bcptResultsFile
+
+    Write-Host "Saving bcpt test results to $bcptResultsFile"
+    $result | ConvertTo-Json -Depth 99 | Set-Content $bcptResultsFile
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning BCPT tests took $([int]$_.TotalSeconds) seconds" }
@@ -1823,9 +1825,11 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
+    Write-Host "Copying test results to output"
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
 } 
 if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
+    Write-Host "Copying bcpt test results to output"
     Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
 } 
 if (($gitLab -or $gitHubActions) -and !$allPassed) {
