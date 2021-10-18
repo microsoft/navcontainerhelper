@@ -140,7 +140,7 @@ try {
         if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-        $serviceUrl = "$($config.PublicWebBaseUrl.TrimEnd('/'))/cs?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
+        $serviceUrl = "$($config.PublicWebBaseUrl.TrimEnd('/'))/cs/?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
         Write-Host "Using testpage $testpage"
         Write-Host "Using Suitecode $suitecode"
         Write-Host "Service Url $serviceUrl"
@@ -154,14 +154,13 @@ try {
             -TestRunnerPage ([int]$testPage)
     }
     else {
-        Restart-BcContainer $containerName
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
+        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
 
             Set-Location C:\Applications\testframework\TestRunner
             if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
             $params = @{ "AuthorizationType" = $auth }
             if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
-            $serviceUrl = "http://localhost:80/$serverInstance/cs?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
+            $serviceUrl = "http://localhost:80/$serverInstance/cs/?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
             Write-Host "Using testpage $testpage"
             Write-Host "Using Suitecode $suitecode"
             Write-Host "Service Url $serviceUrl"
