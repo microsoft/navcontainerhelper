@@ -379,7 +379,7 @@ if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object {
     if (-not (Test-Path $_ "bcptSuite.json")) {
         throw "no bcptsuite.json found in bcpt test folder $_"        
     }
-}
+} }
 
 $artifactUrl = ""
 $filesOnly = $false
