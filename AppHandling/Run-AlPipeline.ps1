@@ -1651,8 +1651,8 @@ if (!$enableTaskScheduler) {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 $allPassed = $true
-$resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
-$bcptResultsFile = "$($bcptTestResultsFile.ToLowerInvariant().TrimEnd('.json'))$testCountry.json"
+$resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
+$bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
 if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
 if ($gitHubActions) { Write-Host "::group::Running Tests" }
 Write-Host -ForegroundColor Yellow @'
@@ -1909,7 +1909,7 @@ if ($createRuntimePackages) {
 }
 
 Write-Host "Files in build artifacts folder:"
-Get-ChildItem -Path $buildArtifactFolder -Recurse | Out-Host
+Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
