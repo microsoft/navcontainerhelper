@@ -52,6 +52,38 @@ function New-BcImage {
         $allImages
     )
 
+
+function RoboCopyFiles {
+    Param(
+        [string] $source,
+        [string] $destination,
+        [string] $files = "*",
+        [switch] $e
+    )
+
+    Write-Host $source
+    if ($e) {
+        RoboCopy "$source" "$destination" "$files" /e /NFL /NDL /NJH /NJS /nc /ns /np /mt /z /nooffload | Out-Null
+        Get-ChildItem -Path $source -Filter $files -Recurse | ForEach-Object {
+            $destPath = Join-Path $destination $_.FullName.Substring($source.Length)
+            while (!(Test-Path $destPath)) {
+                Write-Host "Waiting for $destPath to be available"
+                Start-Sleep -Seconds 1
+            }
+        }
+    }
+    else {
+        RoboCopy "$source" "$destination" "$files" /NFL /NDL /NJH /NJS /nc /ns /np /mt /z /nooffload | Out-Null
+        Get-ChildItem -Path $source -Filter $files | ForEach-Object {
+            $destPath = Join-Path $destination $_.FullName.Substring($source.Length)
+            while (!(Test-Path $destPath)) {
+                Write-Host "Waiting for $destPath to be available"
+                Start-Sleep -Seconds 1
+            }
+        }
+    }
+}
+
 $telemetryScope = InitTelemetryScope `
                     -name $MyInvocation.InvocationName `
                     -parameterValues $PSBoundParameters `
@@ -478,7 +510,7 @@ try {
                 New-Item $navDvdPath -ItemType Directory | Out-Null
         
                 Write-Host "Copying Platform Artifacts"
-                Robocopy "$platformArtifactPath" "$navDvdPath" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+                RobocopyFiles -source "$platformArtifactPath" -destination "$navDvdPath" -e
         
                 if (!$skipDatabase) {
                     $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
@@ -501,7 +533,7 @@ try {
                             Remove-Item -path $destFolder -Recurse -Force
                         }
                         Write-Host "Copying $name"
-                        RoboCopy "$appSubFolder" "$destFolder" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+                        RoboCopyFiles -Source "$appSubFolder" -Destination "$destFolder" -e
                     }
                 }
             
