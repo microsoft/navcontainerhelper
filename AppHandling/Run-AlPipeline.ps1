@@ -64,6 +64,8 @@
   ApplicationInsightsConnectionString to be stamped into app.json for all apps
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
+ .Parameter bcptTestResultsFile
+  Filename in which you want the bcpt test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -213,6 +215,7 @@ Param(
     [string] $applicationInsightsKey,
     [string] $applicationInsightsConnectionString,
     [string] $testResultsFile = "TestResults.xml",
+    [string] $bcptTestResultsFile = "bcptTestResults.json",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
     [string] $testResultsFormat = "JUnit",
@@ -363,9 +366,19 @@ $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
 $customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { Test-Path $_ } )
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
+$bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 if (Test-Path $testResultsFile) {
     Remove-Item -Path $testResultsFile -Force
+}
+if (Test-Path $bcptTestResultsFile) {
+    Remove-Item -Path $bcptTestResultsFile -Force
+}
+
+if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object {
+    if (-not (Test-Path $_ "bcptSuite.json")) {
+        throw "no bcptsuite.json found in bcpt test folder $_"        
+    }
 }
 
 $artifactUrl = ""
@@ -534,6 +547,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxFile         "; if
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxPassword     "; if ($keyVaultCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultClientId            "; Write-Host $keyVaultClientId
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
+Write-Host -NoNewLine -ForegroundColor Yellow "BcptTestResultsFile         "; Write-Host $bcptTestResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat           "; Write-Host $testResultsFormat
 Write-Host -NoNewLine -ForegroundColor Yellow "AdditionalCountries         "; Write-Host ([string]::Join(',',$additionalCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "PackagesFolder              "; Write-Host $packagesFolder
@@ -1638,6 +1652,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 $allPassed = $true
 $resultsFile = "$($testResultsFile.ToLowerInvariant().TrimEnd('.xml'))$testCountry.xml"
+$bcptResultsFile = "$($bcptTestResultsFile.ToLowerInvariant().TrimEnd('.json'))$testCountry.json"
 if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
 if ($gitHubActions) { Write-Host "::group::Running Tests" }
 Write-Host -ForegroundColor Yellow @'
@@ -1792,7 +1807,7 @@ $bcptTestFolders | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "connectFromHost" = $true
-        "BCPTsuite" = Get-Content (Join-Path $_ "Suite\10UserTest.sample.json") | ConvertFrom-Json
+        "BCPTsuite" = Get-Content (Join-Path $_ "bcptSuite.json") | ConvertFrom-Json
     }
 
     if ($bcAuthContext) {
@@ -1800,7 +1815,7 @@ $bcptTestFolders | ForEach-Object {
     }
 
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
-    $result
+    $result | Set-Content $bcptResultsFile
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning BCPT tests took $([int]$_.TotalSeconds) seconds" }
@@ -1809,6 +1824,9 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
+} 
+if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
+    Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
 } 
 if (($gitLab -or $gitHubActions) -and !$allPassed) {
     throw "There are test failures!"

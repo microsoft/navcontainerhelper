@@ -144,7 +144,6 @@ try {
         Write-Host "Using testpage $testpage"
         Write-Host "Using Suitecode $suitecode"
         Write-Host "Service Url $serviceUrl"
-        $params | Out-Host
     
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
@@ -164,7 +163,6 @@ try {
             Write-Host "Using testpage $testpage"
             Write-Host "Using Suitecode $suitecode"
             Write-Host "Service Url $serviceUrl"
-            $params | Out-Host
     
             .\RunBCPTTests.ps1 @params `
                 -BCPTTestRunnerInternalFolderPath Internal `
