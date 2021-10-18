@@ -150,7 +150,7 @@ try {
             -SuiteCode $suitecode `
             -ServiceUrl $serviceUrl `
             -Environment OnPrem `
-            -TestRunnerPage ([int]$testPage)
+            -TestRunnerPage ([int]$testPage) | Out-Null
     }
     else {
         Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
@@ -169,7 +169,7 @@ try {
                 -SuiteCode $suitecode `
                 -ServiceUrl $serviceUrl `
                 -Environment OnPrem `
-                -TestRunnerPage ([int]$testPage)
+                -TestRunnerPage ([int]$testPage) | Out-Null
     
         } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
     }
