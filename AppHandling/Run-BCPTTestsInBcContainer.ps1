@@ -171,7 +171,7 @@ try {
                 -Environment OnPrem `
                 -TestRunnerPage ([int]$testPage) | Out-Null
     
-        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
+        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode | Out-Host
     }
 
     if (!$doNotGetResults) {
