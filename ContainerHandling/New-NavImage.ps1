@@ -116,6 +116,7 @@ try {
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
+    $isServerHost = $os.ProductType -eq 3
 
     if ("$baseImage" -eq "") {
         if ("$bestGenericImageName" -eq "") {
