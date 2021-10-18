@@ -65,6 +65,7 @@ try {
         }
 
         Remove-DesktopShortcut -Name "$containerName Web Client"
+        Remove-DesktopShortcut -Name "$containerName Performance Tool"
         Remove-DesktopShortcut -Name "$containerName Test Tool"
         Remove-DesktopShortcut -Name "$containerName Windows Client"
         Remove-DesktopShortcut -Name "$containerName WinClient Debugger"
