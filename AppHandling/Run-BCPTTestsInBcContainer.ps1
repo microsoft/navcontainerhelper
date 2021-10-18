@@ -122,7 +122,7 @@ try {
             -APIVersion 'v1.0' `
             -Method 'POST' `
             -body $BCPTSuite `
-            -Query 'bcptSuites'
+            -Query 'bcptSuites' | Out-Null
 
         $suiteCode = $BCPTSuite.Code
     }
@@ -171,7 +171,7 @@ try {
                 -Environment OnPrem `
                 -TestRunnerPage ([int]$testPage) | Out-Null
     
-        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode | Out-Host
+        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
     }
 
     if (!$doNotGetResults) {
