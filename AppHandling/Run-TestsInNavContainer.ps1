@@ -146,7 +146,7 @@ try {
 
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.accessToken
-        $credential = New-Object pscredential -ArgumentList 'freddyk', (ConvertTo-SecureString -String 'P@ssword1' -AsPlainText -Force)
+        $credential = New-Object pscredential -ArgumentList 'someuser', (ConvertTo-SecureString -String 'S0meP@ssword' -AsPlainText -Force)
 
         if ($testPage) {
             throw "You cannot specify testPage when running tests in an Online tenant"
@@ -189,7 +189,7 @@ try {
         }
 
         if ($clientServicesCredentialType -eq "Windows" -and "$CompanyName" -eq "") {
-            $myName = $myUserName.SubString($myUserName.IndexOf('\')+1)
+            $myName = "\$($credential.UserName.SubString($credential.UserName.IndexOf('\')+1))"
             Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName.EndsWith("\$MyName", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $myName } | % {
                 $companyName = $_.Company
             }

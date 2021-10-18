@@ -148,7 +148,7 @@ try {
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
 
             $publishParams = @{}
-            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" })) {
+            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" -or $_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" })) {
                 $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "..\AppHandling\BCPTLogEntryAPI"
                 $appJson = Get-Content -path (Join-Path $BCPTLogEntryAPIsrc "app.json") | ConvertFrom-Json
                 $internalsVisibleTo = @{ "id" = $appJson.id; "name" = $appJson.name; "publisher" = $appjson.publisher }
@@ -204,7 +204,8 @@ try {
                     }
                 }
                 else {
-                    if ([System.IO.Path]::GetFileName($appfile) -eq "Microsoft_Performance Toolkit.app") {
+                    $name = [System.IO.Path]::GetFileName($appfile)
+                    if ( $Name -eq "Microsoft_Performance Toolkit.app" -or $Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" ) {
                         Publish-BcContainerApp -containerName $containerName @publishParams -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
                     }
                     else {

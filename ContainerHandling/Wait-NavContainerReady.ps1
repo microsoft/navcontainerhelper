@@ -42,6 +42,12 @@ function Wait-BcContainerReady {
                 throw "Initialization of container $containerName failed"
             }
 
+            if ($bcContainerHelperConfig.usePsSession -and $cnt -eq ($timeout-20)) {
+                try {
+                    Get-BcContainerSession -containerName $containerName -silent | Out-Null
+                } catch {}
+            }
+
             if ($cnt % 5 -eq 0) {
                 $inspect = docker inspect $containerName | ConvertFrom-Json
                 if ($inspect.State.Status -eq "exited") {

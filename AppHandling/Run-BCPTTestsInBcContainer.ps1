@@ -37,7 +37,8 @@ function Run-BCPTTestsInBcContainer {
         [Parameter(Mandatory = $true,  ParameterSetName = 'Suite')]
         $BCPTSuite,
         [Parameter(Mandatory = $true,  ParameterSetName = 'SuiteCode')]
-        [string] $suiteCode
+        [string] $suiteCode,
+        [switch] $connectFromHost
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -53,7 +54,7 @@ try {
     if ($pre20) {
         $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "BCPTLogEntryAPI"
         $appJson = Get-Content -path (Join-Path $BCPTLogEntryAPIsrc "app.json") | ConvertFrom-Json
-        if (-not (Get-BcContainerAppInfo -credential $credential | Where-Object { $_.appId -eq $appJson.id })) {
+        if (-not (Get-BcContainerAppInfo -containerName $containerName -credential $credential | Where-Object { $_.appId -eq $appJson.id })) {
             Write-Host "Adding BCPTLogEntryAPI.app to extend existing Performance Toolkit with BCPTLogEntry API page"
             Write-Host "Using Object Id $($bcContainerHelperConfig.ObjectIdForInternalUse) (set `$bcContainerHelperConfig.ObjectIdForInternalUse to change)"
             $appExtFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([GUID]::NewGuid().ToString())"
@@ -80,6 +81,19 @@ try {
                 -install
         }
     }
+
+    if ("$companyName" -eq "") {
+        $myName = $credential.UserName.SubString($credential.UserName.IndexOf('\')+1)
+        Get-BcContainerBcUser -containerName $containerName | Where-Object { $_.UserName -like "*\$MyName" -or $_.UserName -eq $myName } | % {
+            $companyName = $_.Company
+        }
+        if ($companyName) { Write-Host "Using CompanyName $companyName" }
+    }
+
+    if ("$companyName" -eq "") {
+        $companyName = Get-CompanyInBcContainer -containerName $containerName -tenant $tenant | Select-Object -First 1 | ForEach-Object { $_.CompanyName }
+        if ($companyName) { Write-Host "Using CompanyName $companyName" }
+    }
     
     if (($BCPTSuite) -or (!$doNotGetResults)) {
         $companyId = Get-BcContainerApiCompanyId `
@@ -87,6 +101,7 @@ try {
             -tenant $tenant `
             -credential $credential `
             -CompanyName $companyName
+        Write-Host "Using Company ID $companyId"
     }
 
     if ($BCPTSuite) {
@@ -107,23 +122,57 @@ try {
             -APIVersion 'v1.0' `
             -Method 'POST' `
             -body $BCPTSuite `
-            -Query 'bcptSuites'
+            -Query 'bcptSuites' | Out-Null
 
         $suiteCode = $BCPTSuite.Code
     }
 
     $config = Get-BcContainerServerConfiguration -containerName $containerName
-    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($webBaseUrl, $testPage, $auth, $credential, $suitecode)
-        Set-Location C:\Applications\testframework\TestRunner
+    if ($connectFromHost) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            Copy-Item -path "C:\Applications\testframework\TestRunner" -Destination "c:\run\my" -Recurse -Force
+        }
+        $location = Get-Location
+        Set-Location (Join-Path $bcContainerHelperConfig.hostHelperFolder "extensions\$containerName\my\TestRunner")
+
+        $auth = $config.ClientServicesCredentialType
+
+        if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
         $params = @{ "AuthorizationType" = $auth }
         if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
+        $serviceUrl = "$($config.PublicWebBaseUrl.TrimEnd('/'))/cs/?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
+        Write-Host "Using testpage $testpage"
+        Write-Host "Using Suitecode $suitecode"
+        Write-Host "Service Url $serviceUrl"
+    
         .\RunBCPTTests.ps1 @params `
             -BCPTTestRunnerInternalFolderPath Internal `
             -SuiteCode $suitecode `
-            -ServiceUrl "$($webBaseUrl.TrimEnd('/'))/cs/" `
+            -ServiceUrl $serviceUrl `
             -Environment OnPrem `
-            -TestRunnerPage ([int]$testPage)
-    } -argumentList $config.PublicWebBaseUrl, $testPage, $auth, $credential, $suitecode
+            -TestRunnerPage ([int]$testPage) | Out-Null
+    }
+    else {
+        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
+
+            Set-Location C:\Applications\testframework\TestRunner
+            if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
+            $params = @{ "AuthorizationType" = $auth }
+            if ($auth -ne "Windows") { $params += @{ "Credential" = $credential } }
+            $serviceUrl = "http://localhost:80/$serverInstance/cs/?tenant=$tenant&company=$([Uri]::EscapeDataString($companyName))"
+            Write-Host "Using testpage $testpage"
+            Write-Host "Using Suitecode $suitecode"
+            Write-Host "Service Url $serviceUrl"
+    
+            .\RunBCPTTests.ps1 @params `
+                -BCPTTestRunnerInternalFolderPath Internal `
+                -SuiteCode $suitecode `
+                -ServiceUrl $serviceUrl `
+                -Environment OnPrem `
+                -TestRunnerPage ([int]$testPage) | Out-Null
+    
+        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
+    }
 
     if (!$doNotGetResults) {
         $response = Invoke-BcContainerApi `
