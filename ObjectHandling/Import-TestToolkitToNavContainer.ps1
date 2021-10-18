@@ -59,7 +59,7 @@ function Import-TestToolkitToBcContainer {
         [switch] $doNotUpdateSymbols,
         [ValidateSet("Overwrite","Skip")]
         [string] $ImportAction = "Overwrite",
-        [switch] $doNotUseRuntimePackages,
+        [switch] $doNotUseRuntimePackages = $true,
         [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
         [string] $scope,
@@ -148,7 +148,7 @@ try {
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
 
             $publishParams = @{}
-            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" -or $_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" })) {
+            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") })) {
                 $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "..\AppHandling\BCPTLogEntryAPI"
                 $appJson = Get-Content -path (Join-Path $BCPTLogEntryAPIsrc "app.json") | ConvertFrom-Json
                 $internalsVisibleTo = @{ "id" = $appJson.id; "name" = $appJson.name; "publisher" = $appjson.publisher }
@@ -175,6 +175,7 @@ try {
             $appFiles | % {
                 $appFile = $_
                 if (!$doNotUseRuntimePackages) {
+                Write-Host "RUNTIME???"
                     $name = [System.IO.Path]::GetFileName($appFile)
                     $runtimeAppFile = "$applicationsPath\$($name.Replace('.app','.runtime.app'))"
                     $useRuntimeApp = $false
@@ -205,7 +206,7 @@ try {
                 }
                 else {
                     $name = [System.IO.Path]::GetFileName($appfile)
-                    if ( $Name -eq "Microsoft_Performance Toolkit.app" -or $Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" ) {
+                    if ( $Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") ) {
                         Publish-BcContainerApp -containerName $containerName @publishParams -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
                     }
                     else {
