@@ -1779,7 +1779,7 @@ if (-not `$restartingInstance) {
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
         if ($bcContainerHelperConfig.usePsSession) {
             try {
-                Get-BcContainerSession -containerName $containerName -silent -reinit | Out-Null
+                Get-BcContainerSession -containerName $containerName -reinit | Out-Null
             } catch {}
         }
         
