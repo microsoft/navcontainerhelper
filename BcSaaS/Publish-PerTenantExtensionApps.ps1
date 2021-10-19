@@ -111,6 +111,7 @@ try {
                     try {
                         $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
                         $extensionDeploymentStatuses = (ConvertFrom-Json $extensionDeploymentStatusResponse.Content).value
+
                         $completed = $true
                         $extensionDeploymentStatuses | Where-Object { $_.publisher -eq $appJson.publisher -and $_.name -eq $appJson.name -and $_.appVersion -eq $appJson.version } | % {
                             if ($_.status -eq "InProgress") {
@@ -127,7 +128,7 @@ try {
                     catch {
                         if ($errCount++ -gt 3) {
                             Write-Host $_.Exception.Message
-                            throw "Unable to publish app"
+                            throw "Unable to publish app. Please open the Extension Deployment Status Details page in Business Central to see the detailed error message."
                         }
                         $completed = $false
                     }

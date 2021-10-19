@@ -1777,6 +1777,9 @@ if (-not `$restartingInstance) {
             return
         }
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            . "c:\run\prompt.ps1" -silent
+        } | Out-Null
 
         if ($sharedEncryptionKeyFile -and !(Test-Path $sharedEncryptionKeyFile)) {
             Write-Host "Storing Container Encryption Key file"
