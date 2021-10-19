@@ -114,6 +114,7 @@ try {
                               -APIPublisher "microsoft" `
                               -APIGroup "automation" `
                               -APIVersion "v1.0" `
+                              -body @{} `
                               -Method "POST" `
                               -Query "configurationPackages('$packageId')/Microsoft.NAV.import" | Out-Null
         
@@ -151,6 +152,7 @@ try {
                                   -APIGroup "automation" `
                                   -APIVersion "v1.0" `
                                   -Method "POST" `
+                                  -body @{} `
                                   -Query "configurationPackages('$packageId')/Microsoft.NAV.apply" | Out-Null
             
             $status = ""

@@ -34,8 +34,10 @@ function Get-BcContainerSession {
                 $session = $null
             }
         }
-        $containerId = Get-BcContainerId -containerName $containerName
-        if (!$session) { $session = New-PSSession -ContainerId $containerId -RunAsAdministrator }
+        if (!$session) {
+            $containerId = Get-BcContainerId -containerName $containerName
+            $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+        }
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
