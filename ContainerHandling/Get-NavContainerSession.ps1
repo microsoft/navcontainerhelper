@@ -16,23 +16,26 @@ function Get-BcContainerSession {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [switch] $silent
+        [switch] $silent,
+        [switch] $reinit
     )
 
     Process {
+        $session = $null
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
             try {
-                $ok = Invoke-Command -Session $session -ScriptBlock { $true }
-                return $session
+                Invoke-Command -Session $session -ScriptBlock { $true } | Out-Null
+                if (!$reinit) { return $session }
             }
             catch {
                 Remove-PSSession -Session $session
                 $sessions.Remove($containerName)
+                $session = $null
             }
         }
         $containerId = Get-BcContainerId -containerName $containerName
-        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+        if (!$session) { $session = New-PSSession -ContainerId $containerId -RunAsAdministrator }
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
