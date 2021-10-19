@@ -10,6 +10,7 @@ Add BcptTestFolders to Run-AlPipeline
 Remove Performance Tool shortcut if created
 New-BcImage fails on newer Windows versions due to RoboCopy offload
 Do not use runtime packages in Import-TestToolkitToBcContainer
+Issue #2110 BC NextMajor (20.0) error when importing ConfigPackage
 
 2.0.16
 Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
