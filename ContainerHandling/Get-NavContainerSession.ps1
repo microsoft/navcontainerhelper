@@ -21,6 +21,7 @@ function Get-BcContainerSession {
     )
 
     Process {
+        $newsession = $false
         $session = $null
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
@@ -37,6 +38,7 @@ function Get-BcContainerSession {
         if (!$session) {
             $containerId = Get-BcContainerId -containerName $containerName
             $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            $newsession = $true
         }
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
@@ -67,7 +69,9 @@ function Get-BcContainerSession {
 
             Set-Location $runPath
         } -ArgumentList $silent
-        $sessions.Add($containerName, $session)
+        if ($newsession) {
+            $sessions.Add($containerName, $session)
+        }
         return $session
     }
 }

@@ -44,7 +44,13 @@ function Wait-BcContainerReady {
 
             if ($bcContainerHelperConfig.usePsSession -and $cnt -eq ($timeout-30)) {
                 try {
-                    Get-BcContainerSession -containerName $containerName -silent | Out-Null
+                    if (!$sessions.ContainsKey($containerName)) {
+                        Write-Host "Pre-establishing session to container"
+                        $containerId = Get-BcContainerId -containerName $containerName
+                        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+                        $sessions.Add($containerName, $session)
+                        Write-Host "Session established"
+                    }
                 } catch {}
             }
 
