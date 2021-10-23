@@ -1439,7 +1439,7 @@ $apps | ForEach-Object {
         "appFile" = $_
         "pfxFile" = $codeSignCertPfxFile
         "pfxPassword" = $codeSignCertPfxPassword
-        "importCertificate" = $true
+        "importCertificate" = $false
     }
 
     Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
