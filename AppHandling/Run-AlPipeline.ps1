@@ -62,6 +62,8 @@
   ApplicationInsightsKey to be stamped into app.json for all apps
  .Parameter applicationInsightsConnectionString
   ApplicationInsightsConnectionString to be stamped into app.json for all apps
+ .Parameter keyVaultUrls
+  Array or comma separated list of keyVaultUrls to be stamped into app.json for all apps
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
@@ -214,6 +216,7 @@ Param(
     [int] $appRevision = 0,
     [string] $applicationInsightsKey,
     [string] $applicationInsightsConnectionString,
+    [string] $keyVaultUrls,
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
     [Parameter(Mandatory=$false)]
@@ -360,6 +363,7 @@ if ($additionalCountries            -is [String]) { $additionalCountries = @($ad
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($customCodeCops                 -is [String]) { $customCodeCops = @($customCodeCops.Split(',').Trim() | Where-Object { $_ }) }
+if ($keyVaultUrls                   -is [String]) { $keyVaultUrls = @($keyVaultUrls.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
@@ -1220,6 +1224,18 @@ Write-Host -ForegroundColor Yellow @'
             }
             else {
                 Add-Member -InputObject $appJson -MemberType NoteProperty -Name "applicationInsightsKey" -Value $applicationInsightsKey
+            }
+            $appJsonChanges = $true
+        }
+    }
+
+    if($app) {
+        if($keyVaultUrls) {
+            if ($appJson.psobject.Properties.name -eq "keyVaultUrls") {
+                $appJson.keyVaultUrls = $keyVaultUrls
+            }
+            else {
+                Add-Member -InputObject $appJson -MemberType NoteProperty -Name "keyVaultUrls" -Value $keyVaultUrls
             }
             $appJsonChanges = $true
         }
