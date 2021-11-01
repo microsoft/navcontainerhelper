@@ -104,7 +104,8 @@ function InitTelemetryScope {
     Param(
         [string] $name,
         [string[]] $includeParameters = @(),
-        $parameterValues = $null
+        $parameterValues = $null,
+        [string] $eventId = ""
     )
     
     "Microsoft","Partner" | ForEach-Object {
@@ -128,8 +129,7 @@ function InitTelemetryScope {
     }
 
     if ($telemetry.MicrosoftClient -ne $null -or $telemetry.PartnerClient -ne $null) {
-        $eventId = ""
-        if ($eventIds.ContainsKey($name)) {
+        if ($eventId -eq "" -and ($eventIds.ContainsKey($name))) {
             $eventId = $eventIds[$name]
         }
         if (($eventId -ne "") -or ($telemetry.CorrelationId -eq "")) {
