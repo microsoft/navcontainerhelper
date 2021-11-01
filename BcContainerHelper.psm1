@@ -1,7 +1,8 @@
 #Requires -PSEdition Desktop 
 
 param(
-    [switch] $Silent
+    [switch] $Silent,
+    [switch] $ExportTelemetryFunctions
 )
 
 Set-StrictMode -Version 2.0
@@ -68,8 +69,9 @@ function Get-ContainerHelperConfig {
             }
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @('AL1026')
-            "TelemetryConnectionString" = ""
-            "UseExtendedTelemetry" = $false
+            "PartnerTelemetryConnectionString" = ""
+            "MicrosoftTelemetryConnectionString" = ""
+            "SendExtendedTelemetryToMicrosoft" = $false
             "ObjectIdForInternalUse" = 88123
         }
         $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
@@ -155,18 +157,17 @@ if (!$silent) {
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 
 $telemetry = @{
-    "Client" = $null
+    "Assembly" = $null
+    "PartnerClient" = $null
+    "MicrosoftClient" = $null
     "CorrelationId" = ""
     "TopId" = ""
     "Debug" = $false
 }
 try {
-    $assembly = [System.Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll"))
-    $telemetry.Client = $assembly.CreateInstance('Microsoft.ApplicationInsights.TelemetryClient')
-    $telemetry.Client.TelemetryConfiguration.DisableTelemetry = $true
+    $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll"))
 } catch {
-    Write-Host -ForegroundColor Yellow "Unable to initialize Telemetry Client (Error: $($_.Exception.Message))"
-    $telemetry.Client = $null
+    Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
 }
 
 $sessions = @{}
@@ -190,6 +191,13 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
 
 Check-BcContainerHelperPermissions -Silent
+
+if ($ExportTelemetryFunctions) {
+    Export-ModuleMember -Function InitTelemetryScope
+    Export-ModuleMember -Function AddTelemetryProperty
+    Export-ModuleMember -Function TrackTrace
+    Export-ModuleMember -Function TrackException
+}
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
