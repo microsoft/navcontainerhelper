@@ -108,9 +108,9 @@ function InitTelemetryScope {
     )
     
     "Microsoft","Partner" | ForEach-Object {
+        $clientName = "$($_)Client"
         $telemetryConnectionString = $bcContainerHelperConfig."$($_)TelemetryConnectionString"
         if ($telemetryConnectionString -and $telemetry.Assembly -ne $null) {
-            $clientName = "$($_)Client"
             if ($telemetry."$clientName" -eq $null -or $telemetry."$ClientName".TelemetryConfiguration.ConnectionString -ne $telemetryConnectionString) {
                 try {
                     $telemetryConfiguration = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration')
