@@ -201,35 +201,39 @@ function TrackTrace {
             }
             $telemetryScope.Properties.Add("duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
 
-            "Microsoft","Partner" | ForEach-Object {
-                $clientName = "$($_)Client"
-                $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
-                $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
-                if ($extendedTelemetry) {
-                    $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-                    $traceTelemetry.SeverityLevel = 0
-                    $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
-                        [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+            if ($telemetry.Assembly -ne $null) {
+                "Microsoft","Partner" | ForEach-Object {
+                    $clientName = "$($_)Client"
+                    $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
+                    if ($telemetry."$clientName") {
+                        $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
+                        if ($extendedTelemetry) {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                            $traceTelemetry.SeverityLevel = 0
+                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        else {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)"
+                            $traceTelemetry.SeverityLevel = 1
+                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                            [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                        }
+                        $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
+                        $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                        $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                        $telemetry."$clientName".TrackTrace($traceTelemetry)
+                        $telemetry."$clientName".Flush()
+                    }
+                    if ($extendedTelemetry -and $telemetryScope.EventId) {
+                        Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
                     }
                 }
-                else {
-                    $traceTelemetry.Message = "$($telemetryScope.Name)"
-                    $traceTelemetry.SeverityLevel = 1
-                    $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
-                        [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
-                    }
-                }
-                $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-                    [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
-                }
-                $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
-                $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
-                $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
-                $telemetry."$clientName".TrackTrace($traceTelemetry)
-                $telemetry."$clientName".Flush()
-            }
-            if ($extendedTelemetry -and $telemetryScope.EventId) {
-                Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
             }
         }
     }
@@ -281,60 +285,62 @@ function TrackException {
                 $telemetryScope.Properties.Add("errorMessage", $exception.Message)
             }
 
-            "Microsoft","Partner" | ForEach-Object {
-                $clientName = "$($_)Client"
-                $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
-
-                $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
-                if ($extendedTelemetry) {
-                    $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-                    $traceTelemetry.SeverityLevel = 0
-                    $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
-                        [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+            if ($telemetry.Assembly -ne $null) {
+                "Microsoft","Partner" | ForEach-Object {
+                    $clientName = "$($_)Client"
+                    $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
+                    if ($telemetry."$clientName") {
+                        $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
+                        if ($extendedTelemetry) {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                            $traceTelemetry.SeverityLevel = 0
+                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        else {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)"
+                            $traceTelemetry.SeverityLevel = 1
+                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                            [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                        }
+                        $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
+                        $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                        $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                        $telemetry."$clientName".TrackTrace($traceTelemetry)
+            
+                        # emit exception telemetry
+                        $exceptionTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry')
+                        if ($extendedTelemetry) {
+                            $exceptionTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                            $exceptionTelemetry.SeverityLevel = 3
+                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                [void]$exceptionTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        else {
+                            $exceptionTelemetry.Message = "$($telemetryScope.Name)"
+                            $exceptionTelemetry.SeverityLevel = 1
+                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                [void]$exceptionTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                            [void]$exceptionTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                        }
+                        $exceptionTelemetry.Context.Operation.Name = $telemetryScope.Name
+                        $exceptionTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                        $exceptionTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                        $telemetry."$clientName".TrackException($exceptionTelemetry)
+                        $telemetry."$clientName".Flush()
                     }
                 }
-                else {
-                    $traceTelemetry.Message = "$($telemetryScope.Name)"
-                    $traceTelemetry.SeverityLevel = 1
-                    $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
-                        [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
-                    }
-                }
-                $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-                    [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
-                }
-                $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
-                $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
-                $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
-                $telemetry."$clientName".TrackTrace($traceTelemetry)
-    
-                # emit exception telemetry
-                $exceptionTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry')
-                if ($extendedTelemetry) {
-                    $exceptionTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-                    $exceptionTelemetry.SeverityLevel = 3
-                    $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
-                        [void]$exceptionTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
-                    }
-                }
-                else {
-                    $exceptionTelemetry.Message = "$($telemetryScope.Name)"
-                    $exceptionTelemetry.SeverityLevel = 1
-                    $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
-                        [void]$exceptionTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
-                    }
-                }
-                $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-                    [void]$exceptionTelemetry.Properties.TryAdd($_.Key, $_.Value)
-                }
-                $exceptionTelemetry.Context.Operation.Name = $telemetryScope.Name
-                $exceptionTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
-                $exceptionTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
-                $telemetry."$clientName".TrackException($exceptionTelemetry)
-                $telemetry."$clientName".Flush()
+                Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
             }
-
-            Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
         }
     }
 }
