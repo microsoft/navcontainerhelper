@@ -29,6 +29,7 @@ function Resolve-DependenciesFromAzureFeed {
         [Parameter(Mandatory = $true)]
         [string] $appsFolder,
         [string] $outputFolder = (Join-Path $appsFolder '.alpackages'),
+        [switch] $runtimePackages,
         [int] $lvl = -1,
         [string[]] $ignoredDependencies = @()
     )
@@ -113,18 +114,23 @@ try {
                                 }
             
         
-                                $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.app') -Exclude '*.runtime.app')
-                                if ($dependency.Count -eq 0) {
-                                    $dependency = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.runtime.app'))
-                                }
-                                if ($dependency.Count -gt 0) {
-                                    $dep = $dependency[0]
+                                $dependencyApp = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.app') -Exclude '*.runtime.app')
+                                $dependencyRuntimeApp = @(Get-ChildItem -Path (Join-Path $tempAppDependencyFolder '*.runtime.app'))
+
+                                $hasDependencyApp = $dependencyApp.Count -gt 0
+                                $hasDependencyRuntimeApp = $dependencyRuntimeApp.Count -gt 0
+                                if ($hasDependencyApp -or $hasDependencyRuntimeApp) {
+                                    if($hasDependencyRuntimeApp -and ($runtimePackages -or (-not $hasDependencyApp))) {
+                                        $dep = $dependencyRuntimeApp[0]
+                                    } else {
+                                        $dep = $dependencyApp[0]
+                                    }
                                     if (!(Test-Path (Join-Path $outputFolder $dep.Name))) {
                                         Copy-Item -Path $dep -Destination $outputFolder -Force
 
-                                        Write-Host "$($spaces)Copied to $($outputFolder)"
+                                        Write-Host "$($spaces)Copied to $($outputFolder)" 
 
-                                        Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outputFolder $outputFolder -appsFolder $tempAppDependencyFolder -lvl $lvl
+                                        Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outputFolder $outputFolder -appsFolder $tempAppDependencyFolder -lvl $lvl -runtimePackages:$runtimePackages
                                     }
                                     else {
                                         Write-Host "$($spaces)$($dep.Name) exists"
