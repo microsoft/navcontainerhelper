@@ -54,7 +54,9 @@ try {
             Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled
         }
     
-        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Company $CompanyName -Force
+        if ($CompanyName) {
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Company $CompanyName -Force
+        }
 
         $Params = @{}
         if ($CompanyName) {
