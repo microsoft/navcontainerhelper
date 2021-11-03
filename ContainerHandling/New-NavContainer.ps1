@@ -187,7 +187,7 @@ function New-BcContainer {
         [switch] $accept_eula,
         [switch] $accept_outdated = $true,
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [string] $imageName = "", 
+        [string] $imageName = "",
         [string] $artifactUrl = "", 
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
@@ -1779,7 +1779,7 @@ if (-not `$restartingInstance) {
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
         if ($bcContainerHelperConfig.usePsSession) {
             try {
-                Get-BcContainerSession -containerName $containerName -reinit | Out-Null
+                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
             } catch {}
         }
         

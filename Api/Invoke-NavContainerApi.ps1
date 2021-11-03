@@ -115,6 +115,10 @@ try {
         [SslVerification]::Disable()
     }
 
+    if ($method -eq "POST" -and !$body) {
+        $body = @{}
+    }
+
     if ($APIPublisher) {
         $url += "/$APIPublisher"
     }

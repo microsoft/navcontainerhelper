@@ -1,3 +1,6 @@
+3.0.0
+Add Telemetry to BcContainerHelper
+
 2.0.17
 Add paramater internalsVisibleTo to Publish-BcContainerApp and Replace-DependenciesInAppFile in order to publish an app with internals visible to another app during development
 Support Windows 11 build numbers

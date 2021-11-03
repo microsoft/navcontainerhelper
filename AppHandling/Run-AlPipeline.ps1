@@ -199,6 +199,7 @@ Param(
     [string] $companyName = "",
     [string] $codeSignCertPfxFile = "",
     [SecureString] $codeSignCertPfxPassword = $null,
+    [switch] $codeSignCertIsSelfSigned,
     [string] $keyVaultCertPfxFile = "",
     [SecureString] $keyVaultCertPfxPassword = $null,
     [string] $keyVaultClientId = "",
@@ -543,6 +544,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions               "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile         "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxPassword     "; if ($codeSignCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertIsSelfSigned    "; Write-Host $codeSignCertIsSelfSigned.ToString()
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxFile         "; if ($keyVaultCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxPassword     "; if ($keyVaultCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultClientId            "; Write-Host $keyVaultClientId
@@ -1439,7 +1441,7 @@ $apps | ForEach-Object {
         "appFile" = $_
         "pfxFile" = $codeSignCertPfxFile
         "pfxPassword" = $codeSignCertPfxPassword
-        "importCertificate" = $true
+        "importCertificate" = $codeSignCertIsSelfSigned
     }
 
     Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
