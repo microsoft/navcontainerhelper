@@ -67,6 +67,7 @@ function Get-ContainerHelperConfig {
                 "za" = "w1"
             }
             "TraefikUseDnsNameAsHostName" = $false
+            "forceTraefikV1" = $false
             "TreatWarningsAsErrors" = @('AL1026')
             "TelemetryConnectionString" = ""
             "UseExtendedTelemetry" = $false

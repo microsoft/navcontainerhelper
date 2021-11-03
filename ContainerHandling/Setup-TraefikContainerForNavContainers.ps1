@@ -59,24 +59,30 @@ function Setup-TraefikContainerForBcContainers {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
-    $traefikDockerImage = "traefik:v1.7-windowsservercore-1809"
-    $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
+    $traefikDockerImage = "traefik:v2.5.3-windowsservercore-1809"
+    $traefikVersionSuffix = ".v2"
+    if ((Get-ContainerHelperConfig).forceTraefikV1) { 
+        $traefikDockerImage = "traefik:v1.7-windowsservercore-1809"
+        $traefikVersionSuffix = ""
+    }
+
+    $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml$traefikVersionSuffix")
     
     if ("$traefikToml" -eq "") {
         if ($PSCmdlet.ParameterSetName -eq "OwnCertificate") {
             if ($forceHttpWithTraefik) {
-                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_own.toml")
+                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_own.toml$traefikVersionSuffix")
             }
             else {
-                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https_own.toml")
+                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https_own.toml$traefikVersionSuffix")
             }
         }
         else {
             if ($forceHttpWithTraefik) {
-                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml")
+                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik.toml$traefikVersionSuffix")
             }
             else {
-                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml")
+                $traefikToml = (Join-Path $PSScriptRoot "traefik\template_traefik_https.toml$traefikVersionSuffix")
             }
         }
     }
@@ -191,7 +197,11 @@ try {
     $parameters += $additionalParameters
 
     Write-Host "Running traefik"
-    DockerDo -command run -imageName "$traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine" -detach -parameters $parameters
+    $traefikEndpointConfig = "--providers.docker.endpoint=npipe:////./pipe/docker_engine"
+    if ((Get-ContainerHelperConfig).forceTraefikV1) { 
+        $traefikEndpointConfig = "--docker.endpoint=npipe:////./pipe/docker_engine"
+    }
+    DockerDo -command run -imageName "$traefikDockerImage $traefikEndpointConfig" -detach -parameters $parameters
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

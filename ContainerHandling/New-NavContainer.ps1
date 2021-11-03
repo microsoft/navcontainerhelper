@@ -776,7 +776,7 @@ try {
 
     if ($clickonce) {
         if ($useTraefik) {
-            Write-Host "WARNING: ClickOnce doesn't work with traefik v1 (which is the one used in this version of ContainerHelper)"
+            Write-Host "WARNING: ClickOnce doesn't work with traefik"
         }
         $parameters += "--env clickonce=Y"
     }
@@ -1660,24 +1660,46 @@ if ($multitenant) {
         }
 
         $additionalParameters += @("-e webserverinstance=$containerName",
-                                   "-e publicdnsname=$publicDnsName", 
-                                   "-l `"traefik.protocol=$traefikProtocol`"",
-                                   "-l `"traefik.web.frontend.rule=$webclientRule`"", 
-                                   "-l `"traefik.web.port=$webPort`"",
-                                   "-l `"traefik.soap.frontend.rule=$soapRule`"", 
-                                   "-l `"traefik.soap.port=7047`"",
-                                   "-l `"traefik.rest.frontend.rule=$restRule`"", 
-                                   "-l `"traefik.rest.port=7048`"",
-                                   "-l `"traefik.dev.frontend.rule=$devRule`"", 
-                                   "-l `"traefik.dev.port=7049`"",
-                                   "-l `"traefik.snap.frontend.rule=$snapRule`"", 
-                                   "-l `"traefik.snap.port=7083`"",
-                                   "-l `"traefik.dl.frontend.rule=$dlRule`"", 
-                                   "-l `"traefik.dl.port=8080`"",
-                                   "-l `"traefik.dl.protocol=http`"",
-                                   "-l `"traefik.enable=true`"",
-                                   "-l `"traefik.frontend.entryPoints=https`""
+                                   "-e publicdnsname=$publicDnsName",
+                                   "-l `"traefik.enable=true`""
         )
+
+        if ((Get-ContainerHelperConfig).forceTraefikV1) { 
+            $additionalParameters += @("-l `"traefik.protocol=$traefikProtocol`"",
+                                       "-l `"traefik.web.frontend.rule=$webclientRule`"", 
+                                       "-l `"traefik.web.port=$webPort`"",
+                                       "-l `"traefik.soap.frontend.rule=$soapRule`"", 
+                                       "-l `"traefik.soap.port=7047`"",
+                                       "-l `"traefik.rest.frontend.rule=$restRule`"", 
+                                       "-l `"traefik.rest.port=7048`"",
+                                       "-l `"traefik.dev.frontend.rule=$devRule`"", 
+                                       "-l `"traefik.dev.port=7049`"",
+                                       "-l `"traefik.snap.frontend.rule=$snapRule`"", 
+                                       "-l `"traefik.snap.port=7083`"",
+                                       "-l `"traefik.dl.frontend.rule=$dlRule`"", 
+                                       "-l `"traefik.dl.port=8080`"",
+                                       "-l `"traefik.dl.protocol=http`"",
+                                       "-l `"traefik.frontend.entryPoints=https`""
+            )
+        } else {
+            # web
+            $additionalParameters += setupTraefikBaseLabels($containerName, $publicDnsName, $traefikProtocol, $webPort)
+            # dl
+            $additionalParameters += setupTraefikBaseLabels("$($containerName)dl", $publicDnsName, "http", "8080")
+            $additionalParameters += setupTraefikStripLabels("$($containerName)dl")
+            # dev
+            $additionalParameters += setupTraefikBaseLabels("$($containerName)dev", $publicDnsName, $traefikProtocol, "7049")
+            $additionalParameters += setupTraefikRegexLabels("$($containerName)dev")
+            # rest
+            $additionalParameters += setupTraefikBaseLabels("$($containerName)rest", $publicDnsName, $traefikProtocol, "7048")
+            $additionalParameters += setupTraefikRegexLabels("$($containerName)rest")
+            # soap
+            $additionalParameters += setupTraefikBaseLabels("$($containerName)soap", $publicDnsName, $traefikProtocol, "7047")
+            $additionalParameters += setupTraefikRegexLabels("$($containerName)soap")
+            # snap
+            $additionalParameters += setupTraefikBaseLabels("$($containerName)snap", $publicDnsName, $traefikProtocol, "7083")
+            $additionalParameters += setupTraefikRegexLabels("$($containerName)snap")
+        }
 
         ("
 if (-not `$restartingInstance) {
