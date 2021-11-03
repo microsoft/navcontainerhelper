@@ -69,11 +69,7 @@ try {
         }
         Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
     
-        if (!($userexist)) {
-            Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-        } elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
-        }
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
 }
