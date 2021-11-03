@@ -47,17 +47,21 @@ try {
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
+        $companyParam = @{}
+        if ($companyName) {
+            $companyParam += @{
+                "Company" = $CompanyName
+                "Force" = $true
+            }
+        }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me @companyParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            Start-Sleep -Seconds 1
         } elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled @companyParam
         }
-    
-        if ($CompanyName) {
-            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Company $CompanyName -Force
-        }
-
+        
         $Params = @{}
         if ($CompanyName) {
             $Params += @{ "CompanyName" = $CompanyName }
@@ -71,9 +75,10 @@ try {
         if ($Timezone) {
             $Params += @{ "TimeZone" = $TimeZone }
         }
+
         Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
-    
-        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled -Force
+
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
 }
