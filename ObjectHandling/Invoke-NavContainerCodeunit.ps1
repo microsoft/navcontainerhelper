@@ -43,12 +43,15 @@ function Invoke-NavContainerCodeunit {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone, $version)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
         $companyParam = @{}
-        if ($companyName) {
+        if ($companyName -and $version.Major -gt 9) {
             $companyParam += @{
                 "Company" = $CompanyName
                 "Force" = $true
@@ -80,7 +83,7 @@ try {
 
         Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
 
-    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
+    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
