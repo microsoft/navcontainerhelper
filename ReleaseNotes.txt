@@ -1,6 +1,7 @@
 2.0.18
 Fix issue with Invoke-BcContainerCodeunit
 Fix issue where Invoke-BcContainerCodeUnit fails on 19.0 containers
+Issue #2167 support different folders for external SQL Server
 
 2.0.17
 Add paramater internalsVisibleTo to Publish-BcContainerApp and Replace-DependenciesInAppFile in order to publish an app with internals visible to another app during development
