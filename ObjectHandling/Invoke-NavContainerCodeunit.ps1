@@ -55,6 +55,7 @@ try {
             $companyParam += @{
                 "Company" = $CompanyName
                 "Force" = $true
+                "WarningAction" = "SilentlyContinue"
             }
         }
         if (!($userexist)) {
