@@ -306,11 +306,11 @@ function Run-ConnectionTest {
         [switch] $connectFromHost
     )
 
-    $rolecenter = $clientContext.OpenForm(9022)
-    if (!($rolecenter)) {
-        throw "Cannot open rolecenter"
-    }
-    Write-Host "Rolecenter 9022 opened successfully"
+#    $rolecenter = $clientContext.OpenForm(9020)
+#    if (!($rolecenter)) {
+#        throw "Cannot open rolecenter"
+#    }
+#    Write-Host "Rolecenter 9020 opened successfully"
 
     $extensionManagement = $clientContext.OpenForm(2500)
     if (!($extensionManagement)) {
