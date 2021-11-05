@@ -188,6 +188,13 @@ try {
     if ($isolation) {
         $parameters += "--isolation $isolation"
     }
+    else {
+        if ([environment]::OSVersion.Version.Build -gt 17763) {
+            $parameters += "--isolation hyperv"
+        }
+    }
+
+    }
     $parameters += $additionalParameters
 
     Write-Host "Running traefik"
