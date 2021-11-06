@@ -73,6 +73,7 @@ function Get-ContainerHelperConfig {
             "PartnerTelemetryConnectionString" = ""
             "MicrosoftTelemetryConnectionString" = ""
             "SendExtendedTelemetryToMicrosoft" = $false
+            "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
         }
 

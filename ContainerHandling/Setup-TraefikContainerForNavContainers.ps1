@@ -44,6 +44,8 @@ function Setup-TraefikContainerForBcContainers {
         [string] $IP = "",
         [Parameter(Mandatory=$false)]
         [string] $traefikToml = "",
+        [Parameter(Mandatory=$false)]
+        [string] $traefikImage = $bcContainerHelperConfig.TraefikImage `
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
@@ -59,7 +61,6 @@ function Setup-TraefikContainerForBcContainers {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     $traefikForBcBasePath = "c:\programdata\bccontainerhelper\traefikforbc"
-    $traefikDockerImage = "traefik:v1.7-windowsservercore-1809"
     $traefiktomltemplate = (Join-Path $traefikForBcBasePath "config\template_traefik.toml")
     
     if ("$traefikToml" -eq "") {
@@ -172,10 +173,10 @@ try {
         New-NetFirewallRule -DisplayName "Allow 8180" -Direction Inbound -Action Allow -Protocol TCP -LocalPort 8180
     }
 
-    $pullRequired = "$(docker images -q $traefikDockerImage)" -eq ""
+    $pullRequired = "$(docker images -q $traefikImage)" -eq ""
     if ($pullRequired) {
         Write-Host "Pulling traefik"
-        docker pull $traefikDockerImage
+        docker pull $traefikImage
     }
     else {
         Write-Host "Traefik image already up to date"
@@ -194,7 +195,7 @@ try {
     $parameters += $additionalParameters
 
     Write-Host "Running traefik"
-    DockerDo -command run -imageName "$traefikDockerImage --docker.endpoint=npipe:////./pipe/docker_engine" -detach -parameters $parameters
+    DockerDo -command run -imageName "$traefikImage --docker.endpoint=npipe:////./pipe/docker_engine" -detach -parameters $parameters
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
