@@ -45,7 +45,7 @@ function Setup-TraefikContainerForBcContainers {
         [Parameter(Mandatory=$false)]
         [string] $traefikToml = "",
         [Parameter(Mandatory=$false)]
-        [string] $traefikImage = $bcContainerHelperConfig.TraefikImage `
+        [string] $traefikImage = $bcContainerHelperConfig.TraefikImage, `
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
         [string] $CrtFile,
         [Parameter(Mandatory=$true, ParameterSetName="OwnCertificate")]
