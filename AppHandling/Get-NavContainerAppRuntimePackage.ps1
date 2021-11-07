@@ -44,7 +44,7 @@ try {
 
     $showMyCodeExists = ($PSBoundParameters.ContainsKey(‘showMyCode’))
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $appFile, $showMyCodeExists, $showMyCode)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $publisher, $appVersion, $tenant, $appFile, $showMyCodeExists, $showMyCode)
 
         $parameters = @{ 
             "ServerInstance" = $ServerInstance
@@ -72,7 +72,7 @@ try {
 
         $appFile
 
-    } -ArgumentList $appName, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode | Select-Object -Last 1
+    } -ArgumentList $appName, $publisher, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode | Select-Object -Last 1
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
