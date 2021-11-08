@@ -1,3 +1,6 @@
+2.0.19
+New-BcAuthContext displays wrongly decoded names as accessToken is UTF8 encoded
+
 2.0.18
 Fix issue with Invoke-BcContainerCodeunit
 Fix issue where Invoke-BcContainerCodeUnit fails on 19.0 containers
