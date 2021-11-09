@@ -309,7 +309,7 @@ Function UpdateLaunchJson {
 
     if (Test-Path $launchJsonFile) {
         Write-Host "Modifying $launchJsonFile"
-        $launchJson = Get-Content $LaunchJsonFile | ConvertFrom-Json
+        $launchJson = [System.IO.File]::ReadAllLines($LaunchJsonFile) | ConvertFrom-Json
     }
     else {
         Write-Host "Creating $launchJsonFile"
@@ -1182,7 +1182,7 @@ Write-Host -ForegroundColor Yellow @'
 
     $appJsonFile = Join-Path $folder "app.json"
     $appJsonChanges = $false
-    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     if ($appVersion -or $appBuild -or $appRevision) {
         if ($appVersion) {
             $version = [System.Version]"$($appVersion).$($appBuild).$($appRevision)"
@@ -1533,7 +1533,7 @@ $apps | ForEach-Object {
    
     $folder = $appsFolder[$_]
     $appJsonFile = Join-Path $folder "app.json"
-    $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
     $installedApp = $false
@@ -1695,7 +1695,7 @@ $installTestApps | ForEach-Object {
                 $appFolder = "$($_).source"
                 Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
                 $appJsonFile = Join-Path $appFolder "app.json"
-                $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 if ($testAppIds.ContainsKey($appJson.Id)) {
                     Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (do you have the same app twice in installTestApps?)"
                 }
@@ -1713,7 +1713,7 @@ $installTestApps | ForEach-Object {
     }
 }
 $testFolders | ForEach-Object {
-    $appJson = Get-Content -Path (Join-Path $_ "app.json") | ConvertFrom-Json
+    $appJson = [System.IO.File]::ReadAllLines((Join-Path $_ "app.json")) | ConvertFrom-Json
     if ($testAppIds.ContainsKey($appJson.Id)) {
         Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (are you installing apps with the same ID as your test apps?)"
         $testAppIds."$($appJson.Id)" = $_
@@ -1813,7 +1813,7 @@ $bcptTestFolders | ForEach-Object {
         "credential" = $credential
         "companyName" = $companyName
         "connectFromHost" = $true
-        "BCPTsuite" = Get-Content (Join-Path $_ "bcptSuite.json") | ConvertFrom-Json
+        "BCPTsuite" = [System.IO.File]::ReadAllLines((Join-Path $_ "bcptSuite.json")) | ConvertFrom-Json
     }
 
     if ($bcAuthContext) {
@@ -1878,7 +1878,7 @@ if ($createRuntimePackages) {
         $appFile = $_
         $tempRuntimeAppFile = "$($appFile.TrimEnd('.app')).runtime.app"
         $folder = $appsFolder[$appFile]
-        $appJson = Get-Content -Path (Join-Path $folder "app.json") | ConvertFrom-Json
+        $appJson = [System.IO.File]::ReadAllLines((Join-Path $folder "app.json")) | ConvertFrom-Json
         Write-Host "Getting Runtime Package for $([System.IO.Path]::GetFileName($appFile))"
 
         $Parameters = @{

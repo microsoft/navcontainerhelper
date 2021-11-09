@@ -165,7 +165,7 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
     try {
         Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
         $appJsonFile = Join-Path $tmpFolder "app.json"
-        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     }
     catch {
         throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
@@ -605,7 +605,7 @@ try {
         $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
         Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
         $appJsonFile = Join-Path $tmpfolder "app.json"
-        $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
         if ($appJson.ShowMyCode) {
             $warningsToShow += "NOTE: $([System.IO.Path]::GetFileName($_)) has ShowMyCode set to true. This means that people will be able to debug and see the source code of your app. (see https://aka.ms/showMyCode)"
         }

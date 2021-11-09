@@ -43,7 +43,7 @@ try {
             Write-Warning "$appFolder doesn't contain app.json"
         }
         else {
-            $appJson = Get-Content -Path $appJsonFile | ConvertFrom-Json
+            $appJson =[System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
             
             # replace id with appid
             if ($appJson.psobject.Members | Where-Object name -eq "dependencies") {

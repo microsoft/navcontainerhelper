@@ -400,7 +400,7 @@ function Run-Tests {
 
     if ($XUnitResultFileName) {
         if (($Rerun -or $AppendToXUnitResultFile) -and (Test-Path $XUnitResultFileName)) {
-            [xml]$XUnitDoc = Get-Content $XUnitResultFileName
+            [xml]$XUnitDoc = [System.IO.File]::ReadAllLines($XUnitResultFileName)
             $XUnitAssemblies = $XUnitDoc.assemblies
             if (-not $XUnitAssemblies) {
                 [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
@@ -421,7 +421,7 @@ function Run-Tests {
     }
     if ($JUnitResultFileName) {
         if (($Rerun -or $AppendToJUnitResultFile) -and (Test-Path $JUnitResultFileName)) {
-            [xml]$JUnitDoc = Get-Content $JUnitResultFileName
+            [xml]$JUnitDoc = [System.IO.File]::ReadAllLines($JUnitResultFileName)
 
             $JUnitTestSuites = $JUnitDoc.testsuites
             if (-not $JUnitTestSuites) {
