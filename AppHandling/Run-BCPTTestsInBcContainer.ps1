@@ -53,7 +53,7 @@ try {
 
     if ($pre20) {
         $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "BCPTLogEntryAPI"
-        $appJson = Get-Content -path (Join-Path $BCPTLogEntryAPIsrc "app.json") | ConvertFrom-Json
+        $appJson = [System.IO.File]::ReadAllLines((Join-Path $BCPTLogEntryAPIsrc "app.json")) | ConvertFrom-Json
         if (-not (Get-BcContainerAppInfo -containerName $containerName -credential $credential | Where-Object { $_.appId -eq $appJson.id })) {
             Write-Host "Adding BCPTLogEntryAPI.app to extend existing Performance Toolkit with BCPTLogEntry API page"
             Write-Host "Using Object Id $($bcContainerHelperConfig.ObjectIdForInternalUse) (set `$bcContainerHelperConfig.ObjectIdForInternalUse to change)"

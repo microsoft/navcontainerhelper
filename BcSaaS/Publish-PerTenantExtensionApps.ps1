@@ -93,7 +93,7 @@ try {
                 $tempFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
                 Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null
                 $appJsonFile = Join-Path $tempFolder "app.json"
-                $appJson = Get-Content $appJsonFile | ConvertFrom-Json
+                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 Remove-Item -Path $tempFolder -Force -Recurse
             
                 Write-Host @newLine "Publishing and Installing"

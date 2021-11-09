@@ -127,7 +127,7 @@ try {
 
     $appJsonFile = Join-Path $AlProjectFolder "app.json"
     if ($useBaseLine -and $ver -ge [Version]("15.0.35528.0")) {
-        $appJson = Get-Content "$alFolder\app.json" | ConvertFrom-Json
+        $appJson = [System.IO.File]::ReadAllLines("$alFolder\app.json") | ConvertFrom-Json
 
         if (-not $useBaseAppProperties) {
             $appJson.Id = $id

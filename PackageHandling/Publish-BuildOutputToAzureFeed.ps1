@@ -60,7 +60,7 @@ try {
               
             Extract-AppFileToFolder -appFilename (Join-Path $tempAppOutFolder $_.Name) -generateAppJson -appFolder $tempAppSourceFolder
     
-            $appJson = Get-Content (Join-Path $tempAppSourceFolder "app.json") | ConvertFrom-Json
+            $appJson = [System.IO.File]::ReadAllLines((Join-Path $tempAppSourceFolder "app.json")) | ConvertFrom-Json
     
             # Downgrade Version to fit AzureFeed... -.- 
             $appVersion = $appJson.version.split('.')

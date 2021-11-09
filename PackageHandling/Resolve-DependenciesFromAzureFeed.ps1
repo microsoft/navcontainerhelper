@@ -86,10 +86,10 @@ try {
 
                 Extract-AppFileToFolder -appFilename $_ -generateAppJson -appFolder $tempAppSourceFolder 6>$null
 
-                $appJson = Get-Content (Join-Path $tempAppSourceFolder "app.json") | ConvertFrom-Json
+                $appJson = [System.IO.File]::ReadAllLines((Join-Path $tempAppSourceFolder "app.json")) | ConvertFrom-Json
             }
             else {
-                $appJson = Get-Content $_ | ConvertFrom-Json
+                $appJson = [System.IO.File]::ReadAllLines($_) | ConvertFrom-Json
             }
             if ($appJson.psobject.Properties.name -contains "dependencies") {
                 if ($appJson.psobject.Properties.name -contains "id" -and $lvl -eq 0) {
