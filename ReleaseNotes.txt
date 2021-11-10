@@ -1,6 +1,7 @@
 2.0.19
 New-BcAuthContext displays wrongly decoded names as accessToken is UTF8 encoded
 Issue #2181 Fix encoding when using Get-Content
+Issue #2035 SharedEncryptionKey feature doesn't always work across versions
 
 2.0.18
 Fix issue with Invoke-BcContainerCodeunit
