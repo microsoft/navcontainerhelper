@@ -81,9 +81,9 @@ try {
         [SslVerification]::Disable()
     }
     
-    $authParam = @{}
+    $webClient = [TimeoutWebClient]::new(300000)
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-        $authParam += @{ "usedefaultcredential" = $true }
+        $webClient.UseDefaultCredentials = $true
     }
     else {
         if (!($credential)) {
@@ -94,14 +94,19 @@ try {
         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
         $base64 = [System.Convert]::ToBase64String($bytes)
         $basicAuthValue = "Basic $base64"
-        $headers = @{ Authorization = $basicAuthValue }
-        $authParam += @{ "headers" = $headers }
+        $webClient.Headers.Add("Authorization", $basicAuthValue)
     }
 
     Write-Host "Downloading app: $appName"
     $url = "$devServerUrl/dev/packages?publisher=$([uri]::EscapeDataString($publisher))&appName=$([uri]::EscapeDataString($appName))&versionText=$($appVersion)&tenant=$tenant"
     Write-Host "Url : $Url"
-    Invoke-RestMethod -Method Get -Uri $url @AuthParam -OutFile $appFile
+    try {
+        $webClient.DownloadFile($url, $appFile)
+    }
+    catch [System.Net.WebException] {
+        Write-Host "ERROR $($_.Exception.Message)"
+        throw (GetExtenedErrorMessage $_.Exception)
+    }
 
     if ($sslverificationdisabled) {
         Write-Host "Re-enabling SSL Verification"

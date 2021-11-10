@@ -1,6 +1,9 @@
 2.0.19
 New-BcAuthContext displays wrongly decoded names as accessToken is UTF8 encoded
 Issue #2181 Fix encoding when using Get-Content
+Issue #2035 SharedEncryptionKey feature doesn't always work across versions
+Issue #2135 Unable to read data from the transport connection
+Allow user to specify isolation on Windows 11 / Windows 2022
 
 2.0.18
 Fix issue with Invoke-BcContainerCodeunit
