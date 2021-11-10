@@ -1196,11 +1196,13 @@ try {
         }
     }
     elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
-        if ($containerOsVersion -le $hostOsVersion) {
-            $isolation = "process"
-        }
-        else {
-            $isolation = "hyperv"
+        if ($isolation -eq "") {
+            if ($containerOsVersion -le $hostOsVersion) {
+                $isolation = "process"
+            }
+            else {
+                $isolation = "hyperv"
+            }
         }
     }
     elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
