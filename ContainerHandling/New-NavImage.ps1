@@ -412,13 +412,13 @@ try {
             }
             Write-Host "Using $isolation isolation"
         
-            $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+            $downloadsPath = $bcartifactsCacheFolder
             if (!(Test-Path $downloadsPath)) {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
             }
         
             do {
-                $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+                $buildFolder = Join-Path $bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
             }
             until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
         

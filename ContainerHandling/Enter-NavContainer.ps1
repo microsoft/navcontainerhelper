@@ -18,7 +18,7 @@ function Enter-BcContainer {
     )
 
     Process {
-        if ((Get-ContainerHelperConfig).usePsSession) {
+        if ($bcContainerHelperConfig.usePsSession) {
             $session = Get-BcContainerSession $containerName -silent
             Enter-PSSession -Session $session
             Invoke-Command -Session $session -ScriptBlock {

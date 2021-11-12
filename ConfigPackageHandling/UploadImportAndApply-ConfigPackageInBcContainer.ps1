@@ -52,7 +52,7 @@ try {
                 throw "You can only upload, import and apply one config package at a time  ($configPackage matches multiple files inside the container)"
                 return
             }
-            $configPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([System.IO.Path]::GetFileName($containerConfigPackage))"
+            $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$([System.IO.Path]::GetFileName($containerConfigPackage))"
             if (Test-Path $configPackage) {
                 Remove-Item $configPackage -Force
             }

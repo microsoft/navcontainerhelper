@@ -34,7 +34,7 @@ function Set-BcContainerKeyVaultAadAppAndCertificate {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $ExtensionsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions"
+    $ExtensionsFolder = Join-Path $hosthelperfolder "Extensions"
     $sharedPfxFile = Join-Path $ExtensionsFolder "$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
     $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {

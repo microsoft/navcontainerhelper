@@ -100,6 +100,38 @@ function AddTelemetryProperty {
     }
 }
 
+function RegisterTelemetryScope {
+    Param(
+        [string] $telemetryScopeJson
+    )
+
+    $telemetryScope = $telemetryScopeJson | ConvertFrom-Json
+    if ($telemetry.TopId -eq "") { 
+        $telemetry.TopId = $telemetryScope.CorrelationId
+    }
+
+    $scope = @{
+        "Name" = $telemetryScope.Name
+        "EventId" = $telemetryScope.eventId
+        "StartTime" = $telemetryScope.StartTime
+        "Properties" = [Collections.Generic.Dictionary[string, string]]::new()
+        "Parameters" = [Collections.Generic.Dictionary[string, string]]::new()
+        "AllParameters" = [Collections.Generic.Dictionary[string, string]]::new()
+        "CorrelationId" = $telemetryScope.CorrelationId
+        "ParentId" = $telemetryScope.CorrelationId
+        "TopId" = $telemetry.TopId
+        "Emitted" = $telemetryScope.Emitted
+    }
+
+    "Properties","Parameters","AllParameters" | ForEach-Object {
+        $prop = $_
+        $telemetryScope."$prop".PSObject.Properties.GetEnumerator() | ForEach-Object { $scope."$prop".Add($_.Name, $_.Value) }
+    }
+
+    $telemetry.CorrelationId = $telemetryScope.CorrelationId
+    $scope
+}
+
 function InitTelemetryScope {
     Param(
         [string] $name,
@@ -138,7 +170,9 @@ function InitTelemetryScope {
             if ($telemetry.Debug) {
                 Write-Host -ForegroundColor Yellow "Init telemetry scope $name"
             }
-            if ($telemetry.TopId -eq "") { $telemetry.TopId = $CorrelationId }
+            if ($telemetry.TopId -eq "") { 
+                $telemetry.TopId = $CorrelationId
+            }
             $scope = @{
                 "Name" = $name
                 "EventId" = $eventId

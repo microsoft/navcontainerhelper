@@ -47,7 +47,7 @@ try {
     }
     $successFileName = ""
     if ($async) {
-        $successFileName = Join-Path $bcContainerHelperConfig.hostHelperFolder "$($databasePrefix)databasescreated.txt"
+        $successFileName = Join-Path $hosthelperfolder "$($databasePrefix)databasescreated.txt"
         if (Test-Path $successFileName) { Remove-Item $successFileName -Force }
     }
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"

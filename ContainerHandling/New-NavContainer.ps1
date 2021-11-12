@@ -1269,8 +1269,18 @@ try {
         throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
-    $myFolder = Join-Path $containerFolder "my"
-    New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+    if ($bcContainerHelperConfig.UseVolumeForMyFolder) {
+        $myVolumeName = "$containerName-my"
+        if ($allVolumes | Where-Object { $_ -like "*|$myVolumeName" }) {
+            throw "Fatal error, volume $myVolumeName already exists"
+        }
+        docker volume create $myVolumeName
+        $myFolder = ((docker volume inspect $myVolumeName) | ConvertFrom-Json).MountPoint
+    }
+    else {
+        $myFolder = Join-Path $containerFolder "my"
+        New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+    }
 
     if ($useTraefik) {
         Write-Host "Adding special CheckHealth.ps1 to enable Traefik support"
@@ -1400,7 +1410,6 @@ try {
         $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
     }
 
-
     $parameters += @(
                     "--name $containerName",
                     "--hostname $containerName",
@@ -1411,7 +1420,7 @@ try {
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
                     (getVolumeMountParameter -volumes $allVolumes -hostPath $hostHelperFolder -containerPath $containerHelperFolder),
-                    "--volume ""$($myFolder):C:\Run\my""",
+                    (getVolumeMountParameter -volumes $allVolumes -hostPath $myFolder -containerPath "C:\Run\my"),
                     "--isolation $isolation",
                     "--restart $restart"
                    )

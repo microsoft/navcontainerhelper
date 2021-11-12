@@ -34,10 +34,10 @@ try {
     }
 
     if ($filesOnly) {
-        $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageNameFilesOnly
+        $genericImageNameSetting = $bcContainerHelperConfig.genericImageNameFilesOnly
     }
     else {
-        $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageName
+        $genericImageNameSetting = $bcContainerHelperConfig.genericImageName
     }
     $repo = $genericImageNameSetting.Split(':')[0]
     $tag = $genericImageNameSetting.Split(':')[1].Replace('{0}','*')

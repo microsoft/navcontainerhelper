@@ -57,7 +57,7 @@ try {
         if (-not (Get-BcContainerAppInfo -containerName $containerName -credential $credential | Where-Object { $_.appId -eq $appJson.id })) {
             Write-Host "Adding BCPTLogEntryAPI.app to extend existing Performance Toolkit with BCPTLogEntry API page"
             Write-Host "Using Object Id $($bcContainerHelperConfig.ObjectIdForInternalUse) (set `$bcContainerHelperConfig.ObjectIdForInternalUse to change)"
-            $appExtFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([GUID]::NewGuid().ToString())"
+            $appExtFolder = Join-Path $hosthelperfolder "Extensions\$containerName\$([GUID]::NewGuid().ToString())"
             New-Item $appExtFolder -ItemType Directory | Out-Null
             $appJson.idRanges[0].from = $bcContainerHelperConfig.ObjectIdForInternalUse
             $appJson.idRanges[0].to = $bcContainerHelperConfig.ObjectIdForInternalUse
@@ -133,7 +133,7 @@ try {
             Copy-Item -path "C:\Applications\testframework\TestRunner" -Destination "c:\run\my" -Recurse -Force
         }
         $location = Get-Location
-        Set-Location (Join-Path $bcContainerHelperConfig.hostHelperFolder "extensions\$containerName\my\TestRunner")
+        Set-Location (Join-Path $hosthelperfolder "extensions\$containerName\my\TestRunner")
 
         $auth = $config.ClientServicesCredentialType
 

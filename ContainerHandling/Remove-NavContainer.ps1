@@ -44,11 +44,25 @@ try {
         $tenantHostname = $hostname.insert($dotidx,"-*")
 
         $containerFolder = Join-Path $ExtensionsFolder $containerName
-        $updateHostsScript = Join-Path $containerFolder "my\updatehosts.ps1"
+        $allVolumes = @(docker volume ls --format "{{.Mountpoint}}|{{.Name}}")
+        $myVolumeName = "$containerName-my"
+        $myVolume = $allVolumes | Where-Object { $_ -like "*|$myVolumeName" }
+        if ($myVolume) {
+            $myFolder = $myVolume.Split('|')[0]
+        }
+        else {
+            $myFolder = Join-Path $containerFolder "my"
+        }
+
+        $updateHostsScript = Join-Path $myFolder "updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $hostname -theIpAddress ""
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
+        }
+
+        if ($myVolume) {
+            docker volume remove $myVolumeName
         }
 
         $thumbprintFile = Join-Path $containerFolder "thumbprint.txt"

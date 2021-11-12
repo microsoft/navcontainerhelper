@@ -3,7 +3,8 @@
 param(
     [switch] $Silent,
     [switch] $ExportTelemetryFunctions,
-    [string[]] $bcContainerHelperConfigFile = @()
+    [string[]] $bcContainerHelperConfigFile = @(),
+    [switch] $useVolumes
 )
 
 Set-StrictMode -Version 2.0
@@ -14,6 +15,10 @@ $errorActionPreference = 'Stop'
 
 if ([intptr]::Size -eq 4) {
     throw "ContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
+}
+
+if ($useVolumes) {
+Write-Host "USE VOLUMES"
 }
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -31,6 +36,7 @@ function Get-ContainerHelperConfig {
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
             "usePsSession" = $isAdministrator
+            "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
             "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
@@ -75,6 +81,12 @@ function Get-ContainerHelperConfig {
             "SendExtendedTelemetryToMicrosoft" = $false
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
+        }
+
+        if ($useVolumes) {
+            $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
+            $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
+            $bcContainerHelperConfig.useVolumeForMyFolder = $true
         }
 
         if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {
@@ -152,7 +164,26 @@ try {
 }
 catch {}
 
-$hostHelperFolder = $bcContainerHelperConfig.HostHelperFolder
+function VolumeOrPath {
+    Param(
+        [string] $path
+    )
+
+    if (!($path.Contains(':') -or $path.Contains('\') -or $path.Contains('/'))) {
+        $volumes = @(docker volume ls --format "{{.Name}}")
+        if ($volumes -notcontains $path) {
+            docker volume create $path            
+        }
+        $inspect = (docker volume inspect $path) | ConvertFrom-Json
+        return $inspect.MountPoint
+    }
+    else {
+        return $path
+    }
+}
+
+$bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
+$hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
 
@@ -196,6 +227,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
 if ($ExportTelemetryFunctions) {
+    Export-ModuleMember -Function RegisterTelemetryScope
     Export-ModuleMember -Function InitTelemetryScope
     Export-ModuleMember -Function AddTelemetryProperty
     Export-ModuleMember -Function TrackTrace
