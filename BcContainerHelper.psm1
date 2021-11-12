@@ -31,6 +31,7 @@ function Get-ContainerHelperConfig {
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
             "usePsSession" = $isAdministrator
+            "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
             "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
@@ -152,7 +153,26 @@ try {
 }
 catch {}
 
-$hostHelperFolder = $bcContainerHelperConfig.HostHelperFolder
+function VolumeOrPath {
+    Param(
+        [string] $path
+    )
+
+    if (!($path.Contains(':') -or $path.Contains('\') -or $path.Contains('/'))) {
+        $volumes = @(docker volume ls --format "{{.Name}}")
+        if ($volumes -notcontains $path) {
+            docker volume create $path            
+        }
+        $inspect = (docker volume inspect $path) | ConvertFrom-Json
+        return $inspect.MountPoint
+    }
+    else {
+        return $path
+    }
+}
+
+$bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
+$hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
 
@@ -196,6 +216,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
 if ($ExportTelemetryFunctions) {
+    Export-ModuleMember -Function RegisterTelemetryScope
     Export-ModuleMember -Function InitTelemetryScope
     Export-ModuleMember -Function AddTelemetryProperty
     Export-ModuleMember -Function TrackTrace
