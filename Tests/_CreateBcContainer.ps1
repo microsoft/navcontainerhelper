@@ -2,7 +2,7 @@
 $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
 $bcContainerName = 'bco'
 $bcContainerPlatformVersion = '17.0.16974.0'
-$bcContainerPath = Join-Path $hosthelperfolder "Extensions\$bcContainerName"
+$bcContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$bcContainerName"
 $bcMyPath = Join-Path $bcContainerPath "my"
 New-BCContainer -accept_eula `
                 -accept_outdated `
@@ -22,7 +22,7 @@ $bcsArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.30573" 
 $bcsImageName = New-BcImage -artifactUrl $bcsArtifactUrl -skipIfImageAlreadyExists
 $bcsContainerName = 'bcs'
 $bcsContainerPlatformVersion = "17.0.18204.30560"
-$bcsContainerPath = Join-Path $hosthelperfolder "Extensions\$bcsContainerName"
+$bcsContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$bcsContainerName"
 $bcsMyPath = Join-Path $bcsContainerPath "my"
 New-BCContainer -accept_eula `
                 -accept_outdated `
