@@ -1,6 +1,7 @@
 2.0.20
 Add support for using Docker Volumes for HostHelperFolder, BcArtifacts Cache folder and my folder
 Fix to Create-AadAppsForBC for this breaking change in AzureAD https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-breaking-changes#appid-uri-in-single-tenant-applications-will-require-use-of-default-scheme-or-verified-domains
+Issue #2187 New-BcContainer error when including "-includePerformanceToolkit" parameter (and -imageName)
 
 2.0.19
 New-BcAuthContext displays wrongly decoded names as accessToken is UTF8 encoded

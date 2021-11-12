@@ -17,10 +17,6 @@ if ([intptr]::Size -eq 4) {
     throw "ContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
 }
 
-if ($useVolumes) {
-Write-Host "USE VOLUMES"
-}
-
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 try {

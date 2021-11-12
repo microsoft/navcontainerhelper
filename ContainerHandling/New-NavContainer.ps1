@@ -279,7 +279,7 @@ $telemetryScope = InitTelemetryScope `
                     -includeParameters @("containerName","artifactUrl","isolation","imageName","multitenant","filesOnly")
 try {
 
-    $defaultNewContainerParameters = (Get-ContainerHelperConfig).defaultNewContainerParameters
+    $defaultNewContainerParameters = $bcContainerHelperConfig.defaultNewContainerParameters
     if ($defaultNewContainerParameters -is [HashTable]) {
         $defaultNewContainerParameters.GetEnumerator() | ForEach-Object {
             if (!($PSBoundParameters.ContainsKey($_.Name))) {
@@ -672,7 +672,7 @@ try {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
-    $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+    $downloadsPath = $bcContainerHelperConfig.bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
@@ -1276,6 +1276,7 @@ try {
         }
         docker volume create $myVolumeName
         $myFolder = ((docker volume inspect $myVolumeName) | ConvertFrom-Json).MountPoint
+        $allVolumes += "$myfolder|$myVolumeName"
     }
     else {
         $myFolder = Join-Path $containerFolder "my"
@@ -1784,6 +1785,8 @@ if (-not `$restartingInstance) {
         
         $parameters += $additionalParameters
     
+        # $parameters | Out-host
+
         if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
