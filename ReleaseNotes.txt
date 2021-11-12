@@ -1,3 +1,5 @@
+2.0.20
+
 2.0.19
 New-BcAuthContext displays wrongly decoded names as accessToken is UTF8 encoded
 Issue #2181 Fix encoding when using Get-Content
