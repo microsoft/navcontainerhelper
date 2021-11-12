@@ -3,7 +3,8 @@
 param(
     [switch] $Silent,
     [switch] $ExportTelemetryFunctions,
-    [string[]] $bcContainerHelperConfigFile = @()
+    [string[]] $bcContainerHelperConfigFile = @(),
+    [switch] $useVolumes
 )
 
 Set-StrictMode -Version 2.0
@@ -14,6 +15,10 @@ $errorActionPreference = 'Stop'
 
 if ([intptr]::Size -eq 4) {
     throw "ContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
+}
+
+if ($useVolumes) {
+Write-Host "USE VOLUMES"
 }
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
@@ -76,6 +81,12 @@ function Get-ContainerHelperConfig {
             "SendExtendedTelemetryToMicrosoft" = $false
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
+        }
+
+        if ($useVolumes) {
+            $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
+            $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
+            $bcContainerHelperConfig.useVolumeForMyFolder = $true
         }
 
         if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {

@@ -44,7 +44,7 @@ function Run-AlCops {
         $apps,
         $affixes,
         $supportedCountries,
-        $appPackagesFolder = (Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())),
+        $appPackagesFolder = (Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())),
         [switch] $enableAppSourceCop,
         [switch] $enableCodeCop,
         [switch] $enableUICop,
@@ -75,7 +75,7 @@ try {
         throw "You cannot run AppSourceCop and PerTenantExtensionCop at the same time"
     }
      
-    $appsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
+    $appsFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
     New-Item -Path $appsFolder -ItemType Directory | Out-Null
     $apps = Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
     
@@ -115,7 +115,7 @@ try {
     $apps | % {
         $appFile = $_
     
-        $tmpFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
+        $tmpFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
         try {
             $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
 
