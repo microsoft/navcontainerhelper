@@ -760,7 +760,7 @@ function GetRandomPassword {
 }
 
 function getVolumeMountParameter($volumes, $hostPath, $containerPath) {
-    $volume = $volumes | Where-Object { $_ -like "$hostPath|*" }
+    $volume = $volumes | Where-Object { $_ -like "*|$hostPath" -or $_ -like "$hostPath|*" }
     if ($volume) {
         $volumeName = $volume.Split('|')[1]
         "--mount source=$($volumeName),target=$containerPath"
