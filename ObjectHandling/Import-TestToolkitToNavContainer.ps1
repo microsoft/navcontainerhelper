@@ -156,6 +156,11 @@ try {
                     "internalsVisibleTo" = $internalsVisibleTo
                     "replacePackageId" = $true
                 }
+
+                Get-BcContainerAppInfo | Where-Object { $_.Dependencies | Where-Object { $_ -like 'Performance Toolkit, Microsoft,*' } } | ForEach-Object {
+                    UnPublish-BcContainerApp -containerName $containerName -publisher $_.Publisher -name $_.Name -version $_.Version -unInstall -force
+                }
+                
                 UnPublish-BcContainerApp -containerName $containerName -publisher "microsoft" -name "Performance Toolkit" -unInstall -force
             }
     
