@@ -44,12 +44,14 @@ function New-BcContainerBcUser {
         [parameter(Mandatory=$false)]        
         [string] $PermissionSetId = "SUPER",
         [switch] $assignPremiumPlan,
-        [PSCredential] $databaseCredential
+        [PSCredential] $databaseCredential,
+        [parameter(Mandatory=$false)]
+        [string] $fullName
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential, [string]$fullName)
                     
         $TenantParam = @{}
         if ($Tenant) {
@@ -90,16 +92,16 @@ try {
 
         if($WindowsAccount) {
             Write-Host "Creating User for WindowsAccount $WindowsAccount"
-  			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount @Parameters
+  			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount -FullName $fullName @Parameters
             Write-Host "Assigning Permission Set $PermissionSetId to $WindowsAccount"
             New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId
             $user = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.UserName.EndsWith("\$WindowsAccount", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $WindowsAccount }
         } else {
             Write-Host "Creating User $($Credential.UserName)"
             if ($ChangePasswordAtNextLogOn) {
-  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -ChangePasswordAtNextLogon @Parameters
+  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -FullName $fullName -ChangePasswordAtNextLogon @Parameters
             } else {
-  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password @Parameters
+  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -FullName $fullName @Parameters
             }
             Write-Host "Assigning Permission Set $PermissionSetId to $($Credential.Username)"
             New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -username $Credential.username -PermissionSetId $PermissionSetId
@@ -121,7 +123,7 @@ INSERT INTO [dbo].[$_] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-44
 
             }                   
         }
-    } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential
+    } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential, $fullName
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
