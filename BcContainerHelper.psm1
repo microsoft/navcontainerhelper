@@ -199,7 +199,11 @@ $telemetry = @{
     "Debug" = $false
 }
 try {
-    $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom((Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll"))
+    $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
+    if (-not (Test-Path $dllPath)) {
+        Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
+    }
+    $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
 } catch {
     Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
 }
