@@ -61,6 +61,9 @@ try {
         if ($AuthenticationEMail) {
             $Parameters.Add('AuthenticationEmail',$AuthenticationEmail)
         }
+        if ($fullName) {
+            $Parameters.Add('FullName',$fullName)
+        }
 
         if ($assignPremiumPlan) {
 
@@ -92,16 +95,16 @@ try {
 
         if($WindowsAccount) {
             Write-Host "Creating User for WindowsAccount $WindowsAccount"
-  			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount -FullName $fullName @Parameters
+  			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount @Parameters
             Write-Host "Assigning Permission Set $PermissionSetId to $WindowsAccount"
             New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId
             $user = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.UserName.EndsWith("\$WindowsAccount", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $WindowsAccount }
         } else {
             Write-Host "Creating User $($Credential.UserName)"
             if ($ChangePasswordAtNextLogOn) {
-  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -FullName $fullName -ChangePasswordAtNextLogon @Parameters
+  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -ChangePasswordAtNextLogon @Parameters
             } else {
-  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password -FullName $fullName @Parameters
+  			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password @Parameters
             }
             Write-Host "Assigning Permission Set $PermissionSetId to $($Credential.Username)"
             New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -username $Credential.username -PermissionSetId $PermissionSetId
