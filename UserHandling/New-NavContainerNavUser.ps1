@@ -44,12 +44,14 @@ function New-BcContainerBcUser {
         [parameter(Mandatory=$false)]        
         [string] $PermissionSetId = "SUPER",
         [switch] $assignPremiumPlan,
-        [PSCredential] $databaseCredential
+        [PSCredential] $databaseCredential,
+        [parameter(Mandatory=$false)]
+        [string] $fullName
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential, [string]$fullName)
                     
         $TenantParam = @{}
         if ($Tenant) {
@@ -58,6 +60,9 @@ try {
         $Parameters = @{}
         if ($AuthenticationEMail) {
             $Parameters.Add('AuthenticationEmail',$AuthenticationEmail)
+        }
+        if ($fullName) {
+            $Parameters.Add('FullName',$fullName)
         }
 
         if ($assignPremiumPlan) {
@@ -121,7 +126,7 @@ INSERT INTO [dbo].[$_] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-44
 
             }                   
         }
-    } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential
+    } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential, $fullName
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
