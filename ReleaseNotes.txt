@@ -1,3 +1,6 @@
+2.0.21
+Increasing version number to avoid locking issues wil applicationInsights DLL
+
 2.0.20
 Add support for using Docker Volumes for HostHelperFolder, BcArtifacts Cache folder and my folder
 Fix to Create-AadAppsForBC for this breaking change in AzureAD https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-breaking-changes#appid-uri-in-single-tenant-applications-will-require-use-of-default-scheme-or-verified-domains
