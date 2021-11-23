@@ -157,7 +157,7 @@ try {
                     "replacePackageId" = $true
                 }
 
-                Get-BcContainerAppInfo | Where-Object { $_.Dependencies | Where-Object { $_ -like 'Performance Toolkit, Microsoft,*' } } | ForEach-Object {
+                Get-BcContainerAppInfo -containerName $containerName | Where-Object { $_.Dependencies | Where-Object { $_ -like 'Performance Toolkit, Microsoft,*' } } | ForEach-Object {
                     UnPublish-BcContainerApp -containerName $containerName -publisher $_.Publisher -name $_.Name -version $_.Version -unInstall -force
                 }
                 
