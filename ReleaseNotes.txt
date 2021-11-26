@@ -1,3 +1,6 @@
+2.0.22
+Issue #2206 new-bccontainer with importtesttoolkit sometimes fails containername is not bcserver
+
 2.0.21
 Increasing version number to avoid locking issues wil applicationInsights DLL
 
