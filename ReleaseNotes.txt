@@ -1,4 +1,5 @@
 2.0.23
+Issue #2210 Removing Desktop shortcuts in a folder fails if the desktop is setup for onedrive sync
 
 2.0.22
 Issue #2206 new-bccontainer with importtesttoolkit sometimes fails containername is not bcserver
