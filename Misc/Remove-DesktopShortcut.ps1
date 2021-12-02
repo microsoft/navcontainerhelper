@@ -22,8 +22,12 @@ function Remove-DesktopShortcut {
                 $folderName = $Name.Split(' ')[0]
                 $shortcutName = $name.Substring($folderName.Length).TrimStart(' ')
                 $folderName = Join-Path $environmentPath $folderName
-                if (Test-Path -Path (Join-Path $foldername "$shortcutName.lnk") -PathType leaf) {
-                    Remove-Item $folderName -Recurse -force
+                $filename = Join-Path $foldername "$shortcutName.lnk"
+                if (Test-Path -Path $filename -PathType leaf) {
+                    Remove-Item $filename -Force
+                    try {
+                        Remove-Item $folderName -Recurse -force
+                    } catch {}
                 }                
             }
         }
