@@ -1,5 +1,6 @@
 2.0.23
 Issue #2210 Removing Desktop shortcuts in a folder fails if the desktop is setup for onedrive sync
+Run-TestsInBcContainer is hardcoded to use Romance Standard Time as timezone for the user - use the session timezone instead
 
 2.0.22
 Issue #2206 new-bccontainer with importtesttoolkit sometimes fails containername is not bcserver
