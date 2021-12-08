@@ -31,6 +31,8 @@
   Include this switch if you want to fail on the first error instead of returning all errors to the caller
  .Parameter ignoreWarnings
   Include this switch if you want to ignore Warnings
+ .Parameter doNotIgnoreInfos
+  Include this switch if you want to ignore Infos
  .Parameter rulesetFile
   Filename of the ruleset file for Compile-AppInBcContainer
  .Parameter CompileAppInBcContainer
@@ -51,6 +53,7 @@ function Run-AlCops {
         [switch] $enablePerTenantExtensionCop,
         [switch] $failOnError,
         [switch] $ignoreWarnings,
+        [switch] $doNotIgnoreInfos,
         [string] $rulesetFile = "",
         [scriptblock] $CompileAppInBcContainer
     )
@@ -196,7 +199,7 @@ try {
                     if ($line -like "error *" -or $line -like "warning *") {
                         $global:_validationResult += $line
                     }
-                    elseif ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
+                    elseif ($line -like "$($tmpFolder)*") {
                         $global:_validationResult += $line.SubString($tmpFolder.Length+1)
                     }
                 }
@@ -226,6 +229,10 @@ try {
             if ($ignoreWarnings) {
                 Write-Host "Ignoring warnings"
                 $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" -and $_ -notlike "warning *" })
+            }
+            if (!$doNotIgnoreInfos) {
+                Write-Host "Ignoring infos"
+                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: info *" -and $_ -notlike "info *" })
             }
 
             $lines = $global:_validationResult.Length - $length

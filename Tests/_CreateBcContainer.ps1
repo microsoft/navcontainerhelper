@@ -18,7 +18,7 @@ New-BCContainer -accept_eula `
                 -includeTestToolkit `
                 -includeTestLibrariesOnly
 
-$bcsArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.30573" -country "us"
+$bcsArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.30573" -country "us" -select 'Closest'
 $bcsImageName = New-BcImage -artifactUrl $bcsArtifactUrl -skipIfImageAlreadyExists
 $bcsContainerName = 'bcs'
 $bcsContainerPlatformVersion = "17.0.18204.30560"
