@@ -315,7 +315,7 @@ try {
         $webClient.Headers.Add("Authorization", $bearerAuthValue)
     }
     elseif ($serverInstance -eq "") {
-        Write-Host -ForegroundColor Red "WARNING: You have to specify AccessToken and Environment if you are compiling in a filesOnly container in order to download dependencies"
+        Write-Host -ForegroundColor Red "WARNING: You have to specify AuthContext and Environment if you are compiling in a filesOnly container in order to download dependencies"
         $devServerUrl = ""
         $webClient = $null
     }

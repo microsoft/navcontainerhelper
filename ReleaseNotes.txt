@@ -2,6 +2,7 @@
 Issue #2210 Removing Desktop shortcuts in a folder fails if the desktop is setup for onedrive sync
 Run-TestsInBcContainer was hardcoded to use Romance Standard Time as timezone for the user - use the session timezone instead
 Issue #2215 Add parameter -doNotIgnoreInfos to Run-AlCops (and ignore infos by default)
+Modify Run-AlValidation to validate in the same way as the AppSource Validation Service
 
 2.0.22
 Issue #2206 new-bccontainer with importtesttoolkit sometimes fails containername is not bcserver
