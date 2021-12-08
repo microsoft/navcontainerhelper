@@ -32,6 +32,8 @@
   Include this switch if you want to fail on the first error instead of returning all errors to the caller
  .Parameter includeWarnings
   Include this switch if you want to include Warnings
+ .Parameter doNotIgnoreInfos
+  Include this switch if you want to include Warnings
  .Parameter sasToken
   Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
  .Parameter countries
@@ -90,6 +92,7 @@ Param(
     [switch] $validateNextMajor,
     [switch] $failOnError,
     [switch] $includeWarnings,
+    [switch] $doNotIgnoreInfos,
     [string] $sasToken = "",
     [Parameter(Mandatory=$true)]
     $countries,
@@ -205,8 +208,14 @@ function GetFilePath( [string] $path ) {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+'GetBcContainerAppInfo','PublishBcContainerApp','multitenant','SkipConnectionTest','skipUpgrade','SkipVerification','ImageName' | % {
+    if ($PSBoundParameters.Keys.Contains($_)) {
+        Write-Host -ForegroundColor Red "WARNING: Parameter $_ is no longer used in Run-AlValidation, please remove the parameter"
+    }
+}
+
 if ($useGenericImage -eq "") {
-    $useGenericImage = Get-BestGenericImageName
+    $useGenericImage = Get-BestGenericImageName -filesOnly
 }
 
 $warningsToShow = @()
@@ -254,7 +263,6 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 Write-Host -NoNewLine -ForegroundColor Yellow "Container name               "; Write-Host $containerName
-Write-Host -NoNewLine -ForegroundColor Yellow "Image name                   "; Write-Host $imageName
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                   ";
 if ($credential) {
     Write-Host "Specified"
@@ -264,7 +272,6 @@ else {
     Write-Host "admin/$password"
     $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
-Write-Host -NoNewLine -ForegroundColor Yellow "License file                 "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                  "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "validateVersion              "; Write-Host $validateVersion
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCurrent              "; Write-Host $validateCurrent
@@ -296,20 +303,8 @@ if ($NewBcContainer) {
 else {
     $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
 }
-if ($PublishBcContainerApp) {
-    Write-Host -ForegroundColor Yellow "PublishBcContainerApp override"; Write-Host $PublishBcContainerApp.ToString()
-}
-else {
-    $PublishBcContainerApp = { Param([Hashtable]$parameters) Publish-BcContainerApp @parameters }
-}
 if ($CompileAppInBcContainer) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
-}
-if ($GetBcContainerAppInfo) {
-    Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
-}
-else {
-    $GetBcContainerAppInfo = { Param([Hashtable]$parameters) Get-BcContainerAppInfo @parameters }
 }
 if ($RemoveBcContainer) {
     Write-Host -ForegroundColor Yellow "RemoveBcContainer override"; Write-Host $RemoveBcContainer.ToString()
@@ -403,6 +398,9 @@ if ($artifactUrl) {
 $prevProgressPreference = $progressPreference
 $progressPreference = 'SilentlyContinue'
 
+$appPackagesFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+New-Item $appPackagesFolder -ItemType Directory | Out-Null
+
 try {
 
 $validateCountries | % {
@@ -445,63 +443,24 @@ Measure-Command {
     $Parameters = @{
         "accept_eula" = $true
         "containerName" = $containerName
-        "imageName" = $imageName
         "artifactUrl" = $artifactUrl
         "useGenericImage" = $useGenericImage
         "Credential" = $credential
         "auth" = 'UserPassword'
         "updateHosts" = $true
         "vsixFile" = $useVsix
-        "licenseFile" = $licenseFile
         "EnableTaskScheduler" = $true
-        "Multitenant" = $multitenant
         "AssignPremiumPlan" = $assignPremiumPlan
         "MemoryLimit" = $memoryLimit
+        "FilesOnly" = $true
     }
 
     Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
 
-    $Parameters = @{
-        "containerName" = $containerName
-        "tenant" = $tenant
-        "credential" = $credential
-        "appFile" = "https://businesscentralapps.blob.core.windows.net/enableencryption/latest/apps.zip"
-        "skipVerification" = $true
-        "sync" = $true
-        "install" = $true
-        "useDevEndpoint" = $false
-    }
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 
 if ($installApps) {
-Write-Host -ForegroundColor Yellow @'
-
-  _____           _        _ _ _                                     
- |_   _|         | |      | | (_)                                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __  ___ 
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |  / _` | '_ \| '_ \/ __|
-  _| |_| | | \__ \ |_ (_| | | | | | | | (_| | | (_| | |_) | |_) \__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-                                        __/ |       | |   | |        
-                                       |___/        |_|   |_|        
-
-'@
-Measure-Command {
-
-    $Parameters = @{
-        "containerName" = $containerName
-        "tenant" = $tenant
-        "credential" = $credential
-        "appFile" = $installApps
-        "skipVerification" = $true
-        "sync" = $true
-        "install" = $true
-    }
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
+    CopyAppFilesToFolder -appFiles $installApps -folder $appPackagesFolder | Out-Null
 }
 
 if (!$skipAppSourceCop) {
@@ -526,6 +485,8 @@ $parameters = @{
     "enableAppSourceCop" = $true
     "failOnError" = $failOnError
     "ignoreWarnings" = !$includeWarnings
+    "doNotIgnoreInfos" = !$doNotIgnoreInfos
+    "appPackagesFolder" = $appPackagesFolder
 }
 if ($CompileAppInBcContainer) {
     $parameters += @{
@@ -535,142 +496,6 @@ if ($CompileAppInBcContainer) {
 $validationResult += @(Run-AlCops @Parameters)
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning AppSourceCop took $([int]$_.TotalSeconds) seconds" }
-
-}
-
-if ($previousApps -and !$skipUpgrade) {
-Write-Host -ForegroundColor Yellow @'
-
-  _____           _        _ _ _               _____                _                                            
- |_   _|         | |      | | (_)             |  __ \              (_)                     /\                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |__) | __ _____   ___  ___  _   _ ___     /  \   _ __  _ __  ___ 
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | |  ___/ '__/ _ \ \ / / |/ _ \| | | / __|   / /\ \ | '_ \| '_ \/ __|
-  _| |_| | | \__ \ |_ (_| | | | | | | | (_| | | |   | | |  __/\ V /| | (_) | |_| \__ \  / ____ \| |_) | |_) \__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, | |_|   |_|  \___| \_/ |_|\___/ \__,_|___/ /_/    \_\ .__/| .__/|___/
-                                        __/ |                                                   | |   | |        
-                                       |___/                                                    |_|   |_|        
-
-'@
-Measure-Command {
-$appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-try {
-    Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $previousApps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-            "useDevEndpoint" = $false
-        }
-        try {
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-        }
-        catch {
-            $error = "Unable to install previous app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipUpgrade.`nError is: $($_.Exception.Message)"
-            $validationResult += $error
-            Write-Host -ForegroundColor Red $error
-        }
-    }
-}
-finally {
-    Remove-Item -Path $appsFolder -Recurse -Force
-}
-
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
-}
-
-Write-Host -ForegroundColor Yellow @'
-
-  _____       _     _ _     _     _                                        
- |  __ \     | |   | (_)   | |   (_)                 /\                    
- | |__) |   _| |__ | |_ ___| |__  _ _ __   __ _     /  \   _ __  _ __  ___ 
- |  ___/ | | | '_ \| | / __| '_ \| | '_ \ / _` |   / /\ \ | '_ \| '_ \/ __|
- | |   | |_| | |_) | | \__ \ | | | | | | | (_| |  / ____ \| |_) | |_) \__ \
- |_|    \__,_|_.__/|_|_|___/_| |_|_|_| |_|\__, | /_/    \_\ .__/| .__/|___/
-                                           __/ |          | |   | |        
-                                          |___/           |_|   |_|        
-
-'@
-Measure-Command {
-
-$installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-
-$appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-try {
-    Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue | ForEach-Object {
-        
-        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-        Extract-AppFileToFolder -appFilename $_ -appFolder $tmpFolder -generateAppJson
-        $appJsonFile = Join-Path $tmpfolder "app.json"
-        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-        if ($appJson.ShowMyCode) {
-            $warningsToShow += "NOTE: $([System.IO.Path]::GetFileName($_)) has ShowMyCode set to true. This means that people will be able to debug and see the source code of your app. (see https://aka.ms/showMyCode)"
-        }
-        Remove-Item $tmpFolder -Recurse -Force
-    
-        $installedApp = $installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }
-        if ($installedApp -ne $null -and $installedApp.Version -eq $appJson.Version) {
-            Write-Host "Skipping installation of $($installedApp.Name) version $($installedApp.Version), version already installed."
-        }
-        else {
-            $Parameters = @{
-                "containerName" = $containerName
-                "tenant" = $tenant
-                "credential" = $credential
-                "appFile" = $_
-                "skipVerification" = $skipVerification
-                "sync" = $true
-                "install" = ($installedApp -eq $null)
-                "upgrade" = ($installedApp -ne $null)
-            }
-        
-            try {
-                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-            }
-            catch {
-                if ($parameters.upgrade) {
-                    $action = "upgrade"
-                }
-                else {
-                    $action = "install"
-                }
-                $error = "Unable to $action app $([System.IO.Path]::GetFileName($parameters.appFile)) on container based on $($artifactUrl.Split('?')[0]).`nError is: $($_.Exception.Message)"
-                $validationResult += $error
-                Write-Host -ForegroundColor Red $error
-            }
-        }
-    }
-}
-finally {
-    Remove-Item -Path $appsFolder -Recurse -Force
-}
-
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
-
-if (!$skipConnectionTest) {
-Write-Host -ForegroundColor Yellow @'
-   _____                            _   _               _           _   
-  / ____|                          | | (_)             | |         | |  
- | |     ___  _ __  _ __   ___  ___| |_ _  ___  _ __   | |_ ___ ___| |_ 
- | |    / _ \| '_ \| '_ \ / _ \/ __| __| |/ _ \| '_ \  | __/ _ \ __| __|
- | |____ (_) | | | | | | |  __/ (__| |_| | (_) | | | | | |_  __\__ \ |_ 
-  \_____\___/|_| |_|_| |_|\___|\___|\__|_|\___/|_| |_|  \__\___|___/\__|
-'@                                                                        
-
-Measure-Command {
-try {
-    Run-ConnectionTestToBcContainer -containerName $containerName -tenant $tenant -credential $credential
-}
-catch {
-    $error = "Unable to run Connection test on container based on $($artifactUrl.Split('?')[0]). You can try to re-run with -skipConnectionTest.`nError is: $($_.Exception.Message)"
-    $validationResult += $error
-    Write-Host -ForegroundColor Red $error
-}
-
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Connection Test took $([int]$_.TotalSeconds) seconds" }
 
 }
 
@@ -685,6 +510,7 @@ catch {
 }
 finally {
     $progressPreference = $prevProgressPreference
+    Remove-Item -Path $appPackagesFolder -Recurse -Force
 }
 
 Write-Host -ForegroundColor Yellow @'
