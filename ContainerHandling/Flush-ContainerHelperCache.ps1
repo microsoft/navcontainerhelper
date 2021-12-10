@@ -147,8 +147,10 @@ try {
                 }
             }
         }
-        Write-Host "Running Docker image prune"
-        docker image prune -f > $null
+        if ($keepDays -eq 0) {
+            Write-Host "Running Docker image prune"
+            docker image prune -f > $null
+        }
         Write-Host "Completed"
     }
 }
