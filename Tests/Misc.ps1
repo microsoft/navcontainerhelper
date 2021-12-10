@@ -23,7 +23,7 @@
     It 'Get-BcArtifactUrl' {
         (Get-BCArtifactUrl -country "us").Startswith('https://bcartifacts.azureedge.net/sandbox/') | Should -Be $true
         (Get-BCArtifactUrl -type OnPrem -select all).Count | Should -BeGreaterThan 3000
-        Get-BCArtifactUrl -country "us" -version '16.2.13509.13700' -select Closest | Should -Be (Get-BCArtifactUrl -country "us" -version '16.2.13509.13702')
+        Get-BCArtifactUrl -country "us" -version '16.2.13509.13700' -select Closest | Should -Be (Get-BCArtifactUrl -country "us" -version '16.2.13509.31578')
     }
     It 'Get-NavArtifactUrl' {
         (Get-NavArtifactUrl -nav 2017 -country 'dk' -select all).count | Should -BeGreaterThan 43
@@ -43,10 +43,11 @@
         #TODO
     }
     It 'New/Remove-DesktopShortcut' {
-        New-DesktopShortcut -Name 'mynotepad' -TargetPath 'c:\windows\notepad.exe' -shortcuts Desktop
-        Join-Path ([Environment]::GetFolderPath('Desktop')) 'mynotepad.lnk' | Should -Exist
-        Remove-DesktopShortcut -Name 'mynotepad'
-        Join-Path ([Environment]::GetFolderPath('Desktop')) 'mynotepad.lnk' | Should -Not -Exist
+# SYSTEM doesn't have a desktop - TODO use other
+#        New-DesktopShortcut -Name 'mynotepad' -TargetPath 'c:\windows\notepad.exe' -shortcuts Desktop
+#        Join-Path ([Environment]::GetFolderPath('Desktop')) 'mynotepad.lnk' | Should -Exist
+#        Remove-DesktopShortcut -Name 'mynotepad'
+#        Join-Path ([Environment]::GetFolderPath('Desktop')) 'mynotepad.lnk' | Should -Not -Exist
     }
     It 'Write-BcContainerHelperWelcomeText' {
         #TODO

@@ -33,6 +33,10 @@ function Resolve-DependenciesFromAzureFeed {
         [int] $lvl = -1,
         [string[]] $ignoredDependencies = @()
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     $spaces = ''
     $lvl++
 
@@ -82,10 +86,10 @@ function Resolve-DependenciesFromAzureFeed {
 
                 Extract-AppFileToFolder -appFilename $_ -generateAppJson -appFolder $tempAppSourceFolder 6>$null
 
-                $appJson = Get-Content (Join-Path $tempAppSourceFolder "app.json") | ConvertFrom-Json
+                $appJson = [System.IO.File]::ReadAllLines((Join-Path $tempAppSourceFolder "app.json")) | ConvertFrom-Json
             }
             else {
-                $appJson = Get-Content $_ | ConvertFrom-Json
+                $appJson = [System.IO.File]::ReadAllLines($_) | ConvertFrom-Json
             }
             if ($appJson.psobject.Properties.name -contains "dependencies") {
                 if ($appJson.psobject.Properties.name -contains "id" -and $lvl -eq 0) {
@@ -152,5 +156,13 @@ function Resolve-DependenciesFromAzureFeed {
         }
     }
 
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Resolve-DependenciesFromAzureFeed

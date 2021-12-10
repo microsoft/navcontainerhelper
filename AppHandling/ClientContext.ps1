@@ -83,7 +83,7 @@ class ClientContext {
         $clientSessionParameters = New-Object Microsoft.Dynamics.Framework.UI.Client.ClientSessionParameters
         $clientSessionParameters.CultureId = $this.culture
         $clientSessionParameters.UICultureId = $this.culture
-        $clientSessionParameters.TimeZoneId = "Romance Standard Time"
+        $clientSessionParameters.TimeZoneId = $this.timezone
         $clientSessionParameters.AdditionalSettings.Add("IncludeControlIdentifier", $true)
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"

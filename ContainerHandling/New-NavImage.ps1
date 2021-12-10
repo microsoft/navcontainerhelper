@@ -10,6 +10,8 @@
   Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
   BaseImage to use. Default is using Get-BestGenericImage to get the best generic image to use.
+ .Parameter registryCredential
+  Credentials for the registry for baseImage if you are using a private registry (incl. bcinsider)
  .Parameter isolation
   Isolation mode for the image build process (default is process if baseImage OS matches host OS)
  .Parameter memory
@@ -32,6 +34,7 @@ function New-BcImage {
         [string] $artifactUrl,
         [string] $imageName = "myimage",
         [string] $baseImage = "",
+        [PSCredential] $registryCredential,
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
         [string] $memory = "",
@@ -48,6 +51,44 @@ function New-BcImage {
         [switch] $skipIfImageAlreadyExists,
         $allImages
     )
+
+
+function RoboCopyFiles {
+    Param(
+        [string] $source,
+        [string] $destination,
+        [string] $files = "*",
+        [switch] $e
+    )
+
+    Write-Host $source
+    if ($e) {
+        RoboCopy "$source" "$destination" "$files" /e /NFL /NDL /NJH /NJS /nc /ns /np /mt /z /nooffload | Out-Null
+        Get-ChildItem -Path $source -Filter $files -Recurse | ForEach-Object {
+            $destPath = Join-Path $destination $_.FullName.Substring($source.Length)
+            while (!(Test-Path $destPath)) {
+                Write-Host "Waiting for $destPath to be available"
+                Start-Sleep -Seconds 1
+            }
+        }
+    }
+    else {
+        RoboCopy "$source" "$destination" "$files" /NFL /NDL /NJH /NJS /nc /ns /np /mt /z /nooffload | Out-Null
+        Get-ChildItem -Path $source -Filter $files | ForEach-Object {
+            $destPath = Join-Path $destination $_.FullName.Substring($source.Length)
+            while (!(Test-Path $destPath)) {
+                Write-Host "Waiting for $destPath to be available"
+                Start-Sleep -Seconds 1
+            }
+        }
+    }
+}
+
+$telemetryScope = InitTelemetryScope `
+                    -name $MyInvocation.InvocationName `
+                    -parameterValues $PSBoundParameters `
+                    -includeParameters @("containerName","artifactUrl","isolation","imageName","baseImage","registryCredential","multitenant","filesOnly")
+try {
 
     if ($memory -eq "") {
         $memory = "8G"
@@ -75,6 +116,7 @@ function New-BcImage {
     $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
     $hostOs = "Unknown/Insider build"
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
+    $isServerHost = $os.ProductType -eq 3
 
     if ("$baseImage" -eq "") {
         if ("$bestGenericImageName" -eq "") {
@@ -84,7 +126,18 @@ function New-BcImage {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 19043) { 
+    if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
+        if ($isServerHost) {
+            $hostOs = "ltsc2022"
+        }
+        else {
+            $hostOs = "21H2"
+        }
+    }
+    elseif ($os.BuildNumber -eq 19044) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 19043) { 
         $hostOs = "21H1"
     }
     elseif ($os.BuildNumber -eq 19042) { 
@@ -183,7 +236,7 @@ function New-BcImage {
                 try {
                     Write-Host "Image $imageName already exists"
                     $inspect = docker inspect $imageName | ConvertFrom-Json
-                    $labels = Get-BcContainerImageLabels -imageName $baseImage
+                    $labels = Get-BcContainerImageLabels -imageName $baseImage -registryCredential $registryCredential
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
                     if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
@@ -195,7 +248,7 @@ function New-BcImage {
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.Country -ne $appManifest.Country) {
-                        Write-Host "Image $imageName was built with version $($inspect.Config.Labels.version), should be $($appManifest.Version)"
+                        Write-Host "Image $imageName was built with country $($inspect.Config.Labels.country), should be $($appManifest.country)"
                         $forceRebuild = $true
                     }
                     elseif ($inspect.Config.Labels.osversion -ne $labels.osversion) {
@@ -291,6 +344,12 @@ function New-BcImage {
             elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
                 $containerOs = "21H1"
             }
+            elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+                $containerOs = "21H2"
+            }
+            elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+                $containerOs = "ltsc2022"
+            }
             else {
                 $containerOs = "unknown"
             }
@@ -310,9 +369,23 @@ function New-BcImage {
                     $isolation = "process"
                 }
             }
+            elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
+                if ($containerOsVersion -le $hostOsVersion) {
+                    $isolation = "process"
+                }
+                else {
+                    $isolation = "hyperv"
+                }
+            }
             elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
                 if ($isolation -eq "") {
                     Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
+                    $isolation = "process"
+                }
+            }
+            elseif ("$hostOsVersion".StartsWith('10.0.19044.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+                if ($isolation -eq "") {
+                    Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H2 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
                     $isolation = "process"
                 }
             }
@@ -339,13 +412,13 @@ function New-BcImage {
             }
             Write-Host "Using $isolation isolation"
         
-            $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+            $downloadsPath = $bcartifactsCacheFolder
             if (!(Test-Path $downloadsPath)) {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
             }
         
             do {
-                $buildFolder = Join-Path (Get-ContainerHelperConfig).bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+                $buildFolder = Join-Path $bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
             }
             until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
         
@@ -386,13 +459,12 @@ function New-BcImage {
         
                 $licenseFilePath = ""
                 if ($licenseFile) {
-                    $licenseFilePath = Join-Path $myFolder "license.flf"
                     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-                        Write-Host "Using license file $licenseFile"
+                        Write-Host "Using license file $($licenseFile.Split('?')[0])"
+                        $ext = [System.IO.Path]::GetExtension($licenseFile.Split('?')[0])
+                        $licenseFilePath = Join-Path $myFolder "license$ext"
                         Download-File -sourceUrl $licenseFile -destinationFile $licenseFilePath
-                        $bytes = [System.IO.File]::ReadAllBytes($licenseFilePath)
-                        $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-                        if (!($text.StartsWith("Microsoft Software License Information"))) {
+                        if ((Get-Content $licenseFilePath -First 1) -ne "Microsoft Software License Information") {
                             Remove-Item -Path $licenseFilePath -Force
                             throw "Specified license file Uri isn't a direct download Uri"
                         }
@@ -439,7 +511,7 @@ function New-BcImage {
                 New-Item $navDvdPath -ItemType Directory | Out-Null
         
                 Write-Host "Copying Platform Artifacts"
-                Robocopy "$platformArtifactPath" "$navDvdPath" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+                RobocopyFiles -source "$platformArtifactPath" -destination "$navDvdPath" -e
         
                 if (!$skipDatabase) {
                     $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
@@ -462,7 +534,7 @@ function New-BcImage {
                             Remove-Item -path $destFolder -Recurse -Force
                         }
                         Write-Host "Copying $name"
-                        RoboCopy "$appSubFolder" "$destFolder" /e /NFL /NDL /NJH /NJS /nc /ns /np | Out-Null
+                        RoboCopyFiles -Source "$appSubFolder" -Destination "$destFolder" -e
                     }
                 }
             
@@ -578,6 +650,14 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
     finally {
         $buildMutex.ReleaseMutex()
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name New-NavImage -Value New-BcImage
 Export-ModuleMember -Function New-BcImage -Alias New-NavImage

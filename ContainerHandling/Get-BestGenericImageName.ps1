@@ -13,6 +13,9 @@ function Get-BestGenericImageName {
         [switch] $filesOnly
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($hostOsVersion -eq $null) {
         $os = (Get-CimInstance Win32_OperatingSystem)
         if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
@@ -31,10 +34,10 @@ function Get-BestGenericImageName {
     }
 
     if ($filesOnly) {
-        $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageNameFilesOnly
+        $genericImageNameSetting = $bcContainerHelperConfig.genericImageNameFilesOnly
     }
     else {
-        $genericImageNameSetting = (Get-ContainerHelperConfig).genericImageName
+        $genericImageNameSetting = $bcContainerHelperConfig.genericImageName
     }
     $repo = $genericImageNameSetting.Split(':')[0]
     $tag = $genericImageNameSetting.Split(':')[1].Replace('{0}','*')
@@ -231,9 +234,9 @@ function Get-BestGenericImageName {
         $myversions = $versions | Where-Object { $_.Major -eq $hostOsVersion.Major -and $_.Minor -eq $hostOsVersion.Minor -and $_.Build -eq $hostOsVersion.Build } | Sort-Object
         if (-not $myversions) {
             if (-not $onlyMatchingBuilds) {
-                if ($hostOsVersion.Build -eq 19043) {
+                if ($hostOsVersion.Build -eq 19043 -or $hostOsVersion.Build -eq 19044) {
                     # 21H1 doesn't work well with 20H2 servercore images - grab 2004 if no corresponding image exists
-                    Write-Host -ForegroundColor Yellow "INFO: Windows 10 21H1 images are not yet available, use 2004 as these are found to work better than 20H2 on 21H1"
+                    Write-Host -ForegroundColor Yellow "INFO: Windows 10 21H1/21H2 images are not yet available, using 2004 as these are found to work better than 20H2 on 21H1/21H2"
                     $myversions = $versions | Where-Object { $_.Build -eq 19041 } | Sort-Object
                 }
                 else {
@@ -250,5 +253,13 @@ function Get-BestGenericImageName {
         }
         $genericImageName
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Get-BestGenericImageName

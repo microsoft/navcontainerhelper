@@ -28,6 +28,10 @@ function Publish-BuildOutputToAzureFeed {
         [Parameter(Mandatory = $true)]
         [string] $pat
     )
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     Get-Childitem –Path (Join-Path $path "\Apps\*.app") | % {
         $basename = $_.Basename
 
@@ -56,7 +60,7 @@ function Publish-BuildOutputToAzureFeed {
               
             Extract-AppFileToFolder -appFilename (Join-Path $tempAppOutFolder $_.Name) -generateAppJson -appFolder $tempAppSourceFolder
     
-            $appJson = Get-Content (Join-Path $tempAppSourceFolder "app.json") | ConvertFrom-Json
+            $appJson = [System.IO.File]::ReadAllLines((Join-Path $tempAppSourceFolder "app.json")) | ConvertFrom-Json
     
             # Downgrade Version to fit AzureFeed... -.- 
             $appVersion = $appJson.version.split('.')
@@ -75,5 +79,13 @@ function Publish-BuildOutputToAzureFeed {
             Remove-Item -Path $tempAppFolder -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Export-ModuleMember -Function Publish-BuildOutputToAzureFeed

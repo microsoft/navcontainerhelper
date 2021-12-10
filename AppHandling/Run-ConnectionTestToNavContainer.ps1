@@ -65,7 +65,7 @@ try {
     $version = [System.Version]($navversion.split('-')[0])
 
     if ($bcAuthContext) {
-        $response = Invoke-RestMethod -Method Get -Uri "https://businesscentral.dynamics.com/$($bcAuthContext.tenantID)/$environment/deployment/url"
+        $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
         if($response.status -ne 'Ready') {
             throw "environment not ready, status is $($response.status)"
         }

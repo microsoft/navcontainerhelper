@@ -30,7 +30,9 @@ try {
     Write-Host "Copying Al Source Files from $Path to $Destination"
 
     if ($alFileStructure) {
-        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension')
+        $types = @('enum', 'page', 'table', 'codeunit', 'report', 'query', 'xmlport', 'profile', 'dotnet', 'enumextension', 'pageextension', 'tableextension', 'interface', 'entitlement', 'permissionset', 'permissionsetextension', 'pagecustomization')
+        $noidtypes = @('profile','interface','entitlement','pagecustomization')
+
         $extensions = @(".al",".xlf",".lcl")
 
         $files = Get-ChildItem -Path $Path -Recurse:$Recurse
@@ -44,22 +46,25 @@ try {
                     $type = $_.Extension
                     $id = ''
                     $name = $_.BaseName
+                    $found = $true
                 } 
                 else {
                     $found = $false
                     foreach($Line in $content) {
                         if (-not $found) {
                             $line = $Line.Trim()
-                            $idx = $line.IndexOf(' ')
-                            if ($idx -lt 0) {
-                                $type = $line
-                            }
-                            else {
-                                $type = $line.SubString(0,$idx).ToLowerInvariant()
-                            }
-                            if ($types.Contains($type)) {
-                                $found = $true
-                                break
+                            if ($line -notlike '//*') {
+                                $idx = $line.IndexOf(' ')
+                                if ($idx -lt 0) {
+                                    $type = $line
+                                }
+                                else {
+                                    $type = $line.SubString(0,$idx).ToLowerInvariant()
+                                }
+                                if ($types.Contains($type)) {
+                                    $found = $true
+                                    break
+                                }
                             }
                         } 
                     }
@@ -70,7 +75,7 @@ try {
                     }
                     else {
                         $line = $line.SubString($type.Length).TrimStart()
-                        if ($type -eq "profile" -or $type -eq "interface" -or $type -eq "entitlement") {
+                        if ($noidTypes.Contains($type)) {
                             $id = ''
                         }
                         else {
@@ -86,13 +91,16 @@ try {
                         }
                     }
                 }
-                if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
-                    $newFilename = "$($alFileStructure.Invoke($type, $id, $name))"
+
+                $newFilename = ""
+                if ($found) {
+                    if ($alFileStructure.Ast.ParamBlock.Parameters.Count -eq 3) {
+                        $newFilename = "$($alFileStructure.Invoke($type, $id, $name))"
+                    }
+                    else {
+                        $newFilename = "$($alFileStructure.Invoke($type, $id, $name, [ref] $content))"
+                    }
                 }
-                else {
-                    $newFilename = "$($alFileStructure.Invoke($type, $id, $name, [ref] $content))"
-                }
-    
                 if ($newFilename) {
                     $newFilename = $newFilename -replace '[~#%&*{}|:<>?/"]', ''
  

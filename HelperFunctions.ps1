@@ -234,7 +234,7 @@ function Expand-7zipArchive {
     $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
 
     $use7zip = $false
-    if ((Get-ContainerHelperConfig).use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
+    if ($bcContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
         try {
             $use7zip = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileMajorPart -ge 19
         }
@@ -685,7 +685,7 @@ function Parse-JWTtoken([string]$token) {
     if ($token.Contains(".") -and $token.StartsWith("eyJ")) {
         $tokenPayload = $token.Split(".")[1].Replace('-', '+').Replace('_', '/')
         while ($tokenPayload.Length % 4) { $tokenPayload += "=" }
-        return [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($tokenPayload)) | ConvertFrom-Json
+        return [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tokenPayload)) | ConvertFrom-Json
     }
     throw "Invalid token"
 }
@@ -760,12 +760,30 @@ function GetRandomPassword {
 }
 
 function getVolumeMountParameter($volumes, $hostPath, $containerPath) {
-    $volume = $volumes | Where-Object { $_ -like "$hostPath|*" }
+    $volume = $volumes | Where-Object { $_ -like "*|$hostPath" -or $_ -like "$hostPath|*" }
     if ($volume) {
         $volumeName = $volume.Split('|')[1]
         "--mount source=$($volumeName),target=$containerPath"
     }
     else {
         "--volume ""$($hostPath):$($containerPath)"""
+    }
+}
+
+function testPfxCertificate([string] $pfxFile, [SecureString] $pfxPassword, [string] $certkind) {
+    if (!(Test-Path $pfxFile)) {
+        throw "$certkind certificate file does not exist"
+    }
+    try {
+        $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($pfxFile, $pfxPassword)
+    }
+    catch {
+        throw "Unable to read $certkind certificate. Error was $($_.Exception.Message)"
+    }
+    if ([DateTime]::Now -gt $cert.NotAfter) {
+        throw "$certkind certificate expired on $($cert.GetExpirationDateString())"
+    }
+    if ([DateTime]::Now -gt $cert.NotAfter.AddDays(-14)) {
+        Write-Host -ForegroundColor Yellow "$certkind certificate will expire on $($cert.GetExpirationDateString())"
     }
 }

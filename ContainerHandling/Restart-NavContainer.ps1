@@ -23,18 +23,32 @@ function Restart-BcContainer {
         [int] $timeout = 1800
     )
 
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
     if ($renewBindings) {
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { 
             Set-Content -Path "c:\run\PublicDnsName.txt" -Value ""
         }
     }
 
+    $logs = @(docker logs $containerName)
+    $startlog = [string]::Join("`r`n",$logs)
+
     if (!(DockerDo -command restart -imageName $containerName)) {
         return
     }
     if ($timeout -ne 0) {
-        Wait-BcContainerReady -containerName $containerName -timeout $timeout
+        Wait-BcContainerReady -containerName $containerName -timeout $timeout -startlog $startlog
     }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Restart-NavContainer -Value Restart-BcContainer
 Export-ModuleMember -Function Restart-BcContainer -Alias Restart-NavContainer

@@ -15,29 +15,39 @@ function Test-BcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [switch] $doNotIncludeStoppedContainers
     )
-    Process {
-        if ($containerName) {
-            $id = ""
-            $a = "-a"
-            if ($doNotIncludeStoppedContainers) {
-                $a = ""
-            }
-    
-            $id = docker ps $a -q --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
-            if (!($id)) {
-                $id = docker ps $a -q --no-trunc --filter "id=$containerName"
-            }
-            if ($id) {
-                $inspect = docker inspect $id | ConvertFrom-Json
-                ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
-            } else {
-                $false
-            }
+
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
+
+    if ($containerName) {
+        $id = ""
+        $a = "-a"
+        if ($doNotIncludeStoppedContainers) {
+            $a = ""
         }
-        else {
+
+        $id = docker ps $a -q --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
+        if (!($id)) {
+            $id = docker ps $a -q --no-trunc --filter "id=$containerName"
+        }
+        if ($id) {
+            $inspect = docker inspect $id | ConvertFrom-Json
+            ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")
+        } else {
             $false
         }
     }
+    else {
+        $false
+    }
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Test-NavContainer -Value Test-BcContainer
 Export-ModuleMember -Function Test-BcContainer -Alias Test-NavContainer

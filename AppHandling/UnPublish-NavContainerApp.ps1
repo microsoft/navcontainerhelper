@@ -78,11 +78,14 @@ try {
         if ($version) {
             $params += @{ 'Version' = $version }
         }
-        $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $name @params)
-        if ([bool]($appInfo.PSObject.Properties.Name -eq 'Scope')) {
-            if ($appInfo.Scope -eq "Tenant") {
-                $params += @{ 'Tenant' = $tenant }
+        $tenantScope = $false
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Name $name @params | ForEach-Object {
+            if ([bool]($_.PSObject.Properties.Name -eq 'Scope')) {
+                if ($_.Scope -eq "Tenant") { $tenantScope = $true }
             }
+        }
+        if ($tenantScope) {
+            $params += @{ 'Tenant' = $tenant }
         }
 
         Write-Host "Unpublishing $name"

@@ -39,7 +39,7 @@ try {
     Write-Host "Submitting new Application Insights Key for $applicationFamily/$environment"
     $body | ConvertTo-Json | Out-Host
     try {
-        Invoke-RestMethod -Method POST -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment/settings/appInsightsKey" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
+        Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment/settings/appInsightsKey" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)

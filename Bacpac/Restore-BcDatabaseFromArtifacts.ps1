@@ -47,7 +47,7 @@ try {
     }
     $successFileName = ""
     if ($async) {
-        $successFileName = Join-Path $bcContainerHelperConfig.hostHelperFolder "$($databasePrefix)databasescreated.txt"
+        $successFileName = Join-Path $hosthelperfolder "$($databasePrefix)databasescreated.txt"
         if (Test-Path $successFileName) { Remove-Item $successFileName -Force }
     }
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"
@@ -113,10 +113,10 @@ try {
             
             Copy-Item -Path $bakFile -Destination $uncDefaultBackupPath -Force
 
-            $bakFile = Join-Path $defaultBackupPath ($bakFile | Split-Path -Leaf)
+            $bakFile = "$($defaultBackupPath.TrimEnd('\'))\$($bakFile | Split-Path -Leaf)"
         }
 
-        $destinationPath = Join-Path $DefaultDataPath ($databaseprefix -replace '[^a-zA-Z0-9]', '')
+        $destinationPath = "$($DefaultDataPath.TrimEnd('\'))\$($databaseprefix -replace '[^a-zA-Z0-9]', '')"
         
         # Create destination folder
         if($databaseServer -ne 'localhost'){

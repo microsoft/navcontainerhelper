@@ -52,7 +52,7 @@ try {
                 throw "You can only upload, import and apply one config package at a time  ($configPackage matches multiple files inside the container)"
                 return
             }
-            $configPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([System.IO.Path]::GetFileName($containerConfigPackage))"
+            $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$([System.IO.Path]::GetFileName($containerConfigPackage))"
             if (Test-Path $configPackage) {
                 Remove-Item $configPackage -Force
             }
@@ -114,6 +114,7 @@ try {
                               -APIPublisher "microsoft" `
                               -APIGroup "automation" `
                               -APIVersion "v1.0" `
+                              -body @{} `
                               -Method "POST" `
                               -Query "configurationPackages('$packageId')/Microsoft.NAV.import" | Out-Null
         
@@ -151,6 +152,7 @@ try {
                                   -APIGroup "automation" `
                                   -APIVersion "v1.0" `
                                   -Method "POST" `
+                                  -body @{} `
                                   -Query "configurationPackages('$packageId')/Microsoft.NAV.apply" | Out-Null
             
             $status = ""

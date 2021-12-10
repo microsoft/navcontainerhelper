@@ -155,7 +155,7 @@
  .Parameter doNotCopyEntitlements
   Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter copyTables
-  Array if table names to copy from original database when using -useNewDatabase
+  Array of table names to copy from original database when using -useNewDatabase
  .Parameter dumpEventLog
   Add this switch if you want the container to dump new entries in the eventlog to the output (docker logs) every 2 seconds
  .Parameter doNotCheckHealth
@@ -187,7 +187,7 @@ function New-BcContainer {
         [switch] $accept_eula,
         [switch] $accept_outdated = $true,
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [string] $imageName = "", 
+        [string] $imageName = "",
         [string] $artifactUrl = "", 
         [Alias('navDvdPath')]
         [string] $dvdPath = "", 
@@ -273,10 +273,13 @@ function New-BcContainer {
         [scriptblock] $finalizeDatabasesScriptBlock
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("accept_eula","artifactUrl","imageName")
+$telemetryScope = InitTelemetryScope `
+                    -name $MyInvocation.InvocationName `
+                    -parameterValues $PSBoundParameters `
+                    -includeParameters @("containerName","artifactUrl","isolation","imageName","multitenant","filesOnly")
 try {
 
-    $defaultNewContainerParameters = (Get-ContainerHelperConfig).defaultNewContainerParameters
+    $defaultNewContainerParameters = $bcContainerHelperConfig.defaultNewContainerParameters
     if ($defaultNewContainerParameters -is [HashTable]) {
         $defaultNewContainerParameters.GetEnumerator() | ForEach-Object {
             if (!($PSBoundParameters.ContainsKey($_.Name))) {
@@ -406,7 +409,19 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 19043) { 
+
+    if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
+        if ($isServerHost) {
+            $hostOs = "ltsc2022"
+        }
+        else {
+            $hostOs = "21H2"
+        }
+    }
+    elseif ($os.BuildNumber -eq 19044) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 19043) { 
         $hostOs = "21H1"
     }
     elseif ($os.BuildNumber -eq 19042) { 
@@ -478,7 +493,7 @@ try {
         throw "Docker is running $dockerOS containers, you need to switch to Windows containers."
    	}
     Write-Host "Docker Client Version is $dockerClientVersion"
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerClientVersion" -value $dockerClientVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerClientVersion" -value $dockerClientVersion
 
     $myClientVersion = [System.Version]"0.0.0"
     if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
@@ -486,12 +501,16 @@ try {
     }
 
     Write-Host "Docker Server Version is $dockerServerVersion"
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerServerVersion" -value $dockerServerVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerServerVersion" -value $dockerServerVersion
 
     $doNotGetBestImageName = $false
     $skipDatabase = $false
     if ($bakFile -ne "" -or $databaseServer -ne "" -or $databaseInstance -ne "" -or "$databasePrefix$databaseName" -ne "") {
         $skipDatabase = $true
+    }
+
+    if ($imageName -eq "" -and $artifactUrl -eq "" -and $dvdPath -eq "") {
+        throw "You have to specify artifactUrl or imageName when creating a new container."            
     }
 
     # Remove if it already exists
@@ -653,7 +672,7 @@ try {
     $navVersion = $dvdVersion
     $bcStyle = "onprem"
 
-    $downloadsPath = (Get-ContainerHelperConfig).bcartifactsCacheFolder
+    $downloadsPath = $bcContainerHelperConfig.bcartifactsCacheFolder
     if (!(Test-Path $downloadsPath)) {
         New-Item $downloadsPath -ItemType Directory | Out-Null
     }
@@ -950,7 +969,6 @@ try {
         }
     }
 
-    Write-Host "Version: $navversion"
     Write-Host "Style: $bcStyle"
     if ($multitenant) {
         Write-Host "Multitenant: Yes"
@@ -960,6 +978,8 @@ try {
     }
 
     $version = [System.Version]($navversion.split('-')[0])
+    Write-Host "Version: $version"
+
     if ($dvdPlatform) {
         $platformVersion = $dvdPlatform
     }
@@ -972,11 +992,16 @@ try {
     }
     if ($platformversion) {
         Write-Host "Platform: $platformversion"
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "platformVersion" -value $platformVersion
     }
 
     $genericTag = $inspect.Config.Labels.tag
     Write-Host "Generic Tag: $genericTag"
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "GenericTag" -value $genericTag
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "applicationVersion" -value $navVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "country" -value $devCountry
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "style" -value $bcStyle
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "multitenant" -value $multitenant
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "genericTag" -value $genericTag
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -1012,16 +1037,22 @@ try {
     elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
         $containerOs = "21H1"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+        $containerOs = "21H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+        $containerOs = "ltsc2022"
+    }
     else {
         $containerOs = "unknown"
     }
     Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
     Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
 
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "HostOs" -value $hostOs
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "HostOsVersion" -value $hostOsVersion
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "ContainerOs" -value $containerOs
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "ContainerOsVersion" -value $containerOsVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "hostOs" -value $hostOs
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "hostOsVersion" -value $hostOsVersion
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "containerOs" -value $containerOs
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "containerOsVersion" -value $containerOsVersion
 
     if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
         ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
@@ -1138,6 +1169,12 @@ try {
         elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
             $containerOs = "21H1"
         }
+        elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+            $containerOs = "21H2"
+        }
+        elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+            $containerOs = "ltsc2022"
+        }
         else {
             $containerOs = "unknown"
         }
@@ -1148,12 +1185,27 @@ try {
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
+    if ($version.Major -lt 15 -and ($genericTag -eq "1.0.1.7")) {
+        Write-Host "Patching start.ps1 due to issue #2130"
+        $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/start.ps1" )
+    }
+
     if ($hostOsVersion -eq $containerOsVersion) {
         if ($isolation -eq "") {
             $isolation = "process"
         }
     }
-    elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+    elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
+        if ($isolation -eq "") {
+            if ($containerOsVersion -le $hostOsVersion) {
+                $isolation = "process"
+            }
+            else {
+                $isolation = "hyperv"
+            }
+        }
+    }
+    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
         if ($isolation -eq "") {
             Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
             $isolation = "process"
@@ -1182,7 +1234,7 @@ try {
     }
     Write-Host "Using $isolation isolation"
 
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Isolation" -value $isolation
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "isolation" -value $isolation
 
 
     if ("$locale" -eq "") {
@@ -1190,7 +1242,7 @@ try {
     }
     Write-Host "Using locale $locale"
 
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "Locale" -value $locale
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "locale" -value $locale
 
 
     if ($filesOnly -and $version.Major -lt 15) {
@@ -1217,8 +1269,19 @@ try {
         throw "EnableSymbolLoading is no longer needed in Dynamics 365 Business Central 2019 wave 2 release (1910 / 15.x)"
     }
 
-    $myFolder = Join-Path $containerFolder "my"
-    New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+    if ($bcContainerHelperConfig.UseVolumeForMyFolder) {
+        $myVolumeName = "$containerName-my"
+        if ($allVolumes | Where-Object { $_ -like "*|$myVolumeName" }) {
+            throw "Fatal error, volume $myVolumeName already exists"
+        }
+        docker volume create $myVolumeName
+        $myFolder = ((docker volume inspect $myVolumeName) | ConvertFrom-Json).MountPoint
+        $allVolumes += "$myfolder|$myVolumeName"
+    }
+    else {
+        $myFolder = Join-Path $containerFolder "my"
+        New-Item -Path $myFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+    }
 
     if ($useTraefik) {
         Write-Host "Adding special CheckHealth.ps1 to enable Traefik support"
@@ -1331,23 +1394,22 @@ try {
         } elseif ($licensefile -like "https://*" -or $licensefile -like "http://*") {
             Write-Host "Using license file $($licenseFile.Split('?')[0])"
             $licensefileUri = $licensefile
-            $licenseFile = "$myFolder\license.flf"
+            $ext = [System.IO.Path]::GetExtension($licenseFile.Split('?')[0])
+            $licenseFile = "$myFolder\license$ext"
             Download-File -sourceUrl $licenseFileUri -destinationFile $licenseFile
-            $bytes = [System.IO.File]::ReadAllBytes($licenseFile)
-            $text = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 100)
-            if (!($text.StartsWith("Microsoft Software License Information"))) {
+            if ((Get-Content $licenseFile -First 1) -ne "Microsoft Software License Information") {
                 Remove-Item -Path $licenseFile -Force
                 throw "Specified license file Uri isn't a direct download Uri"
             }
-            $containerLicenseFile = "c:\run\my\license.flf"
+            $containerLicenseFile = "c:\run\my\license$ext"
         } else {
             Write-Host "Using license file $licenseFile"
-            Copy-Item -Path $licenseFile -Destination "$myFolder\license.flf" -Force
-            $containerLicenseFile = "c:\run\my\license.flf"
+            $ext = [System.IO.Path]::GetExtension($licenseFile)
+            Copy-Item -Path $licenseFile -Destination "$myFolder\license$ext" -Force
+            $containerLicenseFile = "c:\run\my\license$ext"
         }
         $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
     }
-
 
     $parameters += @(
                     "--name $containerName",
@@ -1359,7 +1421,7 @@ try {
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
                     (getVolumeMountParameter -volumes $allVolumes -hostPath $hostHelperFolder -containerPath $containerHelperFolder),
-                    "--volume ""$($myFolder):C:\Run\my""",
+                    (getVolumeMountParameter -volumes $allVolumes -hostPath $myFolder -containerPath "C:\Run\my"),
                     "--isolation $isolation",
                     "--restart $restart"
                    )
@@ -1710,7 +1772,7 @@ if (-not `$restartingInstance) {
                             )
 
             if ("$databaseServer" -ne "" -and $bcContainerHelperConfig.useSharedEncryptionKeys -and !$encryptionKeyExists) {
-                $sharedEncryptionKeyFile = Join-Path $hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV.key"
+                $sharedEncryptionKeyFile = Join-Path $hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
                 if (Test-Path $sharedEncryptionKeyFile) {
                     Write-Host "Using Shared Encryption Key file"
                     Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
@@ -1723,10 +1785,18 @@ if (-not `$restartingInstance) {
         
         $parameters += $additionalParameters
     
+        # $parameters | Out-host
+
         if (!(DockerDo -accept_eula -accept_outdated:$accept_outdated -detach -imageName $imageName -parameters $parameters)) {
             return
         }
-        Wait-BcContainerReady $containerName -timeout $timeout
+        Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
+        if ($bcContainerHelperConfig.usePsSession) {
+            try {
+                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
+            } catch {}
+        }
+        
 
         if ($sharedEncryptionKeyFile -and !(Test-Path $sharedEncryptionKeyFile)) {
             Write-Host "Storing Container Encryption Key file"
@@ -1736,12 +1806,11 @@ if (-not `$restartingInstance) {
         Remove-Item -Path $passwordKeyFile -Force -ErrorAction Ignore
     }
 
-    $dockerLogs = docker logs $containerName
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "DockerLogs" -value ($dockerlogs -join "`n")
-
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     if ($customConfig.ServerInstance) {
+        # Only if not -filesOnly
+
         if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
             Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
@@ -2024,50 +2093,54 @@ if (-not `$restartingInstance) {
                 }
             }
         }
+    }
     
-        if ($includeAL) {
-            $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
-            New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-    
-            Write-Host "Creating .net Assembly Reference Folder for VS Code"
-            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
-    
-                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-    
-                $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
-    
-                $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
-                if (Test-Path $rtcFolder -PathType Container) {
-                    $paths += (Get-Item $rtcFolder).FullName
+    if ($includeAL) {
+        $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
+        New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
+
+        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+
+            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+
+            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
+
+            $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
+            if (Test-Path $rtcFolder -PathType Container) {
+                $paths += (Get-Item $rtcFolder).FullName
+            }
+            $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+            if (Test-Path $mockAssembliesPath -PathType Container) {
+                $paths += $mockAssembliesPath
+            }
+            $paths += "C:\Program Files (x86)\Open XML SDK"
+
+            $paths | % {
+                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                if (!(Test-Path $localPath)) {
+                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
                 }
-                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
-                if (Test-Path $mockAssembliesPath -PathType Container) {
-                    $paths += $mockAssembliesPath
-                }
-                $paths += "C:\Program Files (x86)\Open XML SDK"
-    
-                $paths | % {
-                    $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
-                    if (!(Test-Path $localPath)) {
-                        New-Item -Path $localPath -ItemType Directory -Force | Out-Null
-                    }
-                    Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                    Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
-                        if (!(Test-Path (Join-Path $localPath $_.Name))) {
-                            Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
-                        }
-                    }
-                }
-    
-                $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
-                if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
-                    if (Test-Path $RtcFolder -PathType Container) {
-                        new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
+                Write-Host "Copying DLLs from $_ to assemblyProbingPath"
+                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
+                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
                     }
                 }
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
-        }
-    
+            }
+
+            $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
+            if (!(Test-Path (Join-Path $serviceTierAddInsFolder "RTC"))) {
+                if (Test-Path $RtcFolder -PathType Container) {
+                    new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
+                }
+            }
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
+    }
+
+    if ($customConfig.ServerInstance) {
+        # Only if not -filesOnly
+
         if (($useCleanDatabase -or $useNewDatabase) -and !$restoreBakFolder) {
             Clean-BcContainerDatabase -containerName $containerName -useNewDatabase:$useNewDatabase -credential $credential -doNotCopyEntitlements:$doNotCopyEntitlements -copyTables $copyTables
             if ($multitenant) {

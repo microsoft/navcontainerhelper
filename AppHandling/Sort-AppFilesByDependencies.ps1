@@ -58,7 +58,7 @@ try {
                 try {
                     Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
                     $appJsonFile = Join-Path $tmpFolder "app.json"
-                    $appJson = Get-Content -Path $appJsonFile | ConvertFrom-Json
+                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 }
                 catch {
                     if ($_.exception.message -eq "You cannot extract a runtime package") {

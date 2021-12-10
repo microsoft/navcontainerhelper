@@ -18,6 +18,8 @@
   Specify Add, Clean or Development based on how you want to synchronize the database schema. Default is Add
  .Parameter install
   Include this parameter if you want to install the app after publishing
+ .Parameter upgrade
+  Include this parameter if you want to upgrade the app after publishing. if no upgrade is necessary then its just installed instead.
  .Parameter tenant
   If you specify the install switch, then you can specify the tenant in which you want to install the app
  .Parameter packageType
@@ -32,6 +34,8 @@
   Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Parameter replaceDependencies
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
+ .Parameter internalsVisibleTo
+  An Array of hashtable, containing id, name and publisher of an app, which should be added to internals Visible to
  .Parameter showMyCode
   With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
  .Parameter PublisherAzureActiveDirectoryTenantId
@@ -75,6 +79,7 @@ function Publish-BcContainerApp {
         [pscredential] $credential,
         [string] $language = "",
         [hashtable] $replaceDependencies = $null,
+        [hashtable[]] $internalsVisibleTo = $null,
         [ValidateSet('Ignore','True','False','Check')]
         [string] $ShowMyCode = "Ignore",
         [switch] $replacePackageId,
@@ -124,9 +129,9 @@ try {
 
             $appFile = $_
 
-            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId) {
+            if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
                 Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
+                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
             }
         
             if ($bcAuthContext -and $environment) {
@@ -145,7 +150,7 @@ try {
                 $sslVerificationDisabled = $false
                 if ($bcAuthContext -and $environment) {
                     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                    $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
+                    $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
                     $tenant = ""
         
                     $handler = New-Object System.Net.Http.HttpClientHandler
@@ -319,7 +324,16 @@ try {
                             Sync-NavTenant -ServerInstance $ServerInstance -Tenant $tenant -Force
                             Sync-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @syncArgs -force -WarningAction Ignore
                         }
-                
+
+                        if($upgrade -and $install){
+                            $navAppInfoFromDb = Get-NAVAppInfo -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant -TenantSpecificProperties
+                            if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version){
+                                $upgrade = $false
+                            } else {
+                                $install = $false
+                            }
+                        }
+                        
                         if ($install) {
         
                             $languageArgs = @{}
@@ -347,7 +361,7 @@ try {
         }
     }
     finally {
-        Remove-Item $appFolder -Recurse -Force
+        Remove-Item $appFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 catch {

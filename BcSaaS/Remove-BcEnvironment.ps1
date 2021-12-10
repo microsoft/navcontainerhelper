@@ -45,7 +45,7 @@ try {
         }
         Write-Host "Submitting environment removal request for $applicationFamily/$environment"
         try {
-            Invoke-RestMethod -Method DELETE -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers
+            Invoke-RestMethod -Method DELETE -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers
         }
         catch {
             throw (GetExtenedErrorMessage $_.Exception)

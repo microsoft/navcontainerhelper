@@ -27,21 +27,21 @@ function Get-BcInstalledExtensions {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
 
-    $baseUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment/api/microsoft/automation/v1.0"
+    $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v1.0"
 
-    $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseurl/companies" -UseBasicParsing
+    $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
     $company = $companies.value | Where-Object { ($companyName -eq "") -or ($_.name -eq $companyName) } | Select-Object -First 1
     if (!($company)) {
         throw "No company $companyName"
     }
     $companyId = $company.id
     try {
-        (Invoke-RestMethod -Headers $headers -Method Get -Uri "$baseUrl/companies($companyId)/extensions" -UseBasicParsing).value
+        (Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing).value
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)

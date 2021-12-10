@@ -101,6 +101,26 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-TestRunnerCodeunitId
+(
+    [string] $testRunnerCodeunitId,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+)
+{
+    if(!$testRunnerCodeunitId)
+    {
+        return
+    }
+    
+    if ($debugMode) {
+        Write-Host "Setting Test Runner Codeunit Id $testRunnerCodeunitId"
+    }
+    $testRunnerCodeunitIdControl = $ClientContext.GetControlByName($Form, "TestRunnerCodeunitId")
+    $ClientContext.SaveValue($testRunnerCodeunitIdControl, $testRunnerCodeunitId)
+}
+
 function Set-RunFalseOnDisabledTests
 (
     [ClientContext] $ClientContext,
@@ -117,11 +137,13 @@ function Set-RunFalseOnDisabledTests
     $removeTestMethodControl = $ClientContext.GetControlByName($Form, "DisableTestMethod")
     foreach($disabledTestMethod in $DisabledTests)
     {
-        if ($debugMode) {
-            Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$($disabledTestMethod.method)"
+        $disabledTestMethod.method | ForEach-Object {
+            if ($debugMode) {
+                Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$_"
+            }
+            $testKey = $disabledTestMethod.codeunitName + "," + $_
+            $ClientContext.SaveValue($removeTestMethodControl, $testKey)
         }
-        $testKey = $disabledTestMethod.codeunitName + "," + $disabledTestMethod.method
-        $ClientContext.SaveValue($removeTestMethodControl, $testKey)
     }
 }
 
@@ -132,6 +154,7 @@ function Get-Tests {
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
         [string] $extensionId = "",
+        [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
         [switch] $debugMode,
         [switch] $ignoreGroups,
@@ -149,6 +172,9 @@ function Get-Tests {
         if ($extensionId) {
             throw "Specifying extensionId is not supported when using the C/AL test runner"
         }
+        if ($testRunnerCodeunitId) {
+            throw "Specifying testRunnerCodeunitId is not supported when using the C/AL test runner"
+        }
     }
 
     if ($debugMode) {
@@ -159,12 +185,16 @@ function Get-Tests {
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the test toolkit and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
+    if ($extensionId -ne "" -and $testSuite -ne "DEFAULT") {
+        throw "You cannot specify testSuite and extensionId at the same time"
+    }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
@@ -276,11 +306,11 @@ function Run-ConnectionTest {
         [switch] $connectFromHost
     )
 
-    $rolecenter = $clientContext.OpenForm(9022)
-    if (!($rolecenter)) {
-        throw "Cannot open rolecenter"
-    }
-    Write-Host "Rolecenter 9022 opened successfully"
+#    $rolecenter = $clientContext.OpenForm(9020)
+#    if (!($rolecenter)) {
+#        throw "Cannot open rolecenter"
+#    }
+#    Write-Host "Rolecenter 9020 opened successfully"
 
     $extensionManagement = $clientContext.OpenForm(2500)
     if (!($extensionManagement)) {
@@ -301,6 +331,7 @@ function Run-Tests {
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
+        [string] $testRunnerCodeunitId,
         [array]  $disabledtests = @(),
         [switch] $detailed,
         [switch] $debugMode,
@@ -311,6 +342,8 @@ function Run-Tests {
         [switch] $ReRun,
         [ValidateSet('no','error','warning')]
         [string] $AzureDevOps = 'no',
+        [ValidateSet('no','error','warning')]
+        [string] $GitHubActions = 'no',
         [switch] $connectFromHost
     )
 
@@ -331,6 +364,9 @@ function Run-Tests {
         if ($extensionId) {
             throw "Specifying extensionId is not supported when using the C/AL test runner"
         }
+        if ($testRunnerCodeunitId) {
+            throw "Specifying testRunnerCodeunitId is not supported when using the C/AL test runner"
+        }
     }
     $allPassed = $true
     $dumpAppsToTestOutput = $true
@@ -343,12 +379,16 @@ function Run-Tests {
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."
     }
+    if ($extensionId -ne "" -and $testSuite -ne "DEFAULT") {
+        throw "You cannot specify testSuite and extensionId at the same time"
+    }
 
     $suiteControl = $clientContext.GetControlByName($form, "CurrentSuiteName")
     $clientContext.SaveValue($suiteControl, $testSuite)
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
     }
@@ -360,7 +400,7 @@ function Run-Tests {
 
     if ($XUnitResultFileName) {
         if (($Rerun -or $AppendToXUnitResultFile) -and (Test-Path $XUnitResultFileName)) {
-            [xml]$XUnitDoc = Get-Content $XUnitResultFileName
+            [xml]$XUnitDoc = [System.IO.File]::ReadAllLines($XUnitResultFileName)
             $XUnitAssemblies = $XUnitDoc.assemblies
             if (-not $XUnitAssemblies) {
                 [xml]$XUnitDoc = New-Object System.Xml.XmlDocument
@@ -381,7 +421,7 @@ function Run-Tests {
     }
     if ($JUnitResultFileName) {
         if (($Rerun -or $AppendToJUnitResultFile) -and (Test-Path $JUnitResultFileName)) {
-            [xml]$JUnitDoc = Get-Content $JUnitResultFileName
+            [xml]$JUnitDoc = [System.IO.File]::ReadAllLines($JUnitResultFileName)
 
             $JUnitTestSuites = $JUnitDoc.testsuites
             if (-not $JUnitTestSuites) {
@@ -561,8 +601,15 @@ function Run-Tests {
                         $passed++
                     }
                     elseif ($_.result -eq 1) {
+                        $stacktrace = $_.stacktrace
+                        if ($stacktrace.EndsWith(';')) {
+                            $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
+                        }
                         if ($AzureDevOps -ne 'no') {
                             Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$($_.method);]$($_.message)"
+                        }
+                        if ($GitHubActions -ne 'no') {
+                            Write-Host "::$($GitHubActions)::Function $($_.method) $($_.message)"
                         }
                         Write-Host -ForegroundColor Red "    Testfunction $($_.method) Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                         if ($XUnitResultFileName) {
@@ -571,10 +618,6 @@ function Run-Tests {
                         $failed++
             
                         if ($detailed) {
-                            $stacktrace = $_.stacktrace
-                            if ($stacktrace.EndsWith(';')) {
-                                $stacktrace = $stacktrace.Substring(0,$stacktrace.Length-1)
-                            }
                             Write-Host -ForegroundColor Red "      Error:"
                             Write-Host -ForegroundColor Red "        $($_.message)"
                             Write-Host -ForegroundColor Red "      Call Stack:"
@@ -931,13 +974,16 @@ function Run-Tests {
                         }
                         elseif ($result -eq "1") {
                             $firstError = $clientContext.GetControlByName($row, $firstErrorName).StringValue
+                            $callStack = $clientContext.GetControlByName($row, $callStackName).StringValue
+                            if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                             if ($AzureDevOps -ne 'no') {
                                 Write-Host "##vso[task.logissue type=$AzureDevOps;sourcepath=$name;]$firstError"
                             }
+                            if ($GitHubActions -ne 'no') {
+                                Write-Host "::$($GitHubActions)::Function $name $firstError"
+                            }
                             Write-Host -ForegroundColor Red "    Testfunction $name Failure ($([Math]::Round($testduration.TotalSeconds,3)) seconds)"
                             $allPassed = $false
-                            $callStack = $clientContext.GetControlByName($row, $callStackName).StringValue
-                            if ($callStack.EndsWith("\")) { $callStack = $callStack.Substring(0,$callStack.Length-1) }
                             if ($XUnitResultFileName) {
                                 $XUnitAssembly.SetAttribute("failed",([int]$XUnitAssembly.GetAttribute("failed")+1))
                                 $XUnitTest.SetAttribute("result", "Fail")

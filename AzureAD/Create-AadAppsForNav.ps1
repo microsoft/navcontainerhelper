@@ -168,7 +168,7 @@ try {
     # Excel Ad App
     if ($IncludeExcelAadApp) {
         # Remove "old" Excel AD Application
-        $ExcelIdentifierUri = "${appIdUri}ExcelAddIn"
+        $ExcelIdentifierUri = "XLS.$appIdUri"
         Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($ExcelIdentifierUri) } | Remove-AzureADApplication
 
         # Create AD Application
@@ -199,7 +199,7 @@ try {
     # PowerBI Ad App
     if ($IncludePowerBiAadApp) {
         # Remove "old" PowerBI AD Application
-        $PowerBiIdentifierUri = "${appIdUri}PowerBI"
+        $PowerBiIdentifierUri = "PBI.$appIdUri"
         Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($PowerBiIdentifierUri) } | Remove-AzureADApplication
     
         # Create AesKey
@@ -237,7 +237,7 @@ try {
     # EMail App
     if ($IncludeEmailAadApp) {
         # Remove "old" Email AD Application
-        #$EmailIdentifierUri = "${appIdUri}EMail"
+        #$EmailIdentifierUri = "Email.$appIdUri"
         $EMailDisplayName = "EMail Service for $appIdUri"
         Get-AzureADApplication -All $true | Where-Object { $_.DisplayName -eq $EMailDisplayName } | Remove-AzureADApplication
     

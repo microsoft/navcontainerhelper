@@ -8,18 +8,31 @@
   Path of the folder in which the application File will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
  .Parameter GenerateAppJson
   Add this switch to generate an sample app.json file in the AppFolder, containing the manifest properties.
+ .Parameter OpenFolder
+  Add this parameter to open the destination folder in explorer
  .Example
   Extract-AppFileToFolder -appFilename c:\temp\baseapp.app
 #>
 function Extract-AppFileToFolder {
     Param (
         [string] $appFilename,
-        [string] $appFolder = "$($appFilename).source",
-        [switch] $generateAppJson
+        [string] $appFolder = "",
+        [switch] $generateAppJson,
+        [switch] $openFolder
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+    if ($appFolder -eq "") {
+        if ($openFolder) {
+            $generateAppJson = $true
+            $appFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+        }
+        else {
+            $appFolder = "$($appFilename).source"
+        }
+    }
 
     if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
         throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
@@ -85,7 +98,7 @@ try {
     "/addin/src/", "/perm/", "/entit/", "/serv/", "/tabledata/", "/replay/", "/migration/", "/layout/" | % {
         $folder = Join-Path $appFolder $_
         if (Test-Path $folder) {
-            Get-ChildItem $folder | % {
+            @(Get-ChildItem $folder) | % {
                 Copy-Item -Path $_.FullName -Destination $appFolder -Recurse -Force
                 Remove-Item -Path $_.FullName -Recurse -Force
             }
@@ -126,8 +139,19 @@ try {
             "features" = @()
         }
         if ($runtime -ge 5.0)  {
-            $appJson += @{
-                "applicationInsightsKey" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } )"
+            $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
+            if ($appInsightsKey) {
+                $appJson += @{
+                    "applicationInsightsKey" = "$appInsightsKey"
+                }
+            }
+            elseif ($runtime -ge 7.2)  {
+                $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | % { $_.Value } 
+                if ($appInsightsConnectionString) {
+                    $appJson += @{
+                        "applicationInsightsConnectionString" = "$appInsightsConnectionString"
+                    }
+                }
             }
         }
         $contextSensitiveHelpUrl = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "contextSensitiveHelpUrl" } | % { $_.Value } )"
@@ -217,6 +241,10 @@ try {
         }
         $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json") -Encoding UTF8
         Set-StrictMode -Version 2.0
+    }
+
+    if ($openFolder) {
+        Start-Process $appFolder
     }
 }
 catch {

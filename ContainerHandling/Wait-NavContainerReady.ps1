@@ -15,13 +15,12 @@ function Wait-BcContainerReady {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [int] $timeout = 1800
+        [int] $timeout = 1800,
+        [string] $startlog = ""
     )
 
     Process {
-        $startLog = ""
         $logs = docker logs $containerName
-        if ($logs) { $startlog = [string]::Join("`r`n",$logs) }
         $prevLog = ""
         Write-Host "Waiting for container $containerName to be ready"
         $cnt = $timeout
@@ -41,6 +40,16 @@ function Wait-BcContainerReady {
                 Write-Host "Error"
                 Write-Host $log
                 throw "Initialization of container $containerName failed"
+            }
+
+            if ($bcContainerHelperConfig.usePsSession -and $cnt -eq ($timeout-30)) {
+                try {
+                    if (!$sessions.ContainsKey($containerName)) {
+                        $containerId = Get-BcContainerId -containerName $containerName
+                        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+                        $sessions.Add($containerName, $session)
+                    }
+                } catch {}
             }
 
             if ($cnt % 5 -eq 0) {

@@ -26,6 +26,8 @@
   Add this switch to invoke report layout generation during compile. Default is default alc.exe behavior, which is to generate report layout
  .Parameter AzureDevOps
   Add this switch to convert the output to Azure DevOps Build Pipeline compatible output
+ .Parameter gitHubActions
+  Include this switch to convert the output to GitHub Actions compatible output
  .Parameter EnableCodeCop
   Add this switch to Enable CodeCop to run
  .Parameter EnableAppSourceCop
@@ -36,6 +38,8 @@
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
+ .Parameter CustomCodeCops
+  Add custom AL code Cops when compiling apps.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning
  .Parameter nowarn
@@ -80,6 +84,7 @@ function Compile-AppInBcContainer {
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
         [switch] $AzureDevOps,
+        [switch] $gitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
@@ -88,6 +93,7 @@ function Compile-AppInBcContainer {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
         [string[]] $preProcessorSymbols = @(),
@@ -161,6 +167,18 @@ try {
         $containerRulesetFile = Get-BcContainerPath -containerName $containerName -path $rulesetFile
         if ("$containerRulesetFile" -eq "") {
             throw "The rulesetFile ($rulesetFile) is not shared with the container."
+        }
+    }
+    
+    $CustomCodeCopFiles = @()
+    if ($CustomCodeCops.Count -gt 0) {
+        $CustomCodeCops | ForEach-Object {
+            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+            if ("$customCopPath" -eq "") {
+                throw "The custom code cop ($_) is not shared with the container."
+            }
+
+            $CustomCodeCopFiles += $customCopPath
         }
     }
 
@@ -291,13 +309,13 @@ try {
             throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
         }
         $publishedApps = Get-BcPublishedApps -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.state -eq "installed" }
-        $devServerUrl = "https://api.businesscentral.dynamics.com/v2.0/$environment"
+        $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $webclient = [System.Net.WebClient]::new()
         $webClient.Headers.Add("Authorization", $bearerAuthValue)
     }
     elseif ($serverInstance -eq "") {
-        Write-Host -ForegroundColor Red "WARNING: You have to specify AccessToken and Environment if you are compiling in a filesOnly container in order to download dependencies"
+        Write-Host -ForegroundColor Red "WARNING: You have to specify AuthContext and Environment if you are compiling in a filesOnly container in order to download dependencies"
         $devServerUrl = ""
         $webClient = $null
     }
@@ -452,7 +470,7 @@ try {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $generateReportLayoutParam, $features, $preProcessorSymbols )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $generateReportLayoutParam, $features, $preProcessorSymbols )
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -484,6 +502,10 @@ try {
             $alcParameters += @("/analyzer:$(Join-Path $binPath 'Analyzers\Microsoft.Dynamics.Nav.UICop.dll')")
         }
 
+        if ($CustomCodeCops.Count -gt 0) {
+            $CustomCodeCops | ForEach-Object { $alcParameters += @("/analyzer:$_") }
+        }
+
         if ($rulesetFile) {
             $alcParameters += @("/ruleset:$rulesetfile")
         }
@@ -492,7 +514,7 @@ try {
             $alcParameters += @("/nowarn:$nowarn")
         }
 
-        if ($GenerateCrossReferences) {
+        if ($GenerateCrossReferences -and $platformversion.Major -ge 18) {
             $alcParameters += @("/generatecrossreferences")
         }
 
@@ -510,10 +532,10 @@ try {
 
         & .\alc.exe $alcParameters
         
-        if ($lastexitcode -ne 0) {
+        if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
@@ -522,9 +544,9 @@ try {
 
     $devOpsResult = ""
     if ($result) {
-        $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions:$gitHubActions
     }
-    if ($AzureDevOps) {
+    if ($AzureDevOps -or $gitHubActions) {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
     }
     else {

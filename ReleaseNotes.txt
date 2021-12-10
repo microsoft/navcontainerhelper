@@ -1,11 +1,101 @@
+3.0.0
+Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.
+$bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft = $true will emit extended telemetry to Microsoft
+Flush-ContainerHelperCache does not run docker image prune unless keepdays is 0 (= flush all)
+
+2.0.23
+Issue #2210 Removing Desktop shortcuts in a folder fails if the desktop is setup for onedrive sync
+Run-TestsInBcContainer was hardcoded to use Romance Standard Time as timezone for the user - use the session timezone instead
+Issue #2215 Add parameter -doNotIgnoreInfos to Run-AlCops (and ignore infos by default)
+Modify Run-AlValidation to validate in the same way as the AppSource Validation Service
+
+2.0.22
+Issue #2206 new-bccontainer with importtesttoolkit sometimes fails containername is not bcserver
+
+2.0.21
+Increasing version number to avoid locking issues wil applicationInsights DLL
+
+2.0.20
+Add support for using Docker Volumes for HostHelperFolder, BcArtifacts Cache folder and my folder
+Fix to Create-AadAppsForBC for this breaking change in AzureAD https://docs.microsoft.com/en-us/azure/active-directory/develop/reference-breaking-changes#appid-uri-in-single-tenant-applications-will-require-use-of-default-scheme-or-verified-domains
+Issue #2187 New-BcContainer error when including "-includePerformanceToolkit" parameter (and -imageName)
+
+2.0.19
+New-BcAuthContext displays wrongly decoded names as accessToken is UTF8 encoded
+Issue #2181 Fix encoding when using Get-Content
+Issue #2035 SharedEncryptionKey feature doesn't always work across versions
+Issue #2135 Unable to read data from the transport connection
+Allow user to specify isolation on Windows 11 / Windows 2022
+
+2.0.18
+Fix issue with Invoke-BcContainerCodeunit
+Fix issue where Invoke-BcContainerCodeUnit fails on 19.0 containers
+Issue #2167 support different folders for external SQL Server
+Fix Run-ConnectionTestToBcContainer on 19.0
+Add TraefikImage to config file and parameter on Setup-TraefikContainerForNavContainers
+
+2.0.17
+Add paramater internalsVisibleTo to Publish-BcContainerApp and Replace-DependenciesInAppFile in order to publish an app with internals visible to another app during development
+Support Windows 11 build numbers
+Add new function Run-BCPTTestsInBcContainer
+Issue #2129 add Windows 10 21H2
+Support disabledTests.json in testfolders in Run-AlPipeline
+Issue #2130 patch start.ps1 if using an old generic image on pre 15.0 NAV/BC
+Fix issue where a session cannot be created to a newly created container before ~5 minutes on Windows 11
+Add BcptTestFolders to Run-AlPipeline
+Remove Performance Tool shortcut if created
+New-BcImage fails on newer Windows versions due to RoboCopy offload
+Do not use runtime packages in Import-TestToolkitToBcContainer
+Issue #2110 BC NextMajor (20.0) error when importing ConfigPackage
+
+2.0.16
+Issue #2023 Invoke-NavContainerAPI doesnt support nested hashtables
+Add ApplicationInsightsConnectionString to Run-AlPipeline to support new app.json property. This value will be used instead of ApplicationInsightsKey if runtime >= 7.2 or bcVersion >= 18.2. (Thanks TheNCuber)
+Support different extension on license files (thanks SBalslev)
+Map Ukraine to w1 in mapCountryCode, allowing to create ua containers (thanks Sergeyol)
+Add parameter CustomCodeCops to Run-AlPipeline and Compile-AppInBcContainer to allow for specifying custom code cops (thanks jfamvg)
+Use Latest shipped AL Language Extension by default for all shipped version in Run-AlValidation
+Increased support for Github Actions in Run-AlPipeline and Run-TestsInBcContainer
+Convert-BcAppsToRuntimePackages: Allow to skip failing apps, run scriptblock after each processed runtime (Thanks MODUSCarstenScholling)
+Allow runtime packages as previous apps run Run-AlPipeline (Thanks MODUSCarstenScholling)
+Unpublish app in multitenant container fails if the app is installed in multiple tenants (Thanks lktraser)
+Fixing bug in Resolve-DependenciesFromAzureFeed that downloaded all apps from first lvl (Thanks jonaswer)
+Remove countries which have their own artifacts from mapCountryCode
+Add Windows 11 / ltsc2022 support
+Run-AlValidation sometimes returns error AL1040: The guid number '' does not match the expected pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$".
+Add Parameter appVersion to Run-AlPipeline to stamp in full version number during build
+Skip ConnectionTest by default on Run-AlValidation
+Issue #2069 New-BcImage - incorrect evaluation resulting $forceRebuild is true always for us.
+Issue #2060 Add BaseUrl and ApiBaseUrl to ContainerHelper config to support embed SaaS environments
+Issue #2050 Get-BcContainerAppInfo does not work properly with multiple published apps
+Issue #2050 Add parameter -installedOnly to Get-BcContainerAppInfo to only take installed apps into account
+Add OpenFolder parameter to Extract-AppFileToFolder
+Fix dropbox download url (common mistake, replace dl=0 with dl=1) in Download-File
+Issue #2076 CmdLet Copy-AlSourceFiles can't be used on BC 19x
+Issue #2079 don't create a user if no users are in the database when running Run-TestsInBcContainer
+Add CompanyName to Run-AlPipeline to support running tests in a specific company
+Issue #2084 Add parameter TestRunnerCodeunitId to Run-TestsInBcContainer
+Run-AlPipeline should create launch.json if it doesn't exist
+Add function ConvertTo-HashTable to convert PSCustomObject to HashTable
+Add function ConvertTo-OrderedDictionary to convert PSCustomObject to OrderedDictionary
+Add function ConvertTo-GitHubGoCredentials to convert an auth context hashtable to GitHub-Go credentials
+Add parameter deviceCode to New-BcAuthContext to allow initiating the device code flow in one call and finish in another
+Add function Import-CertificateToBcContainer to import a .cer certificate to the container
+Add support for URLs in Import-PfxCertificateToBcContainer and Import-CertificateToBcContainer
+Add KeyVault access parameters to Run-AlPipeline
+Bug with recursive copy of report layouts during Extract-AppFileToFolder
+Issue #2097 add resilience to Add-FontsToBcContainer
+
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
 New-BcEnvironment should not enumerate companies and users if -doNotWait is specified
-Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
+Issue #1979 Add DOCKER_SCAN_SUGGEST to configuration (default false) and set corresponding environment variable
 Issue #1998 New-BCContainer ERROR: Database Backup File not found. when hosthelper folder changed
 Issue #2003 Change GenerateReportLayout default to 'No' in Run-AlValidation and Run-AlCops
 Issue #2006 spelling mistake
 Issue #2014 telemetryclient cannot be initialized
+Issue #2008 Run-ALValidation - InstallApps/SortByDependencies
+Issue #2018 Create .net Assembly Reference folder when using filesonly and includeAL
 
 2.0.14
 Issue #1967 add parameter IncludeApiAccess to Create-AadAppsForBC to ensure that API permissions are only added when needed

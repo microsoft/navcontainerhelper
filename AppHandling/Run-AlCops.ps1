@@ -31,6 +31,8 @@
   Include this switch if you want to fail on the first error instead of returning all errors to the caller
  .Parameter ignoreWarnings
   Include this switch if you want to ignore Warnings
+ .Parameter doNotIgnoreInfos
+  Include this switch if you don't want to ignore Infos
  .Parameter rulesetFile
   Filename of the ruleset file for Compile-AppInBcContainer
  .Parameter CompileAppInBcContainer
@@ -44,13 +46,14 @@ function Run-AlCops {
         $apps,
         $affixes,
         $supportedCountries,
-        $appPackagesFolder = (Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())),
+        $appPackagesFolder = (Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())),
         [switch] $enableAppSourceCop,
         [switch] $enableCodeCop,
         [switch] $enableUICop,
         [switch] $enablePerTenantExtensionCop,
         [switch] $failOnError,
         [switch] $ignoreWarnings,
+        [switch] $doNotIgnoreInfos,
         [string] $rulesetFile = "",
         [scriptblock] $CompileAppInBcContainer
     )
@@ -75,7 +78,7 @@ try {
         throw "You cannot run AppSourceCop and PerTenantExtensionCop at the same time"
     }
      
-    $appsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
+    $appsFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
     New-Item -Path $appsFolder -ItemType Directory | Out-Null
     $apps = Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
     
@@ -96,7 +99,7 @@ try {
             try {
                 Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
                 $xappJsonFile = Join-Path $tmpFolder "app.json"
-                $xappJson = Get-Content $xappJsonFile | ConvertFrom-Json
+                $xappJson = [System.IO.File]::ReadAllLines($xappJsonFile) | ConvertFrom-Json
                 Write-Host "$($xappJson.Publisher)_$($xappJson.Name) = $($xappJson.Version)"
                 $previousAppVersions += @{ "$($xappJson.Publisher)_$($xappJson.Name)" = $xappJson.Version }
             }
@@ -115,12 +118,12 @@ try {
     $apps | % {
         $appFile = $_
     
-        $tmpFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
+        $tmpFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
         try {
             $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
 
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
-            $appJson = Get-Content (Join-Path $tmpFolder "app.json") | ConvertFrom-Json
+            $appJson = [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "app.json")) | ConvertFrom-Json
 
             $ruleset = $null
 
@@ -174,7 +177,7 @@ try {
                 })
 
                 Write-Host "AppSourceCop.json content:"
-                get-content  (Join-Path $tmpFolder "appSourceCop.json") | Out-Host
+                [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "appSourceCop.json")) | Out-Host
             }
             Remove-Item -Path (Join-Path $tmpFolder '*.xml') -Force
 
@@ -196,7 +199,7 @@ try {
                     if ($line -like "error *" -or $line -like "warning *") {
                         $global:_validationResult += $line
                     }
-                    elseif ($line -like "$($tmpFolder)*" -and $line -notlike "*: info AL1027*") {
+                    elseif ($line -like "$($tmpFolder)*") {
                         $global:_validationResult += $line.SubString($tmpFolder.Length+1)
                     }
                 }
@@ -212,7 +215,7 @@ try {
                     "ruleset" = $myRulesetFile
                 }
                 Write-Host "Ruleset.json content:"
-                get-content  $myRulesetFile | Out-Host
+                [System.IO.File]::ReadAllLines($myRulesetFile) | Out-Host
             }
 
             try {
@@ -226,6 +229,10 @@ try {
             if ($ignoreWarnings) {
                 Write-Host "Ignoring warnings"
                 $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: warning *" -and $_ -notlike "warning *" })
+            }
+            if (!$doNotIgnoreInfos) {
+                Write-Host "Ignoring infos"
+                $global:_validationResult = @($global:_validationResult | Where-Object { $_ -notlike "*: info *" -and $_ -notlike "info *" })
             }
 
             $lines = $global:_validationResult.Length - $length
@@ -243,7 +250,7 @@ try {
                 # Copy inside container to ensure files are ready
                 Write-Host "Copy $appFile to $appPackagesFolder"
                 Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
-            } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $appPackagesFolder)
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $appPackagesFolder) | Out-Null
         }
         finally {
             if (Test-Path $tmpFolder) {

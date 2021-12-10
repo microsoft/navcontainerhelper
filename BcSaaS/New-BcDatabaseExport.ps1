@@ -40,7 +40,7 @@ function New-BcDatabaseExport {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+	
     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
     $headers = @{ "Authorization" = $bearerAuthValue }
@@ -50,7 +50,7 @@ try {
         "blob" = $blobName
     } | ConvertTo-Json
     try {
-        Invoke-RestMethod -Method POST -Uri "https://api.businesscentral.dynamics.com/admin/v2.3/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
+        Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
     }
     catch {
         throw (GetExtenedErrorMessage $_.Exception)

@@ -18,7 +18,7 @@
  .Parameter doNotCopyEntitlements
   Specify this parameter to avoid copying entitlements when using -useNewDatabase
  .Parameter copyTables
-  Array if table names to copy from original database when using -useNewDatabase
+  Array of table names to copy from original database when using -useNewDatabase
  .Parameter companyName
   CompanyName when using -useNewDatabase. Default is My Company.
  .Parameter credential
@@ -36,6 +36,8 @@ function Clean-BcContainerDatabase {
         [switch] $doNotUnpublish,
         [switch] $useNewDatabase,
         [switch] $doNotCopyEntitlements,
+        [Switch] $keepBaseApp,
+        [string[]] $keepApps = @(),
         [string[]] $copyTables = @(),
         [string] $companyName = "My Company",
         [PSCredential] $credential,
@@ -56,8 +58,12 @@ try {
     }
 
     $myFolder = Join-Path $ExtensionsFolder "$containerName\my"
-    if (!(Test-Path "$myFolder\license.flf")) {
-        throw "Container must be started with a developer license to perform this operation"
+    $licenseFile = @(Get-Item "$myFolder\license.*")
+    if ($licenseFile.Count -eq 0) {
+        throw "Container must be started with a developer license to perform this operation."
+    }
+    elseif ($licenseFile.Count -lt 1) {
+        throw "There can only be one license file in the my folder to perform this operation."
     }
 
     $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -162,7 +168,7 @@ try {
         } -argumentList $platformVersion, $customconfig.DatabaseName, $customconfig.DatabaseServer, $customconfig.DatabaseInstance, $copyTables, ($customconfig.Multitenant -eq "True")
         
         Write-Host "Importing license file"
-        Import-BcContainerLicense -containerName $containerName -licenseFile "$myFolder\license.flf"
+        Import-BcContainerLicense -containerName $containerName -licenseFile $licenseFile[0].FullName
         
         Write-Host "Publishing System Symbols"
         Publish-BcContainerApp -containerName $containerName -appFile $SystemSymbolsFile -packageType SymbolsOnly -skipVerification -ignoreIfAppExists
@@ -227,7 +233,9 @@ try {
             Get-CompanyInBcContainer -containerName $containerName -tenant Default | % { Remove-CompanyInBcContainer -containerName $containerName -companyName $_.CompanyName -tenant Default }
         }
 
-        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | Where-Object { $_.Name -ne "System Application" }
+        $installedApps = Get-BcContainerAppInfo -containerName $containerName -tenantSpecificProperties -sort DependenciesLast | 
+            Where-Object { (-not (($_.Name -eq "System Application") -or ($keepApps -contains $_.AppId) -or ($keepBaseApp -and ($_.Name -eq "BaseApp" -or $_.Name -eq "Base Application" -or $_.Name -eq "Application")))) }
+
         $installedApps | % {
             $app = $_
             Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($app, $SaveData, $onlySaveBaseAppData)

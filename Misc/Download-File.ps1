@@ -41,6 +41,11 @@ try {
         $sourceUrl = $replaceUrls[$sourceUrl]
     }
 
+    # If DropBox URL with dl=0 - replace with dl=1 (direct download = common mistake)
+    if ($sourceUrl.StartsWith("https://www.dropbox.com/","InvariantCultureIgnoreCase") -and $sourceUrl.EndsWith("?dl=0","InvariantCultureIgnoreCase")) {
+        $sourceUrl = "$($sourceUrl.Substring(0, $sourceUrl.Length-1))1"
+    }
+
     if (Test-Path $destinationFile -PathType Leaf) {
         if ($dontOverwrite) { 
             return

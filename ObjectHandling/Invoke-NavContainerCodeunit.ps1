@@ -43,17 +43,29 @@ function Invoke-NavContainerCodeunit {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone, $version)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
-        if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me
-            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
-        } elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled
+        $companyParam = @{}
+        if ($companyName -and $version.Major -gt 9) {
+            $companyParam += @{
+                "Company" = $CompanyName
+                "Force" = $true
+                "WarningAction" = "SilentlyContinue"
+            }
         }
-
+        if (!($userexist)) {
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me @companyParam
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            Start-Sleep -Seconds 1
+        } elseif ($userexist.state -eq "Disabled") {
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled @companyParam
+        }
+        
         $Params = @{}
         if ($CompanyName) {
             $Params += @{ "CompanyName" = $CompanyName }
@@ -67,15 +79,12 @@ try {
         if ($Timezone) {
             $Params += @{ "TimeZone" = $TimeZone }
         }
-        Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
-    
-        if (!($userexist)) {
-            Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-        } elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
-        }
 
-    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
+
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
+
+    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

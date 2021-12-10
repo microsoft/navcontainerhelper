@@ -36,20 +36,28 @@
 function New-BcAuthContext {
     Param(
         [string] $clientID = "1950a258-227b-4e31-a9cf-717495945fc2",
-        [string] $Resource = "https://api.businesscentral.dynamics.com/",
+        [string] $Resource = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/",
         [string] $tenantID = "Common",
         [string] $authority = "https://login.microsoftonline.com/$TenantID",
         [string] $refreshToken,
-        [string] $scopes = "https://api.businesscentral.dynamics.com/.default",
-        [SecureString] $clientSecret,
+        [string] $scopes = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default",
+        $clientSecret,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
-        [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5)
+        [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5),
+        [string] $deviceCode = ""
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    if ($clientSecret -and ($clientSecret -isnot [SecureString])) {
+        $clientSecret = ConvertTo-SecureString -String "$clientSecret" -AsPlainText -Force
+    }
+
+    if ($deviceCode) {
+        $includeDeviceLogin = $true
+    }
     $authContext = @{
         "clientID"           = $clientID
         "Resource"           = $Resource
@@ -57,6 +65,7 @@ try {
         "authority"          = $authority
         "includeDeviceLogin" = $includeDeviceLogin
         "deviceLoginTimeout" = $deviceLoginTimeout
+        "deviceCode"         = $deviceCode
     }
     $subject = "$($Resource.TrimEnd('/'))/$tenantID"
     $accessToken = $null
@@ -187,39 +196,38 @@ try {
         }
         if (!$accessToken -and $includeDeviceLogin) {
             
-            $deviceCodeRequest = $null
             $deviceLoginStart = [DateTime]::Now
             $accessToken = ""
             $cnt = 0
     
-            while ($accessToken -eq "" -and ([DateTime]::Now.Subtract($deviceLoginStart) -lt $deviceLoginTimeout)) {
-                if (!($deviceCodeRequest)) {
-                    $DeviceCodeRequestParams = @{
-                        Method = 'POST'
-                        Uri    = "$($authority.TrimEnd('/'))/oauth2/devicecode"
-                        Body   = @{
-                            "client_id" = $ClientId
-                            "resource"  = $Resource
-                        }
-                    }
-                    
-                    $deviceLoginStart = [DateTime]::Now
-                    Write-Host "Attempting authentication to $subject using device login..."
-                    $DeviceCodeRequest = Invoke-RestMethod @DeviceCodeRequestParams -UseBasicParsing
-                    Write-Host $DeviceCodeRequest.message -ForegroundColor Yellow
-                    Write-Host -NoNewline "Waiting for authentication"
-    
-                    $TokenRequestParams = @{
-                        Method = 'POST'
-                        Uri    = "$($authority.TrimEnd('/'))/oauth2/token"
-                        Body   = @{
-                            "grant_type" = "urn:ietf:params:oauth:grant-type:device_code"
-                            "code"       = $DeviceCodeRequest.device_code
-                            "client_id"  = $ClientId
-                        }
+            if ($deviceCode -eq "") {
+                $DeviceCodeRequestParams = @{
+                    Method = 'POST'
+                    Uri    = "$($authority.TrimEnd('/'))/oauth2/devicecode"
+                    Body   = @{
+                        "client_id" = $ClientId
+                        "resource"  = $Resource
                     }
                 }
-    
+                
+                Write-Host "Attempting authentication to $subject using device login..."
+                $DeviceCodeRequest = Invoke-RestMethod @DeviceCodeRequestParams -UseBasicParsing
+                Write-Host $DeviceCodeRequest.message -ForegroundColor Yellow
+                Write-Host -NoNewline "Waiting for authentication"
+                $deviceCode = $DeviceCodeRequest.device_code
+            }
+
+            $TokenRequestParams = @{
+                Method = 'POST'
+                Uri    = "$($authority.TrimEnd('/'))/oauth2/token"
+                Body   = @{
+                    "grant_type" = "urn:ietf:params:oauth:grant-type:device_code"
+                    "code"       = $deviceCode
+                    "client_id"  = $ClientId
+                }
+            }
+
+            while ($accessToken -eq "" -and ([DateTime]::Now.Subtract($deviceLoginStart) -lt $deviceLoginTimeout)) {
                 Start-Sleep -Seconds 1
                 try {
                     $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
@@ -233,7 +241,7 @@ try {
                         if ($err -eq "code_expired") {
                             Write-Host
                             Write-Host -ForegroundColor Red "Authentication request expired."
-                            $deviceCodeRequest = $null
+                            $deviceCode = ""
                         }
                         elseif ($err -eq "expired_token") {
                             Write-Host
@@ -260,28 +268,40 @@ try {
                         throw $exception
                     }
                 }
-                if ($accessToken) {
-                    try {
-                        $jwtToken = Parse-JWTtoken -token $accessToken
-                        Write-Host
-                        Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
-                        $authContext += @{
-                            "AccessToken"  = $accessToken
-                            "UtcExpiresOn" = [Datetime]::new(1970,1,1).AddSeconds($TokenRequest.expires_on)
-                            "RefreshToken" = $TokenRequest.refresh_token
-                            "Credential"   = $null
-                            "ClientSecret" = $null
-                            "scopes"       = ""
-                        }
-                        if ($tenantID -eq "Common") {
-                            Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
-                            $authContext.TenantId = $jwtToken.tid
-                        }
+            }
+            if ($accessToken) {
+                try {
+                    $jwtToken = Parse-JWTtoken -token $accessToken
+                    Write-Host
+                    Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
+                    $authContext += @{
+                        "AccessToken"  = $accessToken
+                        "UtcExpiresOn" = [Datetime]::new(1970,1,1).AddSeconds($TokenRequest.expires_on)
+                        "RefreshToken" = $TokenRequest.refresh_token
+                        "Credential"   = $null
+                        "ClientSecret" = $null
+                        "scopes"       = ""
                     }
-                    catch {
-                        $accessToken = $null
-                        throw "Invalid Access token"
+                    if ($tenantID -eq "Common") {
+                        Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                        $authContext.TenantId = $jwtToken.tid
                     }
+                }
+                catch {
+                    $accessToken = $null
+                    throw "Invalid Access token"
+                }
+            }
+            else {
+                $accessToken = "N/A"
+                $authContext.deviceCode = $deviceCode
+                $authContext += @{
+                    "AccessToken"  = $accessToken
+                    "UtcExpiresOn" = [Datetime]::Now
+                    "RefreshToken" = ""
+                    "Credential"   = $null
+                    "ClientSecret" = $null
+                    "scopes"       = ""
                 }
             }
         }

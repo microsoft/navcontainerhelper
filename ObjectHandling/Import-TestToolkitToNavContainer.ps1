@@ -59,7 +59,7 @@ function Import-TestToolkitToBcContainer {
         [switch] $doNotUpdateSymbols,
         [ValidateSet("Overwrite","Skip")]
         [string] $ImportAction = "Overwrite",
-        [switch] $doNotUseRuntimePackages,
+        [switch] $doNotUseRuntimePackages = $true,
         [Parameter(Mandatory=$false)]
         [ValidateSet('Global','Tenant')]
         [string] $scope,
@@ -71,7 +71,10 @@ function Import-TestToolkitToBcContainer {
 
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+$telemetryScope = InitTelemetryScope `
+                    -name $MyInvocation.InvocationName `
+                    -parameterValues $PSBoundParameters `
+                    -includeParameters @("containerName","includeTestLibrariesOnly","includeTestFrameworkOnly","includeTestRunnerOnly","includePerformanceToolkit","testToolkitCountry")
 try {
 
     if ($replaceDependencies) {
@@ -143,6 +146,23 @@ try {
             }
     
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+
+            $publishParams = @{}
+            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") })) {
+                $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "..\AppHandling\BCPTLogEntryAPI"
+                $appJson = [System.IO.File]::ReadAllLines((Join-Path $BCPTLogEntryAPIsrc "app.json")) | ConvertFrom-Json
+                $internalsVisibleTo = @{ "id" = $appJson.id; "name" = $appJson.name; "publisher" = $appjson.publisher }
+                $publishParams += @{
+                    "internalsVisibleTo" = $internalsVisibleTo
+                    "replacePackageId" = $true
+                }
+
+                Get-BcContainerAppInfo -containerName $containerName | Where-Object { $_.Dependencies | Where-Object { $_ -like 'Performance Toolkit, Microsoft,*' } } | ForEach-Object {
+                    UnPublish-BcContainerApp -containerName $containerName -publisher $_.Publisher -name $_.Name -version $_.Version -unInstall -force
+                }
+                
+                UnPublish-BcContainerApp -containerName $containerName -publisher "microsoft" -name "Performance Toolkit" -unInstall -force
+            }
     
             if (!$doNotUseRuntimePackages) {
                 if ($isBcSandbox) {
@@ -160,6 +180,7 @@ try {
             $appFiles | % {
                 $appFile = $_
                 if (!$doNotUseRuntimePackages) {
+                Write-Host "RUNTIME???"
                     $name = [System.IO.Path]::GetFileName($appFile)
                     $runtimeAppFile = "$applicationsPath\$($name.Replace('.app','.runtime.app'))"
                     $useRuntimeApp = $false
@@ -178,7 +199,7 @@ try {
                     $navAppInfo = Get-NAVAppInfo -Path $appFile
                     (Get-NAVAppInfo -ServerInstance $serverInstance -Name $navAppInfo.Name -Publisher $navAppInfo.Publisher -Version $navAppInfo.Version -tenant $tenant -tenantSpecificProperties)
                 } -argumentList $appFile, $tenant | Where-Object { $_ -isnot [System.String] }
-    
+
                 if ($tenantAppInfo) {
                     if ($tenantAppInfo.IsInstalled) {
                         Write-Host "Skipping app '$appFile' as it is already installed"
@@ -189,18 +210,24 @@ try {
                     }
                 }
                 else {
-                    Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+                    $name = [System.IO.Path]::GetFileName($appfile)
+                    if ( $Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") ) {
+                        Publish-BcContainerApp -containerName $containerName @publishParams -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+                    }
+                    else {
+                        Publish-BcContainerApp -containerName $containerName -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
+                    }
         
                     if (!$doNotUseRuntimePackages -and !$useRuntimeApp) {
-                        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $runtimeAppFile)
+                        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile, $tenant, $runtimeAppFile)
                             
                             $navAppInfo = Get-NAVAppInfo -Path $appFile
                             $appPublisher = $navAppInfo.Publisher
                             $appName = $navAppInfo.Name
                             $appVersion = $navAppInfo.Version
         
-                            Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant default
-                        } -argumentList $appFile, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
+                            Get-NavAppRuntimePackage -ServerInstance $serverInstance -Publisher $appPublisher -Name $appName -version $appVersion -Path $runtimeAppFile -Tenant $tenant
+                        } -argumentList $appFile, $tenant, (Get-BcContainerPath -containerName $containerName -path $runtimeAppFile -throw)
                     }
                 }
             }

@@ -115,6 +115,10 @@ try {
         [SslVerification]::Disable()
     }
 
+    if ($method -eq "POST" -and !$body) {
+        $body = @{}
+    }
+
     if ($APIPublisher) {
         $url += "/$APIPublisher"
     }
@@ -147,7 +151,7 @@ try {
     }
     
     if ($body) {
-        $parameters += @{ "body" = [System.Text.UTF8Encoding]::GetEncoding('UTF-8').GetBytes((ConvertTo-Json $body)) }
+        $parameters += @{ "body" = [System.Text.UTF8Encoding]::GetEncoding('UTF-8').GetBytes((ConvertTo-Json $body -Depth 100)) }
     }
 
     if (!$silent) {

@@ -1,13 +1,37 @@
-﻿function FormatValue {
+﻿$eventIds = @{
+    "New-BcContainer"                                 = "DO0001"
+    "New-BcImage"                                     = "DO0002"
+    "Compile-AppInBcContainer"                        = "DO0003"
+    "Publish-BcContainerApp"                          = "DO0004"
+    "Run-AlCops"                                      = "DO0005"
+    "Run-AlValidation"                                = "DO0006"
+    "Run-AlPipeline"                                  = "DO0007"
+    "Run-TestsInBcContainer"                          = "DO0008"
+    "Sign-BcContainerApp"                             = "DO0009"
+    "Publish-PerTenantExtensionApps"                  = "DO0010"
+    "Install-BcAppFromAppSource"                      = "DO0011"
+    "New-BcEnvironment"                               = "DO0012"
+    "New-BcDatabaseExport"                            = "DO0013"
+    "Remove-BcEnvironment"                            = "DO0014"
+    "Download-Artifacts"                              = "DO0015"
+    "New-CompanyInNavContainer"                       = "DO0016"
+    "Import-TestToolkitToBcContainer"                 = "DO0017"
+    "UploadImportAndApply-ConfigPackageInBcContainer" = "DO0018"
+}
+
+function FormatValue {
     Param(
         $value
     )
 
-    if ($value -is [switch]) {
-        "$($value.IsPresent)"
+    if ($value -eq $null) {
+        "[null]"
+    }
+    elseif ($value -is [switch]) {
+        $value.IsPresent
     }
     elseif ($value -is [boolean]) {
-        "$value"
+        $value
     }
     elseif ($value -is [SecureString]) {
         "[SecureString]"
@@ -17,31 +41,41 @@
     }
     elseif ($value -is [string]) {
         if (($value -like "https:*" -or $value -like "http:*") -and ($value.Contains('?'))) {
-            """$($value.Split('?')[0])?[parameters]"""
+            "$($value.Split('?')[0])?[parameters]"
         }
         else {
-            """$value"""
+            "$value"
         }
     }
     elseif ($value -is [System.Collections.IDictionary]) {
-        $str = ""
-        $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += ", " } else { $str = "{ " }
-            $str += "$($_.Key): $(FormatValue -value $_.Value)"
+        $arr = @($value.GetEnumerator() | ForEach-Object { $_ })
+        $str = "{"
+        $arr | ForEach-Object {
+            if ($_.Key -eq "RefreshToken" -or $_.Key -eq "AccessToken") {
+                if ($_.Value) {
+                    $str += "`n  $($_.Key): [token]"
+                }
+                else {
+                    $str += "`n  $($_.Key): [null]"
+                }
+            }
+            else {
+                $str += "`n  $($_.Key): $(FormatValue -value $_.Value)"
+            }
         }
-        "$str }"
+        "$str`n}"
     }
-    elseif ($value -is [System.Collections.IEnumerable]
-    ) {
-        $str = ""
-        $value.GetEnumerator() | ForEach-Object {
-            if ($str) { $str += ", " } else { $str = "[ " }
+    elseif ($value -is [System.Collections.IEnumerable]) {
+        $arr = @($value.GetEnumerator() | ForEach-Object { $_ })
+        if ($arr.Count -gt 1) { $str = "[" } else { $str = "" }
+        $arr | ForEach-Object {
+            if ($arr.Count -gt 1) { $str += "`n  " }
             $str += "$(FormatValue -value $_)"
         }
-        "$str ]"
+        if ($arr.Count -gt 1) { "$str`n]" } else { $str }
     }
     else {
-        "$value"
+        $value
     }
 }
 
@@ -53,51 +87,123 @@ function AddTelemetryProperty {
     )
 
     if ($telemetryScope) {
-        Write-Host "Telemetry scope $($telemetryScope.Name), add property $key = $((FormatValue -value $value))"
-        $telemetryScope.properties.Add($key, (FormatValue -value $value))
+        $value = FormatValue -value $value
+        if ($telemetry.Debug) {
+            Write-Host -ForegroundColor Yellow "Telemetry scope $($telemetryScope.Name), add property $key = '$value', type = $($value.GetType())"
+        }
+        if ($telemetryScope.properties.ContainsKey($Key)) {
+            $telemetryScope.properties."$key" += "`n$value"
+        }
+        else {
+            $telemetryScope.properties.Add($key, $value)
+        }
     }
+}
+
+function RegisterTelemetryScope {
+    Param(
+        [string] $telemetryScopeJson
+    )
+
+    $telemetryScope = $telemetryScopeJson | ConvertFrom-Json
+    if ($telemetry.TopId -eq "") { 
+        $telemetry.TopId = $telemetryScope.CorrelationId
+    }
+
+    $scope = @{
+        "Name" = $telemetryScope.Name
+        "EventId" = $telemetryScope.eventId
+        "StartTime" = $telemetryScope.StartTime
+        "Properties" = [Collections.Generic.Dictionary[string, string]]::new()
+        "Parameters" = [Collections.Generic.Dictionary[string, string]]::new()
+        "AllParameters" = [Collections.Generic.Dictionary[string, string]]::new()
+        "CorrelationId" = $telemetryScope.CorrelationId
+        "ParentId" = $telemetryScope.CorrelationId
+        "TopId" = $telemetry.TopId
+        "Emitted" = $telemetryScope.Emitted
+    }
+
+    "Properties","Parameters","AllParameters" | ForEach-Object {
+        $prop = $_
+        $telemetryScope."$prop".PSObject.Properties.GetEnumerator() | ForEach-Object { $scope."$prop".Add($_.Name, $_.Value) }
+    }
+
+    $telemetry.CorrelationId = $telemetryScope.CorrelationId
+    $scope
 }
 
 function InitTelemetryScope {
     Param(
         [string] $name,
         [string[]] $includeParameters = @(),
-        $parameterValues = $null
+        $parameterValues = $null,
+        [string] $eventId = ""
     )
-
-    if (($telemetryClient) -and ($bcContainerHelperConfig.TelemetryConnectionString)) {
-        if ($telemetryClient.TelemetryConfiguration.ConnectionString -ne $bcContainerHelperConfig.TelemetryConnectionString) {
-            $telemetryClient.TelemetryConfiguration.ConnectionString = $bcContainerHelperConfig.TelemetryConnectionString
-            $telemetryClient.TelemetryConfiguration.DisableTelemetry = $false
-            Write-Host "Telemetry client initialized"
+    
+    "Microsoft","Partner" | ForEach-Object {
+        $clientName = "$($_)Client"
+        $telemetryConnectionString = $bcContainerHelperConfig."$($_)TelemetryConnectionString"
+        if ($telemetryConnectionString -and $telemetry.Assembly -ne $null) {
+            if ($telemetry."$clientName" -eq $null -or $telemetry."$ClientName".TelemetryConfiguration.ConnectionString -ne $telemetryConnectionString) {
+                try {
+                    $telemetryConfiguration = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.Extensibility.TelemetryConfiguration')
+                    $telemetryConfiguration.Connectionstring = $telemetryConnectionString
+                    $telemetry."$clientName" = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.TelemetryClient', $false, 0, $null, $telemetryConfiguration, $null, $null)
+                }
+                catch {
+                    $telemetry."$clientName" = $null
+                }
+            }
         }
-        if ($telemetryClient.IsEnabled()) {
-            Write-Host "Init telemetry scope $name"
+        else {
+            $telemetry."$clientName" = $null
+        }
+    }
+
+    if ($telemetry.MicrosoftClient -ne $null -or $telemetry.PartnerClient -ne $null) {
+        if ($eventId -eq "" -and ($eventIds.ContainsKey($name))) {
+            $eventId = $eventIds[$name]
+        }
+        if (($eventId -ne "") -or ($telemetry.CorrelationId -eq "")) {
+            $CorrelationId = [GUID]::NewGuid().ToString()
+            Start-Transcript -Path (Join-Path $env:TEMP $CorrelationId) | Out-Null
+            if ($telemetry.Debug) {
+                Write-Host -ForegroundColor Yellow "Init telemetry scope $name"
+            }
+            if ($telemetry.TopId -eq "") { 
+                $telemetry.TopId = $CorrelationId
+            }
             $scope = @{
                 "Name" = $name
+                "EventId" = $eventId
                 "StartTime" = [DateTime]::Now
-                "SeverityLevel" = 1
                 "Properties" = [Collections.Generic.Dictionary[string, string]]::new()
+                "Parameters" = [Collections.Generic.Dictionary[string, string]]::new()
+                "AllParameters" = [Collections.Generic.Dictionary[string, string]]::new()
+                "CorrelationId" = $CorrelationId
+                "ParentId" = $telemetry.CorrelationId
+                "TopId" = $telemetry.TopId
                 "Emitted" = $false
             }
+            $telemetry.CorrelationId = $CorrelationId
             if ($includeParameters) {
-                $parameterValues.GetEnumerator() | % {
+                $parameterValues.GetEnumerator() | ForEach-Object {
                     $includeParameter = $false
                     $key = $_.key
+                    $value = FormatValue -value $_.value
+                    $scope.allParameters.Add($key, $value)
                     $includeParameters | ForEach-Object { if ($key -like $_) { $includeParameter = $true } }
                     if ($includeParameter) {
-                        AddTelemetryProperty -telemetryScope $scope -key "Parameter[$Key]" -value $_.Value
+                        $scope.parameters.Add($key, $value)
                     }
                 }
             }
-            AddTelemetryProperty -telemetryScope $scope -key "BcContainerHelperVersion" -value $BcContainerHelperVersion
-            AddTelemetryProperty -telemetryScope $scope -key "IsAdministrator" -value $isAdministrator
-            AddTelemetryProperty -telemetryScope $scope -key "StackTrace" -value (Get-PSCallStack | % { "$($_.Command) at $($_.Location)" }) -join "`n"
+            AddTelemetryProperty -telemetryScope $scope -key "eventId" -value $eventId
+            AddTelemetryProperty -telemetryScope $scope -key "bcContainerHelperVersion" -value $BcContainerHelperVersion
+            AddTelemetryProperty -telemetryScope $scope -key "isAdministrator" -value $isAdministrator
+            AddTelemetryProperty -telemetryScope $scope -key "stackTrace" -value (Get-PSCallStack | % { "$($_.Command) at $($_.Location)" }) -join "`n"
             $scope
         }
-    }
-    else {
-        $telemetryClient.TelemetryConfiguration.DisableTelemetry = $true
     }
 }
 
@@ -107,14 +213,66 @@ function TrackTrace {
     )
 
     if ($telemetryScope -and !$telemetryScope.Emitted) {
-        if ($telemetryClient.IsEnabled()) {
-            Write-Host "Emit telemetry trace, scope $($telemetryScope.Name)"
-            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
-            $telemetryClient.TrackTrace($telemetryScope.Name, $telemetryScope.SeverityLevel, $telemetryScope.Properties)
+        if ($telemetryScope.CorrelationId -eq $telemetry.CorrelationId) {
+            if ($telemetry.Debug) {
+                Write-Host -ForegroundColor Yellow "Emit telemetry trace, scope $($telemetryScope.Name)"
+            }
+            $telemetry.CorrelationId = $telemetryScope.ParentId
+            if ($telemetry.CorrelationId -eq "") {
+                $telemetry.TopId = ""
+            }
             $telemetryScope.Emitted = $true
+            try {
+                Stop-Transcript | Out-Null
+                $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
+                if ($transcript.Length -gt 32000) {
+                    $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
+                }
+                Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
+            }
+            catch {
+                $transcript = ""
+            }
+            $telemetryScope.Properties.Add("duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
+
+            if ($telemetry.Assembly -ne $null) {
+                $printCorrelationId = $false
+                "Microsoft","Partner" | ForEach-Object {
+                    $clientName = "$($_)Client"
+                    $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
+                    if ($telemetry."$clientName") {
+                        $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
+                        if ($extendedTelemetry) {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                            $traceTelemetry.SeverityLevel = 0
+                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        else {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)"
+                            $traceTelemetry.SeverityLevel = 1
+                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                            [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                        }
+                        $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
+                        $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                        $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                        $telemetry."$clientName".TrackTrace($traceTelemetry)
+                        $telemetry."$clientName".Flush()
+                        if ($extendedTelemetry) { $printCorrelationId = $true }
+                    }
+                }
+                if ($printCorrelationId) {
+                    Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
+                }
+            }
         }
     }
-
 }
 
 function TrackException {
@@ -123,13 +281,102 @@ function TrackException {
         $errorRecord
     )
 
+    TrackException -telemetryScope $telemetryScope -exception $errorRecord.Exception -scriptStackTrace $errorRecord.scriptStackTrace
+}
+
+function TrackException {
+    Param(
+        $telemetryScope,
+        $exception,
+        $scriptStackTrace = $null
+    )
+
     if ($telemetryScope -and !$telemetryScope.Emitted) {
-        if ($telemetryClient.IsEnabled()) {
-            Write-Host "Emit telemetry exception, scope $($telemetryScope.Name)"
-            $telemetryScope.Properties.Add("Duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
-            $telemetryScope.Properties.Add("StackTrace", $errorRecord.ScriptStackTrace)
-            $telemetryClient.TrackException($errorRecord.Exception, $telemetryScope.Properties)
+        if ($telemetryScope.CorrelationId -eq $telemetry.CorrelationId) {
+            if ($telemetry.Debug) {
+                Write-Host -ForegroundColor Yellow "Emit telemetry exception, scope $($telemetryScope.Name)"
+            }
+            $telemetry.CorrelationId = $telemetryScope.ParentId
+            if ($telemetry.CorrelationId -eq "") {
+                $telemetry.TopId = ""
+            }
             $telemetryScope.Emitted = $true
+
+            try {
+                Stop-Transcript | Out-Null
+                $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4) -join "`n"
+                if ($transcript.Length -gt 32000) {
+                    $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
+                }
+                Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
+            }
+            catch {
+                $transcript = ""
+            }
+            $telemetryScope.Properties.Add("duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
+            if ($scriptStackTrace) {
+                $telemetryScope.Properties.Add("errorStackTrace", $scriptStackTrace)
+            }
+            if ($exception) {
+                $telemetryScope.Properties.Add("errorMessage", $exception.Message)
+            }
+
+            if ($telemetry.Assembly -ne $null) {
+                "Microsoft","Partner" | ForEach-Object {
+                    $clientName = "$($_)Client"
+                    $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
+                    if ($telemetry."$clientName") {
+                        $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
+                        if ($extendedTelemetry) {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                            $traceTelemetry.SeverityLevel = 0
+                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        else {
+                            $traceTelemetry.Message = "$($telemetryScope.Name)"
+                            $traceTelemetry.SeverityLevel = 1
+                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                            [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                        }
+                        $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
+                        $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                        $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                        $telemetry."$clientName".TrackTrace($traceTelemetry)
+            
+                        # emit exception telemetry
+                        $exceptionTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry')
+                        if ($extendedTelemetry) {
+                            $exceptionTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                            $exceptionTelemetry.SeverityLevel = 3
+                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                [void]$exceptionTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        else {
+                            $exceptionTelemetry.Message = "$($telemetryScope.Name)"
+                            $exceptionTelemetry.SeverityLevel = 1
+                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                [void]$exceptionTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            }
+                        }
+                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                            [void]$exceptionTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                        }
+                        $exceptionTelemetry.Context.Operation.Name = $telemetryScope.Name
+                        $exceptionTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                        $exceptionTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                        $telemetry."$clientName".TrackException($exceptionTelemetry)
+                        $telemetry."$clientName".Flush()
+                    }
+                }
+                Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
+            }
         }
     }
 }
