@@ -73,7 +73,7 @@ function Get-ContainerHelperConfig {
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @('AL1026')
             "PartnerTelemetryConnectionString" = ""
-            "MicrosoftTelemetryConnectionString" = ""
+            "MicrosoftTelemetryConnectionString" = "InstrumentationKey=5b44407e-9750-4a07-abe9-30c3b853821b;IngestionEndpoint=https://southcentralus-0.in.applicationinsights.azure.com/"
             "SendExtendedTelemetryToMicrosoft" = $false
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
@@ -215,13 +215,18 @@ $telemetry = @{
     "Debug" = $false
 }
 try {
+    if (!$Silent) {
+        Write-Host -ForegroundColor Green 'BcContainerHelper 3.0.0 and later will emit usage statistics telemetry to Microsoft'
+    }
     $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
     $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
 } catch {
-    Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+    if (!$Silent) {
+        Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+    }
 }
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
