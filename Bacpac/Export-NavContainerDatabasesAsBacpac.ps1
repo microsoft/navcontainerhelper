@@ -122,6 +122,34 @@ try {
               BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
         }
 
+        function Remove-WindowsUsers {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null
+            )
+
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            if ($sqlCredential) {
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            }
+        
+            Write-Host "Remove Windows User from $DatabaseName"
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] declare @sql nvarchar(max)
+            set @sql = ''
+
+            SELECT @sql = @sql+'drop user [' + name + ']'
+            FROM
+                sys.database_principals
+            WHERE
+                sys.database_principals.authentication_type = 3 and sys.database_principals.name != 'dbo'
+
+            execute ( @sql )"
+        }
+
         function Check-Entitlements {
             Param (
                 [Parameter(Mandatory=$true)]
