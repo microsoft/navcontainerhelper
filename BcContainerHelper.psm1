@@ -190,6 +190,22 @@ if (!$silent) {
 
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 
+$sessions = @{}
+
+if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
+    if (!(Test-Path -Path $hostHelperFolder -PathType Container)) {
+        New-Item -Path $hostHelperFolder -ItemType Container -Force | Out-Null
+    }
+    New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
+
+    if (!$isAdministrator) {
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+        $acl.AddAccessRule($rule)
+        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
+    }
+}
+
 $telemetry = @{
     "Assembly" = $null
     "PartnerClient" = $null
@@ -206,22 +222,6 @@ try {
     $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
 } catch {
     Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
-}
-
-$sessions = @{}
-
-if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
-    if (!(Test-Path -Path $hostHelperFolder -PathType Container)) {
-        New-Item -Path $hostHelperFolder -ItemType Container -Force | Out-Null
-    }
-    New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
-
-    if (!$isAdministrator) {
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
-        $acl.AddAccessRule($rule)
-        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
-    }
 }
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")

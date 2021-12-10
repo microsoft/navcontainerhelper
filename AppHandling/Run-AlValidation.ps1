@@ -33,7 +33,7 @@
  .Parameter includeWarnings
   Include this switch if you want to include Warnings
  .Parameter doNotIgnoreInfos
-  Include this switch if you want to include Warnings
+  Include this switch if you don't want to ignore Infos (if you want to include Infos)
  .Parameter sasToken
   Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
  .Parameter countries

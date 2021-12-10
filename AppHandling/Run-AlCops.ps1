@@ -32,7 +32,7 @@
  .Parameter ignoreWarnings
   Include this switch if you want to ignore Warnings
  .Parameter doNotIgnoreInfos
-  Include this switch if you want to ignore Infos
+  Include this switch if you don't want to ignore Infos
  .Parameter rulesetFile
   Filename of the ruleset file for Compile-AppInBcContainer
  .Parameter CompileAppInBcContainer

@@ -236,6 +236,7 @@ function TrackTrace {
             $telemetryScope.Properties.Add("duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
 
             if ($telemetry.Assembly -ne $null) {
+                $printCorrelationId = $false
                 "Microsoft","Partner" | ForEach-Object {
                     $clientName = "$($_)Client"
                     $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
@@ -263,10 +264,11 @@ function TrackTrace {
                         $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
                         $telemetry."$clientName".TrackTrace($traceTelemetry)
                         $telemetry."$clientName".Flush()
+                        if ($extendedTelemetry) { $printCorrelationId = $true }
                     }
-                    if ($extendedTelemetry -and $telemetryScope.EventId) {
-                        Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
-                    }
+                }
+                if ($printCorrelationId) {
+                    Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
                 }
             }
         }
