@@ -215,13 +215,18 @@ $telemetry = @{
     "Debug" = $false
 }
 try {
+    if (!$Silent) {
+        Write-Host -ForegroundColor Green 'BcContainerHelper 3.0.0 and later will emit usage statistics telemetry to Microsoft'
+    }
     $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
     $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
 } catch {
-    Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+    if (!$Silent) {
+        Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+    }
 }
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
