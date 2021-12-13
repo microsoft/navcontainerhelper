@@ -1,3 +1,6 @@
+3.0.1
+Fix issues with bacpac creation when windows users are present in database.
+
 3.0.0
 Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.
 $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft = $true will emit extended telemetry to Microsoft
