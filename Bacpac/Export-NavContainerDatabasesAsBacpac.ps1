@@ -142,8 +142,9 @@ try {
                 declare @sql nvarchar(max)
                 set @sql = ''
 
-                SELECT @sql = @sql+'drop user [' + name + ']'
-                FROM
+                SELECT @sql = @sql+'
+                    drop user [' + name + ']
+                'FROM
                     sys.database_principals
                 WHERE
                     sys.database_principals.authentication_type = 3 and sys.database_principals.name != 'dbo'
