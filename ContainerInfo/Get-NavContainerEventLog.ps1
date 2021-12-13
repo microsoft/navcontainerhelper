@@ -25,19 +25,23 @@ function Get-BcContainerEventLog {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
     Write-Host "Getting event log for $containername"
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
-    $myFolder = Join-Path $containerFolder "my"
-    $folder = Get-BcContainerPath -containerName $containerName -Path $myFolder
-    $name = $containerName + ' ' + [DateTime]::Now.ToString("yyyy-MM-dd HH.mm.ss") + ".evtx"
+    $eventLogFolder = Join-Path $hostHelperFolder "EventLogs"
+    if (!(Test-Path $eventLogFolder)) {
+        New-Item $eventLogFolder -ItemType Directory | Out-Null
+    }
+    $eventLogName = Join-Path $eventLogFolder ($containerName + ' ' + [DateTime]::Now.ToString("yyyy-MM-dd HH.mm.ss") + ".evtx")
+
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string]$path, [string]$logname) 
         wevtutil epl $logname "$path"
-    } -ArgumentList (Join-Path $folder $name), $logname
+    } -ArgumentList (Get-BcContainerPath -containerName $containerName -Path $eventLogName), $logname
 
-    if (!$doNotOpen) {
-        [Diagnostics.Process]::Start((Join-Path -Path $myFolder $name)) | Out-Null
+    if ($doNotOpen) {
+        $eventLogName
+    }
+    else {
+        [Diagnostics.Process]::Start($eventLogName) | Out-Null
     }
 }
 catch {

@@ -1,6 +1,7 @@
 3.0.1
 Add Daily and Weekly options to Get-BcArtifactUrl
 Performance optimization of Get-BcArtifactUrl
+Get-BcContainerEventLog now copies the eventlog to HostHelperFolder\EventLogs instead of my folder to avoid blocking container deletion
 
 3.0.0
 Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.
