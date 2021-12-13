@@ -138,16 +138,17 @@ try {
             }
         
             Write-Host "Remove Windows User from $DatabaseName"
-            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] declare @sql nvarchar(max)
-            set @sql = ''
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] 
+                declare @sql nvarchar(max)
+                set @sql = ''
 
-            SELECT @sql = @sql+'drop user [' + name + ']'
-            FROM
-                sys.database_principals
-            WHERE
-                sys.database_principals.authentication_type = 3 and sys.database_principals.name != 'dbo'
+                SELECT @sql = @sql+'drop user [' + name + ']'
+                FROM
+                    sys.database_principals
+                WHERE
+                    sys.database_principals.authentication_type = 3 and sys.database_principals.name != 'dbo'
 
-            execute ( @sql )"
+                execute ( @sql )"
         }
 
         function Check-Entitlements {
@@ -331,6 +332,7 @@ try {
             if (!$doNotCheckEntitlements) {
                 Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             }
+            Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
@@ -356,6 +358,7 @@ try {
             if (!$doNotCheckEntitlements) {
                 Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             }
+            Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
