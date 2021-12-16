@@ -215,8 +215,8 @@ $telemetry = @{
     "Debug" = $false
 }
 try {
-    if (!$Silent) {
-        Write-Host -ForegroundColor Green 'BcContainerHelper 3.0.0 and later will emit usage statistics telemetry to Microsoft'
+    if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
+        Write-Host -ForegroundColor Green 'BcContainerHelper emits usage statistics telemetry to Microsoft'
     }
     $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
     if (-not (Test-Path $dllPath)) {
