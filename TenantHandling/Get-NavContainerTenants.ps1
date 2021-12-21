@@ -43,7 +43,7 @@ try {
     }
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         Param( [PsCustomObject] $Params)
-        Get-NavTenant -ServerInstance $ServerInstance @Params | | ForEach-Object {
+        Get-NavTenant -ServerInstance $ServerInstance @Params | ForEach-Object {
             $tenantdetails = Get-NavTenant -ServerInstance $ServerInstance -Tenant $_.Id
             $tenantdetails | Add-Member -NotePropertyName Size -NotePropertyValue $(((Invoke-SQLCmd -Query sp_databases -ServerInstance $tenantdetails.DatabaseServer | Where-Object {$_.DATABASE_NAME -eq $tenantdetails.DatabaseName}).DATABASE_SIZE / 1024).ToString() + " MB")
             $tenantdetails | Add-Member -NotePropertyName CreationDate -NotePropertyValue $((Invoke-Sqlcmd -ServerInstance $tenantdetails.DatabaseServer -Database $tenantdetails.DatabaseName -Query "SELECT create_date FROM sys.databases WHERE name = `'$($tenantdetails.DatabaseName)`'").create_date)
