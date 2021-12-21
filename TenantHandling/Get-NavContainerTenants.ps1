@@ -28,36 +28,36 @@ function Get-BcContainerTenants {
         [switch] $Force
     )
 
-    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-    try {
+$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+try {
 
-        $Params = @{ "Force" = $Force }
-        If ($ForceRefresh) {
-            $Params += @{ "ForceRefresh" = $ForceRefresh }
-            if (-not $tenant) {
-                $tenant = "Default"
-            }
+    $Params = @{ "Force" = $Force }
+    If ($ForceRefresh) {
+        $Params += @{ "ForceRefresh" = $ForceRefresh }
+        if (-not $tenant) {
+            $tenant = "Default"
         }
-        if ($Tenant) {
-            $Params += @{ "Tenant" = $Tenant }
+    }
+    if ($Tenant) {
+        $Params += @{ "Tenant" = $Tenant }
+    }
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
+        Param( [PsCustomObject] $Params)
+        Get-NavTenant -ServerInstance $ServerInstance @Params | | ForEach-Object {
+            $tenantdetails = Get-NavTenant -ServerInstance $ServerInstance -Tenant $_.Id
+            $tenantdetails | Add-Member -NotePropertyName Size -NotePropertyValue $(((Invoke-SQLCmd -Query sp_databases -ServerInstance $tenantdetails.DatabaseServer | Where-Object {$_.DATABASE_NAME -eq $tenantdetails.DatabaseName}).DATABASE_SIZE / 1024).ToString() + " MB")
+            $tenantdetails | Add-Member -NotePropertyName CreationDate -NotePropertyValue $((Invoke-Sqlcmd -ServerInstance $tenantdetails.DatabaseServer -Database $tenantdetails.DatabaseName -Query "SELECT create_date FROM sys.databases WHERE name = `'$($tenantdetails.DatabaseName)`'").create_date)
+            $tenantdetails
         }
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
-            Param( [PsCustomObject] $Params)
-            Get-NavTenant -ServerInstance $ServerInstance @Params | ForEach-Object {
-                $tenantdetails = Get-NavTenant -ServerInstance $ServerInstance -Tenant $_.Id
-                $tenantdetails | Add-Member -NotePropertyName Size -NotePropertyValue $(((Invoke-SQLCmd -Query sp_databases -ServerInstance $tenantdetails.DatabaseServer | Where-Object {$_.DATABASE_NAME -eq $tenantdetails.DatabaseName}).DATABASE_SIZE / 1024).ToString() + " MB")
-                $tenantdetails | Add-Member -NotePropertyName CreationDate -NotePropertyValue $((Invoke-Sqlcmd -ServerInstance $tenantdetails.DatabaseServer -Database $tenantdetails.DatabaseName -Query "SELECT create_date FROM sys.databases WHERE name = `'$($tenantdetails.DatabaseName)`'").create_date)
-                $tenantdetails
-            }
-        } -argumentList $Params
-    }
-    catch {
-        TrackException -telemetryScope $telemetryScope -errorRecord $_
-        throw
-    }
-    finally {
-        TrackTrace -telemetryScope $telemetryScope
-    }
+    } -argumentList $Params
+}
+catch {
+    TrackException -telemetryScope $telemetryScope -errorRecord $_
+    throw
+}
+finally {
+    TrackTrace -telemetryScope $telemetryScope
+}
 }
 Set-Alias -Name Get-NavContainerTenants -Value Get-BcContainerTenants
 Export-ModuleMember -Function Get-BcContainerTenants -Alias Get-NavContainerTenants
