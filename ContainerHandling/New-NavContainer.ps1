@@ -472,7 +472,7 @@ try {
 
     Write-Host "Host is $($os.Caption) - $hostOs"
 
-    $dockerService = (Get-Service docker -ErrorAction Ignore)
+    $dockerService = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerService)) {
         throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
     }
