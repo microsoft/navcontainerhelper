@@ -13,8 +13,9 @@
         Get-BcContainerEula -containerOrImageName $bcImageName | Should -BeLike 'http*'
     }
     It 'Get-BcContainerEventLog' {
-        Get-BcContainerEventLog -containerName $bcContainerName -doNotOpen
-        (Join-Path $bcMyPath "*.evtx") | should -Exist
+        $logName = Get-BcContainerEventLog -containerName $bcContainerName -doNotOpen
+        $logName | Should -Not -BeNullOrEmpty
+        $logName | should -Exist
     }
     It 'Get-BcContainerGenericTag' {
         ([System.Version](Get-BcContainerGenericTag -containerOrImageName $bcContainerName)) | Should -BeOfType [System.Version]
