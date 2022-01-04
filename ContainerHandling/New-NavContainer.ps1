@@ -477,10 +477,6 @@ try {
         throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
     }
 
-    if ($dockerService.Status -ne "Running") {
-        throw "Docker Service is $($dockerService.Status) (Needs to be running)"
-    }
-
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
     $dockerOS = $dockerVersion.Split('/')[0]
     $dockerClientVersion = $dockerVersion.Split('/')[1]
