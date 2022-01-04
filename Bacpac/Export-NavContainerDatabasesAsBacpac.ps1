@@ -122,6 +122,36 @@ try {
               BEGIN DROP USER [NT AUTHORITY\SYSTEM] END"
         }
 
+        function Remove-WindowsUsers {
+            Param (
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseName,
+                [Parameter(Mandatory=$true)]
+                [string] $DatabaseServer,
+                [Parameter(Mandatory=$false)]
+                [PSCredential] $sqlCredential = $null
+            )
+
+            $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
+            if ($sqlCredential) {
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            }
+        
+            Write-Host "Remove Windows User from $DatabaseName"
+            Invoke-Sqlcmd @params -Query "USE [$DatabaseName] 
+                declare @sql nvarchar(max)
+                set @sql = ''
+
+                SELECT @sql = @sql+'
+                    drop user [' + name + ']
+                'FROM
+                    sys.database_principals
+                WHERE
+                    sys.database_principals.authentication_type = 3 and sys.database_principals.name != 'dbo'
+
+                execute ( @sql )"
+        }
+
         function Check-Entitlements {
             Param (
                 [Parameter(Mandatory=$true)]
@@ -303,6 +333,7 @@ try {
             if (!$doNotCheckEntitlements) {
                 Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             }
+            Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
@@ -318,6 +349,7 @@ try {
                 $tempTenantDatabaseName = "tempTenant"
                 $tenantBacpacFileName = Join-Path $bacpacFolder "$_.bacpac"
                 Copy-NavDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -databaseCredentials $sqlCredential -SourceDatabaseName $sourceDatabase -DestinationDatabaseName $tempTenantDatabaseName
+                Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
@@ -328,6 +360,7 @@ try {
             if (!$doNotCheckEntitlements) {
                 Check-Entitlements -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             }
+            Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
