@@ -64,7 +64,7 @@ try {
             Uninstall-NavApp @parameters -doNotSaveData
             if ($doNotSaveSchema) {
                 Write-Host "Cleaning Schema from $name on $tenant"
-                Sync-NAVApp $parameters -mode Clean
+                Sync-NAVApp @parameters -mode Clean
             }
         }
         else {
