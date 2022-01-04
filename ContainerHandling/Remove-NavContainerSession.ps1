@@ -17,12 +17,10 @@ function Remove-BcContainerSession {
     )
 
     Process {
-        $containerId = Get-BcContainerId -containerName $containerName
-
-        if ($sessions.ContainsKey($containerId)) {
-            $session = $sessions[$containerId]
+        if ($sessions.ContainsKey($containerName)) {
+            $session = $sessions[$containerName]
             Remove-PSSession -Session $session
-            $sessions.Remove($containerId)
+            $sessions.Remove($containerName)
         }
     }
 }

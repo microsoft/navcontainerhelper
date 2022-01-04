@@ -1228,7 +1228,8 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($appJsonChanges) {
-        $appJson | ConvertTo-Json -Depth 99 | Set-Content $appJsonFile
+        $appJsonContent = $appJson | ConvertTo-Json -Depth 99 
+        [System.IO.File]::WriteAllLines($appJsonFile, $appJsonContent)
     }
 
     if ($useDevEndpoint) {
