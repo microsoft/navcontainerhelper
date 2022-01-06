@@ -67,7 +67,6 @@ try {
         "deviceLoginTimeout" = $deviceLoginTimeout
         "deviceCode"         = $deviceCode
     }
-    $subject = "$($Resource.TrimEnd('/'))/$tenantID"
     $accessToken = $null
     if ($clientSecret) {
         $TokenRequestParams = @{
@@ -129,7 +128,7 @@ try {
                 }
             }
             try {
-                Write-Host "Attempting authentication to $subject using username/password..."
+                Write-Host "Attempting authentication to $Resource using username/password..."
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                 $accessToken = $TokenRequest.access_token
                 $jwtToken = Parse-JWTtoken -token $accessToken
@@ -166,7 +165,7 @@ try {
             }
             try
             {
-                Write-Host "Attempting authentication to $subject using refresh token..."
+                Write-Host "Attempting authentication to $Resource using refresh token..."
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                 $accessToken = $TokenRequest.access_token
                 try {
@@ -210,7 +209,7 @@ try {
                     }
                 }
                 
-                Write-Host "Attempting authentication to $subject using device login..."
+                Write-Host "Attempting authentication to $Resource using device login..."
                 $DeviceCodeRequest = Invoke-RestMethod @DeviceCodeRequestParams -UseBasicParsing
                 Write-Host $DeviceCodeRequest.message -ForegroundColor Yellow
                 Write-Host -NoNewline "Waiting for authentication"

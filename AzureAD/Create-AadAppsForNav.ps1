@@ -20,10 +20,12 @@
   Add this switch to request the function to also create an AAD app for the EMail service
  .Parameter IncludeApiAccess
   Add this switch to add application permissions for Web Services API and automation API
+ .Parameter GrantAdminConsent
+  Add this switch to grant admin consent to the API Application
  .Parameter useCurrentAzureAdConnection
   Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
-  Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer/bc/
+  Create-AadAppsForNAV -AadAdminCredential (Get-Credential) -appIdUri https://mycontainer.mydomain/bc/
 #>
 function Create-AadAppsForNav {
     Param (
@@ -39,6 +41,7 @@ function Create-AadAppsForNav {
         [switch] $IncludePowerBiAadApp,
         [switch] $IncludeEmailAadApp,
         [switch] $IncludeApiAccess,
+        [switch] $GrantAdminConsent,
         [switch] $useCurrentAzureAdConnection,
         [Hashtable] $bcAuthContext
     )
@@ -55,6 +58,8 @@ function Create-AadAppsForNav {
     
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+    $publicWebBaseUrl = "$($publicWebBaseUrl.TrimEnd('/'))/"
 
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
         Write-Host "Installing NuGet Package Provider"
@@ -119,7 +124,7 @@ try {
     $AdProperties["SsoAdAppKeyValue"] = $SsoAdAppKeyValue
 
     Write-Host "Creating AAD App for WebClient"
-    $ssoAdApp = New-AzureADApplication -DisplayName "WebClient for $appIdUri" `
+    $ssoAdApp = New-AzureADApplication -DisplayName "WebClient for $publicWebBaseUrl" `
                                        -Homepage $publicWebBaseUrl `
                                        -IdentifierUris $appIdUri `
                                        -ReplyUrls @($publicWebBaseUrl, ($publicWebBaseUrl.ToLowerInvariant()+"SignIn"))
@@ -139,8 +144,8 @@ try {
 
     # Windows Azure Active Directory -> Delegated permissions for Sign in and read user profile (User.Read)
     $req1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
-    $req1.ResourceAppId = "00000002-0000-0000-c000-000000000000"
-    $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
+    $req1.ResourceAppId = "00000003-0000-0000-c000-000000000000"
+    $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"
 
     # Dynamics 365 Business Central -> Delegated permissions for Access as the signed-in user (Financials.ReadWrite.All)
     # Dynamics 365 Business Central -> Application permissions for Full access to Web Services API (API.ReadWrite.All)
@@ -160,6 +165,20 @@ try {
 
     Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1, $req2)
 
+    if ($IncludeApiAccess -and $GrantAdminConsent) {
+        # Grant admin consent
+        $servicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $SsoAdAppId }
+        if (!($servicePrincipal)) {
+            $servicePrincipal = New-AzureADServicePrincipal -AppId $SsoAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+        }
+        $resourceApp = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $req2.ResourceAppId }
+        ForEach ($permission in $req2.ResourceAccess) {
+            if ($permission.Type -eq "Role") {
+                New-AzureADServiceAppRoleAssignment -ObjectId $servicePrincipal.ObjectId -PrincipalId $servicePrincipal.ObjectId -ResourceId $resourceApp.ObjectId -Id $permission.Id
+            }
+        }
+    }
+
     # Set Logo Image for App
     if ($iconPath) {
         Set-AzureADApplicationLogo -ObjectId $ssoAdApp.ObjectId -FilePath $iconPath
@@ -173,7 +192,7 @@ try {
 
         # Create AD Application
         Write-Host "Creating AAD App for Excel Add-in"
-        $excelAdApp = New-AzureADApplication -DisplayName "Excel AddIn for $appIdUri" `
+        $excelAdApp = New-AzureADApplication -DisplayName "Excel AddIn for $publicWebBaseUrl" `
                                              -HomePage $publicWebBaseUrl `
                                              -IdentifierUris $ExcelIdentifierUri `
                                              -ReplyUrls $publicWebBaseUrl, "https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*"
@@ -208,7 +227,7 @@ try {
     
         # Create AD Application
         Write-Host "Creating AAD App for PowerBI Service"
-        $powerBiAdApp = New-AzureADApplication -DisplayName "PowerBI Service for $appIdUri" `
+        $powerBiAdApp = New-AzureADApplication -DisplayName "PowerBI Service for $publicWebBaseUrl" `
                                                -HomePage $publicWebBaseUrl `
                                                -IdentifierUris $PowerBiIdentifierUri `
                                                -ReplyUrls "${publicWebBaseUrl}OAuthLanding.htm"
@@ -238,7 +257,7 @@ try {
     if ($IncludeEmailAadApp) {
         # Remove "old" Email AD Application
         #$EmailIdentifierUri = "Email.$appIdUri"
-        $EMailDisplayName = "EMail Service for $appIdUri"
+        $EMailDisplayName = "EMail Service for $publicWebBaseUrl"
         Get-AzureADApplication -All $true | Where-Object { $_.DisplayName -eq $EMailDisplayName } | Remove-AzureADApplication
     
         # Create AesKey
