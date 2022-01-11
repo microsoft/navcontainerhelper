@@ -7,6 +7,8 @@ Remove Application Roles from bacpacs (re. VA1246 - https://docs.microsoft.com/e
 Issue #2245 - UnInstall-BcContainerApp -doNotSaveData fails
 Add parameter -GrantAdminConsent to Create-AadAppsForBC
 Use Microsoft Graph API (instead of deprecated Azure AD Graph API) in Create-AadAppsForBC
+New parameters for New-BcContainer AadAppId and AadAppIdUri for creating containers with AAD authentication
+Issue #2259 - FilesOnly containers doesn't respect the -vsixFile parameter
 
 3.0.0
 Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.
