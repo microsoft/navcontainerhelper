@@ -53,7 +53,7 @@ try {
         Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
     }
     catch {
-        throw (GetExtenedErrorMessage $_.Exception)
+        throw (GetExtendedErrorMessage $_)
     }
     if (!$doNotWait) {
         $uri = [Uri]::new($storageAccountSasUri)

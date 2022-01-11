@@ -76,7 +76,7 @@ try {
                 "grant_type"    = "client_credentials"
                 "scope"         = $scopes
                 "client_id"     = $clientId
-                "client_secret" = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientSecret))
+                "client_secret" = ($clientSecret | Get-PlainText)
             }
         }
         try {
@@ -101,7 +101,10 @@ try {
                 "Credential"   = $null
                 "ClientSecret" = $clientSecret
                 "scopes"       = $scopes
-            }
+                "appid"        = $jwtToken.appid
+                "name"         = ""
+                "upn"          = ""
+        }
             if ($tenantID -eq "Common") {
                 Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
                 $authContext.TenantId = $jwtToken.tid
@@ -109,8 +112,7 @@ try {
 
         }
         catch {
-            $exception = $_.Exception
-            Write-Host -ForegroundColor Red $exception.Message
+            Write-Host -ForegroundColor Red (GetExtendedErrorMessage $_).Replace('{EmailHidden}',$credential.UserName)
             $accessToken = $null
         }
     }
@@ -123,7 +125,7 @@ try {
                     "grant_type" = "password"
                     "client_id"  = $ClientId
                     "username"   = $credential.UserName
-                    "password"   = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+                    "password"   = ($credential.Password | Get-PlainText)
                     "resource"   = $Resource
                 }
             }
@@ -141,6 +143,9 @@ try {
                     "Credential"   = $credential
                     "ClientSecret" = $null
                     "scopes"       = ""
+                    "appid"        = ""
+                    "name"         = $jwtToken.name
+                    "upn"          = $jwtToken.upn
                 }
                 if ($tenantID -eq "Common") {
                     Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
@@ -148,8 +153,7 @@ try {
                 }
             }
             catch {
-                $exception = $_.Exception
-                Write-Host -ForegroundColor Yellow $exception.Message.Replace('{EmailHidden}',$credential.UserName)
+                Write-Host -ForegroundColor Yellow (GetExtendedErrorMessage $_).Replace('{EmailHidden}',$credential.UserName)
                 $accessToken = $null
             }
         }
@@ -178,7 +182,10 @@ try {
                         "Credential"   = $null
                         "ClientSecret" = $null
                         "scopes"       = ""
-                    }
+                        "appid"        = ""
+                        "name"         = $jwtToken.name
+                        "upn"          = $jwtToken.upn
+                        }
                     if ($tenantID -eq "Common") {
                         Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
                         $authContext.TenantId = $jwtToken.tid
@@ -234,9 +241,9 @@ try {
                 }
                 catch {
                     $tokenRequest = $null
-                    $exception = $_
+                    $errorRecord = $_
                     try {
-                        $err = ($exception.ErrorDetails.Message | ConvertFrom-Json).error
+                        $err = ($errorRecord.ErrorDetails.Message | ConvertFrom-Json).error
                         if ($err -eq "code_expired") {
                             Write-Host
                             Write-Host -ForegroundColor Red "Authentication request expired."
@@ -245,12 +252,12 @@ try {
                         elseif ($err -eq "expired_token") {
                             Write-Host
                             Write-Host -ForegroundColor Red "Authentication token expired."
-                            throw $exception
+                            throw $errorRecord
                         }
                         elseif ($err -eq "authorization_declined") {
                             Write-Host
                             Write-Host -ForegroundColor Red "Authentication request declined."
-                            throw $exception
+                            throw $errorRecord
                         }
                         elseif ($err -eq "authorization_pending") {
                             if ($cnt++ % 5 -eq 0) {
@@ -259,12 +266,12 @@ try {
                         }
                         else {
                             Write-Host
-                            throw $exception
+                            throw $errorRecord
                         }
                     }
                     catch {
                         Write-Host 
-                        throw $exception
+                        throw $errorRecord
                     }
                 }
             }
@@ -280,7 +287,10 @@ try {
                         "Credential"   = $null
                         "ClientSecret" = $null
                         "scopes"       = ""
-                    }
+                        "appid"        = ""
+                        "name"         = $jwtToken.name
+                        "upn"          = $jwtToken.upn
+                        }
                     if ($tenantID -eq "Common") {
                         Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
                         $authContext.TenantId = $jwtToken.tid
@@ -301,6 +311,9 @@ try {
                     "Credential"   = $null
                     "ClientSecret" = $null
                     "scopes"       = ""
+                    "appid"        = ""
+                    "name"         = ""
+                    "upn"          = ""
                 }
             }
         }

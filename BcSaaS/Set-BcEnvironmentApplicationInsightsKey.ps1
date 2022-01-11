@@ -42,7 +42,7 @@ try {
         Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment/settings/appInsightsKey" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
     }
     catch {
-        throw (GetExtenedErrorMessage $_.Exception)
+        throw (GetExtendedErrorMessage $_)
     }
     Write-Host "New Application Insights Key submitted"
     if (!$doNotWait) {

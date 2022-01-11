@@ -44,7 +44,7 @@ try {
         (Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing).value
     }
     catch {
-        throw (GetExtenedErrorMessage $_.Exception)
+        throw (GetExtendedErrorMessage $_)
     }
 }
 catch {

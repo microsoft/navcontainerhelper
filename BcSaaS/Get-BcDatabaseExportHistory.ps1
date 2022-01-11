@@ -38,7 +38,7 @@ try {
         (Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.1/exports/history?start=$startTime&end=$endTime" -Headers $headers).value | Where-Object { $_.environmentName -like $environment }
     }
     catch {
-        throw (GetExtenedErrorMessage $_.Exception)
+        throw (GetExtendedErrorMessage $_)
     }
 }
 catch {

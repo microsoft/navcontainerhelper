@@ -308,12 +308,19 @@ function GetTestToolkitApps {
     } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
 }
 
-function GetExtenedErrorMessage {
+function GetExtendedErrorMessage {
     Param(
-        $exception
+        $errorRecord
     )
 
+    $exception = $errorRecord.Exception
     $message = $exception.Message
+
+    try {
+        $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
+        $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
+    }
+    catch {}
     try {
         $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
@@ -328,7 +335,10 @@ function GetExtenedErrorMessage {
             $message += " $result"
         }
         try {
-            $message += " (ms-correlation-x = $($webResponse.GetResponseHeader('ms-correlation-x')))"
+            $correlationX = $webResponse.GetResponseHeader('ms-correlation-x')
+            if ($correlationX) {
+                $message += " (ms-correlation-x = $correlationX)"
+            }
         }
         catch {}
     }

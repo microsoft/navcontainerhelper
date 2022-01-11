@@ -48,7 +48,7 @@ try {
             Invoke-RestMethod -Method DELETE -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers
         }
         catch {
-            throw (GetExtenedErrorMessage $_.Exception)
+            throw (GetExtendedErrorMessage $_)
         }
         Write-Host "Environment removal request submitted"
         if (!$doNotWait) {

@@ -202,6 +202,8 @@ function New-BcContainer {
         [string] $licenseFile = "",
         [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
+        [string] $AadAppId = "",
+        [string] $AadAppIdUri = "",
         [string] $memoryLimit = "",
         [string] $sqlMemoryLimit = "",
         [ValidateSet('','process','hyperv')]
@@ -1366,15 +1368,19 @@ try {
     }
 
     if ($vsixFile) {
-        if ($vsixFile.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixFile.StartsWith("http://", "OrdinalIgnoreCase")) {
-            $uri = [Uri]::new($vsixFile)
-            Download-File -sourceUrl $vsixFile -destinationFile "$containerFolder\$($uri.Segments[$uri.Segments.Count-1]).vsix"
+        $vsixUrl = $vsixFile
+        if ($vsixUrl.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixUrl.StartsWith("http://", "OrdinalIgnoreCase")) {
+            $uri = [Uri]::new($vsixUrl)
+            $vsixFile = "$containerFolder\$($uri.Segments[$uri.Segments.Count-1]).vsix"
+            Download-File -sourceUrl $vsixUrl -destinationFile $vsixFile
         }
-        elseif (Test-Path $vsixFile -PathType Leaf) {
-            Copy-Item -Path $vsixFile -Destination $containerFolder
+        elseif (Test-Path $vsixUrl -PathType Leaf) {
+            $vsixFile = "$containerFolder\$([Path]::GetFileName($vsixUrl))"
+            Copy-Item -Path $vsixUrl -Destination $vsixFile
         }
         else {
-            throw "Unable to locate vsix file ($vsixFile)"
+            $vsixFile = ""
+            throw "Unable to locate vsix file ($vsixUrl)"
         }
     }
 
@@ -1465,6 +1471,14 @@ try {
 
     if ("$authenticationEMail" -ne "") {
         $parameters += "--env authenticationEMail=""$authenticationEMail"""
+    }
+
+    if ($AadAppId) {
+        $customNavSettings += @("ValidAudiences=$AadAppId")
+    }
+
+    if ($AadAppIdUri) {
+        $parameters += "--env AppIdUri=$AadAppIdUri"
     }
 
     if ($PSBoundParameters.ContainsKey('enableTaskScheduler')) {
@@ -1792,7 +1806,13 @@ if (-not `$restartingInstance) {
                 Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
             } catch {}
         }
-        
+
+        if ($filesOnly -and $vsixFile) {
+            Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($vsixFile)
+                Remove-Item -Path 'C:\Run\*.vsix'
+                Copy-Item -Path $vsixFile -Destination 'C:\Run' -force
+            } -argumentList (Get-BcContainerPath -containerName $containerName -path $vsixFile)
+        }
 
         if ($sharedEncryptionKeyFile -and !(Test-Path $sharedEncryptionKeyFile)) {
             Write-Host "Storing Container Encryption Key file"

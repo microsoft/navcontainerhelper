@@ -77,7 +77,7 @@ try {
         Invoke-RestMethod -Method PUT -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers -Body ($Body | ConvertTo-Json) -ContentType 'application/json'
     }
     catch {
-        throw (GetExtenedErrorMessage $_.Exception)
+        throw (GetExtendedErrorMessage $_)
     }
     Write-Host "New environment request submitted"
     if (!$doNotWait -and !$applicationInsightsKey) {
