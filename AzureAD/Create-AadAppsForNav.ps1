@@ -22,6 +22,10 @@
   Add this switch to add application permissions for Web Services API and automation API
  .Parameter GrantAdminConsent
   Add this switch to grant admin consent to the API Application
+ .Parameter AvailableToOtherTenants
+  Indicates whether this application is available in other tenants.
+ .Parameter PreAuthorizePowerShell
+  Indicates whether the well known PowerShell AppID (1950a258-227b-4e31-a9cf-717495945fc2) should be pre-authorized for access
  .Parameter useCurrentAzureAdConnection
   Specify this switch to use the current Azure AD Connection instead of invoking Connect-AzureAD (which will pop up a UI)
  .Example
@@ -42,6 +46,8 @@ function Create-AadAppsForNav {
         [switch] $IncludeEmailAadApp,
         [switch] $IncludeApiAccess,
         [switch] $GrantAdminConsent,
+        [switch] $AvailableToOtherTenants,
+        [switch] $preAuthorizePowerShell,
         [switch] $useCurrentAzureAdConnection,
         [Hashtable] $bcAuthContext
     )
@@ -127,7 +133,9 @@ try {
     $ssoAdApp = New-AzureADApplication -DisplayName "WebClient for $publicWebBaseUrl" `
                                        -Homepage $publicWebBaseUrl `
                                        -IdentifierUris $appIdUri `
-                                       -ReplyUrls @($publicWebBaseUrl, ($publicWebBaseUrl.ToLowerInvariant()+"SignIn"))
+                                       -AvailableToOtherTenants $AvailableToOtherTenants.IsPresent `
+                                       -ReplyUrls @($publicWebBaseUrl, "$($publicWebBaseUrl.ToLowerInvariant())SignIn", "$($publicWebBaseUrl)OAuthLanding.htm")
+
 
     $SsoAdAppId = $ssoAdApp.AppId.ToString()
     $AdProperties["SsoAdAppId"] = $SsoAdAppId
@@ -142,28 +150,59 @@ try {
     # Get oauth2 permission id for sso app
     $oauth2permissionid = $ssoAdApp.Oauth2Permissions.id
 
-    # Windows Azure Active Directory -> Delegated permissions for Sign in and read user profile (User.Read)
     $req1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
-    $req1.ResourceAppId = "00000003-0000-0000-c000-000000000000"
-    $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"
+    $req1.ResourceAppId = "00000003-0000-0000-c000-000000000000"                                                                              # Microsoft Graph
+    $req1.ResourceAccess = @(
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"       # User.Read
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "9769c687-087d-48ac-9cb3-c37dde652038","Scope"       # EWS.AccessAsUser.All
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "5fa075e9-b951-4165-947b-c63396ff0a37","Scope"       # PrinterShare.ReadBasic.All
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "21f0d9c0-9f13-48b3-94e0-b6b231c7d320","Scope"       # PrintJob.Create
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "6a71a747-280f-4670-9ca0-a9cbf882b274","Scope"       # PrintJob.ReadBasic
+    )
 
     # Dynamics 365 Business Central -> Delegated permissions for Access as the signed-in user (Financials.ReadWrite.All)
     # Dynamics 365 Business Central -> Application permissions for Full access to Web Services API (API.ReadWrite.All)
     # Dynamics 365 Business Central -> Application permissions Full access to automation (Automation.ReadWrite.All)
     $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
-    $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"
+    $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"                                                                              # Business Central
     if ($IncludeApiAccess) {
         $req2.ResourceAccess = @(
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"   # Financials.ReadWrite.All
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"    # API.ReadWrite.All
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"    # Automation.ReadWrite.All
         )
     }
     else {
-        $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"
+        $req2.ResourceAccess =
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"   # Financials.ReadWrite.All
     }
 
-    Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -RequiredResourceAccess @($req1, $req2)
+    $req3 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+    $req3.ResourceAppId = "00000009-0000-0000-c000-000000000000"                                                                              # Power BI Service
+    $req3.ResourceAccess = 
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "4ae1bf56-f562-4747-b7bc-2fa0874ed46f","Scope"       # Report.Read.All
+
+    $req4 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+    $req4.ResourceAppId = "00000003-0000-0ff1-ce00-000000000000"                                                                              # SharePoint
+    $req4.ResourceAccess = @(
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "640ddd16-e5b7-4d71-9690-3f4022699ee7","Scope"       # AllSites.Write
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2cfdc887-d7b4-4798-9b33-3d98d6b95dd2","Scope"       # MyFiles.Write
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "0cea5a30-f6f8-42b5-87a0-84cc26822e02","Scope"       # User.Read.All
+    )
+
+    Set-AzureADApplication `
+        -ObjectId $ssoAdApp.ObjectId `
+        -RequiredResourceAccess @($req1, $req2, $req3, $req4)
+
+    if ($preAuthorizePowerShell) {
+        $appRegistration = Get-AzureADMSApplication -Filter "id eq '$($ssoAdApp.ObjectId)'"
+        $preAuthorizedApplication = New-Object 'Microsoft.Open.MSGraph.Model.PreAuthorizedApplication'
+        $preAuthorizedApplication.AppId = "1950a258-227b-4e31-a9cf-717495945fc2"
+        $preAuthorizedApplication.DelegatedPermissionIds = @($appRegistration.Api.OAuth2PermissionScopes.Id)
+        $appRegistration.Api.PreAuthorizedApplications = New-Object 'System.Collections.Generic.List[Microsoft.Open.MSGraph.Model.PreAuthorizedApplication]'
+        $appRegistration.Api.PreAuthorizedApplications.Add($preAuthorizedApplication)
+        Set-AzureADMSApplication -ObjectId $ssoAdApp.ObjectId -Api $appRegistration.Api
+    }
 
     if ($IncludeApiAccess -and $GrantAdminConsent) {
         # Grant admin consent

@@ -397,7 +397,7 @@ try {
                 }
                 catch [System.Net.WebException] {
                     Write-Host "ERROR $($_.Exception.Message)"
-                    throw (GetExtenedErrorMessage $_.Exception)
+                    throw (GetExtendedErrorMessage $_)
                 }
                 if (Test-Path -Path $symbolsFile) {
                     $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)

@@ -33,7 +33,7 @@ try {
         (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.6/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
     }
     catch {
-        throw (GetExtenedErrorMessage $_.Exception)
+        throw (GetExtendedErrorMessage $_)
     }
 }
 catch {

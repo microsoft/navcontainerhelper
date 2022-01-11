@@ -65,11 +65,18 @@ function Get-TestsFromBcContainer {
         [switch] $debugMode,
         [switch] $ignoreGroups,
         [switch] $usePublicWebBaseUrl,
-        [string] $useUrl
+        [string] $useUrl,
+        [Hashtable] $bcAuthContext
     )
     
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+    if ($bcAuthContext) {
+        $bcAuthContext = Renew-BcAuthContext $bcAuthContext
+        $accessToken = $bcAuthContext.accessToken
+        $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+    }
 
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
