@@ -9,7 +9,7 @@
  .Parameter clientID
   ClientID of AAD app to use for authentication. Default is a well known PowerShell AAD App ID (1950a258-227b-4e31-a9cf-717495945fc2)
  .Parameter Resource
-  Resource used for OAuth2 flow. Default is https://api.businesscentral.dynamics.com/
+  Resource used for OAuth2 flow. This parameter is obsolete, use scopes instead.
  .Parameter tenantID
   TenantID to use for OAuth2 flow. Default is Common
  .Parameter authority
@@ -36,7 +36,7 @@
 function New-BcAuthContext {
     Param(
         [string] $clientID = "1950a258-227b-4e31-a9cf-717495945fc2",
-        [string] $Resource = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/",
+        [string] $Resource = "",
         [string] $tenantID = "Common",
         [string] $authority = "https://login.microsoftonline.com/$TenantID",
         [string] $refreshToken,
@@ -58,9 +58,15 @@ try {
     if ($deviceCode) {
         $includeDeviceLogin = $true
     }
+
+    if ($resource) {
+        Write-Host -ForegroundColor Yellow "Resource parameter on New-BcAuthContext is obsolete, please use scopes parameter instead"
+        $scopes = "$($resource.TrimEnd('/'))/.default"
+    }
+
     $authContext = @{
         "clientID"           = $clientID
-        "Resource"           = $Resource
+        "scopes"             = $scopes
         "tenantID"           = $tenantID
         "authority"          = $authority
         "includeDeviceLogin" = $includeDeviceLogin
@@ -82,7 +88,6 @@ try {
         try {
             Write-Host "Attempting authentication to $scopes using clientCredentials..."
             $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
-            $global:TT = $TokenRequest
             $accessToken = $TokenRequest.access_token
             $jwtToken = Parse-JWTtoken -token $accessToken
             Write-Host -ForegroundColor Green "Authenticated as app $($jwtToken.appid)"
@@ -100,7 +105,6 @@ try {
                 "RefreshToken" = $null
                 "Credential"   = $null
                 "ClientSecret" = $clientSecret
-                "scopes"       = $scopes
                 "appid"        = $jwtToken.appid
                 "name"         = ""
                 "upn"          = ""
@@ -112,37 +116,42 @@ try {
 
         }
         catch {
-            Write-Host -ForegroundColor Red (GetExtendedErrorMessage $_).Replace('{EmailHidden}',$credential.UserName)
+            Write-Host -ForegroundColor Red (GetExtendedErrorMessage $_)
             $accessToken = $null
         }
     }
     else {
+        if ($scopes -like "*/.default") {
+            $scopes = "$($scopes.Substring(0,$scopes.Length-9))/User.Read openid email offline_access"
+        }
+
         if ($credential) {
             $TokenRequestParams = @{
                 Method = 'POST'
-                Uri    = "$($authority.TrimEnd('/'))/oauth2/token"
+                Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/token"
                 Body   = @{
                     "grant_type" = "password"
                     "client_id"  = $ClientId
                     "username"   = $credential.UserName
                     "password"   = ($credential.Password | Get-PlainText)
-                    "resource"   = $Resource
+                    "scope"      = $scopes
                 }
+                Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
             }
             try {
-                Write-Host "Attempting authentication to $Resource using username/password..."
+                Write-Host "Attempting authentication to $Scopes using username/password..."
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
+                $TokenRequest | out-host
                 $accessToken = $TokenRequest.access_token
                 $jwtToken = Parse-JWTtoken -token $accessToken
                 Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
     
                 $authContext += @{
                     "AccessToken"  = $accessToken
-                    "UtcExpiresOn" = [Datetime]::new(1970,1,1).AddSeconds($TokenRequest.expires_on)
+                    "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
                     "RefreshToken" = $TokenRequest.refresh_token
                     "Credential"   = $credential
                     "ClientSecret" = $null
-                    "scopes"       = ""
                     "appid"        = ""
                     "name"         = $jwtToken.name
                     "upn"          = $jwtToken.upn
@@ -160,16 +169,18 @@ try {
         if (!$accessToken -and $refreshToken) {
             $TokenRequestParams = @{
                 Method = 'POST'
-                Uri    = "$($authority.TrimEnd('/'))/oauth2/token"
+                Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/token"
                 Body   = @{
                     "grant_type"    = "refresh_token"
                     "client_id"     = $ClientId
                     "refresh_token" = $refreshToken
+                    "scope"         = $scopes
                 }
+                Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
             }
             try
             {
-                Write-Host "Attempting authentication to $Resource using refresh token..."
+                Write-Host "Attempting authentication to $Scopes using refresh token..."
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                 $accessToken = $TokenRequest.access_token
                 try {
@@ -177,11 +188,10 @@ try {
                     Write-Host -ForegroundColor Green "Authenticated using refresh token as user $($jwtToken.name) ($($jwtToken.upn))"
                     $authContext += @{
                         "AccessToken"  = $accessToken
-                        "UtcExpiresOn" = [Datetime]::new(1970,1,1).AddSeconds($TokenRequest.expires_on)
+                        "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
                         "RefreshToken" = $TokenRequest.refresh_token
                         "Credential"   = $null
                         "ClientSecret" = $null
-                        "scopes"       = ""
                         "appid"        = ""
                         "name"         = $jwtToken.name
                         "upn"          = $jwtToken.upn
@@ -209,14 +219,15 @@ try {
             if ($deviceCode -eq "") {
                 $DeviceCodeRequestParams = @{
                     Method = 'POST'
-                    Uri    = "$($authority.TrimEnd('/'))/oauth2/devicecode"
+                    Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/devicecode"
                     Body   = @{
                         "client_id" = $ClientId
-                        "resource"  = $Resource
+                        "scope"     = $Scopes
                     }
+                    Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
                 }
                 
-                Write-Host "Attempting authentication to $Resource using device login..."
+                Write-Host "Attempting authentication to $Scopes using device login..."
                 $DeviceCodeRequest = Invoke-RestMethod @DeviceCodeRequestParams -UseBasicParsing
                 Write-Host $DeviceCodeRequest.message -ForegroundColor Yellow
                 Write-Host -NoNewline "Waiting for authentication"
@@ -225,18 +236,20 @@ try {
 
             $TokenRequestParams = @{
                 Method = 'POST'
-                Uri    = "$($authority.TrimEnd('/'))/oauth2/token"
+                Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/token"
                 Body   = @{
-                    "grant_type" = "urn:ietf:params:oauth:grant-type:device_code"
-                    "code"       = $deviceCode
-                    "client_id"  = $ClientId
+                    "grant_type"  = "urn:ietf:params:oauth:grant-type:device_code"
+                    "device_code" = $deviceCode
+                    "client_id"   = $ClientId
                 }
+                Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
             }
 
             while ($accessToken -eq "" -and ([DateTime]::Now.Subtract($deviceLoginStart) -lt $deviceLoginTimeout)) {
                 Start-Sleep -Seconds 1
                 try {
                     $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
+                    $TokenRequest | Out-host
                     $accessToken = $TokenRequest.access_token
                 }
                 catch {
@@ -282,11 +295,10 @@ try {
                     Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
                     $authContext += @{
                         "AccessToken"  = $accessToken
-                        "UtcExpiresOn" = [Datetime]::new(1970,1,1).AddSeconds($TokenRequest.expires_on)
+                        "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
                         "RefreshToken" = $TokenRequest.refresh_token
                         "Credential"   = $null
                         "ClientSecret" = $null
-                        "scopes"       = ""
                         "appid"        = ""
                         "name"         = $jwtToken.name
                         "upn"          = $jwtToken.upn
@@ -310,7 +322,6 @@ try {
                     "RefreshToken" = ""
                     "Credential"   = $null
                     "ClientSecret" = $null
-                    "scopes"       = ""
                     "appid"        = ""
                     "name"         = ""
                     "upn"          = ""

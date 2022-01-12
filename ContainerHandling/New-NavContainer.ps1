@@ -202,6 +202,7 @@ function New-BcContainer {
         [string] $licenseFile = "",
         [PSCredential] $Credential = $null,
         [string] $authenticationEMail = "",
+        [string] $AadTenant = "",
         [string] $AadAppId = "",
         [string] $AadAppIdUri = "",
         [string] $memoryLimit = "",
@@ -1474,7 +1475,11 @@ try {
     }
 
     if ($AadAppId) {
-        $customNavSettings += @("ValidAudiences=$AadAppId")
+        $customNavSettings += @("ValidAudiences=$AadAppId", "DisableTokenSigningCertificateValidation=True", "ExtendedSecurityTokenLifetime=24")
+    }
+
+    if ($AadTenant) {
+        $parameters += "--env AadTenant=$AadTenant"
     }
 
     if ($AadAppIdUri) {

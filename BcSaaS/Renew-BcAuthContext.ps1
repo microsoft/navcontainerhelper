@@ -33,7 +33,6 @@ try {
     else {
         New-BcAuthContext `
             -clientID $bcAuthContext.clientID `
-            -Resource $bcAuthContext.Resource `
             -tenantID $bcAuthContext.tenantID `
             -authority $bcAuthContext.authority `
             -refreshToken $bcAuthContext.RefreshToken `
