@@ -712,7 +712,6 @@ function Test-BcAuthContext {
           ($bcAuthContext.ContainsKey('RefreshToken')) -and
           ($bcAuthContext.ContainsKey('UtcExpiresOn')) -and
           ($bcAuthContext.ContainsKey('tenantID')) -and
-          ($bcAuthContext.ContainsKey('Resource')) -and
           ($bcAuthContext.ContainsKey('AccessToken')) -and
           ($bcAuthContext.ContainsKey('includeDeviceLogin')) -and
           ($bcAuthContext.ContainsKey('deviceLoginTimeout')))) {

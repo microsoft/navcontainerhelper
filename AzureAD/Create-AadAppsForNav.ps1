@@ -195,6 +195,12 @@ try {
         -RequiredResourceAccess @($req1, $req2, $req3, $req4)
 
     if ($preAuthorizePowerShell) {
+        $msGraph = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq "00000003-0000-0000-c000-000000000000" }
+        $permission = $msGraph.Oauth2Permissions | Where-Object { $_.value -eq "User.Read" }
+        $myapp = Get-AzureADApplication -ObjectId $ssoAdApp.ObjectId
+        $myapp.Oauth2Permissions.Add($permission)
+        Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -Oauth2Permissions $myapp.Oauth2Permissions
+
         $appRegistration = Get-AzureADMSApplication -Filter "id eq '$($ssoAdApp.ObjectId)'"
         $preAuthorizedApplication = New-Object 'Microsoft.Open.MSGraph.Model.PreAuthorizedApplication'
         $preAuthorizedApplication.AppId = "1950a258-227b-4e31-a9cf-717495945fc2"
