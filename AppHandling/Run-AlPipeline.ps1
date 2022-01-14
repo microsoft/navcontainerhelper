@@ -1739,7 +1739,7 @@ $testAppIds.Keys | ForEach-Object {
         Get-ChildItem -Path $folder -Filter "disabledTests.json" -Recurse | ForEach-Object {
             $disabledTestsStr = Get-Content $_.FullName -Raw
             Write-Host "Disabled Tests:`n$disabledTestsStr"
-            $disabledTests += @($disabledTestsStr | ConvertFrom-Json)
+            $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
         }
     }
     $Parameters = @{
