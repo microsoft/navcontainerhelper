@@ -40,7 +40,7 @@ function New-BcAuthContext {
         [string] $tenantID = "Common",
         [string] $authority = "https://login.microsoftonline.com/$TenantID",
         [string] $refreshToken,
-        [string] $scopes = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default",
+        [string] $scopes = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/",
         $clientSecret,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
@@ -61,7 +61,7 @@ try {
 
     if ($resource) {
         Write-Host -ForegroundColor Yellow "Resource parameter on New-BcAuthContext is obsolete, please use scopes parameter instead"
-        $scopes = "$($resource.TrimEnd('/'))/.default"
+        $scopes = "$($resource.TrimEnd('/'))/"
     }
 
     $authContext = @{
@@ -75,6 +75,10 @@ try {
     }
     $accessToken = $null
     if ($clientSecret) {
+        if ($scopes.EndsWith('/')) {
+            $scopes += ".default"
+        }
+
         $TokenRequestParams = @{
             Method = 'POST'
             Uri    = "$($authority.TrimEnd('/'))/oauth2/v2.0/token"
@@ -84,6 +88,7 @@ try {
                 "client_id"     = $clientId
                 "client_secret" = ($clientSecret | Get-PlainText)
             }
+            Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
         }
         try {
             Write-Host "Attempting authentication to $scopes using clientCredentials..."
@@ -121,8 +126,8 @@ try {
         }
     }
     else {
-        if ($scopes -like "*/.default") {
-            $scopes = "$($scopes.Substring(0,$scopes.Length-9))/User.Read openid email offline_access"
+        if ($scopes.EndsWith('/')) {
+            $scopes += "user_impersonation offline_access"
         }
 
         if ($credential) {
@@ -141,7 +146,6 @@ try {
             try {
                 Write-Host "Attempting authentication to $Scopes using username/password..."
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
-                $TokenRequest | out-host
                 $accessToken = $TokenRequest.access_token
                 $jwtToken = Parse-JWTtoken -token $accessToken
                 Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
@@ -249,7 +253,6 @@ try {
                 Start-Sleep -Seconds 1
                 try {
                     $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
-                    $TokenRequest | Out-host
                     $accessToken = $TokenRequest.access_token
                 }
                 catch {

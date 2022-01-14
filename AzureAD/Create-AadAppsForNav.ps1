@@ -20,10 +20,8 @@
   Add this switch to request the function to also create an AAD app for the EMail service
  .Parameter IncludeApiAccess
   Add this switch to add application permissions for Web Services API and automation API
- .Parameter GrantAdminConsent
-  Add this switch to grant admin consent to the API Application
- .Parameter AvailableToOtherTenants
-  Indicates whether this application is available in other tenants.
+ .Parameter Singletenant
+  Indicates whether this application is singletenant
  .Parameter PreAuthorizePowerShell
   Indicates whether the well known PowerShell AppID (1950a258-227b-4e31-a9cf-717495945fc2) should be pre-authorized for access
  .Parameter useCurrentAzureAdConnection
@@ -45,8 +43,7 @@ function Create-AadAppsForNav {
         [switch] $IncludePowerBiAadApp,
         [switch] $IncludeEmailAadApp,
         [switch] $IncludeApiAccess,
-        [switch] $GrantAdminConsent,
-        [switch] $AvailableToOtherTenants,
+        [switch] $SingleTenant,
         [switch] $preAuthorizePowerShell,
         [switch] $useCurrentAzureAdConnection,
         [Hashtable] $bcAuthContext
@@ -128,14 +125,20 @@ try {
     # Create AesKey
     $SsoAdAppKeyValue = Create-AesKey
     $AdProperties["SsoAdAppKeyValue"] = $SsoAdAppKeyValue
+    $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn")
+    $oAuthReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())OAuthLanding.htm")
+    if ($publicWebBaseUrl.ToUpperInvariant() -cne $publicWebBaseUrl) {
+        $signInReplyUrls += @("$($publicWebBaseUrl)SignIn")
+        $oAuthReplyUrls += @("$($publicWebBaseUrl)OAuthLanding.htm")
+    }
+
 
     Write-Host "Creating AAD App for WebClient"
     $ssoAdApp = New-AzureADApplication -DisplayName "WebClient for $publicWebBaseUrl" `
                                        -Homepage $publicWebBaseUrl `
                                        -IdentifierUris $appIdUri `
-                                       -AvailableToOtherTenants $AvailableToOtherTenants.IsPresent `
-                                       -ReplyUrls @($publicWebBaseUrl, "$($publicWebBaseUrl.ToLowerInvariant())SignIn", "$($publicWebBaseUrl)OAuthLanding.htm")
-
+                                       -ReplyUrls $signInReplyUrls `
+                                       -AvailableToOtherTenants (!$SingleTenant.IsPresent)
 
     $SsoAdAppId = $ssoAdApp.AppId.ToString()
     $AdProperties["SsoAdAppId"] = $SsoAdAppId
@@ -160,46 +163,46 @@ try {
         New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "6a71a747-280f-4670-9ca0-a9cbf882b274","Scope"       # PrintJob.ReadBasic
     )
 
+    $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+    $req2.ResourceAppId = "00000009-0000-0000-c000-000000000000"                                                                              # Power BI Service
+    $req2.ResourceAccess = 
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "4ae1bf56-f562-4747-b7bc-2fa0874ed46f","Scope"       # Report.Read.All
+
+    $req3 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+    $req3.ResourceAppId = "00000003-0000-0ff1-ce00-000000000000"                                                                              # SharePoint
+    $req3.ResourceAccess = @(
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "640ddd16-e5b7-4d71-9690-3f4022699ee7","Scope"       # AllSites.Write
+        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2cfdc887-d7b4-4798-9b33-3d98d6b95dd2","Scope"       # MyFiles.Write
+#        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "0cea5a30-f6f8-42b5-87a0-84cc26822e02","Scope"       # User.Read.All
+    )
+
     # Dynamics 365 Business Central -> Delegated permissions for Access as the signed-in user (Financials.ReadWrite.All)
     # Dynamics 365 Business Central -> Application permissions for Full access to Web Services API (API.ReadWrite.All)
     # Dynamics 365 Business Central -> Application permissions Full access to automation (Automation.ReadWrite.All)
-    $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
-    $req2.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"                                                                              # Business Central
-    if ($IncludeApiAccess) {
-        $req2.ResourceAccess = @(
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"   # Financials.ReadWrite.All
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"    # API.ReadWrite.All
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"    # Automation.ReadWrite.All
-        )
-    }
-    else {
-        $req2.ResourceAccess =
-            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"   # Financials.ReadWrite.All
-    }
-
-    $req3 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
-    $req3.ResourceAppId = "00000009-0000-0000-c000-000000000000"                                                                              # Power BI Service
-    $req3.ResourceAccess = 
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "4ae1bf56-f562-4747-b7bc-2fa0874ed46f","Scope"       # Report.Read.All
-
-    $req4 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
-    $req4.ResourceAppId = "00000003-0000-0ff1-ce00-000000000000"                                                                              # SharePoint
-    $req4.ResourceAccess = @(
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "640ddd16-e5b7-4d71-9690-3f4022699ee7","Scope"       # AllSites.Write
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2cfdc887-d7b4-4798-9b33-3d98d6b95dd2","Scope"       # MyFiles.Write
-        New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "0cea5a30-f6f8-42b5-87a0-84cc26822e02","Scope"       # User.Read.All
-    )
+#    $req4 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+#    $req4.ResourceAppId = "996def3d-b36c-4153-8607-a6fd3c01b89f"                                                                              # Business Central
+#    if ($IncludeApiAccess) {
+#        $req4.ResourceAccess = @(
+#            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"   # Financials.ReadWrite.All
+#            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "a42b0b75-311e-488d-b67e-8fe84f924341","Role"    # API.ReadWrite.All
+#            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "d365bc00-a990-0000-00bc-160000000001","Role"    # Automation.ReadWrite.All
+#        )
+#    }
+#    else {
+#        $req4.ResourceAccess =
+#            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "2fb13c28-9d89-417f-9af2-ec3065bc16e6","Scope"   # Financials.ReadWrite.All
+#    }
 
     Set-AzureADApplication `
         -ObjectId $ssoAdApp.ObjectId `
-        -RequiredResourceAccess @($req1, $req2, $req3, $req4)
+        -RequiredResourceAccess @($req1, $req2, $req3)
 
     if ($preAuthorizePowerShell) {
-        $msGraph = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq "00000003-0000-0000-c000-000000000000" }
-        $permission = $msGraph.Oauth2Permissions | Where-Object { $_.value -eq "User.Read" }
-        $myapp = Get-AzureADApplication -ObjectId $ssoAdApp.ObjectId
-        $myapp.Oauth2Permissions.Add($permission)
-        Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -Oauth2Permissions $myapp.Oauth2Permissions
+#        $msGraph = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq "00000003-0000-0000-c000-000000000000" }
+#        $permission = $msGraph.Oauth2Permissions | Where-Object { $_.value -eq "User.Read" }
+#        $myapp = Get-AzureADApplication -ObjectId $ssoAdApp.ObjectId
+#        $myapp.Oauth2Permissions.Add($permission)
+#        Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -Oauth2Permissions $myapp.Oauth2Permissions
 
         $appRegistration = Get-AzureADMSApplication -Filter "id eq '$($ssoAdApp.ObjectId)'"
         $preAuthorizedApplication = New-Object 'Microsoft.Open.MSGraph.Model.PreAuthorizedApplication'
@@ -210,18 +213,35 @@ try {
         Set-AzureADMSApplication -ObjectId $ssoAdApp.ObjectId -Api $appRegistration.Api
     }
 
-    if ($IncludeApiAccess -and $GrantAdminConsent) {
-        # Grant admin consent
-        $servicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $SsoAdAppId }
-        if (!($servicePrincipal)) {
-            $servicePrincipal = New-AzureADServicePrincipal -AppId $SsoAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
-        }
-        $resourceApp = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $req2.ResourceAppId }
-        ForEach ($permission in $req2.ResourceAccess) {
-            if ($permission.Type -eq "Role") {
-                New-AzureADServiceAppRoleAssignment -ObjectId $servicePrincipal.ObjectId -PrincipalId $servicePrincipal.ObjectId -ResourceId $resourceApp.ObjectId -Id $permission.Id
-            }
-        }
+#    if ($IncludeApiAccess) {
+#        # Grant admin consent
+#        $servicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $SsoAdAppId }
+#        if (!($servicePrincipal)) {
+#            $servicePrincipal = New-AzureADServicePrincipal -AppId $SsoAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+#        }
+#        $resourceApp = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $req2.ResourceAppId }
+#        ForEach ($permission in $req2.ResourceAccess) {
+#            if ($permission.Type -eq "Role") {
+#                New-AzureADServiceAppRoleAssignment -ObjectId $servicePrincipal.ObjectId -PrincipalId $servicePrincipal.ObjectId -ResourceId $resourceApp.ObjectId -Id $permission.Id
+#            }
+#        }
+#    }
+
+    if ($IncludeApiAccess) {
+        # Create an application role of given name and description
+        $appRoleId = [Guid]::NewGuid().ToString()
+        # Create new AppRole object
+        $appRole = [Microsoft.Open.AzureAD.Model.AppRole]::new()
+        $appRole.AllowedMemberTypes = New-Object System.Collections.Generic.List[string]
+        $appRole.AllowedMemberTypes.Add("Application")
+        $appRole.AllowedMemberTypes.Add("User")
+        $appRole.DisplayName = "API.ReadWrite.All"
+        $appRole.Description = "Full access to web services API"
+        $appRole.Value = "API.ReadWrite.All"
+        $appRole.Id = $appRoleId
+        $appRole.IsEnabled = $true
+
+        Set-AzureADApplication -ObjectId $ssoAdApp.ObjectId -AppRoles @($appRole)
     }
 
     # Set Logo Image for App
@@ -229,10 +249,74 @@ try {
         Set-AzureADApplicationLogo -ObjectId $ssoAdApp.ObjectId -FilePath $iconPath
     }
 
+    if (!(Get-AzureADApplicationOwner -ObjectId $ssoAdApp.ObjectId -All $true | Where-Object { $_.ObjectId -eq $adUserObjectId })) {
+        Add-AzureADApplicationOwner -ObjectId $ssoAdApp.ObjectId -RefObjectId $adUserObjectId
+    }
+
+    # API Access Aad App
+    if ($IncludeApiAccess) {
+        # Remove "old" Api AAD Application
+        $ApiIdentifierUri = $appIdUri.Replace('://','://api.')
+        Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($ApiIdentifierUri) } | Remove-AzureADApplication
+    
+        # Create AD Application
+        Write-Host "Creating AAD App for API Access"
+        $apiAdApp = New-AzureADApplication -DisplayName "API Access for $publicWebBaseUrl" `
+                                           -HomePage $publicWebBaseUrl `
+                                           -IdentifierUris $ApiIdentifierUri `
+                                           -ReplyUrls $oAuthReplyUrls `
+                                           -AvailableToOtherTenants $true
+        
+        $apiAdAppId = $apiAdApp.AppId.ToString()
+        $AdProperties["ApiAdAppId"] = $apiAdAppId 
+    
+        # Add a key to the app
+        $startDate = Get-Date
+        $ApiAdAppKeyValue = Create-AesKey
+        $AdProperties["ApiAdAppKeyValue"] = $ApiAdAppKeyValue 
+        New-AzureADApplicationPasswordCredential -ObjectId $apiAdApp.ObjectId `
+                                                 -Value $apiAdAppKeyValue `
+                                                 -StartDate $startDate `
+                                                 -EndDate $startDate.AddYears(10) | Out-Null
+
+        $req1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+        $req1.ResourceAppId = "$SsoAdAppId"
+        $req1.ResourceAccess = @(
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "$oauth2permissionid","Scope"
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "$appRoleId","Role"
+        )
+
+        $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+        $req2.ResourceAppId = "00000003-0000-0000-c000-000000000000"                                                                              # Microsoft Graph
+        $req2.ResourceAccess = 
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"       # User.Read
+
+        Set-AzureADApplication -ObjectId $apiAdApp.ObjectId -RequiredResourceAccess $req1, $req2
+
+        # Grant admin consent
+        $apiAdAppServicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $apiAdAppId }
+        if (!($apiAdAppServicePrincipal)) {
+            $apiAdAppServicePrincipal = New-AzureADServicePrincipal -AppId $apiAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+        }
+        $ssoAdAppServicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $ssoAdAppId }
+        if (!($ssoAdAppServicePrincipal)) {
+            $ssoAdAppServicePrincipal = New-AzureADServicePrincipal -AppId $SsoAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+        }
+        ForEach ($permission in $req1.ResourceAccess) {
+            if ($permission.Type -eq "Role") {
+                New-AzureADServiceAppRoleAssignment -ObjectId $apiAdAppServicePrincipal.ObjectId -PrincipalId $apiAdAppServicePrincipal.ObjectId -ResourceId $ssoAdAppServicePrincipal.ObjectId -Id $permission.Id
+            }
+        }
+
+        if (!(Get-AzureADApplicationOwner -ObjectId $apiAdApp.ObjectId -All $true | Where-Object { $_.ObjectId -eq $adUserObjectId })) {
+            Add-AzureADApplicationOwner -ObjectId $apiAdApp.ObjectId -RefObjectId $adUserObjectId
+        }
+    }
+
     # Excel Ad App
     if ($IncludeExcelAadApp) {
         # Remove "old" Excel AD Application
-        $ExcelIdentifierUri = "XLS.$appIdUri"
+        $ExcelIdentifierUri = $appIdUri.Replace('://','://xls.')
         Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($ExcelIdentifierUri) } | Remove-AzureADApplication
 
         # Create AD Application
@@ -240,18 +324,28 @@ try {
         $excelAdApp = New-AzureADApplication -DisplayName "Excel AddIn for $publicWebBaseUrl" `
                                              -HomePage $publicWebBaseUrl `
                                              -IdentifierUris $ExcelIdentifierUri `
-                                             -ReplyUrls $publicWebBaseUrl, "https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*"
+                                             -ReplyUrls ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*"))
 
         $ExcelAdAppId = $excelAdApp.AppId.ToString()
         $AdProperties["ExcelAdAppId"] = $ExcelAdAppId
+
+        # Add a key to the app
+        $startDate = Get-Date
+        $ExcelAdAppKeyValue = Create-AesKey
+        $AdProperties["ExcelAdAppKeyValue"] = $ExcelAdAppKeyValue 
+        New-AzureADApplicationPasswordCredential -ObjectId $excelAdApp.ObjectId `
+                                                 -Value $ExcelAdAppKeyValue `
+                                                 -StartDate $startDate `
+                                                 -EndDate $startDate.AddYears(10) | Out-Null
 
         $req1 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
         $req1.ResourceAppId = "$SsoAdAppId"
         $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "$oauth2permissionid","Scope"
 
-        $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess"
-        $req2.ResourceAppId = "00000002-0000-0000-c000-000000000000"
-        $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
+        $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+        $req2.ResourceAppId = "00000003-0000-0000-c000-000000000000"                                                                              # Microsoft Graph
+        $req2.ResourceAccess = 
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"       # User.Read
 
         Set-AzureADApplication -ObjectId $excelAdApp.ObjectId -Oauth2AllowImplicitFlow $true -RequiredResourceAccess $req1, $req2
 
@@ -263,25 +357,24 @@ try {
     # PowerBI Ad App
     if ($IncludePowerBiAadApp) {
         # Remove "old" PowerBI AD Application
-        $PowerBiIdentifierUri = "PBI.$appIdUri"
+        $PowerBiIdentifierUri = $appIdUri.Replace('://','://pbi.')
         Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($PowerBiIdentifierUri) } | Remove-AzureADApplication
-    
-        # Create AesKey
-        $PowerBiAdAppKeyValue = Create-AesKey
-        $AdProperties["PowerBiAdAppKeyValue"] = $PowerBiAdAppKeyValue 
     
         # Create AD Application
         Write-Host "Creating AAD App for PowerBI Service"
         $powerBiAdApp = New-AzureADApplication -DisplayName "PowerBI Service for $publicWebBaseUrl" `
                                                -HomePage $publicWebBaseUrl `
                                                -IdentifierUris $PowerBiIdentifierUri `
-                                               -ReplyUrls "${publicWebBaseUrl}OAuthLanding.htm"
-        
+                                               -ReplyUrls $oAuthReplyUrls `
+                                               -AvailableToOtherTenants $true
+          
         $PowerBiAdAppId = $powerBiAdApp.AppId.ToString()
         $AdProperties["PowerBiAdAppId"] = $PowerBiAdAppId 
     
         # Add a key to the app
         $startDate = Get-Date
+        $PowerBiAdAppKeyValue = Create-AesKey
+        $AdProperties["PowerBiAdAppKeyValue"] = $PowerBiAdAppKeyValue 
         New-AzureADApplicationPasswordCredential -ObjectId $powerBiAdApp.ObjectId `
                                                  -Value $PowerBiAdAppKeyValue `
                                                  -StartDate $startDate `
@@ -291,36 +384,40 @@ try {
         $req1.ResourceAppId = "00000009-0000-0000-c000-000000000000"
         $req1.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "4ae1bf56-f562-4747-b7bc-2fa0874ed46f","Scope"
 
-        $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess"
-        $req2.ResourceAppId = "00000002-0000-0000-c000-000000000000"
-        $req2.ResourceAccess = New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "311a71cc-e848-46a1-bdf8-97ff7156d8e6","Scope"
+        $req2 = New-Object -TypeName "Microsoft.Open.AzureAD.Model.RequiredResourceAccess" 
+        $req2.ResourceAppId = "00000003-0000-0000-c000-000000000000"                                                                              # Microsoft Graph
+        $req2.ResourceAccess = 
+            New-Object -TypeName "Microsoft.Open.AzureAD.Model.ResourceAccess" -ArgumentList "e1fe6dd8-ba31-4d61-89e7-88639da4683d","Scope"       # User.Read
 
         Set-AzureADApplication -ObjectId $powerBiAdApp.ObjectId -RequiredResourceAccess $req1, $req2
+
+        if (!(Get-AzureADApplicationOwner -ObjectId $powerBiAdApp.ObjectId -All $true | Where-Object { $_.ObjectId -eq $adUserObjectId })) {
+            Add-AzureADApplicationOwner -ObjectId $powerBiAdApp.ObjectId -RefObjectId $adUserObjectId
+        }
     }
 
     # EMail App
     if ($IncludeEmailAadApp) {
         # Remove "old" Email AD Application
-        #$EmailIdentifierUri = "Email.$appIdUri"
+        $EMailIdentifierUri = $appIdUri.Replace('://','://email.')
         $EMailDisplayName = "EMail Service for $publicWebBaseUrl"
-        Get-AzureADApplication -All $true | Where-Object { $_.DisplayName -eq $EMailDisplayName } | Remove-AzureADApplication
-    
-        # Create AesKey
-        $EMailAdAppKeyValue = Create-AesKey
-        $AdProperties["EMailAdAppKeyValue"] = $EMailAdAppKeyValue 
+        Get-AzureADApplication -All $true | Where-Object { $_.IdentifierUris.Contains($EMailIdentifierUri) } | Remove-AzureADApplication
     
         # Create AD Application
         Write-Host "Creating AAD App for EMail Service"
         $EMailAdApp = New-AzureADApplication -DisplayName $EMailDisplayName `
                                              -HomePage $publicWebBaseUrl `
-                                             -ReplyUrls "${publicWebBaseUrl}OAuthLanding.htm" `
-                                             -AvailableToOtherTenants 1
+                                             -IdentifierUris $EMailIdentifierUri `
+                                             -ReplyUrls $oAuthReplyUrls `
+                                             -AvailableToOtherTenants $true
         
         $EMailAdAppId = $EMailAdApp.AppId.ToString()
         $AdProperties["EMailAdAppId"] = $EMailAdAppId 
     
         # Add a key to the app
         $startDate = Get-Date
+        $EMailAdAppKeyValue = Create-AesKey
+        $AdProperties["EMailAdAppKeyValue"] = $EMailAdAppKeyValue 
         New-AzureADApplicationPasswordCredential -ObjectId $EMailAdApp.ObjectId `
                                                  -Value $EMailAdAppKeyValue `
                                                  -StartDate $startDate `
@@ -336,6 +433,10 @@ try {
         )
 
         Set-AzureADApplication -ObjectId $EMailAdApp.ObjectId -RequiredResourceAccess $req
+
+        if (!(Get-AzureADApplicationOwner -ObjectId $EMailAdApp.ObjectId -All $true | Where-Object { $_.ObjectId -eq $adUserObjectId })) {
+            Add-AzureADApplicationOwner -ObjectId $EMailAdApp.ObjectId -RefObjectId $adUserObjectId
+        }
     }
 
     $AdProperties
