@@ -1475,7 +1475,7 @@ try {
     }
 
     if ($AadAppId) {
-        $customNavSettings += @("ValidAudiences=$AadAppId", "DisableTokenSigningCertificateValidation=True", "ExtendedSecurityTokenLifetime=24", "ClientServicesCredentialType=NavUserPassword")
+        $customNavSettings += @("ValidAudiences=$AadAppId;https://api.businesscentral.dynamics.com", "DisableTokenSigningCertificateValidation=True", "ExtendedSecurityTokenLifetime=24", "ClientServicesCredentialType=NavUserPassword")
     }
 
     if ($AadTenant) {
