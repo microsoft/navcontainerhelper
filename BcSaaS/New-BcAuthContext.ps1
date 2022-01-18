@@ -148,7 +148,7 @@ try {
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                 $accessToken = $TokenRequest.access_token
                 $jwtToken = Parse-JWTtoken -token $accessToken
-                Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
+                Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))"
     
                 $authContext += @{
                     "AccessToken"  = $accessToken
@@ -158,7 +158,7 @@ try {
                     "ClientSecret" = $null
                     "appid"        = ""
                     "name"         = $jwtToken.name
-                    "upn"          = $jwtToken.upn
+                    "upn"          = $jwtToken.unique_name
                 }
                 if ($tenantID -eq "Common") {
                     Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
@@ -189,7 +189,7 @@ try {
                 $accessToken = $TokenRequest.access_token
                 try {
                     $jwtToken = Parse-JWTtoken -token $accessToken
-                    Write-Host -ForegroundColor Green "Authenticated using refresh token as user $($jwtToken.name) ($($jwtToken.upn))"
+                    Write-Host -ForegroundColor Green "Authenticated using refresh token as user $($jwtToken.name) ($($jwtToken.unique_name))"
                     $authContext += @{
                         "AccessToken"  = $accessToken
                         "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
@@ -198,7 +198,7 @@ try {
                         "ClientSecret" = $null
                         "appid"        = ""
                         "name"         = $jwtToken.name
-                        "upn"          = $jwtToken.upn
+                        "upn"          = $jwtToken.unique_name
                         }
                     if ($tenantID -eq "Common") {
                         Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
@@ -295,7 +295,7 @@ try {
                 try {
                     $jwtToken = Parse-JWTtoken -token $accessToken
                     Write-Host
-                    Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.upn))"
+                    Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))"
                     $authContext += @{
                         "AccessToken"  = $accessToken
                         "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
@@ -304,7 +304,7 @@ try {
                         "ClientSecret" = $null
                         "appid"        = ""
                         "name"         = $jwtToken.name
-                        "upn"          = $jwtToken.upn
+                        "upn"          = $jwtToken.unique_name
                         }
                     if ($tenantID -eq "Common") {
                         Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
