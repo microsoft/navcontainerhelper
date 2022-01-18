@@ -11,6 +11,7 @@ New parameters for New-BcContainer AadAppId and AadAppIdUri for creating contain
 Issue #2259 - FilesOnly containers doesn't respect the -vsixFile parameter
 Better AAD support for containers
 Add AadTenant, AadAppIdUri and AadAppId to New-BcContainer for enhanced AAD support
+Issue #2267 Publish-BcContainerApp as Delegated Admin doesn't work
 
 3.0.0
 Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.
