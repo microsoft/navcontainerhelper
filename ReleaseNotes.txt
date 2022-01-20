@@ -1,3 +1,5 @@
+3.0.2
+
 3.0.1
 Fix issues with bacpac creation when windows users are present in database.
 Add Daily and Weekly options to Get-BcArtifactUrl
