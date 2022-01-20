@@ -199,21 +199,34 @@ try {
 
     if ($CopySymbolsFromContainer) {
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder) 
-            "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app",
-            "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app",
-            "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app",
-            "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app" | ForEach-Object {
+            if (Test-Path "C:\Extensions\*.app") {
+                $paths = @(
+                    "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                    "C:\Extensions\*.app"
+                )
+            }
+            else {
+                $paths = @(
+                    "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                    "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app"
+                    "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
+                    "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
+                )
+            }
+            $paths | ForEach-Object {
                 $appFiles = $_.Split(',')
                 $appFile = ""
                 if (Test-Path -Path $appFiles[0]) {
-                    $appFile = (Get-Item $appFiles[0]).FullName
+                    $appFile = $appFiles[0]
                 }
                 elseif (Test-Path -path $appFiles[1]) {
                     $appFile = $appFiles[1]
                 }
                 if ($appFile) {
-                    Write-Host "Copying $([System.IO.Path]::GetFileName($appFile)) from Container"
-                    Copy-Item -Path $appFile -Destination $appSymbolsFolder -Force
+                    Get-Item -Path $appFile | ForEach-Object {
+                        Write-Host "Copying $([System.IO.Path]::GetFileName($_.FullName)) from Container"
+                        Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force
+                    }
                 }
             }
         } -argumentList $containerSymbolsFolder

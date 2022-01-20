@@ -13,6 +13,7 @@ Better AAD support for containers
 Add AadTenant, AadAppIdUri and AadAppId to New-BcContainer for enhanced AAD support
 Issue #2267 Publish-BcContainerApp as Delegated Admin doesn't work
 Add standard audience as valid to support the current implementation in the AL extension when calling the dev endpoint with AAD auth
+Issue #2274 Unable to download symbols for 1st party apps in localized containers with Run-ALValidation 
 
 3.0.0
 Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.
