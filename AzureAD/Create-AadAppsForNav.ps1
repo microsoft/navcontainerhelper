@@ -304,7 +304,7 @@ try {
         }
         ForEach ($permission in $req1.ResourceAccess) {
             if ($permission.Type -eq "Role") {
-                New-AzureADServiceAppRoleAssignment -ObjectId $apiAdAppServicePrincipal.ObjectId -PrincipalId $apiAdAppServicePrincipal.ObjectId -ResourceId $ssoAdAppServicePrincipal.ObjectId -Id $permission.Id
+                New-AzureADServiceAppRoleAssignment -ObjectId $apiAdAppServicePrincipal.ObjectId -PrincipalId $apiAdAppServicePrincipal.ObjectId -ResourceId $ssoAdAppServicePrincipal.ObjectId -Id $permission.Id | Out-Null
             }
         }
 
