@@ -1376,7 +1376,7 @@ try {
             Download-File -sourceUrl $vsixUrl -destinationFile $vsixFile
         }
         elseif (Test-Path $vsixUrl -PathType Leaf) {
-            $vsixFile = "$containerFolder\$([Path]::GetFileName($vsixUrl))"
+            $vsixFile = "$containerFolder\$([System.IO.Path]::GetFileName($vsixUrl))"
             Copy-Item -Path $vsixUrl -Destination $vsixFile
         }
         else {
