@@ -54,7 +54,7 @@ function Run-ConnectionTestToBcContainer {
         [string] $useUrl = "",
         [switch] $connectFromHost,
         [Hashtable] $bcAuthContext,
-        [string] $environment = "sand2"
+        [string] $environment
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -64,17 +64,13 @@ try {
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
 
-    if ($bcAuthContext) {
+    if ($bcAuthContext -and $environment) {
         $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
         if($response.status -ne 'Ready') {
             throw "environment not ready, status is $($response.status)"
         }
         $useUrl = $response.data.Split('?')[0]
         $tenant = ($response.data.Split('?')[1]).Split('=')[1]
-
-        $bcAuthContext = Renew-BcAuthContext $bcAuthContext
-        $accessToken = $bcAuthContext.accessToken
-        $credential = New-Object pscredential -ArgumentList 'freddyk', (ConvertTo-SecureString -String 'P@ssword1' -AsPlainText -Force)
     }
     else {
         $clientServicesCredentialType = $customConfig.ClientServicesCredentialType
@@ -120,6 +116,12 @@ try {
                 Write-Host "WARNING: could not set requestTimeout in web.config"
             }
         } -argumentList $interactionTimeout.ToString()
+    }
+
+    if ($bcAuthContext) {
+        $bcAuthContext = Renew-BcAuthContext $bcAuthContext
+        $accessToken = $bcAuthContext.accessToken
+        $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
     $PsTestToolFolder = Join-Path $extensionsFolder "$containerName\PsConnectionTestTool"

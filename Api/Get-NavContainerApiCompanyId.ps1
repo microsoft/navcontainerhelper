@@ -27,7 +27,8 @@ function Get-BcContainerApiCompanyId {
         [string] $APIVersion = "v1.0",
         [Parameter(Mandatory=$false)]
         [string] $CompanyName = "",
-        [switch] $silent
+        [switch] $silent,
+        [HashTable] $bcAuthContext
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("")
@@ -62,7 +63,14 @@ try {
 
     $companyFilter = [Uri]::EscapeDataString("name eq '$CompanyName'")
     
-    $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion $APIVersion -Query "companies?`$filter=$companyFilter" -credential $credential -silent:$silent
+    $result = Invoke-BcContainerApi `
+        -containerName $containerName `
+        -tenant $tenant `
+        -APIVersion $APIVersion `
+        -Query "companies?`$filter=$companyFilter" `
+        -credential $credential `
+        -bcAuthContext $bcAuthContext `
+        -silent:$silent
     $result.value | Select-Object -First 1 -ExpandProperty id
 }
 catch {

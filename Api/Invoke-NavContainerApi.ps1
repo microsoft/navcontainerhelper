@@ -63,23 +63,38 @@ function Invoke-BcContainerApi {
         [hashtable] $headers = @{},
         [Parameter(Mandatory=$false)]
         [hashtable] $body = $null,
-        [switch] $silent
+        [switch] $silent,
+        [HashTable] $bcAuthContext
+
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    if ($bcAuthContext) {
+    }
+
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+    $auth = $customConfig.ClientServicesCredentialType
 
     $parameters = @{}
-    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+    if ($auth -eq "Windows") {
+        Write-Host "Using Windows Authentication"
         $parameters += @{ "usedefaultcredential" = $true }
     }
     else {
-        if (!($credential)) {
-            throw "You need to specify credentials when you are not using Windows Authentication"
+        if ($bcAuthContext) {
+            $bcAuthContext = Renew-BcAuthContext $bcAuthContext
+            Write-Host "Using AAD Authentication"
+            $headers += @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
         }
-        $parameters += @{ "credential" = $credential }
+        else {
+            if (!($credential)) {
+                throw "You need to specify credentials when you are not using Windows Authentication"
+            }
+            Write-Host "Using Basic Authentication"
+            $parameters += @{ "credential" = $credential }
+        }
     }
 
     $serverInstance = $customConfig.ServerInstance
