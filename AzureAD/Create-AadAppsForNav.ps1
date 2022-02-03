@@ -112,10 +112,10 @@ try {
     # Remove "old" AD Application
     Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($appIdUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
 
-    $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn")
+    $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn",$publicWebBaseUrl.ToLowerInvariant().TrimEnd('/'))
     $oAuthReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())OAuthLanding.htm")
     if ($publicWebBaseUrl.ToUpperInvariant() -cne $publicWebBaseUrl) {
-        $signInReplyUrls += @("$($publicWebBaseUrl)SignIn")
+        $signInReplyUrls += @("$($publicWebBaseUrl)SignIn",$publicWebBaseUrl.TrimEnd('/'))
         $oAuthReplyUrls += @("$($publicWebBaseUrl)OAuthLanding.htm")
     }
 
@@ -139,7 +139,7 @@ try {
     $ssoAdApp = New-AzureADMSApplication `
         -DisplayName "WebClient for $publicWebBaseUrl" `
         -IdentifierUris $appIdUri `
-        -PublicClient @{ "RedirectUris" = $signInReplyUrls } `
+        -Web @{ "RedirectUris" = $signInReplyUrls } `
         -SignInAudience $signInAudience `
         -InformationalUrl @{ "LogoUrl" = $iconPath } `
         -RequiredResourceAccess @(
@@ -209,7 +209,7 @@ try {
         $apiAdApp = New-AzureADMSApplication `
             -DisplayName "API Access for $publicWebBaseUrl" `
             -IdentifierUris $ApiIdentifierUri `
-            -PublicClient @{ "RedirectUris" = $oAuthReplyUrls } `
+            -Web @{ "RedirectUris" = $oAuthReplyUrls } `
             -SignInAudience $signInAudience `
             -RequiredResourceAccess @(
                 @{ ResourceAppId = "$SsoAdAppId"; ResourceAccess = @(                                      # BC SSO App
@@ -227,16 +227,25 @@ try {
         $admspwd = New-AzureADMSApplicationPassword -ObjectId $apiAdApp.Id -PasswordCredential @{ "DisplayName" = "Password" }
         $AdProperties["ApiAdAppKeyValue"] = $admspwd.SecretText
 
-        # Grant admin consent
-        $apiAdAppServicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $apiAdAppId }
-        if (!($apiAdAppServicePrincipal)) {
-            $apiAdAppServicePrincipal = New-AzureADServicePrincipal -AppId $apiAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+        $sp = @( $null, $null )
+        $idx = 0
+        $ssoAdAppId,$apiAdAppId | % {
+            $appId = $_
+            $app = Get-AzureADApplication -All $true | Where-Object { $_.AppId -eq $appId }
+            if (!$app) {
+                Write-Host -NoNewline "Waiting for AD App synchronization."
+                do {
+                    Start-Sleep -Seconds 2
+                    $app = Get-AzureADApplication -All $true | Where-Object { $_.AppId -eq $appId }
+                } while (!$app)
+            }
+            $sp[$idx] = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $appId }
+            if (!$sp[$idx]) {
+                $sp[$idx] = New-AzureADServicePrincipal -AppId $appId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+            }
+            $idx++
         }
-        $ssoAdAppServicePrincipal = Get-AzureADServicePrincipal -All $true | Where-Object { $_.AppId -eq $ssoAdAppId }
-        if (!($ssoAdAppServicePrincipal)) {
-            $ssoAdAppServicePrincipal = New-AzureADServicePrincipal -AppId $SsoAdAppId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
-        }
-        New-AzureADServiceAppRoleAssignment -ObjectId $apiAdAppServicePrincipal.ObjectId -PrincipalId $apiAdAppServicePrincipal.ObjectId -ResourceId $ssoAdAppServicePrincipal.ObjectId -Id $appRoleId | Out-Null
+        New-AzureADServiceAppRoleAssignment -ObjectId $sp[1].ObjectId -PrincipalId $sp[1].ObjectId -ResourceId $sp[0].ObjectId -Id $appRoleId | Out-Null
     }
 
     # Excel Ad App
@@ -250,8 +259,7 @@ try {
         $excelAdApp = New-AzureADMSApplication `
             -DisplayName "Excel AddIn for $publicWebBaseUrl" `
             -IdentifierUris $ExcelIdentifierUri `
-            -PublicClient @{ "RedirectUris" = ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*")) } `
-            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true } } `
+            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true }; "RedirectUris" = ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*")) } `
             -SignInAudience $signInAudience `
             -RequiredResourceAccess @(
                 @{ ResourceAppId = "$SsoAdAppId"; ResourceAccess =                                         # BC SSO App
@@ -309,9 +317,8 @@ try {
         $EMailAdApp = New-AzureADMSApplication `
             -DisplayName "EMail Service for $publicWebBaseUrl" `
             -IdentifierUris $EMailIdentifierUri `
-            -Web @{ "RedirectUris" = $oAuthReplyUrls } `
+            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true }; "RedirectUris" = $oAuthReplyUrls } `
             -SignInAudience $signInAudience `
-            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true } } `
             -RequiredResourceAccess `
                 @{ ResourceAppId = "00000003-0000-0000-c000-000000000000"; ResourceAccess = @(             # Microsoft Graph
                     [PSCustomObject]@{ "Id" = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"; "Type" = "Scope" }   # User.Read
