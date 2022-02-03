@@ -1,5 +1,6 @@
 3.0.2
 Issue #2280 TypeNotFound on [Path]::GetFileName($vsixUrl)
+Issue "2287 Create-AadAppsForBC function now creating error when used along with -preAuthorizePowerShell
 
 3.0.1
 Fix issues with bacpac creation when windows users are present in database.
