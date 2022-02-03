@@ -12,7 +12,7 @@
   "logo": "",
   "dependencies": [
     {
-      "appId": "cb99d78b-f9db-4a1e-822a-0c9c444535df",
+      "id": "cb99d78b-f9db-4a1e-822a-0c9c444535df",
       "name": "Hello ÆØÅ",
       "publisher": "Cronus Denmark A/S",
       "version": "1.0.0.0"
