@@ -110,7 +110,7 @@ try {
     $adUserObjectId = $adUser.ObjectId
     
     # Remove "old" AD Application
-    Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($appIdUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
+    Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris -contains $appIdUri } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
 
     $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn",$publicWebBaseUrl.ToLowerInvariant().TrimEnd('/'))
     $oAuthReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())OAuthLanding.htm")
@@ -202,7 +202,7 @@ try {
     if ($IncludeApiAccess) {
         # Remove "old" Api AAD Application
         $ApiIdentifierUri = $appIdUri.Replace('://','://api.')
-        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($ApiIdentifierUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
+        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris -contains $ApiIdentifierUri } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
     
         # Create AD Application
         Write-Host "Creating AAD App for API Access"
@@ -252,7 +252,7 @@ try {
     if ($IncludeExcelAadApp) {
         # Remove "old" Excel AD Application
         $ExcelIdentifierUri = $appIdUri.Replace('://','://xls.')
-        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($ExcelIdentifierUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
+        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris -contains $ExcelIdentifierUri } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
 
         # Create AD Application
         Write-Host "Creating AAD App for Excel Add-in"
@@ -281,7 +281,7 @@ try {
     if ($IncludePowerBiAadApp) {
         # Remove "old" PowerBI AD Application
         $PowerBiIdentifierUri = $appIdUri.Replace('://','://pbi.')
-        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($PowerBiIdentifierUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
+        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris -contains $PowerBiIdentifierUri } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
     
         # Create AD Application
         Write-Host "Creating AAD App for PowerBI Service"
@@ -310,7 +310,7 @@ try {
     if ($IncludeEmailAadApp) {
         # Remove "old" Email AD Application
         $EMailIdentifierUri = $appIdUri.Replace('://','://email.')
-        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($EMailIdentifierUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
+        Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris -contains $EMailIdentifierUri } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
     
         # Create AD Application
         Write-Host "Creating AAD App for EMail Service"
