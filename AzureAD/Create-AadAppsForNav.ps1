@@ -112,10 +112,10 @@ try {
     # Remove "old" AD Application
     Get-AzureADMSApplication -All $true | Where-Object { $_.IdentifierUris.Contains($appIdUri) } | ForEach-Object { Remove-AzureADMSApplication -ObjectId $_.Id }
 
-    $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn")
+    $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn",$publicWebBaseUrl.ToLowerInvariant().TrimEnd('/'))
     $oAuthReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())OAuthLanding.htm")
     if ($publicWebBaseUrl.ToUpperInvariant() -cne $publicWebBaseUrl) {
-        $signInReplyUrls += @("$($publicWebBaseUrl)SignIn")
+        $signInReplyUrls += @("$($publicWebBaseUrl)SignIn",$publicWebBaseUrl.TrimEnd('/'))
         $oAuthReplyUrls += @("$($publicWebBaseUrl)OAuthLanding.htm")
     }
 
@@ -139,7 +139,7 @@ try {
     $ssoAdApp = New-AzureADMSApplication `
         -DisplayName "WebClient for $publicWebBaseUrl" `
         -IdentifierUris $appIdUri `
-        -PublicClient @{ "RedirectUris" = $signInReplyUrls } `
+        -Web @{ "RedirectUris" = $signInReplyUrls } `
         -SignInAudience $signInAudience `
         -InformationalUrl @{ "LogoUrl" = $iconPath } `
         -RequiredResourceAccess @(
@@ -209,7 +209,7 @@ try {
         $apiAdApp = New-AzureADMSApplication `
             -DisplayName "API Access for $publicWebBaseUrl" `
             -IdentifierUris $ApiIdentifierUri `
-            -PublicClient @{ "RedirectUris" = $oAuthReplyUrls } `
+            -Web @{ "RedirectUris" = $oAuthReplyUrls } `
             -SignInAudience $signInAudience `
             -RequiredResourceAccess @(
                 @{ ResourceAppId = "$SsoAdAppId"; ResourceAccess = @(                                      # BC SSO App
@@ -259,8 +259,7 @@ try {
         $excelAdApp = New-AzureADMSApplication `
             -DisplayName "Excel AddIn for $publicWebBaseUrl" `
             -IdentifierUris $ExcelIdentifierUri `
-            -PublicClient @{ "RedirectUris" = ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*")) } `
-            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true } } `
+            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true }; "RedirectUris" = ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*")) } `
             -SignInAudience $signInAudience `
             -RequiredResourceAccess @(
                 @{ ResourceAppId = "$SsoAdAppId"; ResourceAccess =                                         # BC SSO App
