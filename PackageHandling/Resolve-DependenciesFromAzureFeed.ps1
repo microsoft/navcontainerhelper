@@ -100,6 +100,10 @@ try {
                 $appJson.dependencies | % {
                     if ($_.psobject.Properties.name -contains "id") {
                         $id = $_.id
+                    } elseif($_.psobject.Properties.name -contains "appId") {
+                        $id = $_.appId
+                    }
+                    if ($null -ne $id) {
                         if ($id -notin $ignoredDependencies) {
                             try {
                                 $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $id
