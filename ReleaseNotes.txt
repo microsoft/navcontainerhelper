@@ -1,6 +1,7 @@
 3.0.2
 Issue #2280 TypeNotFound on [Path]::GetFileName($vsixUrl)
 Issue - Resolve-DependenciesFromAzureFeed not ignoring first lvl dependencies
+Issue - Resolve-DependenciesFromAzureFeed not working with 4.0 and lower runtimes
 
 3.0.1
 Fix issues with bacpac creation when windows users are present in database.
