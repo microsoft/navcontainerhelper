@@ -139,7 +139,7 @@ try {
     $ssoAdApp = New-AzureADMSApplication `
         -DisplayName "WebClient for $publicWebBaseUrl" `
         -IdentifierUris $appIdUri `
-        -Web @{ "RedirectUris" = $signInReplyUrls } `
+        -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true }; "RedirectUris" = $signInReplyUrls } `
         -SignInAudience $signInAudience `
         -InformationalUrl @{ "LogoUrl" = $iconPath } `
         -RequiredResourceAccess @(
