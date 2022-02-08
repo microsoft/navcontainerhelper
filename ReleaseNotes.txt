@@ -4,6 +4,7 @@ Issue "2287 Create-AadAppsForBC function now creating error when used along with
 Issue - Resolve-DependenciesFromAzureFeed not ignoring first lvl dependencies
 Issue - Resolve-DependenciesFromAzureFeed not working with 4.0 and lower runtimes
 Support OpenIdConnect for AAD setup for v20+
+Hardcode replacement artifacts for 18.9 and 17.14 builds
 
 3.0.1
 Fix issues with bacpac creation when windows users are present in database.

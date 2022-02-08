@@ -48,6 +48,17 @@ function Get-BCArtifactUrl {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("type","country","version","select","after","before","StorageAccount")
 try {
 
+    if ($type -eq "OnPrem") {
+        if ($version -like '18.9*') {
+            Write-Host -ForegroundColor Yellow 'On-premises build for 18.9 was replaced by 18.10.35134.0, using this version number instead'
+            $version = '18.10.35134.0'
+        }
+        elseif ($version -like '17.14*') {
+            Write-Host -ForegroundColor Yellow 'On-premises build for 17.14 was replaced by 17.15.35135.0, using this version number instead'
+            $version = '17.15.35135.0'
+        }
+    }
+
     if ($select -eq "Weekly" -or $select -eq "Daily") {
         if ($select -eq "Daily") {
             $ignoreBuildsAfter = [DateTime]::Today
