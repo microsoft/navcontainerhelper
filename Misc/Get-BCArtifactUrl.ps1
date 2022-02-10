@@ -57,6 +57,10 @@ try {
             Write-Host -ForegroundColor Yellow 'On-premises build for 17.14 was replaced by 17.15.35135.0, using this version number instead'
             $version = '17.15.35135.0'
         }
+        elseif ($version -like '16.19*') {
+            Write-Host -ForegroundColor Yellow 'On-premises build for 16.18 was replaced by 16.19.35126.0, using this version number instead'
+            $version = '16.19.35126.0'
+        }
     }
 
     if ($select -eq "Weekly" -or $select -eq "Daily") {
