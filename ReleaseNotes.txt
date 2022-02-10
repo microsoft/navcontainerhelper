@@ -1,3 +1,6 @@
+3.0.3
+Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
+
 3.0.2
 Issue #2280 TypeNotFound on [Path]::GetFileName($vsixUrl)
 Issue "2287 Create-AadAppsForBC function now creating error when used along with -preAuthorizePowerShell
