@@ -666,6 +666,7 @@ try {
 
     $parameters = @()
     $customNavSettings = @()
+    $customWebSettings = @()
 
     $devCountry = $dvdCountry
     $navVersion = $dvdVersion
@@ -1476,6 +1477,11 @@ try {
 
     if ($AadAppId) {
         $customNavSettings += @("ValidAudiences=$AadAppId;https://api.businesscentral.dynamics.com", "DisableTokenSigningCertificateValidation=True", "ExtendedSecurityTokenLifetime=24", "ClientServicesCredentialType=NavUserPassword")
+        if ($version.Major -ge 20) {
+            $AadTenantId = $AadTenant
+            if (!$AadTenantId) { $AadTenantId = "Common" }
+            $customWebSettings += @("AadApplicationId=$AadAppId","AadAuthorityUri=https://login.microsoftonline.com/$AADTenantId")
+        }
     }
 
     if ($AadTenant) {
@@ -1746,6 +1752,23 @@ if (-not `$restartingInstance) {
         }
         if (-not $customNavSettingsAdded) {
             $additionalParameters += @("--env customNavSettings=$([string]::Join(',',$customNavSettings))")
+        }
+    }
+
+    if ($customWebSettings) {
+        $customWebSettingsAdded = $false
+        $cnt = $additionalParameters.Count-1
+        if ($cnt -ge 0) {
+            0..$cnt | % {
+                $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customwebsettings=')
+                if ($idx -gt 0) {
+                    $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customWebSettings))"
+                    $customWebSettingsAdded = $true
+                }
+            }
+        }
+        if (-not $customWebSettingsAdded) {
+            $additionalParameters += @("--env customWebSettings=$([string]::Join(',',$customWebSettings))")
         }
     }
 

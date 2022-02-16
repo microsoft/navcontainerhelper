@@ -1,7 +1,14 @@
+3.0.3
+Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
+Hardcode replacement artifacts for 16.18
+
 3.0.2
 Issue #2280 TypeNotFound on [Path]::GetFileName($vsixUrl)
+Issue "2287 Create-AadAppsForBC function now creating error when used along with -preAuthorizePowerShell
 Issue - Resolve-DependenciesFromAzureFeed not ignoring first lvl dependencies
 Issue - Resolve-DependenciesFromAzureFeed not working with 4.0 and lower runtimes
+Support OpenIdConnect for AAD setup for v20+
+Hardcode replacement artifacts for 18.9 and 17.14 builds
 
 3.0.1
 Fix issues with bacpac creation when windows users are present in database.
