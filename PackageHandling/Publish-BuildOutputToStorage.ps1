@@ -19,6 +19,8 @@
   The content of folders Apps, RuntimePackages and TestApps from this folder is published.
  .Parameter setLatest
   Add this switch if you want this artifact to also be published as latest
+ .Parameter blobPath
+  Add this option to store the result in a path inside of the container
 #>
 function Publish-BuildOutputToStorage {
     Param(
@@ -33,7 +35,8 @@ function Publish-BuildOutputToStorage {
         [string] $permission = "Container",
         [Parameter(Mandatory=$true)]
         [string] $path,
-        [switch] $setLatest
+        [switch] $setLatest,
+        [string] $blobPath = ""
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -58,10 +61,21 @@ try {
             $tempFile = Join-Path (Get-TempDir) "$([Guid]::newguid().ToString()).zip"
             try {
                 Compress-Archive -path (Get-Item (Join-Path $path $_)).FullName -DestinationPath $tempFile
-                Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$appVersion/$_.zip".ToLowerInvariant() -Force | Out-Null
+
+                $version = $appVersion
                 if ($setLatest) {
-                    Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "latest/$_.zip".ToLowerInvariant() -Force | Out-Null
+                    $version = "latest"
                 }
+
+                # If not trimed starting / will result in <no name> folder in the beginning
+                if($blobPath.Trim("/") -ne "") {
+                    $outPath = Join-Path $blobPath.Trim("/") $version
+                } else {
+                    $outPath = $version
+                }
+              
+
+                Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$outPath/$_.zip".ToLowerInvariant() -Force | Out-Null
             } finally {
                 Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
             }  
