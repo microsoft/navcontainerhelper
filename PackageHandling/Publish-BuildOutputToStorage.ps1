@@ -57,25 +57,30 @@ try {
     New-AzureStorageContainer -Name $projectName -Context $storageContext -Permission $permission -ErrorAction Ignore | Out-Null
 
     "RuntimePackages", "Apps", "TestApps" | % {
-        if (Test-Path (Join-Path $path "$_\*")) {
+        $subFolder = $_
+        if (Test-Path (Join-Path $path "$subFolder\*")) {
+
             $tempFile = Join-Path (Get-TempDir) "$([Guid]::newguid().ToString()).zip"
             try {
                 Compress-Archive -path (Get-Item (Join-Path $path $_)).FullName -DestinationPath $tempFile
 
-                $version = $appVersion
+                $versions = @($appVersion)
                 if ($setLatest) {
-                    $version = "latest"
+                    $versions += @("latest")
                 }
 
-                # If not trimed starting / will result in <no name> folder in the beginning
-                if($blobPath.Trim("/") -ne "") {
-                    $outPath = Join-Path $blobPath.Trim("/") $version
-                } else {
-                    $outPath = $version
-                }
+                $versions | % {
+                    $version = $_
+                    # If not trimed starting / will result in <no name> folder in the beginning
+                    if($blobPath.Trim("/") -ne "") {
+                        $outPath = Join-Path $blobPath.Trim("/") $version
+                    } else {
+                        $outPath = $version
+                    }
               
 
-                Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$outPath/$_.zip".ToLowerInvariant() -Force | Out-Null
+                    Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$outPath/$subFolder.zip".ToLowerInvariant() -Force | Out-Null
+                }
             } finally {
                 Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
             }  
