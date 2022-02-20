@@ -521,6 +521,13 @@ function Run-Tests {
                     $property.SetAttribute("value", $processinfostart)
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
+                    if ($extensionid) {
+                        $property = $JUnitDoc.CreateElement("property")
+                        $property.SetAttribute("name","extensionid")
+                        $property.SetAttribute("value", $extensionId)
+                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                    }
+
                     if ($dumpAppsToTestOutput) {
                         $versionInfo = (Get-Item -Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo
                         $property = $JUnitDoc.CreateElement("property")
