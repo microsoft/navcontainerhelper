@@ -2,6 +2,9 @@
 Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
 Hardcode replacement artifacts for 16.18
 Issue #2308 Added blobPath to Publish-BuildOutputToStorage
+Issue #2321 Add language to Start-BcContainerAppDataUpgrade
+Issue #2320 Better error message in Publish-PerTenantExtensionApps
+Issue #2325 Support for resourceExposurePolicy in Extract-AppFileToFolder
 
 3.0.2
 Issue #2280 TypeNotFound on [Path]::GetFileName($vsixUrl)

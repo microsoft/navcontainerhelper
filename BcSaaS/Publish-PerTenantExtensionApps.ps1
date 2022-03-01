@@ -138,6 +138,10 @@ try {
                 }
             }
         }
+        catch [System.Net.WebException] {
+            Write-Host "ERROR $($_.Exception.Message)"
+            throw (GetExtendedErrorMessage $_)
+        }
         finally {
             $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
             $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
