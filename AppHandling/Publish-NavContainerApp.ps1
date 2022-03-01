@@ -297,6 +297,7 @@ try {
                             Write-Host "$($navAppInfo.Name) is already published"
                             if ($appInfo.IsInstalled) {
                                 $install = $false
+                                $upgrade = $false
                                 Write-Host "$($navAppInfo.Name) is already installed"
                             }
                         }
@@ -327,7 +328,7 @@ try {
 
                         if($upgrade -and $install){
                             $navAppInfoFromDb = Get-NAVAppInfo -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant -TenantSpecificProperties
-                            if($navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version){
+                            if($null -eq $navAppInfoFromDb.ExtensionDataVersion -or $navAppInfoFromDb.ExtensionDataVersion -eq  $navAppInfoFromDb.Version){
                                 $upgrade = $false
                             } else {
                                 $install = $false
