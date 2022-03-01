@@ -20,26 +20,28 @@ function  Start-BcContainerAppDataUpgrade {
         [string] $tenant = "default",
         [Parameter(Mandatory=$true)]
         [string] $appName,
-        [Parameter(Mandatory=$false)]
-        [string] $appVersion
+        [string] $appVersion = "",
+        [string] $language = ""
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $language)
         Write-Host "Upgrading app $appName"
         $parameters = @{
             "ServerInstance" = $ServerInstance;
             "Name" = $appName;
             "Tenant" = $tenant
         }
-        if ($appVersion)
-        {
+        if ($appVersion) {
             $parameters += @{ "Version" = $appVersion }
         }
+        if ($language) {
+            $parameters += @{ "Language" = $language }
+        }
         Start-NAVAppDataUpgrade @parameters
-    } -ArgumentList $appName, $appVersion, $tenant
+    } -ArgumentList $appName, $appVersion, $tenant, $language
     Write-Host -ForegroundColor Green "App successfully upgraded"
 }
 catch {
