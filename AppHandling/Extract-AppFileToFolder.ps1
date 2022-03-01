@@ -125,7 +125,6 @@ try {
             }
         }
         $appJson += [ordered]@{
-            "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
             "runtime" = $runtime
             "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
             "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | % { $_.Value } )"
@@ -137,6 +136,24 @@ try {
             "dependencies" = @()
             "idRanges" = @()
             "features" = @()
+        }
+
+        if ($runtime -lt 8.0)  {
+            $appJson += @{
+                "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
+            }
+        }
+        else {
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" } | % { 
+                $appJson += @{
+                    "resourceExposurePolicy" = @{
+                        "allowDebugging" = $_.AllowDebugging -eq "true"
+                        "allowDownloadingSource" = $_.AllowDownloadingSource -eq "true"
+                        "includeSourceInSymbolFile" = $_.IncludeSourceInSymbolFile -eq "true"
+                    }
+                }
+            }
+       
         }
         if ($runtime -ge 5.0)  {
             $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
