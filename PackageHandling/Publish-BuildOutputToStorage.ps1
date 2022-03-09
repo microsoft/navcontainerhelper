@@ -78,7 +78,6 @@ try {
                         $outPath = $version
                     }
               
-
                     Set-AzureStorageBlobContent -File $tempFile -Context $storageContext -Container $projectName -Blob "$outPath/$subFolder.zip".ToLowerInvariant() -Force | Out-Null
                 }
             } finally {
