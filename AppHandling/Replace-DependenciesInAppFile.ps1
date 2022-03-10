@@ -85,13 +85,31 @@ try {
     
             if ($ShowMyCode -ne "Ignore") {
                 if ($ShowMyCode -eq "Check") {
-                    if ($manifest.Package.App.ShowMyCode -eq "False") {
+                    $resexp = $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" }
+                    if ($resexp) {
+                        if ($resexp.allowDebugging -ne "true" -or $resexp.allowDownloadingSource -ne "true" -or $resexp.includeSourceInSymbolFile -ne "true") {
+                            throw "Application has limited ResourceExposurePolicy"
+                        }
+                    }
+                    elseif ($manifest.Package.App.ShowMyCode -eq "False") {
                         throw "Application has ShowMyCode set to False"
                     }
-                } elseif ($manifest.Package.App.ShowMyCode -ne $ShowMyCode) {
-                    Write-Host "Changing ShowMyCode to $ShowMyCOde"
-                    $manifest.Package.App.ShowMyCode = "$ShowMyCode"
-                    $manifestChanges = $true
+                } else {
+                    $resexp = $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" }
+                    if ($resexp) {
+                        if ($resexp.allowDebugging -ne "$ShowMyCode" -or $resexp.allowDownloadingSource -ne "$ShowMyCode" -or $resexp.includeSourceInSymbolFile -ne "$ShowMyCode") {
+                            Write-Host "Changing ResourceExposurePolicy properties to $ShowMyCode"
+                            $resexp.allowDebugging = "$showMyCode"
+                            $resexp.allowDownloadingSource = "$showMyCode"
+                            $resexp.includeSourceInSymbolFile = "$showMyCode"
+                            $manifestChanges = $true
+                        }
+                    }
+                    elseif ($manifest.Package.App.ShowMyCode -ne $ShowMyCode) {
+                        Write-Host "Changing ShowMyCode to $ShowMyCOde"
+                        $manifest.Package.App.ShowMyCode = "$ShowMyCode"
+                        $manifestChanges = $true
+                    }
                 }
             }
 
