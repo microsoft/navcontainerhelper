@@ -48,8 +48,11 @@ function Get-ContainerHelperConfig {
             "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
             "mapCountryCode" = [PSCustomObject]@{
                 "ae" = "w1"
+                "ar" = "w1"
                 "bd" = "w1"
                 "dz" = "w1"
+                "cl" = "w1"
+                "pr" = "w1"
                 "eg" = "w1"
                 "fo" = "dk"
                 "gl" = "dk"
