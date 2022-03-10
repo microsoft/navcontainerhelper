@@ -97,17 +97,17 @@ try {
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
-                if (([System.Version]$version).Major -ge 17) {
-                    $createTestUsersAppUrl = "https://businesscentralapps.azureedge.net/createtestusers/latest/apps.zip"
+                if (([System.Version]$version).Major -ge 16) {
+                    $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/16.0.7.0/createtestusers-testapps.zip"
                 }
                 else {
-                    $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_15.0.app"
+                    $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/15.0.6.0/createtestusers-testapps.zip"
                 }
             }
         }
         else {
             if ($createTestUsersAppUrl -eq '') {
-                $createTestUsersAppUrl = "http://aka.ms/Microsoft_createtestusers_13.0.0.0.app"
+                $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/Microsoft_CreateTestUsers_13.0.0.0.app"
             }
             $select = ''
         }

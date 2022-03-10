@@ -8,6 +8,7 @@ Issue #2325 Support for resourceExposurePolicy in Extract-AppFileToFolder
 Issue #2286 Publish-NavContainerApp -upgrade -install fails if app was not installed before
 Issue #2342 Publish-NavContainerApp and Replace-DependenciesInAppFile doesn't support ResourceExposurePolicy
 Adding Argentina, Chile and Puerto Rico to the country map, mapping to w1
+Get CreateTestUsers app from new feed
 
 3.0.2
 Issue #2280 TypeNotFound on [Path]::GetFileName($vsixUrl)
