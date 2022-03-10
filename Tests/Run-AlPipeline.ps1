@@ -17,7 +17,7 @@
             -installApps @("https://businesscentralapps.blob.core.windows.net/hidestuff/latest/hidestuff-apps.zip") `
             -appFolders "app,base" `
             -testFolders @("test") `
-            -previousApps @("https://businesscentralapps.blob.core.windows.net/hidestuff/2.0.11036.0/hidestuff-apps.zip") `
+            -previousApps @("https://businesscentralapps.blob.core.windows.net/githubhelloworld/2.0.32.0/apps.zip") `
             -additionalCountries "dk,de" `
             -appBuild ([int32]::MaxValue) `
             -appRevision 0 `
