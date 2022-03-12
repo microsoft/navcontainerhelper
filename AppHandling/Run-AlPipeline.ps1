@@ -953,7 +953,9 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
     }
 
+    Write-Host "GO!"
     $installTestApps | ForEach-Object{
+        Write-Host "$_".Trim('()')
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
