@@ -973,7 +973,7 @@ Measure-Command {
                 "containerName" = $containerName
                 "tenant" = $tenant
                 "credential" = $credential
-                "appFile" = $_
+                "appFile" = $_.Trim('()')
                 "skipVerification" = $true
                 "sync" = $true
                 "install" = $true
@@ -1688,28 +1688,30 @@ $installTestApps | ForEach-Object {
     }
     else {
         $appFile = $_
-        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-        try {
-            $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
-            $appList | ForEach-Object {
-                $appFile = $_
-                $appFolder = "$($_).source"
-                Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
-                $appJsonFile = Join-Path $appFolder "app.json"
-                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                if ($testAppIds.ContainsKey($appJson.Id)) {
-                    Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (do you have the same app twice in installTestApps?)"
-                }
-                else {
-                    $testAppIds += @{ "$($appJson.Id)" = "" }
+        if ($appFile -eq $_.Trim('()')) {
+            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            try {
+                $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
+                $appList | ForEach-Object {
+                    $appFile = $_
+                    $appFolder = "$($_).source"
+                    Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
+                    $appJsonFile = Join-Path $appFolder "app.json"
+                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                    if ($testAppIds.ContainsKey($appJson.Id)) {
+                        Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (do you have the same app twice in installTestApps?)"
+                    }
+                    else {
+                        $testAppIds += @{ "$($appJson.Id)" = "" }
+                    }
                 }
             }
-        }
-        catch {
-            Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
-        }
-        finally {
-            Remove-Item $tmpFolder -Recurse -Force
+            catch {
+                Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+            }
+            finally {
+                Remove-Item $tmpFolder -Recurse -Force
+            }
         }
     }
 }
