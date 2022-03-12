@@ -409,8 +409,23 @@ try {
                     $webClient.DownloadFile($url, $symbolsFile)
                 }
                 catch [System.Net.WebException] {
-                    Write-Host "ERROR $($_.Exception.Message)"
-                    throw (GetExtendedErrorMessage $_)
+                    $throw = $true
+                    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+                        try {
+                            Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($url, $symbolsFile)
+                                $webClient = [System.Net.WebClient]::new()
+                                $webClient.UseDefaultCredentials = $true
+                                $webClient.DownloadFile($url, $symbolsFile)
+                            } -argumentList $url, (Get-BcContainerPath -containerName $containerName -path $symbolsFile)
+                            $throw = $false
+                        }
+                        catch {
+                        }
+                    }
+                    if ($throw) {
+                        Write-Host "ERROR $($_.Exception.Message)"
+                        throw (GetExtendedErrorMessage $_)
+                    }
                 }
                 if (Test-Path -Path $symbolsFile) {
                     $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
