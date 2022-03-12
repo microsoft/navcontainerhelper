@@ -969,11 +969,12 @@ Measure-Command {
             Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
         else {
+            Write-Host "$_".Trim('()')
             $Parameters = @{
                 "containerName" = $containerName
                 "tenant" = $tenant
                 "credential" = $credential
-                "appFile" = $_.Trim('()')
+                "appFile" = "$_".Trim('()')
                 "skipVerification" = $true
                 "sync" = $true
                 "install" = $true
@@ -1688,7 +1689,7 @@ $installTestApps | ForEach-Object {
     }
     else {
         $appFile = $_
-        if ($appFile -eq $_.Trim('()')) {
+        if ($appFile -eq "$_".Trim('()')) {
             $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
             try {
                 $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
