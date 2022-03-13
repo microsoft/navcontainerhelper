@@ -901,7 +901,7 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ((($testCountry) -or ($installTestApps)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if (($testCountry) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
