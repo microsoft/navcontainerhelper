@@ -110,7 +110,7 @@ try {
         ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
     }
     if ($unknownDependencies) {
-        $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
+        $unknownDependencies.value += @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
             "$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
 		} })
     }

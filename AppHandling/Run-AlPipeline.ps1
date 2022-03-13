@@ -44,6 +44,8 @@
   Array or comma separated list of 3rd party apps to install before compiling apps.
  .Parameter installTestApps
   Array or comma separated list of 3rd party test apps to install before compiling test apps.
+ .Parameter installOnlyReferencedApps
+  Switch indicating whether you want to only install referenced apps in InstallApps and InstallTestApps
  .Parameter previousApps
   Array or comma separated list of previous version of apps
  .Parameter appFolders
@@ -205,6 +207,7 @@ Param(
     [string] $keyVaultClientId = "",
     $installApps = @(),
     $installTestApps = @(),
+    [switch] $installOnlyReferencedApps,
     $previousApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
@@ -841,6 +844,10 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
+$unknownDependencies = @()
+$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders+$testFolders+$bcptTestFolders -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownDependencies))
+$unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
+
 if ($installApps) {
 if ($gitHubActions) { Write-Host "::group::Installing apps" }
 Write-Host -ForegroundColor Yellow @'
@@ -867,14 +874,16 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            $Parameters = @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
-                "appId" = "$appId"
-                "acceptIsvEula" = $true
-                "installOrUpdateNeededDependencies" = $true
+            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+                $Parameters = @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                    "appId" = "$appId"
+                    "acceptIsvEula" = $true
+                    "installOrUpdateNeededDependencies" = $true
+                }
+                Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
-            Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
         else {
             $Parameters = @{
@@ -886,6 +895,11 @@ Measure-Command {
                 "sync" = $true
                 "install" = $true
             }
+            if ($installOnlyReferencedApps) {
+                $parameters += @{
+                    "includeOnlyAppIds" = $unknownDependencies
+                }
+            }
             if ($bcAuthContext) {
                 $Parameters += @{
                     "bcAuthContext" = $bcAuthContext
@@ -894,7 +908,6 @@ Measure-Command {
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
-
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -956,14 +969,16 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            $Parameters = @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
-                "appId" = "$appId"
-                "acceptIsvEula" = $true
-                "installOrUpdateNeededDependencies" = $true
+            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+                $Parameters = @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                    "appId" = "$appId"
+                    "acceptIsvEula" = $true
+                    "installOrUpdateNeededDependencies" = $true
+                }
+                Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
-            Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
         else {
             $Parameters = @{
@@ -974,6 +989,11 @@ Measure-Command {
                 "skipVerification" = $true
                 "sync" = $true
                 "install" = $true
+            }
+            if ($installOnlyReferencedApps) {
+                $parameters += @{
+                    "includeOnlyAppIds" = $unknownDependencies
+                }
             }
             if ($bcAuthContext) {
                 $Parameters += @{
@@ -1015,9 +1035,6 @@ $apps = @()
 $testApps = @()
 $bcptTestApps = @()
 $testToolkitInstalled = $false
-$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
-                 @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue) +
-                 @(Sort-AppFoldersByDependencies -appFolders $bcptTestFolders -WarningAction SilentlyContinue)
 $sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
@@ -1078,22 +1095,45 @@ Measure-Command {
 
     Write-Host -ForegroundColor Yellow "Installing test apps"
     $installTestApps | ForEach-Object{
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = "$_".Trim('()')
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-        }
-        if ($bcAuthContext) {
-            $Parameters += @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
+        $appId = [Guid]::Empty
+        if ([Guid]::TryParse($_, [ref] $appId)) {
+            if (-not $bcAuthContext) {
+                throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
+            }
+            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+                $Parameters = @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                    "appId" = "$appId"
+                    "acceptIsvEula" = $true
+                    "installOrUpdateNeededDependencies" = $true
+                }
+                Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        else {
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "appFile" = "$_".Trim('()')
+                "skipVerification" = $true
+                "sync" = $true
+                "install" = $true
+            }
+            if ($installOnlyReferencedApps) {
+                $parameters += @{
+                    "includeOnlyAppIds" = $unknownDependencies
+                }
+            }
+            if ($bcAuthContext) {
+                $Parameters += @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                }
+            }
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }

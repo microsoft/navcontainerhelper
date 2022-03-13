@@ -5,6 +5,8 @@
   Sort an array of app files with dependencies first, for compile and publish order
  .Parameter appFiles
   Array of app files
+ .Parameter includeOnlyAppIds
+  Array of AppIds. If specified, then include Only Apps in the specified AppFile array or archive which is contained in this Array and their dependencies
  .Parameter unknownDependencies
   If specified, this reference parameter will contain unresolved dependencies after sorting
  .Example
@@ -16,6 +18,7 @@ function Sort-AppFilesByDependencies {
         [string] $containerName = "",
         [Parameter(Mandatory=$false)]
         [string[]] $appFiles,
+        [string[]] $includeOnlyAppIds = @(),
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies
     )
@@ -115,11 +118,35 @@ try {
             }
         }
         
+        function MarkSortedApps { Param($AppId)
+            $script:sortedApps | Where-Object { $_.Id -eq $AppId } | ForEach-Object {
+                $_.Included = $true
+                if ($_.Dependencies) {
+                    $_.Dependencies | ForEach-Object {
+                        $dependency = $_
+                        if ($dependency) {
+                            $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
+                            MarkSortedApps -AppId $dependencyAppId
+                        }
+                    }
+                }
+            }
+        }
+
         $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
         $apps | ForEach-Object { AddAnApp -AnApp $_ }
     
-        $script:sortedApps | ForEach-Object {
-            $files["$($_.id):$($_.version)"]
+        if ($includeOnlyAppIds) {
+            $script:sortedApps | ForEach-Object { $_ | Add-Member -NotePropertyName 'Included' -NotePropertyValue $false }
+            $includeOnlyAppIds | ForEach-Object { MarkSortedApps -AppId $_ }
+            $script:sortedApps | Where-Object { $_.Included } | ForEach-Object {
+                $files["$($_.id):$($_.version)"]
+            }
+        }
+        else {
+            $script:sortedApps | ForEach-Object {
+                $files["$($_.id):$($_.version)"]
+            }
         }
         if ($unknownDependencies) {
             $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
