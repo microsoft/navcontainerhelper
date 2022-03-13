@@ -844,8 +844,9 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
+Write-Host "Resolving dependencies"
 $unknownDependencies = @()
-$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders+$testFolders+$bcptTestFolders -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownDependencies))
+$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownDependencies))
 $unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
 
 if ($installApps) {
