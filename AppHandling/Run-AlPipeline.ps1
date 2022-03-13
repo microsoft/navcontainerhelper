@@ -949,13 +949,8 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    if ($testCountry) {
-        Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
-    }
-
-    Write-Host "GO!"
+    Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
     $installTestApps | ForEach-Object{
-        Write-Host "$_".Trim('()')
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
@@ -971,7 +966,6 @@ Measure-Command {
             Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
         else {
-            Write-Host "$_".Trim('()')
             $Parameters = @{
                 "containerName" = $containerName
                 "tenant" = $tenant
@@ -991,7 +985,7 @@ Measure-Command {
         }
     }
 
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
@@ -1082,16 +1076,13 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    if ($testCountry) {
-        Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
-    }
-
+    Write-Host -ForegroundColor Yellow "Installing test apps"
     $installTestApps | ForEach-Object{
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
             "credential" = $credential
-            "appFile" = $_
+            "appFile" = "$_".Trim('()')
             "skipVerification" = $true
             "sync" = $true
             "install" = $true
@@ -1105,7 +1096,7 @@ Measure-Command {
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
 
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 }
 
 if ($gitHubActions) { Write-Host "::endgroup::" }
