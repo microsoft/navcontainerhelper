@@ -528,6 +528,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Runner         "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework      "; Write-Host $installTestFramework
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries      "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit       "; Write-Host $installPerformanceToolkit
+Write-Host -NoNewLine -ForegroundColor Yellow "InstallOnlyReferencedApps   "; Write-Host $installOnlyReferencedApps
 Write-Host -NoNewLine -ForegroundColor Yellow "CopySymbolsFromContainer    "; Write-Host $CopySymbolsFromContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Write-Host $enableCodeCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
@@ -862,8 +863,14 @@ $sortedFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testF
 Write-Host "Sorted folders"
 $sortedFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
-$unknownDependencies | ForEach-Object { Write-Host "- $_" }
-$unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
+if ($unknownDependencies) {
+    $unknownDependencies | ForEach-Object { Write-Host "- $_" }
+    $unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
+}
+else {
+    Write-Host "- None"
+    $unknownDependencies = @([GUID]::Empty.ToString())
+}
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($installApps) {
