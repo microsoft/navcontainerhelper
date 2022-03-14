@@ -105,7 +105,7 @@ try {
         $appFolder = Join-Path $extensionsFolder "$containerName\$([guid]::NewGuid().ToString())"
         if ($appFile -is [string] -and $appFile.Startswith(':')) {
             New-Item $appFolder -ItemType Directory | Out-Null
-            $destFile = Join-Path $appFolder ([System.IO.Path]::GetFileName($appFile.SubString(1)))
+            $destFile = Join-Path $appFolder ([System.IO.Path]::GetFileName($appFile.SubString(1)).Replace('*','').Replace('?',''))
             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile, $destFile)
                 Copy-Item -Path $appFile -Destination $destFile -Force
             } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $destFile) | Out-Null
