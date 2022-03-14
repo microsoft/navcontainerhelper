@@ -844,7 +844,7 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($gitHubActions) { Write-Host "::group::Installing apps" }
+if ($gitHubActions) { Write-Host "::group::Resolving dependencies" }
 Write-Host -ForegroundColor Yellow @'
 
  _____                _       _                   _                           _                 _          
