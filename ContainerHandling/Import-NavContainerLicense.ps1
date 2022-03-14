@@ -27,7 +27,7 @@ try {
 
     $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license$([System.IO.Path]::GetExtension($licenseFile))"
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
-        Write-Host "Downloading license file '$licensefile' to container"
+        Write-Host "Downloading license file '$($licensefile.Split('?')[0])' to container"
         (New-Object System.Net.WebClient).DownloadFile($licensefile, $containerlicensefile)
         $text = Get-Content $containerLicenseFile -First 1
         if ($text -like "*<html*" -or $text -like "*<body*") {

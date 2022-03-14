@@ -44,6 +44,8 @@
   Array or comma separated list of 3rd party apps to install before compiling apps.
  .Parameter installTestApps
   Array or comma separated list of 3rd party test apps to install before compiling test apps.
+ .Parameter installOnlyReferencedApps
+  Switch indicating whether you want to only install referenced apps in InstallApps and InstallTestApps
  .Parameter previousApps
   Array or comma separated list of previous version of apps
  .Parameter appFolders
@@ -205,6 +207,7 @@ Param(
     [string] $keyVaultClientId = "",
     $installApps = @(),
     $installTestApps = @(),
+    [switch] $installOnlyReferencedApps,
     $previousApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
@@ -525,6 +528,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Runner         "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework      "; Write-Host $installTestFramework
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries      "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit       "; Write-Host $installPerformanceToolkit
+Write-Host -NoNewLine -ForegroundColor Yellow "InstallOnlyReferencedApps   "; Write-Host $installOnlyReferencedApps
 Write-Host -NoNewLine -ForegroundColor Yellow "CopySymbolsFromContainer    "; Write-Host $CopySymbolsFromContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Write-Host $enableCodeCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
@@ -841,6 +845,34 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
+if ($gitHubActions) { Write-Host "::group::Resolving dependencies" }
+Write-Host -ForegroundColor Yellow @'
+
+ _____                _       _                   _                           _                 _          
+|  __ \              | |     (_)                 | |                         | |               (_)         
+| |__) |___ ___  ___ | |_   ___ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___ ___ 
+|  _  // _ \ __|/ _ \| \ \ / / | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \ __|
+| | \ \  __\__ \ (_) | |\ V /| | | | | (_| | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __\__ \
+|_|  \_\___|___/\___/|_| \_/ |_|_| |_|\__, |  \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___|___/
+                                       __/ |            | |                                                
+                                      |___/             |_|                                                
+
+'@
+$unknownDependencies = @()
+$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownDependencies))
+Write-Host "Sorted folders"
+$sortedFolders | ForEach-Object { Write-Host "- $_" }
+Write-Host "External dependencies"
+if ($unknownDependencies) {
+    $unknownDependencies | ForEach-Object { Write-Host "- $_" }
+    $unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
+}
+else {
+    Write-Host "- None"
+    $unknownDependencies = @([GUID]::Empty.ToString())
+}
+if ($gitHubActions) { Write-Host "::endgroup::" }
+
 if ($installApps) {
 if ($gitHubActions) { Write-Host "::group::Installing apps" }
 Write-Host -ForegroundColor Yellow @'
@@ -867,14 +899,16 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            $Parameters = @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
-                "appId" = "$appId"
-                "acceptIsvEula" = $true
-                "installOrUpdateNeededDependencies" = $true
+            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+                $Parameters = @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                    "appId" = "$appId"
+                    "acceptIsvEula" = $true
+                    "installOrUpdateNeededDependencies" = $true
+                }
+                Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
-            Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
         else {
             $Parameters = @{
@@ -886,6 +920,11 @@ Measure-Command {
                 "sync" = $true
                 "install" = $true
             }
+            if ($installOnlyReferencedApps) {
+                $parameters += @{
+                    "includeOnlyAppIds" = $unknownDependencies
+                }
+            }
             if ($bcAuthContext) {
                 $Parameters += @{
                     "bcAuthContext" = $bcAuthContext
@@ -894,14 +933,13 @@ Measure-Command {
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
-
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ((($testCountry) -or ($installTestApps)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if (($testCountry) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _______       _     _______          _ _    _ _   
@@ -949,34 +987,38 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    if ($testCountry) {
-        Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
-    }
-
+    Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
     $installTestApps | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            $Parameters = @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
-                "appId" = "$appId"
-                "acceptIsvEula" = $true
-                "installOrUpdateNeededDependencies" = $true
+            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+                $Parameters = @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                    "appId" = "$appId"
+                    "acceptIsvEula" = $true
+                    "installOrUpdateNeededDependencies" = $true
+                }
+                Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
-            Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
         }
         else {
             $Parameters = @{
                 "containerName" = $containerName
                 "tenant" = $tenant
                 "credential" = $credential
-                "appFile" = $_
+                "appFile" = "$_".Trim('()')
                 "skipVerification" = $true
                 "sync" = $true
                 "install" = $true
+            }
+            if ($installOnlyReferencedApps) {
+                $parameters += @{
+                    "includeOnlyAppIds" = $unknownDependencies
+                }
             }
             if ($bcAuthContext) {
                 $Parameters += @{
@@ -988,7 +1030,7 @@ Measure-Command {
         }
     }
 
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
@@ -1018,9 +1060,6 @@ $apps = @()
 $testApps = @()
 $bcptTestApps = @()
 $testToolkitInstalled = $false
-$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders $appFolders -WarningAction SilentlyContinue) + 
-                 @(Sort-AppFoldersByDependencies -appFolders $testFolders -WarningAction SilentlyContinue) +
-                 @(Sort-AppFoldersByDependencies -appFolders $bcptTestFolders -WarningAction SilentlyContinue)
 $sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
@@ -1079,30 +1118,50 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    if ($testCountry) {
-        Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
-    }
-
+    Write-Host -ForegroundColor Yellow "Installing test apps"
     $installTestApps | ForEach-Object{
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-        }
-        if ($bcAuthContext) {
-            $Parameters += @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
+        $appId = [Guid]::Empty
+        if ([Guid]::TryParse($_, [ref] $appId)) {
+            if (-not $bcAuthContext) {
+                throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
+            }
+            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+                $Parameters = @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                    "appId" = "$appId"
+                    "acceptIsvEula" = $true
+                    "installOrUpdateNeededDependencies" = $true
+                }
+                Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        else {
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "appFile" = "$_".Trim('()')
+                "skipVerification" = $true
+                "sync" = $true
+                "install" = $true
+            }
+            if ($installOnlyReferencedApps) {
+                $parameters += @{
+                    "includeOnlyAppIds" = $unknownDependencies
+                }
+            }
+            if ($bcAuthContext) {
+                $Parameters += @{
+                    "bcAuthContext" = $bcAuthContext
+                    "environment" = $environment
+                }
+            }
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
     }
 
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 }
 
 if ($gitHubActions) { Write-Host "::endgroup::" }
@@ -1688,28 +1747,30 @@ $installTestApps | ForEach-Object {
     }
     else {
         $appFile = $_
-        $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-        try {
-            $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
-            $appList | ForEach-Object {
-                $appFile = $_
-                $appFolder = "$($_).source"
-                Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
-                $appJsonFile = Join-Path $appFolder "app.json"
-                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                if ($testAppIds.ContainsKey($appJson.Id)) {
-                    Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (do you have the same app twice in installTestApps?)"
-                }
-                else {
-                    $testAppIds += @{ "$($appJson.Id)" = "" }
+        if ($appFile -eq "$_".Trim('()')) {
+            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            try {
+                $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
+                $appList | ForEach-Object {
+                    $appFile = $_
+                    $appFolder = "$($_).source"
+                    Extract-AppFileToFolder -appFilename $_ -appFolder $appFolder -generateAppJson
+                    $appJsonFile = Join-Path $appFolder "app.json"
+                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                    if ($testAppIds.ContainsKey($appJson.Id)) {
+                        Write-Host -ForegroundColor Red "$($appJson.Id) already exists in the list of apps to test! (do you have the same app twice in installTestApps?)"
+                    }
+                    else {
+                        $testAppIds += @{ "$($appJson.Id)" = "" }
+                    }
                 }
             }
-        }
-        catch {
-            Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
-        }
-        finally {
-            Remove-Item $tmpFolder -Recurse -Force
+            catch {
+                Write-Host -ForegroundColor Red "Cannot run tests in test app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+            }
+            finally {
+                Remove-Item $tmpFolder -Recurse -Force
+            }
         }
     }
 }
