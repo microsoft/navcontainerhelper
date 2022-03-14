@@ -123,6 +123,7 @@ Add support for URLs in Import-PfxCertificateToBcContainer and Import-Certificat
 Add KeyVault access parameters to Run-AlPipeline
 Bug with recursive copy of report layouts during Extract-AppFileToFolder
 Issue #2097 add resilience to Add-FontsToBcContainer
+Do not display query parameters of licensefile url
 
 2.0.15
 Default to process isolation when Host OS is 21H1 and Container OS is 2004
