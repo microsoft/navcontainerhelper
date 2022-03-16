@@ -46,18 +46,20 @@ try {
             $appJson =[System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
             
             # replace id with appid
-            if (($appJson.psobject.Members | Where-Object name -eq "dependencies") -and ($appJson.dependencies)) {
-                $appJson.dependencies = $appJson.dependencies | % {
-                    if ($_.psobject.Members | where-object membertype -like 'noteproperty' | Where-Object name -eq "id") {
-                        New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version })
-                    }
-                    else {
-                        $_
+            if ($appJson.psobject.Members | Where-Object name -eq "dependencies") {
+                if ($appJson.dependencies) {
+                    $appJson.dependencies = $appJson.dependencies | % {
+                        if ($_.psobject.Members | where-object membertype -like 'noteproperty' | Where-Object name -eq "id") {
+                            New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version })
+                        }
+                        else {
+                            $_
+                        }
                     }
                 }
             }
             else {
-                $appJson.dependencies = @()
+                $appJson | Add-Member -Name "dependencies" -Type NoteProperty -Value @()
             }
             if ($appJson.psobject.Members | Where-Object name -eq "platform") {
                 $appJson.dependencies += @( New-Object psobject -Property ([ordered]@{ "appId" = "63ca2fa4-4f03-4f2b-a480-172fef340d3f"; "publisher" = "Microsoft"; "name" = "System Application"; "version" = $appJson.platform }) )
