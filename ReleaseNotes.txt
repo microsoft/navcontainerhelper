@@ -1,3 +1,5 @@
+3.0.4
+
 3.0.3
 Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
 Hardcode replacement artifacts for 16.18
