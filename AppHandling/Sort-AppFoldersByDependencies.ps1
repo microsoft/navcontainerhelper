@@ -62,7 +62,9 @@ try {
                 $appJson | Add-Member -Name "dependencies" -Type NoteProperty -Value @()
             }
             if ($appJson.psobject.Members | Where-Object name -eq "platform") {
-                $appJson.dependencies += @( New-Object psobject -Property ([ordered]@{ "appId" = "63ca2fa4-4f03-4f2b-a480-172fef340d3f"; "publisher" = "Microsoft"; "name" = "System Application"; "version" = $appJson.platform }) )
+                if ($appJson.Id -ne "63ca2fa4-4f03-4f2b-a480-172fef340d3f") {
+                    $appJson.dependencies += @( New-Object psobject -Property ([ordered]@{ "appId" = "63ca2fa4-4f03-4f2b-a480-172fef340d3f"; "publisher" = "Microsoft"; "name" = "System Application"; "version" = $appJson.platform }) )
+                }
             }
 
             $folders += @{ "$($appJson.Id):$($appJson.Version)" = $appFolder }
