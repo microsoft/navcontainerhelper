@@ -145,10 +145,14 @@ try {
         }
         else {
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" } | % { 
+                $xmlResExp = [ordered]@{}
                 $resExp = [ordered]@{}
-                $_.Attributes | ForEach-Object {
-                    $resExp += @{
-                        "$($_.Name)" = $_.Value -eq "true"
+                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile" | % {
+                    $prop = $_
+                    if ($xmlResExp.PSObject.Properties.Name -eq $prop) {
+                        $resExp += @{
+                            "$prop" = $xmlResExp."$prop" -eq "true"
+                        }
                     }
                 }
                 $appJson += @{ "resourceExposurePolicy" = $resExp }
