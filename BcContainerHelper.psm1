@@ -74,7 +74,7 @@ function Get-ContainerHelperConfig {
                 "za" = "w1"
             }
             "TraefikUseDnsNameAsHostName" = $false
-            "TreatWarningsAsErrors" = @('AL1026')
+            "TreatWarningsAsErrors" = @()
             "PartnerTelemetryConnectionString" = ""
             "MicrosoftTelemetryConnectionString" = "InstrumentationKey=5b44407e-9750-4a07-abe9-30c3b853821b;IngestionEndpoint=https://southcentralus-0.in.applicationinsights.azure.com/"
             "SendExtendedTelemetryToMicrosoft" = $false
