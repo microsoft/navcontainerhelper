@@ -3,6 +3,7 @@ Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no R
 Stop treating AL1026 warning as error by default
 Support for application dependency in Sort-AppFoldersByDependencies
 Issue #2360 -isolation hyperv isn't always used when specified and building a new image
+Add -includeDacPac parameter to Export-BcContainerDatabasesAsBacpac
 
 3.0.3
 Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
