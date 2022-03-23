@@ -2,6 +2,7 @@
 Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no ResourceExposurePolicy is set
 Stop treating AL1026 warning as error by default
 Support for application dependency in Sort-AppFoldersByDependencies
+Support for all manifest (app.json) 'features' in Extract-AppFileToFolder
 
 3.0.3
 Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
