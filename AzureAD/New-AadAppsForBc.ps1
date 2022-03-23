@@ -197,7 +197,7 @@ try {
 
     if ($preAuthorizePowerShell) {
         $PreAuthorizedApplications = $ssoAdApp.Api.PreAuthorizedApplications
-        $PreAuthorizedApplications += @{ "AppId" = "1950a258-227b-4e31-a9cf-717495945fc2"; "PermissionIds" = @($oauth2permissionid) }
+        $PreAuthorizedApplications += @{ "AppId" = "1950a258-227b-4e31-a9cf-717495945fc2"; "DelegatedPermissionIds" = @($oauth2permissionid) }
         Update-MgApplication -ApplicationId $ssoAdApp.Id -Api @{PreAuthorizedApplications = $PreAuthorizedApplications}
     }
 
