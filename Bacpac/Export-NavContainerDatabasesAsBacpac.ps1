@@ -15,6 +15,8 @@
   Omit to export tenant template, specify default to export the default tenant.
  .Parameter doNotCheckEntitlements
   Include this parameter to avoid checking entitlements. Entitlements are needed if the .bacpac file is to be used for cloud deployments.
+ .Parameter includeDacPac
+  Use this parameter to export databases as dacpac
  .Parameter commandTimeout
   Timeout in seconds for the export command for every database. Default is 1 hour (3600).
  .Parameter diagnostics
@@ -40,6 +42,7 @@ function Export-BcContainerDatabasesAsBacpac {
         [string] $bacpacFolder = "",
         [string[]] $tenant = @("default"),
         [int] $commandTimeout = 3600,
+        [switch] $includeDacPac,
         [switch] $diagnostics,
         [switch] $doNotCheckEntitlements,
         [string[]] $additionalArguments = @()
@@ -61,7 +64,7 @@ try {
     }
     $containerBacpacFolder = Get-BcContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
         function InstallPrerequisite {
             Param (
@@ -90,7 +93,7 @@ try {
         {
             $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe" | Sort-Object -Property FullName -Descending | Select-Object -First 1
             if (!($sqlpakcageExe)) {
-                InstallPrerequisite -Name "Dac Framework 18.2" -MsiPath "c:\download\DacFramework.msi" -MsiUrl "https://download.microsoft.com/download/9/2/2/9228AAC2-90D1-4F48-B423-AF345296C7DD/EN/x64/DacFramework.msi" | Out-Null
+                InstallPrerequisite -Name "Dac Framework 19.0" -MsiPath "c:\download\DacFramework.msi" -MsiUrl "https://go.microsoft.com/fwlink/?linkid=2185764" | Out-Null
                 $sqlpakcageExe = Get-Item "C:\Program Files\Microsoft SQL Server\*\DAC\bin\sqlpackage.exe"
             }
             $sqlpakcageExe.FullName
@@ -305,12 +308,13 @@ try {
                 [string] $targetFile,
                 [Parameter(Mandatory=$false)]
                 [int] $commandTimeout = 3600,
+                [switch] $includeDacPac,
                 [switch] $diagnostics,
                 [Parameter(Mandatory=$false)]
                 [string[]] $additionalArguments = @()
             )
 
-            Write-Host "Exporting..."
+            Write-Host "Exporting as BacPac..."
             $arguments = @(
                 ('/Action:Export'),
                 ('/TargetFile:"'+$targetFile+'"'), 
@@ -336,6 +340,37 @@ try {
             }
 
             & $sqlPackageExe $arguments
+
+            if ($includeDacPac) {
+                Write-Host "Extracting as DacPac..."
+                $arguments = @(
+                    ('/Action:Extract'),
+                    ('/TargetFile:"'+$targetFile.Replace('.bacpac','.dacpac')+'"'), 
+                    ('/SourceDatabaseName:"'+$databaseName+'"'),
+                    ('/SourceServerName:"'+$databaseServer+'"'),
+                    ('/OverwriteFiles:True')
+                    ('/p:VerifyExtraction=True')
+                    ('/p:ExtractAllTableData=True')
+                    ("/p:CommandTimeout=$commandTimeout")
+                )
+
+                if ($diagnostics) {
+                    $arguments += @('/Diagnostics:True')
+                }
+
+                if ($sqlCredential) {
+                    $arguments += @(
+                        ('/SourceUser:"'+$sqlCredential.UserName+'"'),
+                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                    )
+                }
+
+                if ($additionalArguments) {
+                    $arguments += $additionalArguments
+                }
+
+                & $sqlPackageExe $arguments
+            }
         }
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -366,7 +401,7 @@ try {
             Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
             $tenant | ForEach-Object {
                 $sourceDatabase = $_
@@ -383,7 +418,7 @@ try {
                 Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
@@ -396,9 +431,9 @@ try {
             Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
-    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $diagnostics, $additionalArguments, $doNotCheckEntitlements
+    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
