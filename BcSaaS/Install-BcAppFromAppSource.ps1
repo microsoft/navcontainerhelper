@@ -3,7 +3,6 @@
   Function for installing an AppSource App in an online Business Central environment
  .Description
   Function for installing an AppSource App in an online Business Central environment
-  Current implementation uses client service to invoke page 2503 and install the app
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
  .Parameter environment

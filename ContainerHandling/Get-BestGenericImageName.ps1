@@ -221,7 +221,7 @@ try {
         if ($myversions) {
             $version = $myversions | Where-Object { $_ -le $hostOsVersion } | Select-Object -Last 1
             if (-not $version) {
-                $version = $myversions | Select-Object -Last 1
+                $version = $myversions | Select-Object -First 1
             }
             $genericImageName = [string]::format($genericImageNameSetting, $version.ToString())
         }
