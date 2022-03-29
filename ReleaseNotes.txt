@@ -4,6 +4,7 @@ Stop treating AL1026 warning as error by default
 Support for application dependency in Sort-AppFoldersByDependencies
 Issue #2360 -isolation hyperv isn't always used when specified and building a new image
 Add -includeDacPac parameter to Export-BcContainerDatabasesAsBacpac
+Issue #2375 Get-BestGenericImageName finds wrong generic image if host OS is very very old
 
 3.0.3
 Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS
