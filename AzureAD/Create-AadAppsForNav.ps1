@@ -114,7 +114,7 @@ try {
 
     $signInReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())SignIn",$publicWebBaseUrl.ToLowerInvariant().TrimEnd('/'))
     $oAuthReplyUrls = @("$($publicWebBaseUrl.ToLowerInvariant())OAuthLanding.htm")
-    if ($publicWebBaseUrl.ToUpperInvariant() -cne $publicWebBaseUrl) {
+    if ($publicWebBaseUrl.ToLowerInvariant() -cne $publicWebBaseUrl) {
         $signInReplyUrls += @("$($publicWebBaseUrl)SignIn",$publicWebBaseUrl.TrimEnd('/'))
         $oAuthReplyUrls += @("$($publicWebBaseUrl)OAuthLanding.htm")
     }
