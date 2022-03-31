@@ -151,6 +151,10 @@ try {
             $extensions | % { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
         }
     }
+    catch [System.Net.WebException] {
+        Write-Host "ERROR $($_.Exception.Message)"
+        throw (GetExtendedErrorMessage $_)
+    }
     finally {
         if (Test-Path $appFolder) {
             Remove-Item $appFolder -Recurse -Force -ErrorAction SilentlyContinue
