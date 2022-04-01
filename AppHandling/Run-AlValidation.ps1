@@ -119,7 +119,8 @@ function DetermineArtifactsToUse {
         [string] $version = "",
         [string] $select = "Current",
         [string] $sasToken = "",
-        [string[]] $countries = @("us")
+        [string[]] $countries = @("us"),
+        [switch] $throw
     )
 
 Write-Host -ForegroundColor Yellow @'
@@ -139,25 +140,35 @@ Write-Host -ForegroundColor Yellow @'
         $minver = $null
         $countries | ForEach-Object {
             $url = Get-BCArtifactUrl -version $version -country $_ -select $select -sasToken $sasToken | Select-Object -First 1
-            Write-Host "Found $($url.Split('?')[0])"
-            if ($url) {
-                $ver = [Version]$url.Split('/')[4]
-                if ($minver -eq $null -or $ver -lt $minver) {
-                    $minver = $ver
-                    $minsto = $url.Split('/')[2].Split('.')[0]
-                    $minsel = "Latest"
-                    $mintok = $url.Split('?')[1]; if ($mintok) { $mintok = "?$mintok" }
+            if (!($url)) {
+                Write-Host -ForegroundColor Yellow "WARNING: NextMajor artifacts doesn't exist for $_"
+            }
+            else {
+                Write-Host "Found $($url.Split('?')[0])"
+                if ($url) {
+                    $ver = [Version]$url.Split('/')[4]
+                    if ($minver -eq $null -or $ver -lt $minver) {
+                        $minver = $ver
+                        $minsto = $url.Split('/')[2].Split('.')[0]
+                        $minsel = "Latest"
+                        $mintok = $url.Split('?')[1]; if ($mintok) { $mintok = "?$mintok" }
+                    }
                 }
             }
         }
         if ($minver -eq $null) {
-            throw "Unable to locate artifacts"
+            if ($throw) {
+                throw "Unable to locate artifacts"
+            }
+            return ""
         }
-        $version = $minver.ToString()
+        else {
+            $version = $minver.ToString()
+        }
     }
     $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -version $version -country $countries[0] -select $minsel -sasToken $mintok | Select-Object -First 1
     if (!($artifactUrl)) {
-        throw "Unable to locate artifacts"
+        if ($throw) { throw "Unable to locate artifacts" }
     }
     Write-Host "Using $($artifactUrl.Split('?')[0])"
     $artifactUrl
@@ -379,7 +390,7 @@ Measure-Command {
 $artifactUrl = ""
 if ($_ -eq 0 -and $validateCurrent) {
     if ($currentArtifactUrl -eq "") {
-        $currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current
+        $currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current -throw
     }
     $artifactUrl = $currentArtifactUrl
 }
@@ -389,7 +400,7 @@ elseif ($_ -eq 1 -and $validateVersion) {
 elseif ($_ -eq 2 -and $validateNextMinor) {
     $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
 }
-elseif ($_ -eq 1 -and $validateNextMajor) {
+elseif ($_ -eq 3 -and $validateNextMajor) {
     $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor -sasToken $sasToken
 }
 

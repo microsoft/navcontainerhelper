@@ -1894,10 +1894,15 @@ if (-not `$restartingInstance) {
         if ($useSSL -and $installCertificateOnHost) {
             $certPath = Join-Path $containerFolder "certificate.cer"
             if (Test-Path $certPath) {
-                $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\localMachine\Root"
-                if ($cert) {
-                    Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
-                    Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
+                try {
+                    $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\LocalMachine\Root"
+                    if ($cert) {
+                        Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
+                        Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
+                    }    
+                }
+                catch {
+                    Write-Host -ForegroundColor Yellow "Unable to import certificate $certPath in Trusted Root Certification Authorities, you will need to do this manually"
                 }
             }
         }
