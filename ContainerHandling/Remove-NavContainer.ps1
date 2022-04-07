@@ -70,8 +70,13 @@ try {
             $thumbprint = Get-Content -Path $thumbprintFile
             $cert = Get-ChildItem "cert:\localMachine\Root" | Where-Object { $_.Thumbprint -eq $thumbprint }
             if ($cert) {
-                $cert | Remove-Item
-                Write-Host "Certificate with thumbprint $thumbprint removed successfully"
+                try {
+                    $cert | Remove-Item
+                    Write-Host "Certificate with thumbprint $thumbprint removed successfully"
+                }
+                catch {
+                    Write-Host -ForegroundColor Yellow "Unable to remove certificate $thumbprint, you will need to do this manually"
+                }
             }
             else {
                 Write-Host "Certificate with thumbprint $thumbprint not found in store"
