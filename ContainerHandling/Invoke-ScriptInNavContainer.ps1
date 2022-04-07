@@ -87,6 +87,8 @@ function Get-MyFilePath([string]$FileName)
     }
 }
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+
 . (Get-MyFilePath "prompt.ps1") -silent | Out-Null
 . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
 . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
