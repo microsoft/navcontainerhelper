@@ -4,6 +4,7 @@ Issue #2379 Better error message from Publish-PerTenantExtensionApps
 Issue #2378 give warnings instead of failing on self-signed certificates when running as non-admins
 Issue #2371 Incremental wait times when admin center API errors
 Issue #2388 Sign-NavContainerApp fails with SSL/TLS error in Sign-tool download
+
 3.0.4
 Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no ResourceExposurePolicy is set
 Stop treating AL1026 warning as error by default
