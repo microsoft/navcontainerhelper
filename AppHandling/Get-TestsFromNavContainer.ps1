@@ -181,16 +181,13 @@ try {
         $clientServicesCredentialType = $customConfig.SelectSingleNode("//appSettings/add[@key='ClientServicesCredentialType']").Value
         
         if ($useUrl) {
-            $disableSslVerification = $false
             $serviceUrl = "$($useUrl.TrimEnd('/'))/cs?tenant=$tenant"
         }
         elseif ($usePublicWebBaseUrl) {
-            $disableSslVerification = $false
             $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
         } 
         else {
             $uri = [Uri]::new($publicWebBaseUrl)
-            $disableSslVerification = ($Uri.Scheme -eq "https")
             $serviceUrl = "$($Uri.Scheme)://localhost:$($Uri.Port)/$($Uri.PathAndQuery)/cs?tenant=$tenant"
         }
 
@@ -219,9 +216,7 @@ try {
 
         $clientContext = $null
         try {
-            if ($disableSslVerification) {
-                Disable-SslVerification
-            }
+            Disable-SslVerification
             
             $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -culture $culture -timezone $timezone -debugMode:$debugMode
 
@@ -243,9 +238,7 @@ try {
             throw
         }
         finally {
-            if ($disableSslVerification) {
-                Enable-SslVerification
-            }
+            Enable-SslVerification
             if ($clientContext) {
                 Remove-ClientContext -clientContext $clientContext
                 $clientContext = $null

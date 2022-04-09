@@ -48,6 +48,8 @@
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
   Include this flag to generate cross references when compiling
+ .Parameter reportSuppressedDiagnostics
+  Set reportSuppressedDiagnostics flag on ALC when compiling to ignore pragma warning disables
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the compile function will use the online Business Central Environment as target for the compilation
  .Parameter environment
@@ -98,6 +100,7 @@ function Compile-AppInBcContainer {
         [string] $nowarn,
         [string[]] $preProcessorSymbols = @(),
         [switch] $GenerateCrossReferences,
+        [switch] $ReportSuppressedDiagnostics,
         [Parameter(Mandatory=$false)]
         [string] $assemblyProbingPaths,
         [Parameter(Mandatory=$false)]
@@ -328,7 +331,7 @@ try {
         $webClient.Headers.Add("Authorization", $bearerAuthValue)
     }
     elseif ($serverInstance -eq "") {
-        Write-Host -ForegroundColor Red "WARNING: You have to specify AuthContext and Environment if you are compiling in a filesOnly container in order to download dependencies"
+        Write-Host -ForegroundColor Yellow "INFO: You have to specify AuthContext and Environment if you are compiling in a filesOnly container in order to download dependencies"
         $devServerUrl = ""
         $webClient = $null
     }
@@ -498,7 +501,7 @@ try {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $generateReportLayoutParam, $features, $preProcessorSymbols )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion )
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -512,6 +515,9 @@ try {
 
         Write-Host "Compiling..."
         Set-Location -Path $alcPath
+
+        $alcItem = Get-Item -Path (Join-Path $alcPath 'alc.exe')
+        [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion
 
         $alcParameters = @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
         if ($GenerateReportLayoutParam) {
@@ -546,6 +552,15 @@ try {
             $alcParameters += @("/generatecrossreferences")
         }
 
+        if ($ReportSuppressedDiagnostics) {
+            if ($alcVersion -ge [System.Version]"9.0.9.15366") {
+                $alcParameters += @("/reportsuppresseddiagnostics")
+            }
+            else {
+                Write-Host -ForegroundColor Red "ReportSuppressedDiagnostics was specified, but the version of the AL Language Extension does not support this. Get-LatestAlLanguageExtensionUrl returns a location for the latest AL Language Extension"
+            }
+        }
+
         if ($assemblyProbingPaths) {
             $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
@@ -563,7 +578,7 @@ try {
         if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $GenerateReportLayoutParam, $features, $preProcessorSymbols
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
