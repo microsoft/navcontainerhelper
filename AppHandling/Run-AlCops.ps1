@@ -35,6 +35,8 @@
   Include this switch if you don't want to ignore Infos
  .Parameter rulesetFile
   Filename of the ruleset file for Compile-AppInBcContainer
+ .Parameter reportSuppressedDiagnostics
+  Set reportSuppressedDiagnostics flag on ALC when compiling to ignore pragma warning disables
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
 #>
@@ -54,6 +56,7 @@ function Run-AlCops {
         [switch] $failOnError,
         [switch] $ignoreWarnings,
         [switch] $doNotIgnoreInfos,
+        [switch] $reportsuppresseddiagnostics = $true,
         [string] $rulesetFile = "",
         [scriptblock] $CompileAppInBcContainer
     )
@@ -194,6 +197,7 @@ try {
                 "EnableUICop" = $enableUICop
                 "EnableCodeCop" = $enableCodeCop
                 "EnablePerTenantExtensionCop" = $enablePerTenantExtensionCop
+                "Reportsuppresseddiagnostics" = $reportsuppresseddiagnostics
                 "outputTo" = { Param($line) 
                     Write-Host $line
                     if ($line -like "error *" -or $line -like "warning *") {
