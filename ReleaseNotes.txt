@@ -3,14 +3,17 @@ Issue #2381 Run-AlValidation -nextmajor fails if nextmajor is not available (sho
 Issue #2379 Better error message from Publish-PerTenantExtensionApps
 Issue #2378 give warnings instead of failing on self-signed certificates when running as non-admins
 Issue #2371 Incremental wait times when admin center API errors
+Issue #2388 Enable Tls12 in session creation
 
 3.0.4
 Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no ResourceExposurePolicy is set
 Stop treating AL1026 warning as error by default
 Support for application dependency in Sort-AppFoldersByDependencies
+Support for all manifest (app.json) 'features' in Extract-AppFileToFolder
 Issue #2360 -isolation hyperv isn't always used when specified and building a new image
 Add -includeDacPac parameter to Export-BcContainerDatabasesAsBacpac
 Issue #2375 Get-BestGenericImageName finds wrong generic image if host OS is very very old
+Issue #2388 Sign-NavContainerApp fails with SSL/TLS error in Sign-tool download
 
 3.0.3
 Issue #2303 Get-BestGenericImageName sometimes returns an image which is newer than the host OS

@@ -208,7 +208,7 @@ try {
         $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Features" } | % { 
             $_.GetEnumerator() | % {
                 $feature = $_.'#text'
-                'TranslationFile','GenerateCaptions' | % {
+                'ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile' | % {
                     if ($feature -eq $_) {
                         $appJson.features += $_
                     }
