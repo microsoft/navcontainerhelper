@@ -1,7 +1,8 @@
 # NOTE:
-## This is an old version of the CI/CD Workshop
-## The recommended way of doing CI/CD is to use (AL-Go for GitHub)[https://github.com/microsoft/AL-Go]
-## You will find usage scenarios in the AL-Go repo
+### This is an old version of the CI/CD Workshop
+### The recommended way of doing CI/CD is to use (AL-Go for GitHub)[https://github.com/microsoft/AL-Go]
+### You will find usage scenarios in the AL-Go repo
+
 
 # Azure DevOps - CI/CD Workshop
 ![Title image](Docs/image-0.png)
