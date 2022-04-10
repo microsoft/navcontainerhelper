@@ -35,6 +35,8 @@
   Include this switch if you don't want to ignore Infos
  .Parameter rulesetFile
   Filename of the ruleset file for Compile-AppInBcContainer
+ .Parameter skipVerification
+  Include this parameter to skip verification of code signing certificate. Note that you cannot request Microsoft to set this parameter when validating for AppSource.
  .Parameter reportSuppressedDiagnostics
   Set reportSuppressedDiagnostics flag on ALC when compiling to ignore pragma warning disables
  .Parameter CompileAppInBcContainer
@@ -57,6 +59,7 @@ function Run-AlCops {
         [switch] $ignoreWarnings,
         [switch] $doNotIgnoreInfos,
         [switch] $reportsuppresseddiagnostics = $true,
+        [switch] $skipVerification,
         [string] $rulesetFile = "",
         [scriptblock] $CompileAppInBcContainer
     )
@@ -120,9 +123,26 @@ try {
     $global:_validationResult = @()
     $apps | % {
         $appFile = $_
-    
+        $appFileName = [System.IO.Path]::GetFileName($appFile)
+
         $tmpFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
         try {
+            if (!$skipVerification) {
+                Copy-Item -path $appFile -Destination "$tmpFolder.app"
+                $signResult = Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($appTmpFile)
+                    Get-AuthenticodeSignature -FilePath $appTmpFile
+                } -argumentList (Get-BcContainerPath -containerName $containerName -path "$tmpFolder.app")
+                Remove-Item "$tmpFolder.app" -Force
+
+                if ($signResult.Status.Value -eq "valid") {
+                    Write-Host -ForegroundColor Green "$appFileName is Signed with $($signResult.SignatureType.Value) certificate: $($signResult.SignerCertificate.Subject)"
+                }
+                else {
+                    Write-Host -ForegroundColor Red "$appFileName is not signed, result is $($signResult.Status.Value)"
+                    $global:_validationResult += @("$appFileName is not signed, result is $($signResult.Status.Value)")
+                }
+            }
+    
             $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
 
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
@@ -148,7 +168,7 @@ try {
             }
 
             if ($enableAppSourceCop) {
-                Write-Host "Analyzing: $([System.IO.Path]::GetFileName($appFile))"
+                Write-Host "Analyzing: $appFileName"
                 Write-Host "Using affixes: $([string]::Join(',',$affixes))"
                 $appSourceCopJson = @{
                     "mandatoryAffixes" = @($affixes)
@@ -257,6 +277,9 @@ try {
             } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $appPackagesFolder) | Out-Null
         }
         finally {
+            if (Test-Path "$tmpFolder.app") {
+               Remove-Item -Path "$tmpFolder.app" -Force
+            }
             if (Test-Path $tmpFolder) {
                 Remove-Item -Path $tmpFolder -Recurse -Force
             }

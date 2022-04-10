@@ -219,7 +219,7 @@ function GetFilePath( [string] $path ) {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-'GetBcContainerAppInfo','PublishBcContainerApp','multitenant','SkipConnectionTest','skipUpgrade','SkipVerification','ImageName','LicenseFile' | % {
+'GetBcContainerAppInfo','PublishBcContainerApp','multitenant','SkipConnectionTest','skipUpgrade','ImageName','LicenseFile' | % {
     if ($PSBoundParameters.Keys.Contains($_)) {
         Write-Host -ForegroundColor Red "WARNING: Parameter $_ is no longer used in Run-AlValidation, please remove the parameter"
     }
@@ -498,6 +498,7 @@ $parameters = @{
     "ignoreWarnings" = !$includeWarnings
     "doNotIgnoreInfos" = $doNotIgnoreInfos
     "appPackagesFolder" = $appPackagesFolder
+    "skipVerification" = $skipVerification
 }
 if ($CompileAppInBcContainer) {
     $parameters += @{
