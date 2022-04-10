@@ -7,6 +7,7 @@ Issue #2388 Sign-NavContainerApp fails with SSL/TLS error in Sign-tool download
 Issue #2365 New Parameter on Compile-AppInBcContainer (-ReportSuppressedDiagnostics) to ignore pragmas (include by default on Run-AlCops)
 Issue #2364 Run-TestsInBcContainer fails with certificate validation error
 Better error message when authentication fails in Publish-PerTenantExtensionApps
+Issue #2393 Scopes is wrong when using ClientId, ClientSecret and TenantId in Publish-PerTenantExtensionApps
 
 3.0.4
 Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no ResourceExposurePolicy is set

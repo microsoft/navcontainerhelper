@@ -60,7 +60,7 @@ try {
             -clientID $clientID `
             -clientSecret $clientSecret `
             -tenantID $tenantId `
-            -scopes "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default"
+            -scopes "https://api.businesscentral.dynamics.com/.default"
 
         if (-not ($bcAuthContext)) {
             throw "Authentication failed"
