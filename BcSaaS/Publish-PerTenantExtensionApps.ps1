@@ -61,6 +61,10 @@ try {
             -clientSecret $clientSecret `
             -tenantID $tenantId `
             -scopes "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/.default"
+
+        if (-not ($bcAuthContext)) {
+            throw "Authentication failed"
+        }
     }
     else {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
