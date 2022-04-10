@@ -1,3 +1,8 @@
+# ** NOTE: **
+# ** This is an old version of the CI/CD Workshop **
+# ** The recommended way of doing CI/CD is to use (AL-Go for GitHub)[https://github.com/microsoft/AL-Go] **
+# ** You will find usage scenarios in the AL-Go repo **
+
 # Azure DevOps - CI/CD Workshop
 ![Title image](Docs/image-0.png)
 
@@ -36,18 +41,18 @@ This workshop will help you setup a project on Azure DevOps, including Continuou
 ## Workshop repositories
 This workshop uses two repositories. The scripts and pipelines are very similar, but one is a Per Tenant Extension and using the Per Tenant Extension cop + number ranges and the other one is an AppSource app, using the AppSourceCop + appsource number ranges + prefixes and breaking change notifications.
 
-[https://dev.azure.com/businesscentralapps/HelloWorld](https://dev.azure.com/businesscentralapps/HelloWorld)
+[https://dev.azure.com/businesscentralapps/Old.HelloWorld](https://dev.azure.com/businesscentralapps/Old.HelloWorld)
 
-[https://github.com/BusinessCentralApps/HelloWorld](https://github.com/BusinessCentralApps/HelloWorld)
+[https://github.com/BusinessCentralApps/Old.HelloWorld](https://github.com/BusinessCentralApps/Old.HelloWorld)
 
 This is the Per Tenant Extension version of the app.
 - Number range defined in app.json is 50100 to 50149.
 - PerTenantExtensionCop and UICop are enabled during build (in scripts\settings.json)
 - PreviousApps points to .zip file containing previous versions of apps
 
-[https://dev.azure.com/businesscentralapps/HelloWorld.AppSource](https://dev.azure.com/businesscentralapps/HelloWorld.AppSource)
+[https://dev.azure.com/businesscentralapps/Old.HelloWorld.AppSource](https://dev.azure.com/businesscentralapps/Old.HelloWorld.AppSource)
 
-[https://github.com/BsinessCentralApps/HelloWorld.AppSource](https://github.com/BsinessCentralApps/HelloWorld.AppSource)
+[https://github.com/BsinessCentralApps/Old.HelloWorld.AppSource](https://github.com/BsinessCentralApps/Old.HelloWorld.AppSource)
 
 This is the AppSource version of the app.
 - Number range defined in app.json is 70074169 to 70074218 (my allocated number range)
