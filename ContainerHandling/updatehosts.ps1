@@ -114,12 +114,10 @@ else {
     $sethost = $true
     if ($hostsFile) {
         $hosts = UpdateHostsFile -hostsFile $hostsFile
-        $hosts | Where-Object { $_.ToLowerInvariant().EndsWith('.internal') -and $_.Split(" ").Count -eq 2 } | % {
-            $aHostname = $_.Split(" ")[1]
-            $anIp = $_.Split(" ")[0]
-            Write-Host "Setting $aHostname to $anIp in container hosts file (copy from host hosts file)"
-            UpdateHostsFile -hostsFile $myhostsFile -theHostname $aHostname -theIpAddress $anIp | Out-Null
-            if ($aHostname -eq "host.containerhelper.internal") {
+        $hosts | Where-Object { ($_ -match "^\s*(?<IP>\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\s+(?<HOSTNAME>\S+)") -and $Matches.hostname.ToLowerInvariant().EndsWith('.internal') } | ForEach-Object {        
+            Write-Host "Setting $($Matches.hostname) to $($Matches.ip) in container hosts file (copy from host hosts file)"
+            UpdateHostsFile -hostsFile $myhostsFile -theHostname $Matches.hostname -theIpAddress $Matches.ip | Out-Null
+            if ($Matches.hostname -ieq "host.containerhelper.internal") {
                 $sethost = $false
             }
         }
