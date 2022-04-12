@@ -516,6 +516,7 @@ try {
                 Write-Host "- FileName=$($_.Name), Id=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
                 $appInfo
             }
+            Write-Host "Modifying Dependencies"
             if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
                 $appJsonObject.dependencies = $appJsonObject.dependencies | ForEach-Object {
                     $dependency = $_
@@ -543,7 +544,7 @@ try {
                 }
             }
             if ($changes) {
-                $appJsonObject | ConvertTo-Json -depth 99 | Out-Host
+                Write-Host "Updating app.json"
                 $appJsonObject | ConvertTo-Json -depth 99 | Set-Content $appJsonFile -encoding UTF8
             }
         }
