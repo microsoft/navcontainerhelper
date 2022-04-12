@@ -520,8 +520,9 @@ try {
             if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
                 $appJsonObject.dependencies = $appJsonObject.dependencies | ForEach-Object {
                     $dependency = $_
-                    Write-Host "Dependency: Id=$($dependency.Id), Publisher=$($dependency.Publisher), Name=$($dependency.Name), Version=$($dependency.Version)"
-                    $existingApps | Where-Object { $_.AppId -eq [System.Guid]$dependency.Id -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
+                    $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
+                    Write-Host "Dependency: Id=$dependencyAppId, Publisher=$($dependency.Publisher), Name=$($dependency.Name), Version=$($dependency.Version)"
+                    $existingApps | Where-Object { $_.AppId -eq [System.Guid]$dependencyAppId -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
                         $dependency.Version = "$($_.Version)"
                         Write-Host "- Set dependency version to $($_.Version)"
                         $changes = $true
