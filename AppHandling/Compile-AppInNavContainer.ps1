@@ -530,6 +530,7 @@ try {
                 }
             }
             if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
+                Write-Host "Application Dependency $($appJsonObject.application)"
                 $existingApps | Where-Object { $_.Name -eq "Application" -and $_.Version -gt [System.Version]$appJsonObject.application } | ForEach-Object {
                     $appJsonObject.Application = "$($_.Version)"
                     Write-Host "- Set Application dependency to $($_.Version)"
@@ -537,6 +538,7 @@ try {
                 }
             }
             if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
+                Write-Host "Platform Dependency $($appJsonObject.platform)"
                 $existingApps | Where-Object { $_.Name -eq "System" -and $_.Version -gt [System.Version]$appJsonObject.platform } | ForEach-Object {
                     $appJsonObject.platform = "$($_.Version)"
                     Write-Host "- Set Platform dependency to $($_.Version)"
