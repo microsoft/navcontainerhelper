@@ -18,6 +18,8 @@
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
+ .Parameter UpdateDependencies
+  Update the dependency version numbers to the actual version number used during compilation
  .Parameter CopySymbolsFromContainer
   Add this switch to copy system and base application symbols from container to speed up symbol download.
  .Parameter CopyAppToSymbolsFolder
@@ -81,6 +83,7 @@ function Compile-AppInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
         [switch] $UpdateSymbols,
+        [switch] $UpdateDependencies,
         [switch] $CopySymbolsFromContainer,
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
@@ -287,7 +290,7 @@ try {
         $existingApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
                 $appInfo = Get-NavAppInfo -Path $_.FullName
-                #Write-Host "FileName=$($_.FullName), AppId=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
+                #Write-Host "FileName=$($_.FullName), Id=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
                 $appInfo
             }
         } -ArgumentList $containerSymbolsFolder
@@ -501,7 +504,49 @@ try {
         [SslVerification]::Enable()
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies )
+
+        if ($updateDependencies) {
+            $appJsonFile = Join-Path $appProjectFolder 'app.json'
+            $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+            $changes = $false
+            Write-Host "Enumerating Existing Apps"
+            $existingApps = Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
+                $appInfo = Get-NavAppInfo -Path $_.FullName
+                Write-Host "- FileName=$($_.Name), Id=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
+                $appInfo
+            }
+            if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
+                $appJsonObject.dependencies = $appJsonObject.dependencies | ForEach-Object {
+                    $dependency = $_
+                    Write-Host "Dependency: Id=$($dependency.Id), Publisher=$($dependency.Publisher), Name=$($dependency.Name), Version=$($dependency.Version)"
+                    $existingApps | Where-Object { $_.AppId -eq [System.Guid]$dependency.Id -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
+                        $dependency.Version = "$($_.Version)"
+                        Write-Host "- Set dependency version to $($_.Version)"
+                        $changes = $true
+                    }
+                    $dependency
+                }
+            }
+            if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
+                $existingApps | Where-Object { $_.Name -eq "Application" -and $_.Version -gt [System.Version]$appJsonObject.application } | ForEach-Object {
+                    $appJsonObject.Application = "$($_.Version)"
+                    Write-Host "- Set Application dependency to $($_.Version)"
+                    $changes = $true
+                }
+            }
+            if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
+                $existingApps | Where-Object { $_.Name -eq "System" -and $_.Version -gt [System.Version]$appJsonObject.platform } | ForEach-Object {
+                    $appJsonObject.platform = "$($_.Version)"
+                    Write-Host "- Set Platform dependency to $($_.Version)"
+                    $changes = $true
+                }
+            }
+            if ($changes) {
+                $appJsonObject | ConvertTo-Json -depth 99 | Out-Host
+                $appJsonObject | ConvertTo-Json -depth 99 | Set-Content $appJsonFile -encoding UTF8
+            }
+        }
 
         $binPath = 'C:\build\vsix\extension\bin'
         $alcPath = Join-Path $binPath 'win32'
@@ -578,7 +623,7 @@ try {
         if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'

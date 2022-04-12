@@ -234,6 +234,7 @@ Param(
     [switch] $installTestLibraries,
     [switch] $installPerformanceToolkit,
     [switch] $CopySymbolsFromContainer,
+    [switch] $UpdateDependencies,
     [switch] $azureDevOps,
     [switch] $gitLab,
     [switch] $gitHubActions,
@@ -1313,6 +1314,7 @@ Write-Host -ForegroundColor Yellow @'
         "CopySymbolsFromContainer" = $CopySymbolsFromContainer
         "preProcessorSymbols" = $preProcessorSymbols
         "generatecrossreferences" = $generatecrossreferences
+        "updateDependencies" = $UpdateDependencies
     }
     if ($app) {
         if (!$previousAppsCopied) {
