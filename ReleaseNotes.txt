@@ -12,6 +12,7 @@ Run-AlValidation to check whether app is signed (unless SkipVerification is spec
 Add flag UpdateDependencies to Run-AlPipeline and Compile-AppInBcContainer to update dependencies in compiled .app files to reference versions used during build
 Allow Flush-ContainerHelperCache to run in parallel on the same host
 Allow whitespaces in hosts file during updatehosts.
+New-BcContainerWizard to find latest version using the country which is being built latest
 
 3.0.4
 Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no ResourceExposurePolicy is set

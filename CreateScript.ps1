@@ -691,7 +691,7 @@ $Step.Country {
 
     $versionno = $version
     if ($versionno -eq "") {
-        $versionno = (Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country "w1" -sasToken $sasToken).split('/')[4]
+        $versionno = (Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country "$(if ($type -eq 'sandbox') {"at"} else {"us"})" -sasToken $sasToken).split('/')[4]
     }
     $majorVersion = [int]($versionno.Split('.')[0])
     $countries = @()
