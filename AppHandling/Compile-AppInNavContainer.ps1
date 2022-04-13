@@ -518,7 +518,7 @@ try {
             }
             Write-Host "Modifying Dependencies"
             if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
-                $appJsonObject.dependencies = $appJsonObject.dependencies | ForEach-Object {
+                $appJsonObject.dependencies = @($appJsonObject.dependencies | ForEach-Object {
                     $dependency = $_
                     $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
                     Write-Host "Dependency: Id=$dependencyAppId, Publisher=$($dependency.Publisher), Name=$($dependency.Name), Version=$($dependency.Version)"
@@ -528,7 +528,7 @@ try {
                         $changes = $true
                     }
                     $dependency
-                }
+                })
             }
             if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
                 Write-Host "Application Dependency $($appJsonObject.application)"
