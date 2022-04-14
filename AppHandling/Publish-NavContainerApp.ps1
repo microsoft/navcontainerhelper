@@ -34,6 +34,8 @@
   Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Parameter includeOnlyAppIds
   Array of AppIds. If specified, then include Only Apps in the specified AppFile array or archive which is contained in this Array and their dependencies
+ .Parameter copyInstalledAppsToFolder
+  If specified, the installed apps will be copied to this folder in addition to being installed in the container
  .Parameter replaceDependencies
   With this parameter, you can specify a hashtable, describring that the specified dependencies in the apps being published should be replaced
  .Parameter internalsVisibleTo
@@ -81,6 +83,7 @@ function Publish-BcContainerApp {
         [pscredential] $credential,
         [string] $language = "",
         [string[]] $includeOnlyAppIds = @(),
+        [string] $copyInstalledAppsToFolder = "",
         [hashtable] $replaceDependencies = $null,
         [hashtable[]] $internalsVisibleTo = $null,
         [ValidateSet('Ignore','True','False','Check')]
@@ -133,6 +136,13 @@ try {
             if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
                 Write-Host "Checking dependencies in $appFile"
                 Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
+            }
+
+            if ($copyInstalledAppsToFolder) {
+                if (!(Test-Path -Path $copyInstalledAppsToFolder)) {
+                    New-Item -Path $copyInstalledAppsToFolder -ItemType Directory | Out-Null
+                }
+                Copy-Item -Path $appFile -Destination $copyInstalledAppsToFolder -force
             }
         
             if ($bcAuthContext -and $environment) {

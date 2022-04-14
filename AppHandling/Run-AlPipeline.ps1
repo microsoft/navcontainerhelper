@@ -46,6 +46,8 @@
   Array or comma separated list of 3rd party test apps to install before compiling test apps.
  .Parameter installOnlyReferencedApps
   Switch indicating whether you want to only install referenced apps in InstallApps and InstallTestApps
+ .Parameter generateDependencyArtifact
+  Switch indicating whether you want to generate a folder with all installed dependency apps used during build
  .Parameter previousApps
   Array or comma separated list of previous version of apps
  .Parameter appFolders
@@ -210,6 +212,7 @@ Param(
     $installApps = @(),
     $installTestApps = @(),
     [switch] $installOnlyReferencedApps,
+    [switch] $generateDependencyArtifact,
     $previousApps = @(),
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
@@ -534,6 +537,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Framework      "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Libraries      "; Write-Host $installTestLibraries
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Perf. Toolkit       "; Write-Host $installPerformanceToolkit
 Write-Host -NoNewLine -ForegroundColor Yellow "InstallOnlyReferencedApps   "; Write-Host $installOnlyReferencedApps
+Write-Host -NoNewLine -ForegroundColor Yellow "generateDependencyArtifact  "; Write-Host $generateDependencyArtifact
 Write-Host -NoNewLine -ForegroundColor Yellow "CopySymbolsFromContainer    "; Write-Host $CopySymbolsFromContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop               "; Write-Host $enableCodeCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Write-Host $enableAppSourceCop
@@ -905,6 +909,9 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
+            if ($generateDependencyArtifact) {
+                Write-Host -ForegroundColor Red "Cannot add AppSource Apps to dependency artifacts"
+            }
             if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
@@ -929,6 +936,11 @@ Measure-Command {
             if ($installOnlyReferencedApps) {
                 $parameters += @{
                     "includeOnlyAppIds" = $unknownDependencies
+                }
+            }
+            if ($generateDependencyArtifact -and !($testCountry)) {
+                $parameters += @{
+                    "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
                 }
             }
             if ($bcAuthContext) {
