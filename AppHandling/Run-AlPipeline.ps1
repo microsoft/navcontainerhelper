@@ -64,6 +64,8 @@
   ApplicationInsightsKey to be stamped into app.json for all apps
  .Parameter applicationInsightsConnectionString
   ApplicationInsightsConnectionString to be stamped into app.json for all apps
+ .Parameter buildOutputFile
+  Filename in which you want the build output to be written. Default is none, meaning that build output will not be written to a file, but only on screen.
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
@@ -218,6 +220,7 @@ Param(
     [int] $appRevision = 0,
     [string] $applicationInsightsKey,
     [string] $applicationInsightsConnectionString,
+    [string] $buildOutputFile = "BuildOutput.xml",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
     [Parameter(Mandatory=$false)]
@@ -370,14 +373,15 @@ $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
 $customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { Test-Path $_ } )
+$buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
-if (Test-Path $testResultsFile) {
-    Remove-Item -Path $testResultsFile -Force
-}
-if (Test-Path $bcptTestResultsFile) {
-    Remove-Item -Path $bcptTestResultsFile -Force
+
+$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
+    if ($_ -and (Test-Path $_)) {
+        Remove-Item -Path $_ -Force
+    }
 }
 
 if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object {
@@ -553,6 +557,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertIsSelfSigned    "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxFile         "; if ($keyVaultCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxPassword     "; if ($keyVaultCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultClientId            "; Write-Host $keyVaultClientId
+Write-Host -NoNewLine -ForegroundColor Yellow "BuildOutputFile             "; Write-Host $buildOutputFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile             "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "BcptTestResultsFile         "; Write-Host $bcptTestResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat           "; Write-Host $testResultsFormat
@@ -1316,6 +1321,19 @@ Write-Host -ForegroundColor Yellow @'
         "generatecrossreferences" = $generatecrossreferences
         "updateDependencies" = $UpdateDependencies
     }
+
+    if ($buildOutputFile) {
+        $parameters.OutputTo = { Param($line) 
+            Write-Host $line
+            if ($line -like "$($folder)*") {
+                Add-Content -Path $buildOutputFile -Value $line.SubString($folder.Length+1) -Encoding UTF8
+            }
+            else {
+                Add-Content -Path $buildOutputFile -Value $line -Encoding UTF8
+            }
+        }
+    }
+
     if ($app) {
         if (!$previousAppsCopied) {
             $previousAppsCopied = $true
