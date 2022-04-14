@@ -13,6 +13,7 @@ Add flag UpdateDependencies to Run-AlPipeline and Compile-AppInBcContainer to up
 Allow Flush-ContainerHelperCache to run in parallel on the same host
 Allow whitespaces in hosts file during updatehosts.
 New-BcContainerWizard to find latest version using the country which is being built latest
+Add BuildOutputFile parameter to Run-AlPipeline to dump all build Output to file
 
 3.0.4
 Issue #2349 Run-AlCops/Extract-AppFileToFolder fail if runtime is >=8.0 and no ResourceExposurePolicy is set
