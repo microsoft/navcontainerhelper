@@ -468,6 +468,7 @@ try {
     Write-Host "BcContainerHelper is version $BcContainerHelperVersion"
     if ($isAdministrator) {
         Write-Host "BcContainerHelper is running as administrator"
+        Write-Host "Hyper-V is $(Get-HypervState)"
     }
     else {
         Write-Host "BcContainerHelper is not running as administrator"
