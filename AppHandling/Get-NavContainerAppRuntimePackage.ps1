@@ -31,6 +31,8 @@ function Get-BcContainerAppRuntimePackage {
         [Parameter(Mandatory=$false)]
         [Boolean] $showMyCode,
         [Parameter(Mandatory=$false)]
+        [Boolean] $IncludeSourceInPackageFile,
+        [Parameter(Mandatory=$false)]
         [string] $appFile = (Join-Path $extensionsFolder ("$containerName\$appName.app" -replace '[~#%&*{}|:<>?/|"]', '_'))
     )
 
@@ -43,8 +45,9 @@ try {
     }
 
     $showMyCodeExists = ($PSBoundParameters.ContainsKey(‘showMyCode’))
+    $IncludeSourceInPackageFileExists = ($PSBoundParameters.ContainsKey(‘IncludeSourceInPackageFile’))
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $publisher, $appVersion, $tenant, $appFile, $showMyCodeExists, $showMyCode)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $publisher, $appVersion, $tenant, $appFile, $showMyCodeExists, $showMyCode, $IncludeSourceInPackageFileExists, $IncludeSourceInPackageFile)
 
         $parameters = @{ 
             "ServerInstance" = $ServerInstance
@@ -63,6 +66,10 @@ try {
         {
             $parameters += @{ "showMyCode" = $showMyCode }
         }
+        if ($IncludeSourceInPackageFileExists)
+        {
+            $parameters += @{ "IncludeSourceInPackageFile" = $IncludeSourceInPackageFile }
+        }
         if ($tenant)
         {
             $parameters += @{ "Tenant" = $tenant }
@@ -72,7 +79,7 @@ try {
 
         $appFile
 
-    } -ArgumentList $appName, $publisher, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode | Select-Object -Last 1
+    } -ArgumentList $appName, $publisher, $appVersion, $tenant, $containerAppFile, $showMyCodeExists, $showMyCode, $IncludeSourceInPackageFileExists, $IncludeSourceInPackageFile | Select-Object -Last 1
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
