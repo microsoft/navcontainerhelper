@@ -1221,7 +1221,7 @@ $Step.Isolation {
         $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf an image with a matching OS is found, Process isolation will be favoured, else Hyper-V will be selected.`n`nYour host OS is Windows $($hostOSVersion.ToString())`n$bestContainerOS`n"
 
         if ($isAdministrator) {
-            $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V-All -Online
+            $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
             if ($hyperv) {
                 $description += "Hyper-V is enabled"
             }

@@ -1,3 +1,6 @@
+3.0.6
+Fix issue with wrong extension of BuildOutputFile
+
 3.0.5
 Issue #2381 Run-AlValidation -nextmajor fails if nextmajor is not available (should be ignored)
 Issue #2379 Better error message from Publish-PerTenantExtensionApps

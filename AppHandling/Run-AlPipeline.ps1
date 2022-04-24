@@ -223,7 +223,7 @@ Param(
     [int] $appRevision = 0,
     [string] $applicationInsightsKey,
     [string] $applicationInsightsConnectionString,
-    [string] $buildOutputFile = "BuildOutput.xml",
+    [string] $buildOutputFile = "BuildOutput.txt",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
     [Parameter(Mandatory=$false)]
