@@ -903,6 +903,8 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
+    $tmpAppFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+    $tmpAppFiles = @()
     $installApps | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
@@ -924,33 +926,37 @@ Measure-Command {
             }
         }
         else {
-            $Parameters = @{
-                "containerName" = $containerName
-                "tenant" = $tenant
-                "credential" = $credential
-                "appFile" = $_
-                "skipVerification" = $true
-                "sync" = $true
-                "install" = $true
-            }
-            if ($installOnlyReferencedApps) {
-                $parameters += @{
-                    "includeOnlyAppIds" = $unknownDependencies
-                }
-            }
-            if ($generateDependencyArtifact -and !($testCountry)) {
-                $parameters += @{
-                    "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
-                }
-            }
-            if ($bcAuthContext) {
-                $Parameters += @{
-                    "bcAuthContext" = $bcAuthContext
-                    "environment" = $environment
-                }
-            }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            $tmpAppFiles += @(CopyAppFilesToFolder -appfiles $_ -folder $tmpAppFolder)
         }
+    }
+
+    if ($tmpAppFiles) {
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $tmpAppFiles
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+        }
+        if ($installOnlyReferencedApps) {
+            $parameters += @{
+                "includeOnlyAppIds" = $unknownDependencies
+            }
+        }
+        if ($generateDependencyArtifact -and !($testCountry)) {
+            $parameters += @{
+                "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+            }
+        }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
+        }
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
