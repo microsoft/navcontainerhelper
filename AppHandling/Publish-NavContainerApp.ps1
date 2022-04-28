@@ -130,7 +130,6 @@ try {
     try {
         $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -WarningAction SilentlyContinue)
         $appFiles | Where-Object { $_ } | ForEach-Object {
-
             $appFile = $_
 
             if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
