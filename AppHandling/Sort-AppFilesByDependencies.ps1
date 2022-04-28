@@ -77,6 +77,8 @@ try {
             }
             $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
             $apps += @($appJson)
+
+            Write-Host "$($appJson.Id) = $appFile"
         }
         
         # Populate SortedApps and UnresolvedDependencies
@@ -88,6 +90,7 @@ try {
             if (-not ($alreadyAdded)) {
                 AddDependencies -anApp $anApp
                 $script:sortedApps += $anApp
+                Write-Host "Add $($anApp.Id)"
             }
         }
         
