@@ -119,9 +119,12 @@ try {
         }
         
         function MarkSortedApps { Param($AppId)
+            Write-Host "Mark $appId"
             $script:sortedApps | Where-Object { $_.Id -eq $AppId } | ForEach-Object {
+                Write-Host "set included"
                 $_.Included = $true
                 if ($_.Dependencies) {
+                    Write-Host "Dependencies exists"
                     $_.Dependencies | ForEach-Object {
                         $dependency = $_
                         if ($dependency) {
