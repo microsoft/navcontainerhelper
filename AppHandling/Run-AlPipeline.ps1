@@ -958,6 +958,7 @@ Measure-Command {
         }
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
+    Remove-Item -Path $tmpAppFolder -Recurse -Force
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
