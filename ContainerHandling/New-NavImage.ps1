@@ -625,7 +625,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
 
                 $success = $false
                 try {
-                    docker build --isolation=$isolation --memory $memory --tag $imageName $buildFolder | % {
+                    docker build --isolation=$isolation --memory $memory --no-cache --tag $imageName $buildFolder | % {
                         $_ | Out-Host
                         if ($_ -like "Successfully built*") {
                             $success = $true
