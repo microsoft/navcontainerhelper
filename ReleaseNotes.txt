@@ -1,5 +1,6 @@
 3.0.6
 Fix issue with wrong extension of BuildOutputFile
+Add --no-cache when building docker images to avoid reuse of faulty layers
 
 3.0.5
 Issue #2381 Run-AlValidation -nextmajor fails if nextmajor is not available (should be ignored)
