@@ -1,3 +1,5 @@
+3.0.8
+
 3.0.7
 Add --no-cache when building docker images to avoid reuse of faulty layers
 New parameter IncludeSourceInPackageFile on Get-BcContainerAppRuntimePackage
