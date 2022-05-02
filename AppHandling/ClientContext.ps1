@@ -4,23 +4,6 @@ Param(
     [string] $clientDllPath
 )
 
-$source = @'
-public class MyOpenFormInteraction : Microsoft.Dynamics.Framework.UI.Client.Interactions.OpenFormInteraction
-{
-    public string Filter { get; set; }
-
-    protected override void GetNamedParameters(System.Collections.Generic.IDictionary<string, object> namedParameters)
-    {
-        base.GetNamedParameters(namedParameters);
-        if (!string.IsNullOrEmpty(this.Filter)) {
-            namedParameters.Add("$FILTER", this.Filter);
-        }
-    }
-}
-'@
-$assemblies = @("System.Runtime",$clientDllPath)
-Add-Type -ReferencedAssemblies $assemblies -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
-
 class ClientContext {
 
     $events = @()
@@ -287,18 +270,6 @@ class ClientContext {
         $form = $Global:PsTestRunnerCaughtForm
         Remove-Variable PsTestRunnerCaughtForm -Scope Global
         return $form
-    }
-    
-    [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] OpenFormWithFilter([int] $page, [string] $filter) {
-        try {
-            $interaction = New-Object MyOpenFormInteraction
-            $interaction.Page = $page
-            $interaction.Filter = $filter
-            return $this.InvokeInteractionAndCatchForm($interaction)
-        }
-        catch {
-            return $null
-        }
     }
     
     [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] OpenFormWithBookmark([int] $page, [string] $bookmark) {
