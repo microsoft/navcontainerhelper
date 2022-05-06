@@ -15,21 +15,15 @@ function Remove-BcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-Write-Host "Remove-BcContainer.a"
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    Write-Host "Remove-BcContainer.b"
     $hostname = ""
     if (Test-BcContainer -containerName $containerName) {
         try {
-            Write-Host "Get ID $containerName"
             $id = Get-BcContainerId -containerName $containerName
-            Write-Host $id
             if ($id) {
-                Write-Host "inspect"
                 $inspect = docker inspect $id | ConvertFrom-Json
                 $hostname = $inspect.config.Hostname
-                Write-Host $hostname
             }
         }
         catch {
@@ -60,21 +54,18 @@ try {
             $myFolder = Join-Path $containerFolder "my"
         }
 
-        Write-Host "Remove-BcContainer.c"
-
         $updateHostsScript = Join-Path $myFolder "updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
+            Write-Host "Removing entires from hosts"
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $hostname -theIpAddress ""
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
-        Write-Host "Remove-BcContainer.d"
         if ($myVolume) {
+            Write-Host "Removing volume $myVolumeName"
             docker volume remove $myVolumeName
         }
-
-        Write-Host "Remove-BcContainer.e"
 
         $thumbprintFile = Join-Path $containerFolder "thumbprint.txt"
         if (Test-Path -Path $thumbprintFile) {
@@ -94,7 +85,7 @@ try {
             }
         }
 
-        Write-Host "Remove-BcContainer.f"
+        Write-Host "Removing Desktop shortcuts"
         Remove-DesktopShortcut -Name "$containerName Web Client"
         Remove-DesktopShortcut -Name "$containerName Performance Tool"
         Remove-DesktopShortcut -Name "$containerName Test Tool"
@@ -104,7 +95,6 @@ try {
         Remove-DesktopShortcut -Name "$containerName Command Prompt"
         Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
 
-        Write-Host "Remove-BcContainer.g"
         if (Test-Path $containerFolder) {
             $wait = 10
             $attempts = 0
@@ -139,9 +129,7 @@ try {
                     Start-Sleep -Seconds $wait
                 }
             }
-            Write-Host "Remove-BcContainer.h"
             Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction SilentlyContinue
-            Write-Host "Remove-BcContainer.i"
         }
     }
 }
