@@ -51,7 +51,8 @@ try {
 
     $args = @{}
     if ($appFilePath) {
-        $args += @{ "Path" = $appFilePath }
+        $containerAppFilePath = Get-BcContainerPath -containerName $containerName -path $appFilePath -throw
+        $args += @{ "Path" = $containerAppFilePath }
     }
     elseif ($symbolsOnly) {
         $args += @{ "SymbolsOnly" = $true }
