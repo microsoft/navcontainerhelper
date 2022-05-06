@@ -313,6 +313,9 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "ObjectHandling\Compile-ObjectsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Invoke-NavContainerCodeunit.ps1")
 
+# AL-Go for GitHub functions
+. (Join-Path $PSScriptRoot "AL-Go\Get-ALGoAuthContext.ps1")
+
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Repair-NavContainerApp.ps1")

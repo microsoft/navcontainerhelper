@@ -17,7 +17,6 @@ function Remove-BcContainer {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
     $hostname = ""
     if (Test-BcContainer -containerName $containerName) {
         try {
@@ -30,6 +29,7 @@ try {
         catch {
             $hostname = ""
         }
+        Write-Host "Removing Session $containerName"
         Remove-BcContainerSession $containerName
         $containerId = Get-BcContainerId -containerName $containerName
         Write-Host "Removing container $containerName"
@@ -57,11 +57,13 @@ try {
         $updateHostsScript = Join-Path $myFolder "updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
+            Write-Host "Removing entires from hosts"
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $hostname -theIpAddress ""
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
         if ($myVolume) {
+            Write-Host "Removing volume $myVolumeName"
             docker volume remove $myVolumeName
         }
 
@@ -83,6 +85,7 @@ try {
             }
         }
 
+        Write-Host "Removing Desktop shortcuts"
         Remove-DesktopShortcut -Name "$containerName Web Client"
         Remove-DesktopShortcut -Name "$containerName Performance Tool"
         Remove-DesktopShortcut -Name "$containerName Test Tool"

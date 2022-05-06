@@ -1,3 +1,6 @@
+3.0.8
+Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
+
 3.0.7
 Add --no-cache when building docker images to avoid reuse of faulty layers
 New parameter IncludeSourceInPackageFile on Get-BcContainerAppRuntimePackage
