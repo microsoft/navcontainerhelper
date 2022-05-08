@@ -29,20 +29,20 @@
 function Get-BcContainerAppInfo {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [Parameter(Mandatory = $false, ParameterSetName = 'Tenant')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [string] $tenant = "",
-        [Parameter(Mandatory = $false, ParameterSetName = 'AppFile')]
+        [Parameter(Mandatory = $true, ParameterSetName = 'AppFile')]
         [string] $appFilePath,
-        [Parameter(ParameterSetName = 'SymbolsOnly')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $symbolsOnly,
-        [Parameter(ParameterSetName = 'Tenant')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $tenantSpecificProperties,
-        [Parameter(ParameterSetName = 'Tenant')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [ValidateSet('None','DependenciesFirst','DependenciesLast')]
         [string] $sort = 'None',
-        [Parameter(ParameterSetName = 'Tenant')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $publishedOnly,
-        [Parameter(ParameterSetName = 'Tenant')]
+        [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $installedOnly
     )
 
