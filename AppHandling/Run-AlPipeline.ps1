@@ -1624,6 +1624,10 @@ if ($testCountry) {
 
 $installedApps = @()
 if (!($bcAuthContext)) {
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+    }
     $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
 }
 
