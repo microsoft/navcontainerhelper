@@ -25,6 +25,12 @@ try {
     $myUsername = (whoami)
 }
 
+$BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+if (!$silent) {
+    Write-Host "BcContainerHelper version $BcContainerHelperVersion"
+}
+$isInsider = $BcContainerHelperVersion -like "*-dev"
+
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
@@ -80,6 +86,11 @@ function Get-ContainerHelperConfig {
             "SendExtendedTelemetryToMicrosoft" = $false
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
+        }
+
+        if ($isInsider) {
+            $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{0}-dev'
+            $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
         }
 
         if ($useVolumes) {
@@ -185,11 +196,6 @@ $bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCache
 $hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
 $extensionsFolder = Join-Path $hostHelperFolder "Extensions"
 $containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
-
-$BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
-if (!$silent) {
-    Write-Host "BcContainerHelper version $BcContainerHelperVersion"
-}
 
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 

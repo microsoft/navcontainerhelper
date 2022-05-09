@@ -2,6 +2,7 @@
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
 Issue #2442 Run-AlPipeline generates BuildOutput.txt even if parameter is not specified
 Add new parameter -appFilePath to Get-BcContainerAppInfo to get app info from an .app file shared with the container
+When running preview version of BcContainerHelper, it will automatically select preview versions of generic images as well
 
 3.0.7
 Add --no-cache when building docker images to avoid reuse of faulty layers
