@@ -411,7 +411,7 @@ try {
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
 
     $isServerHost = $os.ProductType -eq 3
-    
+
     if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
         if ($isServerHost) {
             $hostOs = "ltsc2022"
@@ -995,8 +995,12 @@ try {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platformVersion" -value $platformVersion
     }
 
+    $genericIsDev = ""
+    if ($imageName -like "mcr.microsoft.com/businesscentral:*-dev") {
+        $genericIsDev = "-dev"
+    }
     $genericTag = [Version]"$($inspect.Config.Labels.tag)"
-    Write-Host "Generic Tag: $genericTag"
+    Write-Host "Generic Tag: $genericTag$genericIsDev"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "applicationVersion" -value $navVersion
     AddTelemetryProperty -telemetryScope $telemetryScope -key "country" -value $devCountry
     AddTelemetryProperty -telemetryScope $telemetryScope -key "style" -value $bcStyle
