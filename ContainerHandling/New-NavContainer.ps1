@@ -411,8 +411,7 @@ try {
     $bestGenericImageName = Get-BestGenericImageName -onlyMatchingBuilds -filesOnly:$filesOnly
 
     $isServerHost = $os.ProductType -eq 3
-
-
+    
     if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
         if ($isServerHost) {
             $hostOs = "ltsc2022"
@@ -996,13 +995,13 @@ try {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platformVersion" -value $platformVersion
     }
 
-    $genericTag = $inspect.Config.Labels.tag
+    $genericTag = [Version]"$($inspect.Config.Labels.tag)"
     Write-Host "Generic Tag: $genericTag"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "applicationVersion" -value $navVersion
     AddTelemetryProperty -telemetryScope $telemetryScope -key "country" -value $devCountry
     AddTelemetryProperty -telemetryScope $telemetryScope -key "style" -value $bcStyle
     AddTelemetryProperty -telemetryScope $telemetryScope -key "multitenant" -value $multitenant
-    AddTelemetryProperty -telemetryScope $telemetryScope -key "genericTag" -value $genericTag
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "genericTag" -value "$genericTag"
 
     $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -1186,7 +1185,7 @@ try {
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ($version.Major -lt 15 -and ($genericTag -eq "1.0.1.7")) {
+    if ($version.Major -lt 15 -and ($genericTag -eq [Version]"1.0.1.7")) {
         Write-Host "Patching start.ps1 due to issue #2130"
         $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/start.ps1" )
     }
@@ -1234,6 +1233,10 @@ try {
         }
     }
     Write-Host "Using $isolation isolation"
+
+    if ($isolation -eq "process" -and !$isServerHost -and ($version.Major -lt 15 -or $genericTag -lt [Version]"1.0.2.4")) {
+        Write-Host -ForegroundColor Yellow "WARNING: Using process isolation on Windows Desktop OS with generic image version prior to 1.0.2.4 or NAV/BC versions prior to 15.0, might require you to use HyperV isolation or disable Windows Defender while creating the container"
+    }
 
     AddTelemetryProperty -telemetryScope $telemetryScope -key "isolation" -value $isolation
 
