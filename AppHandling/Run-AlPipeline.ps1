@@ -723,7 +723,7 @@ Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-$error = $null
+$err = $null
 $prevProgressPreference = $progressPreference
 $progressPreference = 'SilentlyContinue'
 
@@ -2023,7 +2023,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 } catch {
-    $error = $_
+    $err = $_
 }
 finally {
     $progressPreference = $prevProgressPreference
@@ -2031,7 +2031,7 @@ finally {
 
 if (!$keepContainer) {
 if ($gitHubActions) { Write-Host "::group::Removing Container" }
-if (!($error)) {
+if (!($err)) {
 Write-Host -ForegroundColor Yellow @'
 
   _____                           _                _____            _        _                 
@@ -2052,7 +2052,7 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
    
-} | ForEach-Object { if (!($error)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
+} | ForEach-Object { if (!($err)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
@@ -2060,8 +2060,8 @@ if ($warningsToShow) {
     ($warningsToShow -join "`n") | Write-Host -ForegroundColor Yellow
 }
 
-if ($error) {
-    throw $error
+if ($err) {
+    throw $err
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
