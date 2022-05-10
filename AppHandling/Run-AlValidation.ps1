@@ -514,9 +514,9 @@ $validationResult += @(Run-AlCops @Parameters)
 }
 
 } catch {
-    $error = "Unexpected error while validating app. Error is: $($_.Exception.Message)"
-    $validationResult += $error
-    Write-Host -ForegroundColor Red $error
+    $err = "Unexpected error while validating app. Error is: $($_.Exception.Message)"
+    $validationResult += $err
+    Write-Host -ForegroundColor Red $err
     Write-Host -ForegroundColor Red $_.ScriptStackTrace
 
 }
