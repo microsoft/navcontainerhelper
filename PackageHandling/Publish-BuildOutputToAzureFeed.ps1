@@ -44,8 +44,10 @@ try {
             Copy-Item -Path $_ -Destination $tempAppOutFolder
             Write-Host $tempAppFolder
             Write-Host "Processing: $basename"
-     
-            $runtimeApps = @(Get-Item -Path (Join-Path $path "\RuntimePackages\*$basename*"))
+            $runtimeApps =  @()
+            if(Test-Path -Path (Join-Path $path "\RuntimePackages\")) {
+                $runtimeApps = @(Get-Item -Path (Join-Path $path "\RuntimePackages\*$basename*"))
+            }
             if ($runtimeApps.length -eq 1) {
                 $runtimeApp = $runtimeApps[0];
                 Copy-Item -Path $runtimeApp -Destination $tempAppOutFolder
