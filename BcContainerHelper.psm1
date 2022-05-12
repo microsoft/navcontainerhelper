@@ -29,7 +29,7 @@ $BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
 if (!$silent) {
     Write-Host "BcContainerHelper version $BcContainerHelperVersion"
 }
-$isInsider = $BcContainerHelperVersion -like "*-dev"
+$isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersion -like "*-preview*"
 
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
