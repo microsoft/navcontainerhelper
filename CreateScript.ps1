@@ -247,14 +247,17 @@ function Enter-Value {
         }
         else {
             if ($options) {
-                $answer = $options | Where-Object { $_ -like "$selection*" }
+                $answer = $options | Where-Object { $_ -eq $selection }
                 if (-not ($answer)) {
-                    Write-Host -ForegroundColor Red "Illegal answer. Please answer one of the options."
-                }
-                elseif ($answer -is [Array]) {
-                    Write-Host -ForegroundColor Red "Multiple options match the answer. Please answer one of the options that matched the previous selection."
-                    $options = $answer
-                    $answer = $null
+                    $answer = $options | Where-Object { $_ -like "$selection*" }
+                    if (-not ($answer)) {
+                        Write-Host -ForegroundColor Red "Illegal answer. Please answer one of the options."
+                    }
+                    elseif ($answer -is [Array]) {
+                        Write-Host -ForegroundColor Red "Multiple options match the answer. Please answer one of the options that matched the previous selection."
+                        $options = $answer
+                        $answer = $null
+                    }
                 }
             }
             else {
