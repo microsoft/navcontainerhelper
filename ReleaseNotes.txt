@@ -5,6 +5,7 @@ Add new parameter -appFilePath to Get-BcContainerAppInfo to get app info from an
 When running preview version of BcContainerHelper, it will automatically select preview versions of generic images as well
 Add warning when using Desktop OS and process isolation
 Issue #2460 New-BcContainerWizard cannot select all countries with NAV 2018 after the introduction of nlbe and itch countries
+Add parameter -doNotPublishApps to Run-AlPipeline to skip publishing apps, running tests etc. - causes usage of filesonly container
 
 3.0.7
 Add --no-cache when building docker images to avoid reuse of faulty layers

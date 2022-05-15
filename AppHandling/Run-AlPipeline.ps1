@@ -112,6 +112,8 @@
   Include this switch to indicate that you do not want to execute bcpt tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
  .Parameter doNotPerformUpgrade
   Include this switch to indicate that you do not want to perform the upgrade. This means that the previousApps are never actually published to the container.
+ .Parameter doNotPublishApps
+  Include this switch to indicate that you do not want to publish the app. Including this switch will also mean that upgrade won't happen and tests won't run.
  .Parameter uninstallRemovedApps
   Include this switch to indicate that you want to uninstall apps, which are included in previousApps, but not included (upgraded) in apps, i.e. removed apps
  .Parameter reUseContainer
@@ -251,6 +253,7 @@ Param(
     [switch] $doNotRunTests,
     [switch] $doNotRunBcptTests,
     [switch] $doNotPerformUpgrade,
+    [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
     [switch] $reUseContainer,
     [switch] $keepContainer,
@@ -544,6 +547,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop          "; Wr
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                 "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop "; Write-Host $enablePerTenantExtensionCop
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade         "; Write-Host $doNotPerformUpgrade
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotPublishApps            "; Write-Host $doNotPublishApps
 Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps        "; Write-Host $uninstallRemovedApps
 Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops              "; Write-Host $escapeFromCops
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotBuildTests             "; Write-Host $doNotBuildTests
@@ -591,6 +595,13 @@ Write-Host -ForegroundColor Yellow "BCPT Test application folders"
 if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+
+if ($doNotPublishApps) {
+    $doNotBuildTests = $true
+    $doNotPerformUpgrade = $true
+    $filesOnly = $true
+    $CopySymbolsFromContainer = $true
+}
 
 if ($doNotBuildTests) {
     $testFolders = @()
@@ -779,10 +790,8 @@ Measure-Command {
         Write-Host "Reusing existing container"
     }
     else {
-        if ($bcAuthContext) {
-            $Parameters += @{
-                "FilesOnly" = $filesOnly
-            }
+        $Parameters += @{
+            "FilesOnly" = $filesOnly
         }
 
         if ($imageName)   { $Parameters += @{ "imageName"   = $imageName } }
@@ -925,6 +934,11 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
+        elseif ($filesOnly -and (-not $bcAuthContext)) {
+            CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
+                Write-Host "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+            }
+        }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles $_ -folder $tmpAppFolder)
         }
@@ -957,8 +971,8 @@ Measure-Command {
             }
         }
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        Remove-Item -Path $tmpAppFolder -Recurse -Force
     }
-    Remove-Item -Path $tmpAppFolder -Recurse -Force
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
@@ -1603,7 +1617,7 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ($apps+$testApps+$bcptTestApps) {
+if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
 if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
 Write-Host -ForegroundColor Yellow @'
 
