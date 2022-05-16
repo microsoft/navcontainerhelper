@@ -34,13 +34,14 @@ function Invoke-ScriptInBcContainer {
         }
     }
     if ($useSession) {
+        $startTime = [DateTime]::Now
         try {
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
         catch {
             $errorMessage = $_.Exception.Message
             try {
-               $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName)
+               $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName, $startTime)
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     Write-Host "Container Free Physical Memory is $(($cimInstance.FreePhysicalMemory/1024).ToString('F1',[CultureInfo]::InvariantCulture))Mb"
                     Write-Host -ForegroundColor Yellow "Services in container $containerName"
@@ -58,7 +59,7 @@ function Invoke-ScriptInBcContainer {
                     $any = $false
                     $isOutOfMemory = $false
                     Get-EventLog -LogName Application | 
-                        Where-Object { $_.EntryType -eq "Error" -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
+                        Where-Object { $_.EntryType -eq "Error" -and $_.TimeGenerated -gt $startTime -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
                         Select-Object -Property TimeGenerated, Source, Message |
                         ForEach-Object {
                             Write-Host "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
@@ -68,7 +69,7 @@ function Invoke-ScriptInBcContainer {
                         }
                     if (!$any) { Write-Host "- No eventlog entries found" }
                     $isOutOfMemory
-                } -ArgumentList $containerName
+                } -ArgumentList $containerName, $startTime
                 if ($isOutOfMemory) {
                     $errorMessage = "Out Of Memory Exception thrown inside container"
                 }
