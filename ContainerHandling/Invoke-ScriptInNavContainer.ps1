@@ -35,7 +35,7 @@ function Invoke-ScriptInBcContainer {
     }
     if ($useSession) {
         try {
-            $newScriptBlock = [Scriptblock]::Create("$($scriptblock.ToString())`n`$cimInstance = Get-CIMInstance Win32_OperatingSystem`nWrite-Host ""Container Free Physical Memory is `$((`$cimInstance.FreePhysicalMemory/1024).ToString('F1',[CultureInfo]::InvariantCulture))Mb""")
+            $newScriptBlock = [Scriptblock]::Create("try { $($scriptblock.ToString()) } catch { `$cimInstance = Get-CIMInstance Win32_OperatingSystem; Write-Host ""Container Free Physical Memory is `$((`$cimInstance.FreePhysicalMemory/1024).ToString('F1',[CultureInfo]::InvariantCulture))Mb""; throw }")
             Invoke-Command -Session $session -ScriptBlock $newScriptblock -ArgumentList $argumentList
         }
         catch {
