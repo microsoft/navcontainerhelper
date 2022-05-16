@@ -602,7 +602,7 @@ try {
         }
 
         if ($ReportSuppressedDiagnostics) {
-            if ($alcVersion -ge [System.Version]"9.0.9.15366") {
+            if ($alcVersion -ge [System.Version]"9.1.0.0") {
                 $alcParameters += @("/reportsuppresseddiagnostics")
             }
             else {
