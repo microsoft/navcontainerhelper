@@ -38,8 +38,9 @@ function Invoke-ScriptInBcContainer {
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
         catch {
+            $errorMessage = $_.Exception.Message
             try {
-                Invoke-Command -Session $session -ScriptBlock { Param($containerName)
+               $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName)
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     Write-Host "Container Free Physical Memory is $(($cimInstance.FreePhysicalMemory/1024).ToString('F1',[CultureInfo]::InvariantCulture))Mb"
                     Write-Host -ForegroundColor Yellow "Services in container $containerName"
@@ -55,21 +56,28 @@ function Invoke-ScriptInBcContainer {
                     Write-Host
                     Write-Host -ForegroundColor Yellow "Event log from container $containerName"
                     $any = $false
+                    $isOutOfMemory = $false
                     Get-EventLog -LogName Application | 
                         Where-Object { $_.EntryType -eq "Error" -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
                         Select-Object -Property TimeGenerated, Source, Message |
                         ForEach-Object {
                             Write-Host "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
                             Write-Host -ForegroundColor Gray "`n  $($_.Message.Replace("`n","`n  "))`n"
+                            if ($_.Message.Contains('OutOfMemoryException')) { $isOutOfMemory = $true }
                             $any = $true
                         }
                     if (!$any) { Write-Host "- No eventlog entries found" }
+                    $isOutOfMemory
                 } -ArgumentList $containerName
+                if ($isOutOfMemory) {
+                    $errorMessage = "Out Of Memory Exception thrown inside container"
+                }
             } catch {}
             Write-Host -ForegroundColor Red $_.Exception.Message
-            Write-Host -ForegroundColor Red $_.ScriptStackTrace
+            Write-Host -ForegroundColor Red $_.scriptStackTrace
+            Write-Host
             Get-PSCallStack | Write-Host -ForegroundColor Red
-            throw $_.Exception.Message
+            throw $errorMessage
         }
     } else {
         $file = Join-Path $containerHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
