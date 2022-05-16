@@ -58,20 +58,26 @@ try {
     }
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     Write-Host "Downloading $destinationFile"
-    try {
-        (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($sourceUrl, $destinationFile)
+    if ($sourceUrl -like "https://*.sharepoint.com/*download=1*") {
+        Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
-    catch {
-        if ($sourceUrl -notlike "https://bcartifacts.azureedge.net/*" -and
-            $sourceUrl -notlike "https://bcinsider.azureedge.net/*" -and
-            $sourceUrl -notlike "https://bcprivate.azureedge.net/*" -and
-            $sourceUrl -notlike "https://bcpublicpreview.azureedge.net/*") {
-            throw
+    else {
+        $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
+        $webClient.Headers.Add([System.Net.HttpRequestHeader]::UserAgent, "BcContainerHelper $bcContainerHelperVersion")
+        try {
+            $webClient.DownloadFile($sourceUrl, $destinationFile)
         }
-        $idx = $sourceUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
-        $newSourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + 14)
-        Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/..."
-        (New-Object TimeoutWebClient -ArgumentList (1000*$timeout)).DownloadFile($newSourceUrl, $destinationFile)
+        catch {
+            if ($sourceUrl -like "https://bcartifacts.azureedge.net/*" -or $sourceUrl -like "https://bcinsider.azureedge.net/*" -or $sourceUrl -like "https://bcprivate.azureedge.net/*" -or $sourceUrl -like "https://bcpublicpreview.azureedge.net/*") {
+                $idx = $sourceUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+                $newSourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + 14)
+                Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/..."
+                $webClient.DownloadFile($newSourceUrl, $destinationFile)
+            }
+            else {
+                throw (GetExtendedErrorMessage $_)
+            }
+        }
     }
 }
 catch {
