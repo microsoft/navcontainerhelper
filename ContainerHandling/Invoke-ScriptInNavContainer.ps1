@@ -34,14 +34,60 @@ function Invoke-ScriptInBcContainer {
         }
     }
     if ($useSession) {
+        $startTime = [DateTime]::Now
         try {
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
         catch {
-            Write-Host -ForegroundColor Red $_.Exception.Message
-            Write-Host -ForegroundColor Red $_.ScriptStackTrace
+            $errorMessage = $_.Exception.Message
+            Write-Host -ForegroundColor Red $errorMessage
+            Write-Host
+            Write-Host "Exception Script Stack Trace:"
+            Write-Host -ForegroundColor Red $_.scriptStackTrace
+            Write-Host
+            Write-Host "PowerShell Call Stack:"
             Get-PSCallStack | Write-Host -ForegroundColor Red
-            throw $_.Exception.Message
+            try {
+               $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName, $startTime)
+                    $cimInstance = Get-CIMInstance Win32_OperatingSystem
+                    Write-Host "`nContainer Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+                    $any = $false
+                    Write-Host "`nServices in container $($containerName):"
+                    Get-Service |
+                        Where-Object { $_.Name -like "MicrosoftDynamics*" -or $_.Name -like "MSSQL`$*" } |
+                        Select-Object -Property name, Status |
+                        ForEach-Object {
+                            if ($_.Status -eq "Running") {
+                                Write-Host "- $($_.Name) is $($_.Status)"
+                            }
+                            else {
+                                Write-Host -ForegroundColor Red "- $($_.Name) is $($_.Status)"
+                            }
+                            $any = $true
+                        }
+                    if (!$any) { Write-Host -ForegroundColor Red "- No services found" }
+                    Write-Host
+                    $any = $false
+                    $isOutOfMemory = $false
+                    Get-EventLog -LogName Application | 
+                        Where-Object { $_.EntryType -eq "Error" -and $_.TimeGenerated -gt $startTime -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
+                        Select-Object -Property TimeGenerated, Source, Message |
+                        ForEach-Object {
+                            if (!$any) {
+                                Write-Host "`nRelevant event log from container $($containerName):"
+                            }
+                            Write-Host -ForegroundColor Red "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
+                            Write-Host -ForegroundColor Gray "`n  $($_.Message.Replace("`n","`n  "))`n"
+                            if ($_.Message.Contains('OutOfMemoryException')) { $isOutOfMemory = $true }
+                            $any = $true
+                        }
+                    $isOutOfMemory
+                } -ArgumentList $containerName, $startTime
+                if ($isOutOfMemory) {
+                    $errorMessage = "Out Of Memory Exception thrown inside container $containerName"
+                }
+            } catch {}
+            throw $errorMessage
         }
     } else {
         $file = Join-Path $containerHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
