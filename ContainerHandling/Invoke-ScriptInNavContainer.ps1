@@ -40,6 +40,8 @@ function Invoke-ScriptInBcContainer {
         catch {
             try {
                 Invoke-Command -Session $session -ScriptBlock { Param($containerName)
+                    $cimInstance = Get-CIMInstance Win32_OperatingSystem
+                    Write-Host "Container Free Physical Memory is $(($cimInstance.FreePhysicalMemory/1024).ToString('F1',[CultureInfo]::InvariantCulture))Mb"
                     Write-Host -ForegroundColor Yellow "Services in container $containerName"
                     $any = $false
                     Get-Service |
