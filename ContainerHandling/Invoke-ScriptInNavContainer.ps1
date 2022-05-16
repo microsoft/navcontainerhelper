@@ -39,8 +39,30 @@ function Invoke-ScriptInBcContainer {
         }
         catch {
             try {
-                $freeMemory = Invoke-Command -Session $session -ScriptBlock { $cimInstance = Get-CIMInstance Win32_OperatingSystem; $cimInstance.FreePhysicalMemory }
-                Write-Host "Container Free Physical Memory is $(($freeMemory/1024).ToString('F1',[CultureInfo]::InvariantCulture))Mb"
+                Invoke-Command -Session $session -ScriptBlock { Param($containerName)
+                    Write-Host -ForegroundColor Yellow "Services in container $containerName"
+                    $any = $false
+                    Get-Service |
+                        Where-Object { $_.Name -like "MicrosoftDynamics*" -or $_.Name -like "MSSQL`$*" } |
+                        Select-Object -Property name, Status |
+                        ForEach-Object { 
+                            Write-Host "- $($_.Name) is $($_.Status)"
+                            $any = $true
+                        }
+                    if (!$any) { Write-Host "- No services found" }
+                    Write-Host
+                    Write-Host -ForegroundColor Yellow "Event log from container $containerName"
+                    $any = $false
+                    Get-EventLog -LogName Application | 
+                        Where-Object { $_.EntryType -eq "Error" -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
+                        Select-Object -Property TimeGenerated, Source, Message |
+                        ForEach-Object {
+                            Write-Host "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
+                            Write-Host -ForegroundColor Gray "`n  $($_.Message.Replace("`n","`n  "))`n"
+                            $any = $true
+                        }
+                    if (!$any) { Write-Host "- No eventlog entries found" }
+                } -ArgumentList $containerName
             } catch {}
             Write-Host -ForegroundColor Red $_.Exception.Message
             Write-Host -ForegroundColor Red $_.ScriptStackTrace
