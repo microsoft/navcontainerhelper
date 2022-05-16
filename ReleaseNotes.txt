@@ -9,6 +9,7 @@ Add parameter -doNotPublishApps to Run-AlPipeline to skip publishing apps, runni
 Fix issue that /ReportSuppressedDiagnostics is sometimes applied when the flag is not available.
 Add debug output (memory, running services and eventlog) when Invoke-ScriptInBcContainer is failing
 Re-throw Out Of Memory exception if container is out of memory when using Invoke-ScriptInBcContainer
+Issue #2455 Use Invoke-WebRequest when downloading from a direct download URL from SharePoint / OneDrive
 
 3.0.7
 Add --no-cache when building docker images to avoid reuse of faulty layers
