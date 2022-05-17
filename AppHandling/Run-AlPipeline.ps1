@@ -1617,6 +1617,11 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
+Write-Host "doNotPublishApps: $doNotPublishApps"
+$apps | Out-Host
+$testApps | Out-Host
+if ($apps+$testApps+$bcptTestApps) { Write-Host "that one is true" }
+
 if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
 if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
 Write-Host -ForegroundColor Yellow @'
