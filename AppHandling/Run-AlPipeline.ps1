@@ -1436,14 +1436,19 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    Write-Host "DEBUG: before compile"
     try {
         $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters+$CopParameters)
+        Write-Host "DEBUG : $appFile"
+        $appFile | Out-Host
     }
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
-        }
+            Write-Host "DEBUG : $appFile"
+            $appFile | Out-Host
+            }
         else {
             throw $_
         }
