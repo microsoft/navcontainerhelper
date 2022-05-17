@@ -1102,14 +1102,9 @@ $testToolkitInstalled = $false
 $sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
-    Write-Host "DEBUG: $folder"
-
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-
-    Write-Host "DEBUG: $app"
-    Write-Host "DEBUG: $testApp"
 
     if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
@@ -1436,17 +1431,14 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    Write-Host "DEBUG: before compile"
     try {
         $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters+$CopParameters)
-        Write-Host "DEBUG : $appFile"
         $appFile | Out-Host
     }
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
-            Write-Host "DEBUG : $appFile"
             $appFile | Out-Host
             }
         else {
@@ -1527,8 +1519,6 @@ Write-Host -ForegroundColor Yellow @'
             UpdateLaunchJson -launchJsonFile $launchJsonFile -launchSettings $launchSettings
         }
     }
-
-    Write-Host "DEBUG DONE: '$appFile' $app $testApp '$folder'"
 
     if ($bcptTestApp) {
         $bcptTestApps += $appFile
@@ -1628,11 +1618,6 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
-
-Write-Host "DEBUG: doNotPublishApps: $doNotPublishApps"
-$apps | Out-Host
-$testApps | Out-Host
-if ($apps+$testApps+$bcptTestApps) { Write-Host "DEBUG: that one is true" }
 
 if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
 if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
