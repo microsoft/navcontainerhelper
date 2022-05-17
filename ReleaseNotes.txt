@@ -100,7 +100,7 @@ Modify Run-AlValidation to validate in the same way as the AppSource Validation 
 Issue #2206 new-bccontainer with importtesttoolkit sometimes fails containername is not bcserver
 
 2.0.21
-Increasing version number to avoid locking issues wil applicationInsights DLL
+Increasing version number to avoid locking issues with applicationInsights DLL
 
 2.0.20
 Add support for using Docker Volumes for HostHelperFolder, BcArtifacts Cache folder and my folder

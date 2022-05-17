@@ -1102,9 +1102,14 @@ $testToolkitInstalled = $false
 $sortedFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
+    Write-Host "DEBUG: $folder"
+
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
+
+    Write-Host "DEBUG: $app"
+    Write-Host "DEBUG: $testApp"
 
     if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
@@ -1617,10 +1622,10 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-Write-Host "doNotPublishApps: $doNotPublishApps"
+Write-Host "DEBUG: doNotPublishApps: $doNotPublishApps"
 $apps | Out-Host
 $testApps | Out-Host
-if ($apps+$testApps+$bcptTestApps) { Write-Host "that one is true" }
+if ($apps+$testApps+$bcptTestApps) { Write-Host "DEBUG: that one is true" }
 
 if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
 if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
