@@ -1,3 +1,5 @@
+3.0.9
+
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
 Issue #2442 Run-AlPipeline generates BuildOutput.txt even if parameter is not specified
