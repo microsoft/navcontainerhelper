@@ -77,13 +77,15 @@ try {
 
 
         Write-Host "Rename new objects to .TXT"
-        Get-ChildItem $myDeltaFolder | ForEach-Object {
+        $allFiles = @(Get-ChildItem $myDeltaFolder)
+        $allFiles | ForEach-Object {
             $Name = $_.Name
             if ($Name.ToLowerInvariant().EndsWith(".delta")) {
                 $BaseName = $_.BaseName
                 $OrgName = Join-Path $myOriginalFolder "${BaseName}.TXT"
                 if (!(Test-Path -Path $OrgName)) {
-                    Rename-Item -Path $_.FullName -NewName "${BaseName}.TXT"
+                    Copy-Item -Path $_.FullName -Destination (Join-Path $myDeltaFolder "${BaseName}.TXT")
+                    Remove-Item -Path $_.FullName
                 }
             }
         }
