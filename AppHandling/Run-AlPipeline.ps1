@@ -1433,14 +1433,12 @@ Write-Host -ForegroundColor Yellow @'
 
     try {
         $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters+$CopParameters)
-        $appFile | Out-Host
     }
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
-            $appFile | Out-Host
-            }
+        }
         else {
             throw $_
         }
