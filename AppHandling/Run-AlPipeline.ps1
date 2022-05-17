@@ -1523,6 +1523,8 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    Write-Host "DEBUG DONE: '$appFile' $app $testApp '$folder'"
+
     if ($bcptTestApp) {
         $bcptTestApps += $appFile
     }
