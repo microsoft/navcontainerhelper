@@ -148,6 +148,9 @@ if ($roleTailoredClientFolder) {
 }
 
 Set-Location $runPath
+
+$ErrorAction = "Stop"
+
 ' | Add-Content $file
 
 
