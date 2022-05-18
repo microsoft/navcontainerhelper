@@ -17,6 +17,7 @@ function Remove-BcContainerSession {
     )
 
     Process {
+        Write-Host "check $containerName session"
         if ($sessions.ContainsKey($containerName)) {
             Write-Host "Container has session"
             $session = $sessions[$containerName]
@@ -25,6 +26,7 @@ function Remove-BcContainerSession {
             Write-Host "Remove from array"
             $sessions.Remove($containerName)
         }
+        Write-Host "Returning"
     }
 }
 Set-Alias -Name Remove-NavContainerSession -Value Remove-BcContainerSession
