@@ -148,16 +148,17 @@ if ($roleTailoredClientFolder) {
 }
 
 Set-Location $runPath
-
 $ErrorAction = "Stop"
-
+$startTime = [DateTime]::Now
 ' | Add-Content $file
 
+"`$containerName = '$containerName'
+" | Add-Content $file
 
 "try { `$result = Invoke-Command -ScriptBlock { $($scriptblock.ToString()) } -ArgumentList `$argumentList } catch {" | Add-Content $file
 @'
     $errorMessage = $_.Exception.Message
-    Write-Host -ForegroundColor Red $errorMessage
+    Write-Host -ForegroundColor Red "ERROR IS $errorMessage"
     Write-Host
     try {
        $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
@@ -189,7 +190,8 @@ $ErrorAction = "Stop"
                         Write-Host "`nRelevant event log from container $($containerName):"
                     }
                     Write-Host -ForegroundColor Red "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
-                    Write-Host -ForegroundColor Gray "`n  $($_.Message.Replace("`n","`n  "))`n"
+                    $message = @($_.Message.Split("`n") | Select-Object -First 15) -join "`n  "
+                    Write-Host -ForegroundColor Gray "`n  $($message)`n"
                     if ($_.Message.Contains('OutOfMemoryException')) { $isOutOfMemory = $true }
                     $any = $true
                 }
@@ -204,8 +206,6 @@ $ErrorAction = "Stop"
 '@ | Add-Content $file
 
             'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
-
-Write-Host -ForegroundColor Cyan (Get-Content -raw $file -Encoding UTF8)
 
             try {
                 docker exec $containerName powershell $file | Out-Host
