@@ -17,27 +17,25 @@ function Remove-BcContainerSession {
     )
 
     Process {
-        Write-Host "check $containerName session"
         if ($sessions.ContainsKey($containerName)) {
-            Write-Host "Container has session"
             $session = $sessions[$containerName]
-            
-            Write-Host "Remove Session"
-
             try {
-                $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
-                Write-Host "Process ID: $processID"
-                Stop-Process -Id $processID -Force
-                Write-Host "process stopped"
+                $inspect = docker inspect $containerName | ConvertFrom-Json
+                if ($inspect.HostConfig.Isolation -eq "process") {
+                    $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
+                    Stop-Process -Id $processID -Force
+                }
+                else {
+
+                    Remove-PSSession -Session $session
+                }
             }
             catch {
                 Remove-PSSession -Session $session
             }
             
-            Write-Host "Remove from array"
             $sessions.Remove($containerName)
         }
-        Write-Host "Returning"
     }
 }
 Set-Alias -Name Remove-NavContainerSession -Value Remove-BcContainerSession
