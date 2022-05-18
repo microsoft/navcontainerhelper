@@ -154,7 +154,7 @@ $ErrorAction = "Stop"
 ' | Add-Content $file
 
 
-"try { Invoke-Command -ScriptBlock { $($scriptblock.ToString()) } -ArgumentList `$argumentList } catch {" | Add-Content $file
+"try { `$result = Invoke-Command -ScriptBlock { $($scriptblock.ToString()) } -ArgumentList `$argumentList } catch {" | Add-Content $file
 @'
     $errorMessage = $_.Exception.Message
     Write-Host -ForegroundColor Red $errorMessage
