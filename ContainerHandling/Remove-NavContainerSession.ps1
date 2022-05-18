@@ -27,7 +27,7 @@ function Remove-BcContainerSession {
             try {
                 $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
                 Write-Host "Process ID: $processID"
-                Stop-Process -Id $processID
+                Stop-Process -Id $processID -Force
                 Write-Host "process stopped"
             }
             catch {
