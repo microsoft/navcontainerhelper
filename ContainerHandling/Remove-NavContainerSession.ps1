@@ -21,8 +21,19 @@ function Remove-BcContainerSession {
         if ($sessions.ContainsKey($containerName)) {
             Write-Host "Container has session"
             $session = $sessions[$containerName]
+            
             Write-Host "Remove Session"
-            Remove-PSSession -Session $session
+
+            try {
+                $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
+                Write-Host "Process ID: $processID"
+                Stop-Process -Id $processID
+                Write-Host "process stopped"
+            }
+            catch {
+                Remove-PSSession -Session $session
+            }
+            
             Write-Host "Remove from array"
             $sessions.Remove($containerName)
         }
