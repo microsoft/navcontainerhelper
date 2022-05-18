@@ -388,11 +388,18 @@ Measure-Command {
 0..3 | ForEach-Object {
 
 $artifactUrl = ""
+$useVsix = ""
 if ($_ -eq 0 -and $validateCurrent) {
     if ($currentArtifactUrl -eq "") {
         $currentArtifactUrl = DetermineArtifactsToUse -countries $validateCountries -select Current -throw
     }
     $artifactUrl = $currentArtifactUrl
+    if ($vsixFile) {
+        if ($vsixFile -ne ".") { $useVsix = $vsixFile }
+    }
+    else {
+        $useVsix = $latestAlLanguageUrl
+    }
 }
 elseif ($_ -eq 1 -and $validateVersion) {
     $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
@@ -435,21 +442,6 @@ Measure-Command {
     $artifactSegments = $artifactUrl.Split('?')[0].Split('/')
     $artifactUrl = $artifactUrl.Replace("/$($artifactSegments[4])/$($artifactSegments[5])","/$($artifactSegments[4])/$validateCountry")
     Write-Host -ForegroundColor Yellow "Creating container for country $validateCountry"
-
-    if ($vsixFile -eq ".") {
-        $useVsix = ""
-    }
-    elseif ($vsixFile -eq "") {
-        if (($artifactSegments[2] -like "bcinsider.*") -or ($artifactSegments[2] -like "bcpublicpreview.*")) {
-            $useVsix = ""
-        }
-        else {
-            $useVsix = $latestAlLanguageUrl
-        }
-    }
-    else {
-        $useVsix = $vsixFile
-    }
 
     $Parameters = @{
         "accept_eula" = $true

@@ -1,6 +1,7 @@
 3.0.9
 Issue #2423 Export-ModifiedObjectsAsDeltas fails with Could not find a part of the path.
-Issue #2457 add parameters -showMyCode and -IncludeSourceInPackageFile to Convert-BcAppsToRuntimePackages
+Issue #2457 Add parameters -showMyCode and -IncludeSourceInPackageFile to Convert-BcAppsToRuntimePackages
+Issue #2429 Use vsixFile in the container for anything but current validation to catch runtime setting in app.json error
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext

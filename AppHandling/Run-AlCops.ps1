@@ -127,6 +127,7 @@ try {
 
         $tmpFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
         try {
+            $length = $global:_validationResult.Length
             if (!$skipVerification) {
                 Copy-Item -path $appFile -Destination "$tmpFolder.app"
                 $signResult = Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($appTmpFile)
@@ -204,7 +205,6 @@ try {
             }
             Remove-Item -Path (Join-Path $tmpFolder '*.xml') -Force
 
-            $length = $global:_validationResult.Length
             $Parameters = @{
                 "containerName" = $containerName
                 "credential" = $credential

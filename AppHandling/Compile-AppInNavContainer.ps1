@@ -606,7 +606,7 @@ try {
                 $alcParameters += @("/reportsuppresseddiagnostics")
             }
             else {
-                Write-Host -ForegroundColor Red "ReportSuppressedDiagnostics was specified, but the version of the AL Language Extension does not support this. Get-LatestAlLanguageExtensionUrl returns a location for the latest AL Language Extension"
+                Write-Host -ForegroundColor Yellow "ReportSuppressedDiagnostics was specified, but the version of the AL Language Extension does not support this. Get-LatestAlLanguageExtensionUrl returns a location for the latest AL Language Extension"
             }
         }
 
