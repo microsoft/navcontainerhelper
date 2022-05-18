@@ -150,14 +150,75 @@ if ($roleTailoredClientFolder) {
 Set-Location $runPath
 ' | Add-Content $file
 
-            '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
+
+"try { Invoke-Command -ScriptBlock { $($scriptblock.ToString()) } -ArgumentList `$argumentList } catch {" | Add-Content $file
+@'
+    $errorMessage = $_.Exception.Message
+    Write-Host -ForegroundColor Red $errorMessage
+    Write-Host
+    try {
+       $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
+            $cimInstance = Get-CIMInstance Win32_OperatingSystem
+            Write-Host "Container Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+            $any = $false
+            Write-Host "`nServices in container $($containerName):"
+            Get-Service |
+                Where-Object { $_.Name -like "MicrosoftDynamics*" -or $_.Name -like "MSSQL`$*" } |
+                Select-Object -Property name, Status |
+                ForEach-Object {
+                    if ($_.Status -eq "Running") {
+                        Write-Host "- $($_.Name) is $($_.Status)"
+                    }
+                    else {
+                        Write-Host -ForegroundColor Red "- $($_.Name) is $($_.Status)"
+                    }
+                    $any = $true
+                }
+            if (!$any) { Write-Host -ForegroundColor Red "- No services found" }
+            Write-Host
+            $any = $false
+            $isOutOfMemory = $false
+            Get-EventLog -LogName Application | 
+                Where-Object { $_.EntryType -eq "Error" -and $_.TimeGenerated -gt $startTime -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
+                Select-Object -Property TimeGenerated, Source, Message |
+                ForEach-Object {
+                    if (!$any) {
+                        Write-Host "`nRelevant event log from container $($containerName):"
+                    }
+                    Write-Host -ForegroundColor Red "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
+                    Write-Host -ForegroundColor Gray "`n  $($_.Message.Replace("`n","`n  "))`n"
+                    if ($_.Message.Contains('OutOfMemoryException')) { $isOutOfMemory = $true }
+                    $any = $true
+                }
+            $isOutOfMemory
+        } -ArgumentList $containerName, $startTime
+        if ($isOutOfMemory) {
+            $errorMessage = "Out Of Memory Exception thrown inside container $containerName"
+        }
+    } catch {}
+    throw $errorMessage
+}
+'@ | Add-Content $file
+
             'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
 
-            docker exec $containerName powershell $file | Out-Host
+Write-Host -ForegroundColor Cyan (Get-Content -raw $file -Encoding UTF8)
+
+            try {
+                docker exec $containerName powershell $file | Out-Host
+            }
+            catch {
+                Write-Host "Exception Script Stack Trace:"
+                Write-Host -ForegroundColor Red $_.scriptStackTrace
+                Write-Host
+                Write-Host "PowerShell Call Stack:"
+                Get-PSCallStack | Write-Host -ForegroundColor Red
+                throw
+            }
             if($LASTEXITCODE -ne 0) {
                 Remove-Item $file -Force -ErrorAction SilentlyContinue
                 Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
-                throw
+                throw "Error executing script in Container"
             }
             if (Test-Path -Path $outputFile -PathType Leaf) {
                 [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
