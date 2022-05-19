@@ -155,9 +155,26 @@ $startTime = [DateTime]::Now
 "`$containerName = '$containerName'
 " | Add-Content $file
 
-"try { `$result = Invoke-Command -ScriptBlock { $($scriptblock.ToString()) } -ArgumentList `$argumentList } catch {" | Add-Content $file
+if ($scriptblock.Ast.ParamBlock) {
+    
+    $script = $scriptBlock.Ast.Extent.text.Replace($scriptblock.Ast.ParamBlock.Extent.Text,'').Trim()
+
+    if ($script.StartsWith('{')) {
+        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+    }
+    else {
+        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+    }
+}
+else {
+    "`$result = Invoke-Command -ScriptBlock { try $($scriptBlock.Ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+}
+Write-Host -ForegroundColor cyan $scriptblock.ast.Extent.Text
+
 @'
-    $errorMessage = $_.Exception.Message
+$exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
+if ($exception) {
+    $errorMessage = $exception.SubString(13)
     Write-Host -ForegroundColor Red "ERROR IS $errorMessage"
     Write-Host
     try {
@@ -203,9 +220,12 @@ $startTime = [DateTime]::Now
     } catch {}
     throw $errorMessage
 }
+elseif ($result) {
+    [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'"
+}
 '@ | Add-Content $file
 
-            'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+Get-Content $file | out-host
 
             try {
                 docker exec $containerName powershell $file | Out-Host
