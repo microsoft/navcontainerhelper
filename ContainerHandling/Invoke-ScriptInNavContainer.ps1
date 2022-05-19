@@ -155,6 +155,8 @@ $startTime = [DateTime]::Now
 "`$containerName = '$containerName'
 " | Add-Content $file
 
+if ($bcContainerHelperConfig.addTryCatchToScriptBlock) {
+
 if ($scriptblock.Ast.ParamBlock) {
     
     $script = $scriptBlock.Ast.Extent.text.Replace($scriptblock.Ast.ParamBlock.Extent.Text,'').Trim()
@@ -224,8 +226,14 @@ elseif ($result) {
 '@ | Add-Content $file
 
 " [System.Management.Automation.PSSerializer]::Serialize(`$result) | Set-Content '$outputFile' } " | Add-Content $file
+}
+else {
 
-Get-Content $file | out-host
+    '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
+    'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+
+}
+#Get-Content $file | out-host
 
             try {
                 docker exec $containerName powershell $file | Out-Host
@@ -241,7 +249,7 @@ Get-Content $file | out-host
             if($LASTEXITCODE -ne 0) {
                 Remove-Item $file -Force -ErrorAction SilentlyContinue
                 Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
-                throw "Error executing script in Container"
+                throw
             }
             if (Test-Path -Path $outputFile -PathType Leaf) {
                 [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
