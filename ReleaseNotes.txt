@@ -2,6 +2,11 @@
 Issue #2423 Export-ModifiedObjectsAsDeltas fails with Could not find a part of the path.
 Issue #2457 Add parameters -showMyCode and -IncludeSourceInPackageFile to Convert-BcAppsToRuntimePackages
 Issue #2429 Use vsixFile in the container for anything but current validation to catch runtime setting in app.json error
+Improve Out of memory detection when running using docker exec (usePsSession = $false)
+Improve Invoke-ScriptInBcContainer when running using docker exec (usePsSession = $false)
+- Add try/catch inside script block to catch error better
+Set usePsSession = $false by default in Azure DevOps pipelines and GitHub Actions Workflows
+Add possible kill switch for pssessions (avoid hanging Remove-BcContainerSessions) - default off
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext

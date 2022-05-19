@@ -148,19 +148,115 @@ if ($roleTailoredClientFolder) {
 }
 
 Set-Location $runPath
+$ErrorActionPreference = "Stop"
+$startTime = [DateTime]::Now
 ' | Add-Content $file
 
-            '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
-            'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+"`$containerName = '$containerName'
+" | Add-Content $file
 
-            docker exec $containerName powershell $file | Out-Host
-            if($LASTEXITCODE -ne 0) {
-                Remove-Item $file -Force -ErrorAction SilentlyContinue
-                Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
-                throw
+            if ($bcContainerHelperConfig.addTryCatchToScriptBlock) {
+                if ($scriptblock.Ast.ParamBlock) {
+                    $script = $scriptBlock.Ast.Extent.text.Replace($scriptblock.Ast.ParamBlock.Extent.Text,'').Trim()
+                    if ($script.StartsWith('{')) {
+                        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                    }
+                    else {
+                        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                    }
+                }
+                else {
+                    "`$result = Invoke-Command -ScriptBlock { try $($scriptBlock.Ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                }
+@'
+$exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
+if ($exception) {
+    $errorMessage = $exception.SubString(13)
+    Write-Host -ForegroundColor Red "$errorMessage"
+    Write-Host
+    try {
+       $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
+            $cimInstance = Get-CIMInstance Win32_OperatingSystem
+            Write-Host "Container Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+            $any = $false
+            Write-Host "`nServices in container $($containerName):"
+            Get-Service |
+                Where-Object { $_.Name -like "MicrosoftDynamics*" -or $_.Name -like "MSSQL`$*" } |
+                Select-Object -Property name, Status |
+                ForEach-Object {
+                    if ($_.Status -eq "Running") {
+                        Write-Host "- $($_.Name) is $($_.Status)"
+                    }
+                    else {
+                        Write-Host -ForegroundColor Red "- $($_.Name) is $($_.Status)"
+                    }
+                    $any = $true
+                }
+            if (!$any) { Write-Host -ForegroundColor Red "- No services found" }
+            Write-Host
+            $any = $false
+            $isOutOfMemory = $false
+            Get-EventLog -LogName Application | 
+                Where-Object { $_.EntryType -eq "Error" -and $_.TimeGenerated -gt $startTime -and ($_.Source -like "MicrosoftDynamics*" -or $_.Source -like "MSSQL`$*") } | 
+                Select-Object -Property TimeGenerated, Source, Message |
+                ForEach-Object {
+                    if (!$any) {
+                        Write-Host "`nRelevant event log from container $($containerName):"
+                    }
+                    Write-Host -ForegroundColor Red "- $($_.TimeGenerated.ToString('yyyyMMdd hh:mm:ss')) - $($_.Source)"
+                    $message = @($_.Message.Split("`n") | Select-Object -First 15) -join "`n  "
+                    Write-Host -ForegroundColor Gray "`n  $($message)`n"
+                    if ($_.Message.Contains('OutOfMemoryException')) { $isOutOfMemory = $true }
+                    $any = $true
+                }
+            $isOutOfMemory
+        } -ArgumentList $containerName, $startTime
+        if ($isOutOfMemory) {
+            $errorMessage = "Out Of Memory Exception thrown inside container $containerName"
+        }
+    } catch {}
+
+    $result = @("::EXCEPTION::$errorMessage") + @($result | Where-Object { $_ -notlike "::EXCEPTION::*" })
+}
+'@ | Add-Content $file
+
+'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+
+#Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
+
+                $ErrorActionPreference = "Stop"
+                docker exec $containerName powershell $file | Out-Host
+                if($LASTEXITCODE -ne 0) {
+                    Remove-Item $file -Force -ErrorAction SilentlyContinue
+                    Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
+                    throw "Error executing script in Container"
+                }
+                if (Test-Path -Path $outputFile -PathType Leaf) {
+
+#Write-Host -ForegroundColor Cyan "'$(Get-content $outputFile -Raw -Encoding UTF8)'"
+
+                    $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
+                    $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
+                    if ($exception) {
+                        $errorMessage = $exception.SubString(13)
+                        throw $errorMessage
+                    }
+                    $result
+                }
             }
-            if (Test-Path -Path $outputFile -PathType Leaf) {
-                [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
+            else {
+                '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
+                'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+                $ErrorActionPreference = "Stop"
+                docker exec $containerName powershell $file | Out-Host
+                if($LASTEXITCODE -ne 0) {
+                    Remove-Item $file -Force -ErrorAction SilentlyContinue
+                    Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
+                    throw "Error executing script in Container"
+                }
+                if (Test-Path -Path $outputFile -PathType Leaf) {
+                    [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
+                }
             }
         } finally {
             Remove-Item $file -Force -ErrorAction SilentlyContinue

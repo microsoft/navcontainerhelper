@@ -479,7 +479,7 @@ try {
                             }
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
-    
+
                     $addDependencies | % {
                         $addDependency = $_
                         $found = $false
