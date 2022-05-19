@@ -221,7 +221,7 @@ if ($exception) {
     throw $errorMessage
 }
 elseif ($result) {
-    [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'"
+    [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content $outputFile
 }
 '@ | Add-Content $file
 
