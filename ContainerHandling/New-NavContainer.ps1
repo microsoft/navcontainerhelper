@@ -472,6 +472,7 @@ try {
     else {
         Write-Host "BcContainerHelper is not running as administrator"
     }
+    Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
 
     Write-Host "Host is $($os.Caption) - $hostOs"
 
