@@ -389,19 +389,12 @@ try {
         }
     }
 
-    $dependencies.GetType() | Out-Host
-    $dependencies.Count | Out-Host
-    $dependencies | Out-Host
-    $dependencies | % { $_.Name | Out-Host }
-
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version)))})) {
             $publisher = $dependency.publisher
-Write-Host $publisher
             $name = $dependency.name
-Write-Host $name
             $version = $dependency.version
             $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
@@ -487,9 +480,6 @@ Write-Host $name
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
 
-                    $addDependencies.count
-                    $addDependencies | Out-Host
-    
                     $addDependencies | % {
                         $addDependency = $_
                         $found = $false
