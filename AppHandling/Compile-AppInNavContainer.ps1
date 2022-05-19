@@ -389,9 +389,8 @@ try {
         }
     }
 
-    $existingApps | Out-Host
-    $existingApps | % { $_.Name | Out-Host }
-
+    $dependencies.GetType() | Out-Host
+    $dependencies.Count | Out-Host
     $dependencies | Out-Host
     $dependencies | % { $_.Name | Out-Host }
 
@@ -487,6 +486,9 @@ Write-Host $name
                             }
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
+
+                    $addDependencies.count
+                    $addDependencies | Out-Host
     
                     $addDependencies | % {
                         $addDependency = $_

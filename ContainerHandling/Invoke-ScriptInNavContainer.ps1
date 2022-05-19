@@ -227,14 +227,23 @@ Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
                 $ErrorActionPreference = "Stop"
                 docker exec $containerName powershell $file | Out-Host
 Write-Host "docker done"
+
+
+
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
                     Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
                     throw "Error executing script in Container"
                 }
                 if (Test-Path -Path $outputFile -PathType Leaf) {
+
+Write-Host -ForegroundColor Cyan "'$(Get-content $outputFile -Raw -Encoding UTF8)'"
+
                     $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
+Write-Host "RESULT"
 $result | Out-Host
+if ($result -eq $null) { Write-Host "result is null" }
+
                     $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
                     if ($exception) {
                         $errorMessage = $exception.SubString(13)
