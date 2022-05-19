@@ -25,6 +25,15 @@ function Invoke-ScriptInBcContainer {
         [bool] $useSession = $bcContainerHelperConfig.usePsSession
     )
 
+    $file = Join-Path $hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+    $containerFile = ""
+    if (!$useSession) {
+        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        if ("$containerFile" -eq "") {
+            $useSession = $true
+        }
+    }
+
     if ($useSession) {
         try {
             $session = Get-BcContainerSession -containerName $containerName -silent
@@ -90,8 +99,11 @@ function Invoke-ScriptInBcContainer {
             throw $errorMessage
         }
     } else {
-        $file = Join-Path $containerHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
-        $outputFile = "$file.output"
+        if ("$containerFile" -eq "") {
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file -throw
+        }
+        $hostOutputFile = "$file.output"
+        $containerOutputFile = "$containerFile.output"
         try {
             if ($argumentList) {
                 $encryptionKey = $null
@@ -220,22 +232,22 @@ if ($exception) {
 }
 '@ | Add-Content $file
 
-'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$containerOutputFile+'" }' | Add-Content $file
 
 #Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
 
                 $ErrorActionPreference = "Stop"
-                docker exec $containerName powershell $file | Out-Host
+                docker exec $containerName powershell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
-                    Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
+                    Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
                     throw "Error executing script in Container"
                 }
-                if (Test-Path -Path $outputFile -PathType Leaf) {
+                if (Test-Path -Path $hostOutputFile -PathType Leaf) {
 
-#Write-Host -ForegroundColor Cyan "'$(Get-content $outputFile -Raw -Encoding UTF8)'"
+#Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
 
-                    $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
+                    $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
                     $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
                     if ($exception) {
                         $errorMessage = $exception.SubString(13)
@@ -246,21 +258,21 @@ if ($exception) {
             }
             else {
                 '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
-                'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
+                'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$containerOutputFile+'" }' | Add-Content $file
                 $ErrorActionPreference = "Stop"
-                docker exec $containerName powershell $file | Out-Host
+                docker exec $containerName powershell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
-                    Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
+                    Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
                     throw "Error executing script in Container"
                 }
-                if (Test-Path -Path $outputFile -PathType Leaf) {
-                    [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
+                if (Test-Path -Path $hostOutputFile -PathType Leaf) {
+                    [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
                 }
             }
         } finally {
             Remove-Item $file -Force -ErrorAction SilentlyContinue
-            Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
+            Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
         }
     }
 }
