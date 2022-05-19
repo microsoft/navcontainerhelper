@@ -171,7 +171,6 @@ if ($scriptblock.Ast.ParamBlock) {
 else {
     "`$result = Invoke-Command -ScriptBlock { try $($scriptBlock.Ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
 }
-Write-Host -ForegroundColor cyan $scriptblock.ast.Extent.Text
 
 @'
 $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
