@@ -176,7 +176,7 @@ else {
 $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
 if ($exception) {
     $errorMessage = $exception.SubString(13)
-    Write-Host -ForegroundColor Red "ERROR IS $errorMessage"
+    Write-Host -ForegroundColor Red "$errorMessage"
     Write-Host
     try {
        $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
@@ -234,6 +234,8 @@ else {
 }
 #Get-Content $file | out-host
 
+            $ErrorActionPreference = "stop"
+            $error.Clear()
             try {
                 docker exec $containerName powershell $file | Out-Host
             }
@@ -245,10 +247,16 @@ else {
                 Get-PSCallStack | Write-Host -ForegroundColor Red
                 throw
             }
+            if($Error.Count -ne 0) {
+                if ($error[0] -is [System.Management.Automation.ErrorRecord]) {
+                    throw $error[0].ErrorDetails.Message
+                }
+                else {
+                    throw "$($Error[0])"
+                }
+            }
             if($LASTEXITCODE -ne 0) {
-                Remove-Item $file -Force -ErrorAction SilentlyContinue
-                Remove-Item $outputFile -Force -ErrorAction SilentlyContinue
-                throw
+                throw "Invoking script failed"
             }
             if (Test-Path -Path $outputFile -PathType Leaf) {
                 [System.Management.Automation.PSSerializer]::Deserialize((Get-content $outputFile))
