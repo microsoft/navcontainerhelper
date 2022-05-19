@@ -220,7 +220,7 @@ if ($exception) {
 }
 '@ | Add-Content $file
 
-" [System.Management.Automation.PSSerializer]::Serialize(`$result) | Set-Content '$outputFile' " | Add-Content $file
+'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$outputFile+'" }' | Add-Content $file
 
 Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
 
