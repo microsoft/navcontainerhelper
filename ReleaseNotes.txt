@@ -5,7 +5,6 @@ Issue #2429 Use vsixFile in the container for anything but current validation to
 Improve Out of memory detection when running using docker exec (usePsSession = $false)
 Improve Invoke-ScriptInBcContainer when running using docker exec (usePsSession = $false)
 - Add try/catch inside script block to catch error better
-Set usePsSession = $false by default in Azure DevOps pipelines and GitHub Actions Workflows
 Add possible kill switch for pssessions (avoid hanging Remove-BcContainerSessions) - default off
 
 3.0.8
