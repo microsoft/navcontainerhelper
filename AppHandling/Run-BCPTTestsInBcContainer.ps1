@@ -112,6 +112,8 @@ try {
             throw "BCPTSuite must be PSCustomObject or HashTable"
         }
 
+$BCPTSuite | Out-Host
+
         Invoke-BcContainerApi `
             -containerName $containerName `
             -tenant $tenant `
