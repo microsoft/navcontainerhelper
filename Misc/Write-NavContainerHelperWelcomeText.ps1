@@ -31,6 +31,7 @@ function Write-BcContainerHelperWelcomeText {
     Write-Host "Stop-BcContainer                Stop Business Central container"
     Write-Host "Start-BcContainer               Start Business Central container"
     Write-Host "Restart-BcContainer             Restart Business Central container"
+    Write-Host "Restart-BcContainerServiceTier  Restarts a Business Central Server instance inside of an Business Central Container"
     Write-Host "Import-BcContainerLicense       Import License to a Business Central container"
     Write-Host "Get-BcContainerSession          Create new session to a Business Central container"
     Write-Host "Remove-BcContainerSession       Remove Business Central container session"
@@ -43,6 +44,7 @@ function Write-BcContainerHelperWelcomeText {
     Write-Host "Backup-BcContainerDatabases     Backup database(s) in Business Central container as bak"
     Write-Host "Extract-FilesFromBcContainerImage Extract files from Business Central container Image"
     Write-Host "Get-BestBcContainerImageName    Get best specific Business Central container Image for your host OS"
+    Write-Host "Set-BcContainerServerConfiguration Configures settings for a Business Central Server instance"
     Write-Host
     Write-Host -ForegroundColor Yellow "Functions for running tests"
     Write-Host "Import-TestToolkitToBcContainer Import TestToolkit to Business Central container"
