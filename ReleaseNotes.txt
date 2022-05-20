@@ -6,6 +6,7 @@ Improve Out of memory detection when running using docker exec (usePsSession = $
 Improve Invoke-ScriptInBcContainer when running using docker exec (usePsSession = $false)
 - Add try/catch inside script block to catch error better
 Add possible kill switch for pssessions (avoid hanging Remove-BcContainerSessions) - default off
+Support for obsoleteTagMinAllowedMajorMinor (AS0105) in Run-AlCops and Run-AlValidation
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
