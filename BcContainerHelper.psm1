@@ -37,7 +37,7 @@ function Get-ContainerHelperConfig {
             "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
-            "usePsSession" = $isAdministrator -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
+            "usePsSession" = $isAdministrator # -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
             "useVolumeForMyFolder" = $false
