@@ -42,6 +42,8 @@
   Array or comma separated list of affixes to use for AppSourceCop validation
  .Parameter supportedCountries
   Array or comma separated list of supportedCountries to use for AppSourceCop validation
+ .Parameter obsoleteTagMinAllowedMajorMinor
+  Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
@@ -98,6 +100,7 @@ Param(
     $countries,
     $affixes = @(),
     $supportedCountries = @(),
+    [string] $obsoleteTagMinAllowedMajorMinor = "",
     [string] $vsixFile = "",
     [switch] $skipVerification,
     [switch] $skipUpgrade,
@@ -273,8 +276,8 @@ Write-Host -ForegroundColor Yellow @'
  |_|   \__,_|_|  \__,_|_| |_| |_|\___|\__\___|_|  |___/
 
 '@
-Write-Host -NoNewLine -ForegroundColor Yellow "Container name               "; Write-Host $containerName
-Write-Host -NoNewLine -ForegroundColor Yellow "Credential                   ";
+Write-Host -NoNewLine -ForegroundColor Yellow "Container name                  "; Write-Host $containerName
+Write-Host -NoNewLine -ForegroundColor Yellow "Credential                      ";
 if ($credential) {
     Write-Host "Specified"
 }
@@ -283,17 +286,18 @@ else {
     Write-Host "admin/$password"
     $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
-Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                  "; Write-Host $memoryLimit
-Write-Host -NoNewLine -ForegroundColor Yellow "validateVersion              "; Write-Host $validateVersion
-Write-Host -NoNewLine -ForegroundColor Yellow "validateCurrent              "; Write-Host $validateCurrent
-Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMinor            "; Write-Host $validateNextMinor
-Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMajor            "; Write-Host $validateNextMajor
-Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                     "; if ($sasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
-Write-Host -NoNewLine -ForegroundColor Yellow "countries                    "; Write-Host ([string]::Join(',',$countries))
-Write-Host -NoNewLine -ForegroundColor Yellow "validateCountries            "; Write-Host ([string]::Join(',',$validateCountries))
-Write-Host -NoNewLine -ForegroundColor Yellow "affixes                      "; Write-Host ([string]::Join(',',$affixes))
-Write-Host -NoNewLine -ForegroundColor Yellow "supportedCountries           "; Write-Host ([string]::Join(',',$supportedCountries))
-Write-Host -NoNewLine -ForegroundColor Yellow "vsixFile                     "; Write-Host $vsixFile
+Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                     "; Write-Host $memoryLimit
+Write-Host -NoNewLine -ForegroundColor Yellow "validateVersion                 "; Write-Host $validateVersion
+Write-Host -NoNewLine -ForegroundColor Yellow "validateCurrent                 "; Write-Host $validateCurrent
+Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMinor               "; Write-Host $validateNextMinor
+Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMajor               "; Write-Host $validateNextMajor
+Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                        "; if ($sasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "countries                       "; Write-Host ([string]::Join(',',$countries))
+Write-Host -NoNewLine -ForegroundColor Yellow "validateCountries               "; Write-Host ([string]::Join(',',$validateCountries))
+Write-Host -NoNewLine -ForegroundColor Yellow "affixes                         "; Write-Host ([string]::Join(',',$affixes))
+Write-Host -NoNewLine -ForegroundColor Yellow "supportedCountries              "; Write-Host ([string]::Join(',',$supportedCountries))
+Write-Host -NoNewLine -ForegroundColor Yellow "ObsoleteTagMinAllowedMajorMinor "; Write-Host $obsoleteTagMinAllowedMajorMinor
+Write-Host -NoNewLine -ForegroundColor Yellow "vsixFile                        "; Write-Host $vsixFile
 
 Write-Host -ForegroundColor Yellow "Install Apps"
 if ($installApps) { $installApps | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
@@ -485,6 +489,7 @@ $parameters = @{
     "apps" = @($apps)
     "affixes" = $affixes
     "supportedCountries" = $supportedCountries
+    "ObsoleteTagMinAllowedMajorMinor" = $ObsoleteTagMinAllowedMajorMinor
     "enableAppSourceCop" = $true
     "failOnError" = $failOnError
     "ignoreWarnings" = !$includeWarnings

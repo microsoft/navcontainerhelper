@@ -15,8 +15,8 @@
   Array or comma separated list of affixes to use for AppSourceCop validation
  .Parameter supportedCountries
   Array or comma separated list of supportedCountries to use for AppSourceCop validation
- .Parameter useLatestAlLanguageExtension
-  Include this switch if you want to use the latest AL Extension from marketplace instead of the one included in 
+ .Parameter obsoleteTagMinAllowedMajorMinor
+  Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
  .Parameter appPackagesFolder
   Folder in which symbols and apps will be cached. The folder must be shared with the container.
  .Parameter enableAppSourceCop
@@ -50,6 +50,7 @@ function Run-AlCops {
         $apps,
         $affixes,
         $supportedCountries,
+        [string] $obsoleteTagMinAllowedMajorMinor = "",
         $appPackagesFolder = (Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())),
         [switch] $enableAppSourceCop,
         [switch] $enableCodeCop,
@@ -173,6 +174,11 @@ try {
                 Write-Host "Using affixes: $([string]::Join(',',$affixes))"
                 $appSourceCopJson = @{
                     "mandatoryAffixes" = @($affixes)
+                }
+                if ($obsoleteTagMinAllowedMajorMinor) {
+                    $appSourceCopJson += @{
+                        "ObsoleteTagMinAllowedMajorMinor" = $obsoleteTagMinAllowedMajorMinor
+                    }
                 }
                 if ($supportedCountries) {
                     Write-Host "Using supportedCountries: $([string]::Join(',',$supportedCountries))"
