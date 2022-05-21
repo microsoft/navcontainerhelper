@@ -1431,6 +1431,8 @@ Write-Host -ForegroundColor Yellow @'
         if ($saveit) {
             Write-Host "Creating AppSourceCop.json for validation"
             $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content $appSourceCopJsonFile
+            Write-Host "AppSourceCop.json content:"
+            $appSourceCopJson | ConvertTo-Json -Depth 99 | Out-Host
         }
         else {
             if (Test-Path $appSourceCopJsonFile) {
