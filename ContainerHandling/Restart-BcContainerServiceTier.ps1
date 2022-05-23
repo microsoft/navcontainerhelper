@@ -22,7 +22,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
         Get-NavServerInstance | Restart-NAVServerInstance
-    }
+    } | Out-Null
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
