@@ -11,6 +11,7 @@ Use a PowerShell Job to run bcpt tests to be able to remove files afterwards
 Allow Get-BcContainerAppInfo to be used without explicitely specifying -containerName $containerName, allowing just $containerName
 Add new function Set-BcContainerServerConfiguration to directly configure settings of the Business Central Server instance (without needing Invoke-ScriptInBcContainer)
 Add new function Restart-BcContainerServiceTier to restart only the service tier after configuration changes (often necessary)
+Patch wrong version of Newtonsoft.json.dll in current insider builds (until this is fixed in the platform)
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
