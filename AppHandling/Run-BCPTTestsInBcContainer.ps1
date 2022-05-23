@@ -140,6 +140,7 @@ try {
         Write-Host "Using testpage $testpage"
         Write-Host "Using Suitecode $suitecode"
         Write-Host "Service Url $serviceUrl"
+        Write-Host "Running Performance Tests..."
 
         Start-Job -ScriptBlock { Param( $location, [HashTable] $params, $suitecode, $serviceUrl, $testPage)
             Set-Location $location
@@ -162,6 +163,7 @@ try {
             Write-Host "Using testpage $testpage"
             Write-Host "Using Suitecode $suitecode"
             Write-Host "Service Url $serviceUrl"
+            Write-Host "Running Performance Tests inside container..."
     
             .\RunBCPTTests.ps1 @params `
                 -BCPTTestRunnerInternalFolderPath Internal `
