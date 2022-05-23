@@ -57,7 +57,7 @@ try {
         $updateHostsScript = Join-Path $myFolder "updatehosts.ps1"
         $updateHosts = Test-Path -Path $updateHostsScript -PathType Leaf
         if ($updateHosts) {
-            Write-Host "Removing entires from hosts"
+            Write-Host "Removing entries from hosts"
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $hostname -theIpAddress ""
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
