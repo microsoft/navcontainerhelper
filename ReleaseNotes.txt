@@ -1,3 +1,7 @@
+3.0.10
+Add new function Set-BcContainerServerConfiguration to directly configure settings of the Business Central Server instance (without needing Invoke-ScriptInBcContainer)
+Add new function Restart-BcContainerServiceTier to restart only the service tier after configuration changes (often necessary)
+
 3.0.9
 Issue #2423 Export-ModifiedObjectsAsDeltas fails with Could not find a part of the path.
 Issue #2457 Add parameters -showMyCode and -IncludeSourceInPackageFile to Convert-BcAppsToRuntimePackages
