@@ -27,7 +27,7 @@ try {
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
         Param($keyName, $keyValue)
         Get-NavServerInstance | Set-NAVServerConfiguration -KeyName $keyName -KeyValue $keyValue
-    } -argumentList $keyName, $keyValue
+    } -argumentList $keyName, $keyValue | Out-Null
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
