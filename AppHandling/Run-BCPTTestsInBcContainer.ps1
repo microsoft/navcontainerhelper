@@ -156,7 +156,7 @@ try {
 
         if ($job.State -ne "Completed") {
             Write-Host "Running performance test failed"
-            $job | Receive-Job | Out-Host
+            $job | Receive-Job
         }
         $job | Remove-Job | Out-Null
     }
