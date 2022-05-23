@@ -1,7 +1,3 @@
-3.0.10
-Add new function Set-BcContainerServerConfiguration to directly configure settings of the Business Central Server instance (without needing Invoke-ScriptInBcContainer)
-Add new function Restart-BcContainerServiceTier to restart only the service tier after configuration changes (often necessary)
-
 3.0.9
 Issue #2423 Export-ModifiedObjectsAsDeltas fails with Could not find a part of the path.
 Issue #2457 Add parameters -showMyCode and -IncludeSourceInPackageFile to Convert-BcAppsToRuntimePackages
@@ -11,6 +7,8 @@ Improve Invoke-ScriptInBcContainer when running using docker exec (usePsSession 
 - Add try/catch inside script block to catch error better
 Add possible kill switch for pssessions (avoid hanging Remove-BcContainerSessions) - default off
 Support for obsoleteTagMinAllowedMajorMinor (AS0105) in Run-AlCops and Run-AlValidation
+Add new function Set-BcContainerServerConfiguration to directly configure settings of the Business Central Server instance (without needing Invoke-ScriptInBcContainer)
+Add new function Restart-BcContainerServiceTier to restart only the service tier after configuration changes (often necessary)
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
