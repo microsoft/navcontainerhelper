@@ -20,8 +20,7 @@ function Restart-BcContainerServiceTier {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    $ResultObjectArray = @()
-    $config = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
         Get-NavServerInstance | Restart-NAVServerInstance
     }
 }
