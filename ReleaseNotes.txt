@@ -7,6 +7,7 @@ Improve Invoke-ScriptInBcContainer when running using docker exec (usePsSession 
 - Add try/catch inside script block to catch error better
 Add possible kill switch for pssessions (avoid hanging Remove-BcContainerSessions) - default off
 Support for obsoleteTagMinAllowedMajorMinor (AS0105) in Run-AlCops, Run-AlValidation and Run-AlPipeline
+Use a PowerShell Job to run bcpt tests to be able to remove files afterwards
 Allow Get-BcContainerAppInfo to be used without explicitely specifying -containerName $containerName, allowing just $containerName
 
 3.0.8
