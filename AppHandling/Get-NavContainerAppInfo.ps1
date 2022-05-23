@@ -28,6 +28,7 @@
 #>
 function Get-BcContainerAppInfo {
     Param (
+        [Parameter(Position=0)]
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [string] $tenant = "",
