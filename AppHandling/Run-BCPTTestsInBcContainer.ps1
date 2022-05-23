@@ -104,6 +104,7 @@ try {
         Write-Host "Using Company ID $companyId"
     }
 
+    $durationString = ""
     if ($BCPTSuite) {
         if ($BCPTSuite -is [PSCustomObject]) {
             $BCPTSuite = $BCPTSuite | ConvertTo-HashTable
@@ -125,6 +126,7 @@ try {
             -Query 'bcptSuites' | Out-Null
 
         $suiteCode = $BCPTSuite.Code
+        $durationString = " for $($BCPTSuite.durationInMinutes) minutes"
     }
 
     $config = Get-BcContainerServerConfiguration -containerName $containerName
@@ -140,7 +142,7 @@ try {
         Write-Host "Using testpage $testpage"
         Write-Host "Using Suitecode $suitecode"
         Write-Host "Service Url $serviceUrl"
-        Write-Host "Running Performance Tests..."
+        Write-Host "Running Performance Tests$($durationString)..."
 
         Start-Job -ScriptBlock { Param( $location, [HashTable] $params, $suitecode, $serviceUrl, $testPage)
             Set-Location $location
@@ -153,7 +155,7 @@ try {
         } -ArgumentList (Join-Path $hosthelperfolder "extensions\$containerName\my\TestRunner"), $params, $suiteCode, $serviceUrl, $testPage | Wait-Job | Remove-job | Out-Null
     }
     else {
-        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode)
+        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode, $durationString)
 
             Set-Location C:\Applications\testframework\TestRunner
             if ($auth -eq "UserPassword") { $auth = "NavUserPassword" }
@@ -163,7 +165,7 @@ try {
             Write-Host "Using testpage $testpage"
             Write-Host "Using Suitecode $suitecode"
             Write-Host "Service Url $serviceUrl"
-            Write-Host "Running Performance Tests inside container..."
+            Write-Host "Running Performance Tests$($durationString)..."
     
             .\RunBCPTTests.ps1 @params `
                 -BCPTTestRunnerInternalFolderPath Internal `
@@ -172,7 +174,7 @@ try {
                 -Environment OnPrem `
                 -TestRunnerPage ([int]$testPage) | Out-Null
     
-        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode
+        } -argumentList $config.PublicWebBaseUrl, $tenant, $companyName, $testPage, $config.ClientServicesCredentialType, $credential, $suitecode, $durationString
     }
 
     if (!$doNotGetResults) {
