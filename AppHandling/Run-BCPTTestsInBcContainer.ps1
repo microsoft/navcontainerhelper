@@ -144,7 +144,7 @@ try {
         Write-Host "Service Url $serviceUrl"
         Write-Host "Running Performance Tests$($durationString)..."
 
-        Start-Job -ScriptBlock { Param( $location, [HashTable] $params, $suitecode, $serviceUrl, $testPage)
+        $Job = Start-Job -ScriptBlock { Param( $location, [HashTable] $params, $suitecode, $serviceUrl, $testPage)
             Set-Location $location
             .\RunBCPTTests.ps1 @params `
                 -BCPTTestRunnerInternalFolderPath Internal `
@@ -152,7 +152,13 @@ try {
                 -ServiceUrl $serviceUrl `
                 -Environment OnPrem `
                 -TestRunnerPage ([int]$testPage) | Out-Null
-        } -ArgumentList (Join-Path $hosthelperfolder "extensions\$containerName\my\TestRunner"), $params, $suiteCode, $serviceUrl, $testPage | Wait-Job | Remove-job | Out-Null
+        } -ArgumentList (Join-Path $hosthelperfolder "extensions\$containerName\my\TestRunner"), $params, $suiteCode, $serviceUrl, $testPage | Wait-Job
+
+        if ($job.State -ne "Completed") {
+            Write-Host "Running performance test failed"
+            $job | Receive-Job
+        }
+        $job | Remove-Job | Out-Null
     }
     else {
         Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param($webBaseUrl, $tenant, $companyName, $testPage, $auth, $credential, $suitecode, $durationString)
