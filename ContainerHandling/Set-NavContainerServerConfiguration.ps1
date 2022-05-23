@@ -15,19 +15,19 @@
 #>
 Function Set-BcContainerServerConfiguration {
     Param (
-        [String] $ContainerName = $bcContainerHelperConfig.defaultContainerName,
+        [String] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory=$true)]
-        [string] $KeyName,
+        [string] $keyName,
         [Parameter(Mandatory=$true)]
-        [string] $KeyValue
+        [string] $keyValue
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    $ResultObjectArray = @()
-    $config = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
-        Get-NavServerInstance | Set-NAVServerConfiguration -KeyName $KeyName -KeyValue $KeyValue
-    }
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
+        Param($keyName, $keyValue)
+        Get-NavServerInstance | Set-NAVServerConfiguration -KeyName $keyName -KeyValue $keyValue
+    } -argumentList $keyName, $keyValue
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
