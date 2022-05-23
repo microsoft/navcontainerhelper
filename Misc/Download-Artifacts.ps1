@@ -197,6 +197,18 @@ try {
                                         Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
                                     }
                                 }
+                                # Patch potential wrong version of NewtonSoft.json.DLL
+                                $newtonSoftDllPath = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\210\Service\Newtonsoft.json.dll'
+                                if (Test-Path $newtonSoftDllPath) {
+                                    'Applications\testframework\TestRunner\Internal\Newtonsoft.json.dll','Test Assemblies\Newtonsoft.json.dll' | ForEach-Object {
+                                        $dstFile = Join-Path $platformArtifactPath $_
+                                        $file = Get-item -Path $dstFile -ErrorAction SilentlyContinue
+                                        if ($file -and $file.Length -eq 686000) {
+                                            Write-Host "INFO: Patching wrong version of NewtonSoft.json.DLL in $dstFile"
+                                            Copy-Item -Path $newtonSoftDllPath -Destination $dstFile -Force 
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
