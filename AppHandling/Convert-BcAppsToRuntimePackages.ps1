@@ -31,8 +31,8 @@ function Convert-BcAppsToRuntimePackages {
         $apps,
         [Parameter(Mandatory=$false)]
         $destinationFolder = "",
-        [switch] $includeSourceInPackageFile,
-        [switch] $showMyCode,
+        [bool] $includeSourceInPackageFile,
+        [bool] $showMyCode,
         [switch] $skipVerification,
         [switch] $skipFailingApps,
         [scriptblock] $afterEachRuntimeCreation = {}
@@ -43,6 +43,7 @@ try {
 
     $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
     try {
+
         $apps = @(Sort-AppFilesByDependencies -appFiles (CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue)
         if ($apps.Count -eq 0) {
             throw "No apps specified"
@@ -110,7 +111,7 @@ try {
             try {
                 $afterEachRuntimeCreationParameters = @{ 'appFile' = $appFile }
 
-                $runtimeFileName = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile, $destinationFolder, $bcVersion, $skipVerification, $showMyCode, $includeSourceInPackageFile)
+                $runtimeFileName = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile, $destinationFolder, $bcVersion, $skipVerification, $showMyCode, $isShowMyCodePresent, $includeSourceInPackageFile, $isIncludeSourceInPackageFilePresent)
                     Write-Host "Publishing $([System.IO.Path]::GetFileName($appFile))"
 
                     Publish-NavApp -ServerInstance $serverInstance -path $appFile -skipVerification:$skipVerification -packageType Extension
@@ -127,17 +128,17 @@ try {
                         "appVersion" = $appVersion
                         "path" = (Join-Path $destinationFolder $appFileName)
                     }
-                    if ($showMyCode) {
-                        $params += @{ "showMyCode" = $true }
+                    if ($isShowMyCodePresent) {
+                        $params += @{ "showMyCode" = $showMyCode }
                     }
-                    if ($includeSourceInPackageFile) {
-                        $params += @{ "includeSourceInPackageFile" = $true }
+                    if ($isIncludeSourceInPackageFilePresent) {
+                        $params += @{ "includeSourceInPackageFile" = $includeSourceInPackageFile }
                     }
                     Write-Host "Creating Runtime Package $([System.IO.Path]::GetFileName($appFileName))"
                     Get-NavAppRuntimePackage @params
 
                     return $appFileName
-                } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $destinationFolder), $bcVersion, $skipVerification, $showMyCode, $includeSourceInPackageFile
+                } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile), (Get-BcContainerPath -containerName $containerName -path $destinationFolder), $bcVersion, $skipVerification, $showMyCode, $PSBoundParameters.ContainsKey('ShowMyCode'), $includeSourceInPackageFile, $PSBoundParameters.ContainsKey('includeSourceInPackageFile')
 
                 $afterEachRuntimeCreationParameters += @{ 'runtimeFile' = (Join-Path -Path $destinationFolder -ChildPath $runtimeFileName) }
             }
