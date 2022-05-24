@@ -1,3 +1,6 @@
+3.0.10
+Issue #2457 Convert-BcAppsToRuntimePackages: allow to set showmycode, keepContainer, include sign app parameters
+
 3.0.9
 Issue #2423 Export-ModifiedObjectsAsDeltas fails with Could not find a part of the path.
 Issue #2457 Add parameters -showMyCode and -IncludeSourceInPackageFile to Convert-BcAppsToRuntimePackages
