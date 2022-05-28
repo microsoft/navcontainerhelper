@@ -1253,7 +1253,6 @@ try {
 
     AddTelemetryProperty -telemetryScope $telemetryScope -key "locale" -value $locale
 
-
     if ($filesOnly -and $version.Major -lt 15) {
         throw "FilesOnly containers are not supported for version prior to 15"
     }
@@ -2265,6 +2264,21 @@ if (-not `$restartingInstance) {
             Write-Host "Dev Service:       $devUrl"
             Write-Host "Snapshot Service:  $snapUrl"
             Write-Host "File downloads:    $dlUrl"
+        }
+
+        if (!$doNotCheckHealth) {
+            if (Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                $result = $false
+                try {
+                    . c:\run\healthcheck.ps1
+                    $result = ("$LASTEXITCODE" -eq "1")
+                }
+                catch {}
+                $result
+            }) {
+                Write-Host "Health check returns False, restarting container"
+                Restart-BcContainer $containerName
+            }
         }
     
         Write-Host
