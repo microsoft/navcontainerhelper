@@ -232,7 +232,7 @@ if ($exception) {
 }
 '@ | Add-Content $file
 
-'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$containerOutputFile+'" }' | Add-Content $file
+'if ($result -ne $null) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$containerOutputFile+'" }' | Add-Content $file
 
 #Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
 
@@ -246,7 +246,6 @@ if ($exception) {
                 if (Test-Path -Path $hostOutputFile -PathType Leaf) {
 
 #Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
-
                     $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
                     $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
                     if ($exception) {
