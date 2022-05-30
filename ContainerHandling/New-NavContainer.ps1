@@ -1903,11 +1903,20 @@ if (-not `$restartingInstance) {
             $certPath = Join-Path $containerFolder "certificate.cer"
             if (Test-Path $certPath) {
                 try {
-                    $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\LocalMachine\Root"
-                    if ($cert) {
-                        Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
-                        Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
-                    }    
+                    Write-Host "Importing certificate in host's certificate store"
+                    $verb = @{}
+                    if (!$isAdministrator) {
+                        $verb = @{ "Verb" = "runAs" }
+                    }
+                    $scriptblock = { 
+                        Param($certPath, $containerFolder)
+                        $cert = Import-Certificate -FilePath $certPath -CertStoreLocation "cert:\LocalMachine\Root"
+                        if ($cert) {
+                            Write-Host "Certificate with thumbprint $($cert.Thumbprint) imported successfully"
+                            Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
+                        }
+                    }
+                    Start-Process Powershell @verb -ArgumentList "-command & {$scriptBlock} -certPath '$certPath' -containerFolder '$containerFolder'" -Wait -PassThru | Out-Null
                 }
                 catch {
                     Write-Host -ForegroundColor Yellow "Unable to import certificate $certPath in Trusted Root Certification Authorities, you will need to do this manually"
