@@ -1,3 +1,6 @@
+3.0.11
+Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
+
 3.0.10
 Issue #2457 Convert-BcAppsToRuntimePackages: allow to set showmycode, keepContainer, include sign app parameters
 
