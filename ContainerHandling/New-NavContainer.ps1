@@ -1926,10 +1926,16 @@ if (-not `$restartingInstance) {
     
         if ($shortcuts -ne "None") {
                 Write-Host "Creating Desktop Shortcuts for $containerName"
-                $ProgramId = (Get-ItemProperty HKCU:\Software\Microsoft\windows\Shell\Associations\UrlAssociations\http\UserChoice).Progid
-                $key = "HKLM:\SOFTWARE\Classes\$ProgramId\shell\open\command"
-                $exePath = (Get-ItemProperty -Path $key)."(default)" -replace " *--.*", ""
-                $exePath = $exePath.Replace("`"", "")
+                try {
+                    $ProgramId = (Get-ItemProperty HKCU:\Software\Microsoft\windows\Shell\Associations\UrlAssociations\http\UserChoice).Progid
+                    $key = "HKLM:\SOFTWARE\Classes\$ProgramId\shell\open\command"
+                    $exePath = (Get-ItemProperty -Path $key)."(default)" -replace " *--.*", ""
+                    $exePath = $exePath.Replace("`"", "")                    
+                }
+                catch {
+                    $exePath = "C:\Program Files\Internet Explorer\iexplore.exe, 3"
+                }
+
                 if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
                     $webClientUrl = $customConfig.PublicWebBaseUrl
                     if ($multitenant) {
