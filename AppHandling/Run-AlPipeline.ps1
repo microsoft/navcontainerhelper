@@ -1442,6 +1442,7 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     try {
+        Write-Host "`nCompiling $($Parameters.appProjectFolder)"
         $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters+$CopParameters)
     }
     catch {
