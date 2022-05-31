@@ -392,7 +392,6 @@ try {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        Write-Host "REMOVE: Dependency name $($dependency.name)"
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version)))})) {
             $publisher = $dependency.publisher
             $name = $dependency.name
