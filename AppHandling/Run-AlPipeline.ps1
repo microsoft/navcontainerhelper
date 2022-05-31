@@ -948,6 +948,8 @@ Measure-Command {
         }
     }
 
+    Write-Host "REMOVE: check TmpAppFiles"
+
     if ($tmpAppFiles) {
         $Parameters = @{
             "containerName" = $containerName
@@ -974,6 +976,7 @@ Measure-Command {
                 "environment" = $environment
             }
         }
+        $parameters | ConvertTo-Json | Out-Host
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         Remove-Item -Path $tmpAppFolder -Recurse -Force
     }
