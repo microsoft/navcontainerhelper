@@ -420,6 +420,8 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "Misc\ConvertTo-HashTable.ps1")
 . (Join-Path $PSScriptRoot "Misc\ConvertTo-OrderedDictionary.ps1")
 . (Join-Path $PSScriptRoot "Misc\ConvertTo-GitHubGoCredentials.ps1")
+. (Join-Path $PSScriptRoot "Misc\Invoke-gh.ps1")
+. (Join-Path $PSScriptRoot "Misc\Invoke-git.ps1")
 
 # Company Handling functions
 . (Join-Path $PSScriptRoot "CompanyHandling\Copy-CompanyInNavContainer.ps1")
