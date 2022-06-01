@@ -138,11 +138,16 @@ function Set-RunFalseOnDisabledTests
     foreach($disabledTestMethod in $DisabledTests)
     {
         $disabledTestMethod.method | ForEach-Object {
-            if ($debugMode) {
-                Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$_"
+            if ($disabledTestMethod.codeunitName.IndexOf(',') -ge 0) {
+                Write-Host "Warning: Cannot disable tests in codeunits with a comma in the name ($($disabledTestMethod.codeunitName):$_)"
             }
-            $testKey = $disabledTestMethod.codeunitName + "," + $_
-            $ClientContext.SaveValue($removeTestMethodControl, $testKey)
+            else {
+                if ($debugMode) {
+                    Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$_"
+                }
+                $testKey = "$($disabledTestMethod.codeunitName),$_"
+                $ClientContext.SaveValue($removeTestMethodControl, $testKey)
+            }
         }
     }
 }
