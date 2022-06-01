@@ -41,7 +41,8 @@ function CmdDo {
     Param(
         [string] $command = "",
         [string] $arguments = "",
-        [switch] $silent
+        [switch] $silent,
+        [switch] $returnValue
     )
 
     $oldNoColor = "$env:NO_COLOR"
@@ -78,7 +79,9 @@ function CmdDo {
             if (!$silent) {
                 Write-Host $message
             }
-            $message.Replace("`r","").Split("`n")
+            if ($returnValue) {
+                $message.Replace("`r","").Split("`n")
+            }
         }
         else {
             $message += "`n`nExitCode: "+$p.ExitCode + "`nCommandline: $command $arguments"
