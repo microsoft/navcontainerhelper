@@ -1926,15 +1926,15 @@ if (-not `$restartingInstance) {
     
         if ($shortcuts -ne "None") {
                 Write-Host "Creating Desktop Shortcuts for $containerName"
+                $exePath = "C:\Program Files\Internet Explorer\iexplore.exe, 3"
                 try {
                     $ProgramId = (Get-ItemProperty HKCU:\Software\Microsoft\windows\Shell\Associations\UrlAssociations\http\UserChoice).Progid
                     $key = "HKLM:\SOFTWARE\Classes\$ProgramId\shell\open\command"
-                    $exePath = (Get-ItemProperty -Path $key)."(default)" -replace " *--.*", ""
-                    $exePath = $exePath.Replace("`"", "")                    
+                    $tempPath = (Get-ItemProperty -Path $key)."(default)" -replace " *--.*", ""
+                    $tempPath = $tempPath.Replace("`"", "")
+                    if ($tempPath -and (Test-Path $tempPath -PathType Leaf)) { $exePath = $tempPath }
                 }
-                catch {
-                    $exePath = "C:\Program Files\Internet Explorer\iexplore.exe, 3"
-                }
+                catch {}
 
                 if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
                     $webClientUrl = $customConfig.PublicWebBaseUrl
@@ -1961,7 +1961,6 @@ if (-not `$restartingInstance) {
                             New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation $exePath -Shortcuts $shortcuts
                     }
                 }
-                
             }
             
             $vs = "Business Central"
