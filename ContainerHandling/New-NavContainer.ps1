@@ -1925,29 +1925,40 @@ if (-not `$restartingInstance) {
         }
     
         if ($shortcuts -ne "None") {
-            Write-Host "Creating Desktop Shortcuts for $containerName"
-            if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
-                $webClientUrl = $customConfig.PublicWebBaseUrl
-                if ($multitenant) {
-                    $webClientUrl += "?tenant=default"
+                Write-Host "Creating Desktop Shortcuts for $containerName"
+                try {
+                    $ProgramId = (Get-ItemProperty HKCU:\Software\Microsoft\windows\Shell\Associations\UrlAssociations\http\UserChoice).Progid
+                    $key = "HKLM:\SOFTWARE\Classes\$ProgramId\shell\open\command"
+                    $exePath = (Get-ItemProperty -Path $key)."(default)" -replace " *--.*", ""
+                    $exePath = $exePath.Replace("`"", "")                    
                 }
-                New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                if ($includeTestToolkit) {
-                    if ($version -ge [Version]("15.0.35528.0")) {
-                        $pageno = 130451
+                catch {
+                    $exePath = "C:\Program Files\Internet Explorer\iexplore.exe, 3"
+                }
+
+                if (-not [string]::IsNullOrEmpty($customConfig.PublicWebBaseUrl)) {
+                    $webClientUrl = $customConfig.PublicWebBaseUrl
+                    if ($multitenant) {
+                        $webClientUrl += "?tenant=default"
                     }
-                    else {
-                        $pageno = 130401
-                    }
+                    New-DesktopShortcut -Name "$containerName Web Client" -TargetPath "$webClientUrl" -IconLocation $exePath -Shortcuts $shortcuts
+                    if ($includeTestToolkit) {
+                        if ($version -ge [Version]("15.0.35528.0")) {
+                            $pageno = 130451
+                        }
+                        else {
+                            $pageno = 130401
+                        }
     
-                    if ($webClientUrl.Contains('?')) {
-                        $webClientUrl += "&page="
-                    } else {
-                        $webClientUrl += "?page="
-                    }
-                    New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl$pageno" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
-                    if ($includePerformanceToolkit) {
-                        New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation "C:\Program Files\Internet Explorer\iexplore.exe, 3" -Shortcuts $shortcuts
+                        if ($webClientUrl.Contains('?')) {
+                            $webClientUrl += "&page="
+                        }
+                        else {
+                            $webClientUrl += "?page="
+                        }
+                        New-DesktopShortcut -Name "$containerName Test Tool" -TargetPath "$webClientUrl$pageno" -IconLocation $exePath -Shortcuts $shortcuts
+                        if ($includePerformanceToolkit) {
+                            New-DesktopShortcut -Name "$containerName Performance Tool" -TargetPath "$($webClientUrl)149000" -IconLocation $exePath -Shortcuts $shortcuts
                     }
                 }
                 
