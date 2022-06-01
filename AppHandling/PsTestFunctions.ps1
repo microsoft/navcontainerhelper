@@ -141,7 +141,7 @@ function Set-RunFalseOnDisabledTests
             if ($debugMode) {
                 Write-Host "Disabling Test $($disabledTestMethod.codeunitName):$_"
             }
-            $testKey = $disabledTestMethod.codeunitName + "," + $_
+            $testKey = """$($disabledTestMethod.codeunitName)"",$_"
             $ClientContext.SaveValue($removeTestMethodControl, $testKey)
         }
     }
