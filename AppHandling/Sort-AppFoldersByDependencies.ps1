@@ -29,6 +29,10 @@ try {
         return @()
     }
 
+    Write-Host "------------------------"
+    $appFolders | Out-Host
+    Write-Host "------------------------"
+
     if ($baseFolder) {
         $baseFolder = $baseFolder.TrimEnd('\')+'\'
     }
