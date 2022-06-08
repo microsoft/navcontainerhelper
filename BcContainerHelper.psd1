@@ -135,7 +135,8 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Sync-BcContainerApp', 'Test-BcContainer', 'UnInstall-BcContainerApp', 
                'UnPublish-BcContainerApp', 'Wait-BcContainerReady', 
                'Write-BcContainerHelperWelcomeText', 'Invoke-gh', 'Invoke-git',
-               'Set-BcContainerServerConfiguration', 'Restart-BcContainerServiceTier'
+               'Set-BcContainerServerConfiguration', 'Restart-BcContainerServiceTier',
+               'Create-CustomTraefikImage'
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()
