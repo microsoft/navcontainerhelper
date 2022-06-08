@@ -1109,16 +1109,6 @@ $sortedFolders | Select-Object -Unique | ForEach-Object {
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-
-    Write-Host "----------------------"
-    Write-Host "App: $app"
-    Write-Host "TestApp: $TestApp"
-    Write-Host "BCPTTest App: $bcptTestApp"
-
-    Write-Host $folder
-    Write-Host $appFolders
-    Write-Host "----------------------"
-
     if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 if ($gitHubActions) { Write-Host "::endgroup::" }
