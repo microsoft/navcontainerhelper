@@ -1662,7 +1662,11 @@ if ($multitenant) {
         $dlPart = "/${containerName}dl"
         $webclientPart = "/$containerName"
 
-        $baseUrl = "https://$publicDnsName"
+        if ($forceHttpWithTraefik) {
+            $baseUrl = "http://$publicDnsName"
+        } else {
+            $baseUrl = "https://$publicDnsName"
+        }
         $restUrl = $baseUrl + $restPart
         $soapUrl = $baseUrl + $soapPart
         $webclientUrl = $baseUrl + $webclientPart
@@ -1717,7 +1721,7 @@ if ($multitenant) {
                                    "-l `"traefik.dl.port=8080`"",
                                    "-l `"traefik.dl.protocol=http`"",
                                    "-l `"traefik.enable=true`"",
-                                   "-l `"traefik.frontend.entryPoints=https`""
+                                   "-l `"traefik.frontend.entryPoints=$traefikProtocol`""
         )
 
         ("

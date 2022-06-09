@@ -13,8 +13,6 @@ endpoint = "npipe:////./pipe/docker_engine"
 [entryPoints]
   [entryPoints.http]
   address = ":80"
-    [entryPoints.http.redirect]
-    entryPoint = "https"
   [entryPoints.https]
   address = ":443"
   [entryPoints.https.tls]
