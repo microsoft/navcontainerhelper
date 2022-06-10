@@ -815,7 +815,7 @@ Measure-Command {
             "AssignPremiumPlan" = $assignPremiumPlan
         }
         if ($bcContainerHelperConfig.UseVolumes) {
-            $parameters.additionalParameters = @("--mount source=agent2_work,target=:c:\sources")
+            $parameters.additionalParameters = @("--mount source=agent2_agent,target=:c:\sources")
         }
         else {
             $parameters.additionalParameters = @("--volume ""$($baseFolder):c:\sources""")
