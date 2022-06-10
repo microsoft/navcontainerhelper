@@ -809,7 +809,7 @@ Measure-Command {
             "Credential" = $credential
             "auth" = $auth
             "vsixFile" = $vsixFile
-            "updateHosts" = $true
+            "updateHosts" = !$bcContainerHelperConfig.UseVolumes
             "licenseFile" = $licenseFile
             "EnableTaskScheduler" = $enableTaskScheduler
             "AssignPremiumPlan" = $assignPremiumPlan
