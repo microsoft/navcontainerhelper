@@ -478,7 +478,7 @@ try {
 
     $dockerService = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerService)) {
-        Write-Host -ForegroundColor Red "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
+        Write-Host -ForegroundColor Red "Docker Service not found. Docker might not be started, not installed or not running Windows Containers."
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
