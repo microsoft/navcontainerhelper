@@ -34,16 +34,17 @@ $isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersi
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
-            "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
+            "bcartifactsCacheFolder" = ""
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
             "usePsSession" = $isAdministrator # -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
+            "useVolumes" = $useVolumes
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
-            "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "hostHelperFolder" = ""
             "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "defaultContainerName" = "bcserver"
             "digestAlgorithm" = "SHA256"
@@ -95,12 +96,6 @@ function Get-ContainerHelperConfig {
             $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
         }
 
-        if ($useVolumes) {
-            $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
-            $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
-            $bcContainerHelperConfig.useVolumeForMyFolder = $true
-        }
-
         if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {
             $bcContainerHelperConfigFile = @("C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json")+$bcContainerHelperConfigFile
         }
@@ -126,6 +121,26 @@ function Get-ContainerHelperConfig {
                 }
             }
         }
+
+        if ($bcContainerHelperConfig.UseVolumes) {
+            if (!($bcContainerHelperConfig.bcartifactsCacheFolder)) {
+                $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
+            }
+            if (!($bcContainerHelperConfig.hostHelperFolder)) {
+                $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
+            }
+            $bcContainerHelperConfig.useVolumeForMyFolder = $true
+        }
+        else {
+            if (!($bcContainerHelperConfig.bcartifactsCacheFolder)) {
+                $bcContainerHelperConfig.bcartifactsCacheFolder = "c:\bcartifacts.cache"
+            }
+            if (!($bcContainerHelperConfig.hostHelperFolder)) {
+                $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
+            }
+        }
+
+
         Export-ModuleMember -Variable bcContainerHelperConfig
     }
     return $bcContainerHelperConfig
