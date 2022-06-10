@@ -472,8 +472,10 @@ try {
     else {
         Write-Host "BcContainerHelper is not running as administrator"
     }
+    if ($isInsideContainer) {
+        Write-Host "BcContainerHelper is running inside a Container"
+    }
     Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
-
     Write-Host "Host is $($os.Caption) - $hostOs"
 
     $dockerService = (Get-Process "dockerd" -ErrorAction Ignore)
@@ -1511,16 +1513,33 @@ try {
         $enableSymbolLoading = $false
     }
 
+    if ($IsInsideContainer) {
+        (@'
+if (!$restartingInstance) {
+    $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}')
+    winrm set winrm/config/service/Auth '@{Basic="true"}'
+    if ($auth -ne "Windows") {
+        if (($securePassword) -and $username -ne "") { 
+            Write-Host "Creating Container user $username"
+            New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name $username -Password $securePassword | Out-Null
+            Add-LocalGroupMember -Group administrators -Member $username
+        }
+    }
+}
+'@) | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+
+    }
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Clear modified flag on all objects
-        ('
+        (@'
 if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+    sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
 }
-') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+'@) | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
         if (Test-Path $programFilesFolder) {
             Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore
@@ -1839,7 +1858,12 @@ if (-not `$restartingInstance) {
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
         if ($bcContainerHelperConfig.usePsSession) {
             try {
-                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
+                if ($isInsideContainer) {
+                    Get-BcContainerSession -containerName $containerName -credential $credential -reinit -silent | Out-Null
+                }
+                else {
+                    Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
+                }
             } catch {}
         }
 

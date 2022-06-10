@@ -18,6 +18,7 @@
 function Invoke-ScriptInBcContainer {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
+        [pscredential] $credential,
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]
@@ -36,7 +37,7 @@ function Invoke-ScriptInBcContainer {
 
     if ($useSession) {
         try {
-            $session = Get-BcContainerSession -containerName $containerName -silent
+            $session = Get-BcContainerSession -containerName $containerName -credential $credential -silent
         }
         catch {
             $useSession = $false

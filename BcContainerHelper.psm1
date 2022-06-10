@@ -19,6 +19,7 @@ if ([intptr]::Size -eq 4) {
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
 try {
     $myUsername = $currentPrincipal.Identity.Name
 } catch {
@@ -40,7 +41,7 @@ function Get-ContainerHelperConfig {
             "usePsSession" = $isAdministrator # -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
-            "useVolumes" = $useVolumes
+            "useVolumes" = $useVolumes -or $isInsideContainer
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
@@ -139,7 +140,9 @@ function Get-ContainerHelperConfig {
                 $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
             }
         }
-
+        if ($isInsideContainer) {
+            $bcContainerHelperConfig.usePsSession = $true
+        }
 
         Export-ModuleMember -Variable bcContainerHelperConfig
     }

@@ -16,6 +16,7 @@ function Get-BcContainerSession {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [pscredential] $credential,
         [switch] $silent,
         [switch] $reinit
     )
@@ -36,8 +37,13 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
-            $containerId = Get-BcContainerId -containerName $containerName
-            $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            if ($credential) {
+                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+            }
+            else {
+                $containerId = Get-BcContainerId -containerName $containerName
+                $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            }
             $newsession = $true
         }
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
