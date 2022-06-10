@@ -813,12 +813,7 @@ Measure-Command {
             "licenseFile" = $licenseFile
             "EnableTaskScheduler" = $enableTaskScheduler
             "AssignPremiumPlan" = $assignPremiumPlan
-        }
-        if ($bcContainerHelperConfig.UseVolumes) {
-            $parameters.additionalParameters = @("--mount source=agent2_agent,target=:c:\sources")
-        }
-        else {
-            $parameters.additionalParameters = @("--volume ""$($baseFolder):c:\sources""")
+            "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
         }
         if ($sharedFolder) {
             $Parameters.additionalParameters += @("--volume ""$($sharedFolder):c:\shared""")
