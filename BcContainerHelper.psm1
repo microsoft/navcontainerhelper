@@ -20,7 +20,6 @@ if ([intptr]::Size -eq 4) {
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
-$winRmPasswordForContainers = ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
 
 try {
     $myUsername = $currentPrincipal.Identity.Name
@@ -126,7 +125,7 @@ function Get-ContainerHelperConfig {
         }
         if ($isInsideContainer) {
             $bcContainerHelperConfig.usePsSession = $true
-            $bcContainerHelperConfig += @{ "WinRmCredentials" = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force) }
+            $bcContainerHelperConfig += @{ "WinRmCredentials" = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force) }
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
@@ -151,6 +150,8 @@ function Get-ContainerHelperConfig {
     }
     return $bcContainerHelperConfig
 }
+
+. (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
 Get-ContainerHelperConfig | Out-Null
 
@@ -261,7 +262,6 @@ try {
     }
 }
 
-. (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
 if ($ExportTelemetryFunctions) {
     Export-ModuleMember -Function RegisterTelemetryScope
