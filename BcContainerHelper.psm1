@@ -129,19 +129,19 @@ function Get-ContainerHelperConfig {
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
-            if (!($bcContainerHelperConfig.bcartifactsCacheFolder)) {
+            if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
                 $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
             }
-            if (!($bcContainerHelperConfig.hostHelperFolder)) {
+            if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
             }
             $bcContainerHelperConfig.useVolumeForMyFolder = $true
         }
         else {
-            if (!($bcContainerHelperConfig.bcartifactsCacheFolder)) {
+            if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
                 $bcContainerHelperConfig.bcartifactsCacheFolder = "c:\bcartifacts.cache"
             }
-            if (!($bcContainerHelperConfig.hostHelperFolder)) {
+            if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
             }
         }
@@ -215,6 +215,8 @@ function VolumeOrPath {
         return $path
     }
 }
+
+$bcContainerHelperConfig | out-host
 
 $bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
 $hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
