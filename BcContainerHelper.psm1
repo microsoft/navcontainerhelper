@@ -137,7 +137,7 @@ function Get-ContainerHelperConfig {
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
             }
-            $bcContainerHelperConfig.useVolumeForMyFolder = $true
+            $bcContainerHelperConfig.useVolumeForMyFolder = $false
         }
         else {
             if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
