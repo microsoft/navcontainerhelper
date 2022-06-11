@@ -130,7 +130,7 @@ $bcContainerHelperConfig | out-host
 
         if ($isInsideContainer) {
             $bcContainerHelperConfig.usePsSession = $true
-            $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force) }
+            $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force)
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
