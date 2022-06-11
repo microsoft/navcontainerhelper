@@ -48,7 +48,7 @@ try {
     $sharedPfxFile = Join-Path $ExtensionsFolder "$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
     $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
-        Write-Host "Downloading certificate file from $($pfxfile.SubSTring(2)) to container"
+        Write-Host "Downloading certificate file from $($pfxfile.SubSTring(2).Replace('sig=','ss=')) to container"
         (New-Object System.Net.WebClient).DownloadFile($pfxFile, $sharedPfxFile)
     }
     else {
