@@ -91,6 +91,7 @@ function Get-ContainerHelperConfig {
             "SendExtendedTelemetryToMicrosoft" = $false
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
+            "WinRmCredentials" = $null
         }
 
         if ($isInsider) {
@@ -129,7 +130,7 @@ $bcContainerHelperConfig | out-host
 
         if ($isInsideContainer) {
             $bcContainerHelperConfig.usePsSession = $true
-            $bcContainerHelperConfig += @{ "WinRmCredentials" = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force) }
+            $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force) }
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
