@@ -20,6 +20,8 @@ if ([intptr]::Size -eq 4) {
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
+$winRmPasswordForContainers = ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
+
 try {
     $myUsername = $currentPrincipal.Identity.Name
 } catch {
@@ -107,7 +109,7 @@ function Get-ContainerHelperConfig {
                     $savedConfig = Get-Content $configFile | ConvertFrom-Json
                     if ("$savedConfig") {
                         $keys = $bcContainerHelperConfig.Keys | % { $_ }
-                        $keys | % {
+                        $keys | ForEach-Object {
                             if ($savedConfig.PSObject.Properties.Name -eq "$_") {
                                 if (!$silent) {
                                     Write-Host "Setting $_ = $($savedConfig."$_")"
@@ -121,6 +123,10 @@ function Get-ContainerHelperConfig {
                     throw "Error reading configuration file $configFile, cannot import module."
                 }
             }
+        }
+        if ($isInsideContainer) {
+            $bcContainerHelperConfig.usePsSession = $true
+            $bcContainerHelperConfig += @{ "WinRmCredentials" = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force) }
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
@@ -139,9 +145,6 @@ function Get-ContainerHelperConfig {
             if (!($bcContainerHelperConfig.hostHelperFolder)) {
                 $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
             }
-        }
-        if ($isInsideContainer) {
-            $bcContainerHelperConfig.usePsSession = $true
         }
 
         Export-ModuleMember -Variable bcContainerHelperConfig
@@ -343,6 +346,8 @@ if (!$silent) {
 
 # AL-Go for GitHub functions
 . (Join-Path $PSScriptRoot "AL-Go\Get-ALGoAuthContext.ps1")
+#. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepo.ps1")
+#. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepoWizard.ps1")
 
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")

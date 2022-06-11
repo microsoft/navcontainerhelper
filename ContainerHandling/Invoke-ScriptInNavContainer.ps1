@@ -18,7 +18,6 @@
 function Invoke-ScriptInBcContainer {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
-        [pscredential] $credential,
         [Parameter(Mandatory=$true)]
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]
@@ -29,15 +28,20 @@ function Invoke-ScriptInBcContainer {
     $file = Join-Path $hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
     if (!$useSession) {
-        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-        if ("$containerFile" -eq "") {
+        if ($isInsideContainer) {
             $useSession = $true
+        }
+        else {
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+            if ("$containerFile" -eq "") {
+                $useSession = $true
+            }
         }
     }
 
     if ($useSession) {
         try {
-            $session = Get-BcContainerSession -containerName $containerName -credential $credential -silent
+            $session = Get-BcContainerSession -containerName $containerName -silent
         }
         catch {
             $useSession = $false

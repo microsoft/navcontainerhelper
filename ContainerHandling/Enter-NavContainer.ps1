@@ -14,13 +14,12 @@
 function Enter-BcContainer {
     [CmdletBinding()]
     Param (
-        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [pscredential] $credential
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
     Process {
         if ($bcContainerHelperConfig.usePsSession) {
-            $session = Get-BcContainerSession -containerName $containerName -credential $credential -silent
+            $session = Get-BcContainerSession -containerName $containerName -silent
             Enter-PSSession -Session $session
             Invoke-Command -Session $session -ScriptBlock {
                 function prompt {"[$env:COMPUTERNAME] PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}

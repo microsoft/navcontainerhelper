@@ -1514,20 +1514,16 @@ try {
     }
 
     if ($IsInsideContainer) {
-        (@'
+        ('
 if (!$restartingInstance) {
     $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
-    winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}')
-    winrm set winrm/config/service/Auth '@{Basic="true"}'
-    if ($auth -ne "Windows") {
-        if (($securePassword) -and $username -ne "") { 
-            Write-Host "Creating Container user $username"
-            New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name $username -Password $securePassword | Out-Null
-            Add-LocalGroupMember -Group administrators -Member $username
-        }
-    }
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS (''@{Hostname="dontcare"; CertificateThumbprint="'' + $cert.Thumbprint + ''"}'')
+    winrm set winrm/config/service/Auth ''@{Basic="true"}''
+    Write-Host "Creating Container user $username"
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
+    Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
-'@) | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
     }
     if ($includeCSide) {
@@ -1858,12 +1854,7 @@ if (-not `$restartingInstance) {
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
         if ($bcContainerHelperConfig.usePsSession) {
             try {
-                if ($isInsideContainer) {
-                    Get-BcContainerSession -containerName $containerName -credential $credential -reinit -silent | Out-Null
-                }
-                else {
-                    Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
-                }
+                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
             } catch {}
         }
 

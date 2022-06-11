@@ -16,7 +16,6 @@ function Get-BcContainerSession {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [pscredential] $credential,
         [switch] $silent,
         [switch] $reinit
     )
@@ -37,8 +36,8 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
-            if ($credential) {
-                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+            if ($isInsideContainer) {
+                $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
             else {
                 $containerId = Get-BcContainerId -containerName $containerName
