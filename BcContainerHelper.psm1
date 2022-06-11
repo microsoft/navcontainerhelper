@@ -123,6 +123,10 @@ function Get-ContainerHelperConfig {
                 }
             }
         }
+
+Write-Host "-------------1-----------------"
+$bcContainerHelperConfig | out-host
+
         if ($isInsideContainer) {
             $bcContainerHelperConfig.usePsSession = $true
             $bcContainerHelperConfig += @{ "WinRmCredentials" = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -String (GetRandomPassword) -AsPlainText -Force) }
@@ -145,7 +149,9 @@ function Get-ContainerHelperConfig {
                 $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
             }
         }
-
+        Write-Host "-------------2-----------------"
+        $bcContainerHelperConfig | out-host
+        
         Export-ModuleMember -Variable bcContainerHelperConfig
     }
     return $bcContainerHelperConfig
