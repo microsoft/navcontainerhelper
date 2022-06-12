@@ -48,7 +48,7 @@ function CmdDo {
     $oldNoColor = "$env:NO_COLOR"
     $env:NO_COLOR = "Y"
     $oldEncoding = [Console]::OutputEncoding
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
     try {
         $result = $true
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
@@ -58,6 +58,8 @@ function CmdDo {
         $pinfo.WorkingDirectory = Get-Location
         $pinfo.UseShellExecute = $false
         $pinfo.Arguments = $arguments
+        $pinfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Minimized
+
         $p = New-Object System.Diagnostics.Process
         $p.StartInfo = $pinfo
         $p.Start() | Out-Null
@@ -89,7 +91,7 @@ function CmdDo {
         }
     }
     finally {
-    #    [Console]::OutputEncoding = $oldEncoding
+        try { [Console]::OutputEncoding = $oldEncoding } catch {}
         $env:NO_COLOR = $oldNoColor
     }
 }

@@ -135,14 +135,16 @@ function Check-BcContainerHelperPermissions {
             if ($LASTEXITCODE -ne 0) {
                 $dockerOk = $false
                 $err = [System.IO.File]::ReadAllText($tempFile)
-                Write-Host $err
+                Write-Host "ERROR: $err"
                 Remove-Item -Path $tempFile -ErrorAction Ignore
                 $npipeStart = $err.IndexOf('\\.\pipe')
                 if ($npipeStart -lt 0) {
                     $npipeStart = $err.IndexOf('//./pipe')
                 }
-                $npipeEnd = $err.IndexOf(': Access is denied')
-                $npipe = $err.SubString($npipeStart, $npipeEnd-$npipeStart)
+                $npipe = $err.Substring($npipeStart)
+                $npipeEnd = $npipe.IndexOf(':')
+                $npipe = $npipe.SubString(0, $npipeEnd)
+                Write-Host "npipe: $npipe"
             }
         } catch {
             $dockerOk = $false

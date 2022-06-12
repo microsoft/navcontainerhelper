@@ -28,9 +28,14 @@ function Invoke-ScriptInBcContainer {
     $file = Join-Path $hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
     if (!$useSession) {
-        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-        if ("$containerFile" -eq "") {
+        if ($isInsideContainer) {
             $useSession = $true
+        }
+        else {
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+            if ("$containerFile" -eq "") {
+                $useSession = $true
+            }
         }
     }
 
@@ -39,6 +44,9 @@ function Invoke-ScriptInBcContainer {
             $session = Get-BcContainerSession -containerName $containerName -silent
         }
         catch {
+            if ($isInsideContainer) {
+                throw "Unable to establish WinRm session to container $containerName"
+            }
             $useSession = $false
         }
     }

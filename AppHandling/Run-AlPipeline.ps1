@@ -809,7 +809,7 @@ Measure-Command {
             "Credential" = $credential
             "auth" = $auth
             "vsixFile" = $vsixFile
-            "updateHosts" = $true
+            "updateHosts" = !$IsInsideContainer
             "licenseFile" = $licenseFile
             "EnableTaskScheduler" = $enableTaskScheduler
             "AssignPremiumPlan" = $assignPremiumPlan
@@ -1109,7 +1109,6 @@ $sortedFolders | Select-Object -Unique | ForEach-Object {
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-
     if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 if ($gitHubActions) { Write-Host "::endgroup::" }

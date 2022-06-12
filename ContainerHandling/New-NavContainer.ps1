@@ -472,13 +472,15 @@ try {
     else {
         Write-Host "BcContainerHelper is not running as administrator"
     }
+    if ($isInsideContainer) {
+        Write-Host "BcContainerHelper is running inside a Container"
+    }
     Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
-
     Write-Host "Host is $($os.Caption) - $hostOs"
 
     $dockerService = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerService)) {
-        throw "Docker Service not found. Docker is not started, not installed or not running Windows Containers."
+        Write-Host -ForegroundColor Red "Docker Service not found. Docker might not be started, not installed or not running Windows Containers."
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
@@ -1511,16 +1513,29 @@ try {
         $enableSymbolLoading = $false
     }
 
+    if ($IsInsideContainer) {
+        ('
+if (!$restartingInstance) {
+    $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS (''@{Hostname="dontcare"; CertificateThumbprint="'' + $cert.Thumbprint + ''"}'')
+    winrm set winrm/config/service/Auth ''@{Basic="true"}''
+    Write-Host "Creating Container user $username"
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
+    Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+
+    }
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Clear modified flag on all objects
-        ('
+        (@'
 if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-    sqlcmd -S ''localhost\SQLEXPRESS'' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+    sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
 }
-') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+'@) | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
 
         if (Test-Path $programFilesFolder) {
             Remove-Item $programFilesFolder -Force -Recurse -ErrorAction Ignore

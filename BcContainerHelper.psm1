@@ -19,6 +19,8 @@ if ([intptr]::Size -eq 4) {
 
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+$isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
+
 try {
     $myUsername = $currentPrincipal.Identity.Name
 } catch {
@@ -34,16 +36,17 @@ $isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersi
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
-            "bcartifactsCacheFolder" = "c:\bcartifacts.cache"
+            "bcartifactsCacheFolder" = ""
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
             "usePsSession" = $isAdministrator # -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
+            "useVolumes" = $useVolumes -or $isInsideContainer
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
-            "hostHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "hostHelperFolder" = ""
             "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
             "defaultContainerName" = "bcserver"
             "digestAlgorithm" = "SHA256"
@@ -88,17 +91,12 @@ function Get-ContainerHelperConfig {
             "SendExtendedTelemetryToMicrosoft" = $false
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
+            "WinRmCredentials" = $null
         }
 
         if ($isInsider) {
             $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{0}-dev'
             $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
-        }
-
-        if ($useVolumes) {
-            $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
-            $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
-            $bcContainerHelperConfig.useVolumeForMyFolder = $true
         }
 
         if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {
@@ -111,7 +109,7 @@ function Get-ContainerHelperConfig {
                     $savedConfig = Get-Content $configFile | ConvertFrom-Json
                     if ("$savedConfig") {
                         $keys = $bcContainerHelperConfig.Keys | % { $_ }
-                        $keys | % {
+                        $keys | ForEach-Object {
                             if ($savedConfig.PSObject.Properties.Name -eq "$_") {
                                 if (!$silent) {
                                     Write-Host "Setting $_ = $($savedConfig."$_")"
@@ -126,6 +124,31 @@ function Get-ContainerHelperConfig {
                 }
             }
         }
+
+        if ($isInsideContainer) {
+            $bcContainerHelperConfig.usePsSession = $true
+            $myinspect = docker inspect $(hostname) | ConvertFrom-Json            
+            $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -string "P@ss$($myinspect.Id.SubString(48))" -AsPlainText -Force)
+        }
+
+        if ($bcContainerHelperConfig.UseVolumes) {
+            if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
+                $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
+            }
+            if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
+                $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
+            }
+            $bcContainerHelperConfig.useVolumeForMyFolder = $false
+        }
+        else {
+            if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
+                $bcContainerHelperConfig.bcartifactsCacheFolder = "c:\bcartifacts.cache"
+            }
+            if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
+                $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
+            }
+        }
+
         Export-ModuleMember -Variable bcContainerHelperConfig
     }
     return $bcContainerHelperConfig
@@ -325,6 +348,8 @@ if (!$silent) {
 
 # AL-Go for GitHub functions
 . (Join-Path $PSScriptRoot "AL-Go\Get-ALGoAuthContext.ps1")
+#. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepo.ps1")
+#. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepoWizard.ps1")
 
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")

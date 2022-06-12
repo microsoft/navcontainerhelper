@@ -36,8 +36,13 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
-            $containerId = Get-BcContainerId -containerName $containerName
-            $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            if ($isInsideContainer) {
+                $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+            }
+            else {
+                $containerId = Get-BcContainerId -containerName $containerName
+                $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            }
             $newsession = $true
         }
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
