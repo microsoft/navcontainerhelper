@@ -44,6 +44,9 @@ function Invoke-ScriptInBcContainer {
             $session = Get-BcContainerSession -containerName $containerName -silent
         }
         catch {
+            if ($isInsideContainer) {
+                throw "Unable to establish WinRm session to container $containerName"
+            }
             $useSession = $false
         }
     }
