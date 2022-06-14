@@ -26,7 +26,12 @@ function Remove-BcContainerSession {
                 $inspect = docker inspect $containerName | ConvertFrom-Json
                 if ($inspect.HostConfig.Isolation -eq "process") {
                     $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
-                    Stop-Process -Id $processID -Force
+                    try {
+                        Stop-Process -Id $processID -Force
+                    }
+                    catch {
+                        Remove-PSSession -Session $session
+                    }
                 }
                 else {
                     Remove-PSSession -Session $session
