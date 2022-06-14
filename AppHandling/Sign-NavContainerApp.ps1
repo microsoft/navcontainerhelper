@@ -63,6 +63,9 @@ try {
     }
 
     try {
+        Write-Host $sharedPfxFile
+        Get-BcContainerPath -containerName $containerName -path $sharedPfxFile | Out-Host
+        
         TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "Codesign"
 
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
@@ -98,6 +101,9 @@ try {
             }
     
             Write-Host "Signing $appFile"
+            Test-Path $appFile | Out-Host
+            Write-Host "Using cert $pfxfile"
+            Test-Path $pfxFile | Out-Host
             $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
             $attempt = 1
             $maxAttempts = 5
