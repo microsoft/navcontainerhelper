@@ -22,16 +22,11 @@ function Remove-BcContainerSession {
     Process {
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
-            if ($killPsSessionProcess) {
+            if ($killPsSessionProcess -and !$isInsideContainer) {
                 $inspect = docker inspect $containerName | ConvertFrom-Json
                 if ($inspect.HostConfig.Isolation -eq "process") {
                     $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
-                    try {
-                        Stop-Process -Id $processID -Force
-                    }
-                    catch {
-                        Remove-PSSession -Session $session
-                    }
+                    Stop-Process -Id $processID -Force
                 }
                 else {
                     Remove-PSSession -Session $session
