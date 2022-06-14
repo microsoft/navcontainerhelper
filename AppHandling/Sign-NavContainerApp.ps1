@@ -111,7 +111,7 @@ try {
                 try {
                     if ($digestAlgorithm) {
                         Write-Host "$signtoolexe sign /f ""$pfxFile"" /p ""$unsecurepassword"" /fd $digestAlgorithm /td $digestAlgorithm /tr ""$timeStampServer"" ""$appFile"""
-                        & "$signtoolexe" @("sign", "/f", """$pfxFile""", "/p","$unsecurepassword", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", """$timeStampServer""", """$appFile""") | Write-Host
+                        & "$signtoolexe" @("sign", "/f", """$pfxFile""", "/p","""$unsecurepassword""", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", """$timeStampServer""", """$appFile""") | Write-Host
                     }
                     else {
                         Write-Host "$signtoolexe sign /f ""$pfxFile"" /p ""$unsecurepassword"" /t ""$timeStampServer"" ""$appFile"""
