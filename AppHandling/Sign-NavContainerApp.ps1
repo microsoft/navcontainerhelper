@@ -65,7 +65,7 @@ try {
     try {
         Write-Host $sharedPfxFile
         Get-BcContainerPath -containerName $containerName -path $sharedPfxFile | Out-Host
-        
+
         TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "Codesign"
 
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
@@ -110,9 +110,11 @@ try {
             do {
                 try {
                     if ($digestAlgorithm) {
+                        Write-Host "$signtoolexe sign /f ""$pfxFile"" /p ""$unsecurepassword"" /fd $digestAlgorithm /td $digestAlgorithm /tr ""$timeStampServer"" ""$appFile"""
                         & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", "$timeStampServer", "$appFile") | Write-Host
                     }
                     else {
+                        Write-Host "$signtoolexe sign /f ""$pfxFile"" /p ""$unsecurepassword"" /t ""$timeStampServer"" ""$appFile"""
                         & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "$timeStampServer", "$appFile") | Write-Host
                     }
                     break
