@@ -107,6 +107,7 @@ try {
             $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
             $attempt = 1
             $maxAttempts = 5
+            whoami | Out-Host
             do {
                 try {
                     if ($digestAlgorithm) {
