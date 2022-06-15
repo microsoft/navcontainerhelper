@@ -72,6 +72,7 @@ try {
     
             if ($importCertificate) {
                 Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\root" | Out-Null
+                Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\my" | Out-Null
             }
     
             if (!(Test-Path "C:\Windows\System32\msvcr120.dll")) {
