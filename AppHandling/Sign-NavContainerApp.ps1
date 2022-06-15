@@ -63,9 +63,6 @@ try {
     }
 
     try {
-        Write-Host $sharedPfxFile
-        Get-BcContainerPath -containerName $containerName -path $sharedPfxFile | Out-Host
-
         TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "Codesign"
 
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
@@ -101,22 +98,15 @@ try {
                 $signToolExe = (get-item "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe").FullName
             }
     
-            Write-Host "Signing $appFile"
-            Test-Path $appFile | Out-Host
-            Write-Host "Using cert $pfxfile"
-            Test-Path $pfxFile | Out-Host
             $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
             $attempt = 1
-            $maxAttempts = 10
-            whoami | Out-Host
+            $maxAttempts = 5
             do {
                 try {
                     if ($digestAlgorithm) {
-                        Write-Host "$signtoolexe sign /f ""$pfxFile"" /p ""$unsecurepassword"" /fd $digestAlgorithm /td $digestAlgorithm /tr ""$timeStampServer"" ""$appFile"""
                         & "$signtoolexe" @("sign", "/f", """$pfxFile""", "/p","""$unsecurepassword""", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", """$timeStampServer""", """$appFile""") | Write-Host
                     }
                     else {
-                        Write-Host "$signtoolexe sign /f ""$pfxFile"" /p ""$unsecurepassword"" /t ""$timeStampServer"" ""$appFile"""
                         & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "$timeStampServer", "$appFile") | Write-Host
                     }
                     break
