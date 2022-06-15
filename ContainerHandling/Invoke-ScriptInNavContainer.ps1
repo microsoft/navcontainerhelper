@@ -45,6 +45,7 @@ function Invoke-ScriptInBcContainer {
         }
         catch {
             if ($isInsideContainer) {
+                Write-Host "Error trying to establish session, retrying in 5 seconds"
                 Start-Sleep -Seconds 5
                 $session = Get-BcContainerSession -containerName $containerName -silent
             }
