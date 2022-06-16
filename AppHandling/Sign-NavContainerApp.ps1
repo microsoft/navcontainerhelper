@@ -69,6 +69,7 @@ try {
     
             if ($importCertificate) {
                 Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\root" | Out-Null
+                Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\my" | Out-Null
             }
     
             if (!(Test-Path "C:\Windows\System32\msvcr120.dll")) {
@@ -96,7 +97,7 @@ try {
                 }
                 $signToolExe = (get-item "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe").FullName
             }
-    
+
             Write-Host "Signing $appFile"
             $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
             $attempt = 1

@@ -68,13 +68,21 @@ try {
             $webClient.DownloadFile($sourceUrl, $destinationFile)
         }
         catch {
-            if ($sourceUrl -like "https://bcartifacts.azureedge.net/*" -or $sourceUrl -like "https://bcinsider.azureedge.net/*" -or $sourceUrl -like "https://bcprivate.azureedge.net/*" -or $sourceUrl -like "https://bcpublicpreview.azureedge.net/*") {
-                $idx = $sourceUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
-                $newSourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + 14)
-                Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/..."
+            try {
+                $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
+                if ($sourceUrl -like "https://bcartifacts.azureedge.net/*" -or $sourceUrl -like "https://bcinsider.azureedge.net/*" -or $sourceUrl -like "https://bcprivate.azureedge.net/*" -or $sourceUrl -like "https://bcpublicpreview.azureedge.net/*") {
+                    $idx = $sourceUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+                    $newSourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + 14)
+                    Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/ in $waittime seconds..."
+                }
+                else {
+                    Write-Host "Error downloading..., retrying in $waittime seconds..."
+                    $newSourceUrl = $sourceUrl
+                }
+                Start-Sleep -Seconds $waittime
                 $webClient.DownloadFile($newSourceUrl, $destinationFile)
             }
-            else {
+            catch {
                 throw (GetExtendedErrorMessage $_)
             }
         }

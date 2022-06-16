@@ -3,6 +3,12 @@ Issue #2378 When running BcContainerHelper without admin rights, the import of a
 New function Invoke-gh for invoking GitHub CLI commands from PowerShell
 New function Invoke-git for invoking Git commands from PowerShell
 Display warning if DisabledTests contains codeunit with a comma in the name (not supported for disabling tests)
+Issue #2533 Import-BcContainerLicenseFile doesn't support secure URL's with query parameters
+Issue #2522 Invoke-ScriptInBCContainer with usePsSession False and a Function as Value for the Scriptblock Param fails
+Add support for running BcContainerHelper inside a container, forcing the use of Volumes for sharing between host and containers
+Run-AlPipeline will not use UpdateHosts when running inside a container
+Establishing sessions from inside a container to another container is done using a username based PS Session
+Do not use KillPsSession when running inside a container
 
 3.0.10
 Issue #2457 Convert-BcAppsToRuntimePackages: allow to set showmycode, keepContainer, include sign app parameters

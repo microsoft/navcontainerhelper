@@ -1564,7 +1564,7 @@ $apps | ForEach-Object {
         "appFile" = $_
         "pfxFile" = $codeSignCertPfxFile
         "pfxPassword" = $codeSignCertPfxPassword
-        "importCertificate" = $codeSignCertIsSelfSigned
+        "importCertificate" = $codeSignCertIsSelfSigned -or $isInsideContainer
     }
 
     Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters

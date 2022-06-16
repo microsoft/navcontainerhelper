@@ -45,9 +45,13 @@ function Invoke-ScriptInBcContainer {
         }
         catch {
             if ($isInsideContainer) {
-                throw "Unable to establish WinRm session to container $containerName"
+                Write-Host "Error trying to establish session, retrying in 5 seconds"
+                Start-Sleep -Seconds 5
+                $session = Get-BcContainerSession -containerName $containerName -silent
             }
-            $useSession = $false
+            else {
+                $useSession = $false
+            }
         }
     }
     if ($useSession) {
@@ -176,17 +180,26 @@ $startTime = [DateTime]::Now
 " | Add-Content $file
 
             if ($bcContainerHelperConfig.addTryCatchToScriptBlock) {
-                if ($scriptblock.Ast.ParamBlock) {
-                    $script = $scriptBlock.Ast.Extent.text.Replace($scriptblock.Ast.ParamBlock.Extent.Text,'').Trim()
-                    if ($script.StartsWith('{')) {
-                        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                $ast = $scriptblock.Ast
+                if ($ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                    $ast = $ast.Body
+                }
+                if ($ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+                    if ($ast.ParamBlock) {
+                        $script = $ast.Extent.text.Replace($ast.ParamBlock.Extent.Text,'').Trim()
+                        if ($script.StartsWith('{')) {
+                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                        }
+                        else {
+                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                        }
                     }
                     else {
-                        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                        "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
                     }
                 }
                 else {
-                    "`$result = Invoke-Command -ScriptBlock { try $($scriptBlock.Ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                    throw "Unsupported Scriptblock type $($ast.GetType())"
                 }
 @'
 $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
