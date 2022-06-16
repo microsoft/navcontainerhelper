@@ -49,7 +49,7 @@ try {
     $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
         Write-Host "Downloading certificate file to container"
-        (New-Object System.Net.WebClient).DownloadFile($pfxFile, $sharedPfxFile)
+        Download-File -sourceUrl $pfxFile -destinationFile $sharedPfxFile
     }
     else {
         if (Get-BcContainerPath -containerName $containerName -path $pfxFile) {

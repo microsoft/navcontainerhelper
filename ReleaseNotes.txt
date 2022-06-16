@@ -9,6 +9,7 @@ Add support for running BcContainerHelper inside a container, forcing the use of
 Run-AlPipeline will not use UpdateHosts when running inside a container
 Establishing sessions from inside a container to another container is done using a username based PS Session
 Do not use KillPsSession when running inside a container
+Issue #2518 support Onedrive URLs in Sign-BcContainerApp
 
 3.0.10
 Issue #2457 Convert-BcAppsToRuntimePackages: allow to set showmycode, keepContainer, include sign app parameters
