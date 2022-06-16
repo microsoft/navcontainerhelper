@@ -97,14 +97,15 @@ try {
                 }
                 $signToolExe = (get-item "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe").FullName
             }
-    
+
+            Write-Host "Signing $appFile"
             $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
             $attempt = 1
             $maxAttempts = 5
             do {
                 try {
                     if ($digestAlgorithm) {
-                        & "$signtoolexe" @("sign", "/f", """$pfxFile""", "/p","""$unsecurepassword""", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", """$timeStampServer""", """$appFile""") | Write-Host
+                        & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/fd", $digestAlgorithm, "/td", $digestAlgorithm, "/tr", "$timeStampServer", "$appFile") | Write-Host
                     }
                     else {
                         & "$signtoolexe" @("sign", "/f", "$pfxFile", "/p","$unsecurepassword", "/t", "$timeStampServer", "$appFile") | Write-Host
