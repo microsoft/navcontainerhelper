@@ -27,6 +27,8 @@
   Adding this parameter creates an image with multitenancy
  .Parameter addFontsFromPath
   Enumerate all fonts from this path or array of paths and install them in the container
+ .Parameter runSandboxAsOnPrem
+  This parameter will attempt to run sandbox artifacts as onprem (will only work with version 18 and later)
 #>
 function New-BcImage {
     Param (
@@ -49,6 +51,7 @@ function New-BcImage {
         [switch] $includeTestFrameworkOnly,
         [switch] $includePerformanceToolkit,
         [switch] $skipIfImageAlreadyExists,
+        [switch] $runSandboxAsOnPrem,
         $allImages
     )
 
@@ -174,7 +177,7 @@ try {
 
     $appManifestPath = Join-Path $appArtifactPath "manifest.json"
     $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-    if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+    if (!$runSandboxAsOnPrem -and $appManifest.PSObject.Properties.name -eq "isBcSandbox") {
         if ($appManifest.isBcSandbox) {
             if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
                 $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
@@ -481,7 +484,7 @@ try {
                 get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
         
                 $isBcSandbox = "N"
-                if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+                if (!$runSandboxAsOnPrem -and $appManifest.PSObject.Properties.name -eq "isBcSandbox") {
                     if ($appManifest.isBcSandbox) {
                         $IsBcSandbox = "Y"
                     }
