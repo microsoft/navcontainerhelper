@@ -598,6 +598,7 @@ try {
                 -includeTestLibrariesOnly:$includeTestLibrariesOnly `
                 -includePerformanceToolkit:$includePerformanceToolkit `
                 -skipIfImageAlreadyExists:(!$forceRebuild) `
+                -runSandboxAsOnPrem:$runSandboxAsOnPrem `
                 -allImages $allImages `
                 -filesOnly:$filesOnly
 
