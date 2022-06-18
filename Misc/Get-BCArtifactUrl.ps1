@@ -191,11 +191,38 @@ try {
         
         $webclient = New-Object System.Net.WebClient
         $Artifacts = @()
-        $nextMarker = ""
+        $nextMarker = ''
+        $currentMarker = ''
+        $downloadAttempt = 1
+        $downloadRetryAttempts = 10
         do {
+            if ($currentMarker -ne $nextMarker)
+            {
+                $currentMarker = $nextMarker
+                $downloadAttempt = 1
+            }
             Write-Verbose "DownloadString $GetListUrl$nextMarker"
-            $Response = $webClient.DownloadString("$GetListUrl$nextMarker")
-            $enumerationResults = ([xml]$Response).EnumerationResults
+            try
+            {
+                $Response = $webClient.DownloadString("$GetListUrl$nextMarker")
+                $enumerationResults = ([xml]$Response).EnumerationResults
+            }
+            catch
+            {
+                $downloadAttempt += 1
+                Write-Host "Error querying artifacts. Error message was $($_.Exception.Message)"
+                Write-Host
+
+                if ($downloadAttempt -le $downloadRetryAttempts)
+                {
+                    Write-Host "Repeating download attempt (" $downloadAttempt.ToString() " of " $downloadRetryAttempts.ToString() ")..."
+                    Write-Host
+                }
+                else
+                {
+                    throw
+                }                
+            }
             if ($enumerationResults.Blobs) {
                 if (($After) -or ($Before)) {
                     $artifacts += $enumerationResults.Blobs.Blob | % {
