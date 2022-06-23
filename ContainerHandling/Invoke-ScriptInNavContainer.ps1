@@ -57,6 +57,7 @@ function Invoke-ScriptInBcContainer {
     if ($useSession) {
         $startTime = [DateTime]::Now
         try {
+            Invoke-Command -Session $session -ScriptBlock { param($a) $WarningPreference = $a } -ArgumentList $bcContainerHelperConfig.WarningPreference
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
         catch {
@@ -175,6 +176,9 @@ Set-Location $runPath
 $ErrorActionPreference = "Stop"
 $startTime = [DateTime]::Now
 ' | Add-Content $file
+
+"`$WarningPreference = '$($bcContainerHelperConfig.WarningPreference)'
+" | Add-Content $file
 
 "`$containerName = '$containerName'
 " | Add-Content $file

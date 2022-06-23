@@ -112,6 +112,7 @@ function Get-ContainerHelperConfig {
             "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
             "ObjectIdForInternalUse" = 88123
             "WinRmCredentials" = $null
+            "WarningPreference" = "SilentlyContinue"
         }
 
         if ($isInsider) {
