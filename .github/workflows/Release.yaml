@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Run Tests
+      - name: Deploy
         run: |
           $path = $ENV:GITHUB_WORKSPACE
           $tempPath = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
@@ -64,12 +64,12 @@ jobs:
                                 -ReleaseNotes $versionReleaseNotes
 
           Write-Host "Upload to storage (preview)"
-          $storageContext = New-AzStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
-          New-AzStorageContainer -Name 'test' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+          $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
+          New-AzureStorageContainer -Name 'test' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
 
           Compress-Archive -path $path -DestinationPath "$($path).zip"
-          Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
-          Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
+          Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
+          Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
 
           #Write-Host "Publishing Module"
           #Publish-Module -Path $path -NuGetApiKey '@{{ secrets.NugetKey }}' -SkipAutomaticTags
