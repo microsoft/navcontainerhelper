@@ -19,7 +19,7 @@ AfterAll {
 
 Describe 'AppHandling' {
 
-    It "Get/RunTests for version $runTestsInVersion" {
+    It 'Get/RunTests' {
         $artifactUrl = Get-BCArtifactUrl -type OnPrem -version "$runTestsInVersion" -country "w1" -select Latest
         New-NavContainer -accept_eula `
                          -accept_outdated `
