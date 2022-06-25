@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Analyze
+        id: Analyze
         run: |
           $tests = Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.ps1') -Exclude @("_*.ps1") | ForEach-Object { $_.BaseName }
           Write-Host "::set-output name=tests::$tests"
