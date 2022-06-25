@@ -82,7 +82,6 @@ jobs:
           Import-Module $modulePath -DisableNameChecking
           
           $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
-          
           $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
           
           $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
@@ -116,7 +115,7 @@ jobs:
 
           Write-Host "Upload to storage (preview)"
           $storageContext = New-AzStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}''
-          New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+          New-AzStorageContainer -Name 'test' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
           
           Compress-Archive -path $path -DestinationPath "$($path).zip"
           Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null

@@ -63,10 +63,14 @@ jobs:
 
       - name: Run Tests
         run: |
-          $path = Join-Path $(System.ArtifactsDirectory) "BcContainerHelper\BcContainerHelper"
+          $path = $ENV:GITHUB_WORKSPACE
           $tempPath = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
           New-Item -Path $tempPath -ItemType Directory | Out-Null
           Copy-Item -Path $path -Destination $tempPath -Recurse
+          
+          Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
+          Remove-Item -Path (Join-Path $path ".gitignore") -Force
+          Remove-Item -Path (Join-Path $path "README.md") -Force
 
           $versionFile = Join-Path $path 'Version.txt'
           $version = (Get-Content -Path $versionFile).split('-')[0]
@@ -77,7 +81,6 @@ jobs:
           Import-Module $modulePath -DisableNameChecking
 
           $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
-
           $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
 
           $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
@@ -105,12 +108,12 @@ jobs:
                                 -ReleaseNotes $versionReleaseNotes
 
           Write-Host "Upload to storage (preview)"
-          $storageContext = New-AzStorageContext -ConnectionString "$(bchStorageConnectionString)"
-          New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+          $storageContext = New-AzStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}''
+          New-AzStorageContainer -Name 'test' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
 
           Compress-Archive -path $path -DestinationPath "$($path).zip"
           Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
           Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
 
-          Write-Host "Publishing Module"
-          Publish-Module -Path $path -NuGetApiKey $(nugetkey) -SkipAutomaticTags
+          #Write-Host "Publishing Module"
+          #Publish-Module -Path $path -NuGetApiKey '@{{ secrets.NugetKey }}' -SkipAutomaticTags
