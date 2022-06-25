@@ -2,8 +2,6 @@
 Remove-Module BcContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
-$credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String (Get-RandomPassword) -Force))
-
 function randomchar([string]$str)
 {
     $rnd = Get-Random -Maximum $str.length
@@ -35,3 +33,5 @@ function Get-RandomPasswordAsSecureString {
 
     ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
 }
+
+$credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))
