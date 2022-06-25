@@ -14,7 +14,7 @@ jobs:
   AnalyzeTests:
     runs-on: [ windows-latest ]
     outputs:
-      tests: ${{ steps.analyze.outputs.tests }}
+      tests: ${{ steps.Analyze.outputs.tests }}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -30,7 +30,7 @@ jobs:
     runs-on: [ windows-latest ]
     needs: [ AnalyzeTests ]
     strategy:
-      matrix: ${{fromJson(needs.analyzetests.outputs.tests)}}
+      matrix: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
