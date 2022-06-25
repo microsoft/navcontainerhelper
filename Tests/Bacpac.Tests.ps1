@@ -17,7 +17,7 @@ Describe 'Bacpac' {
 
     It 'Backup-BcContainerDatabases' {
 
-        $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "mybak"
+        $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().ToString())
         $bakFile = "$bakFolder\database.bak"
         Backup-NavContainerDatabases -containerName $bcContainerName `
                                      -sqlCredential $credential `
@@ -33,6 +33,8 @@ Describe 'Bacpac' {
                          -Credential $Credential `
                          -updateHosts `
                          -bakFile $bakFile
+
+        . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
 
         Remove-Item -Path $bakFolder -Recurse -Force
 
