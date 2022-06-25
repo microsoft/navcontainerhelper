@@ -11,7 +11,6 @@ BeforeAll {
     $appVersion = "1.0.0.0"
     $runTestsInVersion  = 14
     $navContainerName = "navserver"
-    $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String (Get-RandomPassword) -Force))
 }
 
 AfterAll {

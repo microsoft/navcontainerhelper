@@ -148,10 +148,10 @@ Describe 'AppHandling' {
                                             -appOutputFolder $alProjectFolder `
                                             -credential $credential `
                                             -updateSymbols
-
-        Publish-NewApplicationToBcContainer -containerName $bcContainerName `
-                                            -appFile $appFile `
-                                            -credential $credential `
-                                            -useCleanDatabase
+        
+#        Publish-NewApplicationToBcContainer -containerName $bcContainerName `
+#                                            -appFile $appFile `
+#                                            -credential $credential `
+#                                            -useCleanDatabase
     }
 }

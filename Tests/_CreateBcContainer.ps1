@@ -2,7 +2,6 @@
     [switch] $sandbox
 )
 
-$credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String (Get-RandomPassword) -Force))
 $bcContainerName = 'bcs'
 $bcContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$bcContainerName"
 $bcMyPath = Join-Path $bcContainerPath "my"

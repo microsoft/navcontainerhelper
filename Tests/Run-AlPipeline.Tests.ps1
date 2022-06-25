@@ -6,6 +6,7 @@
 
 BeforeAll {
     . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
+    $bccontainerName = "bcserver"
 }
 
 AfterAll {
@@ -13,8 +14,6 @@ AfterAll {
 
 Describe 'Run-AlPipeline' {
     It 'Run-AlPipeline' {
-        $bccontainerName = "bcserver"
-        $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String (Get-RandomPassword) -Force))
         $baseFolder = Join-Path $PSScriptRoot "helloworld"
         $resultsFile = Join-Path $baseFolder "result.xml"
         $buildArtifactFolder = Join-Path $baseFolder "buildArtifactFolder"
