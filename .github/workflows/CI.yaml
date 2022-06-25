@@ -22,15 +22,15 @@ jobs:
       - name: Analyze
         run: |
           $tests = Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.ps1') -Exclude @("_*.ps1") | ForEach-Object { $_.BaseName }
-          $matrix = @{"test" = $tests} | ConvertTo-Json -compress
-          Write-Host "::set-output name=tests::$matrix"
-          Write-Host "set-output name=tests::$matrix"
+          Write-Host "::set-output name=tests::$tests"
+          Write-Host "set-output name=tests::$tests"
 
   RunTests:
     runs-on: [ windows-latest ]
     needs: [ AnalyzeTests ]
     strategy:
-      matrix: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
