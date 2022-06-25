@@ -1,4 +1,18 @@
-﻿Describe 'Run-AlPipeline' {
+﻿Param(
+    [string] $licenseFile,
+    [string] $buildlicenseFile,
+    [string] $insiderSasToken
+)
+
+BeforeAll {
+    . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
+    $bccontainerName = "bcserver"
+}
+
+AfterAll {
+}
+
+Describe 'Run-AlPipeline' {
     It 'Run-AlPipeline' {
         $baseFolder = Join-Path $PSScriptRoot "helloworld"
         $resultsFile = Join-Path $baseFolder "result.xml"
@@ -12,7 +26,7 @@
             -pipelineName nch `
             -baseFolder $baseFolder `
             -licenseFile $buildlicenseFile `
-            -containerName nchbuild `
+            -containerName $bccontainerName `
             -credential $credential `
             -installApps @("https://businesscentralapps.blob.core.windows.net/hidestuff/latest/hidestuff-apps.zip") `
             -appFolders "app,base" `

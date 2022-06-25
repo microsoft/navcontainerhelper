@@ -1,4 +1,19 @@
-﻿Describe 'ContainerInfo' {
+﻿Param(
+    [string] $licenseFile,
+    [string] $buildlicenseFile,
+    [string] $insiderSasToken
+)
+
+BeforeAll {
+    . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
+}
+
+Describe 'ContainerInfo' {
 
     It 'Get-BcContainerCountry' {
         Get-BcContainerCountry -containerOrImageName $bcContainerName | Should -Be "W1"
@@ -68,11 +83,11 @@
         Get-BcContainerPlatformVersion -containerOrImageName $bcContainerName | Should -Be $bcContainerPlatformVersion
         Get-BcContainerPlatformVersion -containerOrImageName $bcImageName | Should -Be $bcContainerPlatformVersion
         #Get-BcContainerPlatformVersion -containerOrImageName $navContainerName | Should -Be $navContainerPlatformVersion
-        Get-BcContainerPlatformVersion -containerOrImageName $navImageName | Should -Be $navContainerPlatformVersion
+        #Get-BcContainerPlatformVersion -containerOrImageName $navImageName | Should -Be $navContainerPlatformVersion
 
     }
     It 'Get-BcContainers' {
-        (Get-BcContainers).Count | Should -BeGreaterOrEqual 2
+        @(Get-BcContainers).Count | Should -BeGreaterOrEqual 1
     }
     It 'Get-BcContainerServerConfiguration' {
         $config = Get-BCContainerServerConfiguration -ContainerName $bcContainerName

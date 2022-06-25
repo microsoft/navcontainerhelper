@@ -1,17 +1,32 @@
-﻿Describe 'Misc' {
+﻿Param(
+    [string] $licenseFile,
+    [string] $buildlicenseFile,
+    [string] $insiderSasToken
+)
 
-    It 'Add-FontsToNavContainer' {
+BeforeAll {
+    . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
+}
+
+Describe 'Misc' {
+
+    It 'Add-FontsToBcContainer' {
         $noOfFonts = Invoke-ScriptInBCContainer -containerName $bcContainerName -scriptblock { (Get-ChildItem -Path "c:\windows\fonts").Count }
         Add-FontsToBCContainer -containerName $bcContainerName -path (Join-Path (Join-Path $env:windir 'fonts') 'wingding.ttf')
         Invoke-ScriptInBCContainer -containerName $bcContainerName -scriptblock { (Get-ChildItem -Path "c:\windows\fonts").Count } | Should -BeGreaterThan $noOfFonts
     }
-    It 'Copy-FileFromNavContainer' {
+    It 'Copy-FileFromBcContainer' {
         $filename = Join-Path $env:TEMP ([Guid]::NewGuid().Guid)
         Copy-FileFromBCContainer -containerName $bcContainerName -containerPath "c:\windows\win.ini" -localPath $filename
         $filename | Should -Exist
         Remove-Item -Path $filename
     }
-    It 'Copy-FileToNavContainer' {
+    It 'Copy-FileToBcContainer' {
         $filename = Join-Path 'c:\' ([Guid]::NewGuid().Guid)
         Copy-FileToBCContainer -containerName $bcContainerName -localPath "C:\Windows\Win.ini" -containerPath $filename
         $exists = Invoke-ScriptInBCContainer -containerName $bcContainerName -scriptblock { Param($filename)
@@ -39,7 +54,7 @@
         Get-NavVersionFromVersionInfo -versionInfo '11.0.23400.0' | Should -Be '2018'
         Get-NavVersionFromVersionInfo -versionInfo '13.0.12345.0' | Should -Be $null
     }
-    It 'Import-PfxCertificateToNavContainer' {
+    It 'Import-PfxCertificateToBcContainer' {
         #TODO
     }
     It 'New/Remove-DesktopShortcut' {

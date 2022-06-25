@@ -1,39 +1,43 @@
-﻿$bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "17.0" -country w1
-$bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
-$bcContainerName = 'bco'
-$bcContainerPlatformVersion = '17.0.16974.0'
+﻿Param(
+    [switch] $sandbox
+)
+
+$bcContainerName = 'bcs'
 $bcContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$bcContainerName"
 $bcMyPath = Join-Path $bcContainerPath "my"
-New-BCContainer -accept_eula `
-                -accept_outdated `
-                -containerName $bcContainerName `
-                -artifactUrl $bcArtifactUrl `
-                -imageName $bcImageName `
-                -auth NavUserPassword `
-                -Credential $credential `
-                -updateHosts `
-                -memoryLimit 16g `
-                -licenseFile $buildLicenseFile `
-                -includeAL `
-                -includeTestToolkit `
-                -includeTestLibrariesOnly
 
-$bcsArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.30573" -country "us" -select 'Closest'
-$bcsImageName = New-BcImage -artifactUrl $bcsArtifactUrl -skipIfImageAlreadyExists
-$bcsContainerName = 'bcs'
-$bcsContainerPlatformVersion = "17.0.18204.30560"
-$bcsContainerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$bcsContainerName"
-$bcsMyPath = Join-Path $bcsContainerPath "my"
-New-BCContainer -accept_eula `
-                -accept_outdated `
-                -containerName $bcsContainerName `
-                -artifactUrl $bcsArtifactUrl `
-                -imageName $bcsImageName `
-                -auth NavUserPassword `
-                -Credential $credential `
-                -updateHosts `
-                -memoryLimit 8g `
-                -licenseFile $buildLicenseFile `
-                -includeTestToolkit `
-                -includeTestLibrariesOnly
-
+if ($sandbox) {
+    $bcArtifactUrl = Get-BCArtifactUrl -type "Sandbox" -version "17.1.18256.30573" -country "us" -select 'Closest'
+    $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
+    $bcContainerPlatformVersion = "17.0.18204.30560"
+    New-BCContainer -accept_eula `
+                    -accept_outdated `
+                    -containerName $bcContainerName `
+                    -artifactUrl $bcArtifactUrl `
+                    -imageName $bcImageName `
+                    -auth UserPassword `
+                    -Credential $credential `
+                    -updateHosts `
+                    -memoryLimit 8g `
+                    -licenseFile $buildLicenseFile `
+                    -includeTestToolkit `
+                    -includeTestLibrariesOnly
+}
+else {
+    $bcArtifactUrl = Get-BCArtifactUrl -type OnPrem -version "17.0" -country w1
+    $bcImageName = New-BcImage -artifactUrl $bcArtifactUrl -skipIfImageAlreadyExists
+    $bcContainerPlatformVersion = '17.0.16974.0'
+    New-BCContainer -accept_eula `
+                    -accept_outdated `
+                    -containerName $bcContainerName `
+                    -artifactUrl $bcArtifactUrl `
+                    -imageName $bcImageName `
+                    -auth UserPassword `
+                    -Credential $credential `
+                    -updateHosts `
+                    -memoryLimit 16g `
+                    -licenseFile $buildLicenseFile `
+                    -includeAL `
+                    -includeTestToolkit `
+                    -includeTestLibrariesOnly
+}

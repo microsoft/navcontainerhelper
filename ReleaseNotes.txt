@@ -13,6 +13,8 @@ Issue #2518 support Onedrive URLs in Sign-BcContainerApp
 Issue #2540 add support for missing countries in mapping
 Issue #2534 add runSandboxAsOnPrem to New-BcImage (and transfer from New-BcContainer)
 Issue #2486 add resilience to Get-BcArtifactUrl
+Add WarningPreference to config and Invoke-ScriptInBCContainer
+CI/CD moved from Azure DevOps to GitHub Actions
 
 3.0.10
 Issue #2457 Convert-BcAppsToRuntimePackages: allow to set showmycode, keepContainer, include sign app parameters
