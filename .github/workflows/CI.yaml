@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: PowerShell
+
+jobs:
+  Test_AppHandling-NAV:
+    runs-on: [ windows-latest ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Run Tests - AppHandling (NAV)
+        run: |
+          . .\Tests\_TestRunOne.ps1 -licenseFile '${{ secrets.licensefile }}' -buildLicenseFile '${{ secrets.buildLicenseFile }}' -insiderSasToken '${{ secrets.insiderSasToken }}' -testScript 'AppHandling - NAV.ps1'
+
