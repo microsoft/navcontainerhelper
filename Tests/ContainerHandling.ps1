@@ -1,55 +1,55 @@
 ﻿Describe 'ContainerHandling' {
 
-    It 'Enter-NavContainer' {
+    It 'Enter-BcContainer' {
         #TODO
     }
-    It 'Extract-FilesFromNavContainerImage' {
+    It 'Extract-FilesFromBcContainerImage' {
         #TODO
     }
-    It 'Extract-FilesFromStoppedNavContainer' {
+    It 'Extract-FilesFromStoppedBcContainer' {
         #TODO
     }
-    It 'Get-BestNavContainerImageName' {
+    It 'Get-BestBcContainerImageName' {
         #TODO
     }
-    It 'Get-NavContainerSession' {
+    It 'Get-BcContainerSession' {
         #TODO
     }
-    It 'Import-NavContainerLicense' {
+    It 'Import-BcContainerLicense' {
         #TODO
     }
-    It 'Invoke-ScriptInNavContainer' {
+    It 'Invoke-ScriptInBcContainer' {
         #TODO
     }
-    It 'New-NavContainer' {
+    It 'New-BcContainer' {
         #TODO
     }
-    It 'Open-NavContainer' {
+    It 'Open-BcContainer' {
         #TODO
     }
-    It 'Remove-NavContainer' {
+    It 'Remove-BcContainer' {
         #TODO
     }
-    It 'Remove-NavContainerSession' {
+    It 'Remove-BcContainerSession' {
         #TODO
     }
-    It 'Restart-NavContainer' {
-        Restart-NavContainer -containerName $bcContainerName
+    It 'Restart-BcContainer' {
+        Restart-BcContainer -containerName $bcContainerName
         $json = docker inspect $bcContainerName | ConvertFrom-Json
         $json.State.Status | Should -Be 'running'
     }
-    It 'Setup-TraefikContainerForNavContainers' {
+    It 'Setup-TraefikContainerForBcContainers' {
         #TODO
     }
-    It 'Stop/Start-NavContainer' {
-        Stop-NavContainer -containerName $bcContainerName
+    It 'Stop/Start-BcContainer' {
+        Stop-BcContainer -containerName $bcContainerName
         $json = docker inspect $bcContainerName | ConvertFrom-Json
         $json.State.Status | Should -Be 'exited'
-        Start-NavContainer -containerName $bcContainerName
+        Start-BcContainer -containerName $bcContainerName
         $json = docker inspect $bcContainerName | ConvertFrom-Json
         $json.State.Status | Should -Be 'running'
     }
-    It 'Wait-NavContainerReady' {
+    It 'Wait-BcContainerReady' {
         #TODO
     }
 

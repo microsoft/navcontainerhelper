@@ -1,27 +1,27 @@
 ﻿Describe 'Bacpac' {
 
-    It 'Backup-NavContainerDatabases' {
+    It 'Backup-BcContainerDatabases' {
 
         $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "mybak"
         $bakFile = "$bakFolder\database.bak"
-        Backup-NavContainerDatabases -containerName $navContainerName `
+        Backup-NavContainerDatabases -containerName $bcContainerName `
                                      -sqlCredential $credential `
                                      -bakFolder $bakFolder
 
         $bakFile | Should -Exist
                 
-        $testContainerName = "$($navContainerName)2"
         New-NavContainer -accept_eula `
                          -accept_outdated `
                          -artifactUrl $navArtifactUrl `
-                         -containerName $testContainerName `
+                         -containerName $bcContainerName `
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
                          -bakFile $bakFile
 
-        Remove-NavContainer $testContainerName
         Remove-Item -Path $bakFolder -Recurse -Force
+
+        . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
     }
     It 'Export-NavContainerDatabasesAsBacpac' {
 
@@ -35,11 +35,10 @@
     }
     It 'Export-NavContainerDatabasesAsBacpac (multitenant)' {
 
-        $testContainerName = "$($bcContainerName)2"
         New-NavContainer -accept_eula `
                          -accept_outdated `
                          -artifactUrl $bcArtifactUrl `
-                         -containerName $testContainerName `
+                         -containerName $bcContainerName `
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
@@ -49,7 +48,7 @@
         $appBacpacFile = "$bacpacFolder\app.bacpac"
         $tenant = "default"
         $tenantBacpacFile = "$bacpacFolder\$tenant.bacpac"
-        Export-NavContainerDatabasesAsBacpac -containerName $testContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder -tenant $tenant -doNotCheckEntitlements
+        Export-NavContainerDatabasesAsBacpac -containerName $bcContainerName -sqlCredential $credential -bacpacFolder $bacpacFolder -tenant $tenant -doNotCheckEntitlements
 
         $appBacpacFile | Should -Exist
         $tenantBacpacFile | Should -Exist
@@ -60,17 +59,16 @@
         New-NavContainer -accept_eula `
                          -accept_outdated `
                          -imageName $bcImageName `
-                         -containerName $testContainerName `
+                         -containerName $bcContainerName `
                          -auth "NavUserPassword" `
                          -Credential $Credential `
                          -updateHosts `
                          -additionalParameters @("--env appBacpac=$containerAppBacpacFile","--env tenantBacpac=$containerTenantBacpacFile")
 
-        New-NavContainerTenant -containerName $testContainerName -tenantId "test"
+        New-NavContainerTenant -containerName $bcContainerName -tenantId "test"
 
-        (Get-NavContainerTenants -containerName $testContainerName).Count | Should -be 2
+        (Get-NavContainerTenants -containerName $bcContainerName).Count | Should -be 2
 
-        Remove-NavContainer $testContainerName
         Remove-Item -Path $bacpacFolder -Recurse -Force
     }
     It 'Remove-BcDatabase' {

@@ -12,7 +12,7 @@
             -pipelineName nch `
             -baseFolder $baseFolder `
             -licenseFile $buildlicenseFile `
-            -containerName nchbuild `
+            -containerName $bccontainerName `
             -credential $credential `
             -installApps @("https://businesscentralapps.blob.core.windows.net/hidestuff/latest/hidestuff-apps.zip") `
             -appFolders "app,base" `
