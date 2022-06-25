@@ -108,7 +108,7 @@ jobs:
                                 -ReleaseNotes $versionReleaseNotes
 
           Write-Host "Upload to storage (preview)"
-          $storageContext = New-AzStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}''
+          $storageContext = New-AzStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
           New-AzStorageContainer -Name 'test' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
 
           Compress-Archive -path $path -DestinationPath "$($path).zip"
