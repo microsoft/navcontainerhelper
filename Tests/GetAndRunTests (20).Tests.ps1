@@ -12,6 +12,7 @@ BeforeAll {
     $bcAppId = "cb99d78b-f9db-4a1e-822a-0c9c444535df"
     $runTestsInVersion  = 20
     $bcContainerName = "bcserver"
+    $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String (Get-RandomPassword) -Force))
 }
 
 AfterAll {

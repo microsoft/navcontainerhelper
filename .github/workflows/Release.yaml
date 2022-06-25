@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: PowerShell
+
+jobs:
+  AnalyzeTests:
+    runs-on: [ windows-latest ]
+    outputs:
+      tests: ${{ steps.Analyze.outputs.tests }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Analyze
+        id: Analyze
+        run: |
+          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Write-Host "::set-output name=tests::$tests"
+          Write-Host "set-output name=tests::$tests"
+
+  RunTests:
+    runs-on: [ windows-latest ]
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  Deploy:
+    runs-on: [ windows-latest ]
+    needs: [ RunTests ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Run Tests
+        run: |
+          $path = Join-Path $(System.ArtifactsDirectory) "BcContainerHelper\BcContainerHelper"
+          $tempPath = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
+          New-Item -Path $tempPath -ItemType Directory | Out-Null
+          Copy-Item -Path $path -Destination $tempPath -Recurse
+
+          $versionFile = Join-Path $path 'Version.txt'
+          $version = (Get-Content -Path $versionFile).split('-')[0]
+          Write-Host "BcContainerHelper version $Version"
+          Set-Content -Path $versionFile -Value $version
+
+          $modulePath = Join-Path $tempPath "NavContainerHelper\BcContainerHelper.psm1"
+          Import-Module $modulePath -DisableNameChecking
+
+          $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
+
+          $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
+
+          $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
+          $idx = $releaseNotes.IndexOf($version)
+          if ($idx -lt 0) {
+              throw 'No release notes identified'
+          }
+          $versionReleaseNotes = @()
+          while ($releaseNotes[$idx]) {
+              $versionReleaseNotes += $releaseNotes[$idx]
+              $idx++
+          }
+
+          Write-Host "Release Notes:"
+          Write-Host $VersionReleaseNotes
+
+          Write-Host "Update Module Manifest"
+          Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+                                -RootModule "BcContainerHelper.psm1" `
+                                -ModuleVersion $version `
+                                -Author "Freddy Kristiansen" `
+                                -FunctionsToExport $functionsToExport `
+                                -AliasesToExport $aliasesToExport `
+                                -CompanyName "Microsoft" `
+                                -ReleaseNotes $versionReleaseNotes
+
+          Write-Host "Upload to storage (preview)"
+          $storageContext = New-AzStorageContext -ConnectionString "$(bchStorageConnectionString)"
+          New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+
+          Compress-Archive -path $path -DestinationPath "$($path).zip"
+          Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
+          Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
+
+          Write-Host "Publishing Module"
+          Publish-Module -Path $path -NuGetApiKey $(nugetkey) -SkipAutomaticTags
