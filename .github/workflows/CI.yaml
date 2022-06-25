@@ -42,7 +42,7 @@ jobs:
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
             $pesterContainer = New-PesterContainer -Path (Join-Path $PSScriptRoot '${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
-            $result = Invoke-Pester -Container $container -passthru
+            $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
               $host.SetShouldExit(1)
