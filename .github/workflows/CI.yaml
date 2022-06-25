@@ -65,6 +65,7 @@ jobs:
         run: |
           try {
             $path = Join-Path $ENV:TEMP "BcContainerHelper"
+            New-Item -path $path -itemType Directory | Out-Null
             Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
 
             Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
