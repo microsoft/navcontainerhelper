@@ -1,4 +1,8 @@
-﻿function randomchar([string]$str)
+﻿$modulePath = Join-Path $PSScriptRoot "..\BcContainerHelper.psm1"
+Remove-Module BcContainerHelper -ErrorAction Ignore
+Import-Module $modulePath -DisableNameChecking
+
+function randomchar([string]$str)
 {
     $rnd = Get-Random -Maximum $str.length
     [string]$str[$rnd]
@@ -29,4 +33,3 @@ function Get-RandomPasswordAsSecureString {
 
     ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
 }
-

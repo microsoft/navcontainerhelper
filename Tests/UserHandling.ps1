@@ -1,4 +1,11 @@
-﻿BeforeAll {
+﻿Param(
+    [string] $licenseFile,
+    [string] $buildlicenseFile,
+    [string] $insiderSasToken
+)
+
+BeforeAll {
+    . (Join-Path $PSScriptRoot '_TestHelperFunctions.ps1')
     . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
     $extraUser = New-Object pscredential -ArgumentList 'extrauser', $credential.Password
 }
