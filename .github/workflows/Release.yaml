@@ -25,6 +25,7 @@ jobs:
           Copy-Item -Path $path -Destination $tempPath -Recurse
           
           Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
+          Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
           Remove-Item -Path (Join-Path $path ".gitignore") -Force
           Remove-Item -Path (Join-Path $path "README.md") -Force
 
@@ -71,5 +72,5 @@ jobs:
           Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
           Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
 
-          #Write-Host "Publishing Module"
-          #Publish-Module -Path $path -NuGetApiKey '@{{ secrets.NugetKey }}' -SkipAutomaticTags
+          Write-Host "Publishing Module"
+          Publish-Module -Path $path -NuGetApiKey '@{{ secrets.NugetKey }}' -SkipAutomaticTags
