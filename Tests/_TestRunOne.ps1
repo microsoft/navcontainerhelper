@@ -14,12 +14,6 @@ try {
 
     $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String "P@ssword1" -Force))
 
-    if ($testScript -like "*(NAV)") {
-        . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
-    }
-    else {
-        . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
-    }
     . (Join-Path $PSScriptRoot $testScript)
 }
 catch {

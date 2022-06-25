@@ -1,9 +1,12 @@
-﻿Describe 'AppHandling' {
-
+﻿BeforeAll {
     $appPublisher = "Cronus Denmark A/S"
     $appName = "Hello ÆØÅ"
     $appVersion = "1.0.0.0"
-    $bcAppId = "cb99d78b-f9db-4a1e-822a-0c9c444535df"
+
+    . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
+}
+
+Describe 'AppHandling' {
 
     It 'Add-GitToAlProjectFolder' {
         #TODO
