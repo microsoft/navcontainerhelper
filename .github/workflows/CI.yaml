@@ -21,7 +21,7 @@ jobs:
 
       - name: Analyze
         run: |
-          $tests = Get-ChildItem -Path (Join-Path $PSScriptRoot '*.ps1') -Exclude @("_*.ps1") | ForEach-Object { $_.BaseName }
+          $tests = Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.ps1') -Exclude @("_*.ps1") | ForEach-Object { $_.BaseName }
           $matrix = @{"test" = $tests} | ConvertTo-Json -compress
           Write-Host "::set-output name=tests::$matrix"
           Write-Host "set-output name=tests::$matrix"
