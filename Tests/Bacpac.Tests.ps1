@@ -27,7 +27,7 @@ Describe 'Bacpac' {
                 
         New-NavContainer -accept_eula `
                          -accept_outdated `
-                         -artifactUrl $navArtifactUrl `
+                         -artifactUrl $bcArtifactUrl `
                          -containerName $bcContainerName `
                          -auth "NavUserPassword" `
                          -Credential $Credential `
