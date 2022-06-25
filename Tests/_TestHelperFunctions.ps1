@@ -2,6 +2,8 @@
 Remove-Module BcContainerHelper -ErrorAction Ignore
 Import-Module $modulePath -DisableNameChecking
 
+$bcContainerHelperConfig.killPsSessionProcess = $true
+
 function randomchar([string]$str)
 {
     $rnd = Get-Random -Maximum $str.length
