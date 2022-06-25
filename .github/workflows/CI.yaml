@@ -22,7 +22,7 @@ jobs:
       - name: Analyze
         id: Analyze
         run: |
-          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.ps1') -Exclude @("_*.ps1") | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
           Write-Host "::set-output name=tests::$tests"
           Write-Host "set-output name=tests::$tests"
 
