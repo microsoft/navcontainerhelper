@@ -11,13 +11,13 @@ defaults:
     shell: PowerShell
 
 jobs:
-  Test:
+  Test AppHandling (NAV):
     runs-on: [ windows-latest ]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Run Tests
+      - name: Run Tests - AppHandling (NAV)
         run: |
-          . .\Tests\_TestRunner.ps1
+          . .\Tests\_TestRunOne.ps1 -licenseFile '${{ secrets.licensefile }}' -buildLicenseFile '${{ secrets.buildLicenseFile }}' -insiderSasToken '${{ secrets.insiderSasToken }}' -testScript 'AppHandling - NAV.ps1'
 
