@@ -70,6 +70,7 @@ jobs:
 
             Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
             Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
+            Remove-Item -Path (Join-Path $path ".git") -Force -Recurse
             Remove-Item -Path (Join-Path $path ".gitignore") -Force
             Remove-Item -Path (Join-Path $path "README.md") -Force
 
