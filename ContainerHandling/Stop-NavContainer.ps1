@@ -15,6 +15,9 @@ function Stop-BcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
+    Write-Host "Removing Session $containerName"
+    Remove-BcContainerSession $containerName
+
     if (!(DockerDo -command stop -imageName $containerName)) {
         return
     }
