@@ -1,4 +1,12 @@
-﻿Describe 'Misc' {
+﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
+}
+
+Describe 'Misc' {
 
     It 'Add-FontsToBcContainer' {
         $noOfFonts = Invoke-ScriptInBCContainer -containerName $bcContainerName -scriptblock { (Get-ChildItem -Path "c:\windows\fonts").Count }

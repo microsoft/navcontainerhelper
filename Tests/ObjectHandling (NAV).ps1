@@ -1,10 +1,17 @@
-﻿Describe 'ObjectHandling' {
-
+﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
     $objectsTxtFile = Join-Path $PSScriptRoot "ObjectHandling-objects.txt"
     $deltaFolder = Join-Path $PSScriptRoot "delta"
     $myDeltaFolder = Join-Path $navMyPath "delta"
     $myObjectsFolder = Join-Path $navMyPath "objects"
     $objectsFobFile = Join-Path $myObjectsFolder "objects.fob"
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
+}
+
+Describe 'ObjectHandling' {
 
     It 'Import-ObjectsToNavContainer (.txt)' {
         Import-ObjectsToNavContainer -containerName $navContainerName `

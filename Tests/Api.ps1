@@ -1,4 +1,8 @@
-﻿
+﻿BeforeAll {
+}
+
+AfterAll {
+}
 
 Describe 'Api' {
     It 'Get-NavContainerApiCompanyId' {

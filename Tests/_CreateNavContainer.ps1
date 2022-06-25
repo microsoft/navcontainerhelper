@@ -1,4 +1,5 @@
-﻿$navArtifactUrl = Get-NavArtifactUrl -nav 2018 -cu 17 -country w1
+﻿$credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String (Get-RandomPassword) -Force))
+$navArtifactUrl = Get-NavArtifactUrl -nav 2018 -cu 17 -country w1
 $navImageName = New-BcImage -artifactUrl $navArtifactUrl -skipIfImageAlreadyExists
 $navContainerName = 'nav'
 $navContainerPlatformVersion = '11.0.31747.0'

@@ -1,4 +1,12 @@
-﻿Describe 'ContainerHandling' {
+﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
+}
+
+Describe 'ContainerHandling' {
 
     It 'Enter-BcContainer' {
         #TODO

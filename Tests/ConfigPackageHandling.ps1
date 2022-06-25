@@ -1,4 +1,10 @@
-﻿Describe 'ConfigPackageHandling' {
+﻿BeforeAll {
+}
+
+AfterAll {
+}
+
+Describe 'ConfigPackageHandling' {
 
     It 'Import-ConfigPackageInNavContainer' {
         #TODO

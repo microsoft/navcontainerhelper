@@ -1,4 +1,10 @@
-﻿Describe 'CompanyHandling' {
+﻿BeforeAll {
+}
+
+AfterAll {
+}
+
+Describe 'CompanyHandling' {
 
     It 'Copy-CompanyInNavContainer' {
         #TODO

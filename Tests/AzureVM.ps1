@@ -1,4 +1,10 @@
-﻿Describe 'AzureVM' {
+﻿BeforeAll {
+}
+
+AfterAll {
+}
+
+Describe 'AzureVM' {
 
     It 'New-LetsEncryptCertificate' {
         #TODO

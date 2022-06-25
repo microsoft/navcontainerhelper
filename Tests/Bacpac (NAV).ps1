@@ -1,4 +1,12 @@
-﻿Describe 'Bacpac' {
+﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
+}
+
+Describe 'Bacpac' {
 
     It 'Backup-NavContainerDatabases' {
 

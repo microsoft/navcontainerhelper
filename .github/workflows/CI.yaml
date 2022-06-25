@@ -11,13 +11,31 @@ defaults:
     shell: PowerShell
 
 jobs:
-  Test_AppHandling-NAV:
+  AnalyzeTests:
     runs-on: [ windows-latest ]
+    outputs:
+      tests: ${{ steps.analyze.outputs.tests }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Analyze
+        run: |
+          $tests = Get-ChildItem -Path (Join-Path $PSScriptRoot '*.ps1') -Exclude @("_*.ps1") | ForEach-Object { $_.BaseName }
+          $matrix = @{"test" = $tests} | ConvertTo-Json -compress
+          Write-Host "::set-output name=tests::$matrix"
+          Write-Host "set-output name=tests::$matrix"
+
+  RunTests:
+    runs-on: [ windows-latest ]
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix: ${{fromJson(needs.analyzetests.outputs.tests)}}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Run Tests - AppHandling (NAV)
         run: |
-          . .\Tests\_TestRunOne.ps1 -licenseFile '${{ secrets.licensefile }}' -buildLicenseFile '${{ secrets.buildLicenseFile }}' -insiderSasToken '${{ secrets.insiderSasToken }}' -testScript 'AppHandling (NAV).ps1'
+          . .\Tests\_TestRunOne.ps1 -licenseFile '${{ secrets.licensefile }}' -buildLicenseFile '${{ secrets.buildLicenseFile }}' -insiderSasToken '${{ secrets.insiderSasToken }}' -testScript '${{ matrix.test }}.ps1'
 

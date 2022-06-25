@@ -1,3 +1,9 @@
+BeforeAll {
+}
+
+AfterAll {
+}
+
 Describe 'PackageHandling' {
     It 'Get-AzureFeedWildcardVersion' {
         (Get-AzureFeedWildcardVersion -appVersion "1.0.0") | Should Be "1.*.*"

@@ -12,8 +12,6 @@ try {
     Remove-Module BcContainerHelper -ErrorAction Ignore
     Import-Module $modulePath -DisableNameChecking
 
-    $credential = [PSCredential]::new("admin", (ConvertTo-SecureString -AsPlainText -String "P@ssword1" -Force))
-
     . (Join-Path $PSScriptRoot $testScript)
 }
 catch {

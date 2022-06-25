@@ -1,4 +1,12 @@
-﻿Describe 'TenantHandling' {
+﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1') -sandbox
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
+}
+
+Describe 'TenantHandling' {
 
     It 'Get-BcContainerTenants' {
         Get-BcContainerTenants -containerName $bcsContainerName | Should -Not -BeNullOrEmpty

@@ -1,4 +1,12 @@
-﻿Describe 'ContainerInfo' {
+﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateBcContainer.ps1')
+}
+
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveBcContainer.ps1')
+}
+
+Describe 'ContainerInfo' {
 
     It 'Get-BcContainerCountry' {
         Get-BcContainerCountry -containerOrImageName $bcContainerName | Should -Be "W1"

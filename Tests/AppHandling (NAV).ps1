@@ -1,9 +1,12 @@
 ﻿BeforeAll {
+    . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
     $appPublisher = "Cronus Denmark A/S"
     $appName = "Hello ÆØÅ"
     $appVersion = "1.0.0.0"
+}
 
-    . (Join-Path $PSScriptRoot '_CreateNavContainer.ps1')
+AfterAll {
+    . (Join-Path $PSScriptRoot '_RemoveNavContainer.ps1')
 }
 
 Describe 'AppHandling' {
