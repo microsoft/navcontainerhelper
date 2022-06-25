@@ -32,11 +32,7 @@ Describe 'AppHandling' {
         $appOutputFolder = Join-Path $appProjectFolder "output"
         $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
 
-        $authParam = @{}
-        if ($auth -ne "Windows") {
-            $authParam += @{ "Credential" = $credential }
-        }
-        $bcAppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols @authParam
+        $bcAppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols -credential $credential
         $bcAppFile | Should -Exist
 
         Publish-BcContainerApp -containerName $bcContainerName -appFile $bcAppFile -skipVerification -sync -install
@@ -46,7 +42,7 @@ Describe 'AppHandling' {
         $appOutputFolder = Join-Path $appProjectFolder "output"
         $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
 
-        $bc2AppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols @authParam
+        $bc2AppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols -credential $credential
         $bc2AppFile | Should -Exist
 
         UnPublish-BCContainerApp -containerName $bcContainerName -appName $appName -publisher $appPublisher -version $appVersion -unInstall -doNotSaveData

@@ -10,7 +10,7 @@ New-NavContainer -accept_eula `
                  -containerName $navContainerName `
                  -artifactUrl $navArtifactUrl `
                  -imagename $navImageName `
-                 -auth NavUserPassword `
+                 -auth UserPassword `
                  -Credential $credential `
                  -updateHosts `
                  -memoryLimit 8g `

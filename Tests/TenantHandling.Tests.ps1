@@ -16,21 +16,21 @@ AfterAll {
 Describe 'TenantHandling' {
 
     It 'Get-BcContainerTenants' {
-        Get-BcContainerTenants -containerName $bcsContainerName | Should -Not -BeNullOrEmpty
-        (@(Get-BcContainerTenants -containerName $bcsContainerName)).Count | should -Be 1
+        Get-BcContainerTenants -containerName $bcContainerName | Should -Not -BeNullOrEmpty
+        (@(Get-BcContainerTenants -containerName $bcContainerName)).Count | should -Be 1
     }
     It 'New-BcContainerTenant' {
-        New-BcContainerTenant -containerName $bcsContainerName -tenantId "extra" -alternateId "mytenant"
-        (@(Get-BcContainerTenants -containerName $bcsContainerName)).Count | should -Be 2
+        New-BcContainerTenant -containerName $bcContainerName -tenantId "extra" -alternateId "mytenant"
+        (@(Get-BcContainerTenants -containerName $bcContainerName)).Count | should -Be 2
         $hosts = [string]::Join(' ',(Get-Content -Path "c:\windows\system32\drivers\etc\hosts"))
-        $hosts | Should -BeLike "*$bcsContainerName-extra*"
-        $hosts | Should -Not -BeLike "*$bcsContainerName-mytenant*"
+        $hosts | Should -BeLike "*$bcContainerName-extra*"
+        $hosts | Should -Not -BeLike "*$bcContainerName-mytenant*"
     }
     It 'Remove-BcContainerTenant' {
-        Remove-BcContainerTenant -containerName $bcsContainerName -tenantId "extra"
-        (@(Get-BcContainerTenants -containerName $bcsContainerName)).Count | should -Be 1
+        Remove-BcContainerTenant -containerName $bcContainerName -tenantId "extra"
+        (@(Get-BcContainerTenants -containerName $bcContainerName)).Count | should -Be 1
         $hosts = [string]::Join(' ',(Get-Content -Path "c:\windows\system32\drivers\etc\hosts"))
-        $hosts | Should -Not -BeLike "*$bcsContainerName-extra*"
+        $hosts | Should -Not -BeLike "*$bcContainerName-extra*"
     }
 
 }

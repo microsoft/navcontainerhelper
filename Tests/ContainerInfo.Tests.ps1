@@ -87,7 +87,7 @@ Describe 'ContainerInfo' {
 
     }
     It 'Get-BcContainers' {
-        (Get-BcContainers).Count | Should -BeGreaterOrEqual 2
+        @(Get-BcContainers).Count | Should -BeGreaterOrEqual 1
     }
     It 'Get-BcContainerServerConfiguration' {
         $config = Get-BCContainerServerConfiguration -ContainerName $bcContainerName

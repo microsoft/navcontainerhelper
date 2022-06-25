@@ -28,11 +28,7 @@ Describe 'AppHandling' {
         $appOutputFolder = Join-Path $appProjectFolder "output"
         $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
 
-        $authParam = @{}
-        if ($auth -ne "Windows") {
-            $authParam += @{ "Credential" = $credential }
-        }
-        $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols @authParam
+        $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols -credential $credential
         $navAppFile | Should -Exist
     }
     It 'Extract-AppFileToFolder (nav app)' {
