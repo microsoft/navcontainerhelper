@@ -32,6 +32,7 @@ jobs:
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
     steps:
       - name: Checkout
         uses: actions/checkout@v2
