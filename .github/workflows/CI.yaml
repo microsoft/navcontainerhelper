@@ -36,7 +36,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
-      - name: Run Tests - AppHandling (NAV)
+      - name: Run Tests
         run: |
           . .\Tests\_TestRunOne.ps1 -licenseFile '${{ secrets.licensefile }}' -buildLicenseFile '${{ secrets.buildLicenseFile }}' -insiderSasToken '${{ secrets.insiderSasToken }}' -testScript '${{ matrix.test }}.ps1'
 
