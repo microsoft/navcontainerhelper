@@ -11,7 +11,7 @@ defaults:
     shell: PowerShell
 
 jobs:
-  Test AppHandling (NAV):
+  Test_AppHandling-NAV:
     runs-on: [ windows-latest ]
     steps:
       - name: Checkout
