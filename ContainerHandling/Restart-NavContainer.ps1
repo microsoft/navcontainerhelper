@@ -32,6 +32,9 @@ try {
         }
     }
 
+    Write-Host "Removing Session $containerName"
+    Remove-BcContainerSession $containerName
+
     $logs = @(docker logs $containerName)
     $startlog = [string]::Join("`r`n",$logs)
 

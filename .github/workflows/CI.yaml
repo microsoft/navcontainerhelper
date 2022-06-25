@@ -63,66 +63,71 @@ jobs:
 
       - name: Deploy
         run: |
-          $path = $ENV:GITHUB_WORKSPACE
-          $tempPath = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
-          New-Item -Path $tempPath -ItemType Directory | Out-Null
-          Copy-Item -Path $path -Destination $tempPath -Recurse
+          try {
+            $path = $ENV:GITHUB_WORKSPACE
+            $tempPath = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
+            New-Item -Path $tempPath -ItemType Directory | Out-Null
+            Copy-Item -Path $path -Destination $tempPath -Recurse
           
-          Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
-          Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
-          Remove-Item -Path (Join-Path $path ".gitignore") -Force
-          Remove-Item -Path (Join-Path $path "README.md") -Force
+            Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
+            Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
+            Remove-Item -Path (Join-Path $path ".gitignore") -Force
+            Remove-Item -Path (Join-Path $path "README.md") -Force
 
-          $version = (Get-Content -Path (Join-Path $path 'Version.txt')).split('-')[0]
-          $prerelease = "preview$(620+$ENV:GITHUB_RUN_NUMBER)"
-          Set-Content -Path (Join-Path $path 'Version.txt') -value "$version-$prerelease"
+            $version = (Get-Content -Path (Join-Path $path 'Version.txt')).split('-')[0]
+            $prerelease = "preview$(620+$ENV:GITHUB_RUN_NUMBER)"
+            Set-Content -Path (Join-Path $path 'Version.txt') -value "$version-$prerelease"
           
-          Write-Host "BcContainerHelper version $Version$prerelease"
+            Write-Host "BcContainerHelper version $Version$prerelease"
           
-          $modulePath = Join-Path $tempPath "NavContainerHelper\BcContainerHelper.psm1"
-          Import-Module $modulePath -DisableNameChecking
+            $modulePath = Join-Path $tempPath "NavContainerHelper\BcContainerHelper.psm1"
+            Import-Module $modulePath -DisableNameChecking
           
-          $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
-          $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
+            $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
+            $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
           
-          $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
-          $idx = $releaseNotes.IndexOf($version)
-          if ($idx -lt 0) {
-              throw 'No release notes identified'
-          }
-          $versionReleaseNotes = @()
-          while ($releaseNotes[$idx]) {
-              $versionReleaseNotes += $releaseNotes[$idx]
-              $idx++
-          }
+            $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
+            $idx = $releaseNotes.IndexOf($version)
+            if ($idx -lt 0) {
+                throw 'No release notes identified'
+            }
+            $versionReleaseNotes = @()
+            while ($releaseNotes[$idx]) {
+                $versionReleaseNotes += $releaseNotes[$idx]
+                $idx++
+            }
           
-          Write-Host "Release Notes:"
-          Write-Host $VersionReleaseNotes
+            Write-Host "Release Notes:"
+            Write-Host $VersionReleaseNotes
           
-          Write-Host "Update Module Manifest"
-          Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
-                                -RootModule "BcContainerHelper.psm1" `
-                                -ModuleVersion $version `
-                                -Prerelease $prerelease `
-                                -Author "Freddy Kristiansen" `
-                                -FunctionsToExport $functionsToExport `
-                                -AliasesToExport $aliasesToExport `
-                                -CompanyName "Microsoft" `
-                                -ReleaseNotes $versionReleaseNotes
+            Write-Host "Update Module Manifest"
+            Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+                                  -RootModule "BcContainerHelper.psm1" `
+                                  -ModuleVersion $version `
+                                  -Prerelease $prerelease `
+                                  -Author "Freddy Kristiansen" `
+                                  -FunctionsToExport $functionsToExport `
+                                  -AliasesToExport $aliasesToExport `
+                                  -CompanyName "Microsoft" `
+                                  -ReleaseNotes $versionReleaseNotes
           
-          Remove-Module BcContainerHelper
+            Remove-Module BcContainerHelper
           
-          Write-Host $path
+            Write-Host $path
 
-          Write-Host "Upload to storage (preview)"
-          $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
-          New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+            Write-Host "Upload to storage (preview)"
+            $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
+            New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
           
-          Compress-Archive -path $path -DestinationPath "$($path).zip"
-          Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
-          Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
+            Compress-Archive -path $path -DestinationPath "$($path).zip"
+            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
+            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
           
-          Write-Host "Publishing Module"
-          Publish-Module -Path $path -NuGetApiKey '@{{ secrets.NugetKey }}' -SkipAutomaticTags
+            Write-Host "Publishing Module"
+            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
+          }
+          catch {
+            Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
+          }
 
           
