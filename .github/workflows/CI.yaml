@@ -133,6 +133,7 @@ jobs:
           }
           catch {
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
           }
 
           
