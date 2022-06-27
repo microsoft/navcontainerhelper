@@ -206,6 +206,37 @@ try {
             {
                 $Response = $webClient.DownloadString("$GetListUrl$nextMarker")
                 $enumerationResults = ([xml]$Response).EnumerationResults
+
+                if ($enumerationResults.Blobs) {
+                    if (($After) -or ($Before)) {
+                        $artifacts += $enumerationResults.Blobs.Blob | % {
+                            if ($after) {
+                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                if ($before) {
+                                    if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
+                                        $_.Name
+                                    }
+                                }
+                                elseif ($blobModifiedDate -gt $after) {
+                                    $_.Name
+                                }
+                            }
+                            else {
+                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                if ($blobModifiedDate -lt $before) {
+                                    $_.Name
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        $artifacts += $enumerationResults.Blobs.Blob.Name
+                    }
+                }
+                $nextMarker = $enumerationResults.NextMarker
+                if ($nextMarker) {
+                    $nextMarker = "&marker=$nextMarker"
+                }
             }
             catch
             {
@@ -222,36 +253,6 @@ try {
                 {
                     throw
                 }                
-            }
-            if ($enumerationResults.Blobs) {
-                if (($After) -or ($Before)) {
-                    $artifacts += $enumerationResults.Blobs.Blob | % {
-                        if ($after) {
-                            $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                            if ($before) {
-                                if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
-                                    $_.Name
-                                }
-                            }
-                            elseif ($blobModifiedDate -gt $after) {
-                                $_.Name
-                            }
-                        }
-                        else {
-                            $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                            if ($blobModifiedDate -lt $before) {
-                                $_.Name
-                            }
-                        }
-                    }
-                }
-                else {
-                    $artifacts += $enumerationResults.Blobs.Blob.Name
-                }
-            }
-            $nextMarker = $enumerationResults.NextMarker
-            if ($nextMarker) {
-                $nextMarker = "&marker=$nextMarker"
             }
         } while ($nextMarker)
 
