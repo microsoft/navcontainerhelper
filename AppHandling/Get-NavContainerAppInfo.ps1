@@ -107,18 +107,40 @@ try {
             $apps = Get-NAVAppInfo @inArgs | Where-Object { (!$installedOnly) -or ($_.IsInstalled -eq $true) } | ForEach-Object { Get-NAVAppInfo -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
         }
 
-        if ($sort -eq "None") {
-            $apps
-        }
-        else {
+        if ($sort -ne "None") {
             $apps | ForEach-Object { AddAnApp -AnApp $_ }
+            $apps = $script:installedApps
             if ($sort -eq "DependenciesLast") {
-                [Array]::Reverse($script:installedApps)
+                [Array]::Reverse($apps)
             }
-            $script:installedApps
         }
-
-    } -ArgumentList $args, $sort, $installedOnly | Where-Object {$_ -isnot [System.String]}
+        $apps | ForEach-Object { 
+            $app = $_
+            $newApp = [ordered]@{}
+            $app.PSObject.Properties.Name | ForEach-Object {
+                if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
+                    $v = @($app."$_")
+                    $newApp."$_" = ConvertTo-Json -InputObject $v -Depth 1
+                }
+                else {
+                    $newApp."$_" = "$($app."$_")"
+                }
+            }
+            $newApp
+        }
+    } -ArgumentList $args, $sort, $installedOnly | Where-Object {$_ -isnot [System.String]} | ForEach-Object {
+        $app = $_
+        $newApp = [ordered]@{}
+        $app.Keys | ForEach-Object {
+            if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
+                $newApp."$_" = $app."$_" | ConvertFrom-Json
+            }
+            else {
+                $newApp."$_" = "$($app."$_")"
+            }
+        }
+        [PSCustomObject]$newApp
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
