@@ -15,6 +15,8 @@
   Specifies how (if any) you want to sort apps based on dependencies to other apps
  .Parameter publishedOnly
   Get published apps
+ .Parameter useOldFormat
+  Get published apps
  .Parameter appFilePath
   Specifies the path to a Business Central app package file (N.B. the path should be shared with the container)
  .Example
@@ -44,7 +46,9 @@ function Get-BcContainerAppInfo {
         [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $publishedOnly,
         [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
-        [switch] $installedOnly
+        [switch] $installedOnly,
+        [Parameter(Mandatory = $false)]
+        [switch] $useOldFormat = $bcContainerHelperConfig.UseOldFormatForGetBcContainerAppInfo
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -69,7 +73,7 @@ try {
         $args += @{ "Tenant" = $tenant }
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly, $useOldFormat)
 
         $script:installedApps = @()
 
@@ -114,32 +118,47 @@ try {
                 [Array]::Reverse($apps)
             }
         }
-        $apps | ForEach-Object { 
-            $app = $_
+        if ($useOldFormat) {
+            $apps
+        }
+        else {
+            $apps | ForEach-Object { 
+                $app = $_
+                $newApp = [ordered]@{}
+                $app.PSObject.Properties.Name | ForEach-Object {
+                    if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
+                        $v = @($app."$_")
+                        $newApp."$_" = ConvertTo-Json -InputObject $v -Depth 1 -Compress
+                    }
+                    elseif ($app."$_") {
+                        if ($app."$_" -is [string] -or $app."$_" -is [System.Version] -or $app."$_" -is [boolean]) {
+                            $newApp."$_" = $app."$_"
+                        }
+                        else {
+                            $newApp."$_" = "$($app."$_")"
+                        }
+                    }
+                }
+                $newApp
+            }
+        }
+    } -ArgumentList $args, $sort, $installedOnly, $useOldFormat | Where-Object {$_ -isnot [System.String]} | ForEach-Object {
+        $app = $_
+        if ($useOldFormat) {
+            $app
+        }
+        else {
             $newApp = [ordered]@{}
-            $app.PSObject.Properties.Name | ForEach-Object {
+            $app.Keys | ForEach-Object {
                 if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
-                    $v = @($app."$_")
-                    $newApp."$_" = ConvertTo-Json -InputObject $v -Depth 1
+                    $newApp."$_" = @($app."$_" | ConvertFrom-Json | ForEach-Object { if ($_) { $_ } } )
                 }
                 else {
-                    $newApp."$_" = "$($app."$_")"
+                    $newApp."$_" = $app."$_"
                 }
             }
-            $newApp
+            [PSCustomObject]$newApp
         }
-    } -ArgumentList $args, $sort, $installedOnly | Where-Object {$_ -isnot [System.String]} | ForEach-Object {
-        $app = $_
-        $newApp = [ordered]@{}
-        $app.Keys | ForEach-Object {
-            if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
-                $newApp."$_" = $app."$_" | ConvertFrom-Json
-            }
-            else {
-                $newApp."$_" = "$($app."$_")"
-            }
-        }
-        [PSCustomObject]$newApp
     }
 }
 catch {
