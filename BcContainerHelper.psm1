@@ -149,8 +149,11 @@ function Get-ContainerHelperConfig {
 
         if ($isInsideContainer) {
             $bcContainerHelperConfig.usePsSession = $true
-            $myinspect = docker inspect $(hostname) | ConvertFrom-Json            
-            $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -string "P@ss$($myinspect.Id.SubString(48))" -AsPlainText -Force)
+            try {
+                $myinspect = docker inspect $(hostname) | ConvertFrom-Json
+                $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -string "P@ss$($myinspect.Id.SubString(48))" -AsPlainText -Force)
+            }
+            catch {}
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
