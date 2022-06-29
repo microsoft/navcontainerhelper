@@ -1,6 +1,7 @@
 3.0.12
 Error in retry method in Get-BcArtifactUrl (3.0.11)
 Fixed array parsing in Get-BcContainerAppInfo
+Added ContainerHelper config UseOldFormatForGetBcContainerAppInfo with which you can force Get-BcContainerAppInfo to return values in old format (Sorry Kamil)
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
