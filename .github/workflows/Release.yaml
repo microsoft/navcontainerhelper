@@ -6,6 +6,8 @@ on:
 permissions:
   contents: read
 
+concurrency: Release
+
 defaults:
   run:
     shell: PowerShell
