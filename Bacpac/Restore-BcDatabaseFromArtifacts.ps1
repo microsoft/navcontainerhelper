@@ -51,10 +51,13 @@ try {
         if (Test-Path $successFileName) { Remove-Item $successFileName -Force }
     }
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"
-    $job = Start-Job -ScriptBlock { Param( $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
+    $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\*ContainerHelper.ps1")).FullName
+    Write-Host $containerHelperPath
+
+    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
         $ErrorActionPreference = "Stop"
         try {
-            . (Get-Item (Join-Path $PSScriptRoot "..\*ContainerHelper.ps1")).FullName
+            . "$containerHelperPath"
             Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
             $artifactPath = Download-Artifacts $artifactUrl -includePlatform
             
@@ -189,12 +192,12 @@ try {
         }
         catch {
             if ($successFileName) {
-                Set-Content -Path $successFileName -Value "Error restoring databases. Error was $($_.Exception.Message)"
+                Set-Content -Path $successFileName -Value "Error restoring databases. Error was $($_.Exception.Message)`n$($_.ScriptStackTrace)"
             }
             throw
         }
     
-    } -ArgumentList $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile
+    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile
 
     if (!$async) {
         While ($job.State -eq "Running") {
