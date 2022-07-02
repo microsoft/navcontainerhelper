@@ -554,7 +554,7 @@ try {
             $createTenantAndUserInExternalDatabase = $true
             $bakFile = ""
             $successFileName = Join-Path $bcContainerHelperConfig.containerHelperFolder "$($databasePrefix)databasescreated.txt"
-            $myscripts += @( @{ "SetupDatabase.ps1" = "if (!(Test-Path ""$successFileName"")) { Write-Host -NoNewline 'Waiting for database creation to finish'; while (!(Test-Path ""$successFileName"")) { Start-Sleep -seconds 1; Write-Host -NoNewLine '.' }; Write-Host }; . 'c:\run\setupDatabase.ps1'" } ) `
+            $myscripts += @( @{ "SetupDatabase.ps1" = "if (!(Test-Path ""$successFileName"")) { Write-Host 'Waiting for database creation to finish'; while (!(Test-Path ""$successFileName"")) { Start-Sleep -seconds 5 }; } Get-Content ""$successFileName"" | Out-Host; . 'c:\run\setupDatabase.ps1'" } ) `
         }
     }
 

@@ -53,137 +53,147 @@ try {
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"
     $job = Start-Job -ScriptBlock { Param( $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
         $ErrorActionPreference = "Stop"
-        Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
-        $artifactPath = Download-Artifacts $artifactUrl -includePlatform
-        
-        $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.psm1")
-        if (!($ManagementModule)) {
-            throw "Unable to locate management module in artifacts"
-        }
-        
-        $manifest = Get-Content -Path (Join-Path $artifactPath[0] "manifest.json") | ConvertFrom-Json
-        if ($bakFile) {
-            if (!(Test-Path $bakFile)) {
-                throw "Database backup ($bakFile) doesn't exist"
-            }
-            Write-Host "Using bakFile $bakfile"
-        }
-        else {
-            $bakFile = Join-Path $artifactPath[0] $manifest.database
-            if (!(Test-Path $bakFile)) {
-                throw "Unable to locate database backup in artifacts"
-            }
-        }
-        
-        Write-Host "Importing PowerShell module $($ManagementModule.FullName)"
-        Import-Module $ManagementModule.FullName
-
-        $databaseServerInstance = $databaseServer
-        if ($databaseInstance) {
-            $databaseServerInstance += "\$databaseInstance"
-        }
-
-        $dbName = "$databasePrefix$databaseName"
-        if ($multitenant) {
-            $dbName = "$($databasePrefix)tenant"
-        }
-        Import-Module sqlps -ErrorAction SilentlyContinue
-        $sqlpsModule = get-module sqlps
-        if (-not $sqlpsModule) {
-            import-module SqlServer
-            $SqlModule = get-module SqlServer
-            if (-not $SqlModule) {
-                throw "You need to have a local installation of SQL or you need the SqlServer PowerShell module installed"
-            }
-        }
-
-        $DefaultDataPath = (Invoke-SqlCmd `
-            -ServerInstance $databaseServerInstance `
-            -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
-        
-        if($databaseServer -ne 'localhost'){
-            # Copy local database to SQL Server
-            $defaultBackupPath = (Invoke-SqlCmd `
-                -ServerInstance $databaseServerInstance `
-                -Query "SELECT SERVERPROPERTY('InstanceDefaultBackupPath') AS InstanceDefaultBackupPath" ).InstanceDefaultBackupPath
+        try {
+            . (Get-Item (Join-Path $PSScriptRoot "..\*ContainerHelper.ps1")).FullName
+            Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
+            $artifactPath = Download-Artifacts $artifactUrl -includePlatform
             
-            $qualifier = $defaultBackupPath | Split-Path -Qualifier
-            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
-            $uncDefaultBackupPath = $defaultBackupPath.Replace($qualifier, $newQualifier)
-            
-            Copy-Item -Path $bakFile -Destination $uncDefaultBackupPath -Force
-
-            $bakFile = "$($defaultBackupPath.TrimEnd('\'))\$($bakFile | Split-Path -Leaf)"
-        }
-
-        $destinationPath = "$($DefaultDataPath.TrimEnd('\'))\$($databaseprefix -replace '[^a-zA-Z0-9]', '')"
-        
-        # Create destination folder
-        if($databaseServer -ne 'localhost'){
-            $qualifier = $destinationPath | Split-Path -Qualifier
-            $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
-            if((Test-Path $destinationPath.Replace($qualifier, $newQualifier)) -eq $false){
-                New-Item -Path $destinationPath.Replace($qualifier, $newQualifier) -ItemType Directory -Force
+            $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.psm1")
+            if (!($ManagementModule)) {
+                throw "Unable to locate management module in artifacts"
             }
-        } else {
-            if((Test-Path $destinationPath) -eq $false){
-                New-Item -Path $destinationPath -ItemType Directory -Force
-            }
-        }
 
-        Write-Host "Restoring database $dbName into $destinationPath"
-        New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath $destinationPath | Out-Null
-   
-        if ($multitenant) {
-            if ($sqlpsModule) {
-                $smoServer = New-Object Microsoft.SqlServer.Management.Smo.Server $databaseServerInstance
-                $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-                $SmoExtended = [reflection.assembly]::Load("Microsoft.SqlServer.SmoExtended, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-                $ConnectionInfo = [reflection.assembly]::Load("Microsoft.SqlServer.ConnectionInfo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-                $SqlEnum = [reflection.assembly]::Load("Microsoft.SqlServer.SqlEnum, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
-            }           
-            else {
-                $Path = Split-Path $SqlModule.Path
-                $Smo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.Smo.dll'))
-                $SmoExtended = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SmoExtended.dll'))
-                $ConnectionInfo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.ConnectionInfo.dll'))
-                $SqlEnum = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SqlEnum.dll'))
-            }
-                
-            $OnAssemblyResolve = [System.ResolveEventHandler] {
-                param($sender, $e)
-                if ($e.Name -like "Microsoft.SqlServer.Smo, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $Smo }
-                if ($e.Name -like "Microsoft.SqlServer.SmoExtended, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $SmoExtended }
-                if ($e.Name -like "Microsoft.SqlServer.ConnectionInfo, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $ConnectionInfo }
-                if ($e.Name -like "Microsoft.SqlServer.SqlEnum, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $SqlEnum }
-                foreach($a in [System.AppDomain]::CurrentDomain.GetAssemblies()) {
-                    if ($a.FullName -eq $e.Name) { return $a }
+            $manifest = Get-Content -Path (Join-Path $artifactPath[0] "manifest.json") | ConvertFrom-Json
+            if ($bakFile) {
+                if (!(Test-Path $bakFile)) {
+                    throw "Database backup ($bakFile) doesn't exist"
                 }
-                return $null
+                Write-Host "Using bakFile $bakfile"
             }
-            [System.AppDomain]::CurrentDomain.add_AssemblyResolve($OnAssemblyResolve)
-            
-            Write-Host "Exporting Application to $databasePrefix$databaseName"
-            Export-NAVApplication `
-                -DatabaseServer $databaseServer `
-                -DatabaseInstance $databaseInstance `
-                -DatabaseName "$($databasePrefix)tenant" `
-                -DestinationDatabaseName "$databasePrefix$databaseName" `
-                -Force | Out-Null
-            
-            Write-Host "Removing Application from $($databasePrefix)tenant"
-            Remove-NAVApplication `
-                -DatabaseServer $databaseServer `
-                -DatabaseInstance $databaseInstance `
-                -DatabaseName "$($databasePrefix)tenant" `
-                -Force | Out-Null
-                
-            [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($OnAssemblyResolve)
+            else {
+                $bakFile = Join-Path $artifactPath[0] $manifest.database
+                if (!(Test-Path $bakFile)) {
+                    throw "Unable to locate database backup in artifacts"
+                }
+            }
+
+            Write-Host "Importing PowerShell module $($ManagementModule.FullName)"
+            Import-Module $ManagementModule.FullName
+
+            $databaseServerInstance = $databaseServer
+            if ($databaseInstance) {
+                $databaseServerInstance += "\$databaseInstance"
+            }
+
+            $dbName = "$databasePrefix$databaseName"
+            if ($multitenant) {
+                $dbName = "$($databasePrefix)tenant"
+            }
+            Import-Module sqlps -ErrorAction SilentlyContinue
+            $sqlpsModule = get-module sqlps
+            if (-not $sqlpsModule) {
+                import-module SqlServer
+                $SqlModule = get-module SqlServer
+                if (-not $SqlModule) {
+                    throw "You need to have a local installation of SQL or you need the SqlServer PowerShell module installed"
+                }
+            }
+
+            $DefaultDataPath = (Invoke-SqlCmd `
+                -ServerInstance $databaseServerInstance `
+                -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
+
+            if($databaseServer -ne 'localhost'){
+                # Copy local database to SQL Server
+                $defaultBackupPath = (Invoke-SqlCmd `
+                    -ServerInstance $databaseServerInstance `
+                    -Query "SELECT SERVERPROPERTY('InstanceDefaultBackupPath') AS InstanceDefaultBackupPath" ).InstanceDefaultBackupPath
+
+                $qualifier = $defaultBackupPath | Split-Path -Qualifier
+                $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+                $uncDefaultBackupPath = $defaultBackupPath.Replace($qualifier, $newQualifier)
+
+                Copy-Item -Path $bakFile -Destination $uncDefaultBackupPath -Force
+
+                $bakFile = "$($defaultBackupPath.TrimEnd('\'))\$($bakFile | Split-Path -Leaf)"
+            }
+
+            $destinationPath = "$($DefaultDataPath.TrimEnd('\'))\$($databaseprefix -replace '[^a-zA-Z0-9]', '')"
+
+            # Create destination folder
+            if($databaseServer -ne 'localhost'){
+                $qualifier = $destinationPath | Split-Path -Qualifier
+                $newQualifier = '\\{0}\{1}' -f $databaseServer, $qualifier.Replace(':','$').ToLower()
+                if((Test-Path $destinationPath.Replace($qualifier, $newQualifier)) -eq $false){
+                    New-Item -Path $destinationPath.Replace($qualifier, $newQualifier) -ItemType Directory -Force
+                }
+            } else {
+                if((Test-Path $destinationPath) -eq $false){
+                    New-Item -Path $destinationPath -ItemType Directory -Force
+                }
+            }
+
+            Write-Host "Restoring database $dbName into $destinationPath"
+            New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath $destinationPath | Out-Null
+
+            if ($multitenant) {
+                if ($sqlpsModule) {
+                    $smoServer = New-Object Microsoft.SqlServer.Management.Smo.Server $databaseServerInstance
+                    $Smo = [reflection.assembly]::Load("Microsoft.SqlServer.Smo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                    $SmoExtended = [reflection.assembly]::Load("Microsoft.SqlServer.SmoExtended, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                    $ConnectionInfo = [reflection.assembly]::Load("Microsoft.SqlServer.ConnectionInfo, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                    $SqlEnum = [reflection.assembly]::Load("Microsoft.SqlServer.SqlEnum, Version=$($smoServer.VersionMajor).$($smoServer.VersionMinor).0.0, Culture=neutral, PublicKeyToken=89845dcd8080cc91")
+                }           
+                else {
+                    $Path = Split-Path $SqlModule.Path
+                    $Smo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.Smo.dll'))
+                    $SmoExtended = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SmoExtended.dll'))
+                    $ConnectionInfo = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.ConnectionInfo.dll'))
+                    $SqlEnum = [Reflection.Assembly]::LoadFile((Join-Path $Path 'Microsoft.SqlServer.SqlEnum.dll'))
+                }
+
+                $OnAssemblyResolve = [System.ResolveEventHandler] {
+                    param($sender, $e)
+                    if ($e.Name -like "Microsoft.SqlServer.Smo, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $Smo }
+                    if ($e.Name -like "Microsoft.SqlServer.SmoExtended, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $SmoExtended }
+                    if ($e.Name -like "Microsoft.SqlServer.ConnectionInfo, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $ConnectionInfo }
+                    if ($e.Name -like "Microsoft.SqlServer.SqlEnum, Version=*, Culture=neutral, PublicKeyToken=89845dcd8080cc91") { return $SqlEnum }
+                    foreach($a in [System.AppDomain]::CurrentDomain.GetAssemblies()) {
+                        if ($a.FullName -eq $e.Name) { return $a }
+                    }
+                    return $null
+                }
+                [System.AppDomain]::CurrentDomain.add_AssemblyResolve($OnAssemblyResolve)
+
+                Write-Host "Exporting Application to $databasePrefix$databaseName"
+                Export-NAVApplication `
+                    -DatabaseServer $databaseServer `
+                    -DatabaseInstance $databaseInstance `
+                    -DatabaseName "$($databasePrefix)tenant" `
+                    -DestinationDatabaseName "$databasePrefix$databaseName" `
+                    -Force | Out-Null
+
+                Write-Host "Removing Application from $($databasePrefix)tenant"
+                Remove-NAVApplication `
+                    -DatabaseServer $databaseServer `
+                    -DatabaseInstance $databaseInstance `
+                    -DatabaseName "$($databasePrefix)tenant" `
+                    -Force | Out-Null
+
+                [System.AppDomain]::CurrentDomain.remove_AssemblyResolve($OnAssemblyResolve)
+            }
+            Write-Host "Success"
+            if ($successFileName) {
+                Set-Content -Path $successFileName -Value "Success"
+            }
         }
-        Write-Host "Success"
-        if ($successFileName) {
-            Set-Content -Path $successFileName -Value "Success"
+        catch {
+            if ($successFileName) {
+                Set-Content -Path $successFileName -Value "Error restoring databases. Error was $($_.Exception.Message)"
+            }
+            throw
         }
+    
     } -ArgumentList $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile
 
     if (!$async) {
