@@ -4,6 +4,7 @@ Fixed array parsing in Get-BcContainerAppInfo
 Added ContainerHelper config UseOldFormatForGetBcContainerAppInfo with which you can force Get-BcContainerAppInfo to return values in old format (Sorry Kamil)
 Issue #2573 improve error message when restoring database on host
 Issue #2575 Backup-BcContainerDatabases doesn't work with external SQL Server (if hosthelperfolder is different from containerhelperfolder)
+Issue #2534 Invoke-NAVContainerCodeunit - Windows security identifier is not supported in online environments.
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
