@@ -15,7 +15,7 @@
   Specifies how (if any) you want to sort apps based on dependencies to other apps
  .Parameter publishedOnly
   Get published apps
- .Parameter useOldFormat
+ .Parameter useNewFormat
   Get published apps
  .Parameter appFilePath
   Specifies the path to a Business Central app package file (N.B. the path should be shared with the container)
@@ -73,7 +73,7 @@ try {
         $args += @{ "Tenant" = $tenant }
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly, $useOldFormat)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly, $useNewFormat)
 
         $script:installedApps = @()
 
@@ -118,7 +118,7 @@ try {
                 [Array]::Reverse($apps)
             }
         }
-        if ($useOldFormat) {
+        if (!$useNewFormat) {
             $apps
         }
         else {
@@ -142,9 +142,9 @@ try {
                 $newApp
             }
         }
-    } -ArgumentList $args, $sort, $installedOnly, $useOldFormat | Where-Object {$_ -isnot [System.String]} | ForEach-Object {
+    } -ArgumentList $args, $sort, $installedOnly, $useNewFormat | Where-Object {$_ -isnot [System.String]} | ForEach-Object {
         $app = $_
-        if ($useOldFormat) {
+        if (!$useNewFormat) {
             $app
         }
         else {
