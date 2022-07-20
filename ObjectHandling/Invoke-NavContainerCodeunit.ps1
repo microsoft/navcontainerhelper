@@ -59,20 +59,14 @@ try {
             }
         }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @userParam
-            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @userParam
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
         } elseif ($userexist.state -eq "Disabled") {
-            if ($userexist.WindowsSecurityID) {
-                # recreate the user without sid (ISSUE#2534 Windows security identifier is not supported in online environments.)
-                Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-                New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @userParam
-                New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
-                Start-Sleep -Seconds 1
-            } else {
-                Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Enabled @userParam
-            }
-            
+            Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @userParam
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            Start-Sleep -Seconds 1
         }
         
         $Params = @{}
@@ -90,6 +84,10 @@ try {
         }
 
         Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
+
+        Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Disabled @userParam
+        New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
 
         Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Disabled
 
