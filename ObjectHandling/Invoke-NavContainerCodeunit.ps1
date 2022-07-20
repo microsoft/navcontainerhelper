@@ -59,7 +59,7 @@ try {
             }
         }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me @companyParam
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @companyParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
         } else {
@@ -67,6 +67,7 @@ try {
             Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @companyParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
+            Start-Sleep -Seconds 1
         }
         
         $Params = @{}
