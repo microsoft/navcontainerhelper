@@ -46,7 +46,7 @@ try {
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
 
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone, $version)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
@@ -90,7 +90,7 @@ try {
 
         Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Disabled
 
-    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
+    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
