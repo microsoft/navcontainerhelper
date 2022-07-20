@@ -51,7 +51,7 @@ try {
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
         $companyParam = @{}
-        if ($version.Major -gt 9) {
+        if ($companyName -and $version.Major -gt 9) {
             $companyParam += @{
                 "Company" = $CompanyName
                 "Force" = $true
