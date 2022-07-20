@@ -89,8 +89,6 @@ try {
         New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Disabled @userParam
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
 
-        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Disabled
-
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
 }
 catch {
