@@ -50,21 +50,21 @@ try {
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
-        $userParam = @{}
+        $companyParam = @{}
         if ($version.Major -gt 9) {
-            $userParam += @{
+            $companyParam += @{
                 "Company" = $CompanyName
                 "Force" = $true
                 "WarningAction" = "SilentlyContinue"
             }
         }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @userParam
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @companyParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
         } elseif ($userexist.state -eq "Disabled") {
             Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @userParam
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @companyParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
         }
@@ -86,7 +86,7 @@ try {
         Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
 
         Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Disabled @userParam
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Disabled @companyParam
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
