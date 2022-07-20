@@ -48,7 +48,7 @@ function Get-BcContainerAppInfo {
         [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $installedOnly,
         [Parameter(Mandatory = $false)]
-        [switch] $useOldFormat = $bcContainerHelperConfig.UseOldFormatForGetBcContainerAppInfo
+        [switch] $useNewFormat = $bcContainerHelperConfig.UseNewFormatForGetBcContainerAppInfo
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()

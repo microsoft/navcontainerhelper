@@ -11,6 +11,8 @@ on:
 permissions:
   contents: read
 
+concurrency: CI
+
 defaults:
   run:
     shell: PowerShell

@@ -113,7 +113,7 @@ function Get-ContainerHelperConfig {
             "ObjectIdForInternalUse" = 88123
             "WinRmCredentials" = $null
             "WarningPreference" = "SilentlyContinue"
-            "UseOldFormatForGetBcContainerAppInfo" = $false
+            "UseNewFormatForGetBcContainerAppInfo" = $false
         }
 
         if ($isInsider) {
