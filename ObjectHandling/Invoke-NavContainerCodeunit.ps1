@@ -59,14 +59,14 @@ try {
             }
         }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me @companyParam
-            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me @companyParam
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
         } else {
             # recreate the user without sid (#ISSUE Windows security identifier is not supported in online environments.)
             Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @companyParam
-            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @companyParam
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
         }
         
         $Params = @{}
@@ -85,7 +85,7 @@ try {
 
         Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenant @Params -CodeunitId $CodeUnitId
 
-        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Disabled
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Disabled
 
     } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
 }
