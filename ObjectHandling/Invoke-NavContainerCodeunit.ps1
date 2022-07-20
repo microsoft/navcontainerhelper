@@ -43,31 +43,27 @@ function Invoke-NavContainerCodeunit {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-    $version = [System.Version]($navversion.split('-')[0])
-
-    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone, $version)
+    Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
-        $companyParam = @{}
-        if ($companyName -and $version.Major -gt 9) {
-            $companyParam += @{
-                "Company" = $CompanyName
-                "Force" = $true
-                "WarningAction" = "SilentlyContinue"
-            }
+        $userParam = @{}
+        $userParam += @{
+            "Force" = $true
+            "WarningAction" = "SilentlyContinue"
         }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @companyParam
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @userParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
-        } else {
+        } elseif ($userexist.WindowsSecurityID) {
             # recreate the user without sid (ISSUE#2534 Windows security identifier is not supported in online environments.)
             Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @companyParam
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @userParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
+        } elseif ($userexist.state -eq "Disabled") {
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Enabled @userParam
         }
         
         $Params = @{}
@@ -88,7 +84,7 @@ try {
 
         Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -state Disabled
 
-    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone, $version
+    } -ArgumentList $tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $TimeZone
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
