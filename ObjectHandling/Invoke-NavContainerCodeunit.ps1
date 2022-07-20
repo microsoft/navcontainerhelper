@@ -43,14 +43,20 @@ function Invoke-NavContainerCodeunit {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+
     Invoke-ScriptInNavContainer -containerName $containerName -ScriptBlock { Param($tenant, $CompanyName, $Codeunitid, $MethodName, $Argument, $Timezone)
     
         $me = whoami
         $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
         $userParam = @{}
-        $userParam += @{
-            "Force" = $true
-            "WarningAction" = "SilentlyContinue"
+        if ($version.Major -gt 9) {
+            $userParam += @{
+                "Company" = $CompanyName
+                "Force" = $true
+                "WarningAction" = "SilentlyContinue"
+            }
         }
         if (!($userexist)) {
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -UserName $me -State Enabled @userParam
