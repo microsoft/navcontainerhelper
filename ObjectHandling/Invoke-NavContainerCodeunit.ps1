@@ -65,7 +65,7 @@ try {
         } else {
             # recreate the user without sid (#ISSUE Windows security identifier is not supported in online environments.)
             Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -Force
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled -LicenseType Full @companyParam
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -State Enabled @companyParam
             New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
         }
         
