@@ -40,10 +40,17 @@ try {
 
     Write-Host "Copy SIP crypto provider from container $containerName"
     Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip64Path
-    Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path
+    Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path -ErrorAction SilentlyContinue
 
-    RegSvr32 /s $navSip32Path
+    if (Test-Path $navSip32Path) {
+        RegSvr32 /s $navSip32Path
+        Write-Host -ForegroundColor Green "$navSip32Path successfully registered."
+    }
+    else {
+        Write-Host "$navSip32Path doesn't exist."
+    }
     RegSvr32 /s $navSip64Path
+    Write-Host -ForegroundColor Green "$navSip64Path successfully registered."
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
