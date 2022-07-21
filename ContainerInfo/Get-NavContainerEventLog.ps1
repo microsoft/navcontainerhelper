@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Get the Event log from a NAV/BC Container as an .evtx file
  .Description
@@ -32,10 +32,12 @@ try {
         New-Item $eventLogFolder -ItemType Directory | Out-Null
     }
     $eventLogName = Join-Path $eventLogFolder ($containerName + ' ' + [DateTime]::Now.ToString("yyyy-MM-dd HH.mm.ss") + ".evtx")
+    $locale = (Get-WinSystemLocale).Name
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string]$path, [string]$logname) 
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string]$path, [string]$logname, [string]$locale)
         wevtutil epl $logname "$path"
-    } -ArgumentList (Get-BcContainerPath -containerName $containerName -Path $eventLogName), $logname
+        wevtutil al "$path" /locale:$locale
+    } -ArgumentList (Get-BcContainerPath -containerName $containerName -Path $eventLogName), $logname, $locale
 
     if ($doNotOpen) {
         $eventLogName
