@@ -1664,7 +1664,7 @@ $apps | ForEach-Object {
     $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
     $installedApp = $false
-    if ($installedApps | Where-Object { $_.Name -eq $appJson.Name -and $_.Publisher -eq $appJson.Publisher -and $_.AppId -eq $appJson.Id }) {
+    if ($installedApps | Where-Object { $_.AppId -eq $appJson.Id }) {
         $installedApp = $true
     }
 
