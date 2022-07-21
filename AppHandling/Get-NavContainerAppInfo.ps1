@@ -92,7 +92,7 @@ try {
             #Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
             $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId  }
             if ($dependentApp) {
-                AddAnApp -AnApp $dependentApp
+                @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
             }
         }
 
