@@ -1689,7 +1689,12 @@ if ($multitenant) {
         $customNavSettings += @("PublicODataBaseUrl=$restUrl/odata","PublicSOAPBaseUrl=$soapUrl/ws","PublicWebBaseUrl=$webclientUrl")
 
         if ($version.Major -ge 15) {
-            $ServerInstance = "BC"
+            if (Test-Path "$myfolder\serviceSettings.ps1") {
+                . "$myfolder\serviceSettings.ps1"
+            }
+            else {
+                $ServerInstance = "BC"
+            }
         }
         else {
             $ServerInstance = "NAV"
