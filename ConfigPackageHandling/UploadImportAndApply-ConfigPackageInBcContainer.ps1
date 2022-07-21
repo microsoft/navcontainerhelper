@@ -64,7 +64,7 @@ try {
         }
     }
  
-    $CompanyId = Get-NavContainerApiCompanyId -containerName $containerName -credential $credential -APIVersion "v1.0" -CompanyName $companyName | Select-Object -First 1
+    $CompanyId = Get-NavContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential -APIVersion "v1.0" -CompanyName $companyName | Select-Object -First 1
     if (!($CompanyId)) {
         throw "Company $companyName doesn't exist"
     }
@@ -72,6 +72,7 @@ try {
         Write-Host "Deleting Configuration Package $packageId (if exists)"
         try {
             Invoke-BCContainerApi -containerName $containerName `
+                                  -tenant $tenant `
                                   -CompanyId $CompanyId `
                                   -credential $credential `
                                   -APIPublisher "microsoft" `
@@ -86,6 +87,7 @@ try {
         
         Write-Host "Creating Configuration Package $packageId"
         Invoke-BCContainerApi -containerName $containerName `
+                              -tenant $tenant `
                               -CompanyId $CompanyId `
                               -credential $credential `
                               -APIPublisher "microsoft" `
@@ -97,6 +99,7 @@ try {
         
         Write-Host "Uploading Configuration Package $packageId"
         Invoke-BCContainerApi -containerName $containerName `
+                              -tenant $tenant `
                               -CompanyId $CompanyId `
                               -credential $credential `
                               -APIPublisher "microsoft" `
@@ -109,6 +112,7 @@ try {
         
         Write-Host "Importing Configuration Package $packageId"
         Invoke-BCContainerApi -containerName $containerName `
+                              -tenant $tenant `
                               -CompanyId $CompanyId `
                               -credential $credential `
                               -APIPublisher "microsoft" `
@@ -121,7 +125,9 @@ try {
         $status = ""
         do {
             Start-Sleep -Seconds 5
-            $result = Invoke-BCContainerApi -silent -containerName $containerName `
+            $result = Invoke-BCContainerApi -silent `
+                                            -containerName $containerName `
+                                            -tenant $tenant `
                                             -CompanyId $CompanyId `
                                             -credential $credential `
                                             -APIPublisher "microsoft" `
@@ -146,6 +152,7 @@ try {
         else {
             Write-Host "Applying Configuration Package $packageId"
             Invoke-BCContainerApi -containerName $containerName `
+                                  -tenant $tenant `
                                   -CompanyId $CompanyId `
                                   -credential $credential `
                                   -APIPublisher "microsoft" `
@@ -158,7 +165,9 @@ try {
             $status = ""
             do {
                 Start-Sleep -Seconds 5
-                $result = Invoke-BCContainerApi -silent -containerName $containerName `
+                $result = Invoke-BCContainerApi -silent `
+                                                -containerName $containerName `
+                                                -tenant $tenant `
                                                 -CompanyId $CompanyId `
                                                 -credential $credential `
                                                 -APIPublisher "microsoft" `
