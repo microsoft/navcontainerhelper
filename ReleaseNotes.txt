@@ -5,6 +5,7 @@ Added ContainerHelper config UseNewFormatForGetBcContainerAppInfo with which you
 Issue #2573 improve error message when restoring database on host
 Issue #2575 Backup-BcContainerDatabases doesn't work with external SQL Server (if hosthelperfolder is different from containerhelperfolder)
 Issue #2598 NavSip.dll missing in SysWOW64 on business central 21.0 artifact
+Issue #2581 Event log messages show the wrong description
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
