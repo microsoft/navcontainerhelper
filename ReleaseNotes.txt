@@ -9,6 +9,7 @@ Issue #2581 Event log messages show the wrong description
 Issue #2590 UploadImportAndApply-ConfigPackageInBcContainer ignores tenant parameter
 Issue #2591 Performance issue with Get-NavContainerAppInfo
 Issue #2587 Run-ALPipeline with App Name Change
+Partial fix for Issue #2595 (Issues with "Edit in Excel" for container behind traefik)
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
