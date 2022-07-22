@@ -1,7 +1,3 @@
-3.0.13
-New Function Get-BcScheduledUpgrade which calls the admin center api to check for BC SaaS CU updates
-New Function Reschedule-BcUpgrade which calls the admin center api to reschedule an BC SaaS environment upgrade to a given datetime 
-
 3.0.12
 Error in retry method in Get-BcArtifactUrl (3.0.11)
 Fixed array parsing in Get-BcContainerAppInfo (only if -useNewFormat switch is included)
@@ -15,6 +11,8 @@ Issue #2591 Performance issue with Get-NavContainerAppInfo
 Issue #2587 Run-ALPipeline with App Name Change
 Partial fix for Issue #2595 (Issues with "Edit in Excel" for container behind traefik)
 Issue #2523 New-BcContainerBcUser returns 'The Aggregate Permission Set does not exist.' on BC20 (this bug also requires a BC fix - available in 20.4)
+New Function Get-BcScheduledUpgrade which calls the admin center api to check for BC SaaS CU updates
+New Function Reschedule-BcUpgrade which calls the admin center api to reschedule an BC SaaS environment upgrade to a given datetime 
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
