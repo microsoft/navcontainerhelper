@@ -43,6 +43,10 @@ function New-BcContainerBcUser {
         [bool] $ChangePasswordAtNextLogOn = $true,
         [parameter(Mandatory=$false)]        
         [string] $PermissionSetId = "SUPER",
+        [parameter(Mandatory=$false)]        
+        [string] $AppName = "Base Application",
+        [parameter(Mandatory=$false)]        
+        [string] $AppPublisher = "Microsoft",
         [switch] $assignPremiumPlan,
         [PSCredential] $databaseCredential,
         [parameter(Mandatory=$false)]
@@ -51,7 +55,9 @@ function New-BcContainerBcUser {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, $assignPremiumPlan, [PSCredential]$databaseCredential, [string]$fullName)
+    $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
+    $version = [System.Version]($navversion.split('-')[0])
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, [string]$AppName, [string]$AppPublisher, $assignPremiumPlan, [PSCredential]$databaseCredential, [string]$fullName, [System.Version]$version)
                     
         $TenantParam = @{}
         if ($Tenant) {
@@ -63,6 +69,13 @@ try {
         }
         if ($fullName) {
             $Parameters.Add('FullName',$fullName)
+        }
+        $appParameters = @{}
+        $appStr = ""
+        if ($version.Major -ge 20) {
+            $appParameters.Add('AppName', $AppName)
+            $appParameters.Add('AppPublisher', $AppPublisher)
+            $appStr = " defined in $appName from $appPublisher"
         }
 
         if ($assignPremiumPlan) {
@@ -96,8 +109,8 @@ try {
         if($WindowsAccount) {
             Write-Host "Creating User for WindowsAccount $WindowsAccount"
   			New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -WindowsAccount $WindowsAccount @Parameters
-            Write-Host "Assigning Permission Set $PermissionSetId to $WindowsAccount"
-            New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId
+            Write-Host "Assigning Permission Set $PermissionSetId$appStr to $WindowsAccount"
+            New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $WindowsAccount -PermissionSetId $PermissionSetId @appParameters
             $user = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.UserName.EndsWith("\$WindowsAccount", [System.StringComparison]::InvariantCultureIgnoreCase) -or $_.UserName -eq $WindowsAccount }
         } else {
             Write-Host "Creating User $($Credential.UserName)"
@@ -106,8 +119,8 @@ try {
             } else {
   			    New-NAVServerUser -ServerInstance $ServerInstance @TenantParam -Username $Credential.UserName -Password $Credential.Password @Parameters
             }
-            Write-Host "Assigning Permission Set $PermissionSetId to $($Credential.Username)"
-            New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -username $Credential.username -PermissionSetId $PermissionSetId
+            Write-Host "Assigning Permission Set $PermissionSetId$appStr to $($Credential.Username)"
+            New-NavServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -username $Credential.username -PermissionSetId $PermissionSetId @appParameters
             $user = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.UserName -eq $Credential.UserName }
         }
 
@@ -126,7 +139,7 @@ INSERT INTO [dbo].[$_] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-44
 
             }                   
         }
-    } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $assignPremiumPlan, $databaseCredential, $fullName
+    } -argumentList $Credential, $Tenant, $WindowsAccount, $AuthenticationEMail, $ChangePasswordAtNextLogOn, $PermissionSetId, $AppName, $AppPublisher, $assignPremiumPlan, $databaseCredential, $fullName, $version
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
