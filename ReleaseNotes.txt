@@ -1,3 +1,7 @@
+3.0.13
+New Function Get-BcScheduledUpgrade which calls the admin center api to check for BC SaaS CU updates
+New Function Reschedule-BcUpgrade which calls the admin center api to reschedule an BC SaaS environment upgrade to a given datetime 
+
 3.0.12
 Error in retry method in Get-BcArtifactUrl (3.0.11)
 Fixed array parsing in Get-BcContainerAppInfo (only if -useNewFormat switch is included)
