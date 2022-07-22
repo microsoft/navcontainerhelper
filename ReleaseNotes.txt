@@ -10,6 +10,7 @@ Issue #2590 UploadImportAndApply-ConfigPackageInBcContainer ignores tenant param
 Issue #2591 Performance issue with Get-NavContainerAppInfo
 Issue #2587 Run-ALPipeline with App Name Change
 Partial fix for Issue #2595 (Issues with "Edit in Excel" for container behind traefik)
+Issue #2523 New-BcContainerBcUser returns 'The Aggregate Permission Set does not exist.' on BC20 (this bug also requires a BC fix - available in 20.4)
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
