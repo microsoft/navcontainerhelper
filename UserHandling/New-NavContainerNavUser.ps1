@@ -72,7 +72,7 @@ try {
         }
         $appParameters = @{}
         $appStr = ""
-        if ($version.Major -ge 20) {
+        if ($version.Major -ge 20 -and $permissionSetId -ne "SUPER") {
             $appParameters.Add('AppName', $AppName)
             $appParameters.Add('AppPublisher', $AppPublisher)
             $appStr = " defined in $appName from $appPublisher"

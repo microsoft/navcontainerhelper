@@ -140,6 +140,10 @@
   This parameter is necessary if you want to be able to connect to the container from outside the host.
  .Parameter network
   Use this parameter to override the default network settings in the container (corresponds to --network on docker run)
+ .Parameter macAddress
+  Use this parameter to override the default mac-address settings in the container (corresponds to --mac-address on docker run)
+ .Parameter hostIP
+  Use this parameter to set the default host IP address in the container
  .Parameter dns
   Use this parameter to override the default dns settings in the container (corresponds to --dns on docker run)
  .Parameter runTxt2AlInContainer
@@ -260,8 +264,10 @@ function New-BcContainer {
         [int] $DeveloperServicesPort,
         [int[]] $PublishPorts = @(),
         [string] $PublicDnsName,
-        [string] $network,
-        [string] $dns,
+        [string] $network = "",
+        [string] $hostIP = "",
+        [string] $macAddress = "",
+        [string] $dns = "",
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
         [switch] $useNewDatabase,
@@ -823,6 +829,23 @@ try {
 
     if ($network) {
         $parameters += "--network $network"
+        if ($network -ne "NAT" -and -not $hostIP) {
+            $hostIP = (ipconfig | where-object { $_ –match "IPv4 Address" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } ) | Select-Object -First 1
+        }
+    }
+
+    if ($hostIP) {
+        $parameters += "--env hostIP=$($hostIP.Trim())"
+    }
+
+    if (-not $macAddress) {
+        if ($bcContainerHelperConfig.mapMacAddress.PSObject.Properties.GetEnumerator() | Where-Object { $_.Name -eq $containerName }) {
+            $macAddress = $bcContainerHelperConfig.mapMacAddress."$containerName"
+        }
+    }
+
+    if ($macAddress) {
+        $parameters += "--mac-address ""$macAddress"""
     }
 
     $publishPorts | ForEach-Object {
@@ -1800,6 +1823,9 @@ if (-not `$restartingInstance) {
             $additionalParameters += @("--env customWebSettings=$([string]::Join(',',$customWebSettings))")
         }
     }
+
+#    Write-Host "Parameters:"
+#    $Parameters | % { if ($_) { Write-Host "$_" } }
 
     if ($additionalParameters) {
         Write-Host "Additional Parameters:"
