@@ -104,6 +104,8 @@ function Get-ContainerHelperConfig {
                 "uy" = "w1"
                 "zw" = "w1"
             }
+            "mapMacAddress" = [PSCustomObject]@{
+            }
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @()
             "PartnerTelemetryConnectionString" = ""
