@@ -123,10 +123,14 @@ else {
         }
     }
     if ($sethost) {
-        $gateway = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } )
-        if ($gateway -and ($gateway -is [string])) {
-            Write-Host "Setting host.containerhelper.internal to $($gateway.Trim()) in container hosts file"
-            UpdateHostsFile -hostsFile $myhostsFile -theHostname "host.containerhelper.internal" -theIpAddress $gateway.Trim() | Out-Null
+        $hostIP = "$ENV:hostIP"
+        if (-not $hostIP) {
+            $hostIP = (ipconfig | where-object { $_ –match "Default Gateway" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } ) | Select-Object -First 1
+        }
+
+        if ($hostIP -and ($hostIP -is [string])) {
+            Write-Host "Setting host.containerhelper.internal to $($hostIP.Trim()) in container hosts file"
+            UpdateHostsFile -hostsFile $myhostsFile -theHostname "host.containerhelper.internal" -theIpAddress $hostIP.Trim() | Out-Null
         }
     }
 }
