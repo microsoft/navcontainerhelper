@@ -446,6 +446,8 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "BcSaaS\Set-BcEnvironmentApplicationInsightsKey.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\Get-BcDatabaseExportHistory.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\New-BcDatabaseExport.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Get-BcScheduledUpgrade.ps1")
+. (Join-Path $PSScriptRoot "BcSaaS\Reschedule-BcUpgrade.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
