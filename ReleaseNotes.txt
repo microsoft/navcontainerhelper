@@ -12,9 +12,10 @@ Issue #2587 Run-ALPipeline with App Name Change
 Partial fix for Issue #2595 (Issues with "Edit in Excel" for container behind traefik)
 Issue #2523 New-BcContainerBcUser returns 'The Aggregate Permission Set does not exist.' on BC20 (this bug also requires a BC fix - available in 20.4)
 Workaround for issue #2607 BcContainerHelper Networking and static IP
-Added parameter -macAddress to New-BcContainer to enable setting the container Mac macAddress
+Added parameter -macAddress to New-BcContainer to enable setting the container Mac Address
+Added parameter -IP to New-BcContainer to enable setting the container IP Address
 Added parameter -hostIP to enable setting the host.containerhelper.internal IP address inside the container
-Added configuration mapMacAddress to set mappings of containernames to macAddresses
+Added configuration mapNetworkSettings to set mappings of containernames to ip, macAddress, dns, network and hostIP
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
