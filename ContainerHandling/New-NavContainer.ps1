@@ -142,6 +142,8 @@
   Use this parameter to override the default network settings in the container (corresponds to --network on docker run)
  .Parameter macAddress
   Use this parameter to override the default mac-address settings in the container (corresponds to --mac-address on docker run)
+ .Parameter IP
+  Use this parameter to override the default mac-address settings in the container (corresponds to --ip on docker run)
  .Parameter hostIP
   Use this parameter to set the default host IP address in the container
  .Parameter dns
@@ -267,6 +269,7 @@ function New-BcContainer {
         [string] $network = "",
         [string] $hostIP = "",
         [string] $macAddress = "",
+        [string] $IP = "",
         [string] $dns = "",
         [switch] $useTraefik,
         [switch] $useCleanDatabase,
@@ -823,13 +826,36 @@ try {
         $parameters += "--env DeveloperServicesPort=$DeveloperServicesPort"
     }
 
+    $networkSettings = @{}
+    if ($bcContainerHelperConfig.mapNetworkSettings.PSObject.Properties.GetEnumerator() | Where-Object { $_.Name -eq $containerName }) {
+        $networkSettings = $bcContainerHelperConfig.mapNetworkSettings."$containerName"
+        if ($networkSettings -isnot [hashtable]) {
+            $networkSettings = $networkSettings | ConvertTo-HashTable
+        }
+        if ($networkSettings.ContainsKey('dns') -and $dns -eq "") {
+            $dns = $networkSettings.dns
+        }
+        if ($networkSettings.ContainsKey('network') -and $network -eq "") {
+            $network = $networkSettings.network
+        }
+        if ($networkSettings.ContainsKey('ip') -and $ip -eq "") {
+            $ip = $networkSettings.ip
+        }
+        if ($networkSettings.ContainsKey('macAddress') -and $macAddress -eq "") {
+            $macAddress = $networkSettings.macAddress
+        }
+        if ($networkSettings.ContainsKey('hostIP') -and $hostIP -eq "") {
+            $hostIP = $networkSettings.hostIP
+        }
+    }
+
     if ($dns) {
         $parameters += "--dns $dns"
     }
 
     if ($network) {
         $parameters += "--network $network"
-        if ($network -ne "NAT" -and -not $hostIP) {
+        if ($network -ne "NAT" -and $hostIP -eq "") {
             $hostIP = (ipconfig | where-object { $_ –match "IPv4 Address" } | foreach-object{ $_.Split(":")[1] } | Where-Object { $_.Trim() -ne "" } ) | Select-Object -First 1
         }
     }
@@ -838,14 +864,12 @@ try {
         $parameters += "--env hostIP=$($hostIP.Trim())"
     }
 
-    if (-not $macAddress) {
-        if ($bcContainerHelperConfig.mapMacAddress.PSObject.Properties.GetEnumerator() | Where-Object { $_.Name -eq $containerName }) {
-            $macAddress = $bcContainerHelperConfig.mapMacAddress."$containerName"
-        }
-    }
-
     if ($macAddress) {
         $parameters += "--mac-address ""$macAddress"""
+    }
+
+    if ($IP) {
+        $parameters += "--ip ""$IP"""
     }
 
     $publishPorts | ForEach-Object {
@@ -1824,8 +1848,8 @@ if (-not `$restartingInstance) {
         }
     }
 
-#    Write-Host "Parameters:"
-#    $Parameters | % { if ($_) { Write-Host "$_" } }
+    Write-Host "Parameters:"
+    $Parameters | % { if ($_) { Write-Host "$_" } }
 
     if ($additionalParameters) {
         Write-Host "Additional Parameters:"

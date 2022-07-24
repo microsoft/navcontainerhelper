@@ -104,7 +104,7 @@ function Get-ContainerHelperConfig {
                 "uy" = "w1"
                 "zw" = "w1"
             }
-            "mapMacAddress" = [PSCustomObject]@{
+            "mapNetworkSettings" = [PSCustomObject]@{
             }
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @()
