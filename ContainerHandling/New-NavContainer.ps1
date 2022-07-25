@@ -1848,8 +1848,8 @@ if (-not `$restartingInstance) {
         }
     }
 
-    Write-Host "Parameters:"
-    $Parameters | % { if ($_) { Write-Host "$_" } }
+    #Write-Host "Parameters:"
+    #$Parameters | % { if ($_) { Write-Host "$_" } }
 
     if ($additionalParameters) {
         Write-Host "Additional Parameters:"
