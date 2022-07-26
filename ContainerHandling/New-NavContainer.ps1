@@ -849,8 +849,14 @@ try {
         }
     }
 
+    if ($dns -eq "hostDNS" -or ($bcContainerHelperConfig.AddHostDnsServersToNatContainers -and ($network -eq "NAT" -or $network -eq "") -and $dns -eq "")) {
+        $dnsServers = @(Get-NetIPInterface | Where-Object { $_.ConnectionState -eq "Connected" -and $_.AddressFamily -eq "IPv4" } | ForEach-Object { Get-DnsClientServerAddress -AddressFamily IPv4 -InterfaceAlias $_.InterfaceAlias | ForEach-Object { $_.ServerAddresses } })
+        Write-Host "Adding DNS Servers from host: $($dnsServers -join ', ')"
+        $dns = $dnsServers -join ','
+    }
+
     if ($dns) {
-        $parameters += "--dns $dns"
+        $parameters += "--dns $($dns.Replace(',',' --dns '))"
     }
 
     if ($network) {

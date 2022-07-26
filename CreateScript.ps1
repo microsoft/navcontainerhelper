@@ -1145,9 +1145,9 @@ $Step.DNS {
     if ($hosting -eq "Local") {
 
         $options = [ordered]@{"default" = "Use default DNS settings (configured in Docker Daemon)"; "usegoogledns" = "Add Google public dns (8.8.8.8) as DNS to the container" }
-        $hostDNS = Get-DnsClientServerAddress | Select-Object –ExpandProperty ServerAddresses | Where-Object { "$_".indexOf(':') -eq -1 } | Select -first 1
+        $hostDNS = @(Get-NetIPInterface | Where-Object { $_.ConnectionState -eq "Connected" -and $_.AddressFamily -eq "IPv4" } | ForEach-Object { Get-DnsClientServerAddress -AddressFamily IPv4 -InterfaceAlias $_.InterfaceAlias | ForEach-Object { $_.ServerAddresses } }) -join ','
         if ($hostDNS) {
-            $options += @{ "usehostdns" = "Add your hosts primary DNS server ($hostDNS) as DNS to the container" }
+            $options += @{ "usehostdns" = "Add your hosts DNS servers ($hostDNS) as DNS to the container" }
         }
         $dns = Select-Value `
             -title @'
@@ -1472,7 +1472,7 @@ $step.Final {
             $parameters += "-dns '8.8.8.8'"
         }
         elseif ($dns -eq "usehostdns") {
-            $parameters += "-dns '$hostDNS'"
+            $parameters += "-dns 'hostDNS'"
         }
     
         if ($ssl -eq "usessl") {

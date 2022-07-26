@@ -106,6 +106,7 @@ function Get-ContainerHelperConfig {
             }
             "mapNetworkSettings" = [PSCustomObject]@{
             }
+            "AddHostDnsServersToNatContainers" = $false
             "TraefikUseDnsNameAsHostName" = $false
             "TreatWarningsAsErrors" = @()
             "PartnerTelemetryConnectionString" = ""
