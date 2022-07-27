@@ -434,6 +434,9 @@ function CopyAppFilesToFolder {
         elseif (Test-Path $appFile -PathType Container) {
             get-childitem $appFile -Filter '*.app' -Recurse | % {
                 $destFile = Join-Path $folder $_.Name
+                if (Test-Path $destFile) {
+                    Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                }
                 Copy-Item -Path $_.FullName -Destination $destFile -Force
                 $destFile
             }
@@ -461,6 +464,9 @@ function CopyAppFilesToFolder {
             }
             else {
                 $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
+                if (Test-Path $destFile) {
+                    Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                }
                 Copy-Item -Path $appFile -Destination $destFile -Force
                 $destFile
             }
