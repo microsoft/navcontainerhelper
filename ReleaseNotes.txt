@@ -11,6 +11,8 @@ Issue #2591 Performance issue with Get-NavContainerAppInfo
 Issue #2587 Run-ALPipeline with App Name Change
 Partial fix for Issue #2595 (Issues with "Edit in Excel" for container behind traefik)
 Issue #2523 New-BcContainerBcUser returns 'The Aggregate Permission Set does not exist.' on BC20 (this bug also requires a BC fix - available in 20.4)
+New Function Get-BcScheduledUpgrade which calls the admin center api to check for BC SaaS CU updates
+New Function Reschedule-BcUpgrade which calls the admin center api to reschedule an BC SaaS environment upgrade to a given datetime 
 Workaround for issue #2607 BcContainerHelper Networking and static IP
 Added parameter -macAddress to New-BcContainer to enable setting the container Mac Address
 Added parameter -IP to New-BcContainer to enable setting the container IP Address
