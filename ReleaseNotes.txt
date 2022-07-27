@@ -21,7 +21,8 @@ Added configuration mapNetworkSettings to set mappings of containernames to ip, 
 Set -dns to "HostDNS" on New-BcContainer to add Host DNS Servers to the new container (needed for NAT containers on some networks)
 Added configuration AddHostDnsServersToNatContainers. Set this to true for New-BcContainer to automatically add the Host DNS Servers to NAT containers.
 Issue #2541 Add resilience to Add-FontsToBcContainer
-Issue #2610 Issue warning if multiple apps have the same name
+Issue #2600 Issue warning if multiple apps have the same name
+Issue #2610 Issue in resolve dependencies
 
 3.0.11
 Issue #2378 When running BcContainerHelper without admin rights, the import of a certificate is now done in an elevated process (asking for permissions)
