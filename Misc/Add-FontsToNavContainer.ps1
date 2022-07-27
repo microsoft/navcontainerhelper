@@ -7,6 +7,8 @@
   Name of the container to which you want to copy fonts
  .Parameter path
   Path or array of paths to fonts to copy and register in the container.
+ .Parameter maxAttempts
+  Specifies the number of attempts to run the font installation before giving up
  .Example
   Add-FontsToBcContainer
  .Example
@@ -23,7 +25,8 @@ function Add-FontsToBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName, 
         [Parameter(Mandatory=$false)]
-        [string[]] $path = @("C:\Windows\Fonts")
+        [string[]] $path = @("C:\Windows\Fonts"),
+        [int] $maxAttempts = 5
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -57,9 +60,14 @@ try {
     if ($found) {
         Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
 
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($addFontsScript)
-            . $addFontsScript
-        } -argumentList (Get-BcContainerPath -containerName $containerName -path (Join-Path $fontsFolder "AddFonts.ps1"))
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($maxAttempts, $addFontsScript)
+            $cnt = 1
+            do {
+                Write-Host -NoNewline "Installing fonts"
+                $job = Start-Job { Param($addFontsScript) . $addFontsScript } -ArgumentList $addFontsScript | wait-job
+                Write-Host " - $($job.State)"
+            } while (++$cnt -le $maxAttempts -and $job.State -ne "Completed")
+        } -argumentList $maxAttempts, (Get-BcContainerPath -containerName $containerName -path (Join-Path $fontsFolder "AddFonts.ps1"))
     }
 }
 catch {
