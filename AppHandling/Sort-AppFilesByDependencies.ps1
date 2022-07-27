@@ -93,8 +93,12 @@ try {
         
         function AddDependency { Param($dependency)
             $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
-            $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId }
+            $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId } | Sort-Object -Property @{ "Expression" = "[System.Version]Version" }
             if ($dependentApp) {
+                if ($dependentApp -is [Array]) {
+                    Write-Host -ForegroundColor Yellow "AppFiles contains multiple versions of the app with AppId $dependencyAppId"
+                    $dependentApp = $dependentApp | Select-Object -Last 1
+                }
                 AddAnApp -AnApp $dependentApp
             }
             else {
