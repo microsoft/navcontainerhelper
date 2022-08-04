@@ -10,11 +10,19 @@ function ConvertTo-HashTable() {
     [CmdletBinding()]
     Param(
         [parameter(ValueFromPipeline)]
-        [PSCustomObject] $object
+        [PSCustomObject] $object,
+        [switch] $recurse
     )
     $ht = @{}
     if ($object) {
-        $object.PSObject.Properties | Foreach { $ht[$_.Name] = $_.Value }
+        $object.PSObject.Properties | ForEach-Object { 
+            if ($recurse -and ($_.Value -is [PSCustomObject])) {
+                $ht[$_.Name] = ConvertTo-HashTable $_.Value
+            }
+            else {
+                $ht[$_.Name] = $_.Value
+            }
+        }
     }
     $ht
 }
