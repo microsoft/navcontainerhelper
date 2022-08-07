@@ -864,3 +864,12 @@ function testPfxCertificate([string] $pfxFile, [SecureString] $pfxPassword, [str
         Write-Host -ForegroundColor Yellow "$certkind certificate will expire on $($cert.GetExpirationDateString())"
     }
 }
+
+function GetHash {
+    param(
+        [string] $str
+    )
+
+    $stream = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($str))
+    (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
+}

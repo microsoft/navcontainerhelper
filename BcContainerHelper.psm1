@@ -434,6 +434,15 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadUsersInNavContainer.ps1")
 
+# AppSource specific functions
+. (Join-Path $PSScriptRoot "AppSource\Invoke-IngestionAPI.ps1")
+. (Join-Path $PSScriptRoot "AppSource\Get-AppSourceProduct.ps1")
+. (Join-Path $PSScriptRoot "AppSource\Get-AppSourceProducts.ps1")
+. (Join-Path $PSScriptRoot "AppSource\Get-AppSourceSubmission.ps1")
+. (Join-Path $PSScriptRoot "AppSource\New-AppSourceSubmission.ps1")
+. (Join-Path $PSScriptRoot "AppSource\Promote-AppSourceSubmission.ps1")
+. (Join-Path $PSScriptRoot "AppSource\Cancel-AppSourceSubmission.ps1")
+
 # BC SaaS specific functions
 . (Join-Path $PSScriptRoot "BcSaaS\New-BcAuthContext.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\Renew-BcAuthContext.ps1")

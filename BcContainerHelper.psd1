@@ -136,7 +136,10 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'UnPublish-BcContainerApp', 'Wait-BcContainerReady', 
                'Write-BcContainerHelperWelcomeText', 'Invoke-gh', 'Invoke-git',
                'Set-BcContainerServerConfiguration', 'Restart-BcContainerServiceTier',
-               'Get-BcScheduledUpgrade', 'Reschedule-BcUpgrade'
+               'Get-BcScheduledUpgrade', 'Reschedule-BcUpgrade',
+               'Invoke-IngestionAPI', 'Get-AppSourceProduct', 'Get-AppSourceProducts',
+               'Get-AppSourceSubmission', 'New-AppSourceSubmission', 'Promote-AppSourceSubmission', 'Cancel-AppSourceSubmission'
+
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
 CmdletsToExport = @()

@@ -17,6 +17,8 @@
     "New-CompanyInNavContainer"                       = "DO0016"
     "Import-TestToolkitToBcContainer"                 = "DO0017"
     "UploadImportAndApply-ConfigPackageInBcContainer" = "DO0018"
+    "New-AppSourceSubmission"                         = "DO0019"
+    "Promote-AppSourceSubmission"                     = "DO0020"
 }
 
 function FormatValue {
