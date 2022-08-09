@@ -64,7 +64,12 @@ try {
         if (!$silent) {
             Write-Host "GET $($uriBuilder.Uri.ToString())"
         }
-        $ps = Invoke-RestMethod -UseBasicParsing -Uri $uriBuilder.Uri.ToString() -Headers $headers
+        try {
+            $ps = Invoke-RestMethod -UseBasicParsing -Uri $uriBuilder.Uri.ToString() -Headers $headers
+        }
+        catch {
+            throw (GetExtendedErrorMessage $_)
+        }
         if ($ps.PSObject.Properties.Name -eq 'nextlink') {
             $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/$($ps.nextlink)")
         }
@@ -136,7 +141,12 @@ try {
     }
     $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
     $uriBuilder.Query = $query
-    Invoke-RestMethod -UseBasicParsing -Uri $uriBuilder.Uri.ToString() -Headers $headers
+    try {
+        Invoke-RestMethod -UseBasicParsing -Uri $uriBuilder.Uri.ToString() -Headers $headers
+    }
+    catch {
+        throw (GetExtendedErrorMessage $_)
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
@@ -200,7 +210,12 @@ try {
     }
     $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
     $uriBuilder.Query = $query
-    Invoke-RestMethod -UseBasicParsing -Method Post -Uri $uriBuilder.Uri.ToString() -Headers $headers -Body ($body | ConvertTo-Json)
+    try {
+        Invoke-RestMethod -UseBasicParsing -Method Post -Uri $uriBuilder.Uri.ToString() -Headers $headers -Body ($body | ConvertTo-Json)
+    }
+    catch {
+        throw (GetExtendedErrorMessage $_)
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
@@ -262,7 +277,12 @@ try {
     }
     $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
     $uriBuilder.Query = $query
-    Invoke-RestMethod -UseBasicParsing -Method Put -Uri $uriBuilder.Uri.ToString() -Headers $headers -Body ($body | ConvertTo-Json)
+    try {
+        Invoke-RestMethod -UseBasicParsing -Method Put -Uri $uriBuilder.Uri.ToString() -Headers $headers -Body ($body | ConvertTo-Json)
+    }
+    catch {
+        throw (GetExtendedErrorMessage $_)
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
@@ -319,7 +339,12 @@ try {
     }
     $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
     $uriBuilder.Query = $query
-    Invoke-RestMethod -UseBasicParsing -Method Delete -Uri $uriBuilder.Uri.ToString() -Headers $headers
+    try {
+        Invoke-RestMethod -UseBasicParsing -Method Delete -Uri $uriBuilder.Uri.ToString() -Headers $headers
+    }
+    catch {
+        throw (GetExtendedErrorMessage $_)
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
