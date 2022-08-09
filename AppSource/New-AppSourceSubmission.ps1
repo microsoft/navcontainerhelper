@@ -243,13 +243,13 @@ try {
                             Write-Host -NoNewline $_.Name
                         }
                         if ($_.State -eq "Success") {
-                            Write-Host ' ✓'
+                            Write-Host -ForegroundColor Green ' Success�'
                         }
                         elseif ($_.state -eq "InProgress") {
                             Write-Host -NoNewline '.'
                         }
                         else {
-                            Write-Host ' ✗'
+                            Write-Host -ForegroundColor Red ' Failure'
                             $failed = $true
                         }
                         $jobs."$($_.Name)" = $_.State
@@ -262,6 +262,9 @@ try {
                     if (!$promoted) {
                         Promote-AppSourceSubmission -authContext $authContext -productId $productId -submissionId $submission.id -silent:($silent.IsPresent) | Out-Null
                         $promoted = $true
+                        if ($doNotWait.IsPresent) {
+                            $complete = $true
+                        }
                     }
                 }
                 else {
