@@ -133,7 +133,7 @@ try {
     $packageConfiguration = $packageConfigurations[0]
     $packageConfiguration.packageReferences = @()
 
-    0..1 | ForEach-Object {
+    0..([int]($libraryAppFile -ne "")) | ForEach-Object {
         if ($_ -eq 0) {
             $file = $appFile
             $resourceType = "Dynamics365BusinessCentralAddOnExtensionPackage"
