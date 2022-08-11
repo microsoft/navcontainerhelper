@@ -1,12 +1,12 @@
 4.0.0
 Added AppSource Validation functions
 New functions Invoke-IngestionAPIGet, Invoke-IngestionAPIGetCollection, Invoke-IngestionAPIPost, Invoke-IngestionAPIPut, Invoke-IngestionAPIDelete to interact with Partner Center Ingestion API
-New function Get-AppSourceProducts to get a list of all products on AppoSource belonging to a specific account
-New function Get-AppSourceProduct to get detailed information about a product on AppSource
+New function Get-AppSourceProduct to get information about products on AppSource
 New function Get-AppSourceSubmission to get detailed information about a submission of a product on AppSource
 New function New-AppSourceSubmission to create a submission of a new version of a product on AppSource
 New function Promote-AppSourceSubmission to promote a submission of a product on AppSource from preview to live / production
 New function Cancel-AppSourceSubmission to cancel an in progress submission of a product on AppSource
+Support getting NextMajor of countries with no current release in Get-BcArtifactUrl
 
 3.0.12
 Error in retry method in Get-BcArtifactUrl (3.0.11)

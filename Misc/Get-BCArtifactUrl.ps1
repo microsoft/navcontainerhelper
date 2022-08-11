@@ -96,7 +96,7 @@ try {
         if ($sasToken -eq '') {
             throw "You need to specify an insider SasToken if you want to get $select release"
         }
-        $current = Get-BCArtifactUrl -country $country -select Latest -doNotCheckPlatform:$doNotCheckPlatform
+        $current = Get-BCArtifactUrl -country 'base' -select Latest -doNotCheckPlatform:$doNotCheckPlatform
         $currentversion = [System.Version]($current.Split('/')[4])
 
         $nextminorversion = "$($currentversion.Major).$($currentversion.Minor+1)."
