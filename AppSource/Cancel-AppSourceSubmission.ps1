@@ -32,6 +32,7 @@ function Cancel-AppSourceSubmission {
     
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
     $submission = Get-AppSourceSubmission -authContext $authContext -productId $productId -submissionId $submissionId -silent:($silent.IsPresent)
     if ($submission.state -eq "InProgress") {
         Invoke-IngestionApiDelete -authContext $authContext -path "/products/$productId/submissions/$($submission.id)" -silent:($silent.IsPresent)

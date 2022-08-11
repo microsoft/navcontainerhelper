@@ -1,3 +1,74 @@
+function Invoke-IngestionApiRestMethod {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [HashTable] $authContext,
+        [Parameter(Mandatory=$false)]
+        [HashTable] $headers = @{},
+        [string] $method = "GET",
+        [Parameter(Mandatory=$true)]
+        [string] $path,
+        [Parameter(Mandatory=$false)]
+        [string] $query = '',
+        [Parameter(Mandatory=$false)]
+        [string] $body = '',
+        [switch] $silent
+    )
+
+    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
+    $headers += @{
+        "Authorization" = "Bearer $($authcontext.AccessToken)"
+        "Content-Type" = "application/json"
+    }
+    $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
+    if (!$silent) {
+        Write-Host "$method $($UriBuilder.Uri.ToString())"
+    }
+    if ($query) {
+        $uriBuilder.Query = $query
+    }
+    $parameters = @{
+        "useBasicParsing" = $true
+        "method" = $method
+        "uri" = $UriBuilder.Uri.ToString()
+        "headers" = $headers
+    }
+    if ($PSBoundParameters.ContainsKey('body')) {
+        if (!$silent) {
+            $body | Out-Host
+        }
+        $parameters += @{
+            "body" = $body
+        }
+    }
+    $waitTime = 1
+    $retries = 5
+    $success = $false
+    do {
+        try {
+            Invoke-RestMethod @parameters
+            $success = $true
+        }
+        catch {
+            $statusCode = 0
+            try {
+                $errorDetails = $_.ErrorDetails | ConvertFrom-Json
+                $statusCode = $errorDetails.statusCode
+            }
+            catch {}
+            if ($retries -gt 0 -and $statusCode -eq 500) {
+                $retries--
+                Write-Host "$(GetExtendedErrorMessage $_)".TrimEnd()
+                Write-Host "...retrying in $waittime minute(s)"
+                Start-Sleep -Seconds ($waitTime*60)
+                $waitTime = $waitTime * 2
+            }
+            else {
+                throw (GetExtendedErrorMessage $_)
+            }
+        }
+    } while (!$success)
+}
+
 <#
  .Synopsis
   Invoke a HTTP GET to receive a collection of objects from the Ingestion API
@@ -53,28 +124,17 @@ function Invoke-IngestionApiGetCollection {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
-    $headers += @{
-        "Authorization" = "Bearer $($authcontext.AccessToken)"
-        "Content-Type" = "application/json"
-    }
-    $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
-    $uriBuilder.Query = $query
-    while ($uriBuilder) {
-        if (!$silent) {
-            Write-Host "GET $($uriBuilder.Uri.ToString())"
-        }
-        try {
-            $ps = Invoke-RestMethod -UseBasicParsing -Uri $uriBuilder.Uri.ToString() -Headers $headers
-        }
-        catch {
-            throw (GetExtendedErrorMessage $_)
-        }
+    $nextlink = $path
+    while ($nextlink) {
+
+        $ps = Invoke-IngestionApiRestMethod -authContext $authContext -method GET -headers $headers -path $nextlink -silent:$silent
+
         if ($ps.PSObject.Properties.Name -eq 'nextlink') {
-            $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/$($ps.nextlink)")
+            $nextlink = $ps.nextlink.SubString("v1.0/ingestion".Length)
+            Write-Host $nextlink
         }
         else {
-            $uriBuilder = $null
+            $nextlink = ""
         }
         if ($ps.value) {
             $ps.value
@@ -130,23 +190,7 @@ function Invoke-IngestionApiGet {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    if (!$silent) {
-        Write-Host "GET https://api.partner.microsoft.com/v1.0/ingestion$path"
-    }
-
-    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
-    $headers += @{
-        "Authorization" = "Bearer $($authcontext.AccessToken)"
-        "Content-Type" = "application/json"
-    }
-    $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
-    $uriBuilder.Query = $query
-    try {
-        Invoke-RestMethod -UseBasicParsing -Uri $uriBuilder.Uri.ToString() -Headers $headers
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
+    Invoke-IngestionApiRestMethod -authContext $authContext -method GET -headers $headers -path $path -query $query -silent:$silent
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
@@ -196,26 +240,7 @@ function Invoke-IngestionApiPost {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    if (!$silent) {
-        Write-Host "POST https://api.partner.microsoft.com/v1.0/ingestion$path"
-    }
-
-    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
-    $headers += @{
-        "Authorization" = "Bearer $($authcontext.AccessToken)"
-        "Content-Type" = "application/json"
-    }
-    if (!$silent) {
-        $body | ConvertTo-Json | Out-Host
-    }
-    $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
-    $uriBuilder.Query = $query
-    try {
-        Invoke-RestMethod -UseBasicParsing -Method Post -Uri $uriBuilder.Uri.ToString() -Headers $headers -Body ($body | ConvertTo-Json)
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
+    Invoke-IngestionApiRestMethod -authContext $authContext -method POST -headers $headers -path $path -query $query -body ($body | ConvertTo-Json) -silent:$silent
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
@@ -264,25 +289,10 @@ function Invoke-IngestionApiPut {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    if (!$silent) {
-        Write-Host "PUT https://api.partner.microsoft.com/v1.0/ingestion$path"
-        $body | ConvertTo-Json | Out-Host
-    }
-
-    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
     $headers += @{
-        "Authorization" = "Bearer $($authcontext.AccessToken)"
-        "Content-Type" = "application/json"
         "If-Match" = $body.'@odata.etag'
     }
-    $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
-    $uriBuilder.Query = $query
-    try {
-        Invoke-RestMethod -UseBasicParsing -Method Put -Uri $uriBuilder.Uri.ToString() -Headers $headers -Body ($body | ConvertTo-Json)
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
+    Invoke-IngestionApiRestMethod -authContext $authContext -method PUT -headers $headers -path $path -query $query -body ($body | ConvertTo-Json) -silent:$silent
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
@@ -327,24 +337,7 @@ function Invoke-IngestionApiDelete {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    
-    if (!$silent) {
-        Write-Host "DELETE https://api.partner.microsoft.com/v1.0/ingestion$path"
-    }
-
-    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
-    $headers += @{
-        "Authorization" = "Bearer $($authcontext.AccessToken)"
-        "Content-Type" = "application/json"
-    }
-    $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
-    $uriBuilder.Query = $query
-    try {
-        Invoke-RestMethod -UseBasicParsing -Method Delete -Uri $uriBuilder.Uri.ToString() -Headers $headers
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
+    Invoke-IngestionApiRestMethod -authContext $authContext -method DELETE -headers $headers -path $path -query $query -silent:$silent
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

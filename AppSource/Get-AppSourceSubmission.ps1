@@ -65,6 +65,7 @@ function Get-AppSourceSubmission {
     
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
     if (-not $submissionId) {
         $submissions = @(Invoke-IngestionApiGetCollection -authContext $authContext -path "/products/$productId/submissions" -silent:($silent.IsPresent))
         if ($submissions.Count -eq 0) {
