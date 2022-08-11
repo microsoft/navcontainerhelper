@@ -30,8 +30,8 @@ function New-AppSourceSubmission {
         [HashTable] $authContext,
         [Parameter(Mandatory=$true)]
         [string] $productId,
-        [Parameter(Mandatory=$true)]
-        [string] $appFile,
+        [Parameter(Mandatory=$false)]
+        [string] $appFile = "",
         [Parameter(Mandatory=$false)]
         [string[]] $libraryAppFiles = @(),
         [switch] $autoPromote,
@@ -42,6 +42,7 @@ function New-AppSourceSubmission {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+    $authContext = Renew-BcAuthContext -bcAuthContext $authContext
     if ($telemetryScope) {
         if ($authContext.ClientID) {
             AddTelemetryProperty -telemetryScope $telemetryScope -key "client" -value (GetHash -str $authContext.ClientID)
@@ -89,26 +90,19 @@ try {
     }
     $packageCurrentDraftInstanceID = $branchesPackage[0].currentDraftInstanceID
     
-    $branchesProperty = @(Invoke-IngestionApiGetCollection -authContext $authContext -path "/products/$productId/branches/getByModule(module=Property)" -silent:($silent.IsPresent) | Where-Object { 
-        $thisVariantID = ''
-        if ($_.PSObject.Properties.name -eq "variantID") { $thisVariantID = $_.variantID }
-        $variantID -eq $thisVariantID
-    })
-    if ($branchesProperty.Count -ne 1) {
-        throw "Unable to locate properties from Ingestion API"
-    }
-    $propertyCurrentDraftInstanceID = $branchesProperty[0].currentDraftInstanceID
-    
-    try {
-        $tempFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
-        Extract-AppFileToFolder -appFilename $appFile -appFolder $tempFolder -generateAppJson
-        $appJsonFile = Join-Path $tempFolder 'app.json'
-        $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
-        Remove-Item $tempFolder -Recurse -Force
-        $appVersionNumber = [System.Version]$appJson.version
-    }
-    catch {
-        throw "Unable to extract app file and determine version number"
+    $appVersionNumber = ""
+    if ($appFile) {
+        try {
+            $tempFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+            Extract-AppFileToFolder -appFilename $appFile -appFolder $tempFolder -generateAppJson
+            $appJsonFile = Join-Path $tempFolder 'app.json'
+            $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
+            Remove-Item $tempFolder -Recurse -Force
+            $appVersionNumber = [System.Version]$appJson.version
+        }
+        catch {
+            throw "Unable to extract app file and determine version number"
+        }
     }
 
     $tempFolder = ""
@@ -131,9 +125,8 @@ try {
         throw "unable to locate package configuration"
     }
     $packageConfiguration = $packageConfigurations[0]
-    $packageConfiguration.packageReferences = @()
 
-    0..([int]($libraryAppFile -ne "")) | ForEach-Object {
+    0..1 | ForEach-Object {
         if ($_ -eq 0) {
             $file = $appFile
             $resourceType = "Dynamics365BusinessCentralAddOnExtensionPackage"
@@ -142,46 +135,48 @@ try {
             $file = $libraryAppFile
             $resourceType = "Dynamics365BusinessCentralAddOnLibraryExtensionPackage"
         }
-        $body = @{
-            "resourceType" = $resourceType
-            "fileName" = [System.IO.Path]::GetFileName($file)
-        }
-        $packageUpload = Invoke-IngestionApiPost -authContext $authContext -path "/products/$productId/packages" -Body $body -silent:($silent.IsPresent)
-    
-        $uri = [System.Uri] $packageUpload.fileSasUri
-        $storageAccountName = $uri.DnsSafeHost.Split(".")[0]
-        $container = $uri.LocalPath.Substring(1).split('/')[0]
-        $blobname = $uri.LocalPath.Substring(1).split('/')[1]
-        $sasToken = $uri.Query
+        if ($file) {
+            $body = @{
+                "resourceType" = $resourceType
+                "fileName" = [System.IO.Path]::GetFileName($file)
+            }
+            $packageUpload = Invoke-IngestionApiPost -authContext $authContext -path "/products/$productId/packages" -Body $body -silent:($silent.IsPresent)
+        
+            $uri = [System.Uri] $packageUpload.fileSasUri
+            $storageAccountName = $uri.DnsSafeHost.Split(".")[0]
+            $container = $uri.LocalPath.Substring(1).split('/')[0]
+            $blobname = $uri.LocalPath.Substring(1).split('/')[1]
+            $sasToken = $uri.Query
 
-        $storageContext = New-AzStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
-        Set-AzStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
-    
-        $packageUpload.state = "Uploaded"
-        $packageUploaded = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/packages/$($packageUpload.id)" -Body ($packageUpload | ConvertTo-HashTable) -silent:($silent.IsPresent)
-        if ($packageUploaded.state -ne "Processed") {
-            throw "Could not process package"
-        }
+            $storageContext = New-AzStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
+            Set-AzStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
+        
+            $packageUpload.state = "Uploaded"
+            $packageUploaded = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/packages/$($packageUpload.id)" -Body ($packageUpload | ConvertTo-HashTable) -silent:($silent.IsPresent)
+            if ($packageUploaded.state -ne "Processed") {
+                throw "Could not process package"
+            }
 
-        $packageConfiguration.packageReferences += @([PSCustomObject]@{
-            "type" = $resourceType
-            "value" = $packageUploaded.id
-        })
+            $exists = $false
+            $packageConfiguration.packageReferences | ForEach-Object {
+                if ($_.type -eq $resourceType) {
+                    $_.value = $packageUploaded.id
+                    $exists = $true
+                }
+            }
+            if (-not $exists) {
+                $packageConfiguration.packageReferences += @([PSCustomObject]@{
+                    "type" = $resourceType
+                    "value" = $packageUploaded.id
+                })
+            }
+        }
     }
     if ($tempFolder -and (Test-Path $tempFolder -PathType Container)) {
         Remove-Item $tempFolder -Recurse -Force
     }
 
     $result = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/packageConfigurations/$($packageConfiguration.id)" -Body ($packageConfiguration | ConvertTo-HashTable -recurse) -silent:($silent.IsPresent)
-    
-    $properties = @(Invoke-IngestionApiGetCollection -authContext $authContext -path "/products/$productId/properties/getByInstanceID(instanceID=$propertyCurrentDraftInstanceID)" -silent:($silent.IsPresent))
-    if ($properties.Count -ne 1) {
-        $properties | fl | Out-Host
-        throw "unable to locate properties"
-    }
-    $property = $properties[0]
-    $property.appVersion = $appVersionNumber.ToString()
-    $result = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/properties/$($property.id)" -Body ($property | ConvertTo-HashTable -recurse) -silent:($silent.IsPresent)
     
     $body = [ordered]@{
         "resourceType" = "SubmissionCreationRequest"
@@ -193,15 +188,38 @@ try {
         )
         "resources" = @(
             [ordered]@{
-                "type" = "Property"
-                "value" = $propertyCurrentDraftInstanceID
-            }
-            [ordered]@{
                 "type" = "Package"
                 "value" = $packageCurrentDraftInstanceID
             }
         )
     }
+    if ($appVersionNumber) {
+        $branchesProperty = @(Invoke-IngestionApiGetCollection -authContext $authContext -path "/products/$productId/branches/getByModule(module=Property)" -silent:($silent.IsPresent) | Where-Object { 
+            $thisVariantID = ''
+            if ($_.PSObject.Properties.name -eq "variantID") { $thisVariantID = $_.variantID }
+            $variantID -eq $thisVariantID
+        })
+        if ($branchesProperty.Count -ne 1) {
+            throw "Unable to locate properties from Ingestion API"
+        }
+        $propertyCurrentDraftInstanceID = $branchesProperty[0].currentDraftInstanceID
+
+        $properties = @(Invoke-IngestionApiGetCollection -authContext $authContext -path "/products/$productId/properties/getByInstanceID(instanceID=$propertyCurrentDraftInstanceID)" -silent:($silent.IsPresent))
+        if ($properties.Count -ne 1) {
+            $properties | fl | Out-Host
+            throw "unable to locate properties"
+        }
+        $property = $properties[0]
+        $property.appVersion = $appVersionNumber.ToString()
+        $result = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/properties/$($property.id)" -Body ($property | ConvertTo-HashTable -recurse) -silent:($silent.IsPresent)
+        $body.resources += @(
+            [ordered]@{
+                "type" = "Property"
+                "value" = $propertyCurrentDraftInstanceID
+            }
+        )
+    }
+    
     $submission = Invoke-IngestionApiPost -authContext $authContext -path "/products/$productId/submissions" -Body $body -silent:($silent.IsPresent)
     
     if ($doNotWait.IsPresent -and !$autoPromote.IsPresent) {
@@ -243,7 +261,7 @@ try {
                             Write-Host -NoNewline $_.Name
                         }
                         if ($_.State -eq "Success") {
-                            Write-Host -ForegroundColor Green ' Success“'
+                            Write-Host -ForegroundColor Green ' Successï¿½'
                         }
                         elseif ($_.state -eq "InProgress") {
                             Write-Host -NoNewline '.'

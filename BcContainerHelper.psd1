@@ -137,7 +137,7 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Write-BcContainerHelperWelcomeText', 'Invoke-gh', 'Invoke-git',
                'Set-BcContainerServerConfiguration', 'Restart-BcContainerServiceTier',
                'Get-BcScheduledUpgrade', 'Reschedule-BcUpgrade',
-               'Invoke-IngestionAPI', 'Get-AppSourceProduct', 'Get-AppSourceProducts',
+               'Invoke-IngestionAPI', 'Get-AppSourceProduct',
                'Get-AppSourceSubmission', 'New-AppSourceSubmission', 'Promote-AppSourceSubmission', 'Cancel-AppSourceSubmission'
 
 
