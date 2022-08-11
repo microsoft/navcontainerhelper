@@ -128,12 +128,17 @@ try {
 
     0..1 | ForEach-Object {
         if ($_ -eq 0) {
+            $parameterName = 'AppFile'
             $file = $appFile
             $resourceType = "Dynamics365BusinessCentralAddOnExtensionPackage"
         }
         else {
+            $parameterName = 'LibraryAppFiles'
             $file = $libraryAppFile
             $resourceType = "Dynamics365BusinessCentralAddOnLibraryExtensionPackage"
+        }
+        if ($PSBoundParameters.ContainsKey($parameterName)) {
+            $packageConfiguration.packageReferences = @($packageConfiguration.packageReferences | Where-Object { $_.type -ne $resourceType })
         }
         if ($file) {
             $body = @{
@@ -157,19 +162,10 @@ try {
                 throw "Could not process package"
             }
 
-            $exists = $false
-            $packageConfiguration.packageReferences | ForEach-Object {
-                if ($_.type -eq $resourceType) {
-                    $_.value = $packageUploaded.id
-                    $exists = $true
-                }
-            }
-            if (-not $exists) {
-                $packageConfiguration.packageReferences += @([PSCustomObject]@{
-                    "type" = $resourceType
-                    "value" = $packageUploaded.id
-                })
-            }
+            $packageConfiguration.packageReferences += @([PSCustomObject]@{
+                "type" = $resourceType
+                "value" = $packageUploaded.id
+            })
         }
     }
     if ($tempFolder -and (Test-Path $tempFolder -PathType Container)) {
