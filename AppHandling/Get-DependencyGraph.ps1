@@ -48,11 +48,11 @@ class App {
             $this.path = $appInfo.path
         }
         
-        if($null -ne $appInfo.IsInstalled) {
+        if($appInfo.psobject.Properties.name -contains "IsInstalled" -and $null -ne $appInfo.IsInstalled) {
             $this.isInstalled = $appInfo.IsInstalled
         }
         
-        if($null -ne $appInfo.IsPublished) {
+        if($appInfo.psobject.Properties.name -contains "IsPublished" -and $null -ne $appInfo.IsPublished) {
             $this.isPublished = $appInfo.IsPublished
         }
    }
@@ -169,15 +169,13 @@ class DependencyGraph {
                 $innerAppVersion = Get-MatchingVersion -appVersions $innerAppVersions -appId $appId -appVersion $minVersion
                 if($null -ne $innerAppVersion) {
                     $deps = $this.GetDependents($innerAppVersion.id, $innerAppVersion.Version)
-                    $dependentIds = $dependents | % { $_.Id }
 
-                    if($dependentIds -notcontains $appId) {
+                    if(($dependents | % { $_.Id }) -notcontains $innerAppVersion.Id) {
                         $dependents += $innerAppVersion
-                        $dependentIds += $innerAppVersion.Id
                     }
 
                     foreach($dep in $deps) {
-                        if($dependentIds -notcontains $dep.Id) {
+                        if(($dependents | % { $_.Id }) -notcontains $dep.Id) {
                             $dependents += $dep
                         }
                     }
@@ -285,3 +283,4 @@ function Get-DependencyGraph {
 }
 
 Export-ModuleMember -Function Get-DependencyGraph
+Export-ModuleMember -Function Create-DependencyGraph
