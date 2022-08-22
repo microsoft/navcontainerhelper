@@ -1,0 +1,287 @@
+function Get-NewerVersion {
+    param(
+        [String]$versionA,
+        [String]$versionB
+    )
+
+    $aParts = $versionA.Split('.') | % { $_ -as [int]}
+    $bParts = $versionB.Split('.') | % { $_ -as [int]}
+    for($i = 0; $i -lt $aParts.Length; $i++) {
+        $aPart = $aParts[$i]
+        $bPart = $bParts[$i]
+
+        if($aPart -gt $bPart) {
+            return $versionA
+        } elseif($bPart -gt $aPart) {
+            return $versionB
+        }
+    }
+
+    return $null
+}
+
+class App {
+   [String]$id
+   [String]$name
+   [String]$version
+   [String]$path
+   [hashtable[]]$dependencies = @()
+   [boolean]$isInstalled = $false
+   [boolean]$isPublished = $false
+
+   [boolean] IsNewerThen([App] $compare) {
+        return $this.version -eq (Get-NewerVersion -versionA $this.version -versionB $compare.version)
+   }
+   
+   App($appInfo, $dependencyFilter = { $true }) {
+        $this.id = $appInfo.AppId
+        $this.name = $appInfo.Name
+        $this.version = $appInfo.Version
+        $this.dependencies = @($appInfo.Dependencies | Where-Object $dependencyFilter | % { 
+            @{ 
+                Id = $_.AppId
+                Version = $_.MinVersion
+            }
+        })
+
+        if($appInfo.psobject.Properties.name -contains "path") {
+            $this.path = $appInfo.path
+        }
+        
+        if($null -ne $appInfo.IsInstalled) {
+            $this.isInstalled = $appInfo.IsInstalled
+        }
+        
+        if($null -ne $appInfo.IsPublished) {
+            $this.isPublished = $appInfo.IsPublished
+        }
+   }
+}
+
+class DependencyGraph {
+    $apps = @{}
+
+    AddApp([App] $app) {
+        $appVersions = $this.apps[$app.id]
+        if($null -ne $appVersions -and $appVersions.Length -gt 0) {
+            if($app.IsNewerThen($appVersions[0])) {
+                $this.apps[$app.id] = @($app) + $appVersions
+            } else {
+                $this.apps[$app.id] += @($app)
+            }
+        } else {
+            $this.apps[$app.id] = @($app)
+        }
+    }
+
+    [App] GetLatestApp([String] $appId) {
+        $appVersions = $this.apps[$appId]
+        if($null -ne $appVersions -and $appVersions.Length -gt 0) {
+            return $appVersions[0]
+        }
+        return $null
+    }
+    [App[]] GetAllApps([String] $appId) {
+        $appVersions = $this.apps[$appId]
+        if($null -ne $appVersions -and $appVersions.Length -gt 0) {
+            return $appVersions
+        }
+        return $null
+    }
+
+    [App[]] GetAllApps() {
+        return $this.apps.keys
+        if($null -ne $appVersions -and $appVersions.Length -gt 0) {
+            return $appVersions
+        }
+        return $null
+    }
+
+    [App] GetAppNewerThen($appId, $minVersion) {
+        $appVersions = $this.GetAllApps($appId)
+        return $appVersions | Where-Object {
+            $newest = Get-NewerVersion -versionA $minVersion -versionB $_.Version
+            ($newest -eq $_.Version) -or ($null -eq $newest)
+        }[0]
+    }
+
+    [String[]] GetAppIds() {
+        return $this.apps.keys
+    }
+
+    [hashtable[]] GetDependencies([String] $appId, [String] $minVersion) {
+        $appVersions = $this.apps[$appId]
+
+        $dependencies = @()
+        $app = $this.GetAppNewerThen($appId, $minVersion)
+        if($null -ne $appVersions) {
+
+            # Filter all app versions that are newer then $minVersion then take the newest
+            $app = $appVersions | Where-Object {
+                $newest = Get-NewerVersion -versionA $minVersion -versionB $_.Version
+                $newest -eq $_.Version -or $null -eq $newest
+            }[0]
+            if($null -ne $app){
+                foreach($edge in $app.dependencies) {
+                    $deps = $this.GetDependencies($edge.Id, $edge.Version)
+                    $depIds = $dependencies | % { $_.Id }
+                    foreach($dep in $deps) {
+                        if($depIds -notcontains $dep.Id) {
+                            $dependencies += $dep
+                        }
+                    }
+                    if($depIds -notcontains $edge.Id) {
+                        $dependencies += $edge
+                    }
+                }
+            }
+        }
+        return $dependencies
+    }
+
+    [hashtable[]] GetDependents([String] $appId, [String] $minVersion) {
+        function Get-MatchingVersion {
+            param (
+                $appVersions,
+                $appId,
+                $appVersion
+            )
+            foreach($app in $appVersions) {
+                foreach($dependency in $app.dependencies){
+                    $newest = (Get-NewerVersion -versionA $dependency.Version -versionB $appVersion)
+                    if(($dependency.Id -eq $appId) -and ($newest -eq $appVersion -or $null -eq $newest)) {
+                        return  @{ 
+                            Id = $app.Id
+                            Version = $app.Version
+                        }
+                    } 
+                }
+            }
+            return $null
+        }
+
+        $dependents = @()
+        $outerApp = $this.GetAppNewerThen($appId, $minVersion)
+
+        if($null -ne $outerApp){
+    
+            foreach($innerAppVersions in $this.apps.Values) {
+                $innerAppVersion = Get-MatchingVersion -appVersions $innerAppVersions -appId $appId -appVersion $minVersion
+                if($null -ne $innerAppVersion) {
+                    $deps = $this.GetDependents($innerAppVersion.id, $innerAppVersion.Version)
+                    $dependentIds = $dependents | % { $_.Id }
+
+                    if($dependentIds -notcontains $appId) {
+                        $dependents += $innerAppVersion
+                        $dependentIds += $innerAppVersion.Id
+                    }
+
+                    foreach($dep in $deps) {
+                        if($dependentIds -notcontains $dep.Id) {
+                            $dependents += $dep
+                        }
+                    }
+                }
+            }
+        }
+
+        return $dependents
+    }
+    [void] draw() {
+        foreach($appId in $this.apps.Keys) {
+            foreach($appVersion in $this.apps[$appId]) {
+                Write-Host -ForegroundColor Yellow "$($appVersion.Name) $($appVersion.Version)"
+
+                Write-Host -ForegroundColor Magenta "Dependencies"
+                foreach($appDep in $this.GetDependencies($appVersion.Id, $appVersion.Version)) {
+                    Write-Host -ForegroundColor Magenta " - $($appDep.Id) $($appDep.Version)"
+                }
+
+                Write-Host -ForegroundColor Green "Dependents"
+                foreach($appDep in $this.GetDependents($appVersion.Id, $appVersion.Version)) {
+                    Write-Host -ForegroundColor Green " - $($appDep.Id) $($appDep.Version)"
+                }
+
+            }
+        }
+    }
+}
+function Create-DependencyGraph {
+    param (
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [Parameter(Mandatory = $false)]
+        [string] $tenant = "",
+        [Parameter(Mandatory = $true)]
+        [hashtable[]] $appInfos,
+        [switch] $ignoreMicrosoftApps,
+        [Parameter(Mandatory = $false)]
+        [scriptblock] $filter = { $true }
+    )
+
+    $dependencyGraph = [DependencyGraph]::new()
+
+    $microsoftFilter = { $_.Publisher -ne "Microsoft" }
+
+    if(($ignoreMicrosoftApps -eq $true)) {
+        $usedFilter = [ScriptBlock]::Create($microsoftFilter.ToString() + " -and " + $filter.ToString())
+    } else {
+        $usedFilter = $filter
+    }
+
+    foreach ($appInfo in $appInfos) {
+        $app = [App]::new($appInfo, $usedFilter)
+        $dependencyGraph.AddApp($app)
+    }
+
+    return $dependencyGraph
+}
+
+<# 
+ .Synopsis
+  Get Dependency Graph for BC Apps
+ .Description
+  Creates a dependency graph for app files or apps in an container.
+ .Parameter containerName
+  Name of the container in which you want to enumerate apps
+ .Parameter tenant
+  Specifies the tenant from which you want to get the app info
+ .Parameter appPaths
+  Specifies the path to a Business Central app package files (N.B. the path should be shared with the container)
+ .Example
+  Get-DependencyGraph -containerName test2
+ .Example
+  Get-DependencyGraph -containerName test2 -tenant mytenant
+ .Example
+  Get-DependencyGraph -containerName test2 --appPaths @(".\Example.app", ".\Hello.app")
+#>
+function Get-DependencyGraph {
+    param (
+        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [Parameter(Mandatory = $false)]
+        [string] $tenant = "",
+        [Parameter(Mandatory = $false)]
+        [string[]] $appPaths = $null,
+        [switch] $ignoreMicrosoftApps,
+        [Parameter(Mandatory = $false)]
+        [scriptblock] $filter = { $true }
+    )
+
+
+    if($null -ne $appPaths) {
+        $appInfos = @()
+        foreach ($appPath in $appPaths) {
+            $appInfo = Get-BcContainerAppInfo -useNewFormat -containerName $containerName -appFilePath $appPath
+            $appInfo.path = $appPath
+            
+            $appInfos += $appInfo
+        }
+        
+    } else {
+        $appInfos = Get-BcContainerAppInfo -useNewFormat -containerName $containerName -tenant $tenant -tenantSpecificProperties | Where-Object $usedFilter
+    }
+    
+
+    return Create-DependencyGraph -containerName $containerName -tenant $tenant -ignoreMicrosoftApps $ignoreMicrosoftApps -filter $filter -appInfos $appInfos
+}
+
+Export-ModuleMember -Function Get-DependencyGraph

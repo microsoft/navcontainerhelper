@@ -411,6 +411,7 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlPipeline.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlValidation.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlCops.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Get-DependencyGraph.ps1")
 
 # Tenant Handling functions
 . (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
