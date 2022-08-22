@@ -1,8 +1,8 @@
 <#
  .Synopsis
-  Get information about an AppSource product from the authenticated account
+  Get information about AppSource products from the authenticated account
  .Description
-  Returns a PSCustomObject with your AppSource product
+  Returns one or more PSCustomObject with information about your AppSource products
  .Parameter authContext
   Authentication Context from New-BcAuthContext
  .Parameter productId
