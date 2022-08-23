@@ -1,25 +1,3 @@
-function Get-NewerVersion {
-    param(
-        [String]$versionA,
-        [String]$versionB
-    )
-
-    $aParts = $versionA.Split('.') | % { $_ -as [int]}
-    $bParts = $versionB.Split('.') | % { $_ -as [int]}
-    for($i = 0; $i -lt $aParts.Length; $i++) {
-        $aPart = $aParts[$i]
-        $bPart = $bParts[$i]
-
-        if($aPart -gt $bPart) {
-            return $versionA
-        } elseif($bPart -gt $aPart) {
-            return $versionB
-        }
-    }
-
-    return $null
-}
-
 class App {
    [String]$id
    [String]$name
@@ -81,6 +59,7 @@ class DependencyGraph {
         }
         return $null
     }
+
     [App[]] GetAllApps([String] $appId) {
         $appVersions = $this.apps[$appId]
         if($null -ne $appVersions -and $appVersions.Length -gt 0) {
@@ -89,20 +68,18 @@ class DependencyGraph {
         return $null
     }
 
-    [App[]] GetAllApps() {
-        return $this.apps.keys
-        if($null -ne $appVersions -and $appVersions.Length -gt 0) {
-            return $appVersions
-        }
-        return $null
-    }
-
     [App] GetAppNewerThen($appId, $minVersion) {
         $appVersions = $this.GetAllApps($appId)
-        return $appVersions | Where-Object {
-            $newest = Get-NewerVersion -versionA $minVersion -versionB $_.Version
-            ($newest -eq $_.Version) -or ($null -eq $newest)
-        }[0]
+        if($appVersions -ne $null) {
+            $filteredVersions = @($appVersions | Where-Object {
+                $newest = Get-NewerVersion -versionA $minVersion -versionB $_.Version
+                ($newest -eq $_.Version) -or ($null -eq $newest)
+            })
+            if($filteredVersions -ne $null) {
+                return $filteredVersions[0]
+            }
+        }
+        return $null
     }
 
     [String[]] GetAppIds() {
@@ -204,6 +181,28 @@ class DependencyGraph {
         }
     }
 }
+function Get-NewerVersion {
+    param(
+        [String]$versionA,
+        [String]$versionB
+    )
+
+    $aParts = $versionA.Split('.') | % { $_ -as [int]}
+    $bParts = $versionB.Split('.') | % { $_ -as [int]}
+    for($i = 0; $i -lt $aParts.Length; $i++) {
+        $aPart = $aParts[$i]
+        $bPart = $bParts[$i]
+
+        if($aPart -gt $bPart) {
+            return $versionA
+        } elseif($bPart -gt $aPart) {
+            return $versionB
+        }
+    }
+
+    return $null
+}
+
 function Create-DependencyGraph {
     param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
@@ -283,4 +282,3 @@ function Get-DependencyGraph {
 }
 
 Export-ModuleMember -Function Get-DependencyGraph
-Export-ModuleMember -Function Create-DependencyGraph
