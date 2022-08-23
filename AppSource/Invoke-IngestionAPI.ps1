@@ -131,7 +131,6 @@ try {
 
         if ($ps.PSObject.Properties.Name -eq 'nextlink') {
             $nextlink = $ps.nextlink.SubString("v1.0/ingestion".Length)
-            Write-Host $nextlink
         }
         else {
             $nextlink = ""

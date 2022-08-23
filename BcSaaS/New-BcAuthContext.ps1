@@ -190,24 +190,24 @@ try {
                 try {
                     $jwtToken = Parse-JWTtoken -token $accessToken
                     Write-Host -ForegroundColor Green "Authenticated using refresh token as user $($jwtToken.name) ($($jwtToken.unique_name))"
-                    $authContext += @{
-                        "AccessToken"  = $accessToken
-                        "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                        "RefreshToken" = $TokenRequest.refresh_token
-                        "Credential"   = $null
-                        "ClientSecret" = $null
-                        "appid"        = ""
-                        "name"         = $jwtToken.name
-                        "upn"          = $jwtToken.unique_name
-                        }
-                    if ($tenantID -eq "Common") {
-                        Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
-                        $authContext.TenantId = $jwtToken.tid
-                    }
                 }
                 catch {
                     $accessToken = $null
                     throw "Invalid Access token"
+                }
+                $authContext += @{
+                    "AccessToken"  = $accessToken
+                    "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
+                    "RefreshToken" = $TokenRequest.refresh_token
+                    "Credential"   = $null
+                    "ClientSecret" = $null
+                    "appid"        = ""
+                    "name"         = $jwtToken.name
+                    "upn"          = $jwtToken.unique_name
+                    }
+                if ($tenantID -eq "Common") {
+                    Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                    $authContext.TenantId = $jwtToken.tid
                 }
             }
             catch {
@@ -296,24 +296,24 @@ try {
                     $jwtToken = Parse-JWTtoken -token $accessToken
                     Write-Host
                     Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))"
-                    $authContext += @{
-                        "AccessToken"  = $accessToken
-                        "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                        "RefreshToken" = $TokenRequest.refresh_token
-                        "Credential"   = $null
-                        "ClientSecret" = $null
-                        "appid"        = ""
-                        "name"         = $jwtToken.name
-                        "upn"          = $jwtToken.unique_name
-                        }
-                    if ($tenantID -eq "Common") {
-                        Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
-                        $authContext.TenantId = $jwtToken.tid
-                    }
                 }
                 catch {
                     $accessToken = $null
                     throw "Invalid Access token"
+                }
+                $authContext += @{
+                    "AccessToken"  = $accessToken
+                    "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
+                    "RefreshToken" = $TokenRequest.refresh_token
+                    "Credential"   = $null
+                    "ClientSecret" = $null
+                    "appid"        = ""
+                    "name"         = $jwtToken.name
+                    "upn"          = $jwtToken.unique_name
+                }
+                if ($tenantID -eq "Common") {
+                    Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                    $authContext.TenantId = $jwtToken.tid
                 }
             }
             else {
