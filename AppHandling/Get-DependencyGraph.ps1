@@ -52,7 +52,7 @@ class DependencyGraph {
         }
     }
 
-    [App] GetLatestApp([String] $appId) {
+    [App] GetLatestVersion([String] $appId) {
         $appVersions = $this.apps[$appId]
         if($null -ne $appVersions -and $appVersions.Length -gt 0) {
             return $appVersions[0]
@@ -60,7 +60,7 @@ class DependencyGraph {
         return $null
     }
 
-    [App[]] GetAllApps([String] $appId) {
+    [App[]] GetAllVersions([String] $appId) {
         $appVersions = $this.apps[$appId]
         if($null -ne $appVersions -and $appVersions.Length -gt 0) {
             return $appVersions
@@ -68,29 +68,33 @@ class DependencyGraph {
         return $null
     }
 
-    [App] GetAppNewerThen($appId, $minVersion) {
-        $appVersions = $this.GetAllApps($appId)
-        if($appVersions -ne $null) {
+    [App] GetNewerVersionThen($appId, $minVersion) {
+        $appVersions = $this.GetAllVersions($appId)
+        if($null -ne $appVersions) {
             $filteredVersions = @($appVersions | Where-Object {
                 $newest = Get-NewerVersion -versionA $minVersion -versionB $_.Version
                 ($newest -eq $_.Version) -or ($null -eq $newest)
             })
-            if($filteredVersions -ne $null) {
+            if($null -ne $filteredVersions) {
                 return $filteredVersions[0]
             }
         }
         return $null
     }
 
-    [String[]] GetAppIds() {
+    [String[]] GetAllAppIds() {
         return $this.apps.keys
+    }
+    
+    [App[]] GetAllLatestApps() {
+        return $this.apps.keys | % { $this.GetLatestVersion($_) }
     }
 
     [hashtable[]] GetDependencies([String] $appId, [String] $minVersion) {
         $appVersions = $this.apps[$appId]
 
         $dependencies = @()
-        $app = $this.GetAppNewerThen($appId, $minVersion)
+        $app = $this.GetNewerVersionThen($appId, $minVersion)
         if($null -ne $appVersions) {
 
             # Filter all app versions that are newer then $minVersion then take the newest
@@ -138,7 +142,7 @@ class DependencyGraph {
         }
 
         $dependents = @()
-        $outerApp = $this.GetAppNewerThen($appId, $minVersion)
+        $outerApp = $this.GetNewerVersionThen($appId, $minVersion)
 
         if($null -ne $outerApp){
     
