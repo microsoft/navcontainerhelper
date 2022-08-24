@@ -10,7 +10,6 @@ function New-ALGoStorageContext {
         [string] $storageContainerName = '{project}',
         [Parameter(Mandatory=$false)]
         [string] $storageBlobName = '{version}/{project}-{type}.zip',
-        [bool] $CD = $true,
         [switch] $skipTest
     )
 
@@ -26,7 +25,6 @@ function New-ALGoStorageContext {
     $storageContext += [ordered]@{
         "containerName" = $storageContainerName.ToLowerInvariant()
         "blobName" = $storageBlobName.ToLowerInvariant()
-        "CD" = $CD
     }
 
     if (!$skipTest) {

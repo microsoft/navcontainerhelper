@@ -1,8 +1,6 @@
 function New-ALGoAppSourceContext {
     Param(
         [HashTable] $authContext,
-        [bool] $CD,
-        [bool] $autoPromote,
         [switch] $skipTest
     )
 
@@ -11,18 +9,14 @@ function New-ALGoAppSourceContext {
             "clientID" = $authContext.clientID
             "clientSecret" = $authContext.ClientSecret | Get-PlainText
             "tenantID" = $authContext.tenantID
-            "Scopes" = $authContext.scopes
-            "CD" = $CD
-            "autoPromote" = $autoPromote
+            "scopes" = $authContext.scopes
         }
     }
     else {
         $appSourceContext = [ordered]@{
             "refreshToken" = $authContext.RefreshToken
             "tenantID" = $authContext.tenantID
-            "Scopes" = $authContext.scopes
-            "CD" = $CD
-            "autoPromote" = $autoPromote
+            "scopes" = $authContext.scopes
         }
     }
 
