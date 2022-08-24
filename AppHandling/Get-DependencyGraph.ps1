@@ -206,12 +206,25 @@ function Get-NewerVersion {
 
     return $null
 }
-
-function Create-DependencyGraph {
+<# 
+ .Synopsis
+  Get Dependency Graph for BC Apps from AppInfo
+ .Description
+  Creates a dependency graph from appInfos.
+ .Parameter appInfos
+  Specifies the appInfo of a Business Central app 
+ .Example
+  Get-DependencyGraph --appInfos @{
+                    AppId = "10veedas-1acc-460a-9c07-e110dc216540"
+                    Version = "20.0.0.1"
+                    Publisher = "BEYONDIT GmbH"
+                    Name = "Test App"
+                    Dependencies = @(
+                    )
+                },
+#>
+function Get-DependencyGraphFromAppInfos {
     param (
-        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [Parameter(Mandatory = $false)]
-        [string] $tenant = "",
         [Parameter(Mandatory = $true)]
         [hashtable[]] $appInfos,
         [switch] $ignoreMicrosoftApps,
@@ -282,7 +295,8 @@ function Get-DependencyGraph {
     }
     
 
-    return Create-DependencyGraph -containerName $containerName -tenant $tenant -ignoreMicrosoftApps $ignoreMicrosoftApps -filter $filter -appInfos $appInfos
+    return Get-DependencyGraphFromAppInfos -ignoreMicrosoftApps $ignoreMicrosoftApps -filter $filter -appInfos $appInfos
 }
 
 Export-ModuleMember -Function Get-DependencyGraph
+Export-ModuleMember -Function Get-DependencyGraphFromAppInfos

@@ -60,7 +60,7 @@ InModuleScope BcContainerHelper {
                     )
                 }
             )
-            $script:dependencyGraph = Create-DependencyGraph -appInfos $script:appInfos
+            $script:dependencyGraph = Get-DependencyGraphFromAppInfos -appInfos $script:appInfos
         }
 
         It 'GetAllAppIds' {
@@ -95,12 +95,12 @@ InModuleScope BcContainerHelper {
             $app | Should Be $null
         }
         It 'Filtered Graph ignoreMicrosoftApps' {
-            $dependencyGraph = Create-DependencyGraph -appInfos $script:appInfos -ignoreMicrosoftApps
+            $dependencyGraph = Get-DependencyGraphFromAppInfos -appInfos $script:appInfos -ignoreMicrosoftApps
             $dependencyGraph.GetLatestVersion("4d3506ca-458b-4bbc-b9e2-557562bf49be").dependencies.Count | Should Be 1
             $dependencyGraph.GetLatestVersion("4d3506ca-458b-4bbc-b9e2-557562bf49be").dependencies[0].Id | Should Be "9abe2dcb-1acc-460a-9c07-e110dc216540"
         }
         It 'Filtered Graph ignore custom filter' {
-            $dependencyGraph = Create-DependencyGraph -appInfos $script:appInfos -filter { $_.Publisher -ne "BEYONDIT GmbH" }
+            $dependencyGraph = Get-DependencyGraphFromAppInfos -appInfos $script:appInfos -filter { $_.Publisher -ne "BEYONDIT GmbH" }
             $dependencyGraph.GetLatestVersion("4d3506ca-458b-4bbc-b9e2-557562bf49be").dependencies.Count | Should Be 1
             $dependencyGraph.GetLatestVersion("4d3506ca-458b-4bbc-b9e2-557562bf49be").dependencies[0].Id | Should Be "3e8e74a9-dd75-4fe2-acf9-0aae2cecdfbc"
 
@@ -221,7 +221,7 @@ InModuleScope BcContainerHelper {
                     )
                 }
             )
-            $script:dependencyGraph = Create-DependencyGraph -appInfos $script:appInfos
+            $script:dependencyGraph = Get-DependencyGraphFromAppInfos -appInfos $script:appInfos
         }
         It 'Dependents' {
             $dependents = $script:dependencyGraph.GetDependents("3e8e74a9-dd75-4fe2-acf9-0aae2cecdfbc","30.0.0.0")
