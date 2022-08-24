@@ -86,7 +86,7 @@ class DependencyGraph {
         return $this.apps.keys
     }
     
-    [App[]] GetAllLatestApps() {
+    [App[]] GetAllLatestVersions() {
         return $this.apps.keys | % { $this.GetLatestVersion($_) }
     }
 

@@ -68,8 +68,8 @@ InModuleScope BcContainerHelper {
             $apps.Count | Should Be 4
         }
 
-        It 'GetAllLatestApps' {
-            $apps = $script:dependencyGraph.GetAllLatestApps()
+        It 'GetAllLatestVersions' {
+            $apps = $script:dependencyGraph.GetAllLatestVersions()
             $apps.Count | Should Be 4
             $apps[0].Id | Should Not Be $null
         }
