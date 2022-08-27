@@ -68,7 +68,7 @@ try {
  
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
     if ((-not [bool]($customConfig.PSobject.Properties.name -eq "EnableTaskScheduler")) -or ($customConfig.EnableTaskScheduler -ne "True")) {
-        Write-Host -ForegroundColor Red "WARNING: TaskScheduler is not running in the container. In order to apply configuration packages, the TaskScheduler should be running."
+        Write-Host -ForegroundColor Red "WARNING: TaskScheduler is not enabled in the container. In order to apply configuration packages, the TaskScheduler should be enabled (use -EnableTaskScheduler on New-BcContainer)."
     }
 
     $CompanyId = Get-NavContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential -APIVersion "v1.0" -CompanyName $companyName | Select-Object -First 1
