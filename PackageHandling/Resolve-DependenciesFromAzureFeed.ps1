@@ -18,7 +18,13 @@
   Folder where all dependencies will be copied to
  .Parameter lvl
   Level to track recursion depth.
-    
+ .Parameter ignoredDependencies
+  Array of App id's to ignore
+ .Parameter ignoreAppVersion
+  Ignore the specific version and always return the latest version from AzureFeed
+ .Parameter ignoredPublishers
+  Array of Publishers to ignore
+
 #>
 function Resolve-DependenciesFromAzureFeed {
     Param(
@@ -31,7 +37,9 @@ function Resolve-DependenciesFromAzureFeed {
         [string] $outputFolder = (Join-Path $appsFolder '.alpackages'),
         [switch] $runtimePackages,
         [int] $lvl = -1,
-        [string[]] $ignoredDependencies = @()
+        [string[]] $ignoredDependencies = @(),
+        [switch] $ignoreAppVersion,
+        [string[]] $ignoredPublishers = @()
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -104,16 +112,23 @@ try {
                         $id = $_.appId
                     }
                     if ($null -ne $id) {
-                        if ($id -notin $ignoredDependencies) {
+                        if (($id -notin $ignoredDependencies) -and ($_.publisher -notin $ignoredPublishers)) {
                             try {
                                 $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $id
                                 New-Item -path $tempAppDependencyFolder -ItemType Directory -Force | Out-Null
-                                Write-Host "$($spaces)Downloading: $($id)"
+
+                                if ($ignoreAppVersion.IsPresent) {
+                                    $version = '*'
+                                } else {
+                                    $version = AzureFeedWildcardVersion -appVersion $_.version
+                                }
+                                
+                                Write-Host "$($spaces)Downloading: $($id) with version $($version)"
                                 if ( $(az artifacts universal download `
                                             --organization $organization `
                                             --feed $feed `
                                             --name $id `
-                                            --version (AzureFeedWildcardVersion -appVersion $_.version) `
+                                            --version $version `
                                             --path $tempAppDependencyFolder >$null 2>&1; $?)) {
                                     Write-Host "$($spaces)Downloaded!"
                                 }
