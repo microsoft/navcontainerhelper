@@ -111,8 +111,12 @@ try {
                     } elseif($_.psobject.Properties.name -contains "appId") {
                         $id = $_.appId
                     }
+                    if ($_.publisher -in $ignoredPublishers) {
+                        $ignoredDependencies += $id
+                        Write-Host "Added $($id) with Publisher $($_.publisher) to ignored apps";
+                    }
                     if ($null -ne $id) {
-                        if (($id -notin $ignoredDependencies) -and ($_.publisher -notin $ignoredPublishers)) {
+						if ($id -notin $ignoredDependencies) {
                             try {
                                 $tempAppDependencyFolder = Join-Path $tempAppDependenciesFolder $id
                                 New-Item -path $tempAppDependencyFolder -ItemType Directory -Force | Out-Null
@@ -150,7 +154,7 @@ try {
 
                                         Write-Host "$($spaces)Copied to $($outputFolder)"
 
-                                        Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outputFolder $outputFolder -appsFolder $tempAppDependencyFolder -lvl $lvl -runtimePackages:$runtimePackages
+                                        Resolve-DependenciesFromAzureFeed -organization $organization -feed $feed -outputFolder $outputFolder -appsFolder $tempAppDependencyFolder -lvl $lvl -runtimePackages:$runtimePackages -ignoreAppVersion:($ignoreAppVersion.IsPresent) -ignoredPublishers $ignoredPublishers
                                     }
                                     else {
                                         Write-Host "$($spaces)$($dep.Name) exists"
