@@ -8,6 +8,7 @@ New function Promote-AppSourceSubmission to promote a submission of a product on
 New function Cancel-AppSourceSubmission to cancel an in progress submission of a product on AppSource
 Support getting NextMajor of countries with no current release in Get-BcArtifactUrl
 Added new functions New-ALGoAppSourceContext, New-ALGoStorageContext and New-ALGoAuthContext to create context structures used for AL-Go for GitHub
+Issue #2650 issue warning if TaskScheduler is not running when using UploadImportAndApply-ConfigPackageInBcContainer
 
 3.0.12
 Error in retry method in Get-BcArtifactUrl (3.0.11)
