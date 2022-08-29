@@ -3,6 +3,8 @@
   Uploads, Imports and Applys a configuration package into a tenant in a NAV/BC Container
  .Description
   Using Management APIs, this function uploads, imports and applys a configuration package into a tenant in a NAV/BC Container
+  Note that the TaskScheduler should be enabled when using this function.
+  The function will display a warning if the Task Scheduler is not running.
  .Parameter containerName
   Name of the container in which you want to apply the configuration package to
  .Parameter tenant
@@ -64,6 +66,11 @@ try {
         }
     }
  
+    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+    if ((-not [bool]($customConfig.PSobject.Properties.name -eq "EnableTaskScheduler")) -or ($customConfig.EnableTaskScheduler -ne "True")) {
+        Write-Host -ForegroundColor Red "WARNING: TaskScheduler is not enabled in the container. In order to apply configuration packages, the TaskScheduler should be enabled (use -EnableTaskScheduler on New-BcContainer)."
+    }
+
     $CompanyId = Get-NavContainerApiCompanyId -containerName $containerName -tenant $tenant -credential $credential -APIVersion "v1.0" -CompanyName $companyName | Select-Object -First 1
     if (!($CompanyId)) {
         throw "Company $companyName doesn't exist"

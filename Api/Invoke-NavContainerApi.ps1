@@ -79,20 +79,20 @@ try {
 
     $parameters = @{}
     if ($auth -eq "Windows") {
-        Write-Host "Using Windows Authentication"
+        #Write-Host "Using Windows Authentication"
         $parameters += @{ "usedefaultcredential" = $true }
     }
     else {
         if ($bcAuthContext) {
             $bcAuthContext = Renew-BcAuthContext $bcAuthContext
-            Write-Host "Using AAD Authentication"
+            #Write-Host "Using AAD Authentication"
             $headers += @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
         }
         else {
             if (!($credential)) {
                 throw "You need to specify credentials when you are not using Windows Authentication"
             }
-            Write-Host "Using Basic Authentication"
+            #Write-Host "Using Basic Authentication"
             $parameters += @{ "credential" = $credential }
         }
     }
