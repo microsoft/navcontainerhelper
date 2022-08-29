@@ -19,6 +19,8 @@
   If another submission is in progress, it will be cancelled if you include the force switch
  .Parameter silent
   Include this switch if you do not want the method to display URLs etc.
+ .Parameter doNotCheckVersionNumber
+  Include this switch avoid checking whether the new version number is greater than the existing version number in Partner Center
  .Example
   New-AppSourceSubmission -authContext $authContext -productId $product.Id -appFile $appFile
  .Example
@@ -37,7 +39,8 @@ function New-AppSourceSubmission {
         [switch] $autoPromote,
         [switch] $doNotWait,
         [switch] $force,
-        [switch] $silent
+        [switch] $silent,
+        [switch] $doNotCheckVersionNumber
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -206,6 +209,14 @@ try {
             throw "unable to locate properties"
         }
         $property = $properties[0]
+        if (!$doNotCheckVersionNumber) {
+            $prevVersion = [System.Version]"0.0.0.0"
+            if ([System.Version]::TryParse($property.appVersion, [ref] $prevVersion)) {
+                if ($prevVersion -gt $appVersionNumber) {
+                    throw "The new version number is lower than the existing version number in Partner Center"
+                }
+            }
+        }
         $property.appVersion = $appVersionNumber.ToString()
         $result = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/properties/$($property.id)" -Body ($property | ConvertTo-HashTable -recurse) -silent:($silent.IsPresent)
         $body.resources += @(
