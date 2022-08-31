@@ -12,8 +12,12 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     Try {
-        az upgrade
+        $az_upgrade = Write-Output n | az upgrade 2>&1
     } catch {
+        $az_upgrade = ""
+    }
+
+    if (@($az_upgrade | Select-String "Latest version available").Count -ne 0) {
         Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
     }
     $extensions = az extension list -o json | ConvertFrom-Json
