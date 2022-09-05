@@ -1,3 +1,6 @@
+4.0.2
+Issue #2664 Image rebuild forced by different tags of a generic dev image
+
 4.0.1
 Add newline when waiting for auth context
 
