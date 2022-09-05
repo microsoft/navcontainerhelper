@@ -317,6 +317,7 @@ try {
                 }
             }
             else {
+                Write-Host
                 $accessToken = "N/A"
                 $authContext.deviceCode = $deviceCode
                 $authContext += @{
