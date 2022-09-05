@@ -1,3 +1,6 @@
+4.0.1
+Add newline when waiting for auth context
+
 4.0.0
 Added AppSource Validation functions
 New functions Invoke-IngestionAPIGet, Invoke-IngestionAPIGetCollection, Invoke-IngestionAPIPost, Invoke-IngestionAPIPut, Invoke-IngestionAPIDelete to interact with Partner Center Ingestion API
