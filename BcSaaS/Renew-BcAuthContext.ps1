@@ -19,7 +19,8 @@
 function Renew-BcAuthContext {
     Param(
         $bcAuthContext,
-        [int] $minValidityPeriodInSeconds = 300
+        [int] $minValidityPeriodInSeconds = 300,
+        [switch] $silent
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -40,7 +41,8 @@ try {
             -clientSecret $bcAuthContext.clientSecret `
             -credential $bcAuthContext.Credential `
             -includeDeviceLogin:$bcAuthContext.includeDeviceLogin `
-            -deviceLoginTimeout $bcAuthContext.deviceLoginTimeout
+            -deviceLoginTimeout $bcAuthContext.deviceLoginTimeout `
+            -silent:$silent
     }
 }
 catch {

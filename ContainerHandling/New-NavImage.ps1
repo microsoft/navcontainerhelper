@@ -298,7 +298,7 @@ try {
             Write-Host "Building$mtstr image $imageName based on $baseImage with $($artifactUrl.Split('?')[0])$dbstr"
             $startTime = [DateTime]::Now
             
-            if ($baseImage -eq $bestGenericImageName) {
+            if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
                 Write-Host "Pulling latest image $baseImage"
                 DockerDo -command pull -imageName $baseImage | Out-Null
             }

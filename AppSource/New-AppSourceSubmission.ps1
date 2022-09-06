@@ -245,6 +245,7 @@ try {
         $lastName = ""
         do {
             Start-Sleep -Seconds 30
+            $authContext = Renew-BcAuthContext -bcAuthContext $authContext -silent
 
             $complete = $false
             $failed = $false
@@ -268,7 +269,7 @@ try {
                             Write-Host -NoNewline $_.Name
                         }
                         if ($_.State -eq "Success") {
-                            Write-Host -ForegroundColor Green ' Success�'
+                            Write-Host -ForegroundColor Green ' Success'
                         }
                         elseif ($_.state -eq "InProgress") {
                             Write-Host -NoNewline '.'

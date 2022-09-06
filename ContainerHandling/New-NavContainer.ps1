@@ -1914,11 +1914,6 @@ if (-not `$restartingInstance) {
             return
         }
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
-        if ($bcContainerHelperConfig.usePsSession) {
-            try {
-                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
-            } catch {}
-        }
 
         if ($filesOnly -and $vsixFile) {
             Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($vsixFile)

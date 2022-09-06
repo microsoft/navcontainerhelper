@@ -1,3 +1,8 @@
+4.0.2
+Issue #2664 Image rebuild forced by different tags of a generic dev image
+Issue #2671 In BcContainerHelper - 'Get-NavCompany' is not recognized as the name of a cmdlet !!
+Issue #2673 New-AppSourceSubmission appears to "timeout" and just continuously reauthenticate
+
 4.0.1
 Add newline when waiting for auth context
 
