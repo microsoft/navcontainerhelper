@@ -1277,7 +1277,7 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
     }
-    if ($testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
+    if (($bcAuthContext) -and $testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
         Write-Host -ForegroundColor Yellow "WARNING: A Test App cannot be published to production tenants online"
     }
 
