@@ -13,6 +13,7 @@
  
  function New-ALGoAuthContext {
     Param(
+        [Parameter(Mandatory=$true, ValueFromPipeline)]
         [Alias('bcAuthContext')]
         [HashTable] $authContext
     )
