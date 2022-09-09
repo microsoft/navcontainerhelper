@@ -4,6 +4,7 @@ Issue #2671 In BcContainerHelper - 'Get-NavCompany' is not recognized as the nam
 Issue #2673 New-AppSourceSubmission appears to "timeout" and just continuously reauthenticate
 Add parameter checkAlreadyInstalled to Publish-BcContainerApp to check whether the app is already installed in the same or newer version
 Add parameter excludeInstalledApps to Sort-AppFilesByDependencies to exclude apps present in this array with the same or newer version
+Country TT points to BR instead of W1 (for collation)
 
 4.0.1
 Add newline when waiting for auth context
