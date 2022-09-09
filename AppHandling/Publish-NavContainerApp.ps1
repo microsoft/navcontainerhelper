@@ -91,7 +91,8 @@ function Publish-BcContainerApp {
         [switch] $replacePackageId,
         [string] $PublisherAzureActiveDirectoryTenantId,
         [Hashtable] $bcAuthContext,
-        [string] $environment
+        [string] $environment,
+        [switch] $checkAlreadyInstalled
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -103,6 +104,7 @@ try {
         $containerName = $bcContainerHelperConfig.defaultContainerName
     }
 
+    $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
         $appFolder = Join-Path $extensionsFolder "$containerName\$([guid]::NewGuid().ToString())"
@@ -120,15 +122,25 @@ try {
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
         $version = [System.Version]($navversion.split('-')[0])
         $force = ($version.Major -ge 14)
-    }
+        if ($checkAlreadyInstalled) {
+            $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object {
+                @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+            }
+        }
+}
     else {
         $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         $force = $true
+        if ($checkAlreadyInstalled) {
+            $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled } | ForEach-Object {
+                @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
+            }
+        }
     }
 
     try {
-        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -WarningAction SilentlyContinue)
+        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $installedApps -WarningAction SilentlyContinue)
         $appFiles | Where-Object { $_ } | ForEach-Object {
             $appFile = $_
 

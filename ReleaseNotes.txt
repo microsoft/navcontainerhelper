@@ -2,6 +2,8 @@
 Issue #2664 Image rebuild forced by different tags of a generic dev image
 Issue #2671 In BcContainerHelper - 'Get-NavCompany' is not recognized as the name of a cmdlet !!
 Issue #2673 New-AppSourceSubmission appears to "timeout" and just continuously reauthenticate
+Add parameter checkAlreadyInstalled to Publish-BcContainerApp to check whether the app is already installed in the same or newer version
+Add parameter excludeInstalledApps to Sort-AppFilesByDependencies to exclude apps present in this array with the same or newer version
 
 4.0.1
 Add newline when waiting for auth context
