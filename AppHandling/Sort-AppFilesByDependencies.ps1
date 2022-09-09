@@ -153,7 +153,6 @@ try {
                     Write-Host "$appName is already installed with a newer version"
                 }
                 else {
-                    Write-Host "including $($app.name)"
                     $app
                 }
             }
