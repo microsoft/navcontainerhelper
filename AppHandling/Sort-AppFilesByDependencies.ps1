@@ -19,6 +19,7 @@ function Sort-AppFilesByDependencies {
         [Parameter(Mandatory=$false)]
         [string[]] $appFiles,
         [string[]] $includeOnlyAppIds = @(),
+        $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies
     )
@@ -140,6 +141,22 @@ try {
         $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
         $apps | ForEach-Object { AddAnApp -AnApp $_ }
     
+        if ($excludeInstalledApps) {
+            $script:sortedApps = $script:sortedApps | ForEach-Object {
+                $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
+                $app = $_
+                $installedApp = $excludeInstalledApps | Where-Object { $_.id -eq $app.id }
+                if ([System.Version]$app.Version -eq $installedApp.Version ) {
+                    Write-Host "$appName is already installed with the same version"
+                }
+                elseif ([System.Version]$app.Version -lt $installedApp.Version ) {
+                    Write-Host "$appName is already installed with a newer version"
+                }
+                else {
+                    $app
+                }
+            }
+        }
         if ($includeOnlyAppIds) {
             $script:sortedApps | ForEach-Object { $_ | Add-Member -NotePropertyName 'Included' -NotePropertyValue $false }
             $includeOnlyAppIds | ForEach-Object { MarkSortedApps -AppId $_ }

@@ -100,7 +100,7 @@ function Get-ContainerHelperConfig {
                 "ni" = "w1"
                 "pa" = "w1"
                 "py" = "w1"
-                "tt" = "w1"
+                "tt" = "br"
                 "uy" = "w1"
                 "zw" = "w1"
             }
