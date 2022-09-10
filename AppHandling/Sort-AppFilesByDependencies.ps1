@@ -143,8 +143,6 @@ try {
     
         if ($excludeInstalledApps) {
             $script:sortedApps = $script:sortedApps | ForEach-Object {
-                $_ | Out-Host
-                Write-Host "======"
                 $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
                 $app = $_
                 $installedApp = $excludeInstalledApps | Where-Object { $_.id -eq $app.id }

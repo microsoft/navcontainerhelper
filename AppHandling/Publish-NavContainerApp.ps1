@@ -124,8 +124,6 @@ try {
         $force = ($version.Major -ge 14)
         if ($checkAlreadyInstalled) {
             $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object {
-                $_ | Out-Host
-                write-Host "----------"
                 @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }
@@ -136,8 +134,6 @@ try {
         $force = $true
         if ($checkAlreadyInstalled) {
             $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled } | ForEach-Object {
-                $_ | Out-Host
-                write-Host "++++++++++"
                 @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
             }
         }
