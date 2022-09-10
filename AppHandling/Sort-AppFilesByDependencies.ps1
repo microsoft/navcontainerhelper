@@ -146,7 +146,10 @@ try {
                 $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
                 $app = $_
                 $installedApp = $excludeInstalledApps | Where-Object { $_.id -eq $app.id }
-                if ([System.Version]$app.Version -eq $installedApp.Version ) {
+                if (!$installedApp) {
+                    $app
+                }
+                elseif ([System.Version]$app.Version -eq $installedApp.Version ) {
                     Write-Host "$appName is already installed with the same version"
                 }
                 elseif ([System.Version]$app.Version -lt $installedApp.Version ) {
