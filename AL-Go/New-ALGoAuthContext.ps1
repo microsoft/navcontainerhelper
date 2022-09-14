@@ -24,7 +24,7 @@
         $ht = @{
             "TenantID" = $authContext.TenantID
             "ClientID" = $authContext.ClientID
-            "ClientSecret" = $authContext.ClientSecret
+            "ClientSecret" = $authContext.ClientSecret | Get-PlainText
             "Scopes" = $authContext.Scopes
         }
     }
