@@ -46,7 +46,7 @@ function New-BcAuthContext {
         $clientSecret,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
-        [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5),
+        [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(15),
         [string] $deviceCode = "",
         [switch] $silent
     )
