@@ -526,7 +526,7 @@ $Step.Version {
             "LatestSandbox" = "Latest Business Central Sandbox"
             "LatestOnPrem" = "Latest Business Central OnPrem"
             "Next Major" = "Insider Business Central Sandbox for Next Major release (requires insider SAS token from http://aka.ms/collaborate)"
-            "Next Minor" = "InsiderBusiness Central Sandbox for Next Minor release (requires insider SAS token from http://aka.ms/collaborate)"
+            "Next Minor" = "Insider Business Central Sandbox for Next Minor release (requires insider SAS token from http://aka.ms/collaborate)"
             "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"
             "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"
             "NAV2018" = "Specific NAV 2018 version"
