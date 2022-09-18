@@ -487,9 +487,9 @@ try {
     Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
     Write-Host "Host is $($os.Caption) - $hostOs"
 
-    $dockerService = (Get-Process "dockerd" -ErrorAction Ignore)
-    if (!($dockerService)) {
-        Write-Host -ForegroundColor Red "Docker Service not found. Docker might not be started, not installed or not running Windows Containers."
+    $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
+    if (!($dockerProcess)) {
+        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers."
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"

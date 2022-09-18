@@ -51,10 +51,12 @@ try {
         } -argumentList $configPackage
         if ($containerConfigPackage) {
             if ($containerConfigPackage -is [Array]) {
-                throw "You can only upload, import and apply one config package at a time  ($configPackage matches multiple files inside the container)"
+                throw "You can only upload, import and apply one config package at a time ($configPackage matches multiple files inside the container)"
                 return
             }
-            $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$([System.IO.Path]::GetFileName($containerConfigPackage))"
+            $nameArr = "$([System.IO.Path]::GetFileNameWithoutExtension($containerConfigPackage))".Split('.')
+            $packageId = "$($nameArr[2]).$($nameArr[3]).$($nameArr[4])"
+            $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$($packageId).rapidstart"
             if (Test-Path $configPackage) {
                 Remove-Item $configPackage -Force
             }
