@@ -1,5 +1,6 @@
 4.0.3
 Support for specifying STANDARD or EXTENDED in UploadImportAndApply-ConfigPackageInBcContainer
+Issue #2685 Typo in Get-BcArtifactUrl
 
 4.0.2
 Issue #2664 Image rebuild forced by different tags of a generic dev image
