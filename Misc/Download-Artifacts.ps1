@@ -180,8 +180,9 @@ try {
                                     $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
                                     Write-Host "Downloading Prerequisite Components"
                                     $prerequisiteComponents.PSObject.Properties | % {
+                                        $skip = ($_.Name -eq "Prerequisite Components\Open XML SDK 2.5 for Microsoft Office\OpenXMLSDKv25.msi") -and (([System.Version]$appManifest.Version).Major -ge 21)
                                         $path = Join-Path $platformArtifactPath $_.Name
-                                        if (-not (Test-Path $path)) {
+                                        if ((-not $skip) -and (-not (Test-Path $path))) {
                                             $dirName = [System.IO.Path]::GetDirectoryName($path)
                                             $filename = [System.IO.Path]::GetFileName($path)
                                             if (-not (Test-Path $dirName)) {

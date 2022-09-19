@@ -2248,7 +2248,7 @@ if (-not `$restartingInstance) {
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         Write-Host "Creating .net Assembly Reference Folder for VS Code"
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder, [System.Version] $Version)
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
@@ -2262,7 +2262,9 @@ if (-not `$restartingInstance) {
             if (Test-Path $mockAssembliesPath -PathType Container) {
                 $paths += $mockAssembliesPath
             }
-            $paths += "C:\Program Files (x86)\Open XML SDK"
+            if ($version.Major -lt 21) {
+                $paths += "C:\Program Files (x86)\Open XML SDK"
+            }
 
             $paths | % {
                 $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
@@ -2283,7 +2285,11 @@ if (-not `$restartingInstance) {
                     new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
                 }
             }
-        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
+
+            if ($version.Major -ge 21) {
+                Remove-Item -Path (Join-Path $dotnetAssembliesFolder 'assembly\DocumentFormat.OpenXml.dll') -Force -ErrorAction SilentlyContinue
+            }
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder), $version
     }
 
     if ($customConfig.ServerInstance) {
