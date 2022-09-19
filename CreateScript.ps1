@@ -367,14 +367,16 @@ $script:wizardStep++
 
 switch ($script:thisStep) {
 $Step.BcContainerHelper {
-    #     ____        _____            _        _                 _    _      _                 
-    #    |  _ \      / ____|          | |      (_)               | |  | |    | |                
-    #    | |_) | ___| |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
-    #    |  _ < / __| |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  __  |/ _ \ | '_ \ / _ \ '__|
-    #    | |_) | (__| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
-    #    |____/ \___|\_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
-    #                                                                          | |              
-    #                                                                          |_|              
+Write-Host -ForegroundColor Yellow @'
+  ____        _____            _        _                 _    _      _                 
+ |  _ \      / ____|          | |      (_)               | |  | |    | |                
+ | |_) | ___| |     ___  _ __ | |_ __ _ _ _ __   ___ _ __| |__| | ___| |_ __   ___ _ __ 
+ |  _ < / __| |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|  __  |/ _ \ | '_ \ / _ \ '__|
+ | |_) | (__| |____ (_) | | | | |_ (_| | | | | |  __/ |  | |  | |  __/ | |_) |  __/ |   
+ |____/ \___|\_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|  |_|  |_|\___|_| .__/ \___|_|   
+                                                                       | |              
+                                                                       |_|              
+'@
     if (!$skipContainerHelperCheck) {
         $module = Get-InstalledModule -Name "BcContainerHelper" -ErrorAction SilentlyContinue
         if (!($module)) {
@@ -385,6 +387,10 @@ $Step.BcContainerHelper {
             Write-Host -ForegroundColor Red "See more here: https://www.powershellgallery.com/packages/bccontainerhelper"
             Write-Host -ForegroundColor Red "Use 'Install-Module BcContainerHelper -force' to install in PowerShell"
             return
+        }
+        elseif ($module.Version -eq "0.0") {
+            Write-Host -ForegroundColor Green "You are running BcContainerHelper developer version"
+            Write-Host
         }
         else {
             $myVersion = $module.Version.ToString()
@@ -525,6 +531,7 @@ $Step.Version {
         -options ([ordered]@{
             "LatestSandbox" = "Latest Business Central Sandbox"
             "LatestOnPrem" = "Latest Business Central OnPrem"
+            "Public Preview" = "Public Preview of Business Central Sandbox is typically available one month before we ship next major"
             "Next Major" = "Insider Business Central Sandbox for Next Major release (requires insider SAS token from http://aka.ms/collaborate)"
             "Next Minor" = "Insider Business Central Sandbox for Next Minor release (requires insider SAS token from http://aka.ms/collaborate)"
             "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"
@@ -575,6 +582,12 @@ $Step.Version2 {
     if ($predef -like "latest*") {
         $type = $predef.Substring(6)
         $version = ''
+    }
+    elseif ($predef -like "Public Preview") {
+        $type = "Sandbox"
+        $version = ''
+        $storageAccount = "bcpublicpreview"
+        $select = 'latest'
     }
     elseif ($predef -like "Next*") {
         $type = "Sandbox"
@@ -694,7 +707,10 @@ $Step.Country {
 
     $versionno = $version
     if ($versionno -eq "") {
-        $versionno = (Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country "$(if ($type -eq 'sandbox') {"at"} else {"us"})" -sasToken $sasToken).split('/')[4]
+        $searchCountry = "us"
+        if ($type -eq 'sandbox') { "at" }
+        $aurl = Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country $searchCountry -sasToken $sasToken -select $select
+        $versionno = $aurl.split('/')[4]
     }
     $majorVersion = [int]($versionno.Split('.')[0])
     $countries = @()
