@@ -3,6 +3,7 @@ Support for specifying STANDARD or EXTENDED in UploadImportAndApply-ConfigPackag
 Issue #2685 Typo in Get-BcArtifactUrl
 Issue #2681 New-BcContainerWizard doesn't seem to support Public Preview Versions
 Issue #2678 Compiling baseapp 21.x causes a compile error on .Net types
+Issue #2692 Possible encoding error in New-AppSourceSubmission
 
 4.0.2
 Issue #2664 Image rebuild forced by different tags of a generic dev image
