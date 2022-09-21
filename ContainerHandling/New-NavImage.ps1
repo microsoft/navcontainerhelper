@@ -129,13 +129,17 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
-        if ($isServerHost) {
-            $hostOs = "ltsc2022"
-        }
-        else {
-            $hostOs = "21H2"
-        }
+    if ($os.BuildNumber -eq 22621) {
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 22000) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 20348) { 
+        $hostOs = "ltsc2022"
+    }
+    elseif ($os.BuildNumber -eq 19045) { 
+        $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 19044) { 
         $hostOs = "21H2"
