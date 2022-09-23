@@ -283,7 +283,8 @@ try {
                     Write-Host "Re-enablssing SSL Verification"
                     [SslVerification]::Enable()
                 }
-        
+                # Avoid race condition
+                Start-Sleep -Seconds 1
             }
             else {
         
