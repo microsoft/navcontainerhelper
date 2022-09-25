@@ -1,3 +1,5 @@
+4.0.4
+
 4.0.3
 Support for specifying STANDARD or EXTENDED in UploadImportAndApply-ConfigPackageInBcContainer
 Issue #2685 Typo in Get-BcArtifactUrl
