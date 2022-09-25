@@ -1,5 +1,6 @@
 function New-ALGoAppSourceContext {
     Param(
+        [Parameter(Mandatory=$true, ValueFromPipeline)]
         [HashTable] $authContext,
         [switch] $skipTest
     )

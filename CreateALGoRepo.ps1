@@ -1152,7 +1152,7 @@ $Step.Doit {
             -accessControl $settings.AccessControl `
             -country $settings.country `
             -additionalCountries @($settings.additionalCountries.Split(',') | ForEach-Object { $_.Trim() }) `
-            -additionalCountriesAlways:($settings.additionalCountriesAlway -eq "yes") `
+            -additionalCountriesAlways:($settings.additionalCountriesAlways -eq "yes") `
             -versioningStrategy ([int]$settings.VersioningMethod+16*($settings.VersioningStrategy -eq "same")) `
             -updateDependencies:($settings.dependencyStrategy -eq "UpdateDependencies") `
             -generateDependencyArtifact:($settings.generateDependencyArtifact -eq "yes") `

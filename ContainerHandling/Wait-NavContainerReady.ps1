@@ -62,6 +62,11 @@ function Wait-BcContainerReady {
             }
 
         } while (!($log.Contains("Ready for connections!")))
+        if ($bcContainerHelperConfig.usePsSession) {
+            try {
+                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
+            } catch {}
+        }
         Write-Host
     }
 }

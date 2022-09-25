@@ -421,13 +421,17 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
-        if ($isServerHost) {
-            $hostOs = "ltsc2022"
-        }
-        else {
-            $hostOs = "21H2"
-        }
+    if ($os.BuildNumber -eq 22621) {
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 22000) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 20348) { 
+        $hostOs = "ltsc2022"
+    }
+    elseif ($os.BuildNumber -eq 19045) { 
+        $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 19044) { 
         $hostOs = "21H2"
@@ -487,9 +491,9 @@ try {
     Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
     Write-Host "Host is $($os.Caption) - $hostOs"
 
-    $dockerService = (Get-Process "dockerd" -ErrorAction Ignore)
-    if (!($dockerService)) {
-        Write-Host -ForegroundColor Red "Docker Service not found. Docker might not be started, not installed or not running Windows Containers."
+    $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
+    if (!($dockerProcess)) {
+        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers."
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
@@ -754,7 +758,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"0.1.0.16") {
+                if ($genericTagVersion -lt [Version]"1.0.2.13") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -1914,11 +1918,6 @@ if (-not `$restartingInstance) {
             return
         }
         Wait-BcContainerReady $containerName -timeout $timeout -startlog ""
-        if ($bcContainerHelperConfig.usePsSession) {
-            try {
-                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
-            } catch {}
-        }
 
         if ($filesOnly -and $vsixFile) {
             Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($vsixFile)
@@ -2253,7 +2252,7 @@ if (-not `$restartingInstance) {
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         Write-Host "Creating .net Assembly Reference Folder for VS Code"
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder)
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder, [System.Version] $Version)
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
@@ -2267,7 +2266,9 @@ if (-not `$restartingInstance) {
             if (Test-Path $mockAssembliesPath -PathType Container) {
                 $paths += $mockAssembliesPath
             }
-            $paths += "C:\Program Files (x86)\Open XML SDK"
+            if ($version.Major -lt 21) {
+                $paths += "C:\Program Files (x86)\Open XML SDK"
+            }
 
             $paths | % {
                 $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
@@ -2288,7 +2289,11 @@ if (-not `$restartingInstance) {
                     new-item -itemtype symboliclink -path $ServiceTierAddInsFolder -name "RTC" -value (Get-Item $RtcFolder).FullName | Out-Null
                 }
             }
-        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder)
+
+            if ($version.Major -ge 21) {
+                Remove-Item -Path (Join-Path $dotnetAssembliesFolder 'assembly\DocumentFormat.OpenXml.dll') -Force -ErrorAction SilentlyContinue
+            }
+        } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder), $version
     }
 
     if ($customConfig.ServerInstance) {

@@ -1109,7 +1109,7 @@ $sortedFolders | Select-Object -Unique | ForEach-Object {
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-    if ($testApp -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
@@ -1277,7 +1277,7 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
     }
-    if ($testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
+    if (($bcAuthContext) -and $testApp -and ($enablePerTenantExtensionCop -or $enableAppSourceCop)) {
         Write-Host -ForegroundColor Yellow "WARNING: A Test App cannot be published to production tenants online"
     }
 

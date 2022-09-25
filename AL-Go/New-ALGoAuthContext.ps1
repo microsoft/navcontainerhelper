@@ -13,6 +13,7 @@
  
  function New-ALGoAuthContext {
     Param(
+        [Parameter(Mandatory=$true, ValueFromPipeline)]
         [Alias('bcAuthContext')]
         [HashTable] $authContext
     )
@@ -23,7 +24,7 @@
         $ht = @{
             "TenantID" = $authContext.TenantID
             "ClientID" = $authContext.ClientID
-            "ClientSecret" = $authContext.ClientSecret
+            "ClientSecret" = $authContext.ClientSecret | Get-PlainText
             "Scopes" = $authContext.Scopes
         }
     }

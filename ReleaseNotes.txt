@@ -1,3 +1,24 @@
+4.0.4
+
+4.0.3
+Support for specifying STANDARD or EXTENDED in UploadImportAndApply-ConfigPackageInBcContainer
+Issue #2685 Typo in Get-BcArtifactUrl
+Issue #2681 New-BcContainerWizard doesn't seem to support Public Preview Versions
+Issue #2678 Compiling baseapp 21.x causes a compile error on .Net types
+Issue #2692 Possible encoding error in New-AppSourceSubmission
+Add 22H2 detection
+
+4.0.2
+Issue #2664 Image rebuild forced by different tags of a generic dev image
+Issue #2671 In BcContainerHelper - 'Get-NavCompany' is not recognized as the name of a cmdlet !!
+Issue #2673 New-AppSourceSubmission appears to "timeout" and just continuously reauthenticate
+Add parameter checkAlreadyInstalled to Publish-BcContainerApp to check whether the app is already installed in the same or newer version
+Add parameter excludeInstalledApps to Sort-AppFilesByDependencies to exclude apps present in this array with the same or newer version
+Country TT points to BR instead of W1 (for collation)
+
+4.0.1
+Add newline when waiting for auth context
+
 4.0.0
 Added AppSource Validation functions
 New functions Invoke-IngestionAPIGet, Invoke-IngestionAPIGetCollection, Invoke-IngestionAPIPost, Invoke-IngestionAPIPut, Invoke-IngestionAPIDelete to interact with Partner Center Ingestion API

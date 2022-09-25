@@ -26,6 +26,8 @@
   Include this switch if you want to include a device login prompt if no other way to authenticate succeeds
  .Parameter deviceLoginTimeout
   Timespan indicating the timeout while waiting for user to perform devicelogin. Default is 5 minutes.
+ .Parameter silent
+  Include silent to avoid unnecessary output from the function
  .Example
   $authContext = New-BcAuthContext -refreshToken $refreshTokenSecret.SecretValueText
  .Example
@@ -44,8 +46,9 @@ function New-BcAuthContext {
         $clientSecret,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
-        [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(5),
-        [string] $deviceCode = ""
+        [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(15),
+        [string] $deviceCode = "",
+        [switch] $silent
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -91,11 +94,11 @@ try {
             Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
         }
         try {
-            Write-Host "Attempting authentication to $scopes using clientCredentials..."
+            if (!$silent) { Write-Host "Attempting authentication to $scopes using clientCredentials..." }
             $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
             $accessToken = $TokenRequest.access_token
             $jwtToken = Parse-JWTtoken -token $accessToken
-            Write-Host -ForegroundColor Green "Authenticated as app $($jwtToken.appid)"
+            if (!$silent) { Write-Host -ForegroundColor Green "Authenticated as app $($jwtToken.appid)" }
 
             try {
                 $expiresOn = [Datetime]::new(1970,1,1).AddSeconds($jwtToken.exp)
@@ -115,7 +118,7 @@ try {
                 "upn"          = ""
         }
             if ($tenantID -eq "Common") {
-                Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
                 $authContext.TenantId = $jwtToken.tid
             }
 
@@ -144,11 +147,11 @@ try {
                 Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
             }
             try {
-                Write-Host "Attempting authentication to $Scopes using username/password..."
+                if (!$silent) { Write-Host "Attempting authentication to $Scopes using username/password..." }
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                 $accessToken = $TokenRequest.access_token
                 $jwtToken = Parse-JWTtoken -token $accessToken
-                Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))"
+                if (!$silent) { Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))" }
     
                 $authContext += @{
                     "AccessToken"  = $accessToken
@@ -161,7 +164,7 @@ try {
                     "upn"          = $jwtToken.unique_name
                 }
                 if ($tenantID -eq "Common") {
-                    Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                    if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
                     $authContext.TenantId = $jwtToken.tid
                 }
             }
@@ -184,12 +187,12 @@ try {
             }
             try
             {
-                Write-Host "Attempting authentication to $Scopes using refresh token..."
+                if (!$silent) { Write-Host "Attempting authentication to $Scopes using refresh token..." }
                 $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                 $accessToken = $TokenRequest.access_token
                 try {
                     $jwtToken = Parse-JWTtoken -token $accessToken
-                    Write-Host -ForegroundColor Green "Authenticated using refresh token as user $($jwtToken.name) ($($jwtToken.unique_name))"
+                    if (!$silent) { Write-Host -ForegroundColor Green "Authenticated using refresh token as user $($jwtToken.name) ($($jwtToken.unique_name))" }
                 }
                 catch {
                     $accessToken = $null
@@ -206,7 +209,7 @@ try {
                     "upn"          = $jwtToken.unique_name
                     }
                 if ($tenantID -eq "Common") {
-                    Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
+                    if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
                     $authContext.TenantId = $jwtToken.tid
                 }
             }
@@ -317,6 +320,7 @@ try {
                 }
             }
             else {
+                Write-Host
                 $accessToken = "N/A"
                 $authContext.deviceCode = $deviceCode
                 $authContext += @{

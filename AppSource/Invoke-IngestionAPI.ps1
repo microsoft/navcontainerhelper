@@ -17,7 +17,7 @@ function Invoke-IngestionApiRestMethod {
     $authContext = Renew-BcAuthContext -bcAuthContext $authContext
     $headers += @{
         "Authorization" = "Bearer $($authcontext.AccessToken)"
-        "Content-Type" = "application/json"
+        "Content-Type" = "application/json; charset=utf-8"
     }
     $uriBuilder = [UriBuilder]::new("https://api.partner.microsoft.com/v1.0/ingestion$path")
     if (!$silent) {
@@ -37,7 +37,7 @@ function Invoke-IngestionApiRestMethod {
             $body | Out-Host
         }
         $parameters += @{
-            "body" = $body
+            "body" = [System.Text.Encoding]::UTF8.GetBytes($body)
         }
     }
     $waitTime = 1
@@ -127,7 +127,7 @@ try {
     $nextlink = $path
     while ($nextlink) {
 
-        $ps = Invoke-IngestionApiRestMethod -authContext $authContext -method GET -headers $headers -path $nextlink -silent:$silent
+        $ps = Invoke-IngestionApiRestMethod -authContext $authContext -method GET -headers $headers -path $nextlink -query $query -silent:$silent
 
         if ($ps.PSObject.Properties.Name -eq 'nextlink') {
             $nextlink = $ps.nextlink.SubString("v1.0/ingestion".Length)
