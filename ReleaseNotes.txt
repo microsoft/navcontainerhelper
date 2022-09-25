@@ -1,4 +1,5 @@
 4.0.4
+Issue #2652 Support Run-AlPipeline with appRevision only
 
 4.0.3
 Support for specifying STANDARD or EXTENDED in UploadImportAndApply-ConfigPackageInBcContainer
