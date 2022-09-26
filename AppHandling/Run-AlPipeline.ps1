@@ -1297,11 +1297,6 @@ Write-Host -ForegroundColor Yellow @'
                 $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
             }
         }
-        
-
-
-            $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
-        }
         Write-Host "Using Version $version"
         $appJson.version = "$version"
         $appJsonChanges = $true
