@@ -1290,7 +1290,12 @@ Write-Host -ForegroundColor Yellow @'
         }
         else {
             $appJsonVersion = [System.Version]$appJson.Version
-            $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+            if ($appBuild -eq -1) {
+       	        $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appJsonVersion.Build, $appRevision)
+            }
+            else {
+                $version = [System.Version]::new($appJsonVersion.Major, $appJsonVersion.Minor, $appBuild, $appRevision)
+            }
         }
         Write-Host "Using Version $version"
         $appJson.version = "$version"
