@@ -32,6 +32,7 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    $packageIdSpecified = ("$packageId" -ne "")
     if (Test-Path $configPackage -PathType Leaf) {
         $configFile = Get-Item -Path $configPackage
         if ($configFile -is [Array]) {
@@ -39,24 +40,28 @@ try {
             return
         }
         $configPackage = $configFile.FullName
-        if (!$packageId) {
+        if (!$packageIdSpecified) {
             $packageId = [System.IO.Path]::GetFileNameWithoutExtension($configPackage)
             $packageId = $packageId.SubString(0,[System.Math]::Min(20, $packageId.Length))
         }
     }
     else {
-        $packageId = $configPackage
-        $containerConfigPackage = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($PackageId) 
-            (Get-item "C:\ConfigurationPackages\*$packageId*").FullName
+        $containerConfigPackage = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($configPackage) 
+            (Get-item "C:\ConfigurationPackages\*$configpackage*").FullName
         } -argumentList $configPackage
         if ($containerConfigPackage) {
             if ($containerConfigPackage -is [Array]) {
                 throw "You can only upload, import and apply one config package at a time ($configPackage matches multiple files inside the container)"
                 return
             }
-            $nameArr = "$([System.IO.Path]::GetFileNameWithoutExtension($containerConfigPackage))".Split('.')
-            $packageId = "$($nameArr[2]).$($nameArr[3]).$($nameArr[4])"
-            $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$($packageId).rapidstart"
+            if ($packageIdSpecified) {
+                $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$($packageId).rapidstart"
+            }
+            else {
+                $nameArr = "$([System.IO.Path]::GetFileNameWithoutExtension($containerConfigPackage))".Split('.')
+                $packageId = "$($nameArr[2]).$($nameArr[3]).$($nameArr[4])"
+                $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$($packageId).rapidstart"
+            }
             if (Test-Path $configPackage) {
                 Remove-Item $configPackage -Force
             }

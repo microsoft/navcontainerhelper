@@ -1,5 +1,6 @@
 4.0.4
 Issue #2652 Support Run-AlPipeline with appRevision only
+Issue #2704 Wrong package name since today
 
 4.0.3
 Support for specifying STANDARD or EXTENDED in UploadImportAndApply-ConfigPackageInBcContainer
