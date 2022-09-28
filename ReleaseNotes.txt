@@ -1,3 +1,6 @@
+4.0.5
+Issue #2697 Run-AlValidation does not fail validation, but validation fails in Partner Center when submitting the app for NextMajor
+
 4.0.4
 Issue #2652 Support Run-AlPipeline with appRevision only
 Issue #2704 Wrong package name since today
