@@ -8,6 +8,8 @@
   Path of the folder in which the application File will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
  .Parameter GenerateAppJson
   Add this switch to generate an sample app.json file in the AppFolder, containing the manifest properties.
+ .Parameter ExcludeRuntimeProperty
+  Add this switch to remove the runtime version from the app.json 
  .Parameter OpenFolder
   Add this parameter to open the destination folder in explorer
  .Example
@@ -18,6 +20,7 @@ function Extract-AppFileToFolder {
         [string] $appFilename,
         [string] $appFolder = "",
         [switch] $generateAppJson,
+        [switch] $excludeRuntimeProperty,
         [switch] $openFolder
     )
 
@@ -124,8 +127,12 @@ try {
                 "application" = $application
             }
         }
+        if (!$excludeRuntimeProperty.IsPresent) {
+            $appJson += @{
+                "runtime" = $runtime
+            }
+        }
         $appJson += [ordered]@{
-            "runtime" = $runtime
             "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
             "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | % { $_.Value } )"
             "EULA" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "EULA" } | % { $_.Value } )"

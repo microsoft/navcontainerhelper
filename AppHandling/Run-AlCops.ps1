@@ -147,7 +147,7 @@ try {
     
             $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
 
-            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
+            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -excludeRuntimeProperty
             $appJson = [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "app.json")) | ConvertFrom-Json
 
             $ruleset = $null
