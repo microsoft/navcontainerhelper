@@ -17,7 +17,7 @@ function New-ALGoAppSourceContext {
         $appSourceContext = [ordered]@{
             "refreshToken" = $authContext.RefreshToken
             "tenantID" = $authContext.tenantID
-            "scopes" = @("https://api.partner.microsoft.com/.default")
+            "scopes" = $authContext.scopes
         }
     }
 
