@@ -543,6 +543,17 @@ try {
         $appManifestPath = Join-Path $appArtifactPath "manifest.json"
         $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
+        if ($appManifest.version -like "21.0.*" -and $licenseFile -eq "") {
+            Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
+            $country = $appManifest.Country.ToLowerInvariant()
+            if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
+                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+            }
+            else {
+                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+            }
+        }
+
         if ($runSandboxAsOnPrem -and $appManifest.version -lt [Version]"18.0.0.0") {
             $runSandboxAsOnPrem = $false
             Write-Host -ForegroundColor Red "Cannot run sandbox artifacts before version 18 as onprem"
