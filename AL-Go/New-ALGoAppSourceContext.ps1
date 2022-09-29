@@ -10,14 +10,14 @@ function New-ALGoAppSourceContext {
             "clientID" = $authContext.clientID
             "clientSecret" = $authContext.ClientSecret | Get-PlainText
             "tenantID" = $authContext.tenantID
-            "scopes" = $authContext.scopes
+            "scopes" = @("https://api.partner.microsoft.com/.default")
         }
     }
     else {
         $appSourceContext = [ordered]@{
             "refreshToken" = $authContext.RefreshToken
             "tenantID" = $authContext.tenantID
-            "scopes" = $authContext.scopes
+            "scopes" = @("https://api.partner.microsoft.com/.default")
         }
     }
 
