@@ -510,11 +510,6 @@ try {
     Write-Host "Docker Client Version is $dockerClientVersion"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerClientVersion" -value $dockerClientVersion
 
-    $myClientVersion = [System.Version]"0.0.0"
-    if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
-        Write-Host -ForegroundColor Yellow "WARNING: Microsoft container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
-    }
-
     Write-Host "Docker Server Version is $dockerServerVersion"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerServerVersion" -value $dockerServerVersion
 
