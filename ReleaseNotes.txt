@@ -1,4 +1,5 @@
 4.0.6
+Check latest allowed runtime version in Run-AlValidation
 
 4.0.5
 Issue #2697 Run-AlValidation does not fail validation, but validation fails in Partner Center when submitting the app for NextMajor
