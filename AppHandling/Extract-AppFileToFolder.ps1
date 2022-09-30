@@ -10,6 +10,8 @@
   Add this switch to generate an sample app.json file in the AppFolder, containing the manifest properties.
  .Parameter ExcludeRuntimeProperty
   Add this switch to remove the runtime version from the app.json 
+ .Parameter LatestSupportedRuntimeVersion
+  Add a version number to fail if the runtime version is higher than this version number
  .Parameter OpenFolder
   Add this parameter to open the destination folder in explorer
  .Example
@@ -21,6 +23,7 @@ function Extract-AppFileToFolder {
         [string] $appFolder = "",
         [switch] $generateAppJson,
         [switch] $excludeRuntimeProperty,
+        [string] $latestSupportedRuntimeVersion,
         [switch] $openFolder
     )
 
@@ -127,7 +130,16 @@ try {
                 "application" = $application
             }
         }
-        if (!$excludeRuntimeProperty.IsPresent) {
+        if ($latestSupportedRuntimeVersion) {
+            Write-Host "App Runtime Version is $runtime"
+            if ([System.Version]$runtime -gt [System.Version]$latestSupportedRuntimeVersion) {
+                throw "App is using runtime version $runtime, latest supported runtime version is $latestSupportedRuntimeVersion."
+            }
+        }
+        if ($excludeRuntimeProperty.IsPresent) {
+            Write-Host "Excluding Runtime Version from app.json"
+        }
+        else {
             $appJson += @{
                 "runtime" = $runtime
             }

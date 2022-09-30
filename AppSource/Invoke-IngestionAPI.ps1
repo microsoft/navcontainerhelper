@@ -15,6 +15,9 @@ function Invoke-IngestionApiRestMethod {
     )
 
     $authContext = Renew-BcAuthContext -bcAuthContext $authContext
+    if ($authContext.scopes -ne "https://api.partner.microsoft.com/.default" -and $authContext.scopes -ne "https://api.partner.microsoft.com/") {
+        Write-Host -ForegroundColor Red "WARNING: AuthContext.Scopes is '$($authContext.Scopes)', should have been 'https://api.partner.microsoft.com/.default'"
+    }
     $headers += @{
         "Authorization" = "Bearer $($authcontext.AccessToken)"
         "Content-Type" = "application/json; charset=utf-8"
