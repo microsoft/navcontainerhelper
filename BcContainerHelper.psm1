@@ -444,6 +444,11 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "AppSource\Promote-AppSourceSubmission.ps1")
 . (Join-Path $PSScriptRoot "AppSource\Cancel-AppSourceSubmission.ps1")
 
+# Nuget specific functions
+. (Join-Path $PSScriptRoot "NuGet\New-BcNuGetPackage.ps1")
+. (Join-Path $PSScriptRoot "NuGet\Get-BcNuGetPackage.ps1")
+. (Join-Path $PSScriptRoot "NuGet\Push-BcNuGetPackage.ps1")
+
 # BC SaaS specific functions
 . (Join-Path $PSScriptRoot "BcSaaS\New-BcAuthContext.ps1")
 . (Join-Path $PSScriptRoot "BcSaaS\Renew-BcAuthContext.ps1")

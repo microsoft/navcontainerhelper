@@ -139,7 +139,8 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Set-BcContainerServerConfiguration', 'Restart-BcContainerServiceTier',
                'Get-BcScheduledUpgrade', 'Reschedule-BcUpgrade',
                'Invoke-IngestionAPI', 'Get-AppSourceProduct',
-               'Get-AppSourceSubmission', 'New-AppSourceSubmission', 'Promote-AppSourceSubmission', 'Cancel-AppSourceSubmission'
+               'Get-AppSourceSubmission', 'New-AppSourceSubmission', 'Promote-AppSourceSubmission', 'Cancel-AppSourceSubmission',
+               'New-BcNuGetPackage', 'Get-BcNuGetPackage', 'Push-BcNuGetPackage'
 
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
