@@ -44,8 +44,12 @@ Function Get-BcNuGetPackage {
     }
     try {
         $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$searchUrl/?q=$packageName"
-        $packageMetadata = $searchResult.data | Where-Object { $_.id -eq $packageName }
         $count = $searchResult.data.count
+        Write-Host "$count matching packages found"
+        if ($count -gt 1) {
+            $searchResult.data | ForEach-Object { Write-Host "- $($_.id)" }
+        }
+        $packageMetadata = $searchResult.data | Where-Object { $_.id -eq $packageName }
     }
     catch {
         throw (GetExtendedErrorMessage $_)
@@ -54,7 +58,7 @@ Function Get-BcNuGetPackage {
     $tmpFolder = ''
     if (-not $packageMetadata) {
         if (!$silent) {
-            Write-Host "No package found matching $packageName on $nuGetServerUrl"
+            Write-Host "The package named $packageName wasn't found on $nuGetServerUrl"
         }
     }
     else {

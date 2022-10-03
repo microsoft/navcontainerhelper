@@ -94,7 +94,7 @@ Function New-BcNuGetPackage {
         }
         if (-not $packageVersion) {
             $version = [System.Version]$appJson.version
-            $packageVersion = "$($version.Major).$($version.Minor).$($version.Build)"
+            $packageVersion = "$($version.Major).$($version.Minor).$($version.Build).$($version.Revision)"
         }
         if (-not $packageTitle) {
             $packageTitle = $appJson.name
@@ -168,7 +168,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.Flush()
         $XmlObjectWriter.Close()
         
-        $nuPkgFileName = "$($appJson.id)_$packageVersion.nupkg"
+        $nuPkgFileName = "$($packageId)_$packageVersion.nupkg"
         $nupkgFile = Join-Path $ENV:TEMP $nuPkgFileName
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
