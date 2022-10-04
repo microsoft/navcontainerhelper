@@ -89,7 +89,10 @@ Function New-BcNuGetPackage {
         $dependencyAppfiles | ForEach-Object {
             Copy-Item -Path $_ -Destination $dependenciesFolder -Force
         }
-        if (-not $packageId) {
+        if ($packageId) {
+            $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',$appJson.name).replace('{publisher}',$appJson.publisher)
+        }
+        else {
             $packageId = $appJson.id
         }
         if (-not $packageVersion) {
