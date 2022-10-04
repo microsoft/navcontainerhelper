@@ -268,7 +268,7 @@ try {
                 }
             }
         }
-        if ($runtime -ge 6.0)  {
+        if ($runtime -ge [System.Version]"6.0") {
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "preprocessorSymbols" } | % { 
                 $first = $true
                 $_.GetEnumerator() | % {
