@@ -1009,8 +1009,8 @@ Measure-Command {
         "containerName" = $containerName
         "tenant" = $tenant
     }
-    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps -notcontains $_ })
+    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 
     if ($missingAppDependencies) {
         Write-Host "Missing App dependencies"
@@ -1118,8 +1118,8 @@ Measure-Command {
         }
     }
 
-    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps -notcontains $_ })
+    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 
     if ($missingTestAppDependencies) {
         Write-Host "Missing TestApp dependencies"
@@ -1162,7 +1162,7 @@ $apps = @()
 $testApps = @()
 $bcptTestApps = @()
 $testToolkitInstalled = $false
-$sortedFolders | Select-Object -Unique | ForEach-Object {
+$sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
     $bcptTestApp = $bcptTestFolders.Contains($folder)
@@ -1262,8 +1262,8 @@ Measure-Command {
         }
     }
 
-    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps -notcontains $_ })
+    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 
     if ($missingTestAppDependencies) {
         Write-Host "Missing TestApp dependencies"
