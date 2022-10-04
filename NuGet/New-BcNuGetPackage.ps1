@@ -116,7 +116,7 @@ Function New-BcNuGetPackage {
         $nuspecFileName = Join-Path $rootFolder "manifest.nuspec"
         $xmlObjectsettings = New-Object System.Xml.XmlWriterSettings
         $xmlObjectsettings.Indent = $true
-        $xmlObjectsettings.IndentChars = "�    "
+        $xmlObjectsettings.IndentChars = "    "
         $xmlObjectsettings.Encoding = [System.Text.Encoding]::UTF8
         $XmlObjectWriter = [System.XML.XmlWriter]::Create($nuspecFileName, $xmlObjectsettings)
         $XmlObjectWriter.WriteStartDocument()
