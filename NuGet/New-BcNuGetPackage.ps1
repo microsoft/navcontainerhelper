@@ -15,6 +15,7 @@
  .Parameter packageAuthors
  .Parameter githubRepository
  .Parameter includeNuGetDependencies
+ .Parameter dependencyIdTemplate
  .Example
   todo
 #>
@@ -31,7 +32,8 @@ Function New-BcNuGetPackage {
         [string] $packageDescription = "",
         [string] $packageAuthors = "",
         [string] $githubRepository = "",
-        [switch] $includeNuGetDependencies
+        [switch] $includeNuGetDependencies,
+        [string] $dependencyIdTemplate = '{id}'
     )
 
     if ($useRuntimePackages) {
@@ -114,7 +116,7 @@ Function New-BcNuGetPackage {
         $nuspecFileName = Join-Path $rootFolder "manifest.nuspec"
         $xmlObjectsettings = New-Object System.Xml.XmlWriterSettings
         $xmlObjectsettings.Indent = $true
-        $xmlObjectsettings.IndentChars = "    "
+        $xmlObjectsettings.IndentChars = "�    "
         $xmlObjectsettings.Encoding = [System.Text.Encoding]::UTF8
         $XmlObjectWriter = [System.XML.XmlWriter]::Create($nuspecFileName, $xmlObjectsettings)
         $XmlObjectWriter.WriteStartDocument()
@@ -136,7 +138,7 @@ Function New-BcNuGetPackage {
             $appJson.dependencies | ForEach-Object {
                 $depVersion = [System.Version]$_.Version
                 $XmlObjectWriter.WriteStartElement("dependency")
-                $XmlObjectWriter.WriteAttributeString("id", $_.id);
+                $XmlObjectWriter.WriteAttributeString("id", $dependencyIdTemplate.replace('{id}',$_.id))
                 $XmlObjectWriter.WriteAttributeString("version", "$($depVersion.Major).$($depVersion.Minor).$($depVersion.Build)");
                 $XmlObjectWriter.WriteEndElement()
             }
