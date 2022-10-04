@@ -174,7 +174,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.Flush()
         $XmlObjectWriter.Close()
         
-        $nuPkgFileName = "$($packageId)_$packageVersion.nupkg"
+        $nuPkgFileName = "$($packageId)-$packageVersion.nupkg"
         $nupkgFile = Join-Path $ENV:TEMP $nuPkgFileName
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
