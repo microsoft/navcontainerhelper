@@ -1001,7 +1001,7 @@ Measure-Command {
         "tenant" = $tenant
     }
     $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-    $missingAppDependencies = @($missingAppDependencies | Where-Object { $containerAppIds -notcontains $_ })
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedApps -notcontains $_ })
 
     if ($missingAppDependencies) {
         Write-Host "Missing App dependencies"
@@ -1104,7 +1104,7 @@ Measure-Command {
     }
 
     $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $containerAppIds -notcontains $_ })
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps -notcontains $_ })
 
     if ($missingTestAppDependencies) {
         Write-Host "Missing TestApp dependencies"
@@ -1242,7 +1242,7 @@ Measure-Command {
     }
 
     $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $containerAppIds -notcontains $_ })
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedApps -notcontains $_ })
 
     if ($missingTestAppDependencies) {
         Write-Host "Missing TestApp dependencies"
