@@ -184,6 +184,8 @@
   Override function parameter Get-BcContainerAppRuntimePackage
  .Parameter RemoveBcContainer
   Override function parameter for Remove-BcContainer
+ .Parameter InstallMissingDependencies
+  Override function parameter for Installing missing dependencies
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
@@ -290,7 +292,8 @@ Param(
     [scriptblock] $RunTestsInBcContainer,
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
-    [scriptblock] $RemoveBcContainer
+    [scriptblock] $RemoveBcContainer,
+    [scriptblock] $InstallMissingDependencies
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
@@ -705,6 +708,12 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+if ($InstallMissingDependencies) {
+    Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
+}
+else {
+    $InstallMissingDependencies = { Param([Hashtable]$parameters) Write-Host "Unable to install missing dependencies" }
+}
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
 $signApps = ($codeSignCertPfxFile -ne "")
@@ -1005,7 +1014,13 @@ Measure-Command {
 
     if ($missingAppDependencies) {
         Write-Host "Missing App dependencies"
-        $missingAppDependencies | Out-Host
+        $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "missingDependencies" = $missingAppDependencies
+        }
+        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -1108,7 +1123,13 @@ Measure-Command {
 
     if ($missingTestAppDependencies) {
         Write-Host "Missing TestApp dependencies"
-        $missingTestAppDependencies | Out-Host
+        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "missingDependencies" = $missingTestAppDependencies
+        }
+        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
@@ -1246,7 +1267,13 @@ Measure-Command {
 
     if ($missingTestAppDependencies) {
         Write-Host "Missing TestApp dependencies"
-        $missingTestAppDependencies | Out-Host
+        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "missingDependencies" = $missingTestAppDependencies
+        }
+        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
