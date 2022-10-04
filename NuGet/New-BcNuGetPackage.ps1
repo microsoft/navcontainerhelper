@@ -136,6 +136,7 @@ Function New-BcNuGetPackage {
         if ($includeNuGetDependencies) {
             $XmlObjectWriter.WriteStartElement("dependencies")
             $appJson.dependencies | ForEach-Object {
+                $_ | Out-Host
                 $depVersion = [System.Version]$_.Version
                 $XmlObjectWriter.WriteStartElement("dependency")
                 $XmlObjectWriter.WriteAttributeString("id", $dependencyIdTemplate.replace('{id}',$_.id))
