@@ -114,7 +114,14 @@ try {
     if ($generateAppJson) {
         #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
-        $runtime = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        if ($runtimeStr) {
+            $runtime = [decimal]$runtimeStr
+        }
+        else {
+            $runtime = 9.2
+        }
+
         $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
         $appJson = [ordered]@{
             "id" = $manifest.Package.App.Id
