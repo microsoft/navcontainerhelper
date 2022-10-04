@@ -881,18 +881,36 @@ Write-Host -ForegroundColor Yellow @'
                                       |___/             |_|                                                
 
 '@
-$unknownDependencies = @()
-$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownDependencies))
-Write-Host "Sorted folders"
-$sortedFolders | ForEach-Object { Write-Host "- $_" }
+$unknownAppDependencies = @()
+$unknownTestAppDependencies = @()
+$sortedAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownAppDependencies))
+$sortedTestAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownTestAppDependencies))
+Write-Host "Sorted App folders"
+$sortedAppFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
-if ($unknownDependencies) {
-    $unknownDependencies | ForEach-Object { Write-Host "- $_" }
-    $unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
+if ($unknownAppDependencies) {
+    $unknownAppDependencies | ForEach-Object { Write-Host "- $_" }
+    $missingAppDependencies = $unknownAppDependencies | ForEach-Object { $_.Split(':')[0] }
 }
 else {
     Write-Host "- None"
-    $unknownDependencies = @([GUID]::Empty.ToString())
+    $missingAppDependencies = @([GUID]::Empty.ToString())
+}
+$missingTestAppDependencies = @([GUID]::Empty.ToString())
+Write-Host "Sorted TestApp folders"
+if ($sortedTestAppFolders.count -eq 0) {
+    Write-Host "- None"
+}
+else {
+    $sortedTestAppFolders | ForEach-Object { Write-Host "- $_" }
+    Write-Host "External TestApp dependencies"
+    if ($unknownTestAppDependencies) {
+        $unknownTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+        $missingTestAppDependencies = $unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] }
+    }
+    else {
+        Write-Host "- None"
+    }
 }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
@@ -927,7 +945,7 @@ Measure-Command {
             if ($generateDependencyArtifact) {
                 Write-Host -ForegroundColor Red "Cannot add AppSource Apps to dependency artifacts"
             }
-            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+            if ((!$installOnlyReferencedApps) -or ($missingAppDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
@@ -960,7 +978,7 @@ Measure-Command {
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
-                "includeOnlyAppIds" = $unknownDependencies
+                "includeOnlyAppIds" = $missingAppDependencies
             }
         }
         if ($generateDependencyArtifact -and !($testCountry)) {
@@ -976,6 +994,18 @@ Measure-Command {
         }
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         Remove-Item -Path $tmpAppFolder -Recurse -Force
+    }
+
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+    }
+    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $missingAppDependencies = @($missingAppDependencies | Where-Object { $containerAppIds -notcontains $_ })
+
+    if ($missingAppDependencies) {
+        Write-Host "Missing App dependencies"
+        $missingAppDependencies | Out-Host
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
@@ -1037,7 +1067,7 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+            if ((!$installOnlyReferencedApps) -or ($missingTestAppDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
@@ -1060,7 +1090,7 @@ Measure-Command {
             }
             if ($installOnlyReferencedApps) {
                 $parameters += @{
-                    "includeOnlyAppIds" = $unknownDependencies
+                    "includeOnlyAppIds" = $missingTestAppDependencies
                 }
             }
             if ($bcAuthContext) {
@@ -1071,6 +1101,14 @@ Measure-Command {
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
+    }
+
+    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $containerAppIds -notcontains $_ })
+
+    if ($missingTestAppDependencies) {
+        Write-Host "Missing TestApp dependencies"
+        $missingTestAppDependencies | Out-Host
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
@@ -1167,7 +1205,7 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+            if ((!$installOnlyReferencedApps) -or ($missingTestAppDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
@@ -1190,7 +1228,7 @@ Measure-Command {
             }
             if ($installOnlyReferencedApps) {
                 $parameters += @{
-                    "includeOnlyAppIds" = $unknownDependencies
+                    "includeOnlyAppIds" = $missingTestAppDependencies
                 }
             }
             if ($bcAuthContext) {
@@ -1201,6 +1239,14 @@ Measure-Command {
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
+    }
+
+    $installedApps = Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $containerAppIds -notcontains $_ })
+
+    if ($missingTestAppDependencies) {
+        Write-Host "Missing TestApp dependencies"
+        $missingTestAppDependencies | Out-Host
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
