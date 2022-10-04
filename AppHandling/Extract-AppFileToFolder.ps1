@@ -116,10 +116,10 @@ try {
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
         $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
         if ($runtimeStr) {
-            $runtime = [decimal]$runtimeStr
+            $runtime = [System.Version]$runtimeStr
         }
         else {
-            $runtime = 9.2
+            $runtime = [System.Version]"9.2"
         }
 
         $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
@@ -137,10 +137,10 @@ try {
                 "application" = $application
             }
         }
-        if ($latestSupportedRuntimeVersion) {
-            Write-Host "App Runtime Version is $runtime"
-            if ([System.Version]$runtime -gt [System.Version]$latestSupportedRuntimeVersion) {
-                throw "App is using runtime version $runtime, latest supported runtime version is $latestSupportedRuntimeVersion."
+        if ($latestSupportedRuntimeVersion -and $runtimeStr) {
+            Write-Host "App Runtime Version is '$runtimeStr'"
+            if ($runtime -gt [System.Version]$latestSupportedRuntimeVersion) {
+                throw "App is using runtime version $runtimeStr, latest supported runtime version is $latestSupportedRuntimeVersion."
             }
         }
         if ($excludeRuntimeProperty.IsPresent) {
@@ -148,7 +148,7 @@ try {
         }
         else {
             $appJson += @{
-                "runtime" = $runtime
+                "runtime" = "$($runtime.Major).$($runtime.Minor)"
             }
         }
         $appJson += [ordered]@{
@@ -164,7 +164,7 @@ try {
             "features" = @()
         }
 
-        if ($runtime -lt 8.0)  {
+        if ($runtime -lt [System.Version]"8.0")  {
             $appJson += @{
                 "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
             }
@@ -185,14 +185,14 @@ try {
             }
        
         }
-        if ($runtime -ge 5.0)  {
+        if ($runtime -ge [System.Version]"5.0")  {
             $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
             if ($appInsightsKey) {
                 $appJson += @{
                     "applicationInsightsKey" = "$appInsightsKey"
                 }
             }
-            elseif ($runtime -ge 7.2)  {
+            elseif ($runtime -ge [System.Version]"7.2")  {
                 $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | % { $_.Value } 
                 if ($appInsightsConnectionString) {
                     $appJson += @{
@@ -209,7 +209,7 @@ try {
         }
         $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
             $_.GetEnumerator() | % {
-                if ($runtime -gt 4.1) {
+                if ($runtime -gt [System.Version]"4.1") {
                     $propname = "id"
                 }
                 else {
@@ -251,7 +251,7 @@ try {
                 $appJson.supportedLocales += @($_.Local)
             }
         }
-        if ($runtime -ge 4.0)  {
+        if ($runtime -ge [System.Version]"4.0")  {
             $first = $true
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "internalsVisibleTo" } | % { 
                 if ($first) {
