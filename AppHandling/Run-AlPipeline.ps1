@@ -1006,7 +1006,7 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ($InstallMissingDependencies) {
+if ($InstallMissingDependencies -and ($missingAppDependencies -ne @([GUID]::Empty.ToString()))) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _                                      _____                            _                 _           
@@ -1136,7 +1136,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if ($InstallMissingDependencies) {
+if ($InstallMissingDependencies -and ($missingTestAppDependencies -ne @([GUID]::Empty.ToString()))) {
 if ($gitHubActions) { Write-Host "::group::Installing testapp dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _______        _                      _____                            _                 _           
@@ -1296,25 +1296,11 @@ Measure-Command {
         }
     }
 
-    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
-
-    if ($missingTestAppDependencies) {
-        Write-Host "Missing TestApp dependencies"
-        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
-        }
-        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
-    }
-
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($InstallMissingDependencies) {
+if ($InstallMissingDependencies -and ($missingTestAppDependencies -ne @([GUID]::Empty.ToString()))) {
 if ($gitHubActions) { Write-Host "::group::Installing testapp dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _______        _                      _____                            _                 _           
