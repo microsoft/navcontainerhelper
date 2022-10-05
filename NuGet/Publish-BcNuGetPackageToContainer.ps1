@@ -26,6 +26,6 @@ Function Publish-BcNuGetPackageToContainer {
         Publish-BcNuGetPackageToContainer -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $_.id  -version $_.version -containerName $containerName -tenant $tenant -skipVerification:$skipVerification
     }
     $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
-    Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $appFiles -sync -upgrade -checkAlreadyInstalled -skipVerification
+    Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification
 }
 Export-ModuleMember -Function Publish-BcNuGetPackageToContainer
