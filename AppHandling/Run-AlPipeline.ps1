@@ -1006,11 +1006,14 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-$missingAppDependencies.Count | Out-Host
-$missingAppDependencies | Out-Host
-
-
-if ($InstallMissingDependencies -and $missingAppDependencies.Count -gt 0) {
+if ($InstallMissingDependencies) {
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+}
+$installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+if ($missingAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _                                       _                           _                 _           
@@ -1023,25 +1026,17 @@ Write-Host -ForegroundColor Yellow @'
                                        |___/        |_|   |_|                |_|                                                 
 '@
 Measure-Command {
+    Write-Host "Missing App dependencies"
+    $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
+        "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
     }
-    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
-    $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
-
-    if ($missingAppDependencies) {
-        Write-Host "Missing App dependencies"
-        $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
-        }
-        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
-    }
+    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling app dependencies took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
+}
 }
 
 if (($testCountry) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
@@ -1138,7 +1133,15 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if ($InstallMissingDependencies -and $missingTestAppDependencies) {
+
+if ($InstallMissingDependencies) {
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+}
+$installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _                             _                           _                 _           
@@ -1151,26 +1154,17 @@ Write-Host -ForegroundColor Yellow @'
                                        |___/                           |_|   |_|                |_|                                                 
 '@
 Measure-Command {
+    Write-Host "Missing TestApp dependencies"
+    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
+        "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
     }
-    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
-
-    if ($missingTestAppDependencies) {
-        Write-Host "Missing TestApp dependencies"
-        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
-        }
-        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
-    }
-
+    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
+}
 }
 
 if (-not $testCountry) {
@@ -1300,7 +1294,14 @@ Measure-Command {
 }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($InstallMissingDependencies -and $missingTestAppDependencies) {
+if ($InstallMissingDependencies) {
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+}
+$installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _                             _                           _                 _           
@@ -1313,26 +1314,17 @@ Write-Host -ForegroundColor Yellow @'
                                        |___/                           |_|   |_|                |_|                                                 
 '@
 Measure-Command {
+    Write-Host "Missing TestApp dependencies"
+    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
+        "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
     }
-    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
-    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
-
-    if ($missingTestAppDependencies) {
-        Write-Host "Missing TestApp dependencies"
-        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
-        }
-        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
-    }
-
+    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
+}
 }
 
 if ($gitHubActions) { Write-Host "::group::Compiling test apps" }
