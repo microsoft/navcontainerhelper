@@ -20,6 +20,7 @@ Function Publish-BcNuGetPackageToContainer {
         [switch] $skipVerification
     )
 
+    Write-Host "Looking for NuGet package $packageName version $version"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
     $manifest = [xml](Get-Content (Join-Path $package 'manifest.nuspec') -Encoding UTF8)
     $manifest.package.metadata.dependencies.GetEnumerator() | ForEach-Object {

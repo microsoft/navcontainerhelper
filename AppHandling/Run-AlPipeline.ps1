@@ -711,9 +711,6 @@ else {
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
 }
-else {
-    $InstallMissingDependencies = { Param([Hashtable]$parameters) Write-Host "Unable to install missing dependencies" }
-}
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
 $signApps = ($codeSignCertPfxFile -ne "")
@@ -1005,6 +1002,23 @@ Measure-Command {
         Remove-Item -Path $tmpAppFolder -Recurse -Force
     }
 
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
+}
+
+if ($InstallMissingDependencies) {
+if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
+Write-Host -ForegroundColor Yellow @'
+  _____           _        _ _ _                                      _____                            _                 _           
+ |_   _|         | |      | | (_)                 /\                 |  __ \                          | |               (_)          
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     /  \   _ __  _ __   | |  | | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___ 
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |   / /\ \ | '_ \| '_ \  | |  | |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| |  / ____ \| |_) | |_) | | |__| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, | /_/    \_\ .__/| .__/  |_____/ \___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |          | |   | |                 | |                                                 
+                                       |___/           |_|   |_|                 |_|                                                 
+'@
+Measure-Command {
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
@@ -1022,8 +1036,7 @@ Measure-Command {
         }
         Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
-
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling app dependencies took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
@@ -1118,6 +1131,28 @@ Measure-Command {
         }
     }
 
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
+}
+}
+
+if ($InstallMissingDependencies) {
+if ($gitHubActions) { Write-Host "::group::Installing testapp dependencies" }
+Write-Host -ForegroundColor Yellow @'
+  _____           _        _ _ _               _______        _                      _____                            _                 _           
+ |_   _|         | |      | | (_)             |__   __|      | |                    |  __ \                          | |               (_)          
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     | | ___  ___| |_ __ _ _ __  _ __   | |  | | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___ 
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |    | |/ _ \/ __| __/ _` | '_ \| '_ \  | |  | |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| |    | |  __/\__ \ || (_| | |_) | |_) | | |__| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |    |_|\___||___/\__\__,_| .__/| .__/  |_____/ \___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |                         | |   | |                 | |                                                 
+                                       |___/                          |_|   |_|                 |_|                                                 
+'@
+Measure-Command {
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+    }
     $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
     $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 
@@ -1132,9 +1167,8 @@ Measure-Command {
         Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
 
-} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
-}
 }
 
 if (-not $testCountry) {
@@ -1278,8 +1312,43 @@ Measure-Command {
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 }
-
 if ($gitHubActions) { Write-Host "::endgroup::" }
+
+if ($InstallMissingDependencies) {
+if ($gitHubActions) { Write-Host "::group::Installing testapp dependencies" }
+Write-Host -ForegroundColor Yellow @'
+  _____           _        _ _ _               _______        _                      _____                            _                 _           
+ |_   _|         | |      | | (_)             |__   __|      | |                    |  __ \                          | |               (_)          
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     | | ___  ___| |_ __ _ _ __  _ __   | |  | | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___ 
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |    | |/ _ \/ __| __/ _` | '_ \| '_ \  | |  | |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| |    | |  __/\__ \ || (_| | |_) | |_) | | |__| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |    |_|\___||___/\__\__,_| .__/| .__/  |_____/ \___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |                         | |   | |                 | |                                                 
+                                       |___/                          |_|   |_|                 |_|                                                 
+'@
+Measure-Command {
+    $Parameters = @{
+        "containerName" = $containerName
+        "tenant" = $tenant
+    }
+    $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
+    $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+
+    if ($missingTestAppDependencies) {
+        Write-Host "Missing TestApp dependencies"
+        $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+        $Parameters = @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        }
+        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+    }
+
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
+if ($gitHubActions) { Write-Host "::endgroup::" }
+}
+
 if ($gitHubActions) { Write-Host "::group::Compiling test apps" }
 Write-Host -ForegroundColor Yellow @'
    _____                      _ _ _               _           _                           
