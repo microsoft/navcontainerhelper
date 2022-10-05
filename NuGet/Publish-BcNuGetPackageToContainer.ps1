@@ -22,11 +22,13 @@ Function Publish-BcNuGetPackageToContainer {
 
     Write-Host "Looking for NuGet package $packageName version $version"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
-    $manifest = [xml](Get-Content (Join-Path $package 'manifest.nuspec') -Encoding UTF8)
-    $manifest.package.metadata.dependencies.GetEnumerator() | ForEach-Object {
-        Publish-BcNuGetPackageToContainer -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $_.id  -version $_.version -containerName $containerName -tenant $tenant -skipVerification:$skipVerification
+    if ($package) {
+        $manifest = [xml](Get-Content (Join-Path $package 'manifest.nuspec') -Encoding UTF8)
+        $manifest.package.metadata.dependencies.GetEnumerator() | ForEach-Object {
+            Publish-BcNuGetPackageToContainer -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $_.id  -version $_.version -containerName $containerName -tenant $tenant -skipVerification:$skipVerification
+        }
+        $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
+        Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification
     }
-    $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
-    Publish-BcContainerApp -containerName $containerName -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification
 }
 Export-ModuleMember -Function Publish-BcNuGetPackageToContainer
