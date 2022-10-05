@@ -890,7 +890,7 @@ Write-Host -ForegroundColor Yellow @'
 $unknownAppDependencies = @()
 $unknownTestAppDependencies = @()
 $sortedAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownAppDependencies))
-$sortedTestAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownTestAppDependencies))
+$sortedTestAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownTestAppDependencies) | Where-Object { $appFolders -notcontains $_ })
 Write-Host "Sorted App folders"
 $sortedAppFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
