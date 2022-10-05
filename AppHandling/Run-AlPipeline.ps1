@@ -1006,7 +1006,11 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ($InstallMissingDependencies -and $missingAppDependencies) {
+$missingAppDependencies.Count | Out-Host
+$missingAppDependencies | Out-Host
+
+
+if ($InstallMissingDependencies -and $missingAppDependencies.Count -gt 0) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _                                       _                           _                 _           
