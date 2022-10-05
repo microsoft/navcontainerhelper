@@ -900,9 +900,9 @@ if ($unknownAppDependencies) {
 }
 else {
     Write-Host "- None"
-    $missingAppDependencies = @([GUID]::Empty.ToString())
+    $missingAppDependencies = @()
 }
-$missingTestAppDependencies = @([GUID]::Empty.ToString())
+$missingTestAppDependencies = @()
 Write-Host "Sorted TestApp folders"
 if ($sortedTestAppFolders.count -eq 0) {
     Write-Host "- None"
@@ -1006,7 +1006,7 @@ Measure-Command {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
-if ($InstallMissingDependencies -and ($missingAppDependencies -ne @([GUID]::Empty.ToString()))) {
+if ($InstallMissingDependencies -and $missingAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _                                       _                           _                 _           
@@ -1134,7 +1134,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if ($InstallMissingDependencies -and ($missingTestAppDependencies -ne @([GUID]::Empty.ToString()))) {
+if ($InstallMissingDependencies -and $missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _                             _                           _                 _           
@@ -1296,7 +1296,7 @@ Measure-Command {
 }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($InstallMissingDependencies -and ($missingTestAppDependencies -ne @([GUID]::Empty.ToString()))) {
+if ($InstallMissingDependencies -and $missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _                             _                           _                 _           
