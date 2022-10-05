@@ -27,7 +27,7 @@ Function New-BcNuGetPackage {
         [string[]] $dependencyAppFiles = @(),
         [string[]] $testAppFiles = @(),
         [string] $packageId = "",
-        [string] $packageVersion = "",
+        [System.Version] $packageVersion = $null,
         [string] $packageTitle = "",
         [string] $packageDescription = "",
         [string] $packageAuthors = "",
@@ -58,7 +58,7 @@ Function New-BcNuGetPackage {
         throw "You need to specify at least one appfile"
     }
     elseif ($appfiles.Count -gt 1) {
-        if ($packageId -eq "" -or $packageVersion -eq "" -or $packageTitle -eq "" -or $packageAuthors -eq "") {
+        if ($packageId -eq "" -or $packageVersion -eq $null -or $packageTitle -eq "" -or $packageAuthors -eq "") {
             throw "When specifying multiple files, you need to specify packageId, packageVersion, packageTitle and packageAuthors"
         }
         if ($includeNuGetDependencies) {
@@ -97,9 +97,8 @@ Function New-BcNuGetPackage {
         else {
             $packageId = $appJson.id
         }
-        if (-not $packageVersion) {
-            $version = [System.Version]$appJson.version
-            $packageVersion = "$($version.Major).$($version.Minor).$($version.Build).$($version.Revision)"
+        if ($packageVersion -eq $null) {
+            $packageVersion = [System.Version]$appJson.version
         }
         if (-not $packageTitle) {
             $packageTitle = $appJson.name
@@ -123,7 +122,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("package", "http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd")
         $XmlObjectWriter.WriteStartElement("metadata")
         $XmlObjectWriter.WriteElementString("id", $packageId)
-        $XmlObjectWriter.WriteElementString("version", $packageVersion)
+        $XmlObjectWriter.WriteElementString("version", $packageVersion.ToString())
         $XmlObjectWriter.WriteElementString("title", $packageTitle)
         $XmlObjectWriter.WriteElementString("description", $packageDescription)
         $XmlObjectWriter.WriteElementString("authors", $packageAuthors)
@@ -172,7 +171,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.Flush()
         $XmlObjectWriter.Close()
         
-        $nuPkgFileName = "$($packageId)-$packageVersion.nupkg"
+        $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
         $nupkgFile = Join-Path $ENV:TEMP $nuPkgFileName
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force

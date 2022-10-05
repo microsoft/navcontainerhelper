@@ -448,6 +448,7 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "NuGet\New-BcNuGetPackage.ps1")
 . (Join-Path $PSScriptRoot "NuGet\Get-BcNuGetPackage.ps1")
 . (Join-Path $PSScriptRoot "NuGet\Push-BcNuGetPackage.ps1")
+. (Join-Path $PSScriptRoot "NuGet\Publish-BcNuGetPackageToContainer.ps1")
 
 # BC SaaS specific functions
 . (Join-Path $PSScriptRoot "BcSaaS\New-BcAuthContext.ps1")
