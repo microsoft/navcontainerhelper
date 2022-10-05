@@ -1018,7 +1018,7 @@ Measure-Command {
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
-            "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -like "$($_):*" })
+            "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
         }
         Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
@@ -1127,7 +1127,7 @@ Measure-Command {
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
-            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -like "$($_):*" })
+            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
         }
         Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
@@ -1271,7 +1271,7 @@ Measure-Command {
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
-            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -like "$($_):*" })
+            "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
         }
         Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
     }
