@@ -112,7 +112,7 @@ function Get-ContainerHelperConfig {
             "PartnerTelemetryConnectionString" = ""
             "MicrosoftTelemetryConnectionString" = "InstrumentationKey=5b44407e-9750-4a07-abe9-30c3b853821b;IngestionEndpoint=https://southcentralus-0.in.applicationinsights.azure.com/"
             "SendExtendedTelemetryToMicrosoft" = $false
-            "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
+            "TraefikImage" = "tobiasfenster/traefik-for-windows:v1.7.34"
             "ObjectIdForInternalUse" = 88123
             "WinRmCredentials" = $null
             "WarningPreference" = "SilentlyContinue"
