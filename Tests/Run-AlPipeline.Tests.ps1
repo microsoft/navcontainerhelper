@@ -28,7 +28,7 @@ Describe 'Run-AlPipeline' {
             -licenseFile $buildlicenseFile `
             -containerName $bccontainerName `
             -credential $credential `
-            -installApps @("https://businesscentralapps.blob.core.windows.net/hidestuff/latest/hidestuff-apps.zip") `
+            -installApps @("https://businesscentralapps.blob.core.windows.net/bingmaps-pte/latest/bingmaps-pte-apps.zip") `
             -appFolders "app,base" `
             -testFolders @("test") `
             -previousApps @("https://businesscentralapps.blob.core.windows.net/githubhelloworld/2.0.32.0/apps.zip") `
