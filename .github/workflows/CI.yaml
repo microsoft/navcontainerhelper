@@ -138,8 +138,8 @@ jobs:
             Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
             Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
           
-#            Write-Host "Publishing Module"
-#            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
+            # Write-Host "Publishing Module"
+            # Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
           }
           catch {
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
