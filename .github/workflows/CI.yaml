@@ -127,8 +127,8 @@ jobs:
            
             Write-Host "Signing scripts"
             $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
-            $filesToSign = @((Get-ChildItem 'C:\src\github\microsoft\navcontainerhelper' -Filter "*.ps1" -Recurse -Depth 99).FullName)+
-                           @((Get-ChildItem 'C:\src\github\microsoft\navcontainerhelper' -Filter "*.psm1" -Recurse -Depth 99).FullName)
+            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
+                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
             Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
 
             Write-Host "Upload to storage (preview)"
