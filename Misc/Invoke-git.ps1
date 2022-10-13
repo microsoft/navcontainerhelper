@@ -1,6 +1,6 @@
 <# 
  .Synopsis
-  PREVIEW: Invoke git command with parameters
+  Invoke git command with parameters
  .Description
   Requires Git installed  
 #>

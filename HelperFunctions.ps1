@@ -386,15 +386,20 @@ function GetExtendedErrorMessage {
         }
         $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
+        try {
+            if ($webResponse.StatusDescription) {
+                $message += "`r`n$($webResponse.StatusDescription)"
+            }
+        } catch {}
         $reqstream = $webResponse.GetResponseStream()
         $sr = new-object System.IO.StreamReader $reqstream
         $result = $sr.ReadToEnd()
         try {
             $json = $result | ConvertFrom-Json
-            $message += " $($json.Message)"
+            $message += "`r`n$($json.Message)"
         }
         catch {
-            $message += " $result"
+            $message += "`r`n$result"
         }
         try {
             $correlationX = $webResponse.GetResponseHeader('ms-correlation-x')
