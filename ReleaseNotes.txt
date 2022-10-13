@@ -1,6 +1,6 @@
 4.0.6
 Check latest allowed runtime version in Run-AlValidation
-Add PROOF OF CONCEPT PREVIEW functions to work with Business Central NuGet packages: New-BcNuGetPackage, Get-BcNuGetPackage and Push-BcNuGetPackage
+Add PROOF OF CONCEPT PREVIEW functions to work with Business Central NuGet packages: New-BcNuGetPackage, Get-BcNuGetPackage, Push-BcNuGetPackage and New-ALGoNuGetContext
 
 4.0.5
 Issue #2697 Run-AlValidation does not fail validation, but validation fails in Partner Center when submitting the app for NextMajor
