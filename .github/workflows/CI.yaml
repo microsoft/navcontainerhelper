@@ -124,7 +124,7 @@ jobs:
            
             Write-Host "Signing scripts"
             $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
-            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }} -destinationFile $certFileName
+            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
             $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
             $filesToSign = @((Get-ChildItem 'C:\src\github\microsoft\navcontainerhelper' -Filter "*.ps1" -Recurse -Depth 99).FullName)+
                            @((Get-ChildItem 'C:\src\github\microsoft\navcontainerhelper' -Filter "*.psm1" -Recurse -Depth 99).FullName)
