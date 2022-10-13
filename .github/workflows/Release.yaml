@@ -67,6 +67,20 @@ jobs:
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes
 
+
+            $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
+            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
+
+            Remove-Module BcContainerHelper
+          
+            Write-Host $path
+           
+            Write-Host "Signing scripts"
+            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
+            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
+                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
+            Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
+
             Write-Host "Upload to storage (preview)"
             $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
             New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null

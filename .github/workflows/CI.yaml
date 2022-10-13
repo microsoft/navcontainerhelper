@@ -117,7 +117,7 @@ jobs:
                                   -AliasesToExport $aliasesToExport `
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes
-          
+
             $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
             Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
 
@@ -146,5 +146,3 @@ jobs:
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
-
-          
