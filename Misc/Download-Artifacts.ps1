@@ -78,13 +78,37 @@ try {
             }
             if (-not $exists) {
                 Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
-                $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
                 TestSasToken -sasToken $artifactUrl
-                Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
-                Write-Host "Unpacking application artifact to tmp folder " -NoNewline
-                $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
+                $retry = $false
+                do {
+                    Write-Host $artifactUrl
+                    $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
+                    Write-Host "Unpacking application artifact to tmp folder " -NoNewline
+                    $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
+                    try {
+                        Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
+                        $retry = $false
+                    }
+                    catch {
+                        Remove-Item -path $appZip -force
+                        if (Test-Path $tmpFolder) {
+                            Remove-Item $tmpFolder -Recurse -Force
+                        }
+                        if ($retry) {
+                            throw "Error trying to unpack artifacts, downloaded package is corrupt"
+                        }
+                        else {
+                            if ($artifactUrl -like "https://bcartifacts.azureedge.net/*" -or $artifactUrl -like "https://bcinsider.azureedge.net/*" -or $artifactUrl -like "https://bcprivate.azureedge.net/*" -or $artifactUrl -like "https://bcpublicpreview.azureedge.net/*") {
+                                Write-Host "Error unpacking artifact downloaded from CDN, retrying download from direct download URL"
+                                $idx = $artifactUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+                                $artifactUrl = $artifactUrl.Substring(0,$idx) + '.blob.core.windows.net' + $artifactUrl.Substring($idx + 14)
+                                $retry = $true
+                            }
+                        }
+                    }
+                } while($retry)
                 try {
-                    Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
                     while (!(Test-Path "$appArtifactPath")) {
                         try {
                             Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
@@ -97,7 +121,9 @@ try {
                     }
                 }
                 finally {
-                    Remove-Item -path $appZip -force
+                    if (Test-Path $appZip) {
+                        Remove-Item -path $appZip -force
+                    }
                     if (Test-Path $tmpFolder) {
                         Remove-Item $tmpFolder -Recurse -Force
                     }

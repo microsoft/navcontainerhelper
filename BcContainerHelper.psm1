@@ -117,6 +117,7 @@ function Get-ContainerHelperConfig {
             "WinRmCredentials" = $null
             "WarningPreference" = "SilentlyContinue"
             "UseNewFormatForGetBcContainerAppInfo" = $false
+            "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
         }
 
         if ($isInsider) {
