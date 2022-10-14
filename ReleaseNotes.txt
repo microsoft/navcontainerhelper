@@ -2,6 +2,7 @@
 Check latest allowed runtime version in Run-AlValidation
 Add PROOF OF CONCEPT PREVIEW functions to work with Business Central NuGet packages: New-BcNuGetPackage, Get-BcNuGetPackage, Push-BcNuGetPackage and New-ALGoNuGetContext
 BcContainerHelper is now signed with a Code Signing certificate
+Issue #2727 retry download from direct download URL if CDN download was corrupt
 
 4.0.5
 Issue #2697 Run-AlValidation does not fail validation, but validation fails in Partner Center when submitting the app for NextMajor
