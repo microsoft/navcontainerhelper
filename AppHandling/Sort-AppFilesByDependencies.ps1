@@ -76,8 +76,11 @@ try {
                     Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
-            $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
-            $apps += @($appJson)
+            $key = "$($appJson.Id):$($appJson.Version)"
+            if (-not $files.ContainsKey($key)) {
+                $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
+                $apps += @($appJson)
+            }
         }
         
         # Populate SortedApps and UnresolvedDependencies
