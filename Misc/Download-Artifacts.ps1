@@ -87,7 +87,7 @@ try {
                     Write-Host "Unpacking application artifact to tmp folder " -NoNewline
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                     try {
-                        Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder
+                        Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
                         $retry = $false
                     }
                     catch {
@@ -181,14 +181,39 @@ try {
                 }
                 if (-not $exists) {
                     Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-                    $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-                    TestSasToken -sasToken $artifactUrl
-                    Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
-                    Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
-                    $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) ([System.IO.Path]::GetRandomFileName())
+                    TestSasToken -sasToken $platformUrl
+                    $retry = $false
+                    do {
+                        Write-Host $platformUrl
+                        $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+                        Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
+                        Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
+                        $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) ([System.IO.Path]::GetRandomFileName())
+                        try {
+                            Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
+                            $retry = $false
+                        }
+                        catch {
+                        Remove-Item -path $appZip -force
+                            if (Test-Path $tmpFolder) {
+                                Remove-Item $tmpFolder -Recurse -Force
+                            }
+                            if ($retry) {
+                                throw "Error trying to unpack platform artifacts, downloaded package is corrupt"
+                            }
+                            else {
+                                if ($platformUrl -like "https://bcartifacts.azureedge.net/*" -or $platformUrl -like "https://bcinsider.azureedge.net/*" -or $platformUrl -like "https://bcprivate.azureedge.net/*" -or $platformUrl -like "https://bcpublicpreview.azureedge.net/*") {
+                                    Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
+                                    $idx = $platformUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+                                    $platformUrl = $platformUrl.Substring(0,$idx) + '.blob.core.windows.net' + $platformUrl.Substring($idx + 14)
+                                    $retry = $true
+                                }
+                            }
+                        }
+                    } while ($retry)
+
+                    $downloadprereqs = $false
                     try {
-                        Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder
-                        $downloadprereqs = $false
                         while (!(Test-Path "$platformArtifactPath")) {
                             try {
                                 Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
