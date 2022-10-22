@@ -194,7 +194,7 @@ try {
                             $retry = $false
                         }
                         catch {
-                        Remove-Item -path $appZip -force
+                            Remove-Item -path $platformZip -force
                             if (Test-Path $tmpFolder) {
                                 Remove-Item $tmpFolder -Recurse -Force
                             }
