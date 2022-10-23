@@ -35,7 +35,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
     $startIndex = 0
     if ($basePath) {
-        $basePath = "$($basePath.TrimEnd('/'))/"
+        $basePath = "$($basePath.TrimEnd('\'))\"
         Write-Host $basePath
     }
     $hasError = $false
