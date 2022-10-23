@@ -12,6 +12,8 @@
   Include this switch, if you are running GitHub Actions
  .Parameter DoNotWriteToHost
   Include this switch to return the converted result instead of outputting the result to the Host
+ .Parameter basePath
+  Base Path of the files in the ALC output, to convert file paths to relative paths
  .Example
   Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -AzureDevOps
  .Example
