@@ -27,16 +27,16 @@ Function Convert-AlcOutputToDevOps {
         [ValidateSet('none','error','warning')]
         [string] $FailOn,
         [switch] $gitHubActions,
-        [switch] $doNotWriteToHost
+        [switch] $doNotWriteToHost,
+        [string] $basePath = ''
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     $startIndex = 0
-    if ($gitHubActions) {
-        $startIndex = "$($ENV:GITHUB_WORKSPACE.TrimEnd('/'))/".Length
-        Write-Host $ENV:GITHUB_WORKSPACE
-        Write-Host $startIndex
+    if ($basePath) {
+        $basePath = "$($basePath.TrimEnd('/'))/"
+        Write-Host $basePath
     }
     $hasError = $false
     $hasWarning = $false
@@ -45,16 +45,16 @@ try {
         switch -regex ($line) {
             "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
+                    $file = $Matches[3]
+                    Write-Host $file
+                    if ($file -like "$($basePath)*") {
+                        $file = $file.SubString($basePath.Length)
+                    }
                     if ($gitHubActions) {
-                        $file = $Matches[3]
-                        Write-Host $file
-                        if ($file -like "$($ENV:GITHUB_WORKSPACE)*") {
-                            $file = $file.SubString($startIndex)
-                        }
                         $newLine = "::warning file=$($file)::code=$($Matches[1]) $($Matches[2])"
                     }
                     else {
-                        $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);$($Matches[1]);]$($Matches[2])"
+                        $newLine = "##vso[task.logissue type=warning;sourcepath=$($file);$($Matches[1]);]$($Matches[2])"
                     }
                 } else {
                     if ($gitHubActions) {
@@ -71,16 +71,16 @@ try {
             "^(.*)\((\d+),(\d+)\): error (\w{2,3}\d{4}): (.*)$"
             #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
             {
+                $file = $Matches[1]
+                Write-Host $file
+                if ($file -like "$($basePath)*") {
+                    $file = $file.SubString($basePath.Length)
+                }
                 if ($gitHubActions) {
-                    $file = $Matches[1]
-                    Write-Host $file
-                    if ($file -like "$($ENV:GITHUB_WORKSPACE)*") {
-                        $file = $file.SubString($startIndex)
-                    }
                     $newLine = "::error file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
-                    $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $newLine = "##vso[task.logissue type=error;sourcepath=$($file);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                 }
                 $hasError = $true
                 break
@@ -101,16 +101,16 @@ try {
             #Prepared for unified warning format
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
+                $file = $Matches[1]
+                Write-Host $file
+                if ($file -like "$($basePath)*") {
+                    $file = $file.SubString($basePath.Length)
+                }
                 if ($gitHubActions) {
-                    $file = $Matches[1]
-                    Write-Host $file
-                    if ($file -like "$($ENV:GITHUB_WORKSPACE)*") {
-                        $file = $file.SubString($startIndex)
-                    }
                     $newLine = "::warning file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
-                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($file);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                 }
                 $hasWarning = $true
                 break
