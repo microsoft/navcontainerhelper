@@ -8,6 +8,8 @@
   One or more lines of outout from the AL Compiler
  .Parameter Failon
   Specify if you want the AzureDevOps output to fail on Error or Warning
+ .Parameter GitHubActions
+  Include this switch, if you are running GitHub Actions
  .Parameter DoNotWriteToHost
   Include this switch to return the converted result instead of outputting the result to the Host
  .Example
@@ -31,10 +33,15 @@ Function Convert-AlcOutputToDevOps {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    Write-Host "GitHubActions $githubactions"
+    
     $hasError = $false
     $hasWarning = $false
 
     foreach($line in $AlcOutput) {
+
+        Write-Host "***** $line"
+
         switch -regex ($line) {
             "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
@@ -98,6 +105,7 @@ try {
                 break
             }
         }
+        Write-Host "----- $newLine"
         if ($doNotWriteToHost) {
             $newLine
         }
@@ -107,7 +115,12 @@ try {
     }
 
     $errLine = ""
-    if (-not $gitHubActions) {
+    if ($gitHubActions) {
+        if ($FailOn -eq 'warning' -and $hasWarning) {
+            $errLine = "::Error::Failing build as warnings exists"
+        }
+    }
+    else {
         if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
             $errLine = "##vso[task.complete result=Failed;]Failed."
         }
