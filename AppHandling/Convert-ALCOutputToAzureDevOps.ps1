@@ -32,28 +32,26 @@ Function Convert-AlcOutputToDevOps {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
-    Write-Host "GitHubActions $githubactions"
-    
+    $startIndex = 0
+    if ($gitHubActions) {
+        $startIndex = "$($ENV:GITHUB_WORKSPACE.TrimEnd('/'))/".Length
+    }
     $hasError = $false
     $hasWarning = $false
 
     foreach($line in $AlcOutput) {
-
-        Write-Host "***** $line"
-
         switch -regex ($line) {
             "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
                     if ($gitHubActions) {
-                        $newLine = "::warning file=$($Matches[3])::code=$($Matches[1]) $($Matches[2])"
+                        $newLine = "::warning file=$($Matches[3].SubString($startIndex))::code=$($Matches[1]) $($Matches[2])"
                     }
                     else {
                         $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);$($Matches[1]);]$($Matches[2])"
                     }
                 } else {
                     if ($gitHubActions) {
-                        $newLine = "::warning::$($Matches[1]) $($Matches[2])"
+                        $newLine = "::warning::$($Matches[1].SubString($startIndex)) $($Matches[2])"
                     }
                     else {
                         $newLine = "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
@@ -67,7 +65,7 @@ try {
             #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
             {
                 if ($gitHubActions) {
-                    $newLine = "::error file=$($Matches[1]),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                    $newLine = "::error file=$($Matches[1].SubString($startIndex)),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
                     $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
@@ -79,7 +77,7 @@ try {
             #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
             {
                 if ($gitHubActions) {
-                    $newLine = "::error::$($Matches[2]) $($Matches[3])"
+                    $newLine = "::error::$($Matches[2].SubString($startIndex)) $($Matches[3])"
                 }
                 else {
                     $newLine = "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
@@ -92,7 +90,7 @@ try {
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
                 if ($gitHubActions) {
-                    $newLine = "::warning file=$($Matches[1]),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                    $newLine = "::warning file=$($Matches[1].SubString($startIndex)),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
                     $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
@@ -105,7 +103,6 @@ try {
                 break
             }
         }
-        Write-Host "----- $newLine"
         if ($doNotWriteToHost) {
             $newLine
         }
@@ -118,6 +115,7 @@ try {
     if ($gitHubActions) {
         if ($FailOn -eq 'warning' -and $hasWarning) {
             $errLine = "::Error::Failing build as warnings exists"
+            $host.SetShouldExit(1)
         }
     }
     else {
