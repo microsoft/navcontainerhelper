@@ -636,6 +636,8 @@ try {
 
     $devOpsResult = ""
     if ($result) {
+        Write-Host $failon
+        $result | Out-Host
         $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions:$gitHubActions
     }
     if ($AzureDevOps -or $gitHubActions) {
