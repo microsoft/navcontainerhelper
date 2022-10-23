@@ -48,7 +48,7 @@ try {
                     $file = $Matches[3]
                     Write-Host $file
                     if ($file -like "$($basePath)*") {
-                        $file = $file.SubString($basePath.Length)
+                        $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
                     }
                     if ($gitHubActions) {
                         $newLine = "::warning file=$($file)::code=$($Matches[1]) $($Matches[2])"
@@ -74,7 +74,7 @@ try {
                 $file = $Matches[1]
                 Write-Host $file
                 if ($file -like "$($basePath)*") {
-                    $file = $file.SubString($basePath.Length)
+                    $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
                 }
                 if ($gitHubActions) {
                     $newLine = "::error file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
@@ -104,7 +104,7 @@ try {
                 $file = $Matches[1]
                 Write-Host $file
                 if ($file -like "$($basePath)*") {
-                    $file = $file.SubString($basePath.Length)
+                    $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
                 }
                 if ($gitHubActions) {
                     $newLine = "::warning file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
