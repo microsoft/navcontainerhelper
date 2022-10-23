@@ -33,10 +33,8 @@ Function Convert-AlcOutputToDevOps {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    $startIndex = 0
     if ($basePath) {
         $basePath = "$($basePath.TrimEnd('\'))\"
-        Write-Host $basePath
     }
     $hasError = $false
     $hasWarning = $false
@@ -46,7 +44,6 @@ try {
             "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
                     $file = $Matches[3]
-                    Write-Host $file
                     if ($file -like "$($basePath)*") {
                         $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
                     }
@@ -72,7 +69,6 @@ try {
             #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
             {
                 $file = $Matches[1]
-                Write-Host $file
                 if ($file -like "$($basePath)*") {
                     $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
                 }
@@ -102,7 +98,6 @@ try {
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
                 $file = $Matches[1]
-                Write-Host $file
                 if ($file -like "$($basePath)*") {
                     $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
                 }
