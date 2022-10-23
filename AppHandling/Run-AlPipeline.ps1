@@ -102,6 +102,8 @@
   Include this switch if you want compile errors and test errors to surface directly in GitHubActions.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning
+ .Parameter TreatTestFailuresAsWarnings
+  Include this switch if you want to treat test failures as warnings instead of errors
  .Parameter useDevEndpoint
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotBuildTests
@@ -252,6 +254,7 @@ Param(
     [switch] $gitHubActions,
     [ValidateSet('none','error','warning')]
     [string] $failOn = "none",
+    [switch] $treatTestFailuresAsWarnings,
     [switch] $useDevEndpoint,
     [switch] $doNotBuildTests,
     [switch] $doNotRunTests,
@@ -1994,8 +1997,8 @@ $testAppIds.Keys | ForEach-Object {
         "companyName" = $companyName
         "extensionId" = $id
         "disabledTests" = $disabledTests
-        "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
-        "GitHubActions" = "$(if($githubActions){'error'}else{'no'})"
+        "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
+        "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "detailed" = $true
         "returnTrueIfAllPassed" = $true
     }
@@ -2078,7 +2081,9 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if (($gitLab -or $gitHubActions) -and !$allPassed) {
-    throw "There are test failures!"
+    if (-not $treatTestFailuresAsWarnings) {
+        throw "There are test failures!"
+    }
 }
 }
 }
