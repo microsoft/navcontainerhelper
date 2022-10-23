@@ -6,6 +6,7 @@ Issue #2727 Retry download from direct download URL if CDN download was corrupt
 Issue #2718 Add setting NoOfSecondsToSleepAfterPublishBcContainerApp to be able to setup wait time to avoid race condition when publishing some apps to online tenants using Dev Endpoint
 AL-Go issue https://github.com/microsoft/AL-Go/issues/228
 Issue #2745 Support for Windows 10 22H2
+Add parameter TreatTestFailuresAsWarnings to Run-AlPipeline
 
 4.0.5
 Issue #2697 Run-AlValidation does not fail validation, but validation fails in Partner Center when submitting the app for NextMajor
