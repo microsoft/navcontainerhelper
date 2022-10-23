@@ -35,6 +35,8 @@ try {
     $startIndex = 0
     if ($gitHubActions) {
         $startIndex = "$($ENV:GITHUB_WORKSPACE.TrimEnd('/'))/".Length
+        Write-Host $ENV:GITHUB_WORKSPACE
+        Write-Host $startIndex
     }
     $hasError = $false
     $hasWarning = $false
@@ -44,14 +46,19 @@ try {
             "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
                     if ($gitHubActions) {
-                        $newLine = "::warning file=$($Matches[3].SubString($startIndex))::code=$($Matches[1]) $($Matches[2])"
+                        $file = $Matches[3]
+                        Write-Host $file
+                        if ($file -like "$($ENV:GITHUB_WORKSPACE)*") {
+                            $file = $file.SubString($startIndex)
+                        }
+                        $newLine = "::warning file=$($file)::code=$($Matches[1]) $($Matches[2])"
                     }
                     else {
                         $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);$($Matches[1]);]$($Matches[2])"
                     }
                 } else {
                     if ($gitHubActions) {
-                        $newLine = "::warning::$($Matches[1].SubString($startIndex)) $($Matches[2])"
+                        $newLine = "::warning::$($Matches[1]) $($Matches[2])"
                     }
                     else {
                         $newLine = "##vso[task.logissue type=warning;code=$($Matches[1]);]$($Matches[2])"
@@ -65,7 +72,12 @@ try {
             #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
             {
                 if ($gitHubActions) {
-                    $newLine = "::error file=$($Matches[1].SubString($startIndex)),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                    $file = $Matches[1]
+                    Write-Host $file
+                    if ($file -like "$($ENV:GITHUB_WORKSPACE)*") {
+                        $file = $file.SubString($startIndex)
+                    }
+                    $newLine = "::error file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
                     $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
@@ -77,7 +89,7 @@ try {
             #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
             {
                 if ($gitHubActions) {
-                    $newLine = "::error::$($Matches[2].SubString($startIndex)) $($Matches[3])"
+                    $newLine = "::error::$($Matches[2]) $($Matches[3])"
                 }
                 else {
                     $newLine = "##vso[task.logissue type=error;code=$($Matches[2]);]$($Matches[3])"
@@ -90,7 +102,12 @@ try {
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
                 if ($gitHubActions) {
-                    $newLine = "::warning file=$($Matches[1].SubString($startIndex)),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                    $file = $Matches[1]
+                    Write-Host $file
+                    if ($file -like "$($ENV:GITHUB_WORKSPACE)*") {
+                        $file = $file.SubString($startIndex)
+                    }
+                    $newLine = "::warning file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
                     $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
