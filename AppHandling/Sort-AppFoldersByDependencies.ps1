@@ -53,7 +53,6 @@ try {
             if ($appJson.psobject.Members | Where-Object name -eq "dependencies") {
                 if ($appJson.dependencies) {
                     $appJson.dependencies = @($appJson.dependencies | % {
-                        $_ | ConvertTo-Json -Compress | Out-Host
                         if ($_.PSObject.Properties.Name -eq "id") {
                             $name = "$(if ($_.PSObject.Properties.Name -eq "name") { $_.Name })"
                             $publisher = "$(if ($_.PSObject.Properties.Name -eq "publisher") { $_.Publisher })"
