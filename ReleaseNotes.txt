@@ -8,6 +8,7 @@ AL-Go issue https://github.com/microsoft/AL-Go/issues/228
 Issue #2745 Support for Windows 10 22H2
 Add parameter TreatTestFailuresAsWarnings to Run-AlPipeline
 Add parameter knownApps to Sort-AppFoldersByDependencies, to return all known apps in sorted folders
+Issue #2757 Fail early if .flf license file is specified for BC 22 or later containers
 
 4.0.5
 Issue #2697 Run-AlValidation does not fail validation, but validation fails in Partner Center when submitting the app for NextMajor
