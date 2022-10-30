@@ -1467,6 +1467,7 @@ try {
     }
 
     if (!$restoreBakFolder) {
+        $ext = ''
         if ("$licensefile" -eq "") {
             if ($includeCSide -and !$doNotExportObjectsToText) {
                 throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
@@ -1493,6 +1494,9 @@ try {
             $containerLicenseFile = "c:\run\my\license$ext"
         }
         $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
+        if ($ext -eq '.flf' -and $version.major -ge 22) {
+            throw "The .flf license file format is not supported in Business Central version 22 and later."
+        }
     }
 
     $parameters += @(
