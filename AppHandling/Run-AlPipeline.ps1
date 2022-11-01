@@ -1016,6 +1016,11 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
+if ($generateDependencyArtifact -and !($testCountry)) {
+    $parameters += @{
+        "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+    }
+}
 $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
