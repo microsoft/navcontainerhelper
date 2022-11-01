@@ -1016,11 +1016,6 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-if ($generateDependencyArtifact -and !($testCountry)) {
-    $parameters += @{
-        "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
-    }
-}
 $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
@@ -1043,7 +1038,12 @@ Measure-Command {
         "tenant" = $tenant
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
     }
-    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+    if ($generateDependencyArtifact -and !($testCountry)) {
+        $parameters += @{
+            "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+        }
+    }
+        Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling app dependencies took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
