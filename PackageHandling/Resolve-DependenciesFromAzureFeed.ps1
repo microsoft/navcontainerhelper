@@ -28,6 +28,8 @@ function Resolve-DependenciesFromAzureFeed {
         [string] $feed,
         [Parameter(Mandatory = $true)]
         [string] $appsFolder,
+        [Parameter(Mandatory = $false)]
+        [string] $pat = '',
         [string] $outputFolder = (Join-Path $appsFolder '.alpackages'),
         [switch] $runtimePackages,
         [int] $lvl = -1,
@@ -36,7 +38,10 @@ function Resolve-DependenciesFromAzureFeed {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    if($pat -ne '') {
+        Write-Warning "Enviroment Variable AZURE_DEVOPS_EXT_PAT is overridden";
+        $env:AZURE_DEVOPS_EXT_PAT = $pat
+    }
     $spaces = ''
     $lvl++
 

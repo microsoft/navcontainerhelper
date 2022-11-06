@@ -25,13 +25,16 @@ function Publish-BuildOutputToAzureFeed {
         [string] $feed,
         [Parameter(Mandatory = $true)]
         [string] $path,
-        [Parameter(Mandatory = $true)]
-        [string] $pat
+        [Parameter(Mandatory = $false)]
+        [string] $pat = ''
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    if($pat -ne '') {
+        Write-Warning "Enviroment Variable AZURE_DEVOPS_EXT_PAT is overridden";
+        $env:AZURE_DEVOPS_EXT_PAT = $pat
+    }
     Get-Childitem –Path (Join-Path $path "\Apps\*.app") | % {
         $basename = $_.Basename
 
