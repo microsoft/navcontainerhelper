@@ -24,14 +24,14 @@ jobs:
       tests: ${{ steps.Analyze.outputs.tests }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Analyze
         id: Analyze
         run: |
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
-          Write-Host "::set-output name=tests::$tests"
-          Write-Host "set-output name=tests::$tests"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
+          Write-Host "tests=$tests"
 
   RunTests:
     runs-on: [ windows-latest ]
@@ -42,7 +42,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Run Tests
         run: |
@@ -66,7 +66,7 @@ jobs:
     needs: [ RunTests ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Deploy
         run: |
@@ -117,10 +117,19 @@ jobs:
                                   -AliasesToExport $aliasesToExport `
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes
-          
+
+            $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
+            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
+
             Remove-Module BcContainerHelper
           
             Write-Host $path
+           
+            Write-Host "Signing scripts"
+            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
+            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
+                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
+            Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
 
             Write-Host "Upload to storage (preview)"
             $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
@@ -137,5 +146,3 @@ jobs:
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
-
-          

@@ -5,6 +5,10 @@ function New-ALGoAppSourceContext {
         [switch] $skipTest
     )
 
+    if ($authContext.scopes -ne "https://api.partner.microsoft.com/.default" -and $authContext.scopes -ne "https://api.partner.microsoft.com/") {
+        Write-Host -ForegroundColor Red "AuthContext.Scopes is '$($authContext.Scopes)', should have been 'https://api.partner.microsoft.com/.default'"
+    }
+
     if ($authContext.ClientSecret) {
         $appSourceContext = [ordered]@{
             "clientID" = $authContext.clientID

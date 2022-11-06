@@ -123,6 +123,9 @@ try {
                                 Write-Host @newLine "."
                                 $completed = $false
                             }
+                            elseif ($_.Status -eq "Unknown") {
+                                throw "Unknown Error"
+                            }
                             elseif ($_.Status -ne "Completed") {
                                 $errCount = 5
                                 throw $_.status

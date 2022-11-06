@@ -283,8 +283,10 @@ try {
                     Write-Host "Re-enablssing SSL Verification"
                     [SslVerification]::Enable()
                 }
-                # Avoid race condition
-                Start-Sleep -Seconds 1
+                if ($bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp -gt 0) {
+                    # Avoid race condition
+                    Start-Sleep -Seconds $bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp
+                }
             }
             else {
         

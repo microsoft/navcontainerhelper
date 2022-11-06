@@ -636,7 +636,12 @@ try {
 
     $devOpsResult = ""
     if ($result) {
-        $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions:$gitHubActions
+        if ($gitHubActions) {
+            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath (Get-BcContainerPath -containerName $containerName -path $ENV:GITHUB_WORKSPACE)
+        }
+        else {
+            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        }
     }
     if ($AzureDevOps -or $gitHubActions) {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }

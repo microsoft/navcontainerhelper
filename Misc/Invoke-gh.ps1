@@ -1,6 +1,6 @@
 <# 
  .Synopsis
-  PREVIEW: Invoke gh command with parameters
+  Invoke gh command with parameters
  .Description
   Requires Github CLI installed  
 #>

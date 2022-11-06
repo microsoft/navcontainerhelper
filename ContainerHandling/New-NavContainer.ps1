@@ -510,11 +510,6 @@ try {
     Write-Host "Docker Client Version is $dockerClientVersion"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerClientVersion" -value $dockerClientVersion
 
-    $myClientVersion = [System.Version]"0.0.0"
-    if (!(([System.Version]::TryParse($dockerClientVersion, [ref]$myClientVersion)) -and ($myClientVersion -ge ([System.Version]"18.03.0")))) {
-        Write-Host -ForegroundColor Yellow "WARNING: Microsoft container registries will switch to TLS v1.2 very soon and your version of Docker does not support this. You should install a new version of docker asap (version 18.03.0 or later)"
-    }
-
     Write-Host "Docker Server Version is $dockerServerVersion"
     AddTelemetryProperty -telemetryScope $telemetryScope -key "dockerServerVersion" -value $dockerServerVersion
 
@@ -1116,6 +1111,9 @@ try {
     elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
         $containerOs = "21H2"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+        $containerOs = "22H2"
+    }
     elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
         $containerOs = "ltsc2022"
     }
@@ -1248,6 +1246,9 @@ try {
         elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
             $containerOs = "21H2"
         }
+        elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+            $containerOs = "22H2"
+        }
         elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
             $containerOs = "ltsc2022"
         }
@@ -1281,9 +1282,9 @@ try {
             }
         }
     }
-    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
         if ($isolation -eq "") {
-            Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
+            Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
             $isolation = "process"
         }
     }
@@ -1466,6 +1467,7 @@ try {
     }
 
     if (!$restoreBakFolder) {
+        $ext = ''
         if ("$licensefile" -eq "") {
             if ($includeCSide -and !$doNotExportObjectsToText) {
                 throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
@@ -1492,6 +1494,9 @@ try {
             $containerLicenseFile = "c:\run\my\license$ext"
         }
         $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
+        if ($ext -eq '.flf' -and $version.major -ge 22) {
+            throw "The .flf license file format is not supported in Business Central version 22 and later."
+        }
     }
 
     $parameters += @(

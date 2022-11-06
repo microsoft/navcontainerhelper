@@ -156,8 +156,13 @@ try {
             $blobname = $uri.LocalPath.Substring(1).split('/')[1]
             $sasToken = $uri.Query
 
-            $storageContext = New-AzStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
-            Set-AzStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
+            if (!(get-command New-AzureStorageContext -ErrorAction SilentlyContinue)) {
+                Set-Alias -Name New-AzureStorageContext -Value New-AzStorageContext
+                Set-Alias -Name Set-AzureStorageBlobContent -Value Set-AzStorageBlobContent
+            }
+
+            $storageContext = New-AzureStorageContext -StorageAccountName $storageAccountName -SasToken $sasToken
+            Set-AzureStorageBlobContent -File $file -Container $container -Blob $blobname -Context $storageContext -Force | Out-Null
         
             $packageUpload.state = "Uploaded"
             $packageUploaded = Invoke-IngestionApiPut -authContext $authContext -path "/products/$productId/packages/$($packageUpload.id)" -Body ($packageUpload | ConvertTo-HashTable) -silent:($silent.IsPresent)

@@ -112,11 +112,12 @@ function Get-ContainerHelperConfig {
             "PartnerTelemetryConnectionString" = ""
             "MicrosoftTelemetryConnectionString" = "InstrumentationKey=5b44407e-9750-4a07-abe9-30c3b853821b;IngestionEndpoint=https://southcentralus-0.in.applicationinsights.azure.com/"
             "SendExtendedTelemetryToMicrosoft" = $false
-            "TraefikImage" = "traefik:v1.7-windowsservercore-1809"
+            "TraefikImage" = "tobiasfenster/traefik-for-windows:v1.7.34"
             "ObjectIdForInternalUse" = 88123
             "WinRmCredentials" = $null
             "WarningPreference" = "SilentlyContinue"
             "UseNewFormatForGetBcContainerAppInfo" = $false
+            "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
         }
 
         if ($isInsider) {
@@ -378,6 +379,7 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "AL-Go\New-ALGoAuthContext.ps1")
 . (Join-Path $PSScriptRoot "AL-Go\New-ALGoAppSourceContext.ps1")
 . (Join-Path $PSScriptRoot "AL-Go\New-ALGoStorageContext.ps1")
+. (Join-Path $PSScriptRoot "AL-Go\New-ALGoNuGetContext.ps1")
 #. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepo.ps1")
 #. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepoWizard.ps1")
 
@@ -444,6 +446,12 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "AppSource\New-AppSourceSubmission.ps1")
 . (Join-Path $PSScriptRoot "AppSource\Promote-AppSourceSubmission.ps1")
 . (Join-Path $PSScriptRoot "AppSource\Cancel-AppSourceSubmission.ps1")
+
+# Nuget specific functions
+. (Join-Path $PSScriptRoot "NuGet\New-BcNuGetPackage.ps1")
+. (Join-Path $PSScriptRoot "NuGet\Get-BcNuGetPackage.ps1")
+. (Join-Path $PSScriptRoot "NuGet\Push-BcNuGetPackage.ps1")
+. (Join-Path $PSScriptRoot "NuGet\Publish-BcNuGetPackageToContainer.ps1")
 
 # BC SaaS specific functions
 . (Join-Path $PSScriptRoot "BcSaaS\New-BcAuthContext.ps1")

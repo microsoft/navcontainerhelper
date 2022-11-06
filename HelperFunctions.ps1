@@ -268,16 +268,16 @@ function TestSasToken {
         $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
         if ($st) {
             if ([DateTime]::Now -lt [DateTime]$st) {
-                Write-Host "ERROR: The sas token provided isn't valid before $(([DateTime]$st).ToString())"
+                Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
             }
         }
         if ($se) {
             if ([DateTime]::Now -gt [DateTime]$se) {
-                Write-Host "ERROR: The sas token provided expired on $(([DateTime]$se).ToString())"
+                Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
             }
             elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
                 $span = ([DateTime]$se).Subtract([DateTime]::Now)
-                Write-Host "WARNING: The sas token provided will expire on $(([DateTime]$se).ToString())"
+                Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
             }
         }
     }
@@ -287,13 +287,13 @@ function Expand-7zipArchive {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $Path,
-        [string] $DestinationPath
+        [string] $DestinationPath,
+        [switch] $use7zipIfAvailable = $bcContainerHelperConfig.use7zipIfAvailable
     )
 
     $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
-
     $use7zip = $false
-    if ($bcContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
+    if ($use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
         try {
             $use7zip = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileMajorPart -ge 19
         }
@@ -306,7 +306,11 @@ function Expand-7zipArchive {
         Write-Host "using 7zip"
         Set-Alias -Name 7z -Value $7zipPath
         $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
+        $global:LASTEXITCODE = 0
         Invoke-Expression -Command $command | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Error $LASTEXITCODE extracting $path"
+        }
     } else {
         Write-Host "using Expand-Archive"
         Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
@@ -386,15 +390,20 @@ function GetExtendedErrorMessage {
         }
         $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
+        try {
+            if ($webResponse.StatusDescription) {
+                $message += "`r`n$($webResponse.StatusDescription)"
+            }
+        } catch {}
         $reqstream = $webResponse.GetResponseStream()
         $sr = new-object System.IO.StreamReader $reqstream
         $result = $sr.ReadToEnd()
         try {
             $json = $result | ConvertFrom-Json
-            $message += " $($json.Message)"
+            $message += "`r`n$($json.Message)"
         }
         catch {
-            $message += " $result"
+            $message += "`r`n$result"
         }
         try {
             $correlationX = $webResponse.GetResponseHeader('ms-correlation-x')

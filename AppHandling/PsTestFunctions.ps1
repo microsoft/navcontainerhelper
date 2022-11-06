@@ -152,6 +152,152 @@ function Set-RunFalseOnDisabledTests
     }
 }
 
+function Set-CCTrackingType
+{
+    param (
+        [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
+        [string] $Value,
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    $TypeValues = @{
+        Disabled = 0
+        PerRun = 1
+        PerCodeunit=2
+        PerTest=3
+    }
+    $suiteControl = $ClientContext.GetControlByName($Form, "CCTrackingType")
+    $ClientContext.SaveValue($suiteControl, $TypeValues[$Value])
+}
+
+function Set-CCExporterID
+{
+    param (
+        [string] $Value,
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    if($Value){
+        $suiteControl = $ClientContext.GetControlByName($Form, "CCExporterID");
+        $ClientContext.SaveValue($suiteControl, $Value)
+    }
+}
+
+function Set-CCProduceCodeCoverageMap
+{
+
+    param (
+        [ValidateSet('Disabled', 'PerCodeunit', 'PerTest')]
+        [string] $Value,
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    $TypeValues = @{
+        Disabled = 0
+        PerCodeunit = 1
+        PerTest=2
+    }
+    $suiteControl = $ClientContext.GetControlByName($Form, "CCMap")
+    $ClientContext.SaveValue($suiteControl, $TypeValues[$Value])
+}
+
+function Clear-CCResults
+{
+    param (
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    $ClientContext.InvokeAction($ClientContext.GetActionByName($Form, "ClearCodeCoverage"))
+}
+
+function CollectCoverageResults {
+    param (
+        [ValidateSet('PerRun', 'PerCodeunit', 'PerTest')]
+        [string] $TrackingType,
+        [string] $OutputPath,
+        [switch] $DisableSSLVerification,
+        [ValidateSet('Windows','NavUserPassword','AAD')]
+        [string] $AutorizationType = $script:DefaultAuthorizationType,
+        [Parameter(Mandatory=$false)]
+        [pscredential] $Credential,
+        [Parameter(Mandatory=$true)]
+        [string] $ServiceUrl,
+        [string] $CodeCoverageFilePrefix
+    )
+    try{
+        $clientContext = Open-ClientSessionWithWait -DisableSSLVerification:$DisableSSLVerification -AuthorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
+        $form = Open-TestForm -TestPage $TestPage -ClientContext $clientContext
+        do {
+            $clientContext.InvokeAction($clientContext.GetActionByName($form, "GetCodeCoverage"))
+
+            $CCResultControl = $clientContext.GetControlByName($form, "CCResultsCSVText")
+            $CCInfoControl = $clientContext.GetControlByName($form, "CCInfo")
+            $CCResult = $CCResultControl.StringValue
+            $CCInfo = $CCInfoControl.StringValue
+            if($CCInfo -ne $script:CCCollectedResult){
+                $CCInfo = $CCInfo -replace ",","-"
+                $CCOutputFilename = $CodeCoverageFilePrefix +"_$CCInfo.dat"
+                Write-Host "Storing coverage results of $CCCodeunitId in:  $OutputPath\$CCOutputFilename"
+                Set-Content -Path "$OutputPath\$CCOutputFilename" -Value $CCResult
+            }
+        } while ($CCInfo -ne $script:CCCollectedResult)
+       
+        if($ProduceCodeCoverageMap -ne 'Disabled') {
+            $codeCoverageMapPath = Join-Path $OutputPath "TestCoverageMap"
+            SaveCodeCoverageMap -OutputPath $codeCoverageMapPath  -DisableSSLVerification:$DisableSSLVerification -AutorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
+        }
+
+        $clientContext.CloseForm($form)
+    }
+    finally{
+        if($clientContext){
+            $clientContext.Dispose()
+        }
+    }
+}
+
+function SaveCodeCoverageMap {
+    param (
+        [string] $OutputPath,
+        [switch] $DisableSSLVerification,
+        [ValidateSet('Windows','NavUserPassword','AAD')]
+        [string] $AutorizationType = $script:DefaultAuthorizationType,
+        [Parameter(Mandatory=$false)]
+        [pscredential] $Credential,
+        [Parameter(Mandatory=$true)]
+        [string] $ServiceUrl
+    )
+    try{
+        $clientContext = Open-ClientSessionWithWait -DisableSSLVerification:$DisableSSLVerification -AuthorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
+        $form = Open-TestForm -TestPage $TestPage -ClientContext $clientContext
+
+        $clientContext.InvokeAction($clientContext.GetActionByName($form, "GetCodeCoverageMap"))
+
+        $CCResultControl = $clientContext.GetControlByName($form, "CCMapCSVText")
+        $CCMap = $CCResultControl.StringValue
+
+        if (-not (Test-Path $OutputPath))
+        {
+            New-Item $OutputPath -ItemType Directory
+        }
+        
+        $codeCoverageMapFileName = Join-Path $codeCoverageMapPath "TestCoverageMap.txt"
+        if (-not (Test-Path $codeCoverageMapFileName))
+        {
+            New-Item $codeCoverageMapFileName -ItemType File
+        }
+
+        Add-Content -Path $codeCoverageMapFileName -Value $CCMap
+
+        $clientContext.CloseForm($form)
+    }
+    finally{
+        if($clientContext){
+            $clientContext.Dispose()
+        }
+    }
+}
+
 function Get-Tests {
     Param(
         [ClientContext] $clientContext,
@@ -338,6 +484,11 @@ function Run-Tests {
         [string] $extensionId = "",
         [string] $testRunnerCodeunitId,
         [array]  $disabledtests = @(),
+        [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
+        [string] $CodeCoverageTrackingType = 'Disabled',
+        [ValidateSet('Disabled','PerCodeunit','PerTest')]
+        [string] $ProduceCodeCoverageMap = 'Disabled',
+        [string] $CodeCoverageExporterId,
         [switch] $detailed,
         [switch] $debugMode,
         [string] $XUnitResultFileName = "",
@@ -396,6 +547,12 @@ function Run-Tests {
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
+        if($CodeCoverageTrackingType -ne 'Disabled'){
+            Set-CCTrackingType -Value $CodeCoverageTrackingType -Form $form -ClientContext $clientContext
+            Set-CCExporterID -Value $CodeCoverageExporterId -Form $form -ClientContext $clientContext
+            Clear-CCResults -Form $form -ClientContext $clientContext
+            Set-CCProduceCodeCoverageMap -Value $ProduceCodeCoverageMap -Form $form -ClientContext $clientContext
+        }
     }
 
     $process = $null
@@ -531,6 +688,14 @@ function Run-Tests {
                         $property.SetAttribute("name","extensionid")
                         $property.SetAttribute("value", $extensionId)
                         $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+
+                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId.Value)" -eq $extensionId } | ForEach-Object { $_.Name })"
+                        if ($appname) {
+                            $property = $JUnitDoc.CreateElement("property")
+                            $property.SetAttribute("name","appName")
+                            $property.SetAttribute("value", $appName)
+                            $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                        }
                     }
 
                     if ($dumpAppsToTestOutput) {

@@ -121,6 +121,25 @@ try {
         }
     }
 
+    $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
+    try {
+        $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
+        # unpack compiler
+        $latestSupportedRuntimeVersion = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string] $bcversion)
+            if (!(Test-Path "c:\build" -PathType Container)) {
+                $tempZip = Join-Path $env:temp "alc.zip"
+                Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
+                Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
+            }
+            Add-Type -Path "C:\build\vsix\extension\bin\Microsoft.Dynamics.Nav.CodeAnalysis.dll" | Out-Null
+            [Microsoft.Dynamics.Nav.CodeAnalysis.ReleaseVersion]::LatestSupportedRuntimeVersions[$bcversion]
+        } -argumentList "$($artifactVersion.Major).$($artifactVersion.Minor)"
+    }
+    catch {
+        $latestSupportedRuntimeVersion = ""
+    }
+
+    Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
     $global:_validationResult = @()
     $apps | % {
         $appFile = $_
@@ -145,9 +164,7 @@ try {
                 }
             }
     
-            $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
-
-            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -excludeRuntimeProperty
+            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -excludeRuntimeProperty -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
             $appJson = [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "app.json")) | ConvertFrom-Json
 
             $ruleset = $null

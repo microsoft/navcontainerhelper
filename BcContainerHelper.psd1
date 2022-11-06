@@ -79,7 +79,7 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Create-MyDeltaFolder', 'Create-MyOriginalFolder', 
                'Create-AadAppsForNav', 'Create-AadUsersInBcContainer', 
                'New-BcAuthContext', 'Renew-BcAuthContext', 'Get-BcEnvironments', 'Get-BcPublishedApps',
-               'New-ALGoAuthContext', 'New-ALGoAppSourceContext', 'New-ALGoStorageContext', 
+               'New-ALGoAuthContext', 'New-ALGoAppSourceContext', 'New-ALGoStorageContext', 'New-ALGoNuGetContext',
                'Get-BcInstalledExtensions', 'Install-BcAppFromAppSource', 'New-BcEnvironment', 
                'Remove-BcEnvironment', 'Set-BcEnvironmentApplicationInsightsKey',
                'New-BcDatabaseExport', 'Get-BcDatabaseExportHistory',
@@ -139,7 +139,8 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Set-BcContainerServerConfiguration', 'Restart-BcContainerServiceTier',
                'Get-BcScheduledUpgrade', 'Reschedule-BcUpgrade',
                'Invoke-IngestionAPI', 'Get-AppSourceProduct',
-               'Get-AppSourceSubmission', 'New-AppSourceSubmission', 'Promote-AppSourceSubmission', 'Cancel-AppSourceSubmission'
+               'Get-AppSourceSubmission', 'New-AppSourceSubmission', 'Promote-AppSourceSubmission', 'Cancel-AppSourceSubmission',
+               'New-BcNuGetPackage', 'Get-BcNuGetPackage', 'Push-BcNuGetPackage', 'Publish-BcNuGetPackageToContainer'
 
 
 # Cmdlets to export from this module, for best performance, do not use wildcards and do not delete the entry, use an empty array if there are no cmdlets to export.
