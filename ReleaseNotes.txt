@@ -1,3 +1,7 @@
+4.0.7
+Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1
+Fix multiple layout files with same file name in BC21
+
 4.0.6
 Check latest allowed runtime version in Run-AlValidation
 Add PROOF OF CONCEPT PREVIEW functions to work with Business Central NuGet packages: New-BcNuGetPackage, Get-BcNuGetPackage, Push-BcNuGetPackage and New-ALGoNuGetContext
