@@ -64,6 +64,7 @@ jobs:
   Deploy:
     runs-on: [ windows-latest ]
     needs: [ RunTests ]
+    if: github.repository_owner == 'microsoft'
     steps:
       - name: Checkout
         uses: actions/checkout@v3
