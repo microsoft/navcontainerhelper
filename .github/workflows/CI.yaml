@@ -4,7 +4,12 @@ on:
   workflow_dispatch:
   push:
     paths-ignore:
-      - 'README.md'
+      - '**.md'
+      - '.github/**'
+    branches: [ master ]
+  pull_request:
+    paths-ignore:
+      - '**.md'
       - '.github/**'
     branches: [ master ]
 
@@ -64,7 +69,7 @@ jobs:
   Deploy:
     runs-on: [ windows-latest ]
     needs: [ RunTests ]
-    if: github.repository_owner == 'microsoft'
+    if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
         uses: actions/checkout@v3
