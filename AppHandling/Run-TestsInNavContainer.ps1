@@ -430,7 +430,14 @@ try {
                                   -detailed:$detailed `
                                   -debugMode:$debugMode `
                                   -testPage $testPage `
-                                  -connectFromHost:$connectFromHost
+                                  -connectFromHost:$connectFromHost `
+                                  -renewClientContext { 
+                                    Write-Host "Renew Client Context"
+                                    Remove-ClientContext -clientContext $clientContext
+                                    $clientContext = $null
+                                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                    $clientContext
+                                  }
                     }
                     catch {
                         Write-Host $_.ScriptStackTrace
