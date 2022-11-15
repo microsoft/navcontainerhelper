@@ -2007,6 +2007,8 @@ $testAppIds.Keys | ForEach-Object {
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "detailed" = $true
+        "debugMode" = $true
+        "debug" = $true
         "returnTrueIfAllPassed" = $true
     }
 
@@ -2030,9 +2032,11 @@ $testAppIds.Keys | ForEach-Object {
         }
     }
 
+    Write-Host "run tests"
     if (!(Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters)) {
         $allPassed = $false
     }
+    Write-Host "tests ran"
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning tests took $([int]$_.TotalSeconds) seconds" }
