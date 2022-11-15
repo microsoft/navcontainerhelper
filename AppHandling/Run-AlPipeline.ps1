@@ -68,6 +68,8 @@
   ApplicationInsightsConnectionString to be stamped into app.json for all apps
  .Parameter buildOutputFile
   Filename in which you want the build output to be written. Default is none, meaning that build output will not be written to a file, but only on screen.
+ .Parameter containerEventLogFile
+  Filename in which you want the build output to be written. Default is none, meaning that build output will not be written to a file, but only on screen.
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
@@ -232,6 +234,7 @@ Param(
     [string] $applicationInsightsKey,
     [string] $applicationInsightsConnectionString,
     [string] $buildOutputFile = "",
+    [string] $containerEventLogFile = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
     [Parameter(Mandatory=$false)]
@@ -389,11 +392,12 @@ $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
 $customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { Test-Path $_ } )
 $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
+$containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 
-$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
+$containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
     if ($_ -and (Test-Path $_)) {
         Remove-Item -Path $_ -Force
     }
@@ -577,6 +581,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxFile             "
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxPassword         "; if ($keyVaultCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultClientId                "; Write-Host $keyVaultClientId
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildOutputFile                 "; Write-Host $buildOutputFile
+Write-Host -NoNewLine -ForegroundColor Yellow "ContainerEventLogFile           "; Write-Host $containerEventLogFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile                 "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "BcptTestResultsFile             "; Write-Host $bcptTestResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat               "; Write-Host $testResultsFormat
@@ -2199,6 +2204,14 @@ Write-Host -ForegroundColor Yellow @'
 '@
 }
 Measure-Command {
+
+    if ($containerEventLogFile) {
+        try {
+            $eventlogFile = Get-ContainerEvent -containerName $containerName -doNotOpen
+            Copy-Item -Path $eventLogFile -Destination $containerEventLogFile
+        }
+        catch {}
+    }
 
     $Parameters = @{
         "containerName" = $containerName
