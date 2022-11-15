@@ -2207,7 +2207,7 @@ Measure-Command {
 
     if ($containerEventLogFile) {
         try {
-            $eventlogFile = Get-ContainerEvent -containerName $containerName -doNotOpen
+            $eventlogFile = Get-BcContainerEventLog -containerName $containerName -doNotOpen
             Copy-Item -Path $eventLogFile -Destination $containerEventLogFile
         }
         catch {}
