@@ -2207,6 +2207,7 @@ Measure-Command {
 
     if ($containerEventLogFile) {
         try {
+            Write-Host "Get Event Log from container"
             $eventlogFile = Get-BcContainerEventLog -containerName $containerName -doNotOpen
             Copy-Item -Path $eventLogFile -Destination $containerEventLogFile
         }
