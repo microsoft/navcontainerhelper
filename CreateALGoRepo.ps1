@@ -3,7 +3,6 @@
 )
 
 $ErrorActionPreference = "stop"
-
 if ($true) {
 function TestUrl {
     Param(
