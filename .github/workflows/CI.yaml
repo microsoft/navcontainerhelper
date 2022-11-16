@@ -1,16 +1,19 @@
-name: CICD
+name: ' CI/CD'
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Pull Request Handler"]
+    types:
+      - completed
   push:
     paths-ignore:
       - '**.md'
-      - '.github/**'
-    branches: [ master ]
-  workflow_run:
-    workflows: [ 'Pull Request Handler' ]
-    types:
-      - requested
+      - '.github/workflows/*.yaml'
+      - '!.github/workflows/CICD.yaml'
+    branches: [ 'main', 'release/*', 'feature/*' ]
+
+run-name: ${{ fromJson(format('["","Check pull request {0}{2} from {3}/{4}{1} {5}"]','#',':',github.event.workflow_run.pull_requests[0].number,github.event.workflow_run.head_repository.owner.login,github.event.workflow_run.head_branch,github.event.workflow_run.display_title))[github.event_name == 'workflow_run'] }}
 
 permissions:
   contents: read
@@ -24,12 +27,26 @@ defaults:
 
 jobs:
   Initialization:
-    runs-on: windows-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: [ self-hosted,1ES.Pool=ALAppExt ]
+    env:
+      workflowDepth: 1
     outputs:
+      telemetryScopeJson: ${{ steps.init.outputs.telemetryScopeJson }}
+      settings: ${{ steps.ReadSettings.outputs.SettingsJson }}
+      projects: ${{ steps.ReadSettings.outputs.ProjectsJson }}
+      projectCount: ${{ steps.ReadSettings.outputs.ProjectCount }}
+      environments: ${{ steps.ReadSettings.outputs.EnvironmentsJson }}
+      environmentCount: ${{ steps.ReadSettings.outputs.EnvironmentCount }}
+      deliveryTargets: ${{ steps.DetermineDeliveryTargets.outputs.DeliveryTargetsJson }}
+      deliveryTargetCount: ${{ steps.DetermineDeliveryTargets.outputs.DeliveryTargetCount }}
+      githubRunner: ${{ steps.ReadSettings.outputs.GitHubRunnerJson }}
       checkRunId: ${{ steps.CreateCheckRun.outputs.checkRunId }}
-      concurrencyId: ${{ steps.CalculateConcurrencyId.outputs.concurrencyId }}
+      projectDependenciesJson: ${{ steps.ReadSettings.outputs.ProjectDependenciesJson }}
+      buildOrderJson: ${{ steps.ReadSettings.outputs.BuildOrderJson }}
+      buildOrderDepth: ${{ steps.ReadSettings.outputs.BuildOrderDepth }}
     steps:
-      - name: Create CI Workflow Check Run
+      - name: Create CI/CD Workflow Check Run
         id: CreateCheckRun
         if: github.event_name == 'workflow_run'
         uses: actions/github-script@v6
@@ -40,68 +57,260 @@ jobs:
             var response = await github.rest.checks.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              name: 'CI Workflow',
+              name: 'CI/CD Workflow',
               head_sha: '${{ github.event.workflow_run.head_sha }}',
               status: 'queued',
               details_url: details_url,
               output: {
-                title: 'CI Workflow',
+                title: 'CI/CD Workflow',
                 summary: '[Workflow Details]('.concat(details_url,')')
               }
             });
             core.setOutput('checkRunId', response.data.id);
 
-      - name: Investigate Pull Request
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
-        env:
-          event: ${{ toJson( github.event ) }}
+      - name: Checkout
+        if: github.event_name != 'workflow_run' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository)
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_branch }}
+
+      - name: Dump
         run: |
-          $errorActionPreference = 'STOP'
-          $event = $ENV:EVENT | ConvertFrom-Json
-          $headers = @{             
-              "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
-              "Accept" = "application/vnd.github.baptiste-preview+json"
-          }
-          if ($event.workflow_run.pull_requests.Count -gt 1) {
-            throw "Multiple PRs in the same workflow_run isn't supported by CI/CD workflow yet"
-          }
-          $event.workflow_run.pull_requests | ForEach-Object {
-            $url = "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)/compare/$($_.base.SHA)...$($_.head.SHA)"
-            $response = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $url | ConvertFrom-Json
-            Write-Host "Files Changed:"
-            $response.files | ForEach-Object {
-              $filename = $_.filename
-              $status = $_.status
-              Write-Host "- $filename $status"
-              if ($filename -like ".github\workflows\*.yaml" -or $filename -like ".github\workflows\*.yml") {
-                throw "Changes to .yaml files are not allowed form a fork"
+          Write-Host "YES!"
+
+      - name: Download Fork Pull Request Changes
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
+        uses: actions/github-script@v6
+        with:
+          script: |
+            var run_id = Number('${{ github.event.workflow_run.id }}');
+            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: run_id
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == 'Pull_Request_Files'
+            })[0];
+            var download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip'
+            });
+            var fs = require('fs');
+            fs.writeFileSync('.PullRequestChanges.zip', Buffer.from(download.data));
+
+      - name: Apply Fork Pull Request Changes
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
+        run: |
+          $ErrorActionPreference = "STOP"
+          $location = (Get-Location).path
+          $prfolder = '.PullRequestChanges'
+          Expand-Archive -Path ".\$prfolder.zip" -DestinationPath ".\$prfolder"
+          Remove-Item -Path ".\$prfolder.zip" -force
+          Get-ChildItem -Path $prfolder -Recurse -File | ForEach-Object {
+            $path = $_.FullName
+            $deleteFile = $path.EndsWith('.REMOVE')
+            if ($deleteFile) {
+              $path = $path.SubString(0,$path.Length-7)
+            }
+            $newPath = $path.Replace("$prfolder\","")
+            $newFolder = [System.IO.Path]::GetDirectoryName($newPath)
+            $extension = [System.IO.Path]::GetExtension($path)
+            $filename = [System.IO.Path]::GetFileName($path)
+            if ($extension -eq '.ps1' -or $extension -eq '.yaml' -or $extension -eq '.yml' -or $filename -eq "CODEOWNERS") {
+              throw "Pull Request containing changes to scripts, workflows or CODEOWNERS are not allowed from forks."
+            }
+            if ($deleteFile) {
+              if (Test-Path $newPath) {
+                Write-Host "Removing $newPath"
+                Remove-Item $newPath -Force
+              }
+              else {
+                Write-Host "$newPath was already deleted"
               }
             }
+            else {
+              if (-not (Test-Path $newFolder)) {
+                New-Item $newFolder -ItemType Directory | Out-Null
+              }
+              Write-Host "Copying $path to $newFolder"
+              Copy-Item $path -Destination $newFolder -Force
+            }
           }
+          Remove-Item -Path $prfolder -recurse -force
 
-      - name: Calculate Concurrency ID
-        id: CalculateConcurrencyId
+      - name: Initialize the workflow
+        id: init
+        uses: freddydk/AL-Go-Actions/WorkflowInitialize@main
+        with:
+          eventId: "DO0091"
+
+      - name: Read settings
+        id: ReadSettings
+        uses: freddydk/AL-Go-Actions/ReadSettings@main
+        with:
+          parentTelemetryScopeJson: ${{ steps.init.outputs.telemetryScopeJson }}
+          getProjects: 'Y'
+          getEnvironments: '*'
+
+      - name: Read secrets
+        uses: freddydk/AL-Go-Actions/ReadSecrets@main
+        env:
+          secrets: ${{ toJson(secrets) }}
+        with:
+          settingsJson: ${{ env.Settings }}
+          secrets: 'GitHubPackagesContext,NuGetContext,StorageContext,AppSourceContext'
+
+      - name: Determine Delivery Targets
+        id: DetermineDeliveryTargets
         run: |
-          $errorActionPreference = 'STOP'
-          if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
-            $concurrencyId = '${{ github.event.workflow_run.head_branch }}'
+          $ErrorActionPreference = "STOP"
+          $deliveryTargets = @()
+          if ($env:StorageContext) {
+            $deliveryTargets += @("Storage")
           }
-          else {
-            $concurrencyId = $ENV:GITHUB_REF
+          if ($env:NuGetContext) {
+            $deliveryTargets += @("NuGet")
           }
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "concurrencyId=$concurrencyId"
-          Write-Host "concurrencyId=$concurrencyId"
+          if ($env:GitHubPackagesContext) {
+            $deliveryTargets += @("GitHubPackages")
+          }
+          if ($env:type -eq "AppSource App" -and $env:AppSourceContinuousDelivery -eq "true") {
+            if ($env:AppSourceContext) {
+              $deliveryTargets += @("AppSource")
+            }
+          }
+          Get-Item -Path (Join-Path $ENV:GITHUB_WORKSPACE ".github\DeliverTo*.ps1") | ForEach-Object {
+            $deliveryTargets += @([System.IO.Path]::GetFileNameWithoutExtension($_.Name.SubString(9)))
+          }
+          $deliveryTargets = $deliveryTargets | Select-Object -unique
+          $deliveryTargetsJson = $deliveryTargets | ConvertTo-Json -Depth 99 -compress
+          if ($deliveryTargets.Count -lt 2) { $deliveryTargetsJson = "[$($deliveryTargetsJson)]" }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "DeliveryTargetsJson=$deliveryTargetsJson"
+          Write-Host "DeliveryTargetsJson=$deliveryTargetsJson"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "DeliveryTargetCount=$($deliveryTargets.Count)"
+          Write-Host "DeliveryTargetCount=$($deliveryTargets.Count)"
+          Add-Content -Path $env:GITHUB_ENV -Value "DeliveryTargets=$deliveryTargetsJson"
 
-  AnalyzeTests:
-    runs-on: [ windows-latest ]
+      - name: Determine Build Order
+        if: env.WorkflowDepth > 1
+        id: BuildOrder
+        run: |
+          $ErrorActionPreference = "STOP"
+          $projects = '${{ steps.ReadSettings.outputs.ProjectsJson }}' | ConvertFrom-Json
+          $buildOrder = '${{ steps.ReadSettings.outputs.BuildOrderJson }}' | ConvertFrom-Json
+          $depth = ${{ steps.ReadSettings.outputs.BuildOrderDepth }}
+          $workflowDepth = ${{ steps.ReadSettings.outputs.WorkflowDepth }}
+          if ($depth -lt $workflowDepth) {
+            Write-Host "::Error::Project Dependencies depth is $depth. Workflow is only setup for $workflowDepth. You need to Run Update AL-Go System Files to update the workflows"
+            $host.SetShouldExit(1)
+          }
+          $step = $depth
+          $depth..1 | ForEach-Object {
+            $ps = @($buildOrder."$_" | Where-Object { $projects -contains $_ })
+            if ($ps.Count -eq 1) {
+              $projectsJSon = "[$($ps | ConvertTo-Json -compress)]"
+            }
+            else {
+              $projectsJSon = $ps | ConvertTo-Json -compress
+            }
+            if ($ps.Count -gt 0) {
+              Add-Content -Path $env:GITHUB_OUTPUT -Value "Projects$($step)Json=$projectsJson"
+              Add-Content -Path $env:GITHUB_OUTPUT -Value "Projects$($step)Count=$($ps.count)"
+              Write-Host "Projects$($step)Json=$projectsJson"
+              Write-Host "Projects$($step)Count=$($ps.count)"
+              $step--
+            }
+          }
+          while ($step -ge 1) {
+              Add-Content -Path $env:GITHUB_OUTPUT -Value "Projects$($step)Json="
+              Add-Content -Path $env:GITHUB_OUTPUT -Value "Projects$($step)Count=0"
+              Write-Host "Projects$($step)Json="
+              Write-Host "Projects$($step)Count=0"
+              $step--
+          }
+
+  CheckForUpdates:
+    runs-on: [ self-hosted,1ES.Pool=ALAppExt ]
     needs: [ Initialization ]
-    concurrency:
-      group: runTests-${{ needs.Initialization.outputs.concurrencyId }}
-      cancel-in-progress: true
-    outputs:
-      tests: ${{ steps.Analyze.outputs.tests }}
+    if: github.event_name != 'workflow_run'
     steps:
-      - name: Update CI Workflow Check Run
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Read settings
+        uses: freddydk/AL-Go-Actions/ReadSettings@main
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          get: TemplateUrl
+
+      - name: Check for updates to AL-Go system files
+        uses: freddydk/AL-Go-Actions/CheckForUpdates@main
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          templateUrl: ${{ env.TemplateUrl }}
+
+  Build:
+    needs: [ Initialization ]
+    if: ${{ needs.Initialization.outputs.projectCount > 0 }}
+    runs-on: ${{ fromJson(needs.Initialization.outputs.githubRunner) }}
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.Initialization.outputs.projects) }}
+      fail-fast: false
+    name: Build ${{ matrix.project }}
+    outputs:
+      AppsArtifactsName: ${{ steps.calculateArtifactNames.outputs.AppsArtifactsName }}
+      TestAppsArtifactsName: ${{ steps.calculateArtifactNames.outputs.TestAppsArtifactsName }}
+      TestResultsArtifactsName: ${{ steps.calculateArtifactNames.outputs.TestResultsArtifactsName }}
+      BcptTestResultsArtifactsName: ${{ steps.calculateArtifactNames.outputs.BcptTestResultsArtifactsName }}
+      BuildOutputArtifactsName: ${{ steps.calculateArtifactNames.outputs.BuildOutputArtifactsName }}
+    steps:
+      - name: Create Build Job Check Run
+        id: CreateCheckRun
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var jobName = context.job.concat(' ${{ matrix.project }}')
+            var jobs = await github.rest.actions.listJobsForWorkflowRun({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: context.runId
+            });
+            var job = jobs.data.jobs.filter((job) => {
+              return job.name == jobName
+            })[0];
+            var details_url = context.serverUrl.concat('/',context.repo.owner,'/',context.repo.repo,'/actions/runs/',context.runId)
+            if (job) {
+              details_url = job.html_url;
+            }
+            var response = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: context.job.concat(' ${{ matrix.project }}'),
+              head_sha: '${{ github.event.workflow_run.head_sha }}',
+              status: 'in_progress',
+              details_url: details_url,
+              output: {
+                'title': context.job.concat(' ${{ matrix.project }}'),
+                'summary': '[Workflow Details]('.concat(details_url,')')
+              }
+            });
+            core.setOutput('checkRunId', response.data.id);
+            core.setOutput('detailsUrl', details_url);
+
+      - name: Update CI/CD Workflow Check Run
         if: github.event_name == 'workflow_run'
         uses: actions/github-script@v6
         with:
@@ -115,137 +324,379 @@ jobs:
             });
 
       - name: Checkout
+        if: github.event_name != 'workflow_run' || (github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository)
         uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name == github.repository
+        uses: actions/checkout@v2
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_branch }}
 
-      - name: Analyze
-        id: Analyze
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: '${{ github.workspace }}\.dependencies'
+
+      - name: Download Fork Pull Request Changes
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
+        uses: actions/github-script@v6
+        with:
+          script: |
+            var run_id = Number('${{ github.event.workflow_run.id }}');
+            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: run_id
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == 'Pull_Request_Files'
+            })[0];
+            var download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip'
+            });
+            var fs = require('fs');
+            fs.writeFileSync('.PullRequestChanges.zip', Buffer.from(download.data));
+
+      - name: Apply Fork Pull Request Changes
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
         run: |
-          Write-Host 'runTests-${{ needs.Initialization.outputs.concurrencyId }}'
-          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
-          Write-Host "tests=$tests"
-
-  RunTests:
-    runs-on: [ windows-latest ]
-    needs: [ Initialization, AnalyzeTests ]
-    strategy:
-      matrix:
-        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
-      fail-fast: false
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Run Tests
-        run: |
-          try {
-            $errorActionPreference = "stop"
-            Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
-            $result = Invoke-Pester -Container $pesterContainer -passthru
-            if ($result.FailedCount -gt 0) {
-              Write-Host "::Error::$($result.FailedCount) tests are failing"
-              $host.SetShouldExit(1)
+          $ErrorActionPreference = "STOP"
+          $location = (Get-Location).path
+          $prfolder = '.PullRequestChanges'
+          Expand-Archive -Path ".\$prfolder.zip" -DestinationPath ".\$prfolder"
+          Remove-Item -Path ".\$prfolder.zip" -force
+          Get-ChildItem -Path $prfolder -Recurse -File | ForEach-Object {
+            $path = $_.FullName
+            $deleteFile = $path.EndsWith('.REMOVE')
+            if ($deleteFile) {
+              $path = $path.SubString(0,$path.Length-7)
+            }
+            $newPath = $path.Replace("$prfolder\","")
+            $newFolder = [System.IO.Path]::GetDirectoryName($newPath)
+            $extension = [System.IO.Path]::GetExtension($path)
+            $filename = [System.IO.Path]::GetFileName($path)
+            if ($extension -eq '.ps1' -or $extension -eq '.yaml' -or $extension -eq '.yml' -or $filename -eq "CODEOWNERS") {
+              throw "Pull Request containing changes to scripts, workflows or CODEOWNERS are not allowed from forks."
+            }
+            if ($deleteFile) {
+              if (Test-Path $newPath) {
+                Write-Host "Removing $newPath"
+                Remove-Item $newPath -Force
+              }
+              else {
+                Write-Host "$newPath was already deleted"
+              }
+            }
+            else {
+              if (-not (Test-Path $newFolder)) {
+                New-Item $newFolder -ItemType Directory | Out-Null
+              }
+              Write-Host "Copying $path to $newFolder"
+              Copy-Item $path -Destination $newFolder -Force
             }
           }
-          catch {
-            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
-            $host.SetShouldExit(1)
+          Remove-Item -Path $prfolder -recurse -force
+
+      - name: Read settings
+        uses: freddydk/AL-Go-Actions/ReadSettings@main
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          project: ${{ matrix.project }}
+
+      - name: Read secrets
+        uses: freddydk/AL-Go-Actions/ReadSecrets@main
+        env:
+          secrets: ${{ toJson(secrets) }}
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          settingsJson: ${{ env.Settings }}
+          secrets: 'licenseFileUrl,insiderSasToken,CodeSignCertificateUrl,CodeSignCertificatePassword,KeyVaultCertificateUrl,KeyVaultCertificatePassword,KeyVaultClientId,StorageContext,GitHubPackagesContext'
+
+      - name: Run pipeline
+        id: RunPipeline
+        uses: freddydk/AL-Go-Actions/RunPipeline@main
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          Project: ${{ matrix.project }}
+          ProjectDependenciesJson: ${{ needs.Initialization.outputs.projectDependenciesJson }}
+          settingsJson: ${{ env.Settings }}
+          SecretsJson: ${{ env.RepoSecrets }}
+
+      - name: Calculate Artifact names
+        id: calculateArtifactNames
+        if: always()
+        run: |
+          $ErrorActionPreference = "STOP"
+          $settings = '${{ env.Settings }}' | ConvertFrom-Json
+          $project = '${{ matrix.project }}'
+          if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
+            $event = Get-Content $ENV:GITHUB_EVENT_PATH -Encoding UTF8 | ConvertFrom-Json
+            $ref = "PR$($event.workflow_run.pull_requests[0].number)"
           }
+          else {
+            $ref = "$ENV:GITHUB_REF_NAME".Replace('/','_')
+          }
+          if ($project -eq ".") { $project = $settings.RepoName }
+          'Apps','Dependencies','TestApps','TestResults','BcptTestResults','BuildOutput','ContainerEventLog' | ForEach-Object {
+            $name = "$($_)ArtifactsName"
+            $value = "$($project.Replace('\','_'))-$($ref)-$_-$($settings.repoVersion).$($settings.appBuild).$($settings.appRevision)"
+            Add-Content -Path $env:GITHUB_OUTPUT -Value "$name=$value"
+            Add-Content -Path $env:GITHUB_ENV -Value "$name=$value"
+          }
+
+      - name: Publish artifacts - apps
+        uses: actions/upload-artifact@v3
+        if: github.ref_name == 'main' || startswith(github.ref_name, 'release/')
+        with:
+          name: ${{ env.appsArtifactsName }}
+          path: '${{ matrix.project }}/.buildartifacts/Apps/'
+          if-no-files-found: ignore
+
+      - name: Publish artifacts - dependencies
+        uses: actions/upload-artifact@v3
+        if: github.ref_name == 'main' || startswith(github.ref_name, 'release/')
+        with:
+          name: ${{ env.dependenciesArtifactsName }}
+          path: '${{ matrix.project }}/.buildartifacts/Dependencies/'
+          if-no-files-found: ignore
+
+      - name: Publish artifacts - test apps
+        uses: actions/upload-artifact@v3
+        if: github.ref_name == 'main' || startswith(github.ref_name, 'release/')
+        with:
+          name: ${{ env.testAppsArtifactsName }}
+          path: '${{ matrix.project }}/.buildartifacts/TestApps/'
+          if-no-files-found: ignore
+
+      - name: Publish artifacts - build output
+        uses: actions/upload-artifact@v3
+        if: (always()) && (hashFiles(format('{0}/BuildOutput.txt',matrix.project)) != '')
+        with:
+          name: ${{ env.buildOutputArtifactsName }}
+          path: '${{ matrix.project }}/BuildOutput.txt'
+          if-no-files-found: ignore
+
+      - name: Publish artifacts - container event log
+        uses: actions/upload-artifact@v3
+        if: (always()) && (hashFiles(format('{0}/ContainerEventLog.evtx',matrix.project)) != '')
+        with:
+          name: ${{ env.ContainerEventLogArtifactsName }}
+          path: '${{ matrix.project }}/ContainerEventLog.evtx'
+          if-no-files-found: ignore
+
+      - name: Publish artifacts - test results
+        uses: actions/upload-artifact@v3
+        if: (success() || failure()) && (hashFiles(format('{0}/TestResults.xml',matrix.project)) != '')
+        with:
+          name: ${{ env.testResultsArtifactsName }}
+          path: '${{ matrix.project }}/TestResults.xml'
+          if-no-files-found: ignore
+
+      - name: Publish artifacts - bcpt test results
+        uses: actions/upload-artifact@v3
+        if: (success() || failure()) && (hashFiles(format('{0}/bcptTestResults.json',matrix.project)) != '')
+        with:
+          name: ${{ env.bcptTestResultsArtifactsName }}
+          path: '${{ matrix.project }}/bcptTestResults.json'
+          if-no-files-found: ignore
+
+      - name: Analyze Test Results
+        id: analyzeTestResults
+        if: success() || failure()
+        uses: freddydk/AL-Go-Actions/AnalyzeTests@main
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          Project: ${{ matrix.project }}
+
+      - name: Update Build Job Check Run
+        if: always() && github.event_name == 'workflow_run'
+        uses: actions/github-script@v6
+        env:
+          TestResultMD: ${{ steps.analyzeTestResults.outputs.TestResultMD }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var details_url = '${{ steps.CreateCheckRun.outputs.detailsUrl }}'
+            var testResultMD = process.env.TestResultMD
+            var response = await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: ${{ steps.CreateCheckRun.outputs.checkRunId }},
+              conclusion: '${{ steps.RunPipeline.conclusion }}',
+              output: {
+                title: context.job.concat(' ${{ matrix.project }}'),
+                summary: testResultMD.replaceAll('\\n','\n'),
+                text: '[Workflow details]('.concat(details_url,')')
+              }
+            });
+
+      - name: Cleanup
+        if: always()
+        uses: freddydk/AL-Go-Actions/PipelineCleanup@main
+        with:
+          parentTelemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
+          Project: ${{ matrix.project }}
 
   Deploy:
-    runs-on: [ windows-latest ]
-    needs: [ RunTests ]
-    if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: [ Initialization, Build ]
+    if: always() && needs.Build.result == 'Success' && github.event_name != 'workflow_run' && github.ref_name == 'main' && needs.Initialization.outputs.environmentCount > 0
+    strategy: ${{ fromJson(needs.Initialization.outputs.environments) }}
+    runs-on: ${{ fromJson(matrix.os) }}
+    name: Deploy to ${{ matrix.environment }}
+    environment:
+      name: ${{ matrix.environment }}
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Deploy
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: '${{ github.workspace }}\.artifacts'
+
+      - name: EnvName
+        id: envName
         run: |
-          try {
-            $path = Join-Path $ENV:TEMP "BcContainerHelper"
-            New-Item -path $path -itemType Directory | Out-Null
-            Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
+          $ErrorActionPreference = "STOP"
+          $envName = '${{ matrix.environment }}'.split(' ')[0]
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "envName=$envName"
 
-            Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
-            Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
-            Remove-Item -Path (Join-Path $path ".git") -Force -Recurse
-            Remove-Item -Path (Join-Path $path ".gitignore") -Force
-            Remove-Item -Path (Join-Path $path "README.md") -Force
+      - name: Read settings
+        uses: freddydk/AL-Go-Actions/ReadSettings@main
 
-            $version = (Get-Content -Path (Join-Path $path 'Version.txt')).split('-')[0]
-            $prerelease = "preview$(620+$ENV:GITHUB_RUN_NUMBER)"
-            Set-Content -Path (Join-Path $path 'Version.txt') -value "$version-$prerelease"
-          
-            Write-Host "BcContainerHelper version $Version$prerelease"
-          
-            $modulePath = Join-Path $ENV:GITHUB_WORKSPACE "BcContainerHelper.psm1"
-            Import-Module $modulePath -DisableNameChecking
-          
-            $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
-            $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
-          
-            $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
-            $idx = $releaseNotes.IndexOf($version)
-            if ($idx -lt 0) {
-                throw 'No release notes identified'
-            }
-            $versionReleaseNotes = @()
-            while ($releaseNotes[$idx]) {
-                $versionReleaseNotes += $releaseNotes[$idx]
-                $idx++
-            }
-          
-            Write-Host "Release Notes:"
-            Write-Host $VersionReleaseNotes
-          
-            Write-Host "Update Module Manifest"
-            Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
-                                  -RootModule "BcContainerHelper.psm1" `
-                                  -ModuleVersion $version `
-                                  -Prerelease $prerelease `
-                                  -Author "Freddy Kristiansen" `
-                                  -FunctionsToExport $functionsToExport `
-                                  -AliasesToExport $aliasesToExport `
-                                  -CompanyName "Microsoft" `
-                                  -ReleaseNotes $versionReleaseNotes
+      - name: Read secrets
+        uses: freddydk/AL-Go-Actions/ReadSecrets@main
+        env:
+          secrets: ${{ toJson(secrets) }}
+        with:
+          settingsJson: ${{ env.Settings }}
+          secrets: '${{ steps.envName.outputs.envName }}-AuthContext,${{ steps.envName.outputs.envName }}_AuthContext,AuthContext,${{ steps.envName.outputs.envName }}-EnvironmentName,${{ steps.envName.outputs.envName }}_EnvironmentName,EnvironmentName,Projects'
 
-            $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
-            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
-
-            Remove-Module BcContainerHelper
-          
-            Write-Host $path
-           
-            Write-Host "Signing scripts"
-            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
-            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
-                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
-            Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
-
-            Write-Host "Upload to storage (preview)"
-            $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
-            New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
-          
-            Compress-Archive -path $path -DestinationPath "$($path).zip"
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
-          
-            Write-Host "Publishing Module"
-            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
+      - name: AuthContext
+        id: authContext
+        run: |
+          $ErrorActionPreference = "STOP"
+          $envName = '${{ steps.envName.outputs.envName }}'
+          $authContext = $null
+          "$($envName)-AuthContext", "$($envName)_AuthContext", "AuthContext" | ForEach-Object {
+            if (!($authContext)) {
+              $authContext = [System.Environment]::GetEnvironmentVariable($_)
+              if ($authContext) {
+                Write-Host "Using $_ secret"
+              }
+            }            
           }
-          catch {
-            Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
-            $host.SetShouldExit(1)
+          if (!($authContext)) {
+            Write-Host "::Error::No AuthContext provided"
+            exit 1
           }
+          $environmentName = $null
+          "$($envName)-EnvironmentName", "$($envName)_EnvironmentName", "EnvironmentName" | ForEach-Object {
+            if (!($EnvironmentName)) {
+              $EnvironmentName = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String([System.Environment]::GetEnvironmentVariable($_)))
+              if ($EnvironmentName) {
+                Write-Host "Using $_ secret"
+              }
+            }            
+          }
+          if (!($environmentName)) {
+            $environmentName = '${{ steps.envName.outputs.envName }}'
+          }
+          $environmentName = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes(($environmentName + '${{ matrix.environment }}'.SubString($envName.Length)).ToUpperInvariant()))
+
+          $projects = [System.Environment]::GetEnvironmentVariable("$($envName)-Projects")
+          if (-not $projects) {
+            $projects = [System.Environment]::GetEnvironmentVariable("$($envName)_Projects")
+            if (-not $projects) {
+              $projects = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String([System.Environment]::GetEnvironmentVariable('projects')))
+            }
+          }
+          if ($projects -eq '') {
+            $projects = '*'
+          }
+          else {
+            $buildProjects = '${{ needs.Initialization.outputs.projects }}' | ConvertFrom-Json
+            $projects = ($projects.Split(',') | Where-Object { $buildProjects -contains $_ }) -join ','
+          }
+
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "authContext=$authContext"
+          Write-Host "authContext=$authContext"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "environmentName=$environmentName"
+          Write-Host "environmentName=$environmentName"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "projects=$projects"
+          Write-Host "projects=$projects"
+
+      - name: Deploy
+        uses: freddydk/AL-Go-Actions/Deploy@main
+        env:
+          authContext: ${{ steps.authContext.outputs.authContext }}
+        with:
+          type: 'CD'
+          projects: ${{ steps.authContext.outputs.projects }}
+          environmentName: ${{ steps.authContext.outputs.environmentName }}
+          artifacts: '${{ github.workspace }}\.artifacts'
+
+  Deliver:
+    needs: [ Initialization, Build ]
+    if: always() && needs.Build.result == 'Success' && github.event_name != 'workflow_run' && github.ref_name == 'main' && needs.Initialization.outputs.deliveryTargetCount > 0
+    strategy:
+      matrix:
+        deliveryTarget: ${{ fromJson(needs.Initialization.outputs.deliveryTargets) }}
+      fail-fast: false
+    runs-on: [ self-hosted,1ES.Pool=ALAppExt ]
+    name: Deliver to ${{ matrix.deliveryTarget }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: '${{ github.workspace }}\.artifacts'
+
+      - name: Read settings
+        uses: freddydk/AL-Go-Actions/ReadSettings@main
+
+      - name: Read secrets
+        uses: freddydk/AL-Go-Actions/ReadSecrets@main
+        env:
+          secrets: ${{ toJson(secrets) }}
+        with:
+          settingsJson: ${{ env.Settings }}
+          secrets: '${{ matrix.deliveryTarget }}Context'
+
+      - name: DeliveryContext
+        id: deliveryContext
+        run: |
+          $ErrorActionPreference = "STOP"
+          $contextName = '${{ matrix.deliveryTarget }}Context'
+          $deliveryContext = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String([System.Environment]::GetEnvironmentVariable($contextName)))
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "deliveryContext=$deliveryContext"
+          Write-Host "deliveryContext=$deliveryContext"
+
+      - name: Deliver
+        uses: freddydk/AL-Go-Actions/Deliver@main
+        env:
+          deliveryContext: ${{ steps.deliveryContext.outputs.deliveryContext }}
+        with:
+          type: 'CD'
+          projects: ${{ needs.Initialization.outputs.projects }}
+          deliveryTarget: ${{ matrix.deliveryTarget }}
+          artifacts: '${{ github.workspace }}\.artifacts'
 
   UpdatePRcheck:
-    if: always() && github.event_name == 'workflow_run'
-    runs-on: [ windows-latest ]
-    needs: [ Initialization, RunTests ]
+    if: always() && github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: [ self-hosted,1ES.Pool=ALAppExt ]
+    needs: [ Initialization, Build ]
     steps:
-      - name: Update CI Workflow Check Run
+      - name: Update CI/CD Workflow Check Run
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -256,3 +707,18 @@ jobs:
               check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
               conclusion: '${{ needs.Build.result }}'
             });
+
+  PostProcess:
+    if: (!cancelled()) && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: [ self-hosted,1ES.Pool=ALAppExt ]
+    needs: [ Initialization, Build, Deploy, Deliver ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Finalize the workflow
+        id: PostProcess
+        uses: freddydk/AL-Go-Actions/WorkflowPostProcess@main
+        with:
+          eventId: "DO0091"
+          telemetryScopeJson: ${{ needs.Initialization.outputs.telemetryScopeJson }}
