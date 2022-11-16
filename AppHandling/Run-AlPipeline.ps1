@@ -2030,6 +2030,7 @@ $testAppIds.Keys | ForEach-Object {
         }
     }
 
+    
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
