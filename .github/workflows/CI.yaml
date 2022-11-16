@@ -54,9 +54,11 @@ jobs:
 
       - name: Investigate Pull Request
         if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
+        env:
+          event: ${{ toJson( github.event ) }}
         run: |
           $errorActionPreference = 'STOP'
-          $event = '${{ toJson(github.event) }}' | ConvertFrom-Json
+          $event = $ENV:EVENT | ConvertFrom-Json
           $headers = @{             
               "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
               "Accept" = "application/vnd.github.baptiste-preview+json"
