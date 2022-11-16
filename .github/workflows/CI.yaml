@@ -18,6 +18,10 @@ permissions:
   pull-requests: write
   checks: write
 
+concurrency:
+  group: 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
+  cancel-in-progress: true
+
 defaults:
   run:
     shell: PowerShell
@@ -57,6 +61,7 @@ jobs:
           event: ${{ toJson( github.event ) }}
         run: |
           $errorActionPreference = 'STOP'
+          Write-Host 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
           $event = $ENV:EVENT | ConvertFrom-Json
           $headers = @{             
               "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
