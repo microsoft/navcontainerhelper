@@ -126,7 +126,8 @@ function Run-TestsInBcContainer {
         [string] $useUrl = "",
         [switch] $connectFromHost,
         [Hashtable] $bcAuthContext,
-        [string] $environment
+        [string] $environment,
+        [switch] $renewClientContextBetweenTests = $bcContainerHelperConfig.renewClientContextBetweenTests
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -324,13 +325,19 @@ try {
                               -detailed:$detailed `
                               -debugMode:$debugMode `
                               -testPage $testPage `
-                              -connectFromHost:$connectFromHost
+                              -connectFromHost:$connectFromHost `
+                              -renewClientContext { 
+                                if ($renewClientContextBetweenTests) {
+                                    Write-Host "Renew Client Context"
+                                    Remove-ClientContext -clientContext $clientContext
+                                    $clientContext = $null
+                                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                }
+                                $clientContext
+                              }
                 }
                 catch {
                     Write-Host $_.ScriptStackTrace
-                    if ($debugMode -and $clientContext) {
-                        Dump-ClientContext -clientcontext $clientContext 
-                    }
                     throw
                 }
                 finally {
@@ -432,18 +439,17 @@ try {
                                   -testPage $testPage `
                                   -connectFromHost:$connectFromHost `
                                   -renewClientContext { 
-                                    Write-Host "Renew Client Context"
-                                    Remove-ClientContext -clientContext $clientContext
-                                    $clientContext = $null
-                                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                    if ($renewClientContextBetweenTests) {
+                                        Write-Host "Renew Client Context"
+                                        Remove-ClientContext -clientContext $clientContext
+                                        $clientContext = $null
+                                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                    }
                                     $clientContext
                                   }
                     }
                     catch {
                         Write-Host $_.ScriptStackTrace
-                        if ($debugMode -and $clientContext) {
-                            Dump-ClientContext -clientcontext $clientContext 
-                        }
                         throw
                     }
                     finally {
