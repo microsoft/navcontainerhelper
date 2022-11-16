@@ -1,4 +1,4 @@
-# NAV Container Helper
+# BcContainerHelper
 
 This repository contains a module, which makes it easier to work with Business Central and NAV Containers on Docker.
 The module is work in progress and feel free to submit pull requests and contribute with good ideas.
