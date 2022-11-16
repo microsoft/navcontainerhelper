@@ -1,6 +1,7 @@
 4.0.7
 Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1
 Fix multiple layout files with same file name in BC21
+Add parameter ContainerEventLogFile to Run-AlPipeline to extract container event log after run
 
 4.0.6
 Check latest allowed runtime version in Run-AlValidation
