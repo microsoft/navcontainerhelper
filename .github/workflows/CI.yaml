@@ -56,7 +56,7 @@ jobs:
           event: ${{ toJson( github.event ) }}
         run: |
           $errorActionPreference = 'STOP'
-          Write-Host 'runTests-@{{ github.ref}}'
+          Write-Host 'runTests-${{ github.ref}}'
           $event = $ENV:EVENT | ConvertFrom-Json
           $headers = @{             
               "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
@@ -98,7 +98,7 @@ jobs:
   RunTests:
     runs-on: [ windows-latest ]
     needs: [ Initialization, AnalyzeTests ]
-    concurrency: runTests-@{{ github.ref}}
+    concurrency: runTests-${{ github.ref}}
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
