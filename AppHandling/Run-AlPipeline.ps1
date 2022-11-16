@@ -2012,6 +2012,7 @@ $testAppIds.Keys | ForEach-Object {
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "detailed" = $true
+        "debugMode" = $true
         "returnTrueIfAllPassed" = $true
     }
 

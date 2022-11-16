@@ -307,7 +307,22 @@ try {
                 try {
                     $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
 
-                    $result = Run-Tests -clientContext $clientContext `
+                    $Param = @{}
+                    if ($renewClientContextBetweenTests) {
+                        $Param = @{ "renewClientContext" = { 
+                                if ($renewClientContextBetweenTests) {
+                                    Write-Host "Renewing Client Context"
+                                    Remove-ClientContext -clientContext $clientContext
+                                    $clientContext = $null
+                                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                    Write-Host "Client Context renewed"
+                                }
+                                $clientContext
+                            }
+                        }
+                    }
+
+                    $result = Run-Tests @Param -clientContext $clientContext `
                               -TestSuite $testSuite `
                               -TestGroup $testGroup `
                               -TestCodeunit $testCodeunit `
@@ -325,16 +340,7 @@ try {
                               -detailed:$detailed `
                               -debugMode:$debugMode `
                               -testPage $testPage `
-                              -connectFromHost:$connectFromHost `
-                              -renewClientContext { 
-                                if ($renewClientContextBetweenTests) {
-                                    Write-Host "Renew Client Context"
-                                    Remove-ClientContext -clientContext $clientContext
-                                    $clientContext = $null
-                                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
-                                }
-                                $clientContext
-                              }
+                              -connectFromHost:$connectFromHost
                 }
                 catch {
                     Write-Host $_.ScriptStackTrace
@@ -419,7 +425,22 @@ try {
 
                         $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
 
-                        Run-Tests -clientContext $clientContext `
+                        $Param = @{}
+                        if ($renewClientContextBetweenTests) {
+                            $Param = @{ "renewClientContext" = { 
+                                    if ($renewClientContextBetweenTests) {
+                                        Write-Host "Renewing Client Context"
+                                        Remove-ClientContext -clientContext $clientContext
+                                        $clientContext = $null
+                                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                        Write-Host "Client Context renewed"
+                                    }
+                                    $clientContext
+                                }
+                            }
+                        }
+
+                        Run-Tests @Param -clientContext $clientContext `
                                   -TestSuite $testSuite `
                                   -TestGroup $testGroup `
                                   -TestCodeunit $testCodeunit `
@@ -437,17 +458,7 @@ try {
                                   -detailed:$detailed `
                                   -debugMode:$debugMode `
                                   -testPage $testPage `
-                                  -connectFromHost:$connectFromHost `
-                                  -renewClientContext { 
-                                    if ($renewClientContextBetweenTests) {
-                                        Write-Host "Renewing Client Context"
-                                        Remove-ClientContext -clientContext $clientContext
-                                        $clientContext = $null
-                                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
-                                        Write-Host "Client Context renewed"
-                                    }
-                                    $clientContext
-                                  }
+                                  -connectFromHost:$connectFromHost
                     }
                     catch {
                         Write-Host $_.ScriptStackTrace

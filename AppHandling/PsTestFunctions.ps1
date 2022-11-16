@@ -631,6 +631,7 @@ function Run-Tests {
             }
 
             if ($renewClientContext) {
+                $clientContext.CloseForm($form)
                 $clientContext = Invoke-Command -ScriptBlock $renewClientContext
                 $form = $clientContext.OpenForm($testPage)
             }
