@@ -27,6 +27,7 @@ jobs:
     runs-on: windows-latest
     outputs:
       checkRunId: ${{ steps.CreateCheckRun.outputs.checkRunId }}
+      concurrencyId: ${{ steps.CalculateConcurrencyId.outputs.concurrencyId }}
     steps:
       - name: Create CI Workflow Check Run
         id: CreateCheckRun
@@ -56,7 +57,6 @@ jobs:
           event: ${{ toJson( github.event ) }}
         run: |
           $errorActionPreference = 'STOP'
-          Write-Host 'runTests-${{ github.ref}}'
           $event = $ENV:EVENT | ConvertFrom-Json
           $headers = @{             
               "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
@@ -79,11 +79,24 @@ jobs:
             }
           }
 
+      - name: Calculate Concurrency ID
+        id: CalculateConcurrencyId
+        run: |
+          $errorActionPreference = 'STOP'
+          if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
+            $concurrencyId = '${{ github.event.workflow_run.head_branch }}'
+          }
+          else {
+            $concurrencyId = $ENV:GITHUB_REF
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "concurrencyId=$concurrencyId"
+          Write-Host "concurrencyId=$concurrencyId"
+
   AnalyzeTests:
     runs-on: [ windows-latest ]
     needs: [ Initialization ]
     concurrency:
-      group: runTests-${{ github.ref}}
+      group: runTests-${{ needs.Initialization.outputs.concurrencyId }}
       cancel-in-progress: true
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
@@ -107,6 +120,7 @@ jobs:
       - name: Analyze
         id: Analyze
         run: |
+          Write-Host 'runTests-${{ needs.Initialization.outputs.concurrencyId }}'
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
