@@ -2013,6 +2013,7 @@ $testAppIds.Keys | ForEach-Object {
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "detailed" = $true
         "debugMode" = $true
+        "debug" = $true
         "returnTrueIfAllPassed" = $true
     }
 
@@ -2029,6 +2030,7 @@ $testAppIds.Keys | ForEach-Object {
         }
     }
 
+    
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
