@@ -84,10 +84,10 @@ jobs:
         run: |
           $errorActionPreference = 'STOP'
           if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
-            $concurrencyId = '${{ github.event.workflow_run.head_branch }}'
+            $concurrencyId = 'runtests-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
           }
           else {
-            $concurrencyId = $ENV:GITHUB_REF
+            $concurrencyId = "runtests-$ENV:GITHUB_REF"
           }
           Add-Content -Path $env:GITHUB_OUTPUT -Value "concurrencyId=$concurrencyId"
           Write-Host "concurrencyId=$concurrencyId"
