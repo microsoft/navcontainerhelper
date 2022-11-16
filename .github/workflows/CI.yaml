@@ -82,27 +82,11 @@ jobs:
   AnalyzeTests:
     runs-on: [ windows-latest ]
     needs: [ Initialization ]
+    concurrency:
+      group: runTests-${{ github.ref}}
+      cancel-in-progress: true
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Analyze
-        id: Analyze
-        run: |
-          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
-          Write-Host "tests=$tests"
-
-  RunTests:
-    runs-on: [ windows-latest ]
-    needs: [ Initialization, AnalyzeTests ]
-    concurrency: runTests-${{ github.ref}}
-    strategy:
-      matrix:
-        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
-      fail-fast: false
     steps:
       - name: Update CI Workflow Check Run
         if: github.event_name == 'workflow_run'
@@ -117,6 +101,24 @@ jobs:
               status: 'in_progress'
             });
 
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Analyze
+        id: Analyze
+        run: |
+          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
+          Write-Host "tests=$tests"
+
+  RunTests:
+    runs-on: [ windows-latest ]
+    needs: [ Initialization, AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
       - name: Checkout
         uses: actions/checkout@v3
 
