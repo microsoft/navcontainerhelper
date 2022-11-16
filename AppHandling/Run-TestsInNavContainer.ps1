@@ -440,10 +440,11 @@ try {
                                   -connectFromHost:$connectFromHost `
                                   -renewClientContext { 
                                     if ($renewClientContextBetweenTests) {
-                                        Write-Host "Renew Client Context"
+                                        Write-Host "Renewing Client Context"
                                         Remove-ClientContext -clientContext $clientContext
                                         $clientContext = $null
                                         $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                        Write-Host "Client Context renewed"
                                     }
                                     $clientContext
                                   }
