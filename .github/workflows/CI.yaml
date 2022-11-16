@@ -14,11 +14,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
-  pull-requests: write
-  checks: write
-
-concurrency: CI
 
 defaults:
   run:
@@ -58,6 +53,7 @@ jobs:
           event: ${{ toJson( github.event ) }}
         run: |
           $errorActionPreference = 'STOP'
+          Write-Host 'runTests-@{{ github.ref}}'
           $event = $ENV:EVENT | ConvertFrom-Json
           $headers = @{             
               "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
@@ -98,12 +94,26 @@ jobs:
 
   RunTests:
     runs-on: [ windows-latest ]
-    needs: [ AnalyzeTests ]
+    needs: [ Initialization, AnalyzeTests ]
+    concurrency: runTests-@{{ github.ref}}
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
       fail-fast: false
     steps:
+      - name: Update CI Workflow Check Run
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var response = await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
+              status: 'in_progress'
+            });
+
       - name: Checkout
         uses: actions/checkout@v3
 
