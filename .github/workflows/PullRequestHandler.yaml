@@ -1,0 +1,24 @@
+name: 'Pull Request Handler'
+
+on:
+  pull_request:
+    paths-ignore:
+      - '**.md'
+    branches: [ master ]
+
+defaults:
+  run:
+    shell: PowerShell
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: read
+
+jobs:
+  PullRequestHandler:
+    runs-on: [ windows-latest ]
+    steps:
+      - name: Wait for CI/CD to start
+        run: |
+          Start-Sleep -seconds 50

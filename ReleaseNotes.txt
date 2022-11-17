@@ -1,3 +1,12 @@
+4.0.7
+Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1
+Fix multiple layout files with same file name in BC21
+Add parameter ContainerEventLogFile to Run-AlPipeline to extract container event log after run
+Add new parameter to Run-TestsInBcContainer - renewClientContextBetweenTests to renew client context between tests
+Add new setting renewClientContextBetweenTests as default value for the same parameter in Run-TestsInBcContainer
+Change PR process for ContainerHelper
+Wait for tenants to be ready after Restart-BcContainer
+
 4.0.6
 Check latest allowed runtime version in Run-AlValidation
 Add PROOF OF CONCEPT PREVIEW functions to work with Business Central NuGet packages: New-BcNuGetPackage, Get-BcNuGetPackage, Push-BcNuGetPackage and New-ALGoNuGetContext

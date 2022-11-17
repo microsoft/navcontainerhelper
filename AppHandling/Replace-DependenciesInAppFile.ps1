@@ -76,10 +76,14 @@ try {
             
             $package = [System.IO.Packaging.Package]::Open($memoryStream, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite)
             $manifestPart = $package.GetPart('/NavxManifest.xml')
-            $manifest = [xml]([System.IO.StreamReader]::new($manifestPart.GetStream())).ReadToEnd()
+            $manifestStream = $manifestPart.GetStream()
+            $manifest = [xml]([System.IO.StreamReader]::new($manifestStream)).ReadToEnd()
+            $manifestStream.Close()
             $manifestChanges = $false
             $symbolReferencePart = $package.GetPart('/SymbolReference.json')
-            $symbolJson = ([System.IO.StreamReader]::new($symbolReferencePart.GetStream())).ReadToEnd()
+            $symbolReferenceStream = $symbolReferencePart.GetStream()
+            $symbolJson = ([System.IO.StreamReader]::new($symbolReferenceStream)).ReadToEnd()
+            $symbolReferenceStream.Close()
             $symbolReference = $symbolJson | ConvertFrom-Json
             $symbolReferenceChanges = $false
     

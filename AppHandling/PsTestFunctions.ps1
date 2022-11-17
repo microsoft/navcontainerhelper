@@ -500,7 +500,8 @@ function Run-Tests {
         [string] $AzureDevOps = 'no',
         [ValidateSet('no','error','warning')]
         [string] $GitHubActions = 'no',
-        [switch] $connectFromHost
+        [switch] $connectFromHost,
+        [scriptblock] $renewClientContext
     )
 
     if ($testPage -eq 130455) {
@@ -610,6 +611,8 @@ function Run-Tests {
             Write-Host "Using new test-runner mechanism"
         }
 
+        $hostname = hostname
+
         while ($true) {
         
             if ($process) {
@@ -626,6 +629,13 @@ function Run-Tests {
             if ($debugMode) {
                 Write-Host "Invoke RunNextTest"
             }
+
+            if ($renewClientContext) {
+                $clientContext.CloseForm($form)
+                $clientContext = Invoke-Command -ScriptBlock $renewClientContext
+                $form = $clientContext.OpenForm($testPage)
+            }
+
             $clientContext.InvokeAction($clientContext.GetActionByName($form, "RunNextTest"))
             $testResultControl = $clientContext.GetControlByName($form, "TestResultJson")
             $testResultJson = $testResultControl.StringValue
@@ -669,7 +679,7 @@ function Run-Tests {
                 $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
                 $JUnitTestSuite.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
-                $JUnitTestSuite.SetAttribute("hostname", (hostname))
+                $JUnitTestSuite.SetAttribute("hostname", $hostname)
 
                 $JUnitTestSuite.SetAttribute("time", 0)
                 $JUnitTestSuite.SetAttribute("tests", $result.testResults.Count)
@@ -869,7 +879,9 @@ function Run-Tests {
         if ($debugMode -and $testpage -eq 130455) {
             Write-Host "Using repeater based test-runner"
         }
-        
+
+        $hostname = hostname
+
         $filterControl = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientFilterLogicalControl])
         $repeater = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientRepeaterControl])
         $index = 0
@@ -1081,7 +1093,7 @@ function Run-Tests {
                             $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
                             $JUnitTestSuite.SetAttribute("name","$codeunitId $Name")
                             $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
-                            $JUnitTestSuite.SetAttribute("hostname", (hostname))
+                            $JUnitTestSuite.SetAttribute("hostname", $hostname)
                             $JUnitTestSuite.SetAttribute("time", 0)
                             $JUnitTestSuite.SetAttribute("tests", 0)
                             $JUnitTestSuite.SetAttribute("failures", 0)

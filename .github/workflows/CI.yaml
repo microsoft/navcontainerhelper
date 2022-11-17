@@ -4,38 +4,135 @@ on:
   workflow_dispatch:
   push:
     paths-ignore:
-      - 'README.md'
+      - '**.md'
       - '.github/**'
     branches: [ master ]
+  workflow_run:
+    workflows: [ 'Pull Request Handler' ]
+    types:
+      - requested
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: write
+  checks: write
 
-concurrency: CI
+concurrency:
+  group: 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
+  cancel-in-progress: true
 
 defaults:
   run:
     shell: PowerShell
 
 jobs:
+  Initialization:
+    runs-on: windows-latest
+    outputs:
+      checkRunId: ${{ steps.CreateCheckRun.outputs.checkRunId }}
+      concurrencyId: ${{ steps.CalculateConcurrencyId.outputs.concurrencyId }}
+    steps:
+      - name: Create CI Workflow Check Run
+        id: CreateCheckRun
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var details_url = context.serverUrl.concat('/',context.repo.owner,'/',context.repo.repo,'/actions/runs/',context.runId)
+            var response = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'CI Workflow',
+              head_sha: '${{ github.event.workflow_run.head_sha }}',
+              status: 'queued',
+              details_url: details_url,
+              output: {
+                title: 'CI Workflow',
+                summary: '[Workflow Details]('.concat(details_url,')')
+              }
+            });
+            core.setOutput('checkRunId', response.data.id);
+
+      - name: Investigate Pull Request
+        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
+        env:
+          event: ${{ toJson( github.event ) }}
+        run: |
+          $errorActionPreference = 'STOP'
+          Write-Host 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
+          $event = $ENV:EVENT | ConvertFrom-Json
+          $headers = @{             
+              "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
+              "Accept" = "application/vnd.github.baptiste-preview+json"
+          }
+          if ($event.workflow_run.pull_requests.Count -gt 1) {
+            throw "Multiple PRs in the same workflow_run isn't supported by CI/CD workflow yet"
+          }
+          $event.workflow_run.pull_requests | ForEach-Object {
+            $url = "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)/compare/$($_.base.SHA)...$($_.head.SHA)"
+            $response = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $url | ConvertFrom-Json
+            Write-Host "Files Changed:"
+            $response.files | ForEach-Object {
+              $filename = $_.filename
+              $status = $_.status
+              Write-Host "- $filename $status"
+              if ($filename -like ".github\workflows\*.yaml" -or $filename -like ".github\workflows\*.yml") {
+                throw "Changes to .yaml files are not allowed form a fork"
+              }
+            }
+          }
+
+      - name: Calculate Concurrency ID
+        id: CalculateConcurrencyId
+        run: |
+          $errorActionPreference = 'STOP'
+          if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
+            $concurrencyId = '${{ github.event.workflow_run.head_branch }}'
+          }
+          else {
+            $concurrencyId = $ENV:GITHUB_REF
+          }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "concurrencyId=$concurrencyId"
+          Write-Host "concurrencyId=$concurrencyId"
+
   AnalyzeTests:
     runs-on: [ windows-latest ]
+    needs: [ Initialization ]
+    concurrency:
+      group: runTests-${{ needs.Initialization.outputs.concurrencyId }}
+      cancel-in-progress: true
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
     steps:
+      - name: Update CI Workflow Check Run
+        if: github.event_name == 'workflow_run'
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var response = await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
+              status: 'in_progress'
+            });
+
       - name: Checkout
         uses: actions/checkout@v3
 
       - name: Analyze
         id: Analyze
         run: |
+          Write-Host 'runTests-${{ needs.Initialization.outputs.concurrencyId }}'
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
 
   RunTests:
     runs-on: [ windows-latest ]
-    needs: [ AnalyzeTests ]
+    needs: [ Initialization, AnalyzeTests ]
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
@@ -64,6 +161,7 @@ jobs:
   Deploy:
     runs-on: [ windows-latest ]
     needs: [ RunTests ]
+    if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -146,3 +244,20 @@ jobs:
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
+
+  UpdatePRcheck:
+    if: always() && github.event_name == 'workflow_run'
+    runs-on: [ windows-latest ]
+    needs: [ Initialization, RunTests ]
+    steps:
+      - name: Update CI Workflow Check Run
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            var response = await github.rest.checks.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
+              conclusion: '${{ needs.RunTests.result }}'
+            });
