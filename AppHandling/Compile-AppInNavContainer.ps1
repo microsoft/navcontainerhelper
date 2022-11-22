@@ -615,11 +615,11 @@ try {
         }
 
         if ($features) {
-            $alcParameters +=@("/features:$([string]::Join(',', $features))")
+            $alcParameters +=@("/features:$($features -join ',')")
         }
 
         $preprocessorSymbols | where-Object { $_ } | ForEach-Object { $alcParameters += @("/D:$_") }
-
+         
         Write-Host ".\alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
