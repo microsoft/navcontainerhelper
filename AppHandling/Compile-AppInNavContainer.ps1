@@ -615,7 +615,7 @@ try {
         }
 
         if ($features) {
-            $alcParameters +=@("/features:$([string]::Join(',', $features))")
+            $alcParameters +=@("/features:$($features -join ',')")
         }
 
         $preprocessorSymbols | where-Object { $_ } | ForEach-Object { $alcParameters += @("/D:$_") }
