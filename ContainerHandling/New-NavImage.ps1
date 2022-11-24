@@ -10,6 +10,8 @@
   Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
   BaseImage to use. Default is using Get-BestGenericImage to get the best generic image to use.
+ .Parameter databaseBackupPath
+  Path to database backup to use in place of Cronus backup. By default database backup from manifest is used. This parameter can be used to override this and use your custom backup.
  .Parameter registryCredential
   Credentials for the registry for baseImage if you are using a private registry (incl. bcinsider)
  .Parameter isolation
@@ -36,6 +38,7 @@ function New-BcImage {
         [string] $artifactUrl,
         [string] $imageName = "myimage",
         [string] $baseImage = "",
+        [string] $databaseBackupPath = "",
         [PSCredential] $registryCredential,
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
@@ -522,6 +525,11 @@ try {
                 if (!$skipDatabase) {
                     $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
                     New-Item $dbPath -ItemType Directory | Out-Null
+                    if (Test-Path $databaseBackupPath -PathType Leaf)
+                    {
+                        Write-Host "Using database backup from $databaseBackupPath"
+                        $databasePath = $databaseBackupPath
+                    }
                     Write-Host "Copying Database"
                     Copy-Item -path $databasePath -Destination $dbPath -Force
                     if ($licenseFilePath) {
