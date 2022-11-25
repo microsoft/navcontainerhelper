@@ -6,6 +6,7 @@ Add new parameter to Run-TestsInBcContainer - renewClientContextBetweenTests to 
 Add new setting renewClientContextBetweenTests as default value for the same parameter in Run-TestsInBcContainer
 Change PR process for ContainerHelper
 Wait for tenants to be ready after Restart-BcContainer
+Issue #2798 Get-NavContainerSharedFolders returns error The length must not be less than 0 (zero)
 
 4.0.6
 Check latest allowed runtime version in Run-AlValidation
