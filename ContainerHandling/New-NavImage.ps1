@@ -525,7 +525,7 @@ try {
                 if (!$skipDatabase) {
                     $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
                     New-Item $dbPath -ItemType Directory | Out-Null
-                    if (Test-Path $databaseBackupPath -PathType Leaf)
+                    if (($databaseBackupPath) -and (Test-Path $databaseBackupPath -PathType Leaf))
                     {
                         Write-Host "Using database backup from $databaseBackupPath"
                         $databasePath = $databaseBackupPath
