@@ -107,7 +107,7 @@ function Compile-AppInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $assemblyProbingPaths,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile')]
+        [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile','LcgTranslationFile')]
         [string[]] $features,
         [Hashtable] $bcAuthContext,
         [string] $environment,
@@ -615,7 +615,7 @@ try {
         }
 
         if ($features) {
-            $alcParameters +=@("/features:$([string]::Join(',', $features))")
+            $alcParameters +=@("/features:$($features -join ',')")
         }
 
         $preprocessorSymbols | where-Object { $_ } | ForEach-Object { $alcParameters += @("/D:$_") }

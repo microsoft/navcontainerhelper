@@ -3,6 +3,7 @@ Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1
 Fix multiple layout files with same file name in BC21
 Add parameter ContainerEventLogFile to Run-AlPipeline to extract container event log after run
 Add new parameter to Run-TestsInBcContainer - renewClientContextBetweenTests to renew client context between tests
+Add new parameter to New-BcImage - databaseBackupPath which allows selecting custom backup (in place of original backup from artifacts)
 Add new setting renewClientContextBetweenTests as default value for the same parameter in Run-TestsInBcContainer
 Change PR process for ContainerHelper
 Wait for tenants to be ready after Restart-BcContainer
