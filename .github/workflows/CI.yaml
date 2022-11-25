@@ -120,7 +120,17 @@ jobs:
             });
 
       - name: Checkout
+        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Analyze
         id: Analyze
@@ -139,7 +149,17 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
+        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_branch }}
 
       - name: Run Tests
         run: |
@@ -259,5 +279,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.RunTests.result }}'
+              conclusion: '${{ needs.Build.result }}'
             });
