@@ -1224,7 +1224,15 @@ $Step.Isolation {
     
         try {
             $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
-            if ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
+            if ($hostOsVersion.Build -ge 20348 -and $bestContainerOsVersion.Build -ge 20348) {
+                if ($bestContainerOsVersion -le $hostOsVersion) {
+                    $defaultIsolation = "process"
+                }
+                else {
+                    $defaultIsolation = "Hyper-V"
+                }
+            }
+            elseif ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
                 $defaultIsolation = "Process"
             }
             else {
