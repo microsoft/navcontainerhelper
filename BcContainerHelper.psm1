@@ -13,12 +13,7 @@ param(
     -moduleName $MyInvocation.MyCommand.Name
 
 Import-Module (Join-Path $PSScriptRoot 'BC.ConfigurationHelper.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
-if ($ExportTelemetryFunctions) {
-    Import-Module (Join-Path $PSScriptRoot 'BC.TelemetryHelper.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile -Global
-}
-else {
-    Import-Module (Join-Path $PSScriptRoot 'BC.TelemetryHelper.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
-}
+Import-Module (Join-Path $PSScriptRoot 'BC.TelemetryHelper.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
