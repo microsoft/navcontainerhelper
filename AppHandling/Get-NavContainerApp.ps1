@@ -28,7 +28,7 @@ function Get-BcContainerApp {
         [Parameter(Mandatory=$false)]
         [string] $Tenant = "default",
         [Parameter(Mandatory=$false)]
-        [string] $appFile = (Join-Path $extensionsFolder "$containerName\$appName.app"),
+        [string] $appFile = (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$appName.app"),
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null
     )

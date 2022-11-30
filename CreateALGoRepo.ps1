@@ -1,6 +1,16 @@
 ﻿Param(
-    [switch] $skipContainerHelperCheck
+    [switch] $skipContainerHelperCheck = $true
 )
+
+# Single/Multi project
+
+# Upload apps
+# Starting version number
+
+
+
+
+
 
 $ErrorActionPreference = "stop"
 
@@ -508,7 +518,7 @@ $Step.Intro {
 
     $doit = Enter-Value `
             -title " " -doNotClearHost `
-            -description "AL-Go for GitHub is plug-and-play DevOps. Easy to setup, easy to use.`nHaving said that, there are many ways to configure AL-Go for GitHub, this wizard takes you through many of the options and help you define the right settings.`n`nFirst thing you need to do, is to determine the structure of your repositories.`nThe recommendation is that apps, which are shipped together share the same repository with their test apps.`nIf you have ""common"" apps, which are used by multiple projects, we recommend that these are placed in a ""common"" repository.`nYou should start by setting up the repository for your ""common"" apps and after that, setup the repository with a dependency to the first repository." `
+            -description "AL-Go for GitHub is plug-and-play DevOps. Easy to setup, easy to use.`n`nHaving said that, there are many ways to configure AL-Go for GitHub, this wizard takes you through many of the options and help you define the right settings.`n`nFirst thing you need to do, is to determine the structure of your repositories.`nThe recommendation is that apps, which are shipped together share the same repository with their test apps.`nIf you have ""common"" apps, which are used by multiple projects, we recommend that these are placed in a ""common"" repository.`nYou should start by setting up the repository for your ""common"" apps and after that, setup the repository with a dependency to the first repository." `
             -options @("Y","N") `
             -question "Please select Y to start the AL-Go for GitHub setup wizard"
     
@@ -534,7 +544,7 @@ $Step.Org {
               __/ |                                         
              |___/                                          
 '@ `
-        -Description "Every GitHub user has a personal account and can be a member of any number of organizations. You can place your repository in a personal account or an organizational account.`nMicrosoft recommends placing your repository in an organizational account in order to be able to share GitHub agents, secrets and other things between the repositories`n`nVisit |https://github.com/settings/organizations| to see which organizations you are part of`n`nUnder which organization do you want to place your repositories?" `
+        -Description "Every GitHub user has a personal account and can be a member of any number of organizations. You can place your repository in a personal account or an organizational account. Microsoft recommends placing your repository in an organizational account in order to be able to share GitHub agents, secrets and other things between the repositories`n`nVisit |https://github.com/settings/organizations| to see which organizations you are part of`n`nUnder which organization do you want to place your repositories?" `
         -question "Please specify the name of your GitHub organization" `
         -previousStep `
         -default $settings.Org `
@@ -747,8 +757,8 @@ $Step.VersioningMethod {
                                              __/ |                                    
                                             |___/                                     
 '@ `
-        -Description "The format of version numbers are major.minor.build.release.`nWhen building apps in AL-Go for GitHub, the Major.Minor part of the version number are read from app.json and the build.release part are calculated.`n- GitHub RUN_NUMBER is an auto-incrementing number for each workflow. The RunNumberOffset setting can be used to offset the starting value.`n- GitHub RUN_ID is an auto-incrementing number for all workflows.`n- GitHub RUN_ATTEMPT increases for every re-run of jobs.`n`nSelect the method used for calculating build and release part of your app:" `
-        -options ([ordered]@{"0" = "Use GitHub RUN_NUMBER.RUN_ATTEMPT (recommended)"; "1" = "Use GitHub RUN_ID.RUN_ATTEMPT"; "2" = "Use UTC datetime yyyyMMdd.hhmmss"}) `
+        -Description "The format of version numbers are major.minor.build.release.`nWhen building apps in AL-Go for GitHub, the Major.Minor part of the version number are read from app.json and the build.release part are calculated.`n- GitHub RUN_NUMBER is an auto-incrementing number for each workflow. The RunNumberOffset setting can be used to offset the starting value.`n- GitHub RUN_ATTEMPT increases for every re-run of jobs.`n`nSelect the method used for calculating build and release part of your app:" `
+        -options ([ordered]@{"0" = "Use GitHub RUN_NUMBER.RUN_ATTEMPT (recommended)"; "2" = "Use UTC datetime yyyyMMdd.hhmmss"}) `
         -question "Versioning method" `
         -previousStep `
         -default $settings.versioningMethod

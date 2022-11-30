@@ -55,12 +55,12 @@ try {
                 return
             }
             if ($packageIdSpecified) {
-                $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$($packageId).rapidstart"
+                $configPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$($packageId).rapidstart"
             }
             else {
                 $nameArr = "$([System.IO.Path]::GetFileNameWithoutExtension($containerConfigPackage))".Split('.')
                 $packageId = "$($nameArr[2]).$($nameArr[3]).$($nameArr[4])"
-                $configPackage = Join-Path $hosthelperfolder "Extensions\$containerName\$($packageId).rapidstart"
+                $configPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$($packageId).rapidstart"
             }
             if (Test-Path $configPackage) {
                 Remove-Item $configPackage -Force

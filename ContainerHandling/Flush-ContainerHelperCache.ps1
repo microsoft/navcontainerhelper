@@ -54,7 +54,7 @@ try {
         }
     
         if ($caches.Contains('all') -or $caches.Contains('bcartifacts') -or $caches.Contains('sandboxartifacts')) {
-            $bcartifactsCacheFolder = $bcartifactsCacheFolder
+            $bcartifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
             $subfolder = "*"
             if (!($caches.Contains('all') -or $caches.Contains('bcartifacts'))) {
                 $subfolder = "sandbox"
@@ -108,7 +108,7 @@ try {
         }
     
         $folders | ForEach-Object {
-            $folder = Join-Path $hostHelperFolder $_
+            $folder = Join-Path $bcContainerHelperConfig.hostHelperFolder $_
             Get-Item $folder -ErrorAction SilentlyContinue | ?{ $_.PSIsContainer } | ForEach-Object {
                 Write-Host "Removing Cache $($_.FullName)"
                 [System.IO.Directory]::Delete($_.FullName, $true)

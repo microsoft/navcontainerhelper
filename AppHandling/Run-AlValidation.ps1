@@ -348,7 +348,7 @@ $version = [System.Version]::new($currentArtifactUrl.Split('/')[4])
 $currentVersion = "$($version.Major).$($version.Minor)"
 $validateVersion = "17.0"
 
-$tmpAppsFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+$tmpAppsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
 @(CopyAppFilesToFolder -appFiles @($installApps+$apps) -folder $tmpAppsFolder) | % {
     $appFile = $_
     $version = GetApplicationDependency -appFile $appFile -minVersion $validateVersion
@@ -420,7 +420,7 @@ if ($artifactUrl) {
 $prevProgressPreference = $progressPreference
 $progressPreference = 'SilentlyContinue'
 
-$appPackagesFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+$appPackagesFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
 New-Item $appPackagesFolder -ItemType Directory | Out-Null
 
 try {

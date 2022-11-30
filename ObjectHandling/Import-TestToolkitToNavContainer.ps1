@@ -171,7 +171,7 @@ try {
                 else {
                     $folderPrefix = "onprem"
                 }
-                $applicationsPath = Join-Path $extensionsFolder "$folderPrefix-Applications-$Version-$country"
+                $applicationsPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$folderPrefix-Applications-$Version-$country"
                 if (!(Test-Path $applicationsPath)) {
                     New-Item -Path $applicationsPath -ItemType Directory | Out-Null
                 }

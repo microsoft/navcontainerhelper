@@ -13,22 +13,17 @@
         [ValidateSet('public','private')]
         $accessControl,
         [Parameter(Mandatory=$true)]
-        [string] $country,
         $apps = @(),
-        [int] $versioningStrategy = 16,
-        [switch] $updateDependencies,
-        [switch] $generateDependencyArtifact,
-        [string] $repoVersion = "",
+        [HashTable] $addRepoSettings = @{},
+        [HashTable] $addProjectSettings = @{},
         $readme = "# $repo",
-        $gitHubRunner = "windows-latest",
         [string] $keyVaultName,
         [switch] $useOrgSecrets,
-        [string[]] $additionalCountries = @(),
+        [HashTable] $secrets = @{},
         [switch] $additionalCountriesAlways,
-        [string] $nextMajorSchedule,
-        [string] $nextMinorSchedule,
-        [string] $currentschedule,
-        [HashTable] $secrets
+        [switch] $openFolder,
+        [switch] $openVSCode,
+        [switch] $openBrowser
     )
 
     # Well known AppIds
@@ -183,12 +178,12 @@
         throw "Specified folder already exists"
     }
 
-    if ($repoVersion) {
+    if ($addRepoSettings.ContainsKey('repoVersion')) {
         try {
-            $version = [Version]"$repoVersion.0.0"
+            $version = [Version]"$($addRepoSettings.repoVersion).0.0"
         }
         catch {
-            throw "repoVersion is not correctly formatted, needs to be major.minor"
+            throw "addRepoSettings.repoVersion is not correctly formatted, needs to be major.minor"
         }
     }
     else {
@@ -241,14 +236,16 @@
     $workspaceFile = Join-Path $folder "$repo.code-workspace"
     $workspace = Get-Content $workspaceFile -Encoding UTF8 | ConvertFrom-Json
 
-    Write-Host "Updating settings"
-    if ($gitHubRunner -and $gitHubRunner -ne "Windows-Latest") {
-        SetSetting -settings $repoSettings -name "GitHubRunner" -value $gitHubRunner
+    if (-not $addProjectSettings.ContainsKey('VersioningStrategy')) {
+        $addProjectSettings.VersioningStrategy = 16
     }
 
-    SetSetting -settings $projectSettings -name "Country" -value $country
-    if ($additionalCountriesAlways) {
-        SetSetting -settings $projectSettings -name "AdditionalCountries" -value $additionalCountries
+    [string[]] $additionalCountries = @()
+    if ($addProjectSettings.ContainsKey('AdditionalCountries')) {
+        $additionalCountries = [string[]] $addProjectSettings.AdditionalCountries
+        if (!$additionalCountriesAlways) {
+            $addProjectSettings.AdditionalCountries = @()
+        }
     }
 
     if ($apps) {
@@ -350,10 +347,10 @@
         }
     }
 
-    if (($VersioningStrategy -band 16) -eq 16) {
-        if (-not ($repoVersion)) {
-            $repoVersion = "$($maxVersionNumber.Major).$($maxVersionNumber.Minor+1)"
-            $version = [Version]"$repoVersion.0.0"
+    if (($addProjectSettings.VersioningStrategy -band 16) -eq 16) {
+        if (-not $addRepoSettings.ContainsKey('repoVersion')) {
+            $addRepoSettings.repoVersion = "$($maxVersionNumber.Major).$($maxVersionNumber.Minor+1)"
+            $version = [Version]"$($addRepoSettings.repoVersion).0.0"
         }
         $projectSettings.AppFolders+$projectSettings.TestFolders | ForEach-Object {
             $appJsonFile = Join-Path $folder "$_\app.json"
@@ -367,15 +364,23 @@
         }
     }
     else {
-        $repoVersion = "1.0"
-        if (($versioningStrategy -band 15) -eq 0) {
+        $addRepoSettings.repoVersion = "1.0"
+        if (($addProjectSettings.VersioningStrategy -band 15) -eq 0) {
             SetSetting -settings $repoSettings -name "RunNumberOffset" -value $maxBuildNo
         }
     }
 
-    SetSetting -settings $repoSettings -name "RepoVersion" -value $repoVersion
-    SetSetting -settings $repoSettings -name "UpdateDependencies" -value $updateDependencies.IsPresent
-    SetSetting -settings $repoSettings -name "GenerateDependencyArtifact" -value $generateDependencyArtifact.IsPresent
+    Write-Host "Updating Repo Settings"
+    $addRepoSettings.Keys | ForEach-Object {
+        Write-Host "- $_ = $($addRepoSettings."$_")"
+        SetSetting -settings $repoSettings -name $_ -value $addRepoSettings."$_"
+    }
+
+    Write-Host "Updating Project Settings"
+    $addProjectSettings.Keys | ForEach-Object {
+        Write-Host "- $_ = $($addProjectSettings."$_")"
+        SetSetting -settings $projectSettings -name $_ -value $addProjectSettings."$_"
+    }
 
     $orgSecrets = @(invoke-gh -returnValue secret list --org $Org -ErrorAction SilentlyContinue)
 
@@ -428,21 +433,23 @@
 
     'NextMajor','NextMinor','Current' | ForEach-Object {
         $name = "$($_)Schedule"
-        $value = (Get-Variable $name).Value
-        $workflowFile = ".github\workflows\$_.yaml"
-        $srcContent = (Get-Content -Path $workflowFile -Encoding UTF8 -Raw).Replace("`r", "").TrimEnd("`n").Replace("`n", "`r`n")
-        if ($value) {
-            SetSetting -settings $repoSettings -name $name -value $value
-            $srcPattern = "on:`r`n  workflow_dispatch:`r`n"
-            $replacePattern = "on:`r`n  schedule:`r`n  - cron: '$($value)'`r`n  workflow_dispatch:`r`n"
-            $srcContent = $srcContent.Replace($srcPattern, $replacePattern)
-            Set-Content -Path $workflowFile -Encoding UTF8 -Value $srcContent
-        }
-        if (!$additionalCountriesAlways) {
-            $workflowSettingsFile = Join-Path $folder ".github\$($srcContent.Split("`r")[0].Substring(6)).settings.json"
-            $workflowSettings = Get-Content $workflowSettingsFile -Encoding UTF8 | ConvertFrom-Json
-            SetSetting -settings $workflowSettings -name "AdditionalCountries" -value $additionalCountries
-            $workflowSettings | ConvertTo-Json -Depth 99 | Set-Content -Path $workflowSettingsFile -Encoding UTF8
+        if ($addRepoSettings.ContainsKey($name)) {
+            $value = $repoSettings."$name"
+            $workflowFile = ".github\workflows\$_.yaml"
+            $srcContent = (Get-Content -Path $workflowFile -Encoding UTF8 -Raw).Replace("`r", "").TrimEnd("`n").Replace("`n", "`r`n")
+            if ($value) {
+                SetSetting -settings $repoSettings -name $name -value $value
+                $srcPattern = "on:`r`n  workflow_dispatch:`r`n"
+                $replacePattern = "on:`r`n  schedule:`r`n  - cron: '$($value)'`r`n  workflow_dispatch:`r`n"
+                $srcContent = $srcContent.Replace($srcPattern, $replacePattern)
+                Set-Content -Path $workflowFile -Encoding UTF8 -Value $srcContent
+            }
+            if (!$additionalCountriesAlways -and $additionalCountries) {
+                $workflowSettingsFile = Join-Path $folder ".github\$($srcContent.Split("`r")[0].Substring(6).Trim("'").Trim(' ')).settings.json"
+                $workflowSettings = Get-Content $workflowSettingsFile -Encoding UTF8 | ConvertFrom-Json
+                SetSetting -settings $workflowSettings -name "AdditionalCountries" -value $additionalCountries
+                $workflowSettings | ConvertTo-Json -Depth 99 | Set-Content -Path $workflowSettingsFile -Encoding UTF8
+            }
         }
     }
 
@@ -459,6 +466,19 @@
     invoke-git -silent commit --allow-empty -m "initial commit"
     invoke-git -silent push
 
-    $tmpFolder
+    Write-Host "https://github.com/$repository"
+    if ($openBrowser) {
+        Start-Process "https://github.com/$repository"
+    }
+
+    if ($openVSCode) {
+        code "$tmpFolder\$repo\$repo.code-workspace"
+    }
+    elseif ($openFolder) {
+        Start-Process "$tmpFolder\$repo"
+    }
+    else {
+        $tmpFolder
+    }
 }
 Export-ModuleMember -Function New-ALGoRepo

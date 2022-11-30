@@ -107,7 +107,7 @@ try {
     
     $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
-        $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
+        $url = "$($protocol)$($ip):$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
     }
     else {
         $url = $customconfig.PublicODataBaseUrl.Replace("/OData","/api")

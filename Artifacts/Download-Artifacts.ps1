@@ -37,7 +37,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($basePath -eq "") {
-        $basePath = $bcartifactsCacheFolder
+        $basePath = $bcContainerHelperConfig.bcartifactsCacheFolder
     }
 
     if (-not (Test-Path $basePath)) {

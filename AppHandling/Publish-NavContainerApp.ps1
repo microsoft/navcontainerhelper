@@ -107,7 +107,7 @@ try {
     $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-        $appFolder = Join-Path $extensionsFolder "$containerName\$([guid]::NewGuid().ToString())"
+        $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([guid]::NewGuid().ToString())"
         if ($appFile -is [string] -and $appFile.Startswith(':')) {
             New-Item $appFolder -ItemType Directory | Out-Null
             $destFile = Join-Path $appFolder ([System.IO.Path]::GetFileName($appFile.SubString(1)).Replace('*','').Replace('?',''))

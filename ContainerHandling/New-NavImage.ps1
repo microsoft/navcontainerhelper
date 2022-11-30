@@ -421,7 +421,7 @@ try {
             }
             Write-Host "Using $isolation isolation"
         
-            $downloadsPath = $bcartifactsCacheFolder
+            $downloadsPath = $bcContainerHelperConfig.bcartifactsCacheFolder
             if (!(Test-Path $downloadsPath)) {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
             }

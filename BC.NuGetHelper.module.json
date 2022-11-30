@@ -1,0 +1,14 @@
+{
+    "GUID": "5ef27830-ae76-422f-8439-db8db89e9ece",
+    "Author": "Freddy Kristiansen",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "NuGet\\*"
+    ]
+}

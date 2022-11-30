@@ -1,0 +1,14 @@
+{
+    "GUID": "fa5f4d08-53be-4ca0-bf16-26da89afa20f",
+    "Author": "Freddy Kristiansen",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "AL-Go\\*"
+    ]
+}

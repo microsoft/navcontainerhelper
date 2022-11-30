@@ -25,7 +25,7 @@ function Import-BcContainerLicense {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $containerLicenseFile = Join-Path $ExtensionsFolder "$containerName\my\license$([System.IO.Path]::GetExtension($licenseFile.Split('?')[0]))"
+    $containerLicenseFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\my\license$([System.IO.Path]::GetExtension($licenseFile.Split('?')[0]))"
     if ($licensefile.StartsWith("https://", "OrdinalIgnoreCase") -or $licensefile.StartsWith("http://", "OrdinalIgnoreCase")) {
         Write-Host "Downloading license file '$($licensefile.Split('?')[0])' to container"
         Download-File -sourceUrl $licensefile -destinationFile $containerlicensefile

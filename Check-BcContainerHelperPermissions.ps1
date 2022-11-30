@@ -39,18 +39,18 @@ function Check-BcContainerHelperPermissions {
 
         # Check access to C:\ProgramData\BcContainerHelper
         if (!$silent) {
-            Write-Host "Checking permissions to $hostHelperFolder"
+            Write-Host "Checking permissions to $($bcContainerHelperConfig.hostHelperFolder)"
         }
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $access = [System.IO.Directory]::GetAccessControl($hostHelperFolder).Access | 
+        $access = [System.IO.Directory]::GetAccessControl($bcContainerHelperConfig.hostHelperFolder).Access | 
                     Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
         
         if ($access) {
             if (!$silent) {
-                Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostHelperFolder"
+                Write-Host -ForegroundColor Green "$myUsername has the right permissions to $($bcContainerHelperConfig.hostHelperFolder)"
             }
         } else {
-            Write-Host -ForegroundColor Red "$myUsername does NOT have Full Control to $hostHelperFolder and all subfolders"
+            Write-Host -ForegroundColor Red "$myUsername does NOT have Full Control to $($bcContainerHelperConfig.hostHelperFolder) and all subfolders"
             if (!$Fix) {
                 Write-Host -ForegroundColor Red "You need to run as administrator or you can run Check-BcContainerHelperPermissions -Fix to fix permissions"
             } else {
@@ -67,7 +67,7 @@ function Check-BcContainerHelperPermissions {
                         EXIT 1
                     }
                 }
-                $exitCode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostHelperFolder '$hostHelperFolder'" -Verb RunAs -wait -WindowStyle Hidden -PassThru).ExitCode
+                $exitCode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostHelperFolder '$($bcContainerHelperConfig.hostHelperFolder)'" -Verb RunAs -wait -WindowStyle Hidden -PassThru).ExitCode
                 if ($exitcode -eq 0) {
                     Write-Host -ForegroundColor Green "Permissions successfully added"
                 } else {

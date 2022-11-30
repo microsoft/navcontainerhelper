@@ -111,7 +111,7 @@ try {
 
     } -argumentList $containerAppDotNetPackagesFolder
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
     $appsFolder = Join-Path $containerFolder "Extensions"
     if (!(Test-Path $appsFolder)) {
         New-Item -Path $appsFolder -ItemType Directory | Out-Null

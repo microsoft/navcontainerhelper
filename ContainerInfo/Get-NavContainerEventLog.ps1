@@ -27,7 +27,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
     Write-Host "Getting event log for $containername"
 
-    $eventLogFolder = Join-Path $hostHelperFolder "EventLogs"
+    $eventLogFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "EventLogs"
     if (!(Test-Path $eventLogFolder)) {
         New-Item $eventLogFolder -ItemType Directory | Out-Null
     }

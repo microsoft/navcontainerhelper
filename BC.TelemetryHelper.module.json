@@ -1,0 +1,14 @@
+{
+    "GUID": "51c0ef5c-b0c1-4289-b3f5-4da94bd99f5b",
+    "Author": "Freddy Kristiansen",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "TelemetryHelper.ps1"
+    ]
+}

@@ -53,7 +53,7 @@ try {
         throw "You need to specify bakFile when you specify databaseName"
     }
     else {
-        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
         if ("$bakFolder" -eq "") {
             $bakFolder = $containerFolder
         }
@@ -65,7 +65,7 @@ try {
             else {
                 $folderPrefix = "onprem"
             }
-            $bakFolder = Join-Path $containerHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
+            $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
         }
         $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
     }
