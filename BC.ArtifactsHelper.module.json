@@ -8,6 +8,7 @@
     ],
     "files": [
         "InitializeModule.ps1",
+        "HelperFunctions.ps1",
         "Artifacts\\*"
     ]
 }
