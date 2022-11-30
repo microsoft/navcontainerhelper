@@ -134,16 +134,8 @@ try {
             } else {
                 Write-Host "Downloading Signing Tools"
                 $winSdkSetupExe = "c:\run\install\winsdksetup.exe"
-                $winSdkSetupUrl = "https://go.microsoft.com/fwlink/p/?LinkID=2023014"
-                try {
-                    Invoke-WebRequest -UseBasicParsing -Uri $winSdkSetupUrl -OutFile $winSdkSetupExe
-                }
-                catch {
-                    Write-Host (GetExtendedErrorMessage -errorRecord $_)
-                    Start-Sleep -Seconds 5
-                    Write-Host "Retrying..."
-                    Invoke-WebRequest -UseBasicParsing -Uri $winSdkSetupUrl -OutFile $winSdkSetupExe
-                }
+                $winSdkSetupUrl = "https://bcartifacts.azureedge.net/prerequisites/winsdksetup.exe"
+                (New-Object System.Net.WebClient).DownloadFile($winSdkSetupUrl,$winSdkSetupExe)
                 Write-Host "Installing Signing Tools"
                 Start-Process $winSdkSetupExe -ArgumentList "/features OptionId.SigningTools /q" -Wait
                 if (!(Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe")) {
