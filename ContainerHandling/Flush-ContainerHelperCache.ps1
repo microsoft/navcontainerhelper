@@ -54,15 +54,15 @@ try {
         }
     
         if ($caches.Contains('all') -or $caches.Contains('bcartifacts') -or $caches.Contains('sandboxartifacts')) {
-            $bcartifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
+            $artifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
             $subfolder = "*"
             if (!($caches.Contains('all') -or $caches.Contains('bcartifacts'))) {
                 $subfolder = "sandbox"
             }
-            if (Test-Path $bcartifactsCacheFolder) {
+            if (Test-Path $artifactsCacheFolder) {
                 if ($keepDays) {
                     $removeBefore = [DateTime]::Now.Subtract([timespan]::FromDays($keepDays))
-                    Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
+                    Get-ChildItem -Path $artifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                         $level1 = $_.FullName
                         Get-ChildItem -Path $level1 | ?{ $_.PSIsContainer } | ForEach-Object {
                             $level2 = $_.FullName
@@ -87,7 +87,7 @@ try {
                     }
                 }
                 else {
-                    Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
+                    Get-ChildItem -Path $artifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                         Write-Host "Removing Cache $($_.FullName)"
                         [System.IO.Directory]::Delete($_.FullName, $true)
                     }
@@ -137,7 +137,7 @@ try {
                         "artifactUrl=https://bcprivate.azureedge.net/",
                         "artifactUrl=https://bcpublicpreview.azureedge.net/" | % {
                             if ($artifactUrl -like "$($_)*") {
-                                $cacheFolder = Join-Path $bcartifactsCacheFolder $artifactUrl.SubString($_.Length)
+                                $cacheFolder = Join-Path $artifactsCacheFolder $artifactUrl.SubString($_.Length)
                                 if (-not (Test-Path $cacheFolder)) {
                                     Write-Host "$imageName was built on artifacts which was removed from the cache, removing image"
                                     if (-not (DockerDo -command rmi -parameters @("--force") -imageName $imageID -ErrorAction SilentlyContinue)) {

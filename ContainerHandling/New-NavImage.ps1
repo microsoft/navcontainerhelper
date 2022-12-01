@@ -427,7 +427,7 @@ try {
             }
         
             do {
-                $buildFolder = Join-Path $bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+                $buildFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
             }
             until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
         
