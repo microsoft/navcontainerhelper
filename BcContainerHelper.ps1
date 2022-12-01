@@ -7,9 +7,15 @@
 
 Get-ChildItem -Path $PSScriptRoot -Recurse | % { Unblock-File -Path $_.FullName }
 
-Get-Module | Where-Object { $_.name -like 'bc.*' } | Remove-Module
-Remove-Module NavContainerHelper -ErrorAction Ignore
-Remove-Module BcContainerHelper -ErrorAction Ignore
+Remove-Module NavContainerHelper -ErrorAction SilentlyContinue
+Remove-Module BcContainerHelper -ErrorAction SilentlyContinue
+Remove-Module BC.NuGetHelper -ErrorAction SilentlyContinue
+Remove-Module BC.SaasHelper -ErrorAction SilentlyContinue
+Remove-Module BC.ALGoHelper -ErrorAction SilentlyContinue
+Remove-Module BC.AppSourceHelper -ErrorAction SilentlyContinue
+Remove-Module BC.AuthenticationHelper -ErrorAction SilentlyContinue
+Remove-Module BC.ArtifactsHelper -ErrorAction SilentlyContinue
+Remove-Module BC.HelperFunctions -ErrorAction SilentlyContinue
 
 $modulePath = Join-Path $PSScriptRoot "BcContainerHelper.psm1"
 Import-Module $modulePath -DisableNameChecking -ArgumentList $Silent, $ExportTelemetryFunctions, $bcContainerHelperConfigFile, $useVolumes

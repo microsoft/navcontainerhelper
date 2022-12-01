@@ -12,8 +12,7 @@ param(
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
     -moduleName $MyInvocation.MyCommand.Name
 
-Import-Module (Join-Path $PSScriptRoot 'BC.ConfigurationHelper.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
-Import-Module (Join-Path $PSScriptRoot 'BC.TelemetryHelper.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
+Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
@@ -80,9 +79,8 @@ if (!$silent) {
     Check-BcContainerHelperPermissions -Silent
 }
 
-Import-Module (Join-Path $PSScriptRoot 'BC.CommonHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.ArtifactsHelper.psm1') -DisableNameChecking -Global
-Import-Module (Join-Path $PSScriptRoot 'BC.AuthHelper.psm1') -DisableNameChecking -Global
+Import-Module (Join-Path $PSScriptRoot 'BC.AuthenticationHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.AppSourceHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.ALGoHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.SaasHelper.psm1') -DisableNameChecking -Global

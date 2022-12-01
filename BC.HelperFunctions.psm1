@@ -161,4 +161,46 @@ function Get-ContainerHelperConfig {
 
 Get-ContainerHelperConfig | Out-Null
 
-# There can be no functions exposed from the configuration module
+. (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+
+$telemetry = @{
+    "Assembly" = $null
+    "PartnerClient" = $null
+    "MicrosoftClient" = $null
+    "CorrelationId" = ""
+    "TopId" = ""
+    "Debug" = $false
+}
+try {
+    if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
+        Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
+    }
+    $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
+    if (-not (Test-Path $dllPath)) {
+        Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
+    }
+    $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
+} catch {
+    if (!$Silent) {
+        Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+    }
+}
+
+. (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
+
+# Telemetry functions
+Export-ModuleMember -Function RegisterTelemetryScope
+Export-ModuleMember -Function InitTelemetryScope
+Export-ModuleMember -Function AddTelemetryProperty
+Export-ModuleMember -Function TrackTrace
+Export-ModuleMember -Function TrackException
+
+# Common functions
+. (Join-Path $PSScriptRoot "Common\Download-File.ps1")
+. (Join-Path $PSScriptRoot "Common\New-DesktopShortcut.ps1")
+. (Join-Path $PSScriptRoot "Common\Remove-DesktopShortcut.ps1")
+. (Join-Path $PSScriptRoot "Common\ConvertTo-HashTable.ps1")
+. (Join-Path $PSScriptRoot "Common\Get-PlainText.ps1")
+. (Join-Path $PSScriptRoot "Common\Invoke-gh.ps1")
+. (Join-Path $PSScriptRoot "Common\Invoke-git.ps1")
+. (Join-Path $PSScriptRoot "Common\ConvertTo-OrderedDictionary.ps1")

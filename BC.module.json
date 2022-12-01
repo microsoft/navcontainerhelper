@@ -9,11 +9,14 @@
     ],
     "RequiredModules": [
         "BC.HelperFunctions",
-        "BC.AuthenticationHelper"
+        "BC.AuthenticationHelper",
+        "BC.ArtifactsHelper",
+        "BC.AppSourceHelper",
+        "BC.ALGoHelper",
+        "BC.SaasHelper",
+        "BC.NuGetHelper"
     ],
     "files": [
-        "InitializeModule.ps1",
-        "HelperFunctions.ps1",
-        "SaaS\\*"
+        "InitializeModule.ps1"
     ]
 }

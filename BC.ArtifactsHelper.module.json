@@ -1,10 +1,14 @@
 {
     "GUID": "2262fadf-b661-4818-aec8-4502802bbf42",
     "Author": "Freddy Kristiansen",
+    "Description": "PowerShell module with Business Central artifacts helper functions for Business Central Development",
     "CompanyName": "Microsoft",
     "CompatiblePSEditions": [
         "Core",
         "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions"
     ],
     "files": [
         "InitializeModule.ps1",

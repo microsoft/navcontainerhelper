@@ -7,7 +7,7 @@ param(
     -Silent:$Silent `
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
     -moduleName $MyInvocation.MyCommand.Name `
-    -moduleDependencies @( 'BC.ConfigurationHelper', 'BC.TelemetryHelper', 'BC.CommonHelper' )
+    -moduleDependencies @( 'BC.HelperFunctions' )
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 

@@ -1,10 +1,15 @@
 {
     "GUID": "fa5f4d08-53be-4ca0-bf16-26da89afa20f",
     "Author": "Freddy Kristiansen",
+    "Description": "PowerShell module with AL-Go helper functions for Business Central Development",
     "CompanyName": "Microsoft",
     "CompatiblePSEditions": [
         "Core",
         "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions",
+        "BC.AuthenticationHelper"
     ],
     "files": [
         "InitializeModule.ps1",

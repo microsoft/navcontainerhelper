@@ -1,10 +1,14 @@
 {
     "GUID": "037c5ebf-d617-4884-9048-2e9be44e7630",
     "Author": "Freddy Kristiansen",
+    "Description": "PowerShell module with authentication helper functions for Business Central Development",
     "CompanyName": "Microsoft",
     "CompatiblePSEditions": [
         "Core",
         "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions"
     ],
     "files": [
         "InitializeModule.ps1",
