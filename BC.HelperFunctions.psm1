@@ -159,6 +159,17 @@ function Get-ContainerHelperConfig {
     return $bcContainerHelperConfig
 }
 
+$configHelperFolder = 'C:\ProgramData\BcContainerHelper'
+if (!(Test-Path $configHelperFolder)) {
+    New-Item -Path $configHelperFolder -ItemType Container -Force | Out-Null
+    if (!$isAdministrator) {
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $acl = [System.IO.Directory]::GetAccessControl($configHelperFolder)
+        $acl.AddAccessRule($rule)
+        [System.IO.Directory]::SetAccessControl($configHelperFolder,$acl)
+    }
+}
+
 Get-ContainerHelperConfig | Out-Null
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
@@ -175,7 +186,7 @@ try {
     if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
         Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
     }
-    $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
+    $dllPath = "$configHelperFolder\Microsoft.ApplicationInsights.2.15.0.44797.dll"
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
