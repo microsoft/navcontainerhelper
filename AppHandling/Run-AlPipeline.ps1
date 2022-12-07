@@ -284,6 +284,7 @@ Param(
     $AppSourceCopMandatoryAffixes = @(),
     $AppSourceCopSupportedCountries = @(),
     [string] $obsoleteTagMinAllowedMajorMinor = "",
+    [string[]] $features = @(),
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
@@ -1496,6 +1497,7 @@ Write-Host -ForegroundColor Yellow @'
         "preProcessorSymbols" = $preProcessorSymbols
         "generatecrossreferences" = $generatecrossreferences
         "updateDependencies" = $UpdateDependencies
+        "features" = $features
     }
 
     if ($buildOutputFile) {
