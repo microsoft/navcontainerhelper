@@ -160,6 +160,8 @@
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
  .Parameter obsoleteTagMinAllowedMajorMinor
   Only relevant for AppSource Apps. Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
+ .Parameter features
+  Features to set when compiling the app.
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
