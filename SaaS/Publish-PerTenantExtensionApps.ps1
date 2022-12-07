@@ -39,6 +39,8 @@ function Publish-PerTenantExtensionApps {
         [string] $companyName,
         [Parameter(Mandatory=$true)]
         $appFiles,
+        [ValidateSet('Add','Force')]
+        [string] $schemaSyncMode = 'Add',
         [switch] $useNewLine
     )
 
@@ -70,10 +72,14 @@ try {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     }
 
+    if ($schemaSyncMode -eq "Force") {
+        $schemaSyncMode = "Force Sync"
+    }
+
     $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
     try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFiles -folder $appFolder
-        $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v1.0"
+        $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
         
         $authHeaders = @{ "Authorization" = "Bearer $($bcauthcontext.AccessToken)" }
         $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
@@ -99,13 +105,19 @@ try {
                 $appJsonFile = Join-Path $tempFolder "app.json"
                 $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 Remove-Item -Path $tempFolder -Force -Recurse
-            
+
                 Write-Host @newLine "Publishing and Installing"
-                Invoke-WebRequest -Headers ($authHeaders+(@{"If-Match" = "*"})) `
-                    -Method Patch -UseBasicParsing `
-                    -Uri "$automationApiUrl/companies($companyId)/extensionUpload(0)/content" `
-                    -ContentType "application/octet-stream" `
-                    -InFile $_ | Out-Null
+                $body = @{
+                    "schemaSyncMode" = $schemaSyncMode
+                }
+                $headers = $authHeaders
+                $headers['Content-Type'] = 'application/json';
+                $ExtensionUpload = (Invoke-RestMethod -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $headers -Body (ConvertTo-Json $body)).value
+                
+                $Headers = $authHeaders
+                $Headers['If-Match'] = '*';
+                $Headers['Content-Type'] = 'application/octet-stream';
+                Invoke-RestMethod -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($ExtensionUpload.systemId))" -Method Patch -InFile $_ -Headers $Headers
                 Write-Host @newLine "."    
                 $completed = $false
                 $errCount = 0
