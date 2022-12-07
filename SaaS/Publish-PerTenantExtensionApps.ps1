@@ -113,7 +113,7 @@ try {
                 $headers = $authHeaders
                 $headers['Content-Type'] = 'application/json';
                 $ExtensionUpload = (Invoke-RestMethod -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $headers -Body (ConvertTo-Json $body)).value
-                
+                Write-Host @newLine "."    
                 $Headers = $authHeaders
                 $Headers['If-Match'] = '*';
                 $Headers['Content-Type'] = 'application/octet-stream';
