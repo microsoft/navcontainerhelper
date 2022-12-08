@@ -49,8 +49,8 @@ try {
         $exportTo = 'txt folder'
     }
 
-    if ("$objectsFolder" -eq "$hostHelperFolder" -or "$objectsFolder" -eq "$hostHelperFolder\") {
-        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    if ("$objectsFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)" -or "$objectsFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)\") {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $bcContainerHelperConfig.hostHelperFolder"
     }
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential

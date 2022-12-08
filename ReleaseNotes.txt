@@ -1,5 +1,7 @@
 4.0.8
 Add parameter 'features' to Run-AlPipeline which allows for setting the compiler features 
+Add SchemaSyncMode to Publish-PerTenantExtensionApps
+Use submodules inside BcContainerHelper
 
 4.0.7
 Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1

@@ -50,7 +50,7 @@ try {
     
             $repository = "$registry/$repository"
             $registry = "registry.hub.docker.com"
-            $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:${repository}:pull&service=registry.docker.io") | ConvertFrom-Json).token
+            $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:$($repository):pull&service=registry.docker.io") | ConvertFrom-Json).token
             $authorization = "Bearer $token"
     
         }

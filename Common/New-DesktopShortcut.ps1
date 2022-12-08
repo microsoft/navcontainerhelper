@@ -66,7 +66,7 @@ function New-DesktopShortcut {
                 Remove-Item $filename -force
             }
         
-            $tempfilename = Join-Path $containerHelperFolder "$([Guid]::NewGuid().ToString()).lnk"
+            $tempfilename = Join-Path $bcContainerHelperConfig.hostHelperFolder "$([Guid]::NewGuid().ToString()).lnk"
             $Shell =  New-object -comobject WScript.Shell
             $Shortcut = $Shell.CreateShortcut($tempfilename)
             $Shortcut.TargetPath = $TargetPath

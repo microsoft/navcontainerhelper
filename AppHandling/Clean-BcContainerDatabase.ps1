@@ -57,7 +57,7 @@ try {
         throw "Container $containerName does not support the function Clean-BcContainerDatabase"
     }
 
-    $myFolder = Join-Path $ExtensionsFolder "$containerName\my"
+    $myFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\my"
     $licenseFile = @(Get-Item "$myFolder\license.*")
     if ($licenseFile.Count -eq 0) {
         throw "Container must be started with a developer license to perform this operation."
@@ -80,7 +80,7 @@ try {
         }
 
         if ($platformversion.Major -lt 15) {
-            $SystemSymbolsFile = Join-Path $ExtensionsFolder "$containerName\system.app"
+            $SystemSymbolsFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\system.app"
             $systemSymbols = Get-BcContainerAppInfo -containerName $containerName -symbolsOnly | Where-Object { $_.Name -eq "System" }
             Get-BcContainerApp -containerName $containerName -appName $SystemSymbols.Name -publisher $SystemSymbols.Publisher -appVersion $SystemSymbols.Version -appFile $SystemSymbolsFile -credential $credential
             $SystemApplicationFile = ""

@@ -25,7 +25,7 @@ function Invoke-ScriptInBcContainer {
         [bool] $useSession = $bcContainerHelperConfig.usePsSession
     )
 
-    $file = Join-Path $hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+    $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
     if (!$useSession) {
         if ($isInsideContainer) {

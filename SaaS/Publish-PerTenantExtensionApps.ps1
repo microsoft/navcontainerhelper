@@ -39,6 +39,8 @@ function Publish-PerTenantExtensionApps {
         [string] $companyName,
         [Parameter(Mandatory=$true)]
         $appFiles,
+        [ValidateSet('Add','Force')]
+        [string] $schemaSyncMode = 'Add',
         [switch] $useNewLine
     )
 
@@ -73,7 +75,7 @@ try {
     $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
     try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFiles -folder $appFolder
-        $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v1.0"
+        $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
         
         $authHeaders = @{ "Authorization" = "Bearer $($bcauthcontext.AccessToken)" }
         $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
@@ -88,9 +90,28 @@ try {
         $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
         
         Write-Host "Extensions before:"
-        $extensions | % { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
+        $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
         Write-Host
-        
+
+        $body = @{"schedule" = "Current Version"}
+        $appDep = $extensions | Where-Object { $_.DisplayName -eq 'Application' }
+        $appDepVer = [System.Version]"$($appDep.versionMajor).$($appDep.versionMinor).$($appDep.versionBuild).$($appDep.versionRevision)"
+        if ($appDepVer -ge [System.Version]"21.2.0.0") {
+            if ($schemaSyncMode -eq 'Force') {
+                $body."SchemaSyncMode" = "Force Sync"
+            }
+            else {
+                $body."SchemaSyncMode" = "Add"
+            }
+        }
+        else {
+            if ($schemaSyncMode -eq 'Force') {
+                throw 'SchemaSyncMode Force is not supported before version 21.2'
+            }
+        }
+        $ifMatchHeader = @{ "If-Match" = '*'}
+        $jsonHeader = @{ "Content-Type" = 'application/json'}
+        $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles | ForEach-Object {
                 Write-Host "$([System.IO.Path]::GetFileName($_))"
@@ -99,13 +120,39 @@ try {
                 $appJsonFile = Join-Path $tempFolder "app.json"
                 $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 Remove-Item -Path $tempFolder -Force -Recurse
-            
+                $body | ConvertTo-Json | out-host
                 Write-Host @newLine "Publishing and Installing"
-                Invoke-WebRequest -Headers ($authHeaders+(@{"If-Match" = "*"})) `
-                    -Method Patch -UseBasicParsing `
-                    -Uri "$automationApiUrl/companies($companyId)/extensionUpload(0)/content" `
-                    -ContentType "application/octet-stream" `
-                    -InFile $_ | Out-Null
+                $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $authHeaders).value
+                Write-Host @newLine "."
+                if ($extensionUpload -and $extensionUpload.systemId) {
+                    $extensionUpload = Invoke-RestMethod `
+                        -Method Patch `
+                        -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))" `
+                        -Headers ($authHeaders + $ifMatchHeader + $jsonHeader) `
+                        -Body ($body | ConvertTo-Json -Compress)
+                }
+                else {
+                    $ExtensionUpload = Invoke-RestMethod `
+                        -Method Post `
+                        -Uri "$automationApiUrl/companies($companyId)/extensionUpload" `
+                        -Headers ($authHeaders + $jsonHeader) `
+                        -Body ($body | ConvertTo-Json -Compress)
+                }
+                Write-Host @newLine "."
+                if ($null -eq $extensionUpload.systemId) {
+                    throw "Unable to upload extension"
+                }
+                $body = (Invoke-WebRequest $_).Content
+                Invoke-RestMethod `
+                    -Method Patch `
+                    -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
+                    -Headers ($authHeaders + $ifMatchHeader + $streamHeader) `
+                    -Body $body | Out-Null
+                Write-Host @newLine "."    
+                Invoke-RestMethod `
+                    -Method Post `
+                    -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
+                    -Headers ($authHeaders + $ifMatchHeader) | Out-Null
                 Write-Host @newLine "."    
                 $completed = $false
                 $errCount = 0
@@ -150,6 +197,7 @@ try {
         }
         catch [System.Net.WebException] {
             Write-Host "ERROR $($_.Exception.Message)"
+            Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
         }
         finally {
@@ -158,7 +206,7 @@ try {
             
             Write-Host
             Write-Host "Extensions after:"
-            $extensions | % { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
+            $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
         }
     }
     catch [System.Net.WebException] {

@@ -27,11 +27,11 @@ try {
     if (!(Test-BcContainer -containerName $containerName)) {
         throw "Container $containerName does not exist"
     }
-    Write-Host "Copy $localPath to container ${containerName} ($containerPath)"
+    Write-Host "Copy $localPath to container $($containerName) ($containerPath)"
     $id = Get-BcContainerId -containerName $containerName 
 
     # running hyperv containers doesn't support docker cp
-    $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
+    $tempFile = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().ToString())
     try {
         Copy-Item -Path $localPath -Destination $tempFile
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($tempFile, $containerPath)

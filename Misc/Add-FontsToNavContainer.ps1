@@ -37,7 +37,7 @@ try {
         Get-ChildItem -Path $fontsFolderPath | % { $_.Name }
     }
 
-    $fontsFolder = Join-Path $extensionsFolder "$containerName\Fonts"
+    $fontsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\Fonts"
     if (Test-Path $fontsFolder) {
         Remove-Item $fontsFolder -Recurse -Force
     }

@@ -5,10 +5,10 @@
         [switch]$doNotAskForCredential
     )
 
-    if (Test-Path "$hostHelperFolder\settings.ps1") {
-        . "$hostHelperFolder\settings.ps1"
-        if (Test-Path "$hostHelperFolder\aes.key") {
-            $key = Get-Content -Path "$hostHelperFolder\aes.key"
+    if (Test-Path "$($bcContainerHelperConfig.hostHelperFolder)\settings.ps1") {
+        . "$($bcContainerHelperConfig.hostHelperFolder)\settings.ps1"
+        if (Test-Path "$($bcContainerHelperConfig.hostHelperFolder)\aes.key") {
+            $key = Get-Content -Path "$($bcContainerHelperConfig.hostHelperFolder)\aes.key"
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword -Key $key))
         } else {
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword))

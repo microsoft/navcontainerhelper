@@ -62,6 +62,7 @@ jobs:
         run: |
           $errorActionPreference = 'STOP'
           Write-Host 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
+          Write-Host '${{ github.event.workflow_run.head_sha }}'
           $event = $ENV:EVENT | ConvertFrom-Json
           $headers = @{             
               "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
@@ -130,7 +131,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           lfs: true
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Analyze
         id: Analyze
@@ -159,7 +160,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           lfs: true
-          ref: ${{ github.event.workflow_run.head_branch }}
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - name: Run Tests
         run: |
@@ -279,5 +280,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.Build.result }}'
+              conclusion: '${{ needs.RunTests.result }}'
             });

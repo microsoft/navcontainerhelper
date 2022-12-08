@@ -40,8 +40,8 @@ try {
         }
     }
 
-    if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
-        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    if ("$appFolder" -eq "($bcContainerHelperConfig.hostHelperFolder)" -or "$appFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)\") {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $($bcContainerHelperConfig.hostHelperFolder)"
     }
 
     if (!(Test-Path $appFileName)) {

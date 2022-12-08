@@ -44,8 +44,7 @@ try {
         throw "The app ($appFile)needs to be in a folder, which is shared with the container $containerName"
     }
 
-    $ExtensionsFolder = Join-Path $hosthelperfolder "Extensions"
-    $sharedPfxFile = Join-Path $ExtensionsFolder "$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
+    $sharedPfxFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
     $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
         Write-Host "Downloading certificate file to container"

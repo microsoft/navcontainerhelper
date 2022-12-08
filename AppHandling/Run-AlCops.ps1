@@ -51,7 +51,7 @@ function Run-AlCops {
         $affixes,
         $supportedCountries,
         [string] $obsoleteTagMinAllowedMajorMinor = "",
-        $appPackagesFolder = (Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())),
+        $appPackagesFolder = (Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())),
         [switch] $enableAppSourceCop,
         [switch] $enableCodeCop,
         [switch] $enableUICop,
@@ -85,7 +85,7 @@ try {
         throw "You cannot run AppSourceCop and PerTenantExtensionCop at the same time"
     }
      
-    $appsFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+    $appsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
     New-Item -Path $appsFolder -ItemType Directory | Out-Null
     $apps = Sort-AppFilesByDependencies -containerName $containerName -appFiles @(CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue
     
@@ -145,7 +145,7 @@ try {
         $appFile = $_
         $appFileName = [System.IO.Path]::GetFileName($appFile)
 
-        $tmpFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+        $tmpFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
         try {
             $length = $global:_validationResult.Length
             if (!$skipVerification) {

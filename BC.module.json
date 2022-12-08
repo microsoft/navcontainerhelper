@@ -1,0 +1,21 @@
+{
+    "GUID": "e7f1ba7d-b7f1-4c7d-ad19-d24491fbbd19",
+    "Author": "Freddy Kristiansen",
+    "Description": "PowerShell module with Business Central online helper functions for Business Central Development",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions",
+        "BC.ArtifactsHelper",
+        "BC.AppSourceHelper",
+        "BC.ALGoHelper",
+        "BC.SaasHelper",
+        "BC.NuGetHelper"
+    ],
+    "files": [
+        "InitializeModule.ps1"
+    ]
+}

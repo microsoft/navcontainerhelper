@@ -1,0 +1,18 @@
+{
+    "GUID": "25a65b43-3a76-4782-8515-06de2d4bae21",
+    "Author": "Freddy Kristiansen",
+    "Description": "Base PowerShell module for BC.* modules",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "TelemetryHelper.ps1",
+        "Microsoft.ApplicationInsights.dll",
+        "Common\\*",
+        "Auth\\*"
+    ]
+}

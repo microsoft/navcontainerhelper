@@ -903,7 +903,7 @@ try {
         $parameters += '--no-healthcheck'
     }
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
@@ -1153,7 +1153,7 @@ try {
 
         if ("$dvdPath" -eq "" -and "$artifactUrl" -eq "") {
             # Extract files from image if not already done
-            $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
+            $dvdPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "$($NavVersion)-Files"
 
             if (!(Test-Path "$dvdPath\allextracted")) {
                 Extract-FilesFromBcContainerImage -imageName $imageName -path $dvdPath -force
@@ -1413,7 +1413,7 @@ try {
     $restoreBakFolder = $false
     if ($bakFolder) {
         if (!$bakFolder.Contains('\')) {
-            $bakFolder = Join-Path $containerHelperFolder "$bcStyle-$($NavVersion)-bakFolders\$bakFolder"
+            $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "$bcStyle-$($NavVersion)-bakFolders\$bakFolder"
         }
         if (Test-Path (Join-Path $bakFolder "*.bak")) {
             $restoreBakFolder = $true
@@ -1438,13 +1438,13 @@ try {
             throw "Database backup $bakFile doesn't exist"
         }
         
-        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+        if (-not $bakFile.StartsWith($bcContainerHelperConfig.hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
             $containerBakFile = Join-Path $containerFolder "database.bak"
             Copy-Item -Path $bakFile -Destination $containerBakFile
             $bakFile = $containerBakFile
         }
-        if ($bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
-            $bakFile = "$containerHelperFolder$($bakFile.Substring($hostHelperFolder.Length))"
+        if ($bakFile.StartsWith($bcContainerHelperConfig.hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+            $bakFile = "$($bcContainerHelperConfig.containerHelperFolder)$($bakFile.Substring($bcContainerHelperConfig.hostHelperFolder.Length))"
         }
         $parameters += "--env bakfile=$bakFile"
     }
@@ -1508,7 +1508,7 @@ try {
                     "--env locale=$locale",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    (getVolumeMountParameter -volumes $allVolumes -hostPath $hostHelperFolder -containerPath $containerHelperFolder),
+                    (getVolumeMountParameter -volumes $allVolumes -hostPath $bcContainerHelperConfig.hostHelperFolder -containerPath $bcContainerHelperConfig.containerHelperFolder),
                     (getVolumeMountParameter -volumes $allVolumes -hostPath $myFolder -containerPath "C:\Run\my"),
                     "--isolation $isolation",
                     "--restart $restart"
@@ -1744,11 +1744,11 @@ if ($multitenant) {
     }
 
     if ($useTraefik) {
-        $restPart = "/${containerName}rest" 
-        $soapPart = "/${containerName}soap"
-        $devPart = "/${containerName}dev"
-        $snapPart = "/${containerName}snap"
-        $dlPart = "/${containerName}dl"
+        $restPart = "/$($containerName)rest" 
+        $soapPart = "/$($containerName)soap"
+        $devPart = "/$($containerName)dev"
+        $snapPart = "/$($containerName)snap"
+        $dlPart = "/$($containerName)dl"
         $webclientPart = "/$containerName"
 
         $baseUrl = "https://$publicDnsName"
@@ -1774,11 +1774,11 @@ if ($multitenant) {
         }
 
         $webclientRule="PathPrefix:$webclientPart"
-        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
-        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
-        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
-        $snapRule="PathPrefix:${snapPart};ReplacePathRegex: ^${snapPart}(.*) /$ServerInstance`$1"
-        $dlRule="PathPrefixStrip:${dlPart}"
+        $soapRule="PathPrefix:$($soapPart);ReplacePathRegex: ^$($soapPart)(.*) /$ServerInstance`$1"
+        $restRule="PathPrefix:$($restPart);ReplacePathRegex: ^$($restPart)(.*) /$ServerInstance`$1"
+        $devRule="PathPrefix:$($devPart);ReplacePathRegex: ^$($devPart)(.*) /$ServerInstance`$1"
+        $snapRule="PathPrefix:$($snapPart);ReplacePathRegex: ^$($snapPart)(.*) /$ServerInstance`$1"
+        $dlRule="PathPrefixStrip:$($dlPart)"
 
         $webPort = "443"
         if ($forceHttpWithTraefik) {
@@ -1821,7 +1821,7 @@ if (-not `$restartingInstance) {
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
-    $containerContainerFolder = Join-Path $containerHelperFolder "Extensions\$containerName"
+    $containerContainerFolder = Join-Path $bcContainerHelperConfig.ContainerHelperFolder "Extensions\$containerName"
 
     ("
 if (-not `$restartingInstance) {
@@ -1915,7 +1915,7 @@ if (-not `$restartingInstance) {
                             )
 
             if ("$databaseServer" -ne "" -and $bcContainerHelperConfig.useSharedEncryptionKeys -and !$encryptionKeyExists) {
-                $sharedEncryptionKeyFile = Join-Path $hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
+                $sharedEncryptionKeyFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
                 if (Test-Path $sharedEncryptionKeyFile) {
                     Write-Host "Using Shared Encryption Key file"
                     Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
@@ -2172,7 +2172,7 @@ if (-not `$restartingInstance) {
             # Include newsyntax if NAV Version is greater than NAV 2017
     
             if ($includeCSide) {
-                $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
+                $originalFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion"
                 if (!(Test-Path $originalFolder)) {
                     # Export base objects
                     Export-NavContainerObjects -containerName $containerName `
@@ -2184,7 +2184,7 @@ if (-not `$restartingInstance) {
             }
     
             if ($version.Major -ge 15) {
-                $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                $alFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-al"
                 if (!(Test-Path $alFolder) -or (Get-ChildItem -Path $alFolder -Recurse | Measure-Object).Count -eq 0) {
                     if (!(Test-Path $alFolder)) {
                         New-Item $alFolder -ItemType Directory | Out-Null
@@ -2206,7 +2206,7 @@ if (-not `$restartingInstance) {
                         } -argumentList (Get-BCContainerPath -containerName $containerName -path $alFolder), $devCountry
                     }
                     else {
-                        $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
+                        $appFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\BaseApp-$navVersion.app"
                         $appName = "Base Application"
                         if ($version -lt [Version]("15.0.35659.0")) {
                             $appName = "BaseApp"
@@ -2217,7 +2217,7 @@ if (-not `$restartingInstance) {
                                             -appFile $appFile `
                                             -credential $credential
         
-                        $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
+                        $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\BaseApp-$navVersion"
                         Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
         
                         'layout','src','translations' | ForEach-Object {
@@ -2232,7 +2232,7 @@ if (-not `$restartingInstance) {
                 }
             }
             elseif ($version.Major -gt 10) {
-                $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
+                $originalFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-newsyntax"
                 if (!(Test-Path $originalFolder)) {
                     # Export base objects as new syntax
                     Export-NavContainerObjects -containerName $containerName `
@@ -2242,7 +2242,7 @@ if (-not `$restartingInstance) {
                                                -ExportTo 'txt folder (new syntax)'
                 }
                 if ($version.Major -ge 14 -and $includeAL) {
-                    $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                    $alFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-al"
                     if ($runTxt2AlInContainer -ne $containerName) {
                         Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
                         if (Test-Path $alFolder) {
@@ -2251,7 +2251,7 @@ if (-not `$restartingInstance) {
                         }
                     }
                     if (!(Test-Path $alFolder)) {
-                        $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
+                        $dotNetAddInsPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\coredotnetaddins.al"
                         Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
                         if ($runTxt2AlInContainer -ne $containerName) {
                             Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"

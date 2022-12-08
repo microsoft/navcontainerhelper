@@ -33,7 +33,7 @@ try {
 
     $sharedFolder = ""
     if ($containerName) {
-        $sharedFolder = Join-Path $extensionsFolder "$containerName\$([Guid]::NewGuid().ToString())"
+        $sharedFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([Guid]::NewGuid().ToString())"
         New-Item $sharedFolder -ItemType Directory | Out-Null
     }
     try {
