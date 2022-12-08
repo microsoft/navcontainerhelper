@@ -108,7 +108,7 @@ function Compile-AppInBcContainer {
         [string] $assemblyProbingPaths,
         [Parameter(Mandatory=$false)]
         [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile','LcgTranslationFile')]
-        [string[]] $features,
+        [string[]] $features = @(),
         [Hashtable] $bcAuthContext,
         [string] $environment,
         [string[]] $treatWarningsAsErrors = $bcContainerHelperConfig.TreatWarningsAsErrors,

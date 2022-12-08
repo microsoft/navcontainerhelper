@@ -1,3 +1,6 @@
+4.0.8
+Add parameter 'features' to Run-AlPipeline which allows for setting the compiler features 
+
 4.0.7
 Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1
 Fix multiple layout files with same file name in BC21
