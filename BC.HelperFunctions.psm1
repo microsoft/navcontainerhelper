@@ -215,3 +215,7 @@ Export-ModuleMember -Function TrackException
 . (Join-Path $PSScriptRoot "Common\Invoke-gh.ps1")
 . (Join-Path $PSScriptRoot "Common\Invoke-git.ps1")
 . (Join-Path $PSScriptRoot "Common\ConvertTo-OrderedDictionary.ps1")
+
+# BC Authentication helper functions
+. (Join-Path $PSScriptRoot "Auth\New-BcAuthContext.ps1")
+. (Join-Path $PSScriptRoot "Auth\Renew-BcAuthContext.ps1")

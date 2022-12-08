@@ -9,7 +9,6 @@ param(
     -moduleName $MyInvocation.MyCommand.Name `
     -moduleDependencies @( 
         "BC.HelperFunctions",
-        "BC.AuthenticationHelper",
         "BC.ArtifactsHelper",
         "BC.AppSourceHelper",
         "BC.ALGoHelper",

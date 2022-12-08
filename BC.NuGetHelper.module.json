@@ -8,8 +8,7 @@
         "Desktop"
     ],
     "RequiredModules": [
-        "BC.HelperFunctions",
-        "BC.AuthenticationHelper"
+        "BC.HelperFunctions"
     ],
     "files": [
         "InitializeModule.ps1",

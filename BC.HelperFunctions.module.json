@@ -12,6 +12,7 @@
         "HelperFunctions.ps1",
         "TelemetryHelper.ps1",
         "Microsoft.ApplicationInsights.dll",
-        "Common\\*"
+        "Common\\*",
+        "Auth\\*"
     ]
 }

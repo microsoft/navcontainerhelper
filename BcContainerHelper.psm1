@@ -7,12 +7,16 @@ param(
     [switch] $useVolumes
 )
 
+'BC.HelperFunctions','BC.ArtifactsHelper.psm1','BC.AppSourceHelper.psm1','BC.ALGoHelper.psm1','BC.SaasHelper.psm1','BC.NuGetHelper.psm1','BC' | ForEach-Object {
+    if (Get-Module $_) { Remove-Module $_}
+}
+
 . (Join-Path $PSScriptRoot "InitializeModule.ps1") `
     -Silent:$Silent `
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
     -moduleName $MyInvocation.MyCommand.Name
 
-Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
+    Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
@@ -80,7 +84,6 @@ if (!$silent) {
 }
 
 Import-Module (Join-Path $PSScriptRoot 'BC.ArtifactsHelper.psm1') -DisableNameChecking -Global
-Import-Module (Join-Path $PSScriptRoot 'BC.AuthenticationHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.AppSourceHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.ALGoHelper.psm1') -DisableNameChecking -Global
 Import-Module (Join-Path $PSScriptRoot 'BC.SaasHelper.psm1') -DisableNameChecking -Global

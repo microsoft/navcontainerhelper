@@ -11,6 +11,6 @@ param(
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
-# BC SaaS specific functions
+# BC Authentication helper functions
 . (Join-Path $PSScriptRoot "Auth\New-BcAuthContext.ps1")
 . (Join-Path $PSScriptRoot "Auth\Renew-BcAuthContext.ps1")

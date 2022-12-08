@@ -9,7 +9,6 @@
     ],
     "RequiredModules": [
         "BC.HelperFunctions",
-        "BC.AuthenticationHelper",
         "BC.ArtifactsHelper",
         "BC.AppSourceHelper",
         "BC.ALGoHelper",

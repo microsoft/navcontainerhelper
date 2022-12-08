@@ -13,7 +13,6 @@ Remove-Module BC.NuGetHelper -ErrorAction SilentlyContinue
 Remove-Module BC.SaasHelper -ErrorAction SilentlyContinue
 Remove-Module BC.ALGoHelper -ErrorAction SilentlyContinue
 Remove-Module BC.AppSourceHelper -ErrorAction SilentlyContinue
-Remove-Module BC.AuthenticationHelper -ErrorAction SilentlyContinue
 Remove-Module BC.ArtifactsHelper -ErrorAction SilentlyContinue
 Remove-Module BC.HelperFunctions -ErrorAction SilentlyContinue
 
