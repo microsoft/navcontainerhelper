@@ -81,9 +81,12 @@ try {
         [SslVerification]::Disable()
     }
     
-    $webClient = [TimeoutWebClient]::new(300000)
+    $timeout = 300000
+    $useDefaultCredentials = $false
+    $headers = @{}
+
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-        $webClient.UseDefaultCredentials = $true
+        $useDefaultCredentials = $true
     }
     else {
         if (!($credential)) {
@@ -94,14 +97,14 @@ try {
         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
         $base64 = [System.Convert]::ToBase64String($bytes)
         $basicAuthValue = "Basic $base64"
-        $webClient.Headers.Add("Authorization", $basicAuthValue)
+        $headers."Authorization" = $basicAuthValue
     }
 
     Write-Host "Downloading app: $appName"
     $url = "$devServerUrl/dev/packages?publisher=$([uri]::EscapeDataString($publisher))&appName=$([uri]::EscapeDataString($appName))&versionText=$($appVersion)&tenant=$tenant"
     Write-Host "Url : $Url"
     try {
-        $webClient.DownloadFile($url, $appFile)
+        DownloadFileLow -sourceUrl $url -destinationFile $appFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
     }
     catch [System.Net.WebException] {
         Write-Host "ERROR $($_.Exception.Message)"

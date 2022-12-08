@@ -1,7 +1,7 @@
 {
-    "GUID": "037c5ebf-d617-4884-9048-2e9be44e7630",
+    "GUID": "5ef27830-ae76-422f-8439-db8db89e9ece",
     "Author": "Freddy Kristiansen",
-    "Description": "PowerShell module with authentication helper functions for Business Central Development",
+    "Description": "PowerShell module with NuGet helper functions for Business Central Development",
     "CompanyName": "Microsoft",
     "CompatiblePSEditions": [
         "Core",
@@ -13,6 +13,9 @@
     "files": [
         "InitializeModule.ps1",
         "HelperFunctions.ps1",
-        "Auth\\*"
+        "addfonts.ps1",
+        "ContainerHandling\\*",
+        "ContainerInfo\\*",
+        "Misc\\*"
     ]
 }

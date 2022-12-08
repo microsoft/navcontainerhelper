@@ -189,7 +189,6 @@ try {
             $GetListUrl += "&prefix=$($Version)"
         }
         
-        $webclient = New-Object System.Net.WebClient
         $Artifacts = @()
         $nextMarker = ''
         $currentMarker = ''
@@ -201,10 +200,13 @@ try {
                 $currentMarker = $nextMarker
                 $downloadAttempt = 1
             }
-            Write-Verbose "DownloadString $GetListUrl$nextMarker"
+            Write-Host "Download String $GetListUrl$nextMarker"
             try
             {
-                $Response = $webClient.DownloadString("$GetListUrl$nextMarker")
+                $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
+                if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
+                    $response = $response.Substring(3)
+                }
                 $enumerationResults = ([xml]$Response).EnumerationResults
 
                 if ($enumerationResults.Blobs) {

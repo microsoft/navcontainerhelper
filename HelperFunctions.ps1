@@ -882,3 +882,70 @@ function GetHash {
     $stream = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($str))
     (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
 }
+
+function Wait-Task {
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [System.Threading.Tasks.Task[]]$Task
+    )
+
+    Begin {
+        $Tasks = @()
+    }
+
+    Process {
+        $Tasks += $Task
+    }
+
+    End {
+        While (-not [System.Threading.Tasks.Task]::WaitAll($Tasks, 200)) {}
+        $Tasks.ForEach( { $_.GetAwaiter().GetResult() })
+    }
+}
+Set-Alias -Name await -Value Wait-Task -Force
+
+function DownloadFileLow {
+    Param(
+        [string] $sourceUrl,
+        [string] $destinationFile,
+        [switch] $dontOverwrite,
+        [switch] $useDefaultCredentials,
+        [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
+        [int] $timeout = 100
+    )
+
+    if ($useDefaultCredentials) {
+        $handler = New-Object System.Net.Http.HttpClientHandler
+        $handler.UseDefaultCredentials = $true
+        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+    }
+    else {
+        $httpClient = New-Object System.Net.Http.HttpClient
+    }
+    $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+    $headers.Keys | ForEach-Object {
+        $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+    }
+    $stream = $null
+    $fileStream = $null
+    if ($dontOverwrite) {
+        $fileMode = [System.IO.FileMode]::CreateNew
+    }
+    else {
+        $fileMode = [System.IO.FileMode]::Create
+    }
+    try {
+        $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+        $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+        $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+        $fileStream.Close()
+    }
+    finally {
+        if ($fileStream) {
+            $fileStream.Dispose()
+        }
+        if ($stream) {
+            $stream.Dispose()
+        }
+    }
+}

@@ -321,6 +321,9 @@ try {
 
     $sslVerificationDisabled = $false
     $serverInstance = $customConfig.ServerInstance
+    $headers = @{}
+    $useDefaultCredentials = $false
+    $timeout = 100
     if ($bcAuthContext -and $environment) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment -and $_.Type -eq "Sandbox" }
@@ -330,13 +333,11 @@ try {
         $publishedApps = Get-BcPublishedApps -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.state -eq "installed" }
         $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $webclient = [System.Net.WebClient]::new()
-        $webClient.Headers.Add("Authorization", $bearerAuthValue)
+        $headers."Authorization" = $bearerAuthValue
     }
     elseif ($serverInstance -eq "") {
         Write-Host -ForegroundColor Yellow "INFO: You have to specify AuthContext and Environment if you are compiling in a filesOnly container in order to download dependencies"
         $devServerUrl = ""
-        $webClient = $null
     }
     else {
         if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
@@ -372,9 +373,9 @@ try {
             [SslVerification]::Disable()
         }
     
-        $webClient = [TimeoutWebClient]::new(300000)
+        $timeout = 300000
         if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-            $webClient.UseDefaultCredentials = $true
+            $useDefaultCredentials = $true
         }
         else {
             if (!($credential)) {
@@ -385,7 +386,7 @@ try {
             $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
             $base64 = [System.Convert]::ToBase64String($bytes)
             $basicAuthValue = "Basic $base64"
-            $webClient.Headers.Add("Authorization", $basicAuthValue)
+            $headers."Authorization" = $basicAuthValue
         }
     }
 
@@ -400,7 +401,7 @@ try {
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
                 $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
-            if ($webClient -eq $null) {
+            if ($headers -eq @{} -and !$useDefaultCredentials) {
                 Write-Host -ForegroundColor Yellow "WARNING: Unable to download symbols for $symbolsName"
             }
             else {
@@ -412,7 +413,7 @@ try {
                 $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
                 Write-Host "Url : $Url"
                 try {
-                    $webClient.DownloadFile($url, $symbolsFile)
+                    DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
                 }
                 catch [System.Net.WebException] {
                     $throw = $true

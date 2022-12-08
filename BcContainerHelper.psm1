@@ -1,5 +1,3 @@
-#Requires -PSEdition Desktop 
-
 param(
     [switch] $Silent,
     [switch] $ExportTelemetryFunctions,
@@ -16,7 +14,7 @@ param(
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
     -moduleName $MyInvocation.MyCommand.Name
 
-    Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
+Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 

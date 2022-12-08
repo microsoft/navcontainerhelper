@@ -31,39 +31,8 @@ if (!$silent) {
 }
 $isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersion -like "*-preview*"
 
-$Source = @"
-	using System.Net;
- 
-	public class TimeoutWebClient : WebClient
-	{
-        int theTimeout;
-
-        public TimeoutWebClient(int timeout)
-        {
-            theTimeout = timeout;
-        }
-
-		protected override WebRequest GetWebRequest(System.Uri address)
-		{
-			WebRequest request = base.GetWebRequest(address);
-			if (request != null)
-			{
-				request.Timeout = theTimeout;
-			}
-			return request;
-		}
- 	}
-"@;
- 
-try {
-    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
-}
-catch {}
-
-if ($isInsider) { 
-    $depVersion = "0.0"
-}
-else {
+$depVersion = "0.0"
+if (!$isInsider) { 
     $depVersion = $BcContainerHelperVersion.split('-')[0]
 }
 
@@ -73,6 +42,12 @@ $moduleDependencies | ForEach-Object {
         Write-Error "Module $_ is already loaded in version $($module.Version). This module requires version $depVersion. Please reinstall BC modules."
     }
     elseif ($module -eq $null) {
-        Import-Module $_ -MinimumVersion $depVersion -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile    }
+        if ($isInsider) {
+            Import-Module (Join-Path $PSScriptRoot "$_.psm1") -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
+        }
+        else {
+            Import-Module $_ -MinimumVersion $depVersion -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
+        }
+    }
 }
 

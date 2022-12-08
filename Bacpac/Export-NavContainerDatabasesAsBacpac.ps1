@@ -83,7 +83,7 @@ try {
                     New-Item -Path $MsiFolder -ItemType Directory | Out-Null
                 }
                 [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-                (New-Object System.Net.WebClient).DownloadFile($MsiUrl, $MsiPath)
+                DownloadFileLow -sourceUrl $msiUrl -destinationFile $msiPath
             }
             Write-Host "Installing $Name"
             start-process $MsiPath -ArgumentList "/quiet /qn /passive" -Wait
