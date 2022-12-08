@@ -280,5 +280,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.Build.result }}'
+              conclusion: '${{ needs.RunTests.result }}'
             });
