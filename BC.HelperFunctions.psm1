@@ -169,6 +169,7 @@ function Get-ContainerHelperConfig {
 }
 
 $configHelperFolder = $programDataFolder
+Write-Host "Check $configHelperFolder"
 if (!(Test-Path $configHelperFolder)) {
     New-Item -Path $configHelperFolder -ItemType Container -Force | Out-Null
     if ($isWindows -and !$isAdministrator) {
@@ -195,7 +196,11 @@ $telemetry = @{
     if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
         Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
     }
+    Write-Host $configHelperFolder
+
     $dllPath = Join-Path $configHelperFolder 'Microsoft.ApplicationInsights.2.32.0.429.dll'
+    Write-Host $dllPath
+    
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
