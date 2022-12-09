@@ -342,7 +342,7 @@ function GetTestToolkitApps {
 
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
                     @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                 }
     
@@ -361,12 +361,12 @@ function GetTestToolkitApps {
             }
         }
 
-        $apps | % {
+        $apps | ForEach-Object {
             $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
             if (!($appFile)) {
                 $appFile = $_
             }
-            $appFile
+            $appFile.FullName
         }
     } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
 }

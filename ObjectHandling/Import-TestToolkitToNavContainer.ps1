@@ -103,7 +103,7 @@ try {
     if ($bcAuthContext -and $environment) {
         
         $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
-        $appFiles | % {
+        $appFiles | ForEach-Object {
             $appInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile)
                 Get-NAVAppInfo -Path $appFile
             } -argumentList $_ | Where-Object { $_ -isnot [System.String] }
@@ -148,7 +148,7 @@ try {
             $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
 
             $publishParams = @{}
-            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $_.Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") })) {
+            if ($version.Major -ge 18 -and $version.Major -lt 20 -and ($appFiles | Where-Object { $name = [System.IO.Path]::GetFileName($_); ($name -eq "Microsoft_Performance Toolkit.app" -or ($name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $name -notlike "*.runtime.app")) })) {
                 $BCPTLogEntryAPIsrc = Join-Path $PSScriptRoot "..\AppHandling\BCPTLogEntryAPI"
                 $appJson = [System.IO.File]::ReadAllLines((Join-Path $BCPTLogEntryAPIsrc "app.json")) | ConvertFrom-Json
                 $internalsVisibleTo = @{ "id" = $appJson.id; "name" = $appJson.name; "publisher" = $appjson.publisher }
@@ -179,9 +179,7 @@ try {
     
             $appFiles | ForEach-Object {
                 $appFile = $_
-                Write-Host "App: '$appFile'"
                 if (!$doNotUseRuntimePackages) {
-                Write-Host "RUNTIME???"
                     $name = [System.IO.Path]::GetFileName($appFile)
                     $runtimeAppFile = "$applicationsPath\$($name.Replace('.app','.runtime.app'))"
                     $useRuntimeApp = $false
@@ -211,11 +209,8 @@ try {
                     }
                 }
                 else {
-                    Write-Host "App: '$appFile'"
-                    $appFile.GetType() | Out-Host
-                    Write-Host ([System.IO.Path]::GetFileName('c:\temp\test.txt'))
-                    $name = [System.IO.Path]::GetFileName("$appfile")
-                    if ( $Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") ) {
+                    $name = [System.IO.Path]::GetFileName($appFile)
+                    if ( $name -eq "Microsoft_Performance Toolkit.app" -or ($name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $name -notlike "*.runtime.app") ) {
                         Publish-BcContainerApp -containerName $containerName @publishParams -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
                     }
                     else {
