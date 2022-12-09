@@ -106,7 +106,7 @@
             if (Test-Path (Join-Path $path 'app.json')) {
                 $appFolders += @($path)
             }
-            Get-ChildItem $path -Directory -Recurse | Where-Object { Test-Path -Path (Join-Path $_.FullName 'app.json') } | ForEach-Object {
+            Get-ChildItem $path -Recurse | Where-Object { $_.PSIsContainer -and (Test-Path -Path (Join-Path $_.FullName 'app.json')) } | ForEach-Object {
                 if (!($appFolders -contains $_.Parent.FullName)) {
                     $appFolders += @($_.FullName)
                 }
