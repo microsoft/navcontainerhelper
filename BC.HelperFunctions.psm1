@@ -192,24 +192,20 @@ $telemetry = @{
     "TopId" = ""
     "Debug" = $false
 }
-#try {
+try {
     if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
         Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
     }
-    Write-Host $configHelperFolder
-
     $dllPath = Join-Path $configHelperFolder 'Microsoft.ApplicationInsights.2.32.0.429.dll'
-    Write-Host $dllPath
-
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
     $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
-#} catch {
-#    if (!$Silent) {
-#        Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
-#    }
-#}
+} catch {
+    if (!$Silent) {
+        Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+    }
+}
 
 . (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
 
