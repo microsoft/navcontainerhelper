@@ -196,6 +196,10 @@ try {
         Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
     }
     $dllPath = "$configHelperFolder\Microsoft.ApplicationInsights.2.15.0.44797.dll"
+
+    Write-Host $dllPath
+    Write-Host (Test-Path $configHelperFolder)
+
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
