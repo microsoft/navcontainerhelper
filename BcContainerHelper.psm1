@@ -18,6 +18,14 @@ Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameCh
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
 
+if ($isMacOS) {
+    throw "BcContainerHelper isn't supported on MacOS"
+}
+elseif ($isLinux) {
+    Write-Warning "BcContainerHelper running on Linux is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
+}
+
+
 if ($useVolumes -or $isInsideContainer) {
     $bcContainerHelperConfig.UseVolumes = $true
 }
