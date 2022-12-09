@@ -125,7 +125,7 @@
         elseif (-not (Test-Path -Path $path -PathType Leaf)) {
             throw "Path $path does not exist"
         }    
-        elseif ([string]::new([char[]](Get-Content $path -Encoding byte -TotalCount 2)) -eq "PK") {
+        elseif ([string]::new([char[]](Get-Content $path @byteEncodingParam -TotalCount 2)) -eq "PK") {
             # .zip file
             $destinationPath = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
             Expand-7zipArchive -path $path -destinationPath $destinationPath
@@ -136,7 +136,7 @@
             expandfile -path $destinationPath
             Remove-Item -Path $destinationPath -Force -Recurse -ErrorAction SilentlyContinue
         }
-        elseif ([string]::new([char[]](Get-Content $path -Encoding byte -TotalCount 4)) -eq "NAVX") {
+        elseif ([string]::new([char[]](Get-Content $path @byteEncodingParam -TotalCount 4)) -eq "NAVX") {
             $destinationPath = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
             Extract-AppFileToFolder -appFilename $path -appFolder $destinationPath -generateAppJson
             $destinationPath        

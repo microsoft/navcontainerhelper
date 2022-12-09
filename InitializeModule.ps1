@@ -19,6 +19,14 @@ $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Pri
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
 
+$isPsCore = $PSVersionTable.PSVersion -ge "6.0.0"
+if ($isPsCore) {
+    $byteEncodingParam = @{ "asByteStream" = $true }
+}
+else {
+    $byteEncodingParam = @{ "Encoding" = "byte" }
+}
+
 try {
     $myUsername = $currentPrincipal.Identity.Name
 } catch {

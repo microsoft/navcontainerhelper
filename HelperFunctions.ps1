@@ -451,7 +451,7 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
-            if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK") {
+            if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
                 $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
                 $copied = $false
                 try {
