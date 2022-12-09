@@ -8,6 +8,15 @@ param(
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
     -moduleName $MyInvocation.MyCommand.Name
 
+if ($isWindows) {
+    $programDataFolder = 'C:\ProgramData\BcContainerHelper'
+    $artifactsCacheFolder = "c:\bcartifacts.cache"
+}
+else {
+    $programDataFolder = '~/.bccontainerhelper'
+    $artifactsCacheFolder = '~/.bcartifacts.cache'
+}
+
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
@@ -22,7 +31,7 @@ function Get-ContainerHelperConfig {
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
             "hostHelperFolder" = ""
-            "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "containerHelperFolder" = $programDataFolder
             "defaultContainerName" = "bcserver"
             "digestAlgorithm" = "SHA256"
             "timeStampServer" = "http://timestamp.digicert.com"
@@ -101,8 +110,8 @@ function Get-ContainerHelperConfig {
             $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
         }
 
-        if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {
-            $bcContainerHelperConfigFile = @("C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json")+$bcContainerHelperConfigFile
+        if ($bcContainerHelperConfigFile -notcontains (Join-Path $programDataFolder "BcContainerHelper.config.json")) {
+            $bcContainerHelperConfigFile = @((Join-Path $programDataFolder "BcContainerHelper.config.json"))+$bcContainerHelperConfigFile
         }
         $bcContainerHelperConfigFile | ForEach-Object {
             $configFile = $_
@@ -147,10 +156,10 @@ function Get-ContainerHelperConfig {
         }
         else {
             if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
-                $bcContainerHelperConfig.bcartifactsCacheFolder = "c:\bcartifacts.cache"
+                $bcContainerHelperConfig.bcartifactsCacheFolder = $artifactsCacheFolder
             }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
-                $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
+                $bcContainerHelperConfig.hostHelperFolder = $programDataFolder
             }
         }
 
@@ -159,7 +168,7 @@ function Get-ContainerHelperConfig {
     return $bcContainerHelperConfig
 }
 
-$configHelperFolder = 'C:\ProgramData\BcContainerHelper'
+$configHelperFolder = $programDataFolder
 if (!(Test-Path $configHelperFolder)) {
     New-Item -Path $configHelperFolder -ItemType Container -Force | Out-Null
     if (!$isAdministrator) {
