@@ -5,7 +5,9 @@
     [switch] $useVolumes
 )
 
-Get-ChildItem -Path $PSScriptRoot -Recurse | ForEach-Object { Unblock-File -Path $_.FullName }
+if (($PSVersionTable.PSVersion -lt "6.0.0") -or $isWindows) {
+    Get-ChildItem -Path $PSScriptRoot -Recurse | ForEach-Object { Unblock-File -Path $_.FullName }
+}
 
 Remove-Module NavContainerHelper -ErrorAction SilentlyContinue
 Remove-Module BcContainerHelper -ErrorAction SilentlyContinue

@@ -18,13 +18,15 @@ if ([intptr]::Size -eq 4) {
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
-
 $isPsCore = $PSVersionTable.PSVersion -ge "6.0.0"
 if ($isPsCore) {
     $byteEncodingParam = @{ "asByteStream" = $true }
 }
 else {
     $byteEncodingParam = @{ "Encoding" = "byte" }
+    $isWindows = $true
+    $isLinux = $false
+    $IsMacOS = $false
 }
 
 try {
