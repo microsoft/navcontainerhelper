@@ -211,6 +211,8 @@ try {
                     }
                 }
                 else {
+                    Write-Host "App: '$appFile'"
+                    Write-Host ([System.IO.Path]::GetFileName('c:\temp\test.txt'))
                     $name = [System.IO.Path]::GetFileName($appfile)
                     if ( $Name -eq "Microsoft_Performance Toolkit.app" -or ($_.Name -like "Microsoft_Performance Toolkit_*.*.*.*.app" -and $_.Name -notlike "*.runtime.app") ) {
                         Publish-BcContainerApp -containerName $containerName @publishParams -appFile ":$appFile" -skipVerification -sync -install -scope $scope -useDevEndpoint:$useDevEndpoint -replaceDependencies $replaceDependencies -credential $credential -tenant $tenant
