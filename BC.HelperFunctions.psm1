@@ -195,11 +195,7 @@ try {
     if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
         Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
     }
-    $dllPath = "$configHelperFolder\Microsoft.ApplicationInsights.2.15.0.44797.dll"
-
-    Write-Host $dllPath
-    Write-Host (Test-Path $configHelperFolder)
-
+    $dllPath = Join-Path $configHelperFolder 'Microsoft.ApplicationInsights.2.15.0.44797.dll'
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
