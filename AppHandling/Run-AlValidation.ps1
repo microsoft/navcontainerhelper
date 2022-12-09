@@ -178,7 +178,7 @@ Write-Host -ForegroundColor Yellow @'
 }
 
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
-    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
     try {
         Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
         $appJsonFile = Join-Path $tmpFolder "app.json"

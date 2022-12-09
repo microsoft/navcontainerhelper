@@ -33,7 +33,7 @@ try {
     if ($appFolder -eq "") {
         if ($openFolder) {
             $generateAppJson = $true
-            $appFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+            $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         }
         else {
             $appFolder = "$($appFilename).source"

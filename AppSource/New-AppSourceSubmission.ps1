@@ -96,7 +96,7 @@ try {
     $appVersionNumber = ""
     if ($appFile) {
         try {
-            $tempFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+            $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tempFolder -generateAppJson
             $appJsonFile = Join-Path $tempFolder 'app.json'
             $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
@@ -115,7 +115,7 @@ try {
             $libraryAppFile = $libraryAppFiles[0]
         }
         else {
-            $tempFolder = Join-Path $env:TEMP ([GUID]::NewGuid().ToString())
+            $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
             New-Item -Path $tempFolder -ItemType Directory | Out-Null
             $libraryAppFile = Join-Path $tempFolder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).libraries.zip"
             Compress-Archive -Path $libraryAppFiles -DestinationPath $libraryAppFile -CompressionLevel Fastest

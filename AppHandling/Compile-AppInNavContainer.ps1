@@ -251,7 +251,7 @@ try {
     # unpack compiler
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         if (!(Test-Path "c:\build" -PathType Container)) {
-            $tempZip = Join-Path $env:temp "alc.zip"
+            $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }

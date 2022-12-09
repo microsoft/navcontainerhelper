@@ -435,7 +435,7 @@ function CopyAppFilesToFolder {
         $appFile = $_
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
-            $appFile = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $appFile = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             Download-File -sourceUrl $appUrl -destinationFile $appFile
             CopyAppFilesToFolder -appFile $appFile -folder $folder
             Remove-Item -Path $appFile -Force
@@ -452,12 +452,12 @@ function CopyAppFilesToFolder {
         }
         elseif (Test-Path $appFile -PathType Leaf) {
             if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
-                $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                 $copied = $false
                 try {
                     if ($appFile -notlike "*.zip") {
                         $orgAppFile = $appFile
-                        $appFile = Join-Path (Get-TempDir) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
+                        $appFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
                         Copy-Item $orgAppFile $appFile
                         $copied = $true
                     }
@@ -762,10 +762,6 @@ function Get-WWWRootPath {
     else {
         ""
     }
-}
-
-function Get-TempDir {
-    (Get-Item -Path $env:temp).FullName
 }
 
 function Parse-JWTtoken([string]$token) {

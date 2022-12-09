@@ -953,7 +953,7 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
-    $tmpAppFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+    $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
         $appId = [Guid]::Empty
@@ -1951,7 +1951,7 @@ $installTestApps | ForEach-Object {
     else {
         $appFile = $_
         if ($appFile -eq "$_".Trim('()')) {
-            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             try {
                 $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
                 $appList | ForEach-Object {

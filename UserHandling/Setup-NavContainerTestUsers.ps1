@@ -75,7 +75,7 @@ try {
 
     if ($version.Major -ge 13) {
 
-        $appfile = Join-Path (Get-TempDir) "CreateTestUsers.app"
+        $appfile = Join-Path ([System.IO.Path]::GetTempPath()) "CreateTestUsers.app"
         if (([System.Version]$version).Major -ge 15) {
             Import-TestToolkitToBcContainer -containerName $containerName -tenant $tenant -includeTestFrameworkOnly -replaceDependencies $replaceDependencies -doNotUseRuntimePackages
             $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName -tenant $tenant | Where-Object { $_.Name -eq "System Application Test Library" }
