@@ -33,12 +33,6 @@ if ($isWindows) {
 }
 else {
     $isAdministrator = ((id -u) -eq 0)
-    if ($IsMacOS) {
-        throw "BcContainerHelper isn't supported on MacOS"
-    }
-    else {
-        Write-Warning "BcContainerHelper running on Linux is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
-    }
 }
 
 $BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
