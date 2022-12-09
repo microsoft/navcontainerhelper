@@ -13,8 +13,8 @@ if ($isWindows) {
     $artifactsCacheFolder = "c:\bcartifacts.cache"
 }
 else {
-    $programDataFolder = '~/.bccontainerhelper'
-    $artifactsCacheFolder = '~/.bcartifacts.cache'
+    $programDataFolder = "/home/$myUsername/.bccontainerhelper"
+    $artifactsCacheFolder = "/home/$myUsername/.bcartifacts.cache"
 }
 
 function Get-ContainerHelperConfig {
@@ -200,7 +200,7 @@ $telemetry = @{
 
     $dllPath = Join-Path $configHelperFolder 'Microsoft.ApplicationInsights.2.32.0.429.dll'
     Write-Host $dllPath
-    
+
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }
