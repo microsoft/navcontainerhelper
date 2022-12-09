@@ -177,8 +177,9 @@ try {
                 }
             }
     
-            $appFiles | % {
+            $appFiles | ForEach-Object {
                 $appFile = $_
+                Write-Host "App: '$appFile'"
                 if (!$doNotUseRuntimePackages) {
                 Write-Host "RUNTIME???"
                     $name = [System.IO.Path]::GetFileName($appFile)
