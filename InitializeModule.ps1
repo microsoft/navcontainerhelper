@@ -15,9 +15,6 @@ if ([intptr]::Size -eq 4) {
     throw "ContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
 }
 
-$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-$isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
 $isPsCore = $PSVersionTable.PSVersion -ge "6.0.0"
 if ($isPsCore) {
     $byteEncodingParam = @{ "asByteStream" = $true }
@@ -28,11 +25,14 @@ else {
     $isLinux = $false
     $IsMacOS = $false
 }
-
-try {
-    $myUsername = $currentPrincipal.Identity.Name
-} catch {
-    $myUsername = (whoami)
+$myUsername = (whoami)
+$isInsideContainer = ($myUsername -eq "user manager\containeradministrator")
+if ($isWindows) {
+    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+else {
+    $isAdministrator = ((id -u) -eq 0)
 }
 
 $BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
