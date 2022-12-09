@@ -171,7 +171,7 @@ function Get-ContainerHelperConfig {
 $configHelperFolder = $programDataFolder
 if (!(Test-Path $configHelperFolder)) {
     New-Item -Path $configHelperFolder -ItemType Container -Force | Out-Null
-    if (!$isAdministrator) {
+    if ($isWindows -and !$isAdministrator) {
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
         $acl = [System.IO.Directory]::GetAccessControl($configHelperFolder)
         $acl.AddAccessRule($rule)
