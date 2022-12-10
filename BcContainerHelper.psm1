@@ -24,7 +24,9 @@ if ($isMacOS) {
 elseif ($isLinux) {
     Write-Warning "BcContainerHelper running on Linux is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
 }
-
+elseif ($isPsCore) {
+    Write-Warning "BcContainerHelper running on PowerShell7 is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
+}
 
 if ($useVolumes -or $isInsideContainer) {
     $bcContainerHelperConfig.UseVolumes = $true
