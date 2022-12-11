@@ -18,9 +18,11 @@ if (!([environment]::Is64BitProcess)) {
 $isPsCore = $PSVersionTable.PSVersion -ge "6.0.0"
 if ($isPsCore) {
     $byteEncodingParam = @{ "asByteStream" = $true }
+    $allowUnencryptedAuthenticationParam = @{ "allowUnencryptedAuthenticationParam" = $true }
 }
 else {
     $byteEncodingParam = @{ "Encoding" = "byte" }
+    $allowUnencryptedAuthenticationParam = @{ }
     $isWindows = $true
     $isLinux = $false
     $IsMacOS = $false

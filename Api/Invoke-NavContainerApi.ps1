@@ -172,7 +172,7 @@ try {
     if (!$silent) {
         Write-Host "Invoke $Method on $url"
     }
-    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters
+    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters @allowUnencryptedAuthenticationParam
 
     if ($sslverificationdisabled) {
         [SslVerification]::Enable()
