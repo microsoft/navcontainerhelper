@@ -159,7 +159,7 @@ try {
             }
             $platformUri = [Uri]::new($platformUrl)
     
-            $appMutexName = "dl-$($platformUrl.Split('?')[0].Substring(8).Replace('/','_'))"
+            $PlatformMutexName = "dl-$($platformUrl.Split('?')[0].Substring(8).Replace('/','_'))"
             $PlatformMutex = New-Object System.Threading.Mutex($false, $PlatformMutexName)
             try {
                 try {
