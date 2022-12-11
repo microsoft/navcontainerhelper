@@ -44,7 +44,7 @@ try {
         New-Item $basePath -ItemType Directory | Out-Null
     }
 
-    $appMutexName = "dl-$($artifactUrl.Split('?')[0])"
+    $appMutexName = "dl-$($artifactUrl.Split('?')[0].Substring(8))"
     $appMutex = New-Object System.Threading.Mutex($false, $appMutexName)
     try {
         try {
