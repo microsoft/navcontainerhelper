@@ -44,8 +44,7 @@ try {
         New-Item $basePath -ItemType Directory | Out-Null
     }
 
-    #$appMutexName = "dl-$($artifactUrl.Split('?')[0].Substring(8).Replace('/','_'))"
-    $appMutexName = "DownloadArtifacts"
+    $appMutexName = "dl-$($artifactUrl.Split('?')[0].Substring(8).Replace('/','_'))"
     $appMutex = New-Object System.Threading.Mutex($false, $appMutexName)
     try {
         try {
@@ -160,7 +159,7 @@ try {
             }
             $platformUri = [Uri]::new($platformUrl)
     
-            $PlatformMutexName = "dl-$($platformUrl.Split('?')[0])"
+            $appMutexName = "dl-$($platformUrl.Split('?')[0].Substring(8).Replace('/','_'))"
             $PlatformMutex = New-Object System.Threading.Mutex($false, $PlatformMutexName)
             try {
                 try {
