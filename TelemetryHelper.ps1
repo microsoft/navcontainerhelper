@@ -176,7 +176,7 @@ function InitTelemetryScope {
         }
         if (($eventId -ne "") -or ($telemetry.CorrelationId -eq "")) {
             $CorrelationId = [GUID]::NewGuid().ToString()
-            Start-Transcript -Path (Join-Path $env:TEMP $CorrelationId) | Out-Null
+            Start-Transcript -Path (Join-Path ([System.IO.Path]::GetTempPath()) $CorrelationId) | Out-Null
             if ($telemetry.Debug) {
                 Write-Host -ForegroundColor Yellow "Init telemetry scope $name"
             }
@@ -234,11 +234,11 @@ function TrackTrace {
             $telemetryScope.Emitted = $true
             try {
                 Stop-Transcript | Out-Null
-                $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4 | Where-Object { -not "$_".StartsWith("::add-mask::") }) -join "`n"
+                $transcript = (@(Get-Content -Path (Join-Path ([System.IO.Path]::GetTempPath()) $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4 | Where-Object { -not "$_".StartsWith("::add-mask::") }) -join "`n"
                 if ($transcript.Length -gt 32000) {
                     $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
                 }
-                Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
+                Remove-Item -Path (Join-Path ([System.IO.Path]::GetTempPath()) $telemetryScope.CorrelationId)
             }
             catch {
                 $transcript = ""
@@ -317,11 +317,11 @@ function TrackException {
 
             try {
                 Stop-Transcript | Out-Null
-                $transcript = (@(Get-Content -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4 | Where-Object { -not "$_".StartsWith("::add-mask::") }) -join "`n"
+                $transcript = (@(Get-Content -Path (Join-Path ([System.IO.Path]::GetTempPath()) $telemetryScope.CorrelationId)) | select -skip 18 | select -skiplast 4 | Where-Object { -not "$_".StartsWith("::add-mask::") }) -join "`n"
                 if ($transcript.Length -gt 32000) {
                     $transcript = "$($transcript.SubString(0,16000))`n`n...`n`n$($transcript.SubString($transcript.Length-16000))"
                 }
-                Remove-Item -Path (Join-Path $env:TEMP $telemetryScope.CorrelationId)
+                Remove-Item -Path (Join-Path ([System.IO.Path]::GetTempPath()) $telemetryScope.CorrelationId)
             }
             catch {
                 $transcript = ""

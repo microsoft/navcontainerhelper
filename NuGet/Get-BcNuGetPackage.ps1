@@ -82,7 +82,7 @@ Function Get-BcNuGetPackage {
             }
         }
 
-        $tmpFolder = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())    
+        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())    
         if (!$silent) {
             Write-Host "Downloading Package from $contentUrl"
         }

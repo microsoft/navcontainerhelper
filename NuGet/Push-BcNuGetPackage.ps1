@@ -46,7 +46,7 @@ Function Push-BcNuGetPackage {
     $body += $fileContent
     $body += [System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF")
     
-    $tmpFile = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
+    $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     [System.IO.File]::WriteAllBytes($tmpFile, $body)
     Write-Host "Submitting NuGet package"
     try {

@@ -72,7 +72,7 @@ try {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     }
 
-    $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+    $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFiles -folder $appFolder
         $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
@@ -115,7 +115,7 @@ try {
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles | ForEach-Object {
                 Write-Host "$([System.IO.Path]::GetFileName($_))"
-                $tempFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+                $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
                 Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null
                 $appJsonFile = Join-Path $tempFolder "app.json"
                 $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json

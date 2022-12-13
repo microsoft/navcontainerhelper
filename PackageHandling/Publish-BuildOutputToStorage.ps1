@@ -60,7 +60,7 @@ try {
         $subFolder = $_
         if (Test-Path (Join-Path $path "$subFolder\*")) {
 
-            $tempFile = Join-Path (Get-TempDir) "$([Guid]::newguid().ToString()).zip"
+            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::newguid().ToString()).zip"
             try {
                 Compress-Archive -path (Get-Item (Join-Path $path $_)).FullName -DestinationPath $tempFile
 

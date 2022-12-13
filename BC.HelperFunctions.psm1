@@ -8,6 +8,15 @@ param(
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
     -moduleName $MyInvocation.MyCommand.Name
 
+if ($isWindows) {
+    $programDataFolder = 'C:\ProgramData\BcContainerHelper'
+    $artifactsCacheFolder = "c:\bcartifacts.cache"
+}
+else {
+    $programDataFolder = "/home/$myUsername/.bccontainerhelper"
+    $artifactsCacheFolder = "/home/$myUsername/.bcartifacts.cache"
+}
+
 function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
@@ -22,7 +31,7 @@ function Get-ContainerHelperConfig {
             "use7zipIfAvailable" = $true
             "defaultNewContainerParameters" = @{ }
             "hostHelperFolder" = ""
-            "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
+            "containerHelperFolder" = $programDataFolder
             "defaultContainerName" = "bcserver"
             "digestAlgorithm" = "SHA256"
             "timeStampServer" = "http://timestamp.digicert.com"
@@ -101,8 +110,8 @@ function Get-ContainerHelperConfig {
             $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
         }
 
-        if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {
-            $bcContainerHelperConfigFile = @("C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json")+$bcContainerHelperConfigFile
+        if ($bcContainerHelperConfigFile -notcontains (Join-Path $programDataFolder "BcContainerHelper.config.json")) {
+            $bcContainerHelperConfigFile = @((Join-Path $programDataFolder "BcContainerHelper.config.json"))+$bcContainerHelperConfigFile
         }
         $bcContainerHelperConfigFile | ForEach-Object {
             $configFile = $_
@@ -147,10 +156,10 @@ function Get-ContainerHelperConfig {
         }
         else {
             if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
-                $bcContainerHelperConfig.bcartifactsCacheFolder = "c:\bcartifacts.cache"
+                $bcContainerHelperConfig.bcartifactsCacheFolder = $artifactsCacheFolder
             }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
-                $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
+                $bcContainerHelperConfig.hostHelperFolder = $programDataFolder
             }
         }
 
@@ -159,10 +168,11 @@ function Get-ContainerHelperConfig {
     return $bcContainerHelperConfig
 }
 
-$configHelperFolder = 'C:\ProgramData\BcContainerHelper'
+$configHelperFolder = $programDataFolder
+Write-Host "Check $configHelperFolder"
 if (!(Test-Path $configHelperFolder)) {
     New-Item -Path $configHelperFolder -ItemType Container -Force | Out-Null
-    if (!$isAdministrator) {
+    if ($isWindows -and !$isAdministrator) {
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
         $acl = [System.IO.Directory]::GetAccessControl($configHelperFolder)
         $acl.AddAccessRule($rule)
@@ -186,7 +196,7 @@ try {
     if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
         Write-Host -ForegroundColor Green 'BC.HelperFunctions emits usage statistics telemetry to Microsoft'
     }
-    $dllPath = "$configHelperFolder\Microsoft.ApplicationInsights.2.15.0.44797.dll"
+    $dllPath = Join-Path $configHelperFolder 'Microsoft.ApplicationInsights.2.32.0.429.dll'
     if (-not (Test-Path $dllPath)) {
         Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
     }

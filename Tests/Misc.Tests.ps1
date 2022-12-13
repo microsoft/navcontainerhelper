@@ -21,7 +21,7 @@ Describe 'Misc' {
         Invoke-ScriptInBCContainer -containerName $bcContainerName -scriptblock { (Get-ChildItem -Path "c:\windows\fonts").Count } | Should -BeGreaterThan $noOfFonts
     }
     It 'Copy-FileFromBcContainer' {
-        $filename = Join-Path $env:TEMP ([Guid]::NewGuid().Guid)
+        $filename = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().Guid)
         Copy-FileFromBCContainer -containerName $bcContainerName -containerPath "c:\windows\win.ini" -localPath $filename
         $filename | Should -Exist
         Remove-Item -Path $filename

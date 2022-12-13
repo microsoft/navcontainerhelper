@@ -190,7 +190,7 @@ jobs:
       - name: Deploy
         run: |
           try {
-            $path = Join-Path $ENV:TEMP "BcContainerHelper"
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
             New-Item -path $path -itemType Directory | Out-Null
             Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
 
@@ -237,7 +237,7 @@ jobs:
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes
 
-            $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
+            $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
             Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
 
             Remove-Module BcContainerHelper

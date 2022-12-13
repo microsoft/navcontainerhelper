@@ -129,7 +129,7 @@ try {
         }
 }
     else {
-        $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+        $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         $force = $true
         if ($checkAlreadyInstalled) {

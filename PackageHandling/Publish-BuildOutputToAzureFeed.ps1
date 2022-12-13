@@ -38,7 +38,7 @@ try {
     Get-Childitem –Path (Join-Path $path "\Apps\*.app") | % {
         $basename = $_.Basename
 
-        $tempAppFolder = Join-Path ((Get-Item -Path $env:temp).FullName) ([Guid]::NewGuid().ToString())
+        $tempAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         $tempAppOutFolder = Join-Path $tempAppFolder "out"
         $tempAppSourceFolder = Join-Path $tempAppFolder "source"
         try {

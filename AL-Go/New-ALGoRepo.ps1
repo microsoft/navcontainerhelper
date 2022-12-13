@@ -1,6 +1,6 @@
 ﻿function New-ALGoRepo {
     Param(
-        $tmpFolder = (Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())),
+        $tmpFolder = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())),
         [Parameter(Mandatory=$true)]
         $org,
         [Parameter(Mandatory=$true)]
@@ -83,7 +83,7 @@
         $tempdir = $false
         if ($path -like "https://*" -or $path -like "http://*") {
             $url = $path
-            $path = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString()).app"
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).app"
             $tempdir = $true
             Download-File -sourceUrl $url -destinationFile $path
             if (!(Test-Path -Path $path)) {
@@ -106,13 +106,13 @@
             if (Test-Path (Join-Path $path 'app.json')) {
                 $appFolders += @($path)
             }
-            Get-ChildItem $path -Directory -Recurse | Where-Object { Test-Path -Path (Join-Path $_.FullName 'app.json') } | ForEach-Object {
+            Get-ChildItem $path -Recurse | Where-Object { $_.PSIsContainer -and (Test-Path -Path (Join-Path $_.FullName 'app.json')) } | ForEach-Object {
                 if (!($appFolders -contains $_.Parent.FullName)) {
                     $appFolders += @($_.FullName)
                 }
             }
             $appFolders | ForEach-Object {
-                $newFolder = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
+                $newFolder = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
                 write-Host "$_ -> $newFolder"
                 Copy-Item -Path $_ -Destination $newFolder -Force -Recurse
                 Write-Host "done"
@@ -125,9 +125,9 @@
         elseif (-not (Test-Path -Path $path -PathType Leaf)) {
             throw "Path $path does not exist"
         }    
-        elseif ([string]::new([char[]](Get-Content $path -Encoding byte -TotalCount 2)) -eq "PK") {
+        elseif ([string]::new([char[]](Get-Content $path @byteEncodingParam -TotalCount 2)) -eq "PK") {
             # .zip file
-            $destinationPath = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
+            $destinationPath = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
             Expand-7zipArchive -path $path -destinationPath $destinationPath
             $directoryInfo = Get-ChildItem $destinationPath | Measure-Object
             if ($directoryInfo.count -eq 0) {
@@ -136,8 +136,8 @@
             expandfile -path $destinationPath
             Remove-Item -Path $destinationPath -Force -Recurse -ErrorAction SilentlyContinue
         }
-        elseif ([string]::new([char[]](Get-Content $path -Encoding byte -TotalCount 4)) -eq "NAVX") {
-            $destinationPath = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
+        elseif ([string]::new([char[]](Get-Content $path @byteEncodingParam -TotalCount 4)) -eq "NAVX") {
+            $destinationPath = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
             Extract-AppFileToFolder -appFilename $path -appFolder $destinationPath -generateAppJson
             $destinationPath        
         }
@@ -211,7 +211,7 @@
 
     Write-Host "Downloading and applying AL-Go-$AppType template"
     $templateUrl = "https://github.com/microsoft/AL-Go-$AppType/archive/refs/heads/main.zip"
-    $tempZip = Join-Path (Get-TempDir) "$([Guid]::NewGuid().ToString()).zip"
+    $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
     Download-File -sourceUrl $templateUrl -destinationFile $tempZip
     Expand-7zipArchive -Path $tempZip -DestinationPath $folder
     Remove-Item -Path $tempZip -Force

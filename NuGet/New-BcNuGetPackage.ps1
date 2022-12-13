@@ -67,7 +67,7 @@ Function New-BcNuGetPackage {
     }
 
     $appFile = $appfiles | Select-Object -First 1
-    $tmpFolder = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
+    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     Extract-AppFileToFolder -appFilename $appFile -generateAppJson -appFolder $tmpFolder
     $appJsonFile = Join-Path $tmpFolder 'app.json'
     $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
@@ -75,7 +75,7 @@ Function New-BcNuGetPackage {
 
     $testsFolderName = "Tests"
     $dependenciesFolderName = "Dependencies"
-    $rootFolder = Join-Path $ENV:TEMP ([GUID]::NewGuid().ToString())
+    $rootFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     New-Item -Path $rootFolder -ItemType Directory | Out-Null
     try {
         $testsFolder = Join-Path $rootFolder $testsFolderName
@@ -172,7 +172,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.Close()
         
         $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
-        $nupkgFile = Join-Path $ENV:TEMP $nuPkgFileName
+        $nupkgFile = Join-Path ([System.IO.Path]::GetTempPath()) $nuPkgFileName
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
         }

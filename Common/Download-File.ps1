@@ -62,10 +62,8 @@ try {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
-        $webClient.Headers.Add([System.Net.HttpRequestHeader]::UserAgent, "BcContainerHelper $bcContainerHelperVersion")
         try {
-            $webClient.DownloadFile($sourceUrl, $destinationFile)
+            DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
         }
         catch {
             try {
@@ -80,7 +78,7 @@ try {
                     $newSourceUrl = $sourceUrl
                 }
                 Start-Sleep -Seconds $waittime
-                $webClient.DownloadFile($newSourceUrl, $destinationFile)
+                DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
             }
             catch {
                 throw (GetExtendedErrorMessage $_)

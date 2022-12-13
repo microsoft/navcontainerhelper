@@ -102,7 +102,7 @@ try {
         $previousApps = Sort-AppFilesByDependencies -containerName $containerName -appFiles $appList -WarningAction SilentlyContinue
         $previousApps | ForEach-Object {
             $appFile = $_
-            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             try {
                 Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
                 $xappJsonFile = Join-Path $tmpFolder "app.json"
@@ -127,7 +127,7 @@ try {
         # unpack compiler
         $latestSupportedRuntimeVersion = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string] $bcversion)
             if (!(Test-Path "c:\build" -PathType Container)) {
-                $tempZip = Join-Path $env:temp "alc.zip"
+                $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
                 Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
                 Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
             }
