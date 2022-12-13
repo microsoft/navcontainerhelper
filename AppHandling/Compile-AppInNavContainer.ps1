@@ -415,7 +415,7 @@ try {
                 try {
                     DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
                 }
-                catch [System.Net.WebException] {
+                catch {
                     $throw = $true
                     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
                         try {

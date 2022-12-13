@@ -911,6 +911,7 @@ function DownloadFileLow {
     )
 
     if ($useDefaultCredentials) {
+        Write-Host "Using default credentials"
         $handler = New-Object System.Net.Http.HttpClientHandler
         $handler.UseDefaultCredentials = $true
         $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
