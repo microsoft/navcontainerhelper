@@ -24,7 +24,7 @@ concurrency:
 
 defaults:
   run:
-    shell: PowerShell
+    shell: powershell
 
 jobs:
   Initialization:
@@ -141,8 +141,49 @@ jobs:
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
 
-  RunTests:
+  RunTestsOnPowerShell5:
     runs-on: [ windows-latest ]
+    needs: [ Initialization, AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        if: github.event_name != 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  RunTestsOnPowerShell7:
+    runs-on: [ windows-latest ]
+    defaults:
+      run:
+        shell: pwsh
     needs: [ Initialization, AnalyzeTests ]
     strategy:
       matrix:
@@ -181,7 +222,7 @@ jobs:
 
   Deploy:
     runs-on: [ windows-latest ]
-    needs: [ RunTests ]
+    needs: [ RunTestsOnPowerShell5, RunTestsOnPowerShell7 ]
     if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
