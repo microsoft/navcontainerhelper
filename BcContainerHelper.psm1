@@ -78,7 +78,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     }
     New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
 
-    if ($isWindows -and !$isAdministrator) {
+    if ($isWindows -and !$isPsCore -and !$isAdministrator) {
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
         $acl = [System.IO.Directory]::GetAccessControl($bcContainerHelperConfig.hostHelperFolder)
         $acl.AddAccessRule($rule)
@@ -86,7 +86,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     }
 }
 
-if ($isWindows) {
+if ($isWindows -and !$isPsCore) {
     . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
     if (!$silent) {
         Check-BcContainerHelperPermissions -Silent
