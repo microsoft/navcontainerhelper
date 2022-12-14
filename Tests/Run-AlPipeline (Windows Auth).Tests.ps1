@@ -32,12 +32,11 @@ Describe 'Run-AlPipeline' {
             -appFolders "app,base" `
             -testFolders @("test") `
             -previousApps @("https://businesscentralapps.blob.core.windows.net/githubhelloworld/2.0.32.0/apps.zip") `
-            -additionalCountries "dk,de" `
             -appBuild ([int32]::MaxValue) `
             -appRevision 0 `
             -testResultsFile $resultsFile `
             -testResultsFormat JUnit `
-            -artifact "///us/Current" `
+            -artifact "///base/Current" `
             -imageName '' `
             -outputFolder $outputFolder `
             -buildArtifactFolder $buildArtifactFolder `

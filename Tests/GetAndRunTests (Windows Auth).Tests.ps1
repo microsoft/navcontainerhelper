@@ -26,21 +26,14 @@ Describe 'AppHandling' {
                         -accept_outdated `
                         -containerName $bcContainerName `
                         -artifactUrl $artifactUrl `
-                        -auth Windows `
+                        -auth 'Windows' `
                         -Credential $credential `
                         -updateHosts `
                         -licenseFile $buildLicenseFile `
                         -includeTestToolkit `
-                        -NewBcContainer {
-                            Param(
-                                [Hashtable]$parameters
-                            )
-                            $parameters.multitenant = $false
-                            $parameters.RunSandboxAsOnPrem = $true
-                            $parameters.myscripts = @( @{ "SetupNavUsers.ps1" = "Write-Host 'Skipping user creation'" } )
-                            $parameters.auth = 'Windows'
-                            New-BcContainer @parameters
-                        }
+                        -multitenant:$false `
+                        -runSandboxAsOnPrem `
+                        -myscripts @( @{ "SetupNavUsers.ps1" = "Write-Host 'Skipping user creation'" } )
         
         $tests = (Get-TestsFromBCContainer -containerName $bcContainerName -credential $credential -extensionId "fa3e2564-a39e-417f-9be6-c0dbe3d94069") | Where-Object { $_.id -eq 134006 -or $_.id -eq 134007 }
         $tests.Count | Should -be 2
