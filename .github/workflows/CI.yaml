@@ -123,7 +123,7 @@ jobs:
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
 
-  RunTestsOnPS5:
+  PS5:
     runs-on: [ windows-latest ]
     needs: [ Initialization, AnalyzeTests ]
     strategy:
@@ -161,7 +161,7 @@ jobs:
             $host.SetShouldExit(1)
           }
 
-  RunTestsOnPS7:
+  PS7:
     runs-on: [ windows-latest ]
     defaults:
       run:
@@ -204,7 +204,7 @@ jobs:
 
   Deploy:
     runs-on: [ windows-latest ]
-    needs: [ RunTestsOnPS5, RunTestsOnPS7 ]
+    needs: [ PS5, PS7 ]
     if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
@@ -292,7 +292,7 @@ jobs:
   UpdatePRcheck:
     if: always() && github.event_name == 'workflow_run'
     runs-on: [ windows-latest ]
-    needs: [ Initialization, RunTestsOnPS5, RunTestsOnPS7 ]
+    needs: [ Initialization, PS5, PS7 ]
     steps:
       - name: Update CI Workflow Check Run
         uses: actions/github-script@v6
@@ -303,5 +303,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.RunTestsOnPS5.result }}'
+              conclusion: '${{ needs.PS5.result }}'
             });
