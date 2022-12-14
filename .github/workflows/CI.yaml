@@ -24,14 +24,13 @@ concurrency:
 
 defaults:
   run:
-    shell: PowerShell
+    shell: powershell
 
 jobs:
   Initialization:
     runs-on: windows-latest
     outputs:
       checkRunId: ${{ steps.CreateCheckRun.outputs.checkRunId }}
-      concurrencyId: ${{ steps.CalculateConcurrencyId.outputs.concurrencyId }}
     steps:
       - name: Create CI Workflow Check Run
         id: CreateCheckRun
@@ -85,25 +84,9 @@ jobs:
             }
           }
 
-      - name: Calculate Concurrency ID
-        id: CalculateConcurrencyId
-        run: |
-          $errorActionPreference = 'STOP'
-          if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
-            $concurrencyId = '${{ github.event.workflow_run.head_branch }}'
-          }
-          else {
-            $concurrencyId = $ENV:GITHUB_REF
-          }
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "concurrencyId=$concurrencyId"
-          Write-Host "concurrencyId=$concurrencyId"
-
   AnalyzeTests:
     runs-on: [ windows-latest ]
     needs: [ Initialization ]
-    concurrency:
-      group: runTests-${{ needs.Initialization.outputs.concurrencyId }}
-      cancel-in-progress: true
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
     steps:
@@ -136,13 +119,53 @@ jobs:
       - name: Analyze
         id: Analyze
         run: |
-          Write-Host 'runTests-${{ needs.Initialization.outputs.concurrencyId }}'
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
 
-  RunTests:
+  PS5:
     runs-on: [ windows-latest ]
+    needs: [ Initialization, AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        if: github.event_name != 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  PS7:
+    runs-on: [ windows-latest ]
+    defaults:
+      run:
+        shell: pwsh
     needs: [ Initialization, AnalyzeTests ]
     strategy:
       matrix:
@@ -181,7 +204,7 @@ jobs:
 
   Deploy:
     runs-on: [ windows-latest ]
-    needs: [ RunTests ]
+    needs: [ PS5, PS7 ]
     if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
@@ -269,7 +292,7 @@ jobs:
   UpdatePRcheck:
     if: always() && github.event_name == 'workflow_run'
     runs-on: [ windows-latest ]
-    needs: [ Initialization, RunTests ]
+    needs: [ Initialization, PS5, PS7 ]
     steps:
       - name: Update CI Workflow Check Run
         uses: actions/github-script@v6
@@ -280,5 +303,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.RunTests.result }}'
+              conclusion: '${{ needs.PS5.result }}'
             });
