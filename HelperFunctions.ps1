@@ -1,4 +1,37 @@
-﻿function Get-DefaultCredential {
+﻿$useTimeOutWebClient = $false
+if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
+$Source = @"
+	using System.Net;
+ 
+	public class TimeoutWebClient : WebClient
+	{
+        int theTimeout;
+
+        public TimeoutWebClient(int timeout)
+        {
+            theTimeout = timeout;
+        }
+
+		protected override WebRequest GetWebRequest(System.Uri address)
+		{
+			WebRequest request = base.GetWebRequest(address);
+			if (request != null)
+			{
+				request.Timeout = theTimeout;
+			}
+			return request;
+		}
+ 	}
+"@;
+ 
+try {
+    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    $useTimeOutWebClient = $true
+}
+catch {}
+}
+
+function Get-DefaultCredential {
     Param(
         [string]$Message,
         [string]$DefaultUserName,
@@ -910,38 +943,61 @@ function DownloadFileLow {
         [int] $timeout = 100
     )
 
-    if ($useDefaultCredentials) {
-        $handler = New-Object System.Net.Http.HttpClientHandler
-        $handler.UseDefaultCredentials = $true
-        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
-    }
-    else {
-        $httpClient = New-Object System.Net.Http.HttpClient
-    }
-    $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
-    $headers.Keys | ForEach-Object {
-        $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
-    }
-    $stream = $null
-    $fileStream = $null
-    if ($dontOverwrite) {
-        $fileMode = [System.IO.FileMode]::CreateNew
-    }
-    else {
-        $fileMode = [System.IO.FileMode]::Create
-    }
-    try {
-        $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
-        $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-        $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
-        $fileStream.Close()
-    }
-    finally {
-        if ($fileStream) {
-            $fileStream.Dispose()
+    if ($useTimeOutWebClient) {
+        Write-Host "Using WebClient"
+        $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
+        $headers.Keys | ForEach-Object {
+            $webClient.Headers.Add($_, $headers."$_")
         }
-        if ($stream) {
-            $stream.Dispose()
+        $webClient.UseDefaultCredentials = $useDefaultCredentials
+        if (Test-Path $destinationFile -PathType Leaf) {
+            if ($dontOverwrite) { 
+                return
+            }
+            Remove-Item -Path $destinationFile -Force
+        }
+        try {
+            $webClient.DownloadFile($sourceUrl, $destinationFile)
+        }
+        finally {
+            $webClient.Dispose()
+        }
+    }
+    else {
+        Write-Host "Using HttpClient"
+        if ($useDefaultCredentials) {
+            $handler = New-Object System.Net.Http.HttpClientHandler
+            $handler.UseDefaultCredentials = $true
+            $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+        }
+        else {
+            $httpClient = New-Object System.Net.Http.HttpClient
+        }
+        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+        $headers.Keys | ForEach-Object {
+            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+        }
+        $stream = $null
+        $fileStream = $null
+        if ($dontOverwrite) {
+            $fileMode = [System.IO.FileMode]::CreateNew
+        }
+        else {
+            $fileMode = [System.IO.FileMode]::Create
+        }
+        try {
+            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+            $fileStream.Close()
+        }
+        finally {
+            if ($fileStream) {
+                $fileStream.Dispose()
+            }
+            if ($stream) {
+                $stream.Dispose()
+            }
         }
     }
 }

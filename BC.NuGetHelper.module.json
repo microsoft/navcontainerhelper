@@ -1,6 +1,7 @@
 {
     "GUID": "5ef27830-ae76-422f-8439-db8db89e9ece",
     "Author": "Freddy Kristiansen",
+    "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
     "Description": "PowerShell module with NuGet helper functions for Business Central Development",
     "CompanyName": "Microsoft",
     "CompatiblePSEditions": [
@@ -13,6 +14,7 @@
     "files": [
         "InitializeModule.ps1",
         "HelperFunctions.ps1",
+        "BC.NuGetHelper.ps1",
         "NuGet\\*"
     ]
 }

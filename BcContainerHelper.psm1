@@ -5,18 +5,13 @@ param(
     [switch] $useVolumes
 )
 
-'BC.NuGetHelper.psm1','BC.SaasHelper.psm1','BC.ALGoHelper.psm1','BC.AppSourceHelper.psm1','BC.ArtifactsHelper.psm1','BC.HelperFunctions' | ForEach-Object {
-    if (Get-Module $_) { Remove-Module $_}
-}
-
 . (Join-Path $PSScriptRoot "InitializeModule.ps1") `
     -Silent:$Silent `
     -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
-    -moduleName $MyInvocation.MyCommand.Name
-
-Import-Module (Join-Path $PSScriptRoot 'BC.HelperFunctions.psm1') -DisableNameChecking -Global -ArgumentList $silent,$bcContainerHelperConfigFile
+    -moduleName $MyInvocation.MyCommand.Name `
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "BC.HelperFunctions.ps1")
 
 if ($isMacOS) {
     throw "BcContainerHelper isn't supported on MacOS"
@@ -93,11 +88,11 @@ if ($isWindows -and !$isPsCore) {
     }
 }
 
-Import-Module (Join-Path $PSScriptRoot 'BC.ArtifactsHelper.psm1') -DisableNameChecking -Global
-Import-Module (Join-Path $PSScriptRoot 'BC.AppSourceHelper.psm1') -DisableNameChecking -Global
-Import-Module (Join-Path $PSScriptRoot 'BC.ALGoHelper.psm1') -DisableNameChecking -Global
-Import-Module (Join-Path $PSScriptRoot 'BC.SaasHelper.psm1') -DisableNameChecking -Global
-Import-Module (Join-Path $PSScriptRoot 'BC.NuGetHelper.psm1') -DisableNameChecking -Global
+. (Join-Path $PSScriptRoot 'BC.ArtifactsHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.AppSourceHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.ALGoHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.SaasHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.NuGetHelper.ps1')
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")

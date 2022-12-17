@@ -10,9 +10,4 @@ param(
     -moduleDependencies @( 'BC.HelperFunctions' )
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
-
-# AppSource specific functions
-. (Join-Path $PSScriptRoot "NuGet\New-BcNuGetPackage.ps1")
-. (Join-Path $PSScriptRoot "NuGet\Get-BcNuGetPackage.ps1")
-. (Join-Path $PSScriptRoot "NuGet\Push-BcNuGetPackage.ps1")
-. (Join-Path $PSScriptRoot "NuGet\Publish-BcNuGetPackageToContainer.ps1")
+. (Join-Path $PSScriptRoot "BC.NuGetHelper.ps1")

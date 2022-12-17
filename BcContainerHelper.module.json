@@ -1,0 +1,48 @@
+{
+    "GUID": "8e034fbc-8c30-446d-bbc3-5b3be5392491",
+    "Author": "Freddy Kristiansen",
+    "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
+    "Description": "PowerShell module, which makes it easier to work with Business Central Containers on Docker.",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "RequiredModules": [
+    ],
+    "files": [
+        "AL-Go\\*",
+        "Api\\*",
+        "AppHandling\\*",
+        "AppSource\\*",
+        "Artifacts\\*",
+        "Auth\\*",
+        "AzureAD\\*",
+        "AzureVM\\*",
+        "Bacpac\\*",
+        "Common\\*",
+        "CompanyHandling\\*",
+        "ConfigPackageHandling\\*",
+        "ContainerHandling\\*",
+        "ContainerInfo\\*",
+        "Misc\\*",
+        "NuGet\\*",
+        "ObjectHandling\\*",
+        "PackageHandling\\*",
+        "Saas\\*",
+        "SymbolHandling\\*",
+        "TenantHandling\\*",
+        "UserHandling\\*",
+        "addfonts.ps1",
+        "BcContainerHelper.ps1",
+        "BcContainerHelper.psm1",
+        "Check-BcContainerHelperPermissions.ps1",
+        "CreateALGoRepo.ps1",
+        "CreateScript.ps1",
+        "HelperFunctions.ps1",
+        "InitializeModule.ps1",
+        "Microsoft.ApplicationInsights.dll",
+        "TelemetryHelper.ps1",
+        "BC.*.ps1"
+    ]
+}
