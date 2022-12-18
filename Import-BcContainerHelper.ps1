@@ -10,7 +10,7 @@ if (($PSVersionTable.PSVersion -lt "6.0.0") -or $isWindows) {
 }
 
 $modules = @(
-    "BCContainerHelper"
+    "BcContainerHelper"
     "BC.HelperFunctions",
     "BC.ArtifactsHelper",
     "BC.AppSourceHelper",
