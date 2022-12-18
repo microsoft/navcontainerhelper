@@ -89,6 +89,7 @@ jobs:
     needs: [ Initialization ]
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
+      linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
       - name: Update CI Workflow Check Run
         if: github.event_name == 'workflow_run'
@@ -122,6 +123,9 @@ jobs:
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
+          $linuxtests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
+          Write-Host "linuxtests=$linuxtests"
 
   PS5:
     runs-on: [ windows-latest ]
@@ -202,9 +206,50 @@ jobs:
             $host.SetShouldExit(1)
           }
 
+  Linux:
+    runs-on: [ ubuntu-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ Initialization, AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.linuxtests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        if: github.event_name != 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Checkout Pull Request
+        if: github.event_name == 'workflow_run'
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
   Deploy:
     runs-on: [ windows-latest ]
-    needs: [ PS5, PS7 ]
+    needs: [ PS5, PS7, Linux ]
     if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
