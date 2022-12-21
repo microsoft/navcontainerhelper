@@ -142,7 +142,7 @@ try {
                 if ($null -eq $extensionUpload.systemId) {
                     throw "Unable to upload extension"
                 }
-                $body = (Invoke-WebRequest $_).Content
+                $body = (Invoke-WebRequest -UseBasicParsing $_).Content
                 Invoke-RestMethod `
                     -Method Patch `
                     -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
