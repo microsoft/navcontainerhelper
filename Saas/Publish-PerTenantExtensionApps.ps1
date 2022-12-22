@@ -120,7 +120,6 @@ try {
                 $appJsonFile = Join-Path $tempFolder "app.json"
                 $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 Remove-Item -Path $tempFolder -Force -Recurse
-                $body | ConvertTo-Json | out-host
                 Write-Host @newLine "Publishing and Installing"
                 $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $authHeaders).value
                 Write-Host @newLine "."
@@ -142,12 +141,12 @@ try {
                 if ($null -eq $extensionUpload.systemId) {
                     throw "Unable to upload extension"
                 }
-                $body = (Invoke-WebRequest -UseBasicParsing $_).Content
+                $fileBody = (Invoke-WebRequest -UseBasicParsing $_).Content
                 Invoke-RestMethod `
                     -Method Patch `
                     -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
                     -Headers ($authHeaders + $ifMatchHeader + $streamHeader) `
-                    -Body $body | Out-Null
+                    -Body $fileBody | Out-Null
                 Write-Host @newLine "."    
                 Invoke-RestMethod `
                     -Method Post `
