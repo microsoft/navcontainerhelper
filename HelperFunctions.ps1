@@ -75,7 +75,8 @@ function CmdDo {
         [string] $command = "",
         [string] $arguments = "",
         [switch] $silent,
-        [switch] $returnValue
+        [switch] $returnValue,
+        [string] $inputStr = ""
     )
 
     $oldNoColor = "$env:NO_COLOR"
@@ -88,6 +89,9 @@ function CmdDo {
         $pinfo.FileName = $command
         $pinfo.RedirectStandardError = $true
         $pinfo.RedirectStandardOutput = $true
+        if ($inputStr) {
+            $pinfo.RedirectStandardInput = $true
+        }
         $pinfo.WorkingDirectory = Get-Location
         $pinfo.UseShellExecute = $false
         $pinfo.Arguments = $arguments
@@ -96,7 +100,10 @@ function CmdDo {
         $p = New-Object System.Diagnostics.Process
         $p.StartInfo = $pinfo
         $p.Start() | Out-Null
-    
+        if ($inputStr) {
+            $p.StandardInput.WriteLine($inputStr)
+            $p.StandardInput.Close()
+        }
         $outtask = $p.StandardOutput.ReadToEndAsync()
         $errtask = $p.StandardError.ReadToEndAsync()
         $p.WaitForExit();
