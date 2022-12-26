@@ -51,7 +51,7 @@ try {
                 #Remove-Item -Path $destFile
                 $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
                 if ($appJson.Dependencies) {
-                    $appJson.Dependencies | % { if ($_) { 
+                    $appJson.Dependencies | ForEach-Object { if ($_) { 
                         $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
                         $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue $_.MinVersion.ToString()
                     } }
@@ -155,16 +155,17 @@ try {
                     Write-Host $installedApp.Version.GetType()
                 }
 
+                Write-Host "$($app.Version)"
                 Write-Host $app.Version
                 Write-Host $app.Version.GetType()
 
                 if (!$installedApp) {
                     $app
                 }
-                elseif ([System.Version]($app.Version) -eq $installedApp.Version ) {
+                elseif ([System.Version]"$($app.Version)" -eq $installedApp.Version ) {
                     Write-Host "$appName is already installed with the same version"
                 }
-                elseif ([System.Version]($app.Version) -lt $installedApp.Version ) {
+                elseif ([System.Version]"$($app.Version)" -lt $installedApp.Version ) {
                     Write-Host "$appName is already installed with a newer version"
                 }
                 else {
