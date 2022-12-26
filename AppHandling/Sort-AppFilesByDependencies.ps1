@@ -53,7 +53,7 @@ try {
                 $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
                 if ($appJson.Dependencies) {
                     $appJson.Dependencies | ForEach-Object { if ($_) { 
-                        $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId.Value
+                        $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
                         $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue "$($_.MinVersion.Major).$($_.MinVersion.Minor).$($_.MinVersion.Build).$($_.MinVersion.Revision)"
                     } }
                 }
