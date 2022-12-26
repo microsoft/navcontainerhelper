@@ -147,8 +147,13 @@ try {
         if ($excludeInstalledApps) {
             $script:sortedApps = $script:sortedApps | ForEach-Object {
                 $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
+                $appName | Out-Host
                 $app = $_
                 $installedApp = $excludeInstalledApps | Where-Object { $_.id -eq $app.id }
+                if ($installedApp) {
+                    $installedApp | ConvertTo-Json | Out-Host
+                }
+                $app | ConvertTo-Json | Out-Host
                 if (!$installedApp) {
                     $app
                 }
