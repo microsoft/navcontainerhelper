@@ -26,7 +26,6 @@ Function Publish-BcNuGetPackageToContainer {
     if ($package) {
         $manifest = [xml](Get-Content (Join-Path $package 'manifest.nuspec') -Encoding UTF8)
         $manifest.package.metadata.dependencies.GetEnumerator() | ForEach-Object {
-            Write-Host $_.Version
             Publish-BcNuGetPackageToContainer -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $_.id  -version $_.version -containerName $containerName -tenant $tenant -skipVerification:$skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
         }
         $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
