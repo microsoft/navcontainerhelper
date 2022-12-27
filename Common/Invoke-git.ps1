@@ -6,6 +6,8 @@
 #>
 function invoke-git {
     Param(
+        [parameter(mandatory = $false, ValueFromPipeline = $true)]
+        [string] $inputStr = "",
         [switch] $silent,
         [switch] $returnValue,
         [parameter(mandatory = $true, position = 0)][string] $command,
@@ -21,6 +23,6 @@ function invoke-git {
             $arguments += "$_ "
         }
     }
-    cmdDo -command git -arguments $arguments -silent:$silent -returnValue:$returnValue
+    cmdDo -command git -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
 }
 Export-ModuleMember -Function Invoke-git
