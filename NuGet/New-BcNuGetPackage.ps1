@@ -171,6 +171,9 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.Flush()
         $XmlObjectWriter.Close()
         
+        Write-Host "NUSPEC file:"
+        Get-Content -path $nuspecFileName -Encoding UTF8 | Out-Host
+
         $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
         $nupkgFile = Join-Path ([System.IO.Path]::GetTempPath()) $nuPkgFileName
         if (Test-Path $nuPkgFile -PathType Leaf) {
