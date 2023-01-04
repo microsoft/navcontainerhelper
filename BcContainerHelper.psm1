@@ -257,3 +257,26 @@ if ($isWindows -and !$isPsCore) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
+
+# Business Central Container Script
+$bccsFolder = Join-Path $env:APPDATA ".bccs"
+if (!(Test-Path -Path $bccsFolder -PathType Container)) {
+    New-Item -Path $bccsFolder -ItemType Container -Force -ErrorAction Ignore | Out-Null
+}
+
+$bccsScriptFolder = $PSScriptRoot
+
+. (Join-Path $PSScriptRoot "BCCS\BCCS-Update.ps1")
+. (Join-Path $PSScriptRoot "BCCS\BCCS-FileManagement.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\New-BCCSTemplate.ps1")
+. (Join-Path $PSScriptRoot "BCCS\Remove-BCCSTemplate.ps1")
+. (Join-Path $PSScriptRoot "BCCS\Get-BCCSTemplate.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\New-BCCSContainerFromTemplate.ps1")
+. (Join-Path $PSScriptRoot "BCCS\New-NavContainerFromDeployFile.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\Get-BCCSRepository.ps1")
+. (Join-Path $PSScriptRoot "BCCS\Get-BCCSImage.ps1")
+
+. (Join-Path $PSScriptRoot "BCCS\Show-BCCSAssistant.ps1")

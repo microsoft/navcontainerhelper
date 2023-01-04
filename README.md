@@ -1,27 +1,26 @@
-# BcContainerHelper
+# Business Central Container Script
 
-This repository contains a module, which makes it easier to work with Business Central and NAV Containers on Docker.
-The module is work in progress and feel free to submit pull requests and contribute with good ideas.
-Documentation will be on the wiki.
+This repository is a fork of Microsoft's NavContainerHelper repository that contains a module, which makes it easier to work with Nav Containers on Docker.
 
-# Branches
+It was forked to adjust the code to be even easier to work with and adds a template-based system to create containers. This file is by default located in your user account's AppData folder but can also be on a network drive which allows for a centralized template file to be used to create containers for different projects
 
-**NavContainerHelper** is the main repo for the NavContainerHelper PowerShell module on PowerShell Gallery. **NavContainerHelper** will as of August 1st 2020 only receive bug fixes.
+## How to use?
 
-**master** is the main repo for the BcContainerHelper PowerShell module on PowerShell Gallery. **BcContainerHelper** will from August 1st 2020 ship as release and pre-release.
+For the use of NavContainerHelper's cmdlets please refer to the original repository and it's wiki.
 
-Please report issues in the issues list.
+The BCCSAssistant is adding the following functions to the NavContainerHelper:
 
-# Contributing
+| Function                      | Description                                  |
+|-------------------------------|----------------------------------------------|
+| Get-BCCSImage                 | Returns all available images in a repository |
+| Get-BCCSTemplate              | Returns all templates                        |
+| New-BCCSContainerFromTemplate | Creates a container from a template          |
+| New-BCCSTemplate              | Creates a new template                       |
+| Remove-BCCSTemplate           | Removes an existing template                 |
+| Show-BCCSAssistant            | Shows a wizard to use the above commands      |
 
-This project welcomes contributions and suggestions.  Most contributions require you to agree to a
-Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us
-the rights to use your contribution. For details, visit https://cla.microsoft.com.
+To use all new and existing commands you have to **`Import-Module .\NavContainerHelper.psm1`**
 
-When you submit a pull request, a CLA-bot will automatically determine whether you need to provide
-a CLA and decorate the PR appropriately (e.g., label, comment). Simply follow the instructions
-provided by the bot. You will only need to do this once across all repos using our CLA.
+The currently most important command to know for this script is **`Show-BCCSAssistant`** which basically opens up a wizard that allows you to **create/remove templates**, **create containers** from those templates and and **update licenses**. This command also accepts an existing *templates.json* as a parameter to be used.
 
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
-For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
-contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
+By default your *templates.json* will be created in *%AppData%\\.bccs\templates.json*
