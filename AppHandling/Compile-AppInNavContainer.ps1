@@ -197,7 +197,17 @@ try {
     if ("$appName" -eq "") {
         $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
     }
-
+    if ([bool]($appJsonObject.PSobject.Properties.name -eq "id")) {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "id" -value $appJsonObject.id
+    }
+    elseif ([bool]($appJsonObject.PSobject.Properties.name -eq "appid")) {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "id" -value $appJsonObject.appid
+    }
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "publisher" -value $appJsonObject.Publisher
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "name" -value $appJsonObject.Name
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "version" -value $appJsonObject.Version
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "appname" -value $appName
+    
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
@@ -263,11 +273,13 @@ try {
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
     {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
         $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
     {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
         $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
     }
 
