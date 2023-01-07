@@ -58,9 +58,9 @@ function Check-BcContainerHelperPermissions {
                     Param($myUsername, $hostHelperFolder)
                     try {
                         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-                        $acl = Get-Acl -Path $hostHelperFolder
+                        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
                         $acl.AddAccessRule($rule)
-                        Set-Acl -Path $hostHelperFolder -AclObject $acl | Out-Null
+                        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl) 
                         EXIT 0
                     } catch {
                         EXIT 1
@@ -98,9 +98,9 @@ function Check-BcContainerHelperPermissions {
                         Param($myUsername, $hostsFile)
                         try {
                             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
-                            $acl = Get-Acl -Path $hostsFile
+                            $acl = [System.IO.Directory]::GetAccessControl($hostsFile)
                             $acl.AddAccessRule($rule)
-                            Set-Acl -Path $hostsFile -AclObject $acl | Out-Null
+                            [System.IO.Directory]::SetAccessControl($hostsFile,$acl) 
                             EXIT 0
                         } catch {
                             EXIT 1
@@ -166,9 +166,9 @@ function Check-BcContainerHelperPermissions {
                         Param($myUsername, $npipe)
                         try {
                             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 'Allow')
-                            $acl = Get-Acl -Path $npipe
+                            $acl = [System.IO.Directory]::GetAccessControl($npipe)
                             $acl.AddAccessRule($rule)
-                            Set-Acl -Path $npipe -AclObject $acl | Out-Null
+                            [System.IO.Directory]::SetAccessControl($npipe,$acl) 
                             exit 0
                         } catch {
                             exit 1
