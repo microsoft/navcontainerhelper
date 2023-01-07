@@ -42,9 +42,8 @@ function Check-BcContainerHelperPermissions {
             Write-Host "Checking permissions to $($bcContainerHelperConfig.hostHelperFolder)"
         }
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $access = [System.IO.Directory]::GetAccessControl($bcContainerHelperConfig.hostHelperFolder).Access | 
-                    Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
-        
+        $acl = Get-Acl -Path $bcContainerHelperConfig.hostHelperFolder
+        $access = $acl.Access | Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
         if ($access) {
             if (!$silent) {
                 Write-Host -ForegroundColor Green "$myUsername has the right permissions to $($bcContainerHelperConfig.hostHelperFolder)"
@@ -83,9 +82,8 @@ function Check-BcContainerHelperPermissions {
                 Write-Host "Checking permissions to $hostsFile"
             }
             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
-            $access = [System.IO.Directory]::GetAccessControl($hostsFile).Access | 
-                        Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType }
-    
+            $acl = Get-Acl -Path $hostsFile
+            $access = $acl.Access | Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType }
             if ($access) {
                 if (!$silent) {
                     Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostsFile"
