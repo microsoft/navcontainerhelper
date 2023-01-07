@@ -81,7 +81,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     }
 }
 
-if ($isWindows -and !$isPsCore) {
+if ($isWindows) {
     . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
     if (!$silent) {
         Check-BcContainerHelperPermissions -Silent
