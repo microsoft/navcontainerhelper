@@ -1,3 +1,7 @@
+4.0.9
+Experimental support for PowerShell 7, please report any issues on https://github.com/microsoft/navcontainerhelper/issues.
+Experimantal support for running BcContainerHelper on Linux (only non-container stuff), please report any issues on https://github.com/microsoft/navcontainerhelper/issues.
+
 4.0.8
 Add parameter 'features' to Run-AlPipeline which allows for setting the compiler features 
 Add SchemaSyncMode to Publish-PerTenantExtensionApps
