@@ -73,11 +73,11 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     }
     New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
 
-    if ($isWindows -and !$isPsCore -and !$isAdministrator) {
+    if ($isWindows -and !$isAdministrator) {
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $acl = [System.IO.Directory]::GetAccessControl($bcContainerHelperConfig.hostHelperFolder)
+        $acl = Get-Acl -Path $bcContainerHelperConfig.hostHelperFolder
         $acl.AddAccessRule($rule)
-        [System.IO.Directory]::SetAccessControl($bcContainerHelperConfig.hostHelperFolder,$acl)
+        Set-Acl -Path $bcContainerHelperConfig.hostHelperFolder -AclObject $acl | Out-Null
     }
 }
 

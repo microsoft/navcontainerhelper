@@ -42,9 +42,8 @@ function Check-BcContainerHelperPermissions {
             Write-Host "Checking permissions to $($bcContainerHelperConfig.hostHelperFolder)"
         }
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $access = [System.IO.Directory]::GetAccessControl($bcContainerHelperConfig.hostHelperFolder).Access | 
-                    Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
-        
+        $acl = Get-Acl -Path $bcContainerHelperConfig.hostHelperFolder
+        $access = $acl.Access | Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType -and $_.InheritanceFlags -eq $rule.InheritanceFlags }
         if ($access) {
             if (!$silent) {
                 Write-Host -ForegroundColor Green "$myUsername has the right permissions to $($bcContainerHelperConfig.hostHelperFolder)"
@@ -59,9 +58,9 @@ function Check-BcContainerHelperPermissions {
                     Param($myUsername, $hostHelperFolder)
                     try {
                         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-                        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+                        $acl = Get-Acl -Path $hostHelperFolder
                         $acl.AddAccessRule($rule)
-                        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl) 
+                        Set-Acl -Path $hostHelperFolder -AclObject $acl | Out-Null
                         EXIT 0
                     } catch {
                         EXIT 1
@@ -83,9 +82,8 @@ function Check-BcContainerHelperPermissions {
                 Write-Host "Checking permissions to $hostsFile"
             }
             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
-            $access = [System.IO.Directory]::GetAccessControl($hostsFile).Access | 
-                        Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType }
-    
+            $acl = Get-Acl -Path $hostsFile
+            $access = $acl.Access | Where-Object { $_.IdentityReference -eq $rule.IdentityReference -and $_.FileSystemRights -eq $rule.FileSystemRights -and $_.AccessControlType -eq $rule.AccessControlType }
             if ($access) {
                 if (!$silent) {
                     Write-Host -ForegroundColor Green "$myUsername has the right permissions to $hostsFile"
@@ -100,9 +98,9 @@ function Check-BcContainerHelperPermissions {
                         Param($myUsername, $hostsFile)
                         try {
                             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
-                            $acl = [System.IO.Directory]::GetAccessControl($hostsFile)
+                            $acl = Get-Acl -Path $hostsFile
                             $acl.AddAccessRule($rule)
-                            [System.IO.Directory]::SetAccessControl($hostsFile,$acl) 
+                            Set-Acl -Path $hostsFile -AclObject $acl | Out-Null
                             EXIT 0
                         } catch {
                             EXIT 1
@@ -168,9 +166,9 @@ function Check-BcContainerHelperPermissions {
                         Param($myUsername, $npipe)
                         try {
                             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 'Allow')
-                            $acl = [System.IO.Directory]::GetAccessControl($npipe)
+                            $acl = Get-Acl -Path $npipe
                             $acl.AddAccessRule($rule)
-                            [System.IO.Directory]::SetAccessControl($npipe,$acl) 
+                            Set-Acl -Path $npipe -AclObject $acl | Out-Null
                             exit 0
                         } catch {
                             exit 1

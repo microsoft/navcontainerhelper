@@ -163,9 +163,9 @@ if (!(Test-Path $configHelperFolder)) {
     New-Item -Path $configHelperFolder -ItemType Container -Force | Out-Null
     if ($isWindows -and !$isAdministrator) {
         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $acl = [System.IO.Directory]::GetAccessControl($configHelperFolder)
+        $acl = Get-Acl -Path $configHelperFolder
         $acl.AddAccessRule($rule)
-        [System.IO.Directory]::SetAccessControl($configHelperFolder,$acl)
+        Set-Acl -Path $configHelperFolder -AclObject $acl | Out-Null
     }
 }
 
