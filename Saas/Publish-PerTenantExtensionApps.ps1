@@ -114,7 +114,7 @@ try {
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles | ForEach-Object {
-                Write-Host @newLine "$([System.IO.Path]::GetFileName($_)) "
+                Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
                 $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
                 Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null
                 $appJsonFile = Join-Path $tempFolder "app.json"
@@ -125,20 +125,20 @@ try {
                     if ($existingApp.isInstalled) {
                         $existingVersion = [System.Version]"$($existingApp.versionMajor).$($existingApp.versionMinor).$($existingApp.versionBuild).$($existingApp.versionRevision)"
                         if ($existingVersion -ge $appJson.version) {
-                            Write-Host "Already installed"
+                            Write-Host "already installed"
                         }
                         else {
-                            Write-Host @newLine "Upgrading"
+                            Write-Host @newLine "upgrading"
                             $existingApp = $null
                         }
                     }
                     else {
-                        Write-Host @newLine "Installing"
+                        Write-Host @newLine "installing"
                         $existingApp = $null
                     }
                 }
                 else {
-                    Write-Host @newLine "Publishing and Installing"
+                    Write-Host @newLine "publishing and installing"
                 }
                 if (!$existingApp) {
                     $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $authHeaders).value
