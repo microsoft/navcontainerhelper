@@ -1,3 +1,7 @@
+4.0.10
+Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik
+Issue #2844 Problems provisioning docker using aka.ms/getbcext templates (BcContainerHelper 4.0.9)
+
 4.0.9
 Experimental support for PowerShell 7, please report any issues on https://github.com/microsoft/navcontainerhelper/issues.
 Experimantal support for running BcContainerHelper on Linux (only non-container stuff), please report any issues on https://github.com/microsoft/navcontainerhelper/issues.
