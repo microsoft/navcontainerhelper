@@ -1,5 +1,6 @@
 4.0.11
 Search for <appid>.disabledTests.json under basefolder in Run-AlPipeline and use as disabled tests
+Check whether the app is already installed in Publish-PerTenantExtensionApps
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik
