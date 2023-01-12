@@ -1,4 +1,5 @@
 4.0.11
+Search for <appid>.disabledTests.json under basefolder in Run-AlPipeline and use as disabled tests
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik

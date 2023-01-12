@@ -2001,10 +2001,15 @@ $testAppIds.Keys | ForEach-Object {
     }
     if ($folder) {
         Get-ChildItem -Path $folder -Filter "disabledTests.json" -Recurse | ForEach-Object {
-            $disabledTestsStr = Get-Content $_.FullName -Raw
+            $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
             Write-Host "Disabled Tests:`n$disabledTestsStr"
             $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
         }
+    }
+    Get-ChildItem -Path $baseFolder -Filter "$id.disabledTests.json" -Recurse | ForEach-Object {
+        $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
+        Write-Host "Disabled Tests:`n$disabledTestsStr"
+        $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
     }
     $Parameters = @{
         "containerName" = $containerName
