@@ -134,6 +134,21 @@ try {
             $appManifestPath = Join-Path $appArtifactPath "manifest.json"
             $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
     
+            $cuFixMapping = @{
+                '11.0.48794.0' = 'cu53';
+                '11.0.48962.0' = 'cu54';
+                '11.0.49061.0' = 'cu55';
+                '11.0.49175.0' = 'cu56';
+                '11.0.49240.0' = 'cu57';
+                '11.0.49345.0' = 'cu58';
+                '11.0.49497.0' = 'cu59';
+                '11.0.49618.0' = 'cu60';
+            }
+            if ($appManifest.version -in $cuFixMapping.Keys) {
+                $appManifest.cu = $cuFixMapping[$appManifest.version]
+                $appManifest | ConvertTo-Json | Set-Content -Path $appManifestPath
+            }
+    
             if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
                 $redir = $true
                 $artifactUrl = $appManifest.ApplicationUrl
