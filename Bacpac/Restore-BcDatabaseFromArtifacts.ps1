@@ -51,7 +51,7 @@ try {
         if (Test-Path $successFileName) { Remove-Item $successFileName -Force }
     }
     Write-Host "Starting Database Restore job from $($artifactUrl.split('?')[0])"
-    $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\*ContainerHelper.ps1")).FullName
+    $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\Import-BcContainerHelper.ps1")).FullName
     Write-Host $containerHelperPath
 
     $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
