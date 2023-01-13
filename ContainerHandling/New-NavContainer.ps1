@@ -33,7 +33,7 @@
  .Parameter AuthenticationEmail
   AuthenticationEmail of the admin user
  .Parameter memoryLimit
-  Memory limit for the container (default is unlimited for process isolation and 8G for hyperv isolation containers)
+  Memory limit for the container (default is unlimited for process isolation and 8G for HyperV isolation containers)
  .Parameter sqlMemoryLimit
   Memory limit for the SQL inside the container (default is no limit)
   Value can be specified as 50%, 1.5G, 1500M
@@ -480,7 +480,7 @@ try {
     Write-Host "BcContainerHelper is version $BcContainerHelperVersion"
     if ($isAdministrator) {
         Write-Host "BcContainerHelper is running as administrator"
-        Write-Host "Hyper-V is $(Get-HypervState)"
+        Write-Host "HyperV is $(Get-HypervState)"
     }
     else {
         Write-Host "BcContainerHelper is not running as administrator"
@@ -489,7 +489,7 @@ try {
         Write-Host "BcContainerHelper is running inside a Container"
     }
     Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
-    Write-Host "Host is $($os.Caption) - $hostOs"
+    Write-Host "Host is $($os.Caption) - $hostOsVersion"
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerProcess)) {
@@ -1296,12 +1296,12 @@ try {
                 }
                 else {
                     $isolation = "process"
-                    Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                    Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and HyperV is not installed. If you encounter issues, you could try to install HyperV."
                 }
             }
             else {
                 $isolation = "hyperv"
-                Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have HyperV installed or you encounter issues, you could try to specify -isolation process"
             }
 
         }
@@ -1313,6 +1313,10 @@ try {
 
     if ($isolation -eq "process" -and !$isServerHost -and ($version.Major -lt 15 -or $genericTag -lt [Version]"1.0.2.4")) {
         Write-Host -ForegroundColor Yellow "WARNING: Using process isolation on Windows Desktop OS with generic image version prior to 1.0.2.4 or NAV/BC versions prior to 15.0, might require you to use HyperV isolation or disable Windows Defender while creating the container"
+    }
+
+    if ($isolation -eq "process" -and !$isServerHost -and $os.BuildNumber -eq 22621 -and $useSSL) {
+        Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
     }
 
     AddTelemetryProperty -telemetryScope $telemetryScope -key "isolation" -value $isolation
