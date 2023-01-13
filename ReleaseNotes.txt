@@ -2,6 +2,7 @@
 Search for <appid>.disabledTests.json under basefolder in Run-AlPipeline and use as disabled tests
 Check whether the app is already installed in Publish-PerTenantExtensionApps
 Issue #2849 Issue a warning when trying to create a container with SSL and process isolation on Windows 11
+Issue #2848 Run-AlPipeline do not import Test Tool Kits if no appfolders+testfolders are present
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik
