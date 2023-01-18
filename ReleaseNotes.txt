@@ -5,6 +5,7 @@ Issue #2849 Issue a warning when trying to create a container with SSL and proce
 Issue #2848 Run-AlPipeline do not import Test Tool Kits if no appfolders+testfolders are present
 Issue #2853 Set the cu in artifact manifest for newer nav 2018 artifacts
 Issue #2859 Do not crash if emitting telemetry fails, write instructions instead.
+Issue #2861 Publish-PerTenantExtensionApps failing using the Prerelease module
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik
