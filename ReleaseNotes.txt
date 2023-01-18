@@ -3,6 +3,7 @@ Search for <appid>.disabledTests.json under basefolder in Run-AlPipeline and use
 Check whether the app is already installed in Publish-PerTenantExtensionApps
 Issue #2849 Issue a warning when trying to create a container with SSL and process isolation on Windows 11
 Issue #2848 Run-AlPipeline do not import Test Tool Kits if no appfolders+testfolders are present
+Issue #2853 Set the cu in artifact manifest for newer nav 2018 artifacts
 Issue #2859 Do not crash if emitting telemetry fails, write instructions instead.
 
 4.0.10
