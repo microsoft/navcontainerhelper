@@ -246,42 +246,50 @@ function TrackTrace {
             $telemetryScope.Properties.Add("duration", [DateTime]::Now.Subtract($telemetryScope.StartTime).TotalSeconds)
 
             if ($telemetry.Assembly -ne $null) {
-                $printCorrelationId = $telemetry.Debug
-                "Microsoft","Partner" | ForEach-Object {
-                    $clientName = "$($_)Client"
-                    $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
-                    if ($telemetry."$clientName") {
-                        $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
-                        if ($extendedTelemetry) {
-                            $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
-                            $traceTelemetry.SeverityLevel = 0
-                            $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
-                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                try {
+                    $printCorrelationId = $telemetry.Debug
+                    "Microsoft","Partner" | ForEach-Object {
+                        $clientName = "$($_)Client"
+                        $extendedTelemetry = $bcContainerHelperConfig.SendExtendedTelemetryToMicrosoft -or $_ -eq "Partner"
+                        if ($telemetry."$clientName") {
+                            $traceTelemetry = $telemetry.Assembly.CreateInstance('Microsoft.ApplicationInsights.DataContracts.TraceTelemetry')
+                            if ($extendedTelemetry) {
+                                $traceTelemetry.Message = "$($telemetryScope.Name)`n$transcript"
+                                $traceTelemetry.SeverityLevel = 0
+                                $telemetryScope.allParameters.GetEnumerator() | ForEach-Object { 
+                                    [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                                }
                             }
-                        }
-                        else {
-                            $traceTelemetry.Message = "$($telemetryScope.Name)"
-                            $traceTelemetry.SeverityLevel = 1
-                            $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
-                                [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                            else {
+                                $traceTelemetry.Message = "$($telemetryScope.Name)"
+                                $traceTelemetry.SeverityLevel = 1
+                                $telemetryScope.Parameters.GetEnumerator() | ForEach-Object { 
+                                    [void]$traceTelemetry.Properties.TryAdd("parameter[$($_.Key)]", $_.Value)
+                                }
                             }
-                        }
-                        $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
-                            [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
-                        }
-                        $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
-                        $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
-                        $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
-                        $telemetry."$clientName".TrackTrace($traceTelemetry)
-                        $telemetry."$clientName".Flush()
-                        if ($extendedTelemetry) { $printCorrelationId = $true }
-                        if ($telemetry.Debug) { 
-                            Write-Host "$_ telemetry emitted"
+                            $telemetryScope.Properties.GetEnumerator() | ForEach-Object { 
+                                [void]$traceTelemetry.Properties.TryAdd($_.Key, $_.Value)
+                            }
+                            $traceTelemetry.Context.Operation.Name = $telemetryScope.Name
+                            $traceTelemetry.Context.Operation.Id = $telemetryScope.CorrelationId
+                            $traceTelemetry.Context.Operation.ParentId = $telemetryScope.ParentId
+                            $telemetry."$clientName".TrackTrace($traceTelemetry)
+                            $telemetry."$clientName".Flush()
+                            if ($extendedTelemetry) { $printCorrelationId = $true }
+                            if ($telemetry.Debug) { 
+                                Write-Host "$_ telemetry emitted"
+                            }
                         }
                     }
+                    if ($printCorrelationId) {
+                        Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
+                    }
                 }
-                if ($printCorrelationId) {
-                    Write-Host "$($telemetryScope.Name) Telemetry Correlation Id: $($telemetryScope.CorrelationId)"
+                catch {
+                    Write-Host -ForegroundColor Red "Error emitting telemetry."
+                    Write-Host -ForegroundColor Red "This might be caused by and old version of the AZ PowerShell module on your system."
+                    Write-Host -ForegroundColor Red "Please upgrade your AZ module to the latest version in order to remove this error."
+                    Write-Host -ForegroundColor Red "If the error persists, please create an issue on https://github.com/microsoft/navcontainerhelper/issues."
                 }
             }
         }
