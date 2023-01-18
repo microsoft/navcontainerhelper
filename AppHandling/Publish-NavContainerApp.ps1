@@ -240,7 +240,7 @@ try {
                 elseif ($syncMode -eq "ForceSync") {
                     $schemaUpdateMode = "forcesync"
                 }
-                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
+                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&dependencyPublishingOption=ignore"
                 if ($tenant) {
                     $url += "&tenant=$tenant"
                 }
