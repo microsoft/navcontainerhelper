@@ -120,7 +120,7 @@ try {
                 $appJsonFile = Join-Path $tempFolder "app.json"
                 $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
                 Remove-Item -Path $tempFolder -Force -Recurse
-                $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id }
+                $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {
                         $existingVersion = [System.Version]"$($existingApp.versionMajor).$($existingApp.versionMinor).$($existingApp.versionBuild).$($existingApp.versionRevision)"
