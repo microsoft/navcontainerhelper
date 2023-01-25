@@ -406,7 +406,15 @@ try {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version)))})) {
+
+        $existingApp = $existingApps | Where-Object {
+            if (($dependency.appId) -and ($platformversion.Major -ge 19)) {
+                ($_.AppId -eq $dependency.appId -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            }
+            else {
+                (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
+            }
+        if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $appId = $dependency.appId
@@ -425,7 +433,7 @@ try {
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
                 $appIdParam = ''
-                if ($appId) {
+                if ($appId -and $platformversion.Major -ge 19) {
                     $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
                 }
                 else {
@@ -450,8 +458,8 @@ try {
                         }
                     }
                     if ($throw) {
-                        Write-Host "::Warning::Couldn't download synbols'"
-                        #throw (GetExtendedErrorMessage $_)
+                        Write-Host "Couldn't download synbols'"
+                        throw (GetExtendedErrorMessage $_)
                     }
                 }
                 if (Test-Path -Path $symbolsFile) {
@@ -479,16 +487,7 @@ try {
                                 }
             
                                 foreach ($dependency in $manifest.dependencies) {
-                                    try { 
-                                        $appId = $dependency.id
-                                    } catch {
-                                        try {
-                                            $appId = $dependency.appId
-                                        }
-                                        catch {
-                                            $appId = ''
-                                        }
-                                    }
+                                    try { $appId = $dependency.id } catch { try { $appId = $dependency.appId } catch { $appId = '' } }
                                     @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }
@@ -514,11 +513,8 @@ try {
                     $addDependencies | ForEach-Object {
                         $addDependency = $_
                         $found = $false
-                        Write-Host "$($addDependency.Name) from $($addDependency.Publisher) with $($addDependency.appid) and version $($addDependency.version)"
                         $dependencies | ForEach-Object {
-                            Write-Host "check $($_.Name) from $($_.Publisher) with $($_.appid) and version $($_.version)"
                             if ((($_.appId) -and ($_.appId -eq $addDependency.appId)) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
-                                Write-Host "Found dependency"
                                 $found = $true
                             }
                         }
