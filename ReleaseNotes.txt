@@ -8,6 +8,7 @@ Issue #2859 Do not crash if emitting telemetry fails, write instructions instead
 Issue #2861 Publish-PerTenantExtensionApps failing using the Prerelease module
 Issue #2858 Publish to Dev Scope with upgrade causes dependency issues
 Issue #2868 New-BcImage with 21.0 and TestToolkit installed won't work without specifying license
+Issue #2867 Compile-AppInBCContainer not using Application ID on downloading symbols
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik

@@ -274,18 +274,18 @@ try {
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
     {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
     {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test)
     {
-        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "appId" = ''; "version" = $appJsonObject.test }
         if (([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
             throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
         }
@@ -294,7 +294,8 @@ try {
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
     {
         $appJsonObject.dependencies | ForEach-Object {
-            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
+            try { $appId = $_.id } catch { $appId = $_.appId }
+            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "appId" = $appId; "version" = $_.version }
         }
     }
 
@@ -405,12 +406,25 @@ try {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version)))})) {
+        Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
+        $existingApp = $existingApps | Where-Object {
+            if (($dependency.appId) -and ($platformversion -ge [System.Version]"19.0.0.0")) {
+                ($_.AppId -eq $dependency.appId -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            }
+            else {
+                (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
+            }
+        }
+        if ($existingApp) {
+            Write-Host "Dependency App exists"
+        }
+        if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
             $name = $dependency.name
+            $appId = $dependency.appId
             $version = $dependency.version
             $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
+            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | ForEach-Object {
                 $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
             if ($headers -eq @{} -and !$useDefaultCredentials) {
@@ -422,7 +436,12 @@ try {
     
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
-                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
+                if ($appId -and $platformversion -ge [System.Version]"20.0.0.0") {
+                    $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
+                }
+                else {
+                    $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
+                }
                 Write-Host "Url : $Url"
                 try {
                     DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
@@ -467,16 +486,17 @@ try {
                                 $manifest = $package.ReadNavAppManifest()
                                 
                                 if ($manifest.application) {
-                                    @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                                    @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
                                 }
             
                                 foreach ($dependency in $manifest.dependencies) {
-                                    @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                                    try { $appId = $dependency.id } catch { try { $appId = $dependency.appId } catch { $appId = '' } }
+                                    @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }
                             catch [System.Reflection.ReflectionTypeLoadException] {
                                 if ($_.Exception.LoaderExceptions) {
-                                    $_.Exception.LoaderExceptions | % {
+                                    $_.Exception.LoaderExceptions | ForEach-Object {
                                         Write-Host "LoaderException: $($_.Message)"
                                     }
                                 }
@@ -493,11 +513,11 @@ try {
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
 
-                    $addDependencies | % {
+                    $addDependencies | ForEach-Object {
                         $addDependency = $_
                         $found = $false
-                        $dependencies | % {
-                            if ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name) {
+                        $dependencies | ForEach-Object {
+                            if ((($_.appId) -and ($_.appId -eq $addDependency.appId)) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
                                 $found = $true
                             }
                         }
@@ -660,13 +680,13 @@ try {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
     }
     else {
-        $result | % { $outputTo.Invoke($_) }
+        $result | ForEach-Object { $outputTo.Invoke($_) }
         if ($devOpsResult -like "*task.complete result=Failed*") {
             throw "App generation failed"
         }
     }
 
-    $result | Where-Object { $_ -like "App generation failed*" } | % { throw $_ }
+    $result | Where-Object { $_ -like "App generation failed*" } | ForEach-Object { throw $_ }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName
