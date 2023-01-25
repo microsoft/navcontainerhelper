@@ -435,7 +435,7 @@ try {
                 $name = [uri]::EscapeDataString($name)
                 $appIdParam = ''
                 if ($appId -and $platformversion.Major -ge 19) {
-                    $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
+                    $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)appId=$($appId)&versionText=$($version)&tenant=$tenant"
                 }
                 else {
                     $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)$appIdParam&tenant=$tenant"
