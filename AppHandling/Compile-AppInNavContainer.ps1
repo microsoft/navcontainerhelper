@@ -406,10 +406,9 @@ try {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        Write-Host "Processing dependency $($dependency.Name) $($dependency.Version) $($dependency.Publisher) $($dependency.AppId)"
+        Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
             if (($dependency.appId) -and ($platformversion -ge [System.Version]"19.0.0.0")) {
-                Write-Host "$($_.AppId) $($_.Version)"
                 ($_.AppId -eq $dependency.appId -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
             }
             else {
@@ -417,7 +416,7 @@ try {
             }
         }
         if ($existingApp) {
-            Write-Host "App exists"
+            Write-Host "Dependency App exists"
         }
         if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
