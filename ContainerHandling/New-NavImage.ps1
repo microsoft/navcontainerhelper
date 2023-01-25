@@ -192,6 +192,17 @@ try {
         }
     }
 
+    if ($appManifest.version -like "21.0.*" -and $licenseFile -eq "") {
+        Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
+        $country = $appManifest.Country.ToLowerInvariant()
+        if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
+            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+        }
+        else {
+            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+        }
+    }
+
     $dbstr = ""
     $mtstr = ""
     if (!$imageName.Contains(':')) {
@@ -483,7 +494,7 @@ try {
                         $licenseFilePath = $licenseFile
                     }
                 }
-        
+                
                 Write-Host "Files in $($myfolder):"
                 get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
         
