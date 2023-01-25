@@ -505,7 +505,7 @@ try {
                         $found = $false
                         Write-Host "$($addDependency.Name) from $($addDependency.Publisher) with $($addDependency.appid) and version $($addDependency.version)"
                         $dependencies | ForEach-Object {
-                            Write-Host "check $($dependency.Name) from $($dependency.Publisher) with $($dependency.appid) and version $($dependency.version)"
+                            Write-Host "check $($_.Name) from $($_.Publisher) with $($_.appid) and version $($_.version)"
                             if (($_.appId -ne '' -and $_.appId -eq $addDependency.appId) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
                                 $found = $true
                             }
