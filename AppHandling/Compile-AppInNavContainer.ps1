@@ -477,7 +477,16 @@ try {
                                 }
             
                                 foreach ($dependency in $manifest.dependencies) {
-                                    try { $appId = $dependency.id } catch { $appId = $dependency.appId }
+                                    try { 
+                                        $appId = $dependency.id
+                                    } catch {
+                                        try {
+                                            $appId = $dependency.appId
+                                        }
+                                        catch {
+                                            $appId = ''
+                                        }
+                                    }
                                     @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }
@@ -506,7 +515,8 @@ try {
                         Write-Host "$($addDependency.Name) from $($addDependency.Publisher) with $($addDependency.appid) and version $($addDependency.version)"
                         $dependencies | ForEach-Object {
                             Write-Host "check $($_.Name) from $($_.Publisher) with $($_.appid) and version $($_.version)"
-                            if (($_.appId -ne '' -and $_.appId -eq $addDependency.appId) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
+                            if ((($_.appId) -and ($_.appId -eq $addDependency.appId)) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
+                                Write-Host "Found dependency"
                                 $found = $true
                             }
                         }
