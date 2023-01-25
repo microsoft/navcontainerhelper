@@ -408,7 +408,7 @@ try {
         $dependency = $dependencies[$depidx]
 
         $existingApp = $existingApps | Where-Object {
-            if (($dependency.appId) -and ($platformversion.Major -ge 19)) {
+            if (($dependency.appId) -and ($platformversion.Major -ge 20)) {
                 ($_.AppId -eq $dependency.appId -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
             }
             else {
@@ -434,7 +434,7 @@ try {
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
                 $appIdParam = ''
-                if ($appId -and $platformversion.Major -ge 19) {
+                if ($appId -and $platformversion.Major -ge 20) {
                     $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)appId=$($appId)&versionText=$($version)&tenant=$tenant"
                 }
                 else {
