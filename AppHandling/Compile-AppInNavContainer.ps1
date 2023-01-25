@@ -473,11 +473,12 @@ try {
                                 $manifest = $package.ReadNavAppManifest()
                                 
                                 if ($manifest.application) {
-                                    @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                                    @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
                                 }
             
                                 foreach ($dependency in $manifest.dependencies) {
-                                    @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                                    try { $appId = $dependency.id } catch { $appId = $dependency.appId }
+                                    @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }
                             catch [System.Reflection.ReflectionTypeLoadException] {
@@ -499,11 +500,11 @@ try {
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
 
-                    $addDependencies | % {
+                    $addDependencies | ForEach-Object {
                         $addDependency = $_
                         $found = $false
-                        $dependencies | % {
-                            if ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name) {
+                        $dependencies | ForEach-Object {
+                            if (($_.appId -ne '' -and $_.appId -eq $addDependency.appId) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
                                 $found = $true
                             }
                         }
