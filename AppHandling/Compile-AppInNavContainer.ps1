@@ -274,18 +274,18 @@ try {
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
     {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
     {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
     }
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test)
     {
-        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "appId" = ''; "version" = $appJsonObject.test }
         if (([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
             throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
         }
@@ -294,7 +294,8 @@ try {
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
     {
         $appJsonObject.dependencies | ForEach-Object {
-            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
+            try { $appId = $_.id } catch { $appId = $_.appId }
+            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "appId" = $appId; "version" = $_.version }
         }
     }
 
@@ -423,7 +424,11 @@ try {
     
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
-                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&appId=$appId&tenant=$tenant"
+                $appIdParam = ''
+                if ($appId) {
+                    $appIdParam = "&appId=$appId"
+                }
+                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)$appIdParam&tenant=$tenant"
                 Write-Host "Url : $Url"
                 try {
                     DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
