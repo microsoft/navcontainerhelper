@@ -406,14 +406,18 @@ try {
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-
+        Write-Host "Processing dependency $($dependency.Name) $($dependency.Version) $($dependency.Publisher) $($dependency.AppId)"
         $existingApp = $existingApps | Where-Object {
-            if (($dependency.appId) -and ($platformversion -ge [System.Version]"20.0.0.0")) {
+            if (($dependency.appId) -and ($platformversion -ge [System.Version]"19.0.0.0")) {
+                Write-Host "$($_.AppId) $($_.Version)"
                 ($_.AppId -eq $dependency.appId -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
             }
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
             }
+        }
+        if ($existingApp) {
+            Write-Host "App exists"
         }
         if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
@@ -433,7 +437,6 @@ try {
     
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
-                $appIdParam = ''
                 if ($appId -and $platformversion -ge [System.Version]"20.0.0.0") {
                     $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
                 }
@@ -459,7 +462,7 @@ try {
                         }
                     }
                     if ($throw) {
-                        Write-Host "Couldn't download synbols'"
+                        Write-Host "ERROR $($_.Exception.Message)"
                         throw (GetExtendedErrorMessage $_)
                     }
                 }
