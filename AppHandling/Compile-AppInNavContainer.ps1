@@ -441,7 +441,7 @@ try {
                     $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
                 }
                 else {
-                    $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)$appIdParam&tenant=$tenant"
+                    $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
                 }
                 Write-Host "Url : $Url"
                 try {
