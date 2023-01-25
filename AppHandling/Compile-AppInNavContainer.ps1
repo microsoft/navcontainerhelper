@@ -299,11 +299,11 @@ try {
         }
     }
 
+    $existingApps = @()
     if (!$updateSymbols) {
         $existingApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
                 $appInfo = Get-NavAppInfo -Path $_.FullName
-                #Write-Host "FileName=$($_.FullName), Id=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
                 $appInfo
             }
         } -ArgumentList $containerSymbolsFolder
