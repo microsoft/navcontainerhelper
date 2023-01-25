@@ -426,9 +426,11 @@ try {
                 $name = [uri]::EscapeDataString($name)
                 $appIdParam = ''
                 if ($appId) {
-                    $appIdParam = "&appId=$appId"
+                    $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
                 }
-                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)$appIdParam&tenant=$tenant"
+                else {
+                    $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)$appIdParam&tenant=$tenant"
+                }
                 Write-Host "Url : $Url"
                 try {
                     DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
