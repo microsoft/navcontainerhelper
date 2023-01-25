@@ -414,13 +414,14 @@ try {
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
             }
+        }
         if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
             $name = $dependency.name
             $appId = $dependency.appId
             $version = $dependency.version
             $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
+            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | ForEach-Object {
                 $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
             if ($headers -eq @{} -and !$useDefaultCredentials) {
@@ -493,7 +494,7 @@ try {
                             }
                             catch [System.Reflection.ReflectionTypeLoadException] {
                                 if ($_.Exception.LoaderExceptions) {
-                                    $_.Exception.LoaderExceptions | % {
+                                    $_.Exception.LoaderExceptions | ForEach-Object {
                                         Write-Host "LoaderException: $($_.Message)"
                                     }
                                 }
@@ -677,13 +678,13 @@ try {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
     }
     else {
-        $result | % { $outputTo.Invoke($_) }
+        $result | ForEach-Object { $outputTo.Invoke($_) }
         if ($devOpsResult -like "*task.complete result=Failed*") {
             throw "App generation failed"
         }
     }
 
-    $result | Where-Object { $_ -like "App generation failed*" } | % { throw $_ }
+    $result | Where-Object { $_ -like "App generation failed*" } | ForEach-Object { throw $_ }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName
