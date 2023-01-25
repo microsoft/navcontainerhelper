@@ -450,8 +450,8 @@ try {
                         }
                     }
                     if ($throw) {
-                        Write-Host "ERROR $($_.Exception.Message)"
-                        throw (GetExtendedErrorMessage $_)
+                        Write-Host "::Warning::Couldn't download synbols'"
+                        #throw (GetExtendedErrorMessage $_)
                     }
                 }
                 if (Test-Path -Path $symbolsFile) {
