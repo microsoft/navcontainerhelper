@@ -408,6 +408,7 @@ try {
         if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version)))})) {
             $publisher = $dependency.publisher
             $name = $dependency.name
+            $appId = $dependency.appId
             $version = $dependency.version
             $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
@@ -422,7 +423,7 @@ try {
     
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
-                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
+                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&appId=$appId&tenant=$tenant"
                 Write-Host "Url : $Url"
                 try {
                     DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
