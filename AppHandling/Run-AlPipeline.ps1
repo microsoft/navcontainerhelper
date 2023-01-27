@@ -1525,12 +1525,31 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName
                 $previousApps | ForEach-Object {
                     $appFile = $_
-
-                    $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                        param($appFile)
-
-                        Get-NavAppInfo -Path $appFile
-                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                    if (Test-BcContainer -containerName $containerName) {
+                        $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                            param($appFile)
+                            Get-NavAppInfo -Path $appFile
+                        } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                    }
+                    else {
+                        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+                        try {
+                            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
+                            $appJsonFile = Join-Path $tmpFolder "app.json"
+                            $appInfo = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                        }
+                        catch {
+                            if ($_.exception.message -eq "You cannot extract a runtime package") {
+                                throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
+                            }
+                            else {
+                                throw "Unable to extract and analyze appFile $appFile"
+                            }
+                        }
+                        finally {
+                            Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+                        }
+                    }
 
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
