@@ -318,7 +318,7 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
     Write-Host $path
     Write-Host $name
     if ($path) {
-        if (!$path.contains(':')) {
+        if (-not [System.IO.Path]::IsPathRooted($path)) {
             if (Test-Path -path (Join-Path $baseFolder $path)) {
                 $path = Join-Path $baseFolder $path -Resolve
             }
