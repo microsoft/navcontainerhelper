@@ -2212,7 +2212,7 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($containerEventLogFile) {
+    if (!$filesOnly -and $containerEventLogFile) {
         try {
             Write-Host "Get Event Log from container"
             $eventlogFile = Get-BcContainerEventLog -containerName $containerName -doNotOpen
