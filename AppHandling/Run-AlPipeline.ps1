@@ -190,6 +190,10 @@
   Override function parameter Get-BcContainerAppRuntimePackage
  .Parameter RemoveBcContainer
   Override function parameter for Remove-BcContainer
+ .Parameter GetBestGenericImageName
+  Override function parameter for Get-BestGenericImageName
+ .Parameter GetBcContainerEventLog
+  Override function parameter for Get-BcContainerEventLog
  .Parameter InstallMissingDependencies
   Override function parameter for Installing missing dependencies
  .Example
@@ -302,6 +306,8 @@ Param(
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
     [scriptblock] $RemoveBcContainer,
+    [scriptblock] $GetBestGenericImageName,
+    [scriptblock] $GetBcContainerEventLog,
     [scriptblock] $InstallMissingDependencies
 )
 
@@ -721,6 +727,18 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+if ($GetBestGenericImageName) {
+    Write-Host -ForegroundColor Yellow "GetBestGenericImageName override"; Write-Host $GetBestGenericImageName.ToString()
+}
+else {
+    $GetBestGenericImageName = { Param([Hashtable]$parameters) Get-BestGenericImageName @parameters }
+}
+if ($GetBcContainerEventLog) {
+    Write-Host -ForegroundColor Yellow "GetBcContainerEventLog override"; Write-Host $GetBcContainerEventLog.ToString()
+}
+else {
+    $GetBcContainerEventLog = { Param([Hashtable]$parameters) Get-BcContainerEventLog @parameters }
+}
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
 }
@@ -747,7 +765,10 @@ Write-Host -ForegroundColor Yellow @'
 '@
 
 if (!$useGenericImage) {
-    $useGenericImage = Get-BestGenericImageName -filesOnly:$filesOnly
+    $Parameters = @{
+        "filesOnly" = $filesOnly
+    }
+    $useGenericImage = Invoke-Command -ScriptBlock $GetBestGenericImageName -ArgumentList $Parameters
 }
 
 Write-Host "Pulling $useGenericImage"
@@ -2236,7 +2257,11 @@ Measure-Command {
     if (!$filesOnly -and $containerEventLogFile) {
         try {
             Write-Host "Get Event Log from container"
-            $eventlogFile = Get-BcContainerEventLog -containerName $containerName -doNotOpen
+            $Parameters = @{
+                "containerName" = $containerName
+                "doNotOpen" = $true
+            }
+            $eventlogFile = Invoke-Command -ScriptBlock $GetBcContainerEventLog -ArgumentList $Parameters
             Copy-Item -Path $eventLogFile -Destination $containerEventLogFile
         }
         catch {}
