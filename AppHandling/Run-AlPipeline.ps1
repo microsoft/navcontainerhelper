@@ -1556,7 +1556,7 @@ Write-Host -ForegroundColor Yellow @'
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                     $previousAppInfos += @(@{
-                        "AppId" = $ppId.ToLowerInvariant()
+                        "AppId" = $appId.ToLowerInvariant()
                         "Publisher" = $appInfo.Publisher
                         "Name" = $appInfo.Name
                         "Version" = $appInfo.Version
