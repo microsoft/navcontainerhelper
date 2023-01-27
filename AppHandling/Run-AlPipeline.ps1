@@ -1530,6 +1530,7 @@ Write-Host -ForegroundColor Yellow @'
                             param($appFile)
                             Get-NavAppInfo -Path $appFile
                         } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                        $appId = $appInfo.AppId
                     }
                     else {
                         $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
@@ -1537,6 +1538,7 @@ Write-Host -ForegroundColor Yellow @'
                             Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
                             $appJsonFile = Join-Path $tmpFolder "app.json"
                             $appInfo = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                            $appId = $appInfo.Id
                         }
                         catch {
                             if ($_.exception.message -eq "You cannot extract a runtime package") {
@@ -1554,7 +1556,7 @@ Write-Host -ForegroundColor Yellow @'
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                     $previousAppInfos += @(@{
-                        "AppId" = $appInfo.AppId.ToLowerInvariant()
+                        "AppId" = $ppId.ToLowerInvariant()
                         "Publisher" = $appInfo.Publisher
                         "Name" = $appInfo.Name
                         "Version" = $appInfo.Version
