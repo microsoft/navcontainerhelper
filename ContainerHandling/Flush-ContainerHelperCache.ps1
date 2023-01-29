@@ -42,6 +42,7 @@ try {
            Write-Host "Other process terminated abnormally"
         }
 
+        $artifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
         $caches = $cache.ToLowerInvariant().Split(',')
     
         $folders = @()
@@ -54,7 +55,6 @@ try {
         }
     
         if ($caches.Contains('all') -or $caches.Contains('bcartifacts') -or $caches.Contains('sandboxartifacts')) {
-            $artifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
             $subfolder = "*"
             if (!($caches.Contains('all') -or $caches.Contains('bcartifacts'))) {
                 $subfolder = "sandbox"
@@ -135,7 +135,7 @@ try {
                         "artifactUrl=https://bcartifacts.azureedge.net/",
                         "artifactUrl=https://bcinsider.azureedge.net/",
                         "artifactUrl=https://bcprivate.azureedge.net/",
-                        "artifactUrl=https://bcpublicpreview.azureedge.net/" | % {
+                        "artifactUrl=https://bcpublicpreview.azureedge.net/" | ForEach-Object {
                             if ($artifactUrl -like "$($_)*") {
                                 $cacheFolder = Join-Path $artifactsCacheFolder $artifactUrl.SubString($_.Length)
                                 if (-not (Test-Path $cacheFolder)) {
