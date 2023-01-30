@@ -12,6 +12,7 @@ Issue #2867 Compile-AppInBCContainer not using Application ID on downloading sym
 Issue #2865 NavSip.dll missing
 Issue #2864 Flush-ContainerHelperCache unexpectedly removes an image
 Issue #2760 Database connection string not used in New-BcContainerWizard on Azure VM
+JIT Install dotnet 6.0.13 if Generic image 1.0.2.13 or below is used for Business Central version 22 or above
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik

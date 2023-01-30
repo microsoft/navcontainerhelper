@@ -385,7 +385,6 @@ try {
                 ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
         
                 throw "The container operating system is newer than the host operating system, cannot use image"
-            
             }
         
             if ($hostOsVersion -eq $containerOsVersion) {
@@ -602,7 +601,14 @@ try {
                         $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
                     }
                 }
-        
+
+                $InstallDotNet = ""
+                if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
+                    Download-File -source "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" -destinationFile (Join-Path $buildFolder "dotnet-win.exe")
+                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
+                    $InstallDotNet = "RUN start-process -Wait -FilePath \dotnet-win.exe -ArgumentList /quiet`n"
+                }
+
                 $TestToolkitParameter = ""
                 if ($genericTag -ge [Version]"0.1.0.18") {
                     if ($includeTestToolkit) {
@@ -634,6 +640,7 @@ ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsB
 COPY my /run/
 COPY NAVDVD /NAVDVD/
 $DockerFileAddFonts
+$InstallDotNet
 
 RUN \Run\start.ps1 -installOnly$multitenantParameter$TestToolkitParameter
 
