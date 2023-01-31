@@ -1702,7 +1702,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
 
-    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13" -and "$imageName" -eq "") {
+    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13") {
         if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
             ('# Invoke default behavior
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
