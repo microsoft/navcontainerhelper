@@ -287,9 +287,8 @@ function TrackTrace {
                 }
                 catch {
                     Write-Host -ForegroundColor Red "Error emitting telemetry."
-                    Write-Host -ForegroundColor Red "This might be caused by and old version of the AZ PowerShell module on your system."
-                    Write-Host -ForegroundColor Red "Please upgrade your AZ module to the latest version in order to remove this error."
-                    Write-Host -ForegroundColor Red "If the error persists, please create an issue on https://github.com/microsoft/navcontainerhelper/issues."
+                    Write-Host -ForegroundColor Red "This might be caused by and old version of dotnet, you need at least dotnet 6.0."
+                    Write-Host -ForegroundColor Red "Please upgrade dotnet here: https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
                 }
             }
         }
@@ -401,9 +400,8 @@ function TrackException {
                 }
                 catch {
                     Write-Host -ForegroundColor Red "Error emitting telemetry."
-                    Write-Host -ForegroundColor Red "This might be caused by and old version of the AZ PowerShell module on your system."
-                    Write-Host -ForegroundColor Red "Please upgrade your AZ module to the latest version in order to remove this error."
-                    Write-Host -ForegroundColor Red "If the error persists, please create an issue on https://github.com/microsoft/navcontainerhelper/issues."
+                    Write-Host -ForegroundColor Red "This might be caused by and old version of dotnet, you need at least dotnet 6.0."
+                    Write-Host -ForegroundColor Red "Please upgrade dotnet here: https://dotnet.microsoft.com/en-us/download/dotnet/6.0"
                 }
             }
         }

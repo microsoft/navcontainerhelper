@@ -13,6 +13,8 @@ Issue #2865 NavSip.dll missing
 Issue #2864 Flush-ContainerHelperCache unexpectedly removes an image
 Issue #2760 Database connection string not used in New-BcContainerWizard on Azure VM
 JIT Install dotnet 6.0.13 if Generic image 1.0.2.13 or below is used for Business Central version 22 or above
+Issue #2783 Run-AlValidation doesnt accept Third-Party Runtime-App
+Issue #2874 vNext insider BC: "The property 'Value' cannot be found on this object. Verify that the property exists and can be set." during container creation
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik
