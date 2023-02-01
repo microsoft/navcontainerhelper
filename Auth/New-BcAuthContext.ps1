@@ -221,6 +221,8 @@ try {
             
             $deviceLoginStart = [DateTime]::Now
             $accessToken = ""
+            $userCode = ""
+            $message = ""
             $cnt = 0
     
             if ($deviceCode -eq "") {
@@ -239,6 +241,8 @@ try {
                 Write-Host $DeviceCodeRequest.message -ForegroundColor Yellow
                 Write-Host -NoNewline "Waiting for authentication"
                 $deviceCode = $DeviceCodeRequest.device_code
+                $userCode = $DeviceCodeRequest.user_code
+                $message = $DeviceCodeRequest.message
             }
 
             $TokenRequestParams = @{
@@ -332,6 +336,8 @@ try {
                     "appid"        = ""
                     "name"         = ""
                     "upn"          = ""
+                    "userCode"     = $userCode
+                    "message"      = $message
                 }
             }
         }
