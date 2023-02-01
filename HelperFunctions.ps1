@@ -851,10 +851,11 @@ Function CreatePsTestToolFolder {
 
     Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
         if (!(Test-Path $myNewtonSoftDllPath)) {
-            $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll").FullName
+            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
             if (!(Test-Path $newtonSoftDllPath)) {
-                $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
             }
+            $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
             Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
         }
         if (!(Test-Path $myClientDllPath)) {
