@@ -269,8 +269,11 @@ try {
     
                 Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
                 
-                    $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     if (!(Test-Path $myNewtonSoftDllPath)) {
+                        $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll").FullName
+                        if (!(Test-Path $newtonSoftDllPath)) {
+                            $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+                        }
                         Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
                     }
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -372,7 +375,10 @@ try {
 
                 $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
     
-                    $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+                    $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll").FullName
+                    if (!(Test-Path $newtonSoftDllPath)) {
+                        $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+                    }
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
                     $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
                     [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
