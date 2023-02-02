@@ -445,6 +445,17 @@ try {
         
                 $myFolder = Join-Path $buildFolder "my"
                 new-Item -Path $myFolder -ItemType Directory | Out-Null
+
+                $InstallDotNet = ""
+                if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
+                    Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
+                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
+                    Write-Host "Patching prompt.ps1 due to issue #2891"
+                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
+                    $myScripts += @( "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" )
+                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.13-win.exe" -ArgumentList /quiet'
+                }
             
                 $myScripts | ForEach-Object {
                     if ($_ -is [string]) {
@@ -600,13 +611,6 @@ try {
                         Copy-Item -Path (Join-Path $PSScriptRoot "..\AddFonts.ps1") -Destination $fontsFolder
                         $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
                     }
-                }
-
-                $InstallDotNet = ""
-                if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
-                    Download-File -source "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" -destinationFile (Join-Path $buildFolder "dotnet-win.exe")
-                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
-                    $InstallDotNet = "RUN start-process -Wait -FilePath \dotnet-win.exe -ArgumentList /quiet`n"
                 }
 
                 $TestToolkitParameter = ""
