@@ -491,7 +491,13 @@ try {
                                 }
             
                                 foreach ($dependency in $manifest.dependencies) {
-                                    try { $appId = $dependency.id } catch { try { $appId = $dependency.appId } catch { $appId = '' } }
+                                    $appId = ''
+                                    if ($dependency.psobject.Properties.name -eq 'appid') {
+                                        $appId = $dependency.appid
+                                    }
+                                    elseif ($dependency.psobject.Properties.name -eq 'id') {
+                                        $appId = $dependency.id
+                                    }
                                     @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }
