@@ -1,3 +1,6 @@
+4.0.12
+Issue #2891 NextMajor builds are broken
+
 4.0.11
 Search for <appid>.disabledTests.json under basefolder in Run-AlPipeline and use as disabled tests
 Check whether the app is already installed in Publish-PerTenantExtensionApps
