@@ -1,3 +1,6 @@
+4.0.13
+Issue #2891 NextMajor builds are broken - New-BcImage fixes
+
 4.0.12
 Issue #2891 NextMajor builds are broken
 
