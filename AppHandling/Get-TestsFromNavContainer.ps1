@@ -62,7 +62,7 @@ function Get-TestsFromBcContainer {
         [int] $testPage,
         [string] $culture = "en-US",
         [string] $timezone = "",
-        [switch] $debugMode,
+        [switch] $debugMode = $bcContainerHelperConfig.debugMode,
         [switch] $ignoreGroups,
         [switch] $usePublicWebBaseUrl,
         [string] $useUrl,

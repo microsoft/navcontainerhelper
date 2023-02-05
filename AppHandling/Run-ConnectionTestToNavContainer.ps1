@@ -49,7 +49,7 @@ function Run-ConnectionTestToBcContainer {
         [timespan] $interactionTimeout = [timespan]::FromHours(24),
         [string] $culture = "en-US",
         [string] $timezone = "",
-        [switch] $debugMode,
+        [switch] $debugMode = $bcContainerHelperConfig.debugMode,
         [switch] $usePublicWebBaseUrl,
         [string] $useUrl = "",
         [switch] $connectFromHost,

@@ -93,6 +93,7 @@ function Get-ContainerHelperConfig {
             "UseNewFormatForGetBcContainerAppInfo" = $false
             "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
             "RenewClientContextBetweenTests" = $false
+            "DebugMode" = $false
         }
 
         if ($isInsider) {

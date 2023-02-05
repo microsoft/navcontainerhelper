@@ -120,7 +120,7 @@ function Run-TestsInBcContainer {
         [int] $testPage,
         [string] $culture = "en-US",
         [string] $timezone = "",
-        [switch] $debugMode,
+        [switch] $debugMode = $bcContainerHelperConfig.debugMode,
         [switch] $restartContainerAndRetry,
         [switch] $usePublicWebBaseUrl,
         [string] $useUrl = "",

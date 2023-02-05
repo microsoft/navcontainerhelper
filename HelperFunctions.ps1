@@ -955,7 +955,7 @@ function DownloadFileLow {
     )
 
     if ($useTimeOutWebClient) {
-        Write-Host "Using WebClient"
+        Write-Host "Downloading using WebClient"
         $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
         $headers.Keys | ForEach-Object {
             $webClient.Headers.Add($_, $headers."$_")
@@ -975,7 +975,7 @@ function DownloadFileLow {
         }
     }
     else {
-        Write-Host "Using HttpClient"
+        Write-Host "Downloading using HttpClient"
         if ($useDefaultCredentials) {
             $handler = New-Object System.Net.Http.HttpClientHandler
             $handler.UseDefaultCredentials = $true
