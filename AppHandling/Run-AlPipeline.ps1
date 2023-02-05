@@ -356,7 +356,7 @@ Function UpdateLaunchJson {
     $launchSettings | ConvertTo-Json | Out-Host
     $oldSettings = $launchJson.configurations | Where-Object { $_.name -eq $launchsettings.name }
     if ($oldSettings) {
-        $oldSettings.PSObject.Properties | % {
+        $oldSettings.PSObject.Properties | ForEach-Object {
             $prop = $_.Name
             if (!($launchSettings.Keys | Where-Object { $_ -eq $prop } )) {
                 $launchSettings += @{ "$prop" = $oldSettings."$prop" }
@@ -784,7 +784,7 @@ $progressPreference = 'SilentlyContinue'
 
 try {
 
-@("")+$additionalCountries | % {
+@("")+$additionalCountries | ForEach-Object {
 $testCountry = $_.Trim()
 
 if ($gitHubActions) { Write-Host "::group::Creating container" }
@@ -892,7 +892,7 @@ Measure-Command {
         New-BcContainerBcUser @Parameters
 
         $tenantApps = Get-BcContainerAppInfo -containerName $containerName -tenant $tenant -tenantSpecificProperties -sort DependenciesFirst
-        Get-BcContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | % {
+        Get-BcContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | ForEach-Object {
             $name = $_.Name
             $version = $_.Version
             $tenantApp = $tenantApps | Where-Object { $_.Name -eq $name -and $_.Version -eq $version }
