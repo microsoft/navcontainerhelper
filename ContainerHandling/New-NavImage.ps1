@@ -31,8 +31,8 @@
   Enumerate all fonts from this path or array of paths and install them in the container
  .Parameter runSandboxAsOnPrem
   This parameter will attempt to run sandbox artifacts as onprem (will only work with version 18 and later)
- .Parameter doNotBuildImage
-  Adding this parameter causes the function to return a folder populated with DOCKERFILE and other files needed to build the image instead of building the image and returning the imagename
+ .Parameter populateBuildFolder
+  Adding this parameter causes the function to populate this folder with DOCKERFILE and other files needed to build the image instead of building the image
 #>
 function New-BcImage {
     Param (
@@ -57,7 +57,7 @@ function New-BcImage {
         [switch] $includePerformanceToolkit,
         [switch] $skipIfImageAlreadyExists,
         [switch] $runSandboxAsOnPrem,
-        [switch] $doNotBuildImage,
+        [string] $populateBuildFolder = "",
         $allImages
     )
 
@@ -228,14 +228,16 @@ try {
         }
     }
 
-    if (!$doNotBuildImage) {
+    $imageName
+
+    if ($populateBuildFolder -eq "") {
         $buildMutexName = "img-$imageName"
         $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
 }
     try {
         try {
-            if (!$doNotBuildImage) {
-                    if (!$buildMutex.WaitOne(1000)) {
+            if ($populateBuildFolder -eq "") {
+                if (!$buildMutex.WaitOne(1000)) {
                     Write-Host "Waiting for other process building image $imageName"
                     $buildMutex.WaitOne() | Out-Null
                     Write-Host "Other process completed building"
@@ -441,10 +443,19 @@ try {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
             }
         
-            do {
-                $buildFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+            if ($populateBuildFolder) {
+                $buildFolder = $populateBuildFolder
+                if (Test-Path $buildFolder) {
+                    throw "$populateBuildFolder already exists"
+                }
+                New-Item $buildFolder -ItemType Directory | Out-Null
             }
-            until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
+            else {
+                do {
+                    $buildFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+                }
+                until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
+            }
         
             try {
         
@@ -578,7 +589,7 @@ try {
                     }
                 }
             
-                if (!$doNotBuildImage) {
+                if ($populateBuildFolder -eq "") {
                     docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object { 
                         if ($_ -eq $imageName) 
                         {
@@ -664,9 +675,8 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-                if ($doNotBuildImage) {
-                    Write-Host "Skipping build of image"
-                    $buildFolder
+                if ($populateBuildFolder -eq "") {
+                    Write-Host "$populateBuildFolder populated, skipping build of image"
                 }
                 else {
                     $success = $false
@@ -678,10 +688,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
                             }
                         }
                     } catch {}
-                    if ($success) {
-                        $imageName
-                    }
-                    else {
+                    if (!$success) {
                         if ($LASTEXITCODE -ne 0) {
                             throw "Docker Build failed with exit code $LastExitCode"
                         } else {
@@ -694,14 +701,14 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
                 }
             }
             finally {
-                if (!$doNotBuildImage) {
+                if ($populateBuildFolder -eq "") {
                     Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
         }
     }
     finally {
-        if (!$doNotBuildImage) {
+        if ($populateBuildFolder -eq "") {
             $buildMutex.ReleaseMutex()
         }
     }
