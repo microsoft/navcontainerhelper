@@ -323,121 +323,126 @@ try {
             Write-Host "Building$mtstr image $imageName based on $baseImage with $($artifactUrl.Split('?')[0])$dbstr"
             $startTime = [DateTime]::Now
             
-            if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
-                Write-Host "Pulling latest image $baseImage"
-                DockerDo -command pull -imageName $baseImage | Out-Null
+            if ($populateBuildFolder) {
+                $genericTag = [Version]"1.0.2.14"
             }
             else {
-                $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
-                if (!($baseImageExists)) {
-                    Write-Host "Pulling non-existing base image $baseImage"
+                if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
+                    Write-Host "Pulling latest image $baseImage"
                     DockerDo -command pull -imageName $baseImage | Out-Null
                 }
-            }
-        
-            $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
-            Write-Host "Generic Tag: $genericTag"
-            if ($genericTag -lt [Version]"0.1.0.16") {
-                throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
-            }
-        
-            $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
-            if ("$containerOsVersion".StartsWith('10.0.14393.')) {
-                $containerOs = "ltsc2016"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
-                $containerOs = "1703"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
-                $containerOs = "1709"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
-                $containerOs = "1803"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
-                $containerOs = "ltsc2019"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
-                $containerOs = "1903"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
-                $containerOs = "1909"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
-                $containerOs = "2004"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
-                $containerOs = "20H2"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
-                $containerOs = "21H1"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
-                $containerOs = "21H2"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
-                $containerOs = "22H2"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
-                $containerOs = "ltsc2022"
-            }
-            else {
-                $containerOs = "unknown"
-            }
-            Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
-            Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
-        
-            if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
-                ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
-                ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
-        
-                throw "The container operating system is newer than the host operating system, cannot use image"
-            }
-        
-            if ($hostOsVersion -eq $containerOsVersion) {
-                if ($isolation -eq "") { 
-                    $isolation = "process"
+                else {
+                    $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
+                    if (!($baseImageExists)) {
+                        Write-Host "Pulling non-existing base image $baseImage"
+                        DockerDo -command pull -imageName $baseImage | Out-Null
+                    }
                 }
-            }
-            elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
-                if ($isolation -eq "") {
-                    if ($containerOsVersion -le $hostOsVersion) {
+            
+                $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
+                Write-Host "Generic Tag: $genericTag"
+                if ($genericTag -lt [Version]"0.1.0.16") {
+                    throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
+                }
+        
+                $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
+                if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+                    $containerOs = "ltsc2016"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+                    $containerOs = "1703"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+                    $containerOs = "1709"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+                    $containerOs = "1803"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+                    $containerOs = "ltsc2019"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+                    $containerOs = "1903"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+                    $containerOs = "1909"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+                    $containerOs = "2004"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+                    $containerOs = "20H2"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+                    $containerOs = "21H1"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+                    $containerOs = "21H2"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+                    $containerOs = "22H2"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+                    $containerOs = "ltsc2022"
+                }
+                else {
+                    $containerOs = "unknown"
+                }
+                Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
+                Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
+            
+                if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
+                    ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
+                    ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
+            
+                    throw "The container operating system is newer than the host operating system, cannot use image"
+                }
+            
+                if ($hostOsVersion -eq $containerOsVersion) {
+                    if ($isolation -eq "") { 
                         $isolation = "process"
                     }
-                    else {
-                        $isolation = "hyperv"
-                    }
                 }
-            }
-            elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
-                if ($isolation -eq "") {
-                    Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
-                    $isolation = "process"
-                }
-            }
-            else {
-                if ($isolation -eq "") {
-                    if ($isAdministrator) {
-                        if (Get-HypervState -ne "Disabled") {
-                            $isolation = "hyperv"
+                elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
+                    if ($isolation -eq "") {
+                        if ($containerOsVersion -le $hostOsVersion) {
+                            $isolation = "process"
                         }
                         else {
-                            $isolation = "process"
-                            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                            $isolation = "hyperv"
                         }
                     }
-                    else {
-                        $isolation = "hyperv"
-                        Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                }
+                elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+                    if ($isolation -eq "") {
+                        Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
+                        $isolation = "process"
                     }
-        
                 }
-                elseif ($isolation -eq "process") {
-                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+                else {
+                    if ($isolation -eq "") {
+                        if ($isAdministrator) {
+                            if (Get-HypervState -ne "Disabled") {
+                                $isolation = "hyperv"
+                            }
+                            else {
+                                $isolation = "process"
+                                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                            }
+                        }
+                        else {
+                            $isolation = "hyperv"
+                            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                        }
+            
+                    }
+                    elseif ($isolation -eq "process") {
+                        Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+                    }
                 }
+                Write-Host "Using $isolation isolation"
             }
-            Write-Host "Using $isolation isolation"
-        
+            
             $downloadsPath = $bcContainerHelperConfig.bcartifactsCacheFolder
             if (!(Test-Path $downloadsPath)) {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
@@ -675,7 +680,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-                if ($populateBuildFolder -eq "") {
+                if ($populateBuildFolder) {
                     Write-Host "$populateBuildFolder populated, skipping build of image"
                 }
                 else {
