@@ -60,7 +60,7 @@ function New-BcImage {
         [switch] $skipIfImageAlreadyExists,
         [switch] $runSandboxAsOnPrem,
         [string] $populateBuildFolder = "",
-        [string[]] $additionalLabels = @()
+        [string[]] $additionalLabels = @(),
         $allImages
     )
 
