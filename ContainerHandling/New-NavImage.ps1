@@ -33,6 +33,8 @@
   This parameter will attempt to run sandbox artifacts as onprem (will only work with version 18 and later)
  .Parameter populateBuildFolder
   Adding this parameter causes the function to populate this folder with DOCKERFILE and other files needed to build the image instead of building the image
+ .Parameter additionalLabels
+  additionalLabels can contain an array of additional labels for the image
 #>
 function New-BcImage {
     Param (
@@ -58,6 +60,7 @@ function New-BcImage {
         [switch] $skipIfImageAlreadyExists,
         [switch] $runSandboxAsOnPrem,
         [string] $populateBuildFolder = "",
+        [string[]] $additionalLabels = @()
         $allImages
     )
 
@@ -659,6 +662,10 @@ try {
                     }
                 }
     
+                $additionalLabelsStr = ""
+                $additionalLabels | ForEach-Object {
+                    $additionalLabelsStr += "$_ \`n      "
+                }
 @"
 FROM $baseimage
 
@@ -675,7 +682,7 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       created="$([DateTime]::Now.ToUniversalTime().ToString("yyyyMMddHHmm"))" \
       nav="$nav" \
       cu="$cu" \
-      $($skipDatabaseLabel)$($multitenantLabel)country="$($appManifest.Country)" \
+      $($skipDatabaseLabel)$($multitenantLabel)$($additionalLabelsStr)country="$($appManifest.Country)" \
       version="$($appmanifest.Version)" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
