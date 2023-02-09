@@ -31,6 +31,8 @@
   Enumerate all fonts from this path or array of paths and install them in the container
  .Parameter runSandboxAsOnPrem
   This parameter will attempt to run sandbox artifacts as onprem (will only work with version 18 and later)
+ .Parameter doNotBuildImage
+  Adding this parameter causes the function to return a folder populated with DOCKERFILE and other files needed to build the image instead of building the image and returning the imagename
 #>
 function New-BcImage {
     Param (
@@ -55,6 +57,7 @@ function New-BcImage {
         [switch] $includePerformanceToolkit,
         [switch] $skipIfImageAlreadyExists,
         [switch] $runSandboxAsOnPrem,
+        [switch] $doNotBuildImage,
         $allImages
     )
 
@@ -225,17 +228,19 @@ try {
         }
     }
 
-    $imageName
-
-    $buildMutexName = "img-$imageName"
-    $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+    if (!$doNotBuildImage) {
+        $buildMutexName = "img-$imageName"
+        $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+}
     try {
         try {
-            if (!$buildMutex.WaitOne(1000)) {
-                Write-Host "Waiting for other process building image $imageName"
-                $buildMutex.WaitOne() | Out-Null
-                Write-Host "Other process completed building"
-                $allImages = @()
+            if (!$doNotBuildImage) {
+                    if (!$buildMutex.WaitOne(1000)) {
+                    Write-Host "Waiting for other process building image $imageName"
+                    $buildMutex.WaitOne() | Out-Null
+                    Write-Host "Other process completed building"
+                    $allImages = @()
+                }
             }
         }
         catch [System.Threading.AbandonedMutexException] {
@@ -506,7 +511,7 @@ try {
                 }
                 
                 Write-Host "Files in $($myfolder):"
-                get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+                get-childitem -Path $myfolder | ForEach-Object { Write-Host "- $($_.Name)" }
         
                 $isBcSandbox = "N"
                 if (!$runSandboxAsOnPrem -and $appManifest.PSObject.Properties.name -eq "isBcSandbox") {
@@ -559,7 +564,7 @@ try {
                     }
                 }
         
-                "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | % {
+                "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | ForEach-Object {
                     $appSubFolder = Join-Path $appArtifactPath $_
                     if (Test-Path $appSubFolder -PathType Container) {
                         $appSubFolder = (Get-Item $appSubFolder).FullName
@@ -573,10 +578,12 @@ try {
                     }
                 }
             
-                docker images --format "{{.Repository}}:{{.Tag}}" | % { 
-                    if ($_ -eq $imageName) 
-                    {
-                        docker rmi --no-prune $imageName -f | Out-Host
+                if (!$doNotBuildImage) {
+                    docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object { 
+                        if ($_ -eq $imageName) 
+                        {
+                            docker rmi --no-prune $imageName -f | Out-Host
+                        }
                     }
                 }
         
@@ -584,13 +591,13 @@ try {
                 
                 $skipDatabaseLabel = ""
                 if ($skipDatabase) {
-                    $skipDatabaseLabel = "skipdatabase=""Y"" \`n"
+                    $skipDatabaseLabel = "skipdatabase=""Y"" \`n      "
                 }
         
                 $multitenantLabel = ""
                 $multitenantParameter = ""
                 if ($multitenant) {
-                    $multitenantLabel = "multitenant=""Y"" \`n"
+                    $multitenantLabel = "multitenant=""Y"" \`n      "
                     $multitenantParameter = " -multitenant"
                 }
         
@@ -600,7 +607,7 @@ try {
                     $fontsFolder = Join-Path $buildFolder "Fonts"
                     New-Item $fontsFolder -ItemType Directory | Out-Null
                     $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
-                    Get-ChildItem $addFontsFromPath -ErrorAction Ignore | % {
+                    Get-ChildItem $addFontsFromPath -ErrorAction Ignore | ForEach-Object {
                         if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
                             Copy-Item -Path $_.FullName -Destination $fontsFolder
                             $found = $true
@@ -657,34 +664,46 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-                $success = $false
-                try {
-                    docker build --isolation=$isolation --memory $memory --no-cache --tag $imageName $buildFolder | % {
-                        $_ | Out-Host
-                        if ($_ -like "Successfully built*") {
-                            $success = $true
+                if ($doNotBuildImage) {
+                    Write-Host "Skipping build of image"
+                    $buildFolder
+                }
+                else {
+                    $success = $false
+                    try {
+                        docker build --isolation=$isolation --memory $memory --no-cache --tag $imageName $buildFolder | ForEach-Object {
+                            $_ | Out-Host
+                            if ($_ -like "Successfully built*") {
+                                $success = $true
+                            }
+                        }
+                    } catch {}
+                    if ($success) {
+                        $imageName
+                    }
+                    else {
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Docker Build failed with exit code $LastExitCode"
+                        } else {
+                            throw "Docker Build didn't indicate successfully built"
                         }
                     }
-                } catch {}
-                if (!$success) {
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Docker Build failed with exit code $LastExitCode"
-                    } else {
-                        throw "Docker Build didn't indicate successfully built"
-                    }
-                }
-
-                $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
-                Write-Host "Building image took $timespend seconds"
     
+                    $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+                    Write-Host "Building image took $timespend seconds"
+                }
             }
             finally {
-                Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
+                if (!$doNotBuildImage) {
+                    Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
             }
         }
     }
     finally {
-        $buildMutex.ReleaseMutex()
+        if (!$doNotBuildImage) {
+            $buildMutex.ReleaseMutex()
+        }
     }
 }
 catch {
