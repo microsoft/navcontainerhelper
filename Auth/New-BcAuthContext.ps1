@@ -275,12 +275,12 @@ try {
                         elseif ($err -eq "expired_token") {
                             Write-Host
                             Write-Host -ForegroundColor Red "Authentication token expired."
-                            throw $errorRecord
+                            throw "Authentication token expired."
                         }
                         elseif ($err -eq "authorization_declined") {
                             Write-Host
                             Write-Host -ForegroundColor Red "Authentication request declined."
-                            throw $errorRecord
+                            throw "Authentication request declined."
                         }
                         elseif ($err -eq "authorization_pending") {
                             if ($cnt++ % 5 -eq 0) {
