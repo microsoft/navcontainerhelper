@@ -42,7 +42,7 @@ try {
         $files = @{}
         $appFiles | ForEach-Object {
             $appFile = $_
-            if ($containerName) {
+            if (Test-BcContainer -containerName $containerName) {
                 $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
                 Copy-Item -Path $appFile -Destination $destFile
                 $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)

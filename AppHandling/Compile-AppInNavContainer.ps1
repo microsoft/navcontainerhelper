@@ -294,8 +294,9 @@ try {
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
     {
         $appJsonObject.dependencies | ForEach-Object {
-            try { $appId = $_.id } catch { $appId = $_.appId }
-            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "appId" = $appId; "version" = $_.version }
+            $dep = $_
+            try { $appId = $dep.id } catch { $appId = $dep.appId }
+            $dependencies += @{ "publisher" = $dep.publisher; "name" = $dep.name; "appId" = $appId; "version" = $dep.version }
         }
     }
 
@@ -490,7 +491,13 @@ try {
                                 }
             
                                 foreach ($dependency in $manifest.dependencies) {
-                                    try { $appId = $dependency.id } catch { try { $appId = $dependency.appId } catch { $appId = '' } }
+                                    $appId = ''
+                                    if ($dependency.psobject.Properties.name -eq 'appid') {
+                                        $appId = $dependency.appid
+                                    }
+                                    elseif ($dependency.psobject.Properties.name -eq 'id') {
+                                        $appId = $dependency.id
+                                    }
                                     @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }

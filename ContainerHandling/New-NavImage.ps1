@@ -385,7 +385,6 @@ try {
                 ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
         
                 throw "The container operating system is newer than the host operating system, cannot use image"
-            
             }
         
             if ($hostOsVersion -eq $containerOsVersion) {
@@ -446,6 +445,17 @@ try {
         
                 $myFolder = Join-Path $buildFolder "my"
                 new-Item -Path $myFolder -ItemType Directory | Out-Null
+
+                $InstallDotNet = ""
+                if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
+                    Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
+                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
+                    Write-Host "Patching prompt.ps1 due to issue #2891"
+                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
+                    $myScripts += @( "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" )
+                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.13-win.exe" -ArgumentList /quiet'
+                }
             
                 $myScripts | ForEach-Object {
                     if ($_ -is [string]) {
@@ -602,7 +612,7 @@ try {
                         $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
                     }
                 }
-        
+
                 $TestToolkitParameter = ""
                 if ($genericTag -ge [Version]"0.1.0.18") {
                     if ($includeTestToolkit) {
@@ -634,6 +644,7 @@ ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsB
 COPY my /run/
 COPY NAVDVD /NAVDVD/
 $DockerFileAddFonts
+$InstallDotNet
 
 RUN \Run\start.ps1 -installOnly$multitenantParameter$TestToolkitParameter
 

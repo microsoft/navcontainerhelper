@@ -1202,15 +1202,6 @@ try {
             }
         }
 
-        if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
-            Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
-            $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
-        }
-        elseif ($useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
-            Write-Host "Patching navinstall.ps1 to stop the Service Tier for reconfiguration"
-            $myscripts += @( @{ "navinstall.ps1" = '. "c:\run\navinstall.ps1"; Stop-Service -Name $NavServiceName -WarningAction Ignore' } )
-        }
-
         $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     
         if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -1265,6 +1256,14 @@ try {
     if ($version.Major -lt 15 -and ($genericTag -eq [Version]"1.0.1.7")) {
         Write-Host "Patching start.ps1 due to issue #2130"
         $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/start.ps1" )
+    }
+    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13" -and $auth -eq "AAD") {
+        Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
+        $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
+    }
+    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13") {
+        Write-Host "Patching prompt.ps1 due to issue #2891"
+        $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
     }
 
     if ($hostOsVersion -eq $containerOsVersion) {
@@ -1705,6 +1704,19 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         ('# Invoke default behavior
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+    }
+
+    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13") {
+        if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
+            ('# Invoke default behavior
+              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+            ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
+        }
+        Write-Host "Patching container to install dotnet 6.0.13"
+        Download-File -source "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win.exe")
+        ('
+if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Generic image is 1.0.2.13 or below, installing dotnet 6.0.13"; start-process -Wait -FilePath "c:\run\my\dotnet-win.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win.exe" -Force }
+') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
     if ($updateHosts) {

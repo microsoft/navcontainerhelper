@@ -185,7 +185,8 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     }
     catch {
-        throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+        Write-Host -ForegroundColor Red "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package, ignoring application dependency check"
+        return $minVersion
     }
     finally {
         if (Test-Path $tmpFolder) {
@@ -196,7 +197,7 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $version = $appJson.application
     }
     else {
-        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | % { $_.Version }
+        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | ForEach-Object { $_.Version }
         if (!$version) {
             $version = $minVersion
         }

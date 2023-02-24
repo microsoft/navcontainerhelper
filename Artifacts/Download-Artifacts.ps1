@@ -81,7 +81,6 @@ try {
                 TestSasToken -sasToken $artifactUrl
                 $retry = $false
                 do {
-                    Write-Host $artifactUrl
                     $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
                     Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
                     Write-Host "Unpacking application artifact to tmp folder " -NoNewline
