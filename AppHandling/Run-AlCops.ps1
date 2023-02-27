@@ -285,7 +285,7 @@ function Run-AlCops {
                 $lines = $global:_validationResult.Length - $length
                 if ($lines -gt 0) {
                     $i = 0
-                    $global:_validationResult += $global:_validationResult | ForEach-Object {
+                    $global:_validationResult = $global:_validationResult | ForEach-Object {
                         if ($i++ -eq $length) {
                             "$lines $(if ($ignoreWarnings) { "errors" } else { "errors/warnings"}) found in $([System.IO.Path]::GetFileName($appFile)) on $($artifactUrl.Split('?')[0]):"
                         }
