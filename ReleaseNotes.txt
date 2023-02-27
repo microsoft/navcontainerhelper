@@ -1,3 +1,14 @@
+4.0.15
+
+4.0.14
+Issue #2896 Compile-AppInBcContainer can't read appId from dependencies
+
+4.0.13
+Issue #2891 NextMajor builds are broken - New-BcImage fixes
+
+4.0.12
+Issue #2891 NextMajor builds are broken
+
 4.0.11
 Search for <appid>.disabledTests.json under basefolder in Run-AlPipeline and use as disabled tests
 Check whether the app is already installed in Publish-PerTenantExtensionApps
@@ -10,6 +21,11 @@ Issue #2858 Publish to Dev Scope with upgrade causes dependency issues
 Issue #2868 New-BcImage with 21.0 and TestToolkit installed won't work without specifying license
 Issue #2867 Compile-AppInBCContainer not using Application ID on downloading symbols
 Issue #2865 NavSip.dll missing
+Issue #2864 Flush-ContainerHelperCache unexpectedly removes an image
+Issue #2760 Database connection string not used in New-BcContainerWizard on Azure VM
+JIT Install dotnet 6.0.13 if Generic image 1.0.2.13 or below is used for Business Central version 22 or above
+Issue #2783 Run-AlValidation doesnt accept Third-Party Runtime-App
+Issue #2874 vNext insider BC: "The property 'Value' cannot be found on this object. Verify that the property exists and can be set." during container creation
 
 4.0.10
 Issue #2842 Problems with 4.0.8 / 4.0.9 and Traefik

@@ -705,10 +705,11 @@ $Step.Version2 {
 
 $Step.Country {
 
+    Write-Host "Analyzing artifacts"
     $versionno = $version
     if ($versionno -eq "") {
         $searchCountry = "us"
-        if ($type -eq 'sandbox') { "at" }
+        if ($type -eq 'sandbox') { $searchCountry = "at" }
         $aurl = Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country $searchCountry -sasToken $sasToken -select $select
         $versionno = $aurl.split('/')[4]
     }
@@ -837,7 +838,7 @@ $Step.PremiumPlan {
 
 $step.IncludeAL {
     $includeAL = "N"
-    if ($majorVersion -gt 14) {
+    if ($hosting -eq 'local' -and $majorVersion -gt 14) {
 
         $includeAL = Enter-Value `
             -title @'
@@ -889,7 +890,7 @@ $step.ExportAlSource {
 $step.IncludeCSIDE {
     $includeCSIDE = "N"
 
-    if ($majorVersion -le 14) {
+    if ($hosting -eq 'local' -and $majorVersion -le 14) {
 
         if ($majorVersion -lt 14) {
             $product = "NAV"
@@ -947,7 +948,7 @@ $step.ExportCAlSource {
 $Step.Vsix {
 
     $vsix = "N"
-    if ($majorVersion -gt 14) {
+    if ($hosting -eq 'local' -and $majorVersion -gt 14) {
         $vsix = Enter-Value `
             -title @'
            _        _                                                ______      _                 _             
@@ -1046,9 +1047,12 @@ $Step.License {
 }
 
 $Step.Database {
-   
-    $database = Select-Value `
-        -title @'
+    if ($hosting -ne "Local") {
+        $database = "default"
+    }
+    else {
+        $database = Select-Value `
+            -title @'
   _____        _        _                    
  |  __ \      | |      | |                   
  | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
@@ -1057,73 +1061,72 @@ $Step.Database {
  |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
 
 '@ `
-        -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
-        -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
-        -question "Database" `
-        -default "default" `
-        -previousStep
-    if ($script:wizardStep -eq $script:thisStep+1) {
-        $script:prevSteps.Push($script:thisStep)
-    }
-    
-    if ($database -eq "bakfile") {
-        $bakFile = Enter-Value `
-            -title "Database Backup" `
-            -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
-            -question "Database Backup" `
+            -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
+            -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
+            -question "Database" `
+            -default "default" `
             -previousStep
-        $bakFile = $bakFile.Trim(@('"'))
-    }
-    elseif ($database -eq "connect") {
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     
-        $err = $false
-        do {
-            $params = @{}
-            if ($err) {
-                $params = @{ "doNotClearHost" = $true }
-            }
-            $connectionString = Enter-Value @params `
-                -title "Database Connection String" `
-                -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
-                -question "Database Connection String" `
-                -doNotConvertToLower `
+        if ($database -eq "bakfile") {
+            $bakFile = Enter-Value `
+                -title "Database Backup" `
+                -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
+                -question "Database Backup" `
                 -previousStep
-            if ($connectionString -eq "back") {
-                $err = $false
-            }
-            else {
-                $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
-                $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
-                $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
-                $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
-            
-                $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
+            $bakFile = $bakFile.Trim(@('"'))
+        }
+        elseif ($database -eq "connect") {
+            $err = $false
+            do {
+                $params = @{}
                 if ($err) {
-                    Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
-                    Write-Host
+                    $params = @{ "doNotClearHost" = $true }
                 }
+                $connectionString = Enter-Value @params `
+                    -title "Database Connection String" `
+                    -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
+                    -question "Database Connection String" `
+                    -doNotConvertToLower `
+                    -previousStep
+                if ($connectionString -eq "back") {
+                    $err = $false
+                }
+                else {
+                    $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                    $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                    $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                    $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                
+                    $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
+                    if ($err) {
+                        Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
+                        Write-Host
+                    }
+                }
+            } while ($err)
+            if ($connectionString -ne "back") {
+                $idx = $databaseServer.IndexOf('\')
+                if ($idx -ge 0) {
+                    $databaseInstance = $databaseServer.Substring($idx+1)
+                    $databaseServer = $databaseServer.Substring(0,$idx)
+                }
+                else {
+                    $databaseInstance = ""
+                }
+                if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
+                    $databaseServer = "host.containerhelper.internal"
+                }
+                $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
             }
-        } while ($err)
-        if ($connectionString -ne "back") {
-            $idx = $databaseServer.IndexOf('\')
-            if ($idx -ge 0) {
-                $databaseInstance = $databaseServer.Substring($idx+1)
-                $databaseServer = $databaseServer.Substring(0,$idx)
-            }
-            else {
-                $databaseInstance = ""
-            }
-            if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
-                $databaseServer = "host.containerhelper.internal"
-            }
-            $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
         }
     }
 }
 
 $step.Multitenant {
-    $multitenant = ""
-    if ($database -ne "Connect") {
+    if ($database -ne "Connect" -and $hosting -eq 'local') {
         if ($type -eq "Sandbox") {
             $description = "You are running a sandbox container, which by default is multitenant.`nBy specifying -multitenant:`$false, you can switch the container to single tenancy."
             $default = "Y"

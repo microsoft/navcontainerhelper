@@ -851,7 +851,11 @@ Function CreatePsTestToolFolder {
 
     Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
         if (!(Test-Path $myNewtonSoftDllPath)) {
-            $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+            if (!(Test-Path $newtonSoftDllPath)) {
+                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+            }
+            $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
             Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
         }
         if (!(Test-Path $myClientDllPath)) {
@@ -951,7 +955,7 @@ function DownloadFileLow {
     )
 
     if ($useTimeOutWebClient) {
-        Write-Host "Using WebClient"
+        Write-Host "Downloading using WebClient"
         $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
         $headers.Keys | ForEach-Object {
             $webClient.Headers.Add($_, $headers."$_")
@@ -971,7 +975,7 @@ function DownloadFileLow {
         }
     }
     else {
-        Write-Host "Using HttpClient"
+        Write-Host "Downloading using HttpClient"
         if ($useDefaultCredentials) {
             $handler = New-Object System.Net.Http.HttpClientHandler
             $handler.UseDefaultCredentials = $true

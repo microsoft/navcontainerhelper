@@ -190,6 +190,10 @@
   Override function parameter Get-BcContainerAppRuntimePackage
  .Parameter RemoveBcContainer
   Override function parameter for Remove-BcContainer
+ .Parameter GetBestGenericImageName
+  Override function parameter for Get-BestGenericImageName
+ .Parameter GetBcContainerEventLog
+  Override function parameter for Get-BcContainerEventLog
  .Parameter InstallMissingDependencies
   Override function parameter for Installing missing dependencies
  .Example
@@ -302,12 +306,14 @@ Param(
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
     [scriptblock] $RemoveBcContainer,
+    [scriptblock] $GetBestGenericImageName,
+    [scriptblock] $GetBcContainerEventLog,
     [scriptblock] $InstallMissingDependencies
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path) {
-        if (!$path.contains(':')) {
+        if (-not [System.IO.Path]::IsPathRooted($path)) {
             if (Test-Path -path (Join-Path $baseFolder $path)) {
                 $path = Join-Path $baseFolder $path -Resolve
             }
@@ -721,6 +727,18 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+if ($GetBestGenericImageName) {
+    Write-Host -ForegroundColor Yellow "GetBestGenericImageName override"; Write-Host $GetBestGenericImageName.ToString()
+}
+else {
+    $GetBestGenericImageName = { Param([Hashtable]$parameters) Get-BestGenericImageName @parameters }
+}
+if ($GetBcContainerEventLog) {
+    Write-Host -ForegroundColor Yellow "GetBcContainerEventLog override"; Write-Host $GetBcContainerEventLog.ToString()
+}
+else {
+    $GetBcContainerEventLog = { Param([Hashtable]$parameters) Get-BcContainerEventLog @parameters }
+}
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
 }
@@ -747,7 +765,10 @@ Write-Host -ForegroundColor Yellow @'
 '@
 
 if (!$useGenericImage) {
-    $useGenericImage = Get-BestGenericImageName -filesOnly:$filesOnly
+    $Parameters = @{
+        "filesOnly" = $filesOnly
+    }
+    $useGenericImage = Invoke-Command -ScriptBlock $GetBestGenericImageName -ArgumentList $Parameters
 }
 
 Write-Host "Pulling $useGenericImage"
@@ -1525,17 +1546,38 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName
                 $previousApps | ForEach-Object {
                     $appFile = $_
-
-                    $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                        param($appFile)
-
-                        Get-NavAppInfo -Path $appFile
-                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                    if (Test-BcContainer -containerName $containerName) {
+                        $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                            param($appFile)
+                            Get-NavAppInfo -Path $appFile
+                        } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                        $appId = $appInfo.AppId
+                    }
+                    else {
+                        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+                        try {
+                            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
+                            $appJsonFile = Join-Path $tmpFolder "app.json"
+                            $appInfo = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                            $appId = $appInfo.Id
+                        }
+                        catch {
+                            if ($_.exception.message -eq "You cannot extract a runtime package") {
+                                throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
+                            }
+                            else {
+                                throw "Unable to extract and analyze appFile $appFile"
+                            }
+                        }
+                        finally {
+                            Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+                        }
+                    }
 
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                     $previousAppInfos += @(@{
-                        "AppId" = $appInfo.AppId.ToLowerInvariant()
+                        "AppId" = $appId.ToLowerInvariant()
                         "Publisher" = $appInfo.Publisher
                         "Name" = $appInfo.Name
                         "Version" = $appInfo.Version
@@ -2021,8 +2063,6 @@ $testAppIds.Keys | ForEach-Object {
         "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "detailed" = $true
-        "debugMode" = $true
-        "debug" = $true
         "returnTrueIfAllPassed" = $true
     }
 
@@ -2212,10 +2252,14 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($containerEventLogFile) {
+    if (!$filesOnly -and $containerEventLogFile) {
         try {
             Write-Host "Get Event Log from container"
-            $eventlogFile = Get-BcContainerEventLog -containerName $containerName -doNotOpen
+            $Parameters = @{
+                "containerName" = $containerName
+                "doNotOpen" = $true
+            }
+            $eventlogFile = Invoke-Command -ScriptBlock $GetBcContainerEventLog -ArgumentList $Parameters
             Copy-Item -Path $eventLogFile -Destination $containerEventLogFile
         }
         catch {}
