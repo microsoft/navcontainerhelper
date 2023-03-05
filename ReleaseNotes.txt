@@ -1,4 +1,6 @@
 4.0.15
+New Function Compile-AppWithoutDocker, to compile an app without using containers.
+Add new parameter doNotUseDocker to Run-AlPipeline to allow building apps and test apps without using docker containers
 
 4.0.14
 Issue #2896 Compile-AppInBcContainer can't read appId from dependencies

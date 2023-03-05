@@ -1012,3 +1012,47 @@ function DownloadFileLow {
         }
     }
 }
+
+function GetAppInfo([string[]] $appFiles, [string] $alcDllPath) {
+    Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath )
+        $packageStream = $null
+        $package = $null
+        try {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            Add-Type -AssemblyName System.Text.Encoding
+            Add-Type -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
+            Add-Type -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
+            Add-Type -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+
+            $appFiles | ForEach-Object {
+                $path = $_
+                $packageStream = [System.IO.File]::OpenRead($path)
+                $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                $manifest = $package.ReadNavAppManifest()
+                @{
+                    "appId" = $manifest.AppId
+                    "publisher" = $manifest.AppPublisher
+                    "name" = $manifest.AppName
+                    "version" = $manifest.AppVersion
+                }
+            }
+        }
+        catch [System.Reflection.ReflectionTypeLoadException] {
+            if ($_.Exception.LoaderExceptions) {
+                $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
+                    Write-Host "LoaderException: $($_.Message)"
+                }
+            }
+            throw
+        }
+        finally {
+            if ($package) {
+                $package.Dispose()
+            }
+            if ($packageStream) {
+                $packageStream.Dispose()
+            }
+        }
+        
+    } -argumentList $appFiles, $alcDllPath | Wait-Job | Receive-Job
+}
