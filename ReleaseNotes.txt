@@ -1,4 +1,8 @@
 4.0.15
+New Function Compile-AppWithoutDocker, to compile an app without using containers.
+Add parameter doNotUseDocker to Run-AlPipeline to allow building apps and test apps without using docker containers
+Add parameter doNotBuildImage to New-BcImage to not build the image, but instead populate a folder with the DOCKERFILE and more for creating the image
+Throw more describing error when New-BcAuthContext fails
 
 4.0.14
 Issue #2896 Compile-AppInBcContainer can't read appId from dependencies

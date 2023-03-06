@@ -3,7 +3,7 @@
   Use NAV/BC Container to Compile App
  .Description
  .Parameter containerName
-  Name of the container which you want to use to compile the app
+  Name of the container in which you want to use to compile the app
  .Parameter tenant
   tenant to use if container is multitenant
  .Parameter credential

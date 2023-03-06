@@ -20,7 +20,7 @@ elseif ($isLinux) {
     Write-Warning "BcContainerHelper running on Linux is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
 }
 elseif ($isPsCore) {
-    Write-Warning "BcContainerHelper running on PowerShell7 is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
+    Write-Warning "BcContainerHelper running on PowerShell 7 is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
 }
 
 if ($useVolumes -or $isInsideContainer) {
@@ -188,6 +188,7 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "AppHandling\UnPublish-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerAppInfo.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Compile-AppInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Compile-AppWithoutDocker.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Convert-ALCOutputToAzureDevOps.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Install-NAVSipCryptoProviderFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Sign-NavContainerApp.ps1")
