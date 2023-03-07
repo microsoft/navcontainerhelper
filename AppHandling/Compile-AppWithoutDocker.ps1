@@ -336,7 +336,7 @@ try {
     $devOpsResult = ""
     if ($result) {
         if ($gitHubActions) {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath (Get-BcContainerPath -containerName $containerName -path $ENV:GITHUB_WORKSPACE)
+            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath $ENV:GITHUB_WORKSPACE
         }
         else {
             $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
