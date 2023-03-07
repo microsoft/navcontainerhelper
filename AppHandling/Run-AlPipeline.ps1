@@ -1167,7 +1167,7 @@ if ($doNotUseDocker) {
         $alcDllPath = $binPath
     }
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath).AppId -cacheAppinfo
+    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath -cacheAppinfo).AppId
 }
 else {
     $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
@@ -1329,7 +1329,7 @@ if ($doNotUseDocker) {
         $alcDllPath = $binPath
     }
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath).AppId -cacheAppInfo
+    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath -cacheAppinfo).AppId
 }
 else {
     $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
