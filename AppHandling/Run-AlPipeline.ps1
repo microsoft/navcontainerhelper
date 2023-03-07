@@ -1214,6 +1214,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if (!$filesOnly) {
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _   
@@ -1244,6 +1245,7 @@ Measure-Command {
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
+}
 
 if ($installTestApps) {
 if ($gitHubActions) { Write-Host "::group::Installing test apps" }
