@@ -1908,7 +1908,7 @@ Write-Host -ForegroundColor Yellow @'
 } | ForEach-Object { if ($appFolders -or $testFolders -or $bcptTestFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($signApps -and !$useDevEndpoint) {
+if ($signApps -and !$useDevEndpoint -and !$doNotUseDocker) {
 if ($gitHubActions) { Write-Host "::group::Signing apps" }
 Write-Host -ForegroundColor Yellow @'
   _____ _             _                                     
