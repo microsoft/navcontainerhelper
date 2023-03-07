@@ -184,7 +184,7 @@ try {
 
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app'))
     Write-Host "Enumerating Existing Apps"
-    $existingApps = GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath
+    $existingApps = GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath -cacheAppInfo
 
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {

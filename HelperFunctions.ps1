@@ -1013,27 +1013,51 @@ function DownloadFileLow {
     }
 }
 
-function GetAppInfo([string[]] $appFiles, [string] $alcDllPath) {
+function GetAppInfo {
+    Param(
+        [string[]] $appFiles,
+        [string] $alcDllPath,
+        [switch] $cacheAppInfo
+    )
+
     Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath )
+        $assembliesAdded = $false
         $packageStream = $null
         $package = $null
         try {
-            Add-Type -AssemblyName System.IO.Compression.FileSystem
-            Add-Type -AssemblyName System.Text.Encoding
-            Add-Type -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
-            Add-Type -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
-            Add-Type -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-
             $appFiles | ForEach-Object {
                 $path = $_
-                $packageStream = [System.IO.File]::OpenRead($path)
-                $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
-                $manifest = $package.ReadNavAppManifest()
+                $appInfoPath = "$_.json"
+                if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
+                    $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
+                }
+                else {
+                    if (!$assembliesAdded) {
+                        Add-Type -AssemblyName System.IO.Compression.FileSystem
+                        Add-Type -AssemblyName System.Text.Encoding
+                        Add-Type -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
+                        Add-Type -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
+                        Add-Type -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+                        $assembliesAdded = $true
+                    }
+                    $packageStream = [System.IO.File]::OpenRead($path)
+                    $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                    $manifest = $package.ReadNavAppManifest()
+                    $appInfo = @{
+                        "appId" = $manifest.AppId
+                        "publisher" = $manifest.AppPublisher
+                        "name" = $manifest.AppName
+                        "version" = "$($manifest.AppVersion)"
+                    }
+                    if ($cacheAppInfo) {
+                        $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
+                    }
+                }
                 @{
-                    "appId" = $manifest.AppId
-                    "publisher" = $manifest.AppPublisher
-                    "name" = $manifest.AppName
-                    "version" = $manifest.AppVersion
+                    "appId" = $appInfo.appId
+                    "publisher" = $appInfo.publisher
+                    "name" = $appInfo.name
+                    "version" = [System.Version]$appInfo.version
                 }
             }
         }
