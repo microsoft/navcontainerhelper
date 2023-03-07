@@ -867,7 +867,7 @@ Measure-Command {
         New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Populate artifacts cache
-        $cachePath = Join-Path $baseFolder '.cache'
+        $cachePath = Join-Path $baseFolder '.artifactcache'
         $symbolsPath = Join-Path $cachePath 'symbols'
         $compilerPath = Join-Path $cachePath 'compiler'
         $dllsPath = Join-Path $cachePath 'dlls'
