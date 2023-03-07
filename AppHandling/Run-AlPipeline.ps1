@@ -831,6 +831,7 @@ try {
 
 @("")+$additionalCountries | ForEach-Object {
 $testCountry = $_.Trim()
+$testToolkitInstalled = $false
 
 if ($gitHubActions) { Write-Host "::group::Creating container" }
 Write-Host -ForegroundColor Yellow @'
@@ -915,6 +916,7 @@ Measure-Command {
             # Set execute permissions on alc
             & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
         }
+        $testToolkitInstalled = $true
     }
     else {
         if (Test-BcContainer -containerName $containerName) {
@@ -1214,7 +1216,6 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
-if (!$filesOnly) {
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _   
@@ -1245,7 +1246,6 @@ Measure-Command {
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
-}
 
 if ($installTestApps) {
 if ($gitHubActions) { Write-Host "::group::Installing test apps" }
@@ -1396,7 +1396,6 @@ $appsFolder = @{}
 $apps = @()
 $testApps = @()
 $bcptTestApps = @()
-$testToolkitInstalled = $false
 $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
