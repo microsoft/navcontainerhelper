@@ -831,6 +831,7 @@ try {
 
 @("")+$additionalCountries | ForEach-Object {
 $testCountry = $_.Trim()
+$testToolkitInstalled = $false
 
 if ($gitHubActions) { Write-Host "::group::Creating container" }
 Write-Host -ForegroundColor Yellow @'
@@ -866,7 +867,7 @@ Measure-Command {
         New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
         # Populate artifacts cache
-        $cachePath = Join-Path $baseFolder '.cache'
+        $cachePath = Join-Path $baseFolder '.artifactcache'
         $symbolsPath = Join-Path $cachePath 'symbols'
         $compilerPath = Join-Path $cachePath 'compiler'
         $dllsPath = Join-Path $cachePath 'dlls'
@@ -915,6 +916,7 @@ Measure-Command {
             # Set execute permissions on alc
             & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
         }
+        $testToolkitInstalled = $true
     }
     else {
         if (Test-BcContainer -containerName $containerName) {
@@ -1394,7 +1396,6 @@ $appsFolder = @{}
 $apps = @()
 $testApps = @()
 $bcptTestApps = @()
-$testToolkitInstalled = $false
 $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
@@ -1907,7 +1908,7 @@ Write-Host -ForegroundColor Yellow @'
 } | ForEach-Object { if ($appFolders -or $testFolders -or $bcptTestFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($signApps -and !$useDevEndpoint) {
+if ($signApps -and !$useDevEndpoint -and !$doNotUseDocker) {
 if ($gitHubActions) { Write-Host "::group::Signing apps" }
 Write-Host -ForegroundColor Yellow @'
   _____ _             _                                     

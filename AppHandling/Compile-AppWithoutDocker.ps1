@@ -198,6 +198,13 @@ try {
         }
         $depidx++
     }
+
+    $systemSymbolsApp = @($existingApps | Where-Object { $_.Name -eq "System" })
+    if ($systemSymbolsApp.Count -ne 1) {
+        throw "Unable to locate system symbols"
+    }
+    $platformversion = $systemSymbolsApp.Version
+    Write-Host "Platform version: $platformversion"
  
     if ($updateDependencies) {
         $appJsonFile = Join-Path $appProjectFolder 'app.json'
@@ -250,7 +257,12 @@ try {
     if (Test-Path $dllsPath) {
         $probingPaths += @($dllsPath)
     }
-    $probingPaths += @('c:\Windows\Microsoft.NET\Assembly')
+    if ($platformversion.Major -ge 22) {
+        $probingPaths = @('C:\Program Files\dotnet\Shared') + $probingPaths
+    }
+    else {
+        $probingPaths += @('c:\Windows\Microsoft.NET\Assembly')
+    }
     $assemblyProbingPaths = $probingPaths -join ','
 
     $appOutputFile = Join-Path $appOutputFolder $appName
@@ -336,7 +348,7 @@ try {
     $devOpsResult = ""
     if ($result) {
         if ($gitHubActions) {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath (Get-BcContainerPath -containerName $containerName -path $ENV:GITHUB_WORKSPACE)
+            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath $ENV:GITHUB_WORKSPACE
         }
         else {
             $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost

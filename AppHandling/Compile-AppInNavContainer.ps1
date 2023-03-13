@@ -131,9 +131,10 @@ try {
         throw "The appProjectFolder ($appProjectFolder) is not shared with the container."
     }
 
+    $containerFolder = Get-BcContainerPath -containerName $containerName -path (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName")
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
-            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
+            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
                 if (Test-Path $netpackagesPath) {
@@ -146,15 +147,37 @@ try {
                 }
 
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\Windows\Microsoft.NET\Assembly"""
-                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
-                if (Test-Path $mockAssembliesPath -PathType Container) {
-                    $assemblyProbingPaths += ",""$mockAssembliesPath"""
+                if ($platformversion.Major -ge 22) {
+                    $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages\Service"
+                    if (!(Test-Path $dotnetAssembliesFolder)) {
+                        New-Item $dotnetAssembliesFolder -ItemType Directory -Force | Out-Null
+
+                        Write-Host "Copying DLLs from $serviceTierFolder to assemblyProbingPath"
+                        Copy-Item -Path $serviceTierFolder -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+
+                        $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                        Copy-Item -Path $mockAssembliesPath -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+
+                        Write-Host "Removing dotnet Framework Assemblies"
+                        $dotnetServiceFolder = Join-Path $dotnetAssembliesFolder "Service"
+                        Remove-Item -Path (Join-Path $dotnetserviceFolder 'Management') -Recurse -Force -ErrorAction SilentlyContinue
+                        Remove-Item -Path (Join-Path $dotnetserviceFolder 'SideServices') -Recurse -Force -ErrorAction SilentlyContinue
+                        Remove-Item -Path (Join-Path $dotnetserviceFolder 'WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+
+                    $assemblyProbingPaths += """$dotnetAssembliesFolder"""
+                    $assemblyProbingPaths = """C:\Program Files\dotnet\shared"",$assemblyProbingPaths"
                 }
-
-
+                else {
+                    $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"""
+                    $assemblyProbingPaths += ',"c:\Windows\Microsoft.NET\Assembly"'
+                    $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                    if (Test-Path $mockAssembliesPath -PathType Container) {
+                        $assemblyProbingPaths += ",""$mockAssembliesPath"""
+                    }
+                }
                 $assemblyProbingPaths
-            } -ArgumentList $containerProjectFolder
+            } -ArgumentList $containerFolder, $containerProjectFolder, $platformversion
         }
     }
 
