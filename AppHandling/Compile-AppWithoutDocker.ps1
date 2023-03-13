@@ -200,7 +200,7 @@ try {
     }
 
     $systemSymbolsApp = @($existingApps | Where-Object { $_.Name -eq "System" })
-    if ($systemSymbolApp.Count -ne 1) {
+    if ($systemSymbolsApp.Count -ne 1) {
         throw "Unable to locate system symbols"
     }
     $platformversion = $systemSymbolsApp.Version
