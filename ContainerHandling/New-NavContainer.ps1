@@ -2279,20 +2279,28 @@ if (-not `$restartingInstance) {
         }
     }
     
+    if ($Version.Major -ge 22) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            Write-Host "Cleanup old dotnet core assemblies"
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.1.1' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\5.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\5.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     if ($includeAL) {
         $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Write-Host "Creating .net Assembly Reference Folder"
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder, [System.Version] $Version)
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
-            if ($Version.Major -ge 22) {
-                $paths = @('C:\Program Files\dotnet\shared')
-            }
-            else {
-                $paths = @('C:\Windows\assembly', 'C:\Windows\Microsoft.NET\assembly')
+            $paths = @()
+            if ($Version.Major -lt 22) {
+                $paths += @('C:\Windows\assembly', 'C:\Windows\Microsoft.NET\assembly')
             }
             $paths += @($serviceTierFolder)
 
@@ -2309,16 +2317,29 @@ if (-not `$restartingInstance) {
             }
 
             $paths | ForEach-Object {
-                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
-                if (!(Test-Path $localPath)) {
-                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
-                }
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                Get-ChildItem -Path $_ -Filter *.dll -Recurse | ForEach-Object {
-                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
-                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                if ($version.Major -ge 22) {
+                    Copy-Item -Path $_ -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                else {
+                    $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                    if (!(Test-Path $localPath)) {
+                        New-Item -Path $localPath -ItemType Directory -Force | Out-Null
+                    }
+                    Get-ChildItem -Path $_ -Filter '*.dll' -Recurse | ForEach-Object {
+                        if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                            Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                        }
                     }
                 }
+            }
+
+            if ($version.Major -ge 22) {
+                Write-Host "Removing dotnet Framework Assemblies"
+                $dotnetServiceFolder = Join-Path $dotnetAssembliesFolder "Service"
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'Management') -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'SideServices') -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
             }
 
             $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"

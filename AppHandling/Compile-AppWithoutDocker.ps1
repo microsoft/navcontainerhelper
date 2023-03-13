@@ -258,7 +258,7 @@ try {
         $probingPaths += @($dllsPath)
     }
     if ($platformversion.Major -ge 22) {
-        $probingPaths += @('C:\Program Files\dotnet\shared')
+        $probingPaths = @('C:\Program Files\dotnet\Shared') + $probingPaths
     }
     else {
         $probingPaths += @('c:\Windows\Microsoft.NET\Assembly')
