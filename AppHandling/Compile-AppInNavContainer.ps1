@@ -133,7 +133,7 @@ try {
 
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
-            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
+            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $platformVersion)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
                 if (Test-Path $netpackagesPath) {
@@ -146,15 +146,19 @@ try {
                 }
 
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\Windows\Microsoft.NET\Assembly"""
+                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"""
+                if ($platformversion.Major -ge 22) {
+                    $assemblyProbingPaths += ',"C:\Program Files\dotnet\shared"'
+                }
+                else {
+                    $assemblyProbingPaths += ',"c:\Windows\Microsoft.NET\Assembly"'
+                }
                 $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
                 if (Test-Path $mockAssembliesPath -PathType Container) {
                     $assemblyProbingPaths += ",""$mockAssembliesPath"""
                 }
-
-
                 $assemblyProbingPaths
-            } -ArgumentList $containerProjectFolder
+            } -ArgumentList $containerProjectFolder, $platformversion
         }
     }
 

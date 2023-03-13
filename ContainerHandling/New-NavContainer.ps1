@@ -1727,7 +1727,7 @@ if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Generic image is 1.0.2.1
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    Get-NavTenant -serverInstance $serverInstance | % {
+    Get-NavTenant -serverInstance $serverInstance | ForEach-Object {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress $ip
@@ -1747,7 +1747,7 @@ if ($multitenant) {
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    Get-NavTenant -serverInstance $serverInstance | % {
+    Get-NavTenant -serverInstance $serverInstance | ForEach-Object {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatecontainerhosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress "127.0.0.1"
     }
@@ -1860,7 +1860,7 @@ if (-not `$restartingInstance) {
         $customNavSettingsAdded = $false
         $cnt = $additionalParameters.Count-1
         if ($cnt -ge 0) {
-            0..$cnt | % {
+            0..$cnt | ForEach-Object {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
                 if ($idx -gt 0) {
                     $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customNavSettings))"
@@ -1877,7 +1877,7 @@ if (-not `$restartingInstance) {
         $customWebSettingsAdded = $false
         $cnt = $additionalParameters.Count-1
         if ($cnt -ge 0) {
-            0..$cnt | % {
+            0..$cnt | ForEach-Object {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customwebsettings=')
                 if ($idx -gt 0) {
                     $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customWebSettings))"
@@ -1891,15 +1891,15 @@ if (-not `$restartingInstance) {
     }
 
     #Write-Host "Parameters:"
-    #$Parameters | % { if ($_) { Write-Host "$_" } }
+    #$Parameters | ForEach-Object { if ($_) { Write-Host "$_" } }
 
     if ($additionalParameters) {
         Write-Host "Additional Parameters:"
-        $additionalParameters | % { if ($_) { Write-Host "$_" } }
+        $additionalParameters | ForEach-Object { if ($_) { Write-Host "$_" } }
     }
 
     Write-Host "Files in $($myfolder):"
-    get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+    get-childitem -Path $myfolder | ForEach-Object { Write-Host "- $($_.Name)" }
 
     Write-Host "Creating container $containerName from image $imageName"
 
@@ -2113,7 +2113,7 @@ if (-not `$restartingInstance) {
         if ($restoreBakFolder) {
             if ($multitenant) {
                 $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
-                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
+                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | ForEach-Object { $_.BaseName }
                 Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                     Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 }
@@ -2288,7 +2288,13 @@ if (-not `$restartingInstance) {
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
-            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
+            if ($Version.Major -ge 22) {
+                $paths = @('C:\Program Files\dotnet\shared')
+            }
+            else {
+                $paths = @('C:\Windows\assembly', 'C:\Windows\Microsoft.NET\assembly')
+            }
+            $paths += @($serviceTierFolder)
 
             $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
             if (Test-Path $rtcFolder -PathType Container) {
@@ -2302,13 +2308,13 @@ if (-not `$restartingInstance) {
                 $paths += "C:\Program Files (x86)\Open XML SDK"
             }
 
-            $paths | % {
+            $paths | ForEach-Object {
                 $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
                 if (!(Test-Path $localPath)) {
                     New-Item -Path $localPath -ItemType Directory -Force | Out-Null
                 }
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
+                Get-ChildItem -Path $_ -Filter *.dll -Recurse | ForEach-Object {
                     if (!(Test-Path (Join-Path $localPath $_.Name))) {
                         Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
                     }
@@ -2322,7 +2328,7 @@ if (-not `$restartingInstance) {
                 }
             }
 
-            if ($version.Major -ge 21) {
+            if ($version.Major -eq 21) {
                 Remove-Item -Path (Join-Path $dotnetAssembliesFolder 'assembly\DocumentFormat.OpenXml.dll') -Force -ErrorAction SilentlyContinue
             }
         } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder), $version
