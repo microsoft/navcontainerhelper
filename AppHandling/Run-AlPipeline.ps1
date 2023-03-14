@@ -713,7 +713,7 @@ if ($CompileAppInBcContainer -and !$doNotUseDocker) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
 else {
-    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($doNotUseDocker) { Compile-AppWithoutDocker @parameters } else { Compile-AppInBcContainer @parameters } }
+    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($doNotUseDocker) { Compile-AppWithBcCompilerFolder @parameters } else { Compile-AppInBcContainer @parameters } }
 }
 if ($GetBcContainerAppInfo -and !$doNotUseDocker) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
@@ -859,63 +859,12 @@ Measure-Command {
     $useExistingContainer = $false
 
     if ($doNotUseDocker) {
-        Write-Host "Not using a docker container"
-        $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
-        if (Test-Path $containerFolder) {
-            Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
-        }
-        New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
-
-        # Populate artifacts cache
-        $cachePath = Join-Path $baseFolder '.artifactcache'
-        $symbolsPath = Join-Path $cachePath 'symbols'
-        $compilerPath = Join-Path $cachePath 'compiler'
-        $dllsPath = Join-Path $cachePath 'dlls'
-        if (!(Test-Path $symbolsPath)) {
-            New-Item $symbolsPath -ItemType Directory | Out-Null
-            New-Item $compilerPath -ItemType Directory | Out-Null
-            New-Item $dllsPath -ItemType Directory | Out-Null
-            $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
-            $appArtifactPath = $artifactPaths[0]
-            $platformArtifactPath = $artifactPaths[1]
-            $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment" -Resolve
-            Copy-Item -Path (Join-Path $modernDevFolder 'System.app') -Destination $symbolsPath
-            Expand-7zipArchive -Path (Join-Path $modernDevFolder 'ALLanguage.vsix') -DestinationPath $compilerPath
-            $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service" -Resolve
-            Copy-Item -Path $serviceTierFolder -Filter '*.dll' -Destination $dllsPath -Recurse
-            $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
-            Copy-Item -Path (Join-Path $mockAssembliesFolder '*.dll') -Destination $dllsPath
-            $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
-            if (Test-Path $extensionsFolder -PathType Container) {
-                Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
-            }
-        }
-        Write-Host "Copying symbols from cache"
-        New-Item -Path $packagesFolder -ItemType Directory -Force | Out-Null
-        Copy-Item -Path (Join-Path $symbolsPath '*.app') -Destination $packagesFolder -Force
-
-        $containerDllsPath = Join-Path $containerFolder 'dlls'
-        Write-Host "Copying DLLs from cache"
-        New-Item -Path $containerDllsPath -ItemType Directory -Force | Out-Null
-        Copy-Item -Path (Join-Path $dllsPath '*.dll') -Destination $containerDllsPath -Force
-
-        $containerCompilerPath = Join-Path $containerFolder 'compiler'
-        if ($vsixFile) {
-            Write-Host "Using $vsixFile"
-            $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
-            Download-File -sourceUrl $vsixFile -destinationFile $tempZip
-            Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
-            Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
-        }
-        else {
-            Write-Host "Copying compiler from cache"
-            Copy-Item -Path $compilerPath -Destination "$containerFolder\" -Recurse -Force
-        }
-        if ($isLinux) {
-            $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
-            # Set execute permissions on alc
-            & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
-        }
+        $compilerFolder = New-BcCompilerFolder `
+            -artifactUrl $artifactUrl `
+            -cacheFolder (Join-Path $baseFolder '.artifactcache') `
+            -vsixFile $vsixFile `
+            -packagesFolder $packagesFolder `
+            -containerName $containerName
         $testToolkitInstalled = $true
     }
     else {
@@ -1154,7 +1103,7 @@ $Parameters = @{
     "tenant" = $tenant
 }
 if ($doNotUseDocker) {
-    $binPath = Join-Path $containerFolder 'compiler/extension/bin'
+    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
     }
@@ -1316,7 +1265,7 @@ $Parameters = @{
     "tenant" = $tenant
 }
 if ($doNotUseDocker) {
-    $binPath = Join-Path $containerFolder 'compiler/extension/bin'
+    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
     }
@@ -1681,8 +1630,14 @@ Write-Host -ForegroundColor Yellow @'
         $Parameters += @{ "CopyAppToSymbolsFolder" = $true }
     }
 
-    if (!$doNotUseDocker) {
+    if ($doNotUseDocker) {
         $Parameters += @{
+            "compilerFolder" = $compilerFolder
+        }
+    }
+    else {
+        $Parameters += @{
+            "containerName" = $containerName
             "tenant" = $tenant
             "credential" = $credential
             "CopySymbolsFromContainer" = $CopySymbolsFromContainer
@@ -1690,7 +1645,6 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     $Parameters += @{
-        "containerName" = $containerName
         "appProjectFolder" = $folder
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
@@ -2432,7 +2386,10 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if (!$doNotUseDocker) {
+    if ($doNotUseDocker) {
+        Remove-BcCompilerFolder -compilerFolder $compilerFolder
+    }
+    else {
         if (!$filesOnly -and $containerEventLogFile) {
             try {
                 Write-Host "Get Event Log from container"

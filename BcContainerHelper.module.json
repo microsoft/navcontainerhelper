@@ -23,6 +23,7 @@
         "Common\\*",
         "CompanyHandling\\*",
         "ConfigPackageHandling\\*",
+        "CompilerFolderHandling\\*",
         "ContainerHandling\\*",
         "ContainerInfo\\*",
         "Misc\\*",
