@@ -2,8 +2,8 @@
  .Synopsis
   Compile app without docker (used by Run-AlPipeline to compile apps without docker)
  .Description
- .Parameter containerName
-  Name of the directory (under [hosthelpderfolder]\extensions) in which compiler and dlls can be found
+ .Parameter compilerFolder
+  Folder in which compiler and dlls can be found (created by New-BcCompilerWithoutDocker)
  .Parameter appProjectFolder
   Location of the project. This folder (or any of its parents) needs to be shared with the container.
  .Parameter appOutputFolder
@@ -57,7 +57,8 @@
 #>
 function Compile-AppWithoutDocker {
     Param (
-        [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [Parameter(Mandatory=$true)]
+        [string] $compilerFolder,
         [Parameter(Mandatory=$true)]
         [string] $appProjectFolder,
         [Parameter(Mandatory=$false)]
@@ -100,13 +101,12 @@ try {
 
     $startTime = [DateTime]::Now
 
-    $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
-    if (!(Test-Path $containerFolder)) {
-        throw "Build container doesn't exist"
+    if (!(Test-Path $compilerFolder)) {
+        throw "CompilerFolder doesn't exist"
     }
 
-    $vsixPath = Join-Path $containerFolder 'compiler'
-    $dllsPath = Join-Path $containerFolder 'dlls'
+    $vsixPath = Join-Path $compilerFolder 'compiler'
+    $dllsPath = Join-Path $compilerFolder 'dlls'
     $binPath = Join-Path $vsixPath 'extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -255,13 +255,13 @@ try {
         $probingPaths += @($netpackagesPath)
     }
     if (Test-Path $dllsPath) {
-        $probingPaths += @($dllsPath)
+        $probingPaths += @((Join-Path $dllsPath "Service"),(Join-Path $dllsPath "Mock Assemblies"))
     }
     if ($platformversion.Major -ge 22) {
-        $probingPaths = @('C:\Program Files\dotnet\Shared') + $probingPaths
+        $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Program Files\dotnet\Shared') + $probingPaths
     }
     else {
-        $probingPaths += @('c:\Windows\Microsoft.NET\Assembly')
+        $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Windows\Microsoft.NET\Assembly') + $probingPaths
     }
     $assemblyProbingPaths = $probingPaths -join ','
 

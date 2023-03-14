@@ -117,6 +117,10 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags")
 
+# CompilerFolder Handling Functions
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\New-BcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Remove-BcCompilerFolder.ps1")
+
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainerSession.ps1")
