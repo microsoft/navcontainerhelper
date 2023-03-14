@@ -5,7 +5,7 @@ function Remove-BcCompilerFolder {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    if ($compilerFolder -eq (Join-Path $bcContainerHelperConfig.hostHelperFolder "compiler\*")) {
+    if ($compilerFolder -like (Join-Path $bcContainerHelperConfig.hostHelperFolder "compiler\*")) {
         Remove-Item -Path $compilerFolder -Force -Recurse -ErrorAction Ignore
     }
     else {
