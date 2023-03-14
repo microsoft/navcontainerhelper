@@ -1,5 +1,8 @@
 4.0.15
-New Function Compile-AppWithoutDocker, to compile an app without using containers.
+New function Compile-AppWithBcCompilerFolder, to compile an app without using containers.
+New function New-BcCompilerFolder, to create a folder with all necessary information from a set of artifacts to compile apps
+New function Remove-BcCompilerFolder, to remove a folder with compiler information
+Add cleanup of CompilerFolders to FlushContainerHelperCache
 Add parameter doNotUseDocker to Run-AlPipeline to allow building apps and test apps without using docker containers
 Add parameter doNotBuildImage to New-BcImage to not build the image, but instead populate a folder with the DOCKERFILE and more for creating the image
 Throw more describing error when New-BcAuthContext fails

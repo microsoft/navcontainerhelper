@@ -713,7 +713,7 @@ if ($CompileAppInBcContainer -and !$doNotUseDocker) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
 else {
-    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($doNotUseDocker) { Compile-AppWithoutDocker @parameters } else { Compile-AppInBcContainer @parameters } }
+    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($doNotUseDocker) { Compile-AppWithBcCompilerFolder @parameters } else { Compile-AppInBcContainer @parameters } }
 }
 if ($GetBcContainerAppInfo -and !$doNotUseDocker) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()

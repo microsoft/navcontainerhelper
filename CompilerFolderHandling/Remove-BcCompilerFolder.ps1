@@ -1,3 +1,9 @@
+<#
+ .SYNOPSIS
+ .DESCRIPTION
+ .PARAMETER compilerFolder
+ .EXAMPLE
+#>
 function Remove-BcCompilerFolder {
     Param(
         [string] $compilerFolder

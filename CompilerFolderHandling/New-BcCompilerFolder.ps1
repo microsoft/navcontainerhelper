@@ -1,3 +1,29 @@
+<#
+ .SYNOPSIS
+ .DESCRIPTION
+ .PARAMETER artifactUrl
+ .PARAMETER containerName
+ .PARAMETER cacheFolder
+ .PARAMETER packagesFolder
+ .PARAMETER vsixFile
+ .PARAMETER includeAL
+  Include this switch
+ .EXAMPLE
+  
+ .EXAMPLE
+  $version = $artifactURL.Split('/')[4]
+  $country = $artifactURL.Split('/')[5]
+  $compilerFolder = New-BcCompilerFolder -artifactUrl $artifactURL -includeAL
+  $baseAppSource = Join-Path $compilerFolder "BaseApp"
+  Copy-Item -Path (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$version-$country-al") $baseAppSource -Container -Recurse
+  Compile-AppWithBcCompilerFolder `
+      -compilerFolder $compilerFolder `
+      -appProjectFolder $baseAppSource `
+      -appOutputFolder (Join-Path $compilerFolder '.output') `
+      -appSymbolsFolder (Join-Path $compilerFolder 'symbols') `
+      -CopyAppToSymbolsFolder
+
+#>
 function New-BcCompilerFolder {
     Param(
         [string] $artifactUrl,

@@ -3,7 +3,7 @@
   Compile app without docker (used by Run-AlPipeline to compile apps without docker)
  .Description
  .Parameter compilerFolder
-  Folder in which compiler and dlls can be found (created by New-BcCompilerWithoutDocker)
+  Folder in which compiler and dlls can be found (created by New-BcCompilerFolder)
  .Parameter appProjectFolder
   Location of the project. This folder (or any of its parents) needs to be shared with the container.
  .Parameter appOutputFolder
@@ -49,13 +49,13 @@
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
-  Compile-AppWithoutDocker -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Project1\Test"
+  Compile-AppWithBcCompilerFolder -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Project1\Test"
  .Example
-  Compile-AppWithoutDocker -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
+  Compile-AppWithBcCompilerFolder -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test"
  .Example
-  Compile-AppWithoutDocker -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
+  Compile-AppWithBcCompilerFolder -containerName test -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -outputTo { Param($line) if ($line -notlike "*sourcepath=C:\Users\freddyk\Documents\AL\Test\Org\*") { Write-Host $line } }
 #>
-function Compile-AppWithoutDocker {
+function Compile-AppWithBcCompilerFolder {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $compilerFolder,
@@ -388,4 +388,4 @@ finally {
     TrackTrace -telemetryScope $telemetryScope
 }
 }
-Export-ModuleMember -Function Compile-AppWithoutDocker
+Export-ModuleMember -Function Compile-AppWithBcCompilerFolder
