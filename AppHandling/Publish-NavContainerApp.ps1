@@ -103,7 +103,7 @@ try {
     if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
         $containerName = $bcContainerHelperConfig.defaultContainerName
     }
-
+    if ($useDevEndpoint) { $checkAlreadyInstalled = $false }
     $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -127,7 +127,7 @@ try {
                 @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }
-}
+    }
     else {
         $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
@@ -162,7 +162,7 @@ try {
             elseif ($customconfig.ServerInstance -eq "") {
                 throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
             }
-        
+
             if ($useDevEndpoint) {
         
                 if ($scope -eq "Global") {

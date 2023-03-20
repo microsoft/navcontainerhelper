@@ -481,7 +481,7 @@ function CopyAppFilesToFolder {
             Remove-Item -Path $appFile -Force
         }
         elseif (Test-Path $appFile -PathType Container) {
-            get-childitem $appFile -Filter '*.app' -Recurse | % {
+            get-childitem $appFile -Filter '*.app' -Recurse | ForEach-Object {
                 $destFile = Join-Path $folder $_.Name
                 if (Test-Path $destFile) {
                     Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
@@ -1016,11 +1016,26 @@ function DownloadFileLow {
 function GetAppInfo {
     Param(
         [string[]] $appFiles,
-        [string] $alcDllPath,
+        [string] $compilerFolder,
         [switch] $cacheAppInfo
     )
 
-    Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath )
+    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
+    if ($isLinux) {
+        $alcPath = Join-Path $binPath 'linux'
+    }
+    else {
+        $alcPath = Join-Path $binPath 'win32'
+    }
+    if (-not (Test-Path $alcPath)) {
+        $alcPath = $binPath
+    }
+    $alcDllPath = $alcPath
+    if (!$isLinux -and !$isPsCore) {
+        $alcDllPath = $binPath
+    }
+
+    Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
@@ -1043,21 +1058,33 @@ function GetAppInfo {
                     $packageStream = [System.IO.File]::OpenRead($path)
                     $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                     $manifest = $package.ReadNavAppManifest()
+                    #$manifest | out-host
+                    #$manifest.Dependencies | Out-Host
                     $appInfo = @{
                         "appId" = $manifest.AppId
                         "publisher" = $manifest.AppPublisher
                         "name" = $manifest.AppName
                         "version" = "$($manifest.AppVersion)"
+                        "dependencies" = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                        "application" = "$($manifest.Application)"
+                        "platform" = "$($manifest.Platform)"
+                        "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     if ($cacheAppInfo) {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
                 }
                 @{
+                    "id" = $appInfo.appId
                     "appId" = $appInfo.appId
                     "publisher" = $appInfo.publisher
                     "name" = $appInfo.name
                     "version" = [System.Version]$appInfo.version
+                    "dependencies" = @($appInfo.dependencies)
+                    "path" = $path
+                    "application" = $appInfo.application
+                    "platform" = $appInfo.platform
+                    "propagateDependencies" = $appInfo.propagateDependencies
                 }
             }
         }
@@ -1077,6 +1104,5 @@ function GetAppInfo {
                 $packageStream.Dispose()
             }
         }
-        
-    } -argumentList $appFiles, $alcDllPath | Wait-Job | Receive-Job
+    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent | Wait-Job | Receive-Job
 }
