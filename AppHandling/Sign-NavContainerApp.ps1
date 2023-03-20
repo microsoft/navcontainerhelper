@@ -64,7 +64,7 @@ try {
     try {
         TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "Codesign"
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
+        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
 
             function GetExtendedErrorMessage {
                 Param(
