@@ -65,12 +65,7 @@ try {
         $dllsPath = Join-Path $cacheFolder 'dlls'
     }
     else {
-        if ($packagesFolder) {
-            $symbolsPath = $packagesFolder
-        }
-        else {
-            $symbolsPath = Join-Path $compilerFolder 'symbols'
-        }
+        $symbolsPath = Join-Path $compilerFolder 'symbols'
         $compilerPath = Join-Path $compilerFolder 'compiler'
         $dllsPath = Join-Path $compilerFolder 'dlls'
     }
@@ -81,6 +76,7 @@ try {
         $platformArtifactPath = $artifactPaths[1]
     }
 
+    # IncludeAL will populate folder with AL files (like New-BcContainer)
     if ($includeAL) {
         $alFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$version-$country-al"
         if (!(Test-Path $alFolder) -or (Get-ChildItem -Path $alFolder -Recurse | Measure-Object).Count -eq 0) {
@@ -102,6 +98,7 @@ try {
         }
     }
 
+    # Populate cache folder (or compiler folder)
     if (!(Test-Path $symbolsPath)) {
         New-Item $symbolsPath -ItemType Directory | Out-Null
         New-Item $compilerPath -ItemType Directory | Out-Null
@@ -109,6 +106,7 @@ try {
         $modernDevFolder = Join-Path $platformArtifactPath "ModernDev\program files\Microsoft Dynamics NAV\*\AL Development Environment" -Resolve
         Copy-Item -Path (Join-Path $modernDevFolder 'System.app') -Destination $symbolsPath
         if ($cacheFolder -or !$vsixFile) {
+            # Only unpack the artifact vsix file if we are populating a cache folder - or no vsixFile was specified
             Expand-7zipArchive -Path (Join-Path $modernDevFolder 'ALLanguage.vsix') -DestinationPath $compilerPath
         }
         $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service" -Resolve
@@ -124,10 +122,14 @@ try {
         if (Test-Path $extensionsFolder -PathType Container) {
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
         }
+        else {
+            Get-ChildItem -Path (Join-Path $platformArtifactPath 'Applications') -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
+        }
     }
 
     $containerCompilerPath = Join-Path $compilerFolder 'compiler'
     if ($vsixFile) {
+        # If a vsix file was specified unpack directly to compilerfolder
         Write-Host "Using $vsixFile"
         $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
@@ -135,23 +137,26 @@ try {
         Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
     }
 
+    # If a cacheFolder was specified, the cache folder has been populated
     if ($cacheFolder) {
         Write-Host "Copying DLLs from cache"
         Copy-Item -Path $dllsPath -Filter '*.dll' -Destination $compilerFolder -Recurse -Force
+        Write-Host "Copying symbols from cache"
+        Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $compilerFolder -Recurse -Force
+        # If a vsix file was specified, the compiler folder has been populated
         if (!$vsixFile) {
             Write-Host "Copying compiler from cache"
             Copy-Item -Path $compilerPath -Destination $compilerFolder -Recurse -Force
         }
-        if ($packagesFolder) {
-            Write-Host "Copying symbols from cache"
-            New-Item -Path $packagesFolder -ItemType Directory -Force | Out-Null
-            Copy-Item -Path (Join-Path $symbolsPath '*.app') -Destination $packagesFolder -Force -Recurse
-        }
-        else {
-            Write-Host "Copying Symbols from cache"
-            Copy-Item -Path $symbolsPath -Destination $compilerFolder -Recurse -Force
-        }
     }
+
+    # If a packagesFolder was specified, copy symbols from CompilerFolder
+    if ($packagesFolder) {
+        Write-Host "Copying symbols from cache"
+        New-Item -Path $packagesFolder -ItemType Directory -Force | Out-Null
+        Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $packagesFolder -Force -Recurse
+    }
+
     if ($isLinux) {
         $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
         # Set execute permissions on alc

@@ -107,22 +107,8 @@ try {
 
     $vsixPath = Join-Path $compilerFolder 'compiler'
     $dllsPath = Join-Path $compilerFolder 'dlls'
+    $symbolsPath = Join-Path $compilerFolder 'symbols'
     $binPath = Join-Path $vsixPath 'extension/bin'
-    if ($isLinux) {
-        $alcPath = Join-Path $binPath 'linux'
-        $alcExe = 'alc'
-    }
-    else {
-        $alcPath = Join-Path $binPath 'win32'
-        $alcExe = 'alc.exe'
-    }
-    if (-not (Test-Path $alcPath)) {
-        $alcPath = $binPath
-    }
-    $alcDllPath = $alcPath
-    if (!$isLinux -and !$isPsCore) {
-        $alcDllPath = $binPath
-    }
 
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
@@ -161,20 +147,17 @@ try {
 
     $dependencies = @()
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
         $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
         $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
         $appJsonObject.dependencies | ForEach-Object {
             $dep = $_
             try { $appId = $dep.id } catch { $appId = $dep.appId }
@@ -182,19 +165,57 @@ try {
         }
     }
 
+    Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
+    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app'))
+    $compilerFolderApps = @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppInfo)
+
+    Write-Host "Enumerating Apps in Symbols Folder $appSymbolsFolder"
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app'))
-    Write-Host "Enumerating Existing Apps"
-    $existingApps = GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath -cacheAppInfo
+    $existingApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder)
 
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
-            ($_.AppId -eq $dependency.appId -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
         }
         if ($existingApp) {
             Write-Host "Dependency App exists"
+        }
+        else {
+            Write-Host "Dependency App not found"
+            $copyCompilerFolderApps = @($compilerFolderApps | Where-Object {
+                ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            })
+            $copyCompilerFolderApps | ForEach-Object {
+                $copyCompilerFolderApp = $_
+                $existingApps += $copyCompilerFolderApp
+                Write-Host "Copying $($copyCompilerFolderApp.path) to $appSymbolsFolder"
+                Copy-Item -Path $copyCompilerFolderApp.path -Destination $appSymbolsFolder -Force
+                if ($copyCompilerFolderApp.Application) {
+                    if (!($dependencies | where-Object { $_.Name -eq 'Application'})) {
+                        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $copyCompilerFolderApp.Application }
+                    }
+                }
+                if (!($dependencies | where-Object { $_.Name -eq 'System'})) {
+                    $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $copyCompilerFolderApp.Platform }
+                }
+                $copyCompilerFolderApp.Dependencies | ForEach-Object {
+                    $addDependency = $_
+                    try {
+                        $appId = $addDependency.id
+                    }
+                    catch {
+                        $appId = $addDependency.appid
+                    }
+                    $dependencyExists = $dependencies | Where-Object { $_.appId -eq $appId }
+                    if (-not $dependencyExists) {
+                        Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
+                        $dependencies += @($compilerFolderApps | Where-Object { $_.appId -eq $appId })
+                    }
+                }
+            }
         }
         $depidx++
     }
@@ -271,8 +292,19 @@ try {
     }
 
     Write-Host "Compiling..."
-
-    $alcItem = Get-Item -Path (Join-Path $alcPath 'alc.exe')
+    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
+    if ($isLinux) {
+        $alcPath = Join-Path $binPath 'linux'
+        $alcExe = 'alc'
+    }
+    else {
+        $alcPath = Join-Path $binPath 'win32'
+        $alcExe = 'alc.exe'
+        if (-not (Test-Path $alcPath)) {
+            $alcPath = $binPath
+        }
+    }
+    $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
     [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion
 
     $alcParameters = @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")

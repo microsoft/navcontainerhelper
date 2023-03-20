@@ -121,6 +121,7 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "CompilerFolderHandling\New-BcCompilerFolder.ps1")
 . (Join-Path $PSScriptRoot "CompilerFolderHandling\Remove-BcCompilerFolder.ps1")
 . (Join-Path $PSScriptRoot "CompilerFolderHandling\Compile-AppWithBcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Copy-AppFilesToCompilerFolder.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")

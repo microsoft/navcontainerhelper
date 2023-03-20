@@ -126,6 +126,8 @@
   Including the keepContainer switch causes the container to not be deleted after the pipeline finishes.
  .Parameter updateLaunchJson
   Specifies the name of the configuration in launch.json, which should be updated with container information to be able to start debugging right away.
+ .Parameter artifactCachePath
+  Artifacts Cache folder (if needed)
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
@@ -272,10 +274,11 @@ Param(
     [switch] $doNotPerformUpgrade,
     [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
-    [switch] $doNotUseDocker,
+    [switch] $useCompilerFolder,
     [switch] $reUseContainer,
     [switch] $keepContainer,
     [string] $updateLaunchJson = "",
+    [string] $artifactCachePath = "",
     [string] $vsixFile = "",
     [switch] $enableCodeCop,
     [switch] $enableAppSourceCop,
@@ -554,7 +557,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "Environment                     "; Write-Host $environment
 Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer                  "; Write-Host $reUseContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer                   "; Write-Host $keepContainer
-Write-Host -NoNewLine -ForegroundColor Yellow "doNotUseDocker                  "; Write-Host $doNotUseDocker
+Write-Host -NoNewLine -ForegroundColor Yellow "useCompilerFolder               "; Write-Host $useCompilerFolder
 Write-Host -NoNewLine -ForegroundColor Yellow "Auth                            "; Write-Host $auth
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                      ";
 if ($credential) {
@@ -636,7 +639,8 @@ if ($bcptTestSuites) { $bcptTestSuites | ForEach-Object { Write-Host "- $_" } } 
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
-if ($doNotUseDocker) {
+$compilerFolder = ''
+if ($useCompilerFolder) {
     $usedOverrides = @()
     'GetBcContainerEventLog', 'GetBestGenericImageName', 'RemoveBcContainer', 'GetBcContainerAppRuntimePackage', 'RunBCPTTestsInBcContainer', 'RunTestsInBcContainer', 'ImportTestDataInBcContainer', 'SignBcContainerApp', 'InstallBcAppFromAppSource', 'UnPublishBcContainerApp', 'PublishBcContainerApp', 'GetBcContainerAppInfo', 'CompileAppInBcContainer', 'ImportTestToolkitToBcContainer', 'SetBcContainerKeyVaultAadAppAndCertificate', 'NewBcContainer', 'DockerPull' | ForEach-Object {
         $override = Get-Variable $_ -ValueOnly
@@ -664,6 +668,7 @@ if ($doNotUseDocker) {
     $doNotRunTests = $true
     $doNotRunBcptTests = $true
     $filesOnly = $true
+    $updateLaunchJson = ''
 }
 else {
     if ($doNotPublishApps) {
@@ -685,100 +690,100 @@ else {
     }
 }
 
-if ($DockerPull -and !$doNotUseDocker) {
+if ($DockerPull -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
 else {
     $DockerPull = { Param($imageName) docker pull $imageName }
 }
-if ($NewBcContainer -and !$doNotUseDocker) {
+if ($NewBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "NewBccontainer override"; Write-Host $NewBcContainer.ToString()
 }
 else {
     $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
 }
-if ($SetBcContainerKeyVaultAadAppAndCertificate -and !$doNotUseDocker) {
+if ($SetBcContainerKeyVaultAadAppAndCertificate -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "SetBcContainerKeyVaultAadAppAndCertificate override"; Write-Host $SetBcContainerKeyVaultAadAppAndCertificate.ToString()
 }
 else {
     $SetBcContainerKeyVaultAadAppAndCertificate = { Param([Hashtable]$parameters) Set-BcContainerKeyVaultAadAppAndCertificate @parameters }
 }
-if ($ImportTestToolkitToBcContainer -and !$doNotUseDocker) {
+if ($ImportTestToolkitToBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "ImportTestToolkitToBcContainer override"; Write-Host $ImportTestToolkitToBcContainer.ToString()
 }
 else {
     $ImportTestToolkitToBcContainer = { Param([Hashtable]$parameters) Import-TestToolkitToBcContainer @parameters }
 }
-if ($CompileAppInBcContainer -and !$doNotUseDocker) {
+if ($CompileAppInBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
 else {
-    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($doNotUseDocker) { Compile-AppWithBcCompilerFolder @parameters } else { Compile-AppInBcContainer @parameters } }
+    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($useCompilerFolder) { Compile-AppWithBcCompilerFolder @parameters } else { Compile-AppInBcContainer @parameters } }
 }
-if ($GetBcContainerAppInfo -and !$doNotUseDocker) {
+if ($GetBcContainerAppInfo -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
 else {
     $GetBcContainerAppInfo = { Param([Hashtable]$parameters) Get-BcContainerAppInfo @parameters }
 }
-if ($PublishBcContainerApp -and !$doNotUseDocker) {
+if ($PublishBcContainerApp -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "PublishBcContainerApp override"; Write-Host $PublishBcContainerApp.ToString()
 }
 else {
-    $PublishBcContainerApp = { Param([Hashtable]$parameters) Publish-BcContainerApp @parameters }
+    $PublishBcContainerApp = { Param([Hashtable]$parameters) if (Test-BcContainer -containerName $parameters.ContainerName) { Publish-BcContainerApp @parameters } }
 }
-if ($UnPublishBcContainerApp -and !$doNotUseDocker) {
+if ($UnPublishBcContainerApp -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "UnPublishBcContainerApp override"; Write-Host $UnPublishBcContainerApp.ToString()
 }
 else {
     $UnPublishBcContainerApp = { Param([Hashtable]$parameters) UnPublish-BcContainerApp @parameters }
 }
-if ($InstallBcAppFromAppSource -and !$doNotUseDocker) {
+if ($InstallBcAppFromAppSource -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "InstallBcAppFromAppSource override"; Write-Host $InstallBcAppFromAppSource.ToString()
 }
 else {
     $InstallBcAppFromAppSource = { Param([Hashtable]$parameters) Install-BcAppFromAppSource @parameters }
 }
-if ($SignBcContainerApp -and !$doNotUseDocker) {
+if ($SignBcContainerApp -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "SignBcContainerApp override"; Write-Host $SignBcContainerApp.ToString()
 }
 else {
     $SignBcContainerApp = { Param([Hashtable]$parameters) Sign-BcContainerApp @parameters }
 }
-if ($ImportTestDataInBcContainer -and !$doNotUseDocker) {
+if ($ImportTestDataInBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "ImportTestDataInBcContainer override"; Write-Host $ImportTestDataInBcContainer.ToString()
 }
-if ($RunTestsInBcContainer -and !$doNotUseDocker) {
+if ($RunTestsInBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "RunTestsInBcContainer override"; Write-Host $RunTestsInBcContainer.ToString()
 }
 else {
     $RunTestsInBcContainer = { Param([Hashtable]$parameters) Run-TestsInBcContainer @parameters }
 }
-if ($RunBCPTTestsInBcContainer -and !$doNotUseDocker) {
+if ($RunBCPTTestsInBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "RunBCPTTestsInBcContainer override"; Write-Host $RunBCPTTestsInBcContainer.ToString()
 }
 else {
     $RunBCPTTestsInBcContainer = { Param([Hashtable]$parameters) Run-BCPTTestsInBcContainer @parameters }
 }
-if ($GetBcContainerAppRuntimePackage -and !$doNotUseDocker) {
+if ($GetBcContainerAppRuntimePackage -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppRuntimePackage override"; Write-Host $GetBcContainerAppRuntimePackage.ToString()
 }
 else {
     $GetBcContainerAppRuntimePackage = { Param([Hashtable]$parameters) Get-BcContainerAppRuntimePackage @parameters }
 }
-if ($RemoveBcContainer -and !$doNotUseDocker) {
+if ($RemoveBcContainer -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "RemoveBcContainer override"; Write-Host $RemoveBcContainer.ToString()
 }
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
-if ($GetBestGenericImageName -and !$doNotUseDocker) {
+if ($GetBestGenericImageName -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "GetBestGenericImageName override"; Write-Host $GetBestGenericImageName.ToString()
 }
 else {
     $GetBestGenericImageName = { Param([Hashtable]$parameters) Get-BestGenericImageName @parameters }
 }
-if ($GetBcContainerEventLog -and !$doNotUseDocker) {
+if ($GetBcContainerEventLog -and !$useCompilerFolder) {
     Write-Host -ForegroundColor Yellow "GetBcContainerEventLog override"; Write-Host $GetBcContainerEventLog.ToString()
 }
 else {
@@ -793,7 +798,7 @@ $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
-if (!$reUseContainer -and !$doNotUseDocker -and $artifactUrl) {
+if (!$reUseContainer -and !$useCompilerFolder -and $artifactUrl) {
 if ($gitHubActions) { Write-Host "::group::Pulling generic image" }
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
@@ -858,12 +863,11 @@ Measure-Command {
     $Parameters = @{}
     $useExistingContainer = $false
 
-    if ($doNotUseDocker) {
+    if ($useCompilerFolder) {
         $compilerFolder = New-BcCompilerFolder `
             -artifactUrl $artifactUrl `
-            -cacheFolder (Join-Path $baseFolder '.artifactcache') `
+            -cacheFolder $artifactCachePath `
             -vsixFile $vsixFile `
-            -packagesFolder $packagesFolder `
             -containerName $containerName
         $testToolkitInstalled = $true
     }
@@ -1090,6 +1094,10 @@ Measure-Command {
             }
         }
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        if (!$testCountry -and $compilerFolder) {
+            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+        }
+       
         Remove-Item -Path $tmpAppFolder -Recurse -Force
     }
 
@@ -1102,23 +1110,9 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-if ($doNotUseDocker) {
-    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
-    if ($isLinux) {
-        $alcPath = Join-Path $binPath 'linux'
-    }
-    else {
-        $alcPath = Join-Path $binPath 'win32'
-    }
-    if (-not (Test-Path $alcPath)) {
-        $alcPath = $binPath
-    }
-    $alcDllPath = $alcPath
-    if (!$isLinux -and !$isPsCore) {
-        $alcDllPath = $binPath
-    }
+if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath -cacheAppinfo).AppId
+    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo).AppId
 }
 else {
     $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
@@ -1250,6 +1244,9 @@ Measure-Command {
                 }
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$testCountry -and $compilerFolder) {
+                Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+            }
         }
     }
 
@@ -1264,23 +1261,9 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-if ($doNotUseDocker) {
-    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
-    if ($isLinux) {
-        $alcPath = Join-Path $binPath 'linux'
-    }
-    else {
-        $alcPath = Join-Path $binPath 'win32'
-    }
-    if (-not (Test-Path $alcPath)) {
-        $alcPath = $binPath
-    }
-    $alcDllPath = $alcPath
-    if (!$isLinux -and !$isPsCore) {
-        $alcDllPath = $binPath
-    }
+if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -alcDllPath $alcDllPath -cacheAppinfo).AppId
+    $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo).AppId
 }
 else {
     $installedAppIds = (Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters).AppId
@@ -1440,6 +1423,9 @@ Measure-Command {
                 }
             }
             Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if ($compilerFolder) {
+                Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+            }
         }
     }
 
@@ -1630,7 +1616,7 @@ Write-Host -ForegroundColor Yellow @'
         $Parameters += @{ "CopyAppToSymbolsFolder" = $true }
     }
 
-    if ($doNotUseDocker) {
+    if ($useCompilerFolder) {
         $Parameters += @{
             "compilerFolder" = $compilerFolder
         }
@@ -1794,6 +1780,9 @@ Write-Host -ForegroundColor Yellow @'
         }
 
         Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        if ($compilerFolder) {
+            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+        }
 
         if ($updateLaunchJson) {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
@@ -1862,7 +1851,7 @@ Write-Host -ForegroundColor Yellow @'
 } | ForEach-Object { if ($appFolders -or $testFolders -or $bcptTestFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
-if ($signApps -and !$useDevEndpoint -and !$doNotUseDocker) {
+if ($signApps -and !$useDevEndpoint -and !$useCompilerFolder) {
 if ($gitHubActions) { Write-Host "::group::Signing apps" }
 Write-Host -ForegroundColor Yellow @'
   _____ _             _                                     
@@ -2386,7 +2375,7 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($doNotUseDocker) {
+    if ($useCompilerFolder) {
         Remove-BcCompilerFolder -compilerFolder $compilerFolder
     }
     else {
