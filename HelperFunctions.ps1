@@ -1035,7 +1035,7 @@ function GetAppInfo {
         $alcDllPath = $binPath
     }
 
-    Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
+    $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
@@ -1104,5 +1104,7 @@ function GetAppInfo {
                 $packageStream.Dispose()
             }
         }
-    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent | Wait-Job | Receive-Job
+    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
+    $job | Wait-Job | Receive-Job
+    $job | Remove-Job
 }

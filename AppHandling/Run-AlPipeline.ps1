@@ -640,150 +640,134 @@ Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
 $compilerFolder = ''
+
 if ($useCompilerFolder) {
-    $usedOverrides = @()
-    'GetBcContainerEventLog', 'GetBestGenericImageName', 'RemoveBcContainer', 'GetBcContainerAppRuntimePackage', 'RunBCPTTestsInBcContainer', 'RunTestsInBcContainer', 'ImportTestDataInBcContainer', 'SignBcContainerApp', 'InstallBcAppFromAppSource', 'UnPublishBcContainerApp', 'PublishBcContainerApp', 'GetBcContainerAppInfo', 'CompileAppInBcContainer', 'ImportTestToolkitToBcContainer', 'SetBcContainerKeyVaultAadAppAndCertificate', 'NewBcContainer', 'DockerPull' | ForEach-Object {
-        $override = Get-Variable $_ -ValueOnly
-        if ($override) {
-            $usedOverrides += $_
-        }
-    }
-    if ($usedOverrides) {
-        Write-Host -ForegroundColor Yellow "WARNING: When compiling without Docker, the following overrides are ignored: $($usedOverrides -join ', ')"
-    }
-    if (!$doNotPublishApps) {
-        Write-Host -ForegroundColor Yellow "WARNING: Publishing apps without Docker is not supported, adding -doNotPublishApps"
-    }
-    if (!$doNotPerformUpgrade) {
-        Write-Host -ForegroundColor Yellow "WARNING: Performing upgrade tests without Docker is not supported, adding -doNotPerformUpgrade"
-    }
-    if (!$doNotRunTests) {
-        Write-Host -ForegroundColor Yellow "WARNING: Running tests without Docker is not supported, adding -doNotRunTests"
-    }
-    if (!$doNotRunBcptTests) {
-        Write-Host -ForegroundColor Yellow "WARNING: Running BCPT tests without Docker is not supported, adding -doNotRunBcptTests"
-    }
-    $doNotPublishApps = $true
-    $doNotPerformUpgrade = $true
-    $doNotRunTests = $true
-    $doNotRunBcptTests = $true
-    $filesOnly = $true
+    # We are using CompilerFolder, no need for a filesOnly Container
+    # If we are to create a container, it is for publishing and testing
+    $filesOnly = $false
     $updateLaunchJson = ''
 }
-else {
-    if ($doNotPublishApps) {
-        $doNotBuildTests = $true
-        $doNotPerformUpgrade = $true
-        $filesOnly = $true
-        $CopySymbolsFromContainer = $true
-    }
-
-    if ($doNotBuildTests) {
-        $testFolders = @()
-        $bcptTestFolders = @()
-        $installTestRunner = $false
-        $installTestFramework = $false
-        $installTestLibraries = $false
-        $installPerformanceToolkit = $false
-        $doNotRunTests = $true
-        $doNotRunBcptTests = $true
-    }
+elseif ($doNotPublishApps) {
+    # We are not using CompilerFolder, but we are not publishing apps either
+    # we can use FilesOnly container
+    $filesOnly = $true
+    $CopySymbolsFromContainer = $true
 }
 
-if ($DockerPull -and !$useCompilerFolder) {
+if ($doNotPublishApps) {
+    # If we are not going to publish apps, we also cannot run upgrade tests or tests
+    $doNotRunTests = $true
+    $doNotRunBcptTests = $true
+    $doNotPerformUpgrade = $true
+}
+
+if ($doNotBuildTests) {
+    # If we are not going to build tests, set test folders to empty
+    # and set doNotRunTests and doNotRunBcptTests to true
+    $testFolders = @()
+    $bcptTestFolders = @()
+    $installTestRunner = $false
+    $installTestFramework = $false
+    $installTestLibraries = $false
+    $installPerformanceToolkit = $false
+    $doNotRunTests = $true
+    $doNotRunBcptTests = $true
+}
+
+if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
 else {
     $DockerPull = { Param($imageName) docker pull $imageName }
 }
-if ($NewBcContainer -and !$useCompilerFolder) {
+if ($NewBcContainer) {
     Write-Host -ForegroundColor Yellow "NewBccontainer override"; Write-Host $NewBcContainer.ToString()
 }
 else {
     $NewBcContainer = { Param([Hashtable]$parameters) New-BcContainer @parameters; Invoke-ScriptInBcContainer $parameters.ContainerName -scriptblock { $progressPreference = 'SilentlyContinue' } }
 }
-if ($SetBcContainerKeyVaultAadAppAndCertificate -and !$useCompilerFolder) {
+if ($SetBcContainerKeyVaultAadAppAndCertificate) {
     Write-Host -ForegroundColor Yellow "SetBcContainerKeyVaultAadAppAndCertificate override"; Write-Host $SetBcContainerKeyVaultAadAppAndCertificate.ToString()
 }
 else {
     $SetBcContainerKeyVaultAadAppAndCertificate = { Param([Hashtable]$parameters) Set-BcContainerKeyVaultAadAppAndCertificate @parameters }
 }
-if ($ImportTestToolkitToBcContainer -and !$useCompilerFolder) {
+if ($ImportTestToolkitToBcContainer) {
     Write-Host -ForegroundColor Yellow "ImportTestToolkitToBcContainer override"; Write-Host $ImportTestToolkitToBcContainer.ToString()
 }
 else {
     $ImportTestToolkitToBcContainer = { Param([Hashtable]$parameters) Import-TestToolkitToBcContainer @parameters }
 }
-if ($CompileAppInBcContainer -and !$useCompilerFolder) {
+if ($CompileAppInBcContainer) {
     Write-Host -ForegroundColor Yellow "CompileAppInBcContainer override"; Write-Host $CompileAppInBcContainer.ToString()
 }
 else {
-    $CompileAppInBcContainer = { Param([Hashtable]$parameters) if ($useCompilerFolder) { Compile-AppWithBcCompilerFolder @parameters } else { Compile-AppInBcContainer @parameters } }
+    $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
 }
-if ($GetBcContainerAppInfo -and !$useCompilerFolder) {
+if ($GetBcContainerAppInfo) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
 else {
     $GetBcContainerAppInfo = { Param([Hashtable]$parameters) Get-BcContainerAppInfo @parameters }
 }
-if ($PublishBcContainerApp -and !$useCompilerFolder) {
+if ($PublishBcContainerApp) {
     Write-Host -ForegroundColor Yellow "PublishBcContainerApp override"; Write-Host $PublishBcContainerApp.ToString()
 }
 else {
-    $PublishBcContainerApp = { Param([Hashtable]$parameters) if (Test-BcContainer -containerName $parameters.ContainerName) { Publish-BcContainerApp @parameters } }
+    $PublishBcContainerApp = { Param([Hashtable]$parameters) Publish-BcContainerApp @parameters }
 }
-if ($UnPublishBcContainerApp -and !$useCompilerFolder) {
+if ($UnPublishBcContainerApp) {
     Write-Host -ForegroundColor Yellow "UnPublishBcContainerApp override"; Write-Host $UnPublishBcContainerApp.ToString()
 }
 else {
     $UnPublishBcContainerApp = { Param([Hashtable]$parameters) UnPublish-BcContainerApp @parameters }
 }
-if ($InstallBcAppFromAppSource -and !$useCompilerFolder) {
+if ($InstallBcAppFromAppSource) {
     Write-Host -ForegroundColor Yellow "InstallBcAppFromAppSource override"; Write-Host $InstallBcAppFromAppSource.ToString()
 }
 else {
     $InstallBcAppFromAppSource = { Param([Hashtable]$parameters) Install-BcAppFromAppSource @parameters }
 }
-if ($SignBcContainerApp -and !$useCompilerFolder) {
+if ($SignBcContainerApp) {
     Write-Host -ForegroundColor Yellow "SignBcContainerApp override"; Write-Host $SignBcContainerApp.ToString()
 }
 else {
     $SignBcContainerApp = { Param([Hashtable]$parameters) Sign-BcContainerApp @parameters }
 }
-if ($ImportTestDataInBcContainer -and !$useCompilerFolder) {
+if ($ImportTestDataInBcContainer) {
     Write-Host -ForegroundColor Yellow "ImportTestDataInBcContainer override"; Write-Host $ImportTestDataInBcContainer.ToString()
 }
-if ($RunTestsInBcContainer -and !$useCompilerFolder) {
+if ($RunTestsInBcContainer) {
     Write-Host -ForegroundColor Yellow "RunTestsInBcContainer override"; Write-Host $RunTestsInBcContainer.ToString()
 }
 else {
     $RunTestsInBcContainer = { Param([Hashtable]$parameters) Run-TestsInBcContainer @parameters }
 }
-if ($RunBCPTTestsInBcContainer -and !$useCompilerFolder) {
+if ($RunBCPTTestsInBcContainer ) {
     Write-Host -ForegroundColor Yellow "RunBCPTTestsInBcContainer override"; Write-Host $RunBCPTTestsInBcContainer.ToString()
 }
 else {
     $RunBCPTTestsInBcContainer = { Param([Hashtable]$parameters) Run-BCPTTestsInBcContainer @parameters }
 }
-if ($GetBcContainerAppRuntimePackage -and !$useCompilerFolder) {
+if ($GetBcContainerAppRuntimePackage) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppRuntimePackage override"; Write-Host $GetBcContainerAppRuntimePackage.ToString()
 }
 else {
     $GetBcContainerAppRuntimePackage = { Param([Hashtable]$parameters) Get-BcContainerAppRuntimePackage @parameters }
 }
-if ($RemoveBcContainer -and !$useCompilerFolder) {
+if ($RemoveBcContainer) {
     Write-Host -ForegroundColor Yellow "RemoveBcContainer override"; Write-Host $RemoveBcContainer.ToString()
 }
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
-if ($GetBestGenericImageName -and !$useCompilerFolder) {
+if ($GetBestGenericImageName) {
     Write-Host -ForegroundColor Yellow "GetBestGenericImageName override"; Write-Host $GetBestGenericImageName.ToString()
 }
 else {
     $GetBestGenericImageName = { Param([Hashtable]$parameters) Get-BestGenericImageName @parameters }
 }
-if ($GetBcContainerEventLog -and !$useCompilerFolder) {
+if ($GetBcContainerEventLog) {
     Write-Host -ForegroundColor Yellow "GetBcContainerEventLog override"; Write-Host $GetBcContainerEventLog.ToString()
 }
 else {
@@ -798,7 +782,7 @@ $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
-if (!$reUseContainer -and !$useCompilerFolder -and $artifactUrl) {
+if ( $artifactUrl -and !$reUseContainer -and !$doNotPublishApps -and !$filesOnly) {
 if ($gitHubActions) { Write-Host "::group::Pulling generic image" }
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
@@ -864,6 +848,7 @@ Measure-Command {
     $useExistingContainer = $false
 
     if ($useCompilerFolder) {
+        Write-Host "Creating CompilerFolder"
         $compilerFolder = New-BcCompilerFolder `
             -artifactUrl $artifactUrl `
             -cacheFolder $artifactCachePath `
@@ -871,7 +856,8 @@ Measure-Command {
             -containerName $containerName
         $testToolkitInstalled = $true
     }
-    else {
+    if ($filesOnly -or !$doNotPublishApps) {
+        # If we are going to build using a filesOnly container or we are going to publish apps, we need a container
         if (Test-BcContainer -containerName $containerName) {
             if ($bcAuthContext) {
                 if ($artifactUrl -eq (Get-BcContainerArtifactUrl -containerName $containerName)) {
@@ -891,9 +877,10 @@ Measure-Command {
         }
 
         if ($useExistingContainer) {
-            Write-Host "Reusing existing container"
+            Write-Host "Reusing existing docker container"
         }
         else {
+            Write-Host "Creaing docker container"
             $Parameters += @{
                 "FilesOnly" = $filesOnly
             }
@@ -1057,7 +1044,7 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        elseif ($filesOnly -and (-not $bcAuthContext)) {
+        elseif ($useCompilerFolder -or $filesOnly -and (-not $bcAuthContext)) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
                 Write-Host "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
             }
@@ -1093,11 +1080,13 @@ Measure-Command {
                 "environment" = $environment
             }
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        if (!$doNotPublishApps) {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
         if (!$testCountry -and $compilerFolder) {
             Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
         }
-       
+
         Remove-Item -Path $tmpAppFolder -Recurse -Force
     }
 
@@ -1136,7 +1125,7 @@ Measure-Command {
     $Parameters = @{
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
     }
-    if ($filesOnly) {
+    if ($useCompilerFolder -or $filesOnly) {
         $Parameters += @{
             "appSymbolsFolder" = $packagesFolder
         }
@@ -1243,7 +1232,9 @@ Measure-Command {
                     "environment" = $environment
                 }
             }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            }
             if (!$testCountry -and $compilerFolder) {
                 Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
             }
@@ -1287,7 +1278,7 @@ Measure-Command {
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
     }
-    if ($filesOnly) {
+    if ($useCompilerFolder -or $filesOnly) {
         $Parameters += @{
             "appSymbolsFolder" = $packagesFolder
         }
@@ -1422,7 +1413,9 @@ Measure-Command {
                     "environment" = $environment
                 }
             }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            }
             if ($compilerFolder) {
                 Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
             }
@@ -1458,7 +1451,7 @@ Measure-Command {
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
     }
-    if ($filesOnly) {
+    if ($useCompilerFolder -or $filesOnly) {
         $Parameters += @{
             "appSymbolsFolder" = $packagesFolder
         }
@@ -1748,12 +1741,22 @@ Write-Host -ForegroundColor Yellow @'
     try {
         Write-Host "`nCompiling $($Parameters.appProjectFolder)"
         $withCops = $Parameters+$CopParameters
-        $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $withCops
+        if ($useCompilerFolder) {
+            $appFile = Compile-AppWithBcCompilerFolder @parameters
+        }
+        else {
+            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $withCops
+        }
     }
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
-            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
+            if ($useCompilerFolder) {
+                $appFile = Compile-AppWithBcCompilerFolder @parameters
+            }
+            else {
+                $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
+            }
         }
         else {
             throw $_
@@ -1779,7 +1782,9 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
 
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        if (!$doNotPublishApps) {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
         if ($compilerFolder) {
             Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
         }
@@ -1920,7 +1925,9 @@ Measure-Command {
                     "replacePackageId" = $true
                 }
             }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            }
         }
         if ($bcAuthContext) {
             Write-Host "Wait for online environment to process apps"
@@ -1989,7 +1996,9 @@ $apps | ForEach-Object {
         }
     }
 
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    if (!$doNotPublishApps) {
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
 }
 
 if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
@@ -2006,7 +2015,9 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
                 "uninstall" = $true
             }
         
-            Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
+            }
         }
     }
 }
@@ -2030,8 +2041,9 @@ $testApps+$bcptTestApps | ForEach-Object {
         }
     }
 
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-
+    if (!$doNotPublishApps) {
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
@@ -2378,7 +2390,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Remove-BcCompilerFolder -compilerFolder $compilerFolder
     }
-    else {
+    if (!$doNotPublishApps) {
         if (!$filesOnly -and $containerEventLogFile) {
             try {
                 Write-Host "Get Event Log from container"
@@ -2397,7 +2409,6 @@ Measure-Command {
         }
         Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
     }
-   
 } | ForEach-Object { if (!($err)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }

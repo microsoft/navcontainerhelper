@@ -14,10 +14,10 @@ function Copy-AppFilesToCompilerFolder {
     $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app'))
     $compilerFolderApps = GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppInfo
     if ($checkAlreadyInstalled) {
-        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $compilerFolderApps -WarningAction SilentlyContinue)
+        $appFiles = @(Sort-AppFilesByDependencies -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $compilerFolderApps -WarningAction SilentlyContinue)
     }
     else {
-        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -WarningAction SilentlyContinue)
+        $appFiles = @(Sort-AppFilesByDependencies -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -WarningAction SilentlyContinue)
     }
     $appFiles | Where-Object { $_ } | ForEach-Object {
         $appFile = $_
