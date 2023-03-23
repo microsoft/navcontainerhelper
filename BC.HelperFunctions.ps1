@@ -23,6 +23,7 @@ function Get-ContainerHelperConfig {
             "hostHelperFolder" = ""
             "containerHelperFolder" = $programDataFolder
             "defaultContainerName" = "bcserver"
+            "useCompilerFolder" = $false
             "digestAlgorithm" = "SHA256"
             "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true
