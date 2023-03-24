@@ -652,6 +652,7 @@ elseif ($doNotPublishApps) {
     # we can use FilesOnly container
     $filesOnly = $true
     $CopySymbolsFromContainer = $true
+    $testToolkitInstalled = $true
 }
 
 if ($doNotPublishApps) {
@@ -1147,7 +1148,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders))-and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _   
