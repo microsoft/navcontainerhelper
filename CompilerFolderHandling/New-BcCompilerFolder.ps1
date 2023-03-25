@@ -152,7 +152,7 @@ try {
 
     # If a packagesFolder was specified, copy symbols from CompilerFolder
     if ($packagesFolder) {
-        Write-Host "Copying symbols from cache"
+        Write-Host "Copying symbols to packagesFolder"
         New-Item -Path $packagesFolder -ItemType Directory -Force | Out-Null
         Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $packagesFolder -Force -Recurse
     }
