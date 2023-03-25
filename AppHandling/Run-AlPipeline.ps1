@@ -77,7 +77,7 @@
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
-  This is the folder (relative to base folder) where symbols are downloaded  and compiled apps are placed. Only relevant when not using useDevEndpoint.
+  This is the folder (relative to base folder) where symbols are downloaded  and compiled apps are placed. Only relevant when not using useDevEndpoint
  .Parameter outputFolder
   This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
  .Parameter artifact
@@ -461,16 +461,18 @@ if ($updateLaunchJson) {
     }
 }
 
-if ($useDevEndpoint) {
-    $packagesFolder = ""
-    $outputFolder = ""
-}
-else {
+if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
     $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
     if (Test-Path $packagesFolder) {
         Remove-Item $packagesFolder -Recurse -Force
     }
+    New-Item $packagesFolder -ItemType Directory | Out-Null
+}
 
+if ($useDevEndpoint) {
+    $outputFolder = ""
+}
+else {
     $outputFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $outputFolder -name "outputFolder"
     if (Test-Path $outputFolder) {
         Remove-Item $outputFolder -Recurse -Force
@@ -558,6 +560,8 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Environment                     "
 Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer                  "; Write-Host $reUseContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer                   "; Write-Host $keepContainer
 Write-Host -NoNewLine -ForegroundColor Yellow "useCompilerFolder               "; Write-Host $useCompilerFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "artifactCachePath               "; Write-Host $artifactCachePath
+Write-Host -NoNewLine -ForegroundColor Yellow "useDevEndpoint                  "; Write-Host $useDevEndpoint
 Write-Host -NoNewLine -ForegroundColor Yellow "Auth                            "; Write-Host $auth
 Write-Host -NoNewLine -ForegroundColor Yellow "Credential                      ";
 if ($credential) {
@@ -1101,6 +1105,7 @@ $Parameters = @{
     "tenant" = $tenant
 }
 if ($useCompilerFolder) {
+Write-Host "PackagesFolder $packagesFolder"
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
     $installedAppIds = (GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo).AppId
 }
