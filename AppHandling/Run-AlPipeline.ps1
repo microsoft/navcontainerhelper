@@ -1104,7 +1104,6 @@ $Parameters = @{
     "tenant" = $tenant
 }
 if ($useCompilerFolder) {
-Write-Host "PackagesFolder $packagesFolder"
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
     $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo | Select-Object -ExpandProperty 'AppId')
 }
