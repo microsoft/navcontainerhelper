@@ -859,7 +859,6 @@ Measure-Command {
             -cacheFolder $artifactCachePath `
             -vsixFile $vsixFile `
             -containerName $containerName
-        $testToolkitInstalled = $true
     }
     if ($filesOnly -or !$doNotPublishApps) {
         # If we are going to build using a filesOnly container or we are going to publish apps, we need a container
@@ -1153,7 +1152,7 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 }
 
-if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders))-and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _   
@@ -1331,7 +1330,7 @@ $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
