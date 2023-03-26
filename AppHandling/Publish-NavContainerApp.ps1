@@ -92,7 +92,9 @@ function Publish-BcContainerApp {
         [string] $PublisherAzureActiveDirectoryTenantId,
         [Hashtable] $bcAuthContext,
         [string] $environment,
-        [switch] $checkAlreadyInstalled
+        [switch] $checkAlreadyInstalled,
+        [ValidateSet('default','ignore','strict')]
+        [string] $dependencyPublishingOption = "ignore"
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -240,7 +242,7 @@ try {
                 elseif ($syncMode -eq "ForceSync") {
                     $schemaUpdateMode = "forcesync"
                 }
-                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&dependencyPublishingOption=ignore"
+                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&DependencyPublishingOption=$dependencyPublishingOption"
                 if ($tenant) {
                     $url += "&tenant=$tenant"
                 }
