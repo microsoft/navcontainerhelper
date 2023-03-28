@@ -242,10 +242,7 @@ try {
                 elseif ($syncMode -eq "ForceSync") {
                     $schemaUpdateMode = "forcesync"
                 }
-                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
-                if ($PSBoundParameters.ContainsKey('DependencyPublishingOption')) {
-                    $url += "&DependencyPublishingOption=$dependencyPublishingOption"
-                }
+                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&DependencyPublishingOption=$dependencyPublishingOption"
                 if ($tenant) {
                     $url += "&tenant=$tenant"
                 }
