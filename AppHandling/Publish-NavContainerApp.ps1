@@ -92,7 +92,9 @@ function Publish-BcContainerApp {
         [string] $PublisherAzureActiveDirectoryTenantId,
         [Hashtable] $bcAuthContext,
         [string] $environment,
-        [switch] $checkAlreadyInstalled
+        [switch] $checkAlreadyInstalled,
+        [ValidateSet('default','ignore','strict')]
+        [string] $dependencyPublishingOption = "ignore"
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -103,7 +105,7 @@ try {
     if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
         $containerName = $bcContainerHelperConfig.defaultContainerName
     }
-
+    if ($useDevEndpoint) { $checkAlreadyInstalled = $false }
     $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -127,7 +129,7 @@ try {
                 @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }
-}
+    }
     else {
         $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
@@ -162,7 +164,7 @@ try {
             elseif ($customconfig.ServerInstance -eq "") {
                 throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
             }
-        
+
             if ($useDevEndpoint) {
         
                 if ($scope -eq "Global") {
@@ -240,7 +242,7 @@ try {
                 elseif ($syncMode -eq "ForceSync") {
                     $schemaUpdateMode = "forcesync"
                 }
-                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&dependencyPublishingOption=ignore"
+                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&DependencyPublishingOption=$dependencyPublishingOption"
                 if ($tenant) {
                     $url += "&tenant=$tenant"
                 }

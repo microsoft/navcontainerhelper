@@ -13,6 +13,7 @@
   - bcartifacts are artifacts downloaded for spinning up containers
   - sandboxartifacts are artifacts downloaded for spinning up containers
   - images are images built on artifacts using New-BcImage or New-BcContainer
+  - compilerFolders are folders used for Dockerless builds
  .Parameter keepDays
   When specifying a value in keepDays, the function will try to keep cached information, which has been used during the last keepDays days. Default is 0 - to flush all cache.
  .Example
@@ -102,7 +103,11 @@ try {
         if ($caches.Contains('all') -or $caches.Contains('applicationCache')) {
             $folders += @("extensions\applications-*-??","extensions\sandbox-applications-*-??","extensions\onprem-applications-*-??")
         }
-    
+
+        if ($caches.Contains('all') -or $caches.Contains('compilerFolders')) {
+            $folders += @("compiler")
+        }
+
         if ($caches.Contains('all') -or $caches.Contains('bakFolderCache')) {
             $folders += @("sandbox-*-bakfolders","onprem-*-bakfolders")
         }

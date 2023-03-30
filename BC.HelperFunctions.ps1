@@ -13,7 +13,7 @@ function Get-ContainerHelperConfig {
             "bcartifactsCacheFolder" = ""
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
-            "usePsSession" = $isAdministrator # -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
+            "usePsSession" = $isAdministrator -or $isPsCore
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
             "useVolumes" = $false
@@ -23,6 +23,7 @@ function Get-ContainerHelperConfig {
             "hostHelperFolder" = ""
             "containerHelperFolder" = $programDataFolder
             "defaultContainerName" = "bcserver"
+            "useCompilerFolder" = $false
             "digestAlgorithm" = "SHA256"
             "timeStampServer" = "http://timestamp.digicert.com"
             "sandboxContainersAreMultitenantByDefault" = $true

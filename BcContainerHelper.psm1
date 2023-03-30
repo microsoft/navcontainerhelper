@@ -20,7 +20,7 @@ elseif ($isLinux) {
     Write-Warning "BcContainerHelper running on Linux is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
 }
 elseif ($isPsCore) {
-    Write-Warning "BcContainerHelper running on PowerShell7 is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
+    Write-Warning "BcContainerHelper running on PowerShell 7 is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
 }
 
 if ($useVolumes -or $isInsideContainer) {
@@ -61,6 +61,7 @@ function VolumeOrPath {
 
 $bcContainerHelperConfig.bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
 $bcContainerHelperConfig.hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
+$usedContainerHelperConfigFile = $bcContainerHelperConfigFile 
 
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 
@@ -116,6 +117,12 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags")
+
+# CompilerFolder Handling Functions
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\New-BcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Remove-BcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Compile-AppWithBcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Copy-AppFilesToCompilerFolder.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")

@@ -1727,7 +1727,7 @@ if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Generic image is 1.0.2.1
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    Get-NavTenant -serverInstance $serverInstance | % {
+    Get-NavTenant -serverInstance $serverInstance | ForEach-Object {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress $ip
@@ -1747,7 +1747,7 @@ if ($multitenant) {
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    Get-NavTenant -serverInstance $serverInstance | % {
+    Get-NavTenant -serverInstance $serverInstance | ForEach-Object {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatecontainerhosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress "127.0.0.1"
     }
@@ -1860,7 +1860,7 @@ if (-not `$restartingInstance) {
         $customNavSettingsAdded = $false
         $cnt = $additionalParameters.Count-1
         if ($cnt -ge 0) {
-            0..$cnt | % {
+            0..$cnt | ForEach-Object {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
                 if ($idx -gt 0) {
                     $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customNavSettings))"
@@ -1877,7 +1877,7 @@ if (-not `$restartingInstance) {
         $customWebSettingsAdded = $false
         $cnt = $additionalParameters.Count-1
         if ($cnt -ge 0) {
-            0..$cnt | % {
+            0..$cnt | ForEach-Object {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customwebsettings=')
                 if ($idx -gt 0) {
                     $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customWebSettings))"
@@ -1891,15 +1891,15 @@ if (-not `$restartingInstance) {
     }
 
     #Write-Host "Parameters:"
-    #$Parameters | % { if ($_) { Write-Host "$_" } }
+    #$Parameters | ForEach-Object { if ($_) { Write-Host "$_" } }
 
     if ($additionalParameters) {
         Write-Host "Additional Parameters:"
-        $additionalParameters | % { if ($_) { Write-Host "$_" } }
+        $additionalParameters | ForEach-Object { if ($_) { Write-Host "$_" } }
     }
 
     Write-Host "Files in $($myfolder):"
-    get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+    get-childitem -Path $myfolder | ForEach-Object { Write-Host "- $($_.Name)" }
 
     Write-Host "Creating container $containerName from image $imageName"
 
@@ -2113,7 +2113,7 @@ if (-not `$restartingInstance) {
         if ($restoreBakFolder) {
             if ($multitenant) {
                 $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
-                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
+                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | ForEach-Object { $_.BaseName }
                 Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                     Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 }
@@ -2279,16 +2279,30 @@ if (-not `$restartingInstance) {
         }
     }
     
+    if ($Version.Major -ge 22) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            Write-Host "Cleanup old dotnet core assemblies"
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.1.1' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\5.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\5.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     if ($includeAL) {
         $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Write-Host "Creating .net Assembly Reference Folder"
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder, [System.Version] $Version)
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
-            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
+            $paths = @()
+            if ($Version.Major -lt 22) {
+                $paths += @('C:\Windows\assembly', 'C:\Windows\Microsoft.NET\assembly')
+            }
+            $paths += @($serviceTierFolder)
 
             $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
             if (Test-Path $rtcFolder -PathType Container) {
@@ -2302,17 +2316,30 @@ if (-not `$restartingInstance) {
                 $paths += "C:\Program Files (x86)\Open XML SDK"
             }
 
-            $paths | % {
-                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
-                if (!(Test-Path $localPath)) {
-                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
-                }
+            $paths | ForEach-Object {
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
-                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
-                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                if ($version.Major -ge 22) {
+                    Copy-Item -Path $_ -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                else {
+                    $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                    if (!(Test-Path $localPath)) {
+                        New-Item -Path $localPath -ItemType Directory -Force | Out-Null
+                    }
+                    Get-ChildItem -Path $_ -Filter '*.dll' -Recurse | ForEach-Object {
+                        if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                            Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                        }
                     }
                 }
+            }
+
+            if ($version.Major -ge 22) {
+                Write-Host "Removing dotnet Framework Assemblies"
+                $dotnetServiceFolder = Join-Path $dotnetAssembliesFolder "Service"
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'Management') -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'SideServices') -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
             }
 
             $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
@@ -2322,7 +2349,7 @@ if (-not `$restartingInstance) {
                 }
             }
 
-            if ($version.Major -ge 21) {
+            if ($version.Major -eq 21) {
                 Remove-Item -Path (Join-Path $dotnetAssembliesFolder 'assembly\DocumentFormat.OpenXml.dll') -Force -ErrorAction SilentlyContinue
             }
         } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder), $version

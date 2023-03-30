@@ -1,4 +1,14 @@
 4.0.15
+When using Enter-BcContainer in PowerShell 7, the containername prompt was displayed twice
+Support PSSession for PowerShell 7 (or PS5 without running as administrator) by using winrm with a hardcoded user with a password set to the host machine UUID (this user created by New-BcContainerSession if needed)
+New function Compile-AppWithBcCompilerFolder, to compile an app without using containers.
+New function Copy-AppFilesToCompilerFolder, to "install" apps in the symbols folder of a compilerFolder.
+New function New-BcCompilerFolder, to create a folder with all necessary information from a set of artifacts to compile apps
+New function Remove-BcCompilerFolder, to remove a folder with compiler information
+Add cleanup of CompilerFolders to FlushContainerHelperCache
+Add parameter useCompilerFolder to Run-AlPipeline to allow building apps and test apps without using docker containers
+Add parameter doNotBuildImage to New-BcImage to not build the image, but instead populate a folder with the DOCKERFILE and more for creating the image
+Throw more describing error when New-BcAuthContext fails
 
 4.0.14
 Issue #2896 Compile-AppInBcContainer can't read appId from dependencies
