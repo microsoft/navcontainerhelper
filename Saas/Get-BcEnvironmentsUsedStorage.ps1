@@ -33,23 +33,7 @@ function Get-BcEnvironmentsUsedStorage {
         if (($null -eq $environment) -or ($environment -eq "")) {
             $applicationFamily = ''
         }
-
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{ "Authorization" = $bearerAuthValue }
-
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-        if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-            $endPointURL += "/applications/$applicationFamily"
-        }
-        if (($null -ne $environment) -and ($environment -ne "")) {
-            $endPointURL += "/environments/$environment"
-        }
-        else {
-            $endPointURL += "/environments"
-        }
-        $endPointURL += "/usedstorage"
-
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "usedstorage" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
             if ($null -ne $Result.Value) {

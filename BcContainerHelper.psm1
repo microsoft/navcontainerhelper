@@ -49,7 +49,7 @@ function VolumeOrPath {
     if (!($path.Contains(':') -or $path.Contains('\') -or $path.Contains('/'))) {
         $volumes = @(docker volume ls --format "{{.Name}}")
         if ($volumes -notcontains $path) {
-            docker volume create $path            
+            docker volume create $path
         }
         $inspect = (docker volume inspect $path) | ConvertFrom-Json
         return $inspect.MountPoint
@@ -61,7 +61,7 @@ function VolumeOrPath {
 
 $bcContainerHelperConfig.bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
 $bcContainerHelperConfig.hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
-$usedContainerHelperConfigFile = $bcContainerHelperConfigFile 
+$usedContainerHelperConfigFile = $bcContainerHelperConfigFile
 
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 
@@ -75,7 +75,7 @@ if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
     New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
 
     if ($isWindows -and !$isAdministrator) {
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername, 'FullControl', 3, 'InheritOnly', 'Allow')
         $acl = Get-Acl -Path $bcContainerHelperConfig.hostHelperFolder
         $acl.AddAccessRule($rule)
         Set-Acl -Path $bcContainerHelperConfig.hostHelperFolder -AclObject $acl | Out-Null

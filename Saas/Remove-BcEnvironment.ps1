@@ -31,6 +31,7 @@ function Remove-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         Wait-BcEnvironmentsReady -environments @($environment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -42,21 +43,7 @@ function Remove-BcEnvironment {
             throw "The BcContainerHelper Remove-BcEnvironment function cannot be used to remove Production environments"
         }
         else {
-
-            $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-            $headers = @{
-                "Authorization" = $bearerAuthValue
-            }
-            $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-            if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-                $endPointURL += "/applications/$applicationFamily"
-            }
-            if (($null -ne $environment) -and ($environment -ne "")) {
-                $endPointURL += "/environments/$environment"
-            }
-            else {
-                $endPointURL += "/environments"
-            }
+            $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
             Write-Host "Submitting environment removal request for $applicationFamily/$environment"
             try {
@@ -71,6 +58,7 @@ function Remove-BcEnvironment {
                 do {
                     Start-Sleep -Seconds 2
                     Write-Host -NoNewline "."
+                    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
                     $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
                 } while ($Operation.status -in "queued", "scheduled", "running")
                 Write-Host $Operation.status

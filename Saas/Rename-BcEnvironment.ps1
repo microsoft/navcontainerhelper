@@ -38,9 +38,9 @@ function Rename-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        Wait-BcEnvironmentsReady -environments @($environment, $newEnvironment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
-
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        Wait-BcEnvironmentsReady -environments @($environment, $newEnvironmentName) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
+
         $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
         $bcEnvironment = $bcEnvironments | Where-Object { $_.name -eq $environment }
         if (!($bcEnvironment)) {
@@ -55,10 +55,8 @@ function Rename-BcEnvironment {
             Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $newEnvironmentName -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{
-            "Authorization" = $bearerAuthValue
-        }
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "rename" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+
         $body = @{}
         "NewEnvironmentName" | % {
             $var = Get-Variable -Name $_ -ErrorAction SilentlyContinue
@@ -68,17 +66,6 @@ function Rename-BcEnvironment {
                 }
             }
         }
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-        if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-            $endPointURL += "/applications/$applicationFamily"
-        }
-        if (($null -ne $environment) -and ($environment -ne "")) {
-            $endPointURL += "/environments/$environment"
-        }
-        else {
-            $endPointURL += "/environments"
-        }
-        $endPointURL += "/rename"
 
         Write-Host "Submitting rename environment request for $environment to $NewEnvironmentName"
         $body | ConvertTo-Json | Out-Host
@@ -94,6 +81,7 @@ function Rename-BcEnvironment {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
+                $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
                 $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status

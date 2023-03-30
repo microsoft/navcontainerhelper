@@ -45,9 +45,9 @@ function Copy-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         Wait-BcEnvironmentsReady -environments @($environment, $sourceEnvironment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
         $bcEnvironment = $bcEnvironments | Where-Object { $_.name -eq $sourceEnvironment }
         if (!($bcEnvironment)) {
@@ -62,11 +62,8 @@ function Copy-BcEnvironment {
             Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "copy" -environment $sourceEnvironment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{
-            "Authorization" = $bearerAuthValue
-        }
         $type = $environmentType
         $environmentName = $environment
         $body = @{}
@@ -78,18 +75,6 @@ function Copy-BcEnvironment {
                 }
             }
         }
-
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-        if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-            $endPointURL += "/applications/$applicationFamily"
-        }
-        if (($null -ne $sourceEnvironment) -and ($sourceEnvironment -ne "")) {
-            $endPointURL += "/environments/$sourceEnvironment"
-        }
-        else {
-            $endPointURL += "/environments"
-        }
-        $endPointURL += "/copy"
 
         Write-Host "Submitting copy environment request for $applicationFamily/$sourceEnvironment to $applicationFamily/$environmentName"
         $body | ConvertTo-Json | Out-Host
@@ -106,6 +91,7 @@ function Copy-BcEnvironment {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
+                $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
                 $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status

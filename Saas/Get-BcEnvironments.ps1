@@ -30,24 +30,7 @@ function Get-BcEnvironments {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{ "Authorization" = $bearerAuthValue }
-
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-        if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-            $endPointURL += "/applications/$applicationFamily"
-        }
-        else {
-            $endPointURL += "/applications"
-        }
-        if (($null -ne $environment) -and ($environment -ne "")) {
-            $endPointURL += "/environments/$environment"
-        }
-        else {
-            $endPointURL += "/environments"
-        }
-
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
             if ($null -ne $Result.Value) {

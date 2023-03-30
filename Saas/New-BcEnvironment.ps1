@@ -42,19 +42,17 @@ function New-BcEnvironment {
         [string] $ringName = "PROD",
         [string] $applicationVersion = "",
         [string] $applicationInsightsKey = "",
-        [string] $apiVersion = "v2.3",
+        [string] $apiVersion = "v2.18",
         [switch] $doNotWait
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         Wait-BcEnvironmentsReady -environments @($environment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{
-            "Authorization" = $bearerAuthValue
-        }
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -applicationFamily $applicationFamily -apiVersion $apiVersion
+
         $body = @{}
         "environmentType", "countryCode", "applicationVersion", "ringName" | % {
             $var = Get-Variable -Name $_ -ErrorAction SilentlyContinue
@@ -63,16 +61,6 @@ function New-BcEnvironment {
                     "$_" = $var.Value
                 }
             }
-        }
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-        if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-            $endPointURL += "/applications/$applicationFamily"
-        }
-        if (($null -ne $environment) -and ($environment -ne "")) {
-            $endPointURL += "/environments/$environment"
-        }
-        else {
-            $endPointURL += "/environments"
         }
 
         Write-Host "Submitting new environment request for $applicationFamily/$environment"
@@ -93,6 +81,7 @@ function New-BcEnvironment {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
+                $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
                 $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status

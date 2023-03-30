@@ -38,7 +38,7 @@ function Get-BcDatabaseExportHistory {
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $headers = @{ "Authorization" = $bearerAuthValue }
         try {
-        (Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/exports/history?start=$startTime&end=$endTime" -Headers $headers).value | Where-Object { $_.environmentName -like $environment }
+            (Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/exports/history?start=$startTime&end=$endTime" -Headers $headers).value | Where-Object { $_.environmentName -like $environment }
         }
         catch {
             throw (GetExtendedErrorMessage $_)

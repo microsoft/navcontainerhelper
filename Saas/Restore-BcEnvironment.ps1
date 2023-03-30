@@ -45,6 +45,7 @@ function Restore-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         Wait-BcEnvironmentsReady -environments @($environment, $sourceEnvironment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
@@ -62,11 +63,8 @@ function Restore-BcEnvironment {
             Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "/restore" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{
-            "Authorization" = $bearerAuthValue
-        }
         $environmentName = $environment
         $body = @{}
         "environmentName", "environmentType", "pointInTime" | % {
@@ -77,19 +75,6 @@ function Restore-BcEnvironment {
                 }
             }
         }
-
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
-        if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
-            $endPointURL += "/applications/$applicationFamily"
-        }
-        if (($null -ne $sourceEnvironment) -and ($sourceEnvironment -ne "")) {
-            $endPointURL += "/environments/$sourceEnvironment"
-        }
-        else {
-            $endPointURL += "/environments"
-        }
-        $endPointURL += "/restore"
-
 
         Write-Host "Submitting restore environment request for $applicationFamily/$environmentName from $applicationFamily/$sourceEnvironment"
         $body | ConvertTo-Json | Out-Host
@@ -105,6 +90,7 @@ function Restore-BcEnvironment {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
+                $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
                 $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status

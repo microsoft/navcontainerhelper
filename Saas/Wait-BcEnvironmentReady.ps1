@@ -32,6 +32,7 @@ function Wait-BcEnvironmentsReady {
         if (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environments) -and ($_.status -in "queued", "scheduled", "running") }) {
             Write-Host -NoNewline "Waiting for environments $($environments -join(", ")) "
             while (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environments) -and ($_.status -in "queued", "scheduled", "running") }) {
+                $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
             }
