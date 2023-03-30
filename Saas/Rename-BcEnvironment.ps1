@@ -13,7 +13,7 @@
  .Parameter newEnvironmentName
   Name of the new environment name
  .Parameter apiVersion
-  API version. Default is 2.15.
+  API version. Default is v2.15.
  .Parameter force
   Include this switch if you want to replace the destination environment
  .Parameter doNotWait
@@ -31,7 +31,7 @@ function Rename-BcEnvironment {
         [string] $environment,
         [Parameter(Mandatory = $true)]
         [string] $newEnvironmentName,
-        [string] $apiVersion = "2.15",
+        [string] $apiVersion = "v2.15",
         [switch] $force,
         [switch] $doNotWait
     )
@@ -76,7 +76,7 @@ function Rename-BcEnvironment {
                 }
             }
         }
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v$apiVersion"
+        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
         if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
             $endPointURL += "/applications/$applicationFamily"
         }

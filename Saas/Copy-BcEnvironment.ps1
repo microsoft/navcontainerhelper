@@ -17,7 +17,7 @@
  .Parameter applicationInsightsKey
   Application Insights Key to add/replace to the environment
  .Parameter apiVersion
-  API version. Default is 2.15.
+  API version. Default is v2.15.
  .Parameter force
   Include this switch if you want to replace the destination environment
  .Parameter doNotWait
@@ -38,7 +38,7 @@ function Copy-BcEnvironment {
         [ValidateSet('Sandbox', 'Production')]
         [string] $environmentType = "Sandbox",
         [string] $applicationInsightsKey = "",
-        [string] $apiVersion = "2.15",
+        [string] $apiVersion = "v2.15",
         [switch] $force,
         [switch] $doNotWait
     )
@@ -87,7 +87,7 @@ function Copy-BcEnvironment {
             }
         }
 
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v$apiVersion"
+        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
         if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
             $endPointURL += "/applications/$applicationFamily"
         }

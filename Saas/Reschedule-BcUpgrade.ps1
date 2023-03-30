@@ -1,4 +1,4 @@
-<# 
+<#
  .Synopsis
   Reschedule an update for a specific environment, if able.
  .Description
@@ -10,10 +10,12 @@
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Environment for which you want to reschedule an upgrade.
+ .Parameter apiVersion
+  API version. Default is v2.13.
  .Parameter runOn
-  Sets the date that the upgrade should be run on. 
+  Sets the date that the upgrade should be run on.
   Must be in the allowed time range.
-  Time range can be retrieved by running Get-BcScheduledUpgrade. 
+  Time range can be retrieved by running Get-BcScheduledUpgrade.
  .Parameter ignoreUpgradeWindow
   Specifies if the upgrade window for the environment should be ignored. Default is false.
  .Example
@@ -26,9 +28,10 @@ function Reschedule-BcUpgrade {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
-        [string] $applicationFamily = "BusinessCentral",     
+        [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [string] $environment,
+        [string] $apiVersion = "v2.13",
         [Parameter(Mandatory = $true)]
         [datetime] $runOn,
         [bool] $ignoreUpgradeWindow = $false
@@ -45,10 +48,10 @@ function Reschedule-BcUpgrade {
         }
 
         Write-Host "Submitting reschedule upgrade request for $applicationFamily/$environment"
-        $body | Out-Host 
+        $body | Out-Host
 
         try {
-            Invoke-RestMethod -Method Put -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.13/applications/$applicationFamily/environments/$environment/upgrade" -Headers $headers -Body $($Body | ConvertTo-Json)  -ContentType 'application/json'
+            Invoke-RestMethod -Method Put -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/upgrade" -Headers $headers -Body $($Body | ConvertTo-Json)  -ContentType 'application/json'
         }
         catch {
             throw (GetExtendedErrorMessage $_)

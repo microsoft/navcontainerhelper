@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Function for creating a starting a new Database Export from an online Business Central environment
  .Description
@@ -10,6 +10,8 @@
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Environment from which you want to return the published Apps.
+ .Parameter apiVersion
+  API version. Default is v2.3.
  .Parameter storageAccountSasUri
   An Azure SAS uri pointing at the Azure storage account where the database will be exported to. The uri must have (Read | Write | Create | Delete) permissions
  .Parameter blobContainerName
@@ -24,71 +26,72 @@
 #>
 function New-BcDatabaseExport {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $environment,
-        [Parameter(Mandatory=$true)]
+        [string] $apiVersion = "v2.3",
+        [Parameter(Mandatory = $true)]
         [string] $storageAccountSasUri,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $blobContainerName,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $blobName,
         [switch] $doNotWait
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-	
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-    $headers = @{ "Authorization" = $bearerAuthValue }
-    $body = @{
-        "storageAccountSasUri" = $storageAccountSasUri
-        "container" = $blobContainerName
-        "blob" = $blobName
-    } | ConvertTo-Json
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
-    if (!$doNotWait) {
-        $uri = [Uri]::new($storageAccountSasUri)
-        $blobUrl = "$($uri.Scheme)://$($uri.Host)/$blobContainerName/$blobName$($uri.Query)"
-        $done = $false
-        Write-Host -NoNewline "Waiting for backup to complete."
-        while (!$done) {
-            Start-Sleep -Seconds 30
-            Write-Host -NoNewline "."
-            try {
-                $result = Invoke-WebRequest -UseBasicParsing -Method Head -Uri $blobUrl -ErrorAction SilentlyContinue
-                if ($result.StatusCode -eq 200) {
-                    Write-Host -ForegroundColor Green " Success"
-                    $done = $true
+
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
+        $headers = @{ "Authorization" = $bearerAuthValue }
+        $body = @{
+            "storageAccountSasUri" = $storageAccountSasUri
+            "container"            = $blobContainerName
+            "blob"                 = $blobName
+        } | ConvertTo-Json
+        try {
+            Invoke-RestMethod -Method POST -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/exports/applications/$applicationFamily/environments/$environment" -Headers $headers -Body $Body -ContentType 'application/json' -UseBasicParsing
+        }
+        catch {
+            throw (GetExtendedErrorMessage $_)
+        }
+        if (!$doNotWait) {
+            $uri = [Uri]::new($storageAccountSasUri)
+            $blobUrl = "$($uri.Scheme)://$($uri.Host)/$blobContainerName/$blobName$($uri.Query)"
+            $done = $false
+            Write-Host -NoNewline "Waiting for backup to complete."
+            while (!$done) {
+                Start-Sleep -Seconds 30
+                Write-Host -NoNewline "."
+                try {
+                    $result = Invoke-WebRequest -UseBasicParsing -Method Head -Uri $blobUrl -ErrorAction SilentlyContinue
+                    if ($result.StatusCode -eq 200) {
+                        Write-Host -ForegroundColor Green " Success"
+                        $done = $true
+                    }
+                    else {
+                        Write-Host -ForegroundColor red " Failure"
+                        throw $result.StatusDescription
+                    }
                 }
-                else {
-                    Write-Host -ForegroundColor red " Failure"
-                    throw $result.StatusDescription
-                }
-            }
-            catch {
-                if ($_.exception.response.StatusCode -ne "NotFound") {
-                    Write-Host -ForegroundColor red " Failure"
-                    throw
+                catch {
+                    if ($_.exception.response.StatusCode -ne "NotFound") {
+                        Write-Host -ForegroundColor red " Failure"
+                        throw
+                    }
                 }
             }
         }
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
+    }
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
+    }
 }
 Export-ModuleMember -Function New-BcDatabaseExport

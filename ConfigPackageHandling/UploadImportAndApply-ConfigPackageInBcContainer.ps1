@@ -42,7 +42,7 @@ function UploadImportAndApply-ConfigPackageInBcContainer {
             $configPackage = $configFile.FullName
             if (!$packageIdSpecified) {
                 $packageInfo = Get-PackageInfoFromRapidStartFile $configPackage
-                if (!($packageInfo)) {
+                if ($packageInfo) {
                     $packageId = $packageInfo.Code
                 }
                 else {

@@ -11,7 +11,7 @@
  .Parameter environment
   Name of the environment
  .Parameter apiVersion
-  API version. Default is 2.15.
+  API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   Get-BcEnvironments -bcAuthContext $authContext
@@ -25,7 +25,7 @@ function Get-BcEnvironments {
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = 'BusinessCentral',
         [string] $environment,
-        [string] $apiVersion = "2.15"
+        [string] $apiVersion = "v2.15"
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -34,7 +34,7 @@ function Get-BcEnvironments {
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $headers = @{ "Authorization" = $bearerAuthValue }
 
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v$apiVersion"
+        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
         if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
             $endPointURL += "/applications/$applicationFamily"
         }

@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Function for retrieving Published AppSource Apps from an online Business Central environment
  .Description
@@ -10,38 +10,41 @@
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Environment from which you want to return the published Apps.
+ .Parameter apiVersion
+  API version. Default is v2.6.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   Get-BcPublishedApps -bcAuthContext $authContext -environment "Sandbox"
 #>
 function Get-BcPublishedApps {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
-        [Parameter(Mandatory=$true)]
-        [string] $environment
+        [Parameter(Mandatory = $true)]
+        [string] $environment,
+        [string] $apiVersion = "v2.6"
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-	
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-    $headers = @{ "Authorization" = $bearerAuthValue }
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.6/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
+        $headers = @{ "Authorization" = $bearerAuthValue }
+        try {
+        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+        }
+        catch {
+            throw (GetExtendedErrorMessage $_)
+        }
     }
     catch {
-        throw (GetExtendedErrorMessage $_)
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
+    }
 }
 Export-ModuleMember -Function Get-BcPublishedApps

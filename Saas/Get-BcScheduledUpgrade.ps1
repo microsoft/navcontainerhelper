@@ -1,4 +1,4 @@
-<# 
+<#
  .Synopsis
   Get information about updates that have already been scheduled for a specific environment.
  .Description
@@ -10,6 +10,8 @@
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Environment from which you want to return the scheduled upgrade information.
+ .Parameter apiVersion
+  API version. Default is v2.3.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   Get-BcScheduledUpgrade -bcAuthContext $authContext -environment "Sandbox"
@@ -19,9 +21,10 @@ function Get-BcScheduledUpgrade {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
-        [string] $applicationFamily = "BusinessCentral",     
+        [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
-        [string] $environment
+        [string] $environment,
+        [string] $apiVersion = "v2.3"
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -30,7 +33,7 @@ function Get-BcScheduledUpgrade {
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $headers = @{ "Authorization" = $bearerAuthValue }
         try {
-            Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment/upgrade" -Headers $headers
+            Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/upgrade" -Headers $headers
         }
         catch {
             throw (GetExtendedErrorMessage $_)

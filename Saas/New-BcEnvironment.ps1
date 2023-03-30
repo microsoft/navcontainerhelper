@@ -21,7 +21,7 @@
  .Parameter applicationInsightsKey
   Application Insights Key to add to the environment
  .Parameter apiVersion
-  API version. Default is 2.15.
+  API version. Default is 2.3.
  .Parameter doNotWait
   Include this switch if you don't want to wait for completion of the environment
  .Example
@@ -42,6 +42,7 @@ function New-BcEnvironment {
         [string] $ringName = "PROD",
         [string] $applicationVersion = "",
         [string] $applicationInsightsKey = "",
+        [string] $apiVersion = "v2.3",
         [switch] $doNotWait
     )
 
@@ -50,7 +51,7 @@ function New-BcEnvironment {
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         if (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -eq $environment) -and ($_.status -in "queued", "scheduled", "running") }) {
-            Write-Host -NoNewline "Waiting for other environments."
+            Write-Host -NoNewline "Waiting for environment."
             while (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -eq $environment) -and ($_.status -in "queued", "scheduled", "running") }) {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
@@ -72,7 +73,7 @@ function New-BcEnvironment {
                 }
             }
         }
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v$apiVersion"
+        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
         if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
             $endPointURL += "/applications/$applicationFamily"
         }

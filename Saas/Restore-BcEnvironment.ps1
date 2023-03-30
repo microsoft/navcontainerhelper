@@ -17,7 +17,7 @@
  .Parameter pointInTime
   The point in time to which to restore the environment. Must be in ISO 8601 format in UTC ("2021-04-22T20:00:00Z")
  .Parameter apiVersion
-  API version. Default is 2.15.
+  API version. Default is v2.15.
  .Parameter force
   Include this switch if you want to replace the destination environment
  .Parameter doNotWait
@@ -38,7 +38,7 @@ function Restore-BcEnvironment {
         [ValidateSet('Sandbox', 'Production')]
         [string] $environmentType = "Sandbox",
         [string] $pointInTime = "",
-        [string] $apiVersion = "2.15",
+        [string] $apiVersion = "v2.15",
         [switch] $force,
         [switch] $doNotWait
     )
@@ -86,7 +86,7 @@ function Restore-BcEnvironment {
             }
         }
 
-        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v$apiVersion"
+        $endPointURL = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion"
         if (($null -ne $applicationFamily) -and ($applicationFamily -ne "")) {
             $endPointURL += "/applications/$applicationFamily"
         }
