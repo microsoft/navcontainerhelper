@@ -53,7 +53,7 @@ function Set-BcEnvironmentApplicationInsightsKey {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
-                $status = (Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }).status
+                $status = (Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion | Where-Object { $_.name -eq $environment }).status
             } while ($status -eq "Restarting")
             Write-Host $status
             if ($status -ne "Active") {

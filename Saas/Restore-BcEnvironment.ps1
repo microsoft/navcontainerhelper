@@ -45,18 +45,10 @@ function Restore-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        Wait-BcEnvironmentReady -environments @($environment, $sourceEnvironment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        if (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environment, $sourceEnvironment) -and ($_.status -in "queued", "scheduled", "running") }) {
-            Write-Host -NoNewline "Waiting for other environments."
-            while (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environment, $sourceEnvironment) -and ($_.status -in "queued", "scheduled", "running") }) {
-                Start-Sleep -Seconds 2
-                Write-Host -NoNewline "."
-            }
-            Write-Host " done"
-        }
-
-        $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext
+        $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
         $bcEnvironment = $bcEnvironments | Where-Object { $_.name -eq $sourceEnvironment }
         if (!($bcEnvironment)) {
             throw "No environment named $sourceEnvironment exists"
@@ -67,7 +59,7 @@ function Restore-BcEnvironment {
             throw "Environment named $environment exists"
         }
         if (($bcEnvironment) -and ($force.IsPresent)) {
-            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment
+            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
 
@@ -113,7 +105,7 @@ function Restore-BcEnvironment {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
-                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status
             if ($Operation.status -eq "failed") {

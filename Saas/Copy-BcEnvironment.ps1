@@ -45,18 +45,10 @@ function Copy-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        Wait-BcEnvironmentReady -environments @($environment, $sourceEnvironment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        if (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environment, $sourceEnvironment) -and ($_.status -in "queued", "scheduled", "running") }) {
-            Write-Host -NoNewline "Waiting for environments."
-            while (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environment, $sourceEnvironment) -and ($_.status -in "queued", "scheduled", "running") }) {
-                Start-Sleep -Seconds 2
-                Write-Host -NoNewline "."
-            }
-            Write-Host " done"
-        }
-
-        $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext
+        $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
         $bcEnvironment = $bcEnvironments | Where-Object { $_.name -eq $sourceEnvironment }
         if (!($bcEnvironment)) {
             throw "No environment named $sourceEnvironment exists"
@@ -67,7 +59,7 @@ function Copy-BcEnvironment {
             throw "Environment named $environment exists"
         }
         if (($bcEnvironment) -and ($force.IsPresent)) {
-            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment
+            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
 
@@ -122,7 +114,7 @@ function Copy-BcEnvironment {
             }
         }
         if ($applicationInsightsKey) {
-            Set-BcEnvironmentApplicationInsightsKey -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -environment $environment -applicationInsightsKey $applicationInsightsKey
+            Set-BcEnvironmentApplicationInsightsKey -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion -environment $environment -applicationInsightsKey $applicationInsightsKey
         }
     }
     catch {

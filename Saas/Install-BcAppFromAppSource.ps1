@@ -5,6 +5,8 @@
   Function for installing an AppSource App in an online Business Central environment
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
+ .Parameter applicationFamily
+  Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Environment in which you want to install an AppSource App
  .Parameter appId
@@ -29,6 +31,7 @@ function Install-BcAppFromAppSource {
     Param (
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
+        [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [string] $environment,
         [Parameter(Mandatory = $true)]
@@ -45,14 +48,14 @@ function Install-BcAppFromAppSource {
     try {
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment }
+        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion | Where-Object { $_.Name -eq $environment }
         if (!$bcEnvironment) {
             throw "Environment $environment doesn't exist in the current context."
         }
         if ($bcEnvironment.Type -eq 'Production' -and !$allowInstallationOnProduction) {
             throw "If you want to install an app in a production environment, you need to specify -allowInstallOnProduction"
         }
-        $appExists = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.id -eq $appid -and $_.state -eq "installed" }
+        $appExists = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment -apiVersion $apiVersion | Where-Object { $_.id -eq $appid -and $_.state -eq "installed" }
         if ($appExists) {
             Write-Host -ForegroundColor Green "App $($appExists.Name) from $($appExists.Publisher) version $($appExists.Version) is already installed"
         }

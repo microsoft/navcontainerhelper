@@ -38,18 +38,10 @@ function Rename-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        Wait-BcEnvironmentReady -environments @($environment, $newEnvironment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        if (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environment, $newEnvironmentName) -and ($_.status -in "queued", "scheduled", "running") }) {
-            Write-Host -NoNewline "Waiting for other environments."
-            while (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -in $environment, $newEnvironmentName) -and ($_.status -in "queued", "scheduled", "running") }) {
-                Start-Sleep -Seconds 2
-                Write-Host -NoNewline "."
-            }
-            Write-Host " done"
-        }
-
-        $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext
+        $bcEnvironments = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
         $bcEnvironment = $bcEnvironments | Where-Object { $_.name -eq $environment }
         if (!($bcEnvironment)) {
             throw "No environment named $environment exists"
@@ -60,7 +52,7 @@ function Rename-BcEnvironment {
             throw "Environment named $newEnvironmentName exists"
         }
         if (($bcEnvironment) -and ($force.IsPresent)) {
-            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $newEnvironmentName
+            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $newEnvironmentName -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
@@ -102,7 +94,7 @@ function Rename-BcEnvironment {
             do {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
-                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status
             if ($Operation.status -eq "failed") {

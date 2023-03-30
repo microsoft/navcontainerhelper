@@ -31,18 +31,10 @@ function Remove-BcEnvironment {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        Wait-BcEnvironmentReady -environments @($environment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        if (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -eq $environment) -and ($_.status -in "queued", "scheduled", "running") }) {
-            Write-Host -NoNewline "Waiting for environment."
-            while (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.environmentName -eq $environment) -and ($_.status -in "queued", "scheduled", "running") }) {
-                Start-Sleep -Seconds 2
-                Write-Host -NoNewline "."
-            }
-            Write-Host " done"
-        }
-
-        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
+        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion | Where-Object { $_.name -eq $environment }
         if (!($bcEnvironment)) {
             throw "No environment named $environment exists"
         }
@@ -79,7 +71,7 @@ function Remove-BcEnvironment {
                 do {
                     Start-Sleep -Seconds 2
                     Write-Host -NoNewline "."
-                    $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                    $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
                 } while ($Operation.status -in "queued", "scheduled", "running")
                 Write-Host $Operation.status
                 if ($Operation.status -eq "failed") {

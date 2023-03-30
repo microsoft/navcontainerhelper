@@ -30,6 +30,9 @@ function Get-BcEnvironmentsUsedStorage {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        if (($null -eq $environment) -or ($environment -eq "")) {
+            $applicationFamily = ''
+        }
 
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
