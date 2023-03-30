@@ -1,8 +1,12 @@
 <#
  .SYNOPSIS
+  Remove a compilerFolder
  .DESCRIPTION
+  This is used for cleaning up and removing a compiler folder
  .PARAMETER compilerFolder
+  Folder to remove (must reside under the hostHelperFolder/compiler folder)
  .EXAMPLE
+  Remove-BcCompilerFolder -compilerFolder $compilerFolder
 #>
 function Remove-BcCompilerFolder {
     Param(

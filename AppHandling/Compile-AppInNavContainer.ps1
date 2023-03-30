@@ -244,6 +244,12 @@ try {
                     "C:\Extensions\*.app"
                 )
             }
+            elseif (!(Test-Path "C:\Applications.*\*.app")) {
+                $paths = @(
+                    "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                    "C:\Applications\*\source\*.app"
+                )
+            }
             else {
                 $paths = @(
                     "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
@@ -262,7 +268,7 @@ try {
                     $appFile = $appFiles[1]
                 }
                 if ($appFile) {
-                    Get-Item -Path $appFile | ForEach-Object {
+                    Get-ChildItem -Path $appFile -Recurse | ForEach-Object {
                         Write-Host "Copying $([System.IO.Path]::GetFileName($_.FullName)) from Container"
                         Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force
                     }
