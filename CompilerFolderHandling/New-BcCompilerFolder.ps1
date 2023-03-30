@@ -1,15 +1,23 @@
 <#
  .SYNOPSIS
+  Create a new Compiler Folder
  .DESCRIPTION
+  Create a folder containing all the necessary pieces from the artifatcs to compile apps without the need of a container
+  Returns a compilerFolder path, which can be used for functions like Compile-AppWithBcCompilerFolder or Remove-BcCompilerFolder
  .PARAMETER artifactUrl
+  Artifacts URL to download the compiler and all .app files from
  .PARAMETER containerName
+  Name of the folder in which to create the compiler folder or empty to use a default name consisting of type-version-country
  .PARAMETER cacheFolder
+  If present:
+  - if the cacheFolder exists, the artifacts will be grabbed from here instead of downloaded.
+  - if the cacheFolder doesn't exist, it is created and populated with the needed content from the ArtifactURL
  .PARAMETER packagesFolder
+  If present, the symbols/apps will be copied from the compiler folder to this folder as well
  .PARAMETER vsixFile
+  If present, use this vsixFile instead of the one included in the artifacts
  .PARAMETER includeAL
-  Include this switch
- .EXAMPLE
-  
+  Include this switch in order to populate folder with AL files (like New-BcContainer)
  .EXAMPLE
   $version = $artifactURL.Split('/')[4]
   $country = $artifactURL.Split('/')[5]
@@ -22,7 +30,6 @@
       -appOutputFolder (Join-Path $compilerFolder '.output') `
       -appSymbolsFolder (Join-Path $compilerFolder 'symbols') `
       -CopyAppToSymbolsFolder
-
 #>
 function New-BcCompilerFolder {
     Param(
@@ -152,7 +159,7 @@ try {
 
     # If a packagesFolder was specified, copy symbols from CompilerFolder
     if ($packagesFolder) {
-        Write-Host "Copying symbols from cache"
+        Write-Host "Copying symbols to packagesFolder"
         New-Item -Path $packagesFolder -ItemType Directory -Force | Out-Null
         Copy-Item -Path $symbolsPath -Filter '*.app' -Destination $packagesFolder -Force -Recurse
     }
