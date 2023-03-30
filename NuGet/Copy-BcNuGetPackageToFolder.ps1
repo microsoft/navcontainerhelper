@@ -1,8 +1,8 @@
 <# 
  .Synopsis
-  POC PREVIEW: Publish Business Central NuGet Package to container
+  POC PREVIEW: Copy Business Central NuGet Package to folder
  .Description
-  Publish Business Central NuGet Package to container
+  Copy Business Central NuGet Package to folder
 #>
 Function Copy-BcNuGetPackageToFolder {
     Param(
