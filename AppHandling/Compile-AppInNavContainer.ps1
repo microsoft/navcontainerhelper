@@ -262,7 +262,7 @@ try {
                     $appFile = $appFiles[1]
                 }
                 if ($appFile) {
-                    Get-ChildItem -Path $appFile -Recurse | ForEach-Object {
+                    Get-Item -Path $appFile | ForEach-Object {
                         Write-Host "Copying $([System.IO.Path]::GetFileName($_.FullName)) from Container"
                         Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force
                     }
