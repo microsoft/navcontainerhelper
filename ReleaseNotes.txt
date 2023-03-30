@@ -1,3 +1,5 @@
+4.0.16
+
 4.0.15
 When using Enter-BcContainer in PowerShell 7, the containername prompt was displayed twice
 Support PSSession for PowerShell 7 (or PS5 without running as administrator) by using winrm with a hardcoded user with a password set to the host machine UUID (this user created by New-BcContainerSession if needed)
