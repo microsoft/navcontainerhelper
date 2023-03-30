@@ -24,7 +24,7 @@ function Get-BcEnvironmentsUsedStorage {
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = ('', 'BusinessCentral')[$PSBoundParameters.ContainsKey('environment')],
-        [string] $environment,
+        [string] $environment = "",
         [string] $apiVersion = "v2.15"
     )
 

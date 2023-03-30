@@ -21,10 +21,13 @@ function Get-PackageInfoFromRapidStartFile {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $packageFile = $null
+        $gzipStream = $null
+        $buffer = $null
+        $packageInfo = $null
         $packageFile = New-Object System.IO.FileStream $path, ([IO.FileMode]::Open), ([IO.FileAccess]::Read), ([IO.FileShare]::Read)
         $gzipStream = New-Object System.IO.Compression.GzipStream $packageFile, ([IO.Compression.CompressionMode]::Decompress)
         $buffer = New-Object byte[](1024)
-        $packageInfo = $null
         while ($true) {
             $read = $gzipstream.Read($buffer, 0, 1024)
             if ($read -le 0) { break }
@@ -37,8 +40,6 @@ function Get-PackageInfoFromRapidStartFile {
                 }
             }
         }
-        $gzipStream.Close()
-        $packageFile.Close()
         return $packageInfo
     }
     catch {
@@ -46,6 +47,12 @@ function Get-PackageInfoFromRapidStartFile {
         throw
     }
     finally {
+        if ($gzipStream) {
+            $gzipStream.Close()
+        }_______________________________________
+        if ($packageFile) {
+            $packageFile.Close()
+        }_______________________________________
         TrackTrace -telemetryScope $telemetryScope
     }
 }

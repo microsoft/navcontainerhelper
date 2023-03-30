@@ -23,7 +23,7 @@ function Get-BcEnvironmentsAvailableRestorePeriods {
         [Parameter(Mandatory = $false)]
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
-        [string] $environment,
+        [string] $environment = "",
         [string] $apiVersion = "v2.15"
     )
 

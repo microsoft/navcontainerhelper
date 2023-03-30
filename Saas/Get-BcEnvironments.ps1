@@ -23,8 +23,8 @@ function Get-BcEnvironments {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
-        [string] $applicationFamily = 'BusinessCentral',
-        [string] $environment,
+        [string] $applicationFamily = "BusinessCentral",
+        [string] $environment = "",
         [string] $apiVersion = "v2.15"
     )
 
