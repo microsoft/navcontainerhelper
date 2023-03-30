@@ -13,10 +13,10 @@
   API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Wait-BcEnvironmentReady -bcAuthContext $authContext -environment @("Sandbox","Production")
+  Wait-BcEnvironmentsReady -bcAuthContext $authContext -environment @("Sandbox","Production")
 #>
 
-function Wait-BcEnvironmentReady {
+function Wait-BcEnvironmentsReady {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -46,4 +46,4 @@ function Wait-BcEnvironmentReady {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Wait-BcEnvironmentReady
+Export-ModuleMember -Function Wait-BcEnvironmentsReady

@@ -5,7 +5,7 @@ New function Get-BcEnvironmentsOperations, to retrieve list of operations for en
 New function Copy-BcEnvironment, to copy environment.
 New function Rename-BcEnvironment, to rename environment.
 New function Restore-BcEnvironment, to restore environment from backup.
-New function Wait-BcEnvironmentReady, to wait for environment.
+New function Wait-BcEnvironmentsReady, to wait for set of environments.
 New function Get-PackageInfoFromRapidStartFile, to exctract main information from RapidStart package.
 Add parameter apiVersion to Copy-BcEnvironment to allow set API version used during calls.
 Add parameter apiVersion to Get-BcDatabaseExportHistory to allow set API version used during calls.

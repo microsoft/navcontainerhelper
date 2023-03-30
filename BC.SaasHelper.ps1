@@ -17,4 +17,4 @@
 . (Join-Path $PSScriptRoot "Saas\Reschedule-BcUpgrade.ps1")
 . (Join-Path $PSScriptRoot "Saas\Restore-BcEnvironment.ps1")
 . (Join-Path $PSScriptRoot "Saas\Set-BcEnvironmentApplicationInsightsKey.ps1")
-. (Join-Path $PSScriptRoot "Saas\Wait-BcEnvironmentReady.ps1")
+. (Join-Path $PSScriptRoot "Saas\Wait-BcEnvironmentsReady.ps1")
