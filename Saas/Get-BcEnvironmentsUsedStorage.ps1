@@ -14,10 +14,10 @@
   API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcEnvironmentsUsedstorage -bcAuthContext $authContext -environment "Sandbox"
+  Get-BcEnvironmentsUsedStorage -bcAuthContext $authContext -environment "Sandbox"
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcEnvironmentsUsedstorage -bcAuthContext $authContext
+  Get-BcEnvironmentsUsedStorage -bcAuthContext $authContext
 #>
 function Get-BcEnvironmentsUsedStorage {
     Param(
