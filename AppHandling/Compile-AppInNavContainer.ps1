@@ -244,12 +244,6 @@ try {
                     "C:\Extensions\*.app"
                 )
             }
-            elseif (!(Test-Path "C:\Applications.*\*.app")) {
-                $paths = @(
-                    "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
-                    "C:\Applications\*\source\*.app"
-                )
-            }
             else {
                 $paths = @(
                     "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
