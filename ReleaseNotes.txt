@@ -1,4 +1,5 @@
 4.0.16
+Add parameter -allowPreRelease to Get-LatestAlLanguageExtensionUrl to allow Pre-release versions (NOTE: older versions of BcContainerHelper will allow PreRelease versions)
 
 4.0.15
 When using Enter-BcContainer in PowerShell 7, the containername prompt was displayed twice
