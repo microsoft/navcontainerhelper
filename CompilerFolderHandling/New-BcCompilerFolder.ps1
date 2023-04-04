@@ -128,8 +128,8 @@ try {
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
-            'Microsoft_Tests_TestLibraries*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app' | ForEach-Object {
-                Get-ChildItem -Path (Join-Path $platformArtifactPath 'Applications') -Filter $_ -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
+            'Microsoft_Tests-TestLibraries*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app' | ForEach-Object {
+                Get-ChildItem -Path (Join-Path $platformArtifactPath 'Applications') -Filter $_ -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath  }
             }
         }
         else {
