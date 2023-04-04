@@ -138,11 +138,13 @@ try {
             }
             'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app' | ForEach-Object {
                 $appName = $_
+                Write-Host $appName
                 $apps = $appApps | Where-Object { $_.Name -like $appName }
                 if (!$apps) {
                     $apps = $platformApps | Where-Object { $_.Name -like $appName }
                 }
                 $apps | ForEach-Object {
+                    Write-Host "Copying $($_.FullName)"
                     Copy-Item -Path $_.FullName -Destination $symbolsPath
                 }
             }
