@@ -128,9 +128,34 @@ try {
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
+            $platformAppsPath = Join-Path $platformArtifactPath 'Applications'
+            $appAppsPath = Join-Path $AppArtifactPath 'Applications.*' -Resolve
+            
+            $platformApps = @(Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse)
+            $appApps = @()
+            if ($appAppsPath) {
+                $appApps = @(Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse)
+            }
+            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app' | ForEach-Object {
+                $appName = $_
+                $apps = $appApps | Where-Object { $_.Name -like $appName }
+                if (!$apps) {
+                    $apps = $platformApps | Where-Object { $_.Name -like $appName }
+                }
+                $apps | ForEach-Object {
+                    Copy-Item -Path $_.FullName -Destination $symbolsPath
+                }
+            }
         }
         else {
-            Get-ChildItem -Path (Join-Path $platformArtifactPath 'Applications') -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
+            $platformAppsPath = Join-Path $platformArtifactPath 'Applications'
+            $appAppsPath = Join-Path $AppArtifactPath 'Applications'
+            if (Test-Path $appAppsPath -PathType Container) {
+                Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
+            }
+            else {
+                Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
+            }
         }
     }
 
