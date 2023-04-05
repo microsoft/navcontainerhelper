@@ -25,7 +25,6 @@ Describe 'Run-AlPipeline' {
         Run-AlPipeline `
             -pipelineName nch `
             -baseFolder $baseFolder `
-            -licenseFile $buildlicenseFile `
             -containerName $bccontainerName `
             -credential $credential `
             -installApps @("https://businesscentralapps.blob.core.windows.net/bingmaps-pte/latest/bingmaps-pte-apps.zip") `
