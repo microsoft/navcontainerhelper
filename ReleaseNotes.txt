@@ -1,5 +1,5 @@
 4.0.16
-New function Get-BcEnvironmentsUsedStorage, to retrieve a list of used storare.
+New function Get-BcEnvironmentsUsedStorage, to retrieve a list of used storage.
 New function Get-BcEnvironmentsAvailableRestorePeriods, to retrieve restoer periods for environment.
 New function Get-BcEnvironmentsOperations, to retrieve list of operations for environemnts.
 New function Copy-BcEnvironment, to copy environment.

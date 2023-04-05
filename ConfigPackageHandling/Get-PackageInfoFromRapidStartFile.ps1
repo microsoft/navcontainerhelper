@@ -49,10 +49,10 @@ function Get-PackageInfoFromRapidStartFile {
     finally {
         if ($gzipStream) {
             $gzipStream.Close()
-        }_______________________________________
+        }
         if ($packageFile) {
             $packageFile.Close()
-        }_______________________________________
+        }
         TrackTrace -telemetryScope $telemetryScope
     }
 }

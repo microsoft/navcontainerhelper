@@ -2,9 +2,9 @@
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
-        [string] $applicationFamily = ('', 'BusinessCentral')[$PSBoundParameters.ContainsKey('environment')],
+        [string] $applicationFamily = "",
         [string] $environment = "",
-        [string] $apiVersion = "v2.15",
+        [string] $apiVersion = "",
         [string] $endPoint = ""
     )
 
