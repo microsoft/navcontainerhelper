@@ -1,3 +1,5 @@
+4.0.17
+
 4.0.16
 Add parameter -allowPreRelease to Get-LatestAlLanguageExtensionUrl to allow Pre-release versions (NOTE: older versions of BcContainerHelper will allow PreRelease versions)
 
