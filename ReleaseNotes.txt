@@ -24,7 +24,8 @@ Add parameter apiVersion to Rename-BcEnvironment to allow set API version used d
 Add parameter apiVersion to Reschedule-BcUpgrade to allow set API version used during calls.
 Add parameter apiVersion to Restore-BcEnvironment to allow set API version used during calls.
 Add parameter apiVersion to Set-BcEnvironmentApplicationInsightsKey to allow set API version used during calls.
-Add parameter basePath to Compile-AppInBCContainer to allow set own basePath different from container.
+Add parameter basePath to Compile-AppInBCContainer to allow set GIT basePath when not using GITHUB.
+Add parameter basePath to Compile-AppWithBcCompilerFolder to allow set GIT basePath when not using GITHUB.
 
 4.0.16
 Add parameter -allowPreRelease to Get-LatestAlLanguageExtensionUrl to allow Pre-release versions (NOTE: older versions of BcContainerHelper will allow PreRelease versions)
