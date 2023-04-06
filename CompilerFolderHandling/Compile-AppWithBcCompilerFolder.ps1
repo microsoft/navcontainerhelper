@@ -12,6 +12,8 @@
   Folder in which the symbols of dependent apps will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\symbols.
  .Parameter appName
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
+ .Parameter basePath
+  Base Path of the files in the ALC output, to convert file paths to relative paths. This folder (or any of its parents) needs to be shared with the container.
  .Parameter UpdateDependencies
   Update the dependency version numbers to the actual version number used during compilation
  .Parameter CopyAppToSymbolsFolder
@@ -67,6 +69,7 @@ function Compile-AppWithBcCompilerFolder {
         [string] $appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
+        [string] $basePath = "",
         [switch] $UpdateDependencies,
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
@@ -379,12 +382,25 @@ try {
 
     $devOpsResult = ""
     if ($result) {
+        $Parameters = @{
+            "FailOn"           = $FailOn
+            "AlcOutput"        = $result
+            "DoNotWriteToHost" = $true
+        }
         if ($gitHubActions) {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath $ENV:GITHUB_WORKSPACE
+            $Parameters += @{
+                "gitHubActions" = $true
+            }
+            if (-not $basePath) {
+                $basePath = $ENV:GITHUB_WORKSPACE
+            }
         }
-        else {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        if ($basePath) {
+            $Parameters += @{
+                "basePath" = (Get-BcContainerPath -containerName $containerName -path $basePath)
+            }
         }
+        $devOpsResult = Convert-ALCOutputToAzureDevOps @Parameters
     }
     if ($AzureDevOps -or $gitHubActions) {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
