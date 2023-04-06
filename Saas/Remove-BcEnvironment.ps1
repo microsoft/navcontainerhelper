@@ -1,15 +1,17 @@
-﻿<# 
+﻿<#
  .Synopsis
   Function for removing a Business Central online environment
  .Description
   Function for removing a Business Central online environment
-  This function is a wrapper for https://docs.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api#delete-environment
+  This function is a wrapper for https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/administration-center-api_environments#delete-environment
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Name of the environment to delete
+ .Parameter apiVersion
+  API version. Default is v2.15.
  .Parameter doNotWait
   Include this switch if you don't want to wait for completion of the deletion
  .Example
@@ -18,62 +20,60 @@
 #>
 function Remove-BcEnvironment {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $environment,
+        [string] $apiVersion = "v2.15",
         [switch] $doNotWait
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
+    try {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        Wait-BcEnvironmentsReady -environments @($environment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
-    if (!($bcEnvironment)) {
-        throw "No environment named $environment exists"
-    }
-    if ($bcEnvironment.type -eq "Production") {
-        throw "The BcContainerHelper Remove-BcEnvironment function cannot be used to remove Production environments"
-    }
-    else {
-    
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{
-            "Authorization" = $bearerAuthValue
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion | Where-Object { $_.name -eq $environment }
+        if (!($bcEnvironment)) {
+            throw "No environment named $environment exists"
         }
-        Write-Host "Submitting environment removal request for $applicationFamily/$environment"
-        try {
-            Invoke-RestMethod -Method DELETE -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.3/applications/$applicationFamily/environments/$environment" -Headers $headers
+        if ($bcEnvironment.type -eq "Production") {
+            throw "The BcContainerHelper Remove-BcEnvironment function cannot be used to remove Production environments"
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
-        }
-        Write-Host "Environment removal request submitted"
-        if (!$doNotWait) {
-            Write-Host -NoNewline "Removing."
-            do {
-                Start-Sleep -Seconds 2
-                Write-Host -NoNewline "."
-                $env = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment }
-            } while ($env -and $env.Status -eq "Removing")
-            if ($env) {
-                Write-Host -ForegroundColor Red $env.Status
-                throw "Could not remove environment"
+        else {
+            $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+
+            Write-Host "Submitting environment removal request for $applicationFamily/$environment"
+            try {
+                $environmentResult = (Invoke-RestMethod -Method DELETE -Uri $endPointURL -Headers $headers)
             }
-            else {
-                Write-Host -ForegroundColor Green "Removed"
+            catch {
+                throw (GetExtendedErrorMessage $_)
+            }
+            Write-Host "Environment removal request submitted"
+            if (!$doNotWait) {
+                Write-Host -NoNewline "Removing."
+                do {
+                    Start-Sleep -Seconds 2
+                    Write-Host -NoNewline "."
+                    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+                    $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                } while ($Operation.status -in "queued", "scheduled", "running")
+                Write-Host $Operation.status
+                if ($Operation.status -eq "failed") {
+                    throw "Could not remove environment with error: $($Operation.errorMessage)"
+                }
             }
         }
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
+    }
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
+    }
 }
 Export-ModuleMember -Function Remove-BcEnvironment

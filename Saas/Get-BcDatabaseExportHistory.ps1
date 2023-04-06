@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Function for retrieving Database Export History from an online Business Central environment
  .Description
@@ -10,6 +10,8 @@
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
   Environment from which you want to return the published Apps.
+ .Parameter apiVersion
+  API version. Default is v2.1.
  .Parameter startTime
   start time for the query (get export history from this time)
  .Parameter endTime
@@ -20,33 +22,34 @@
 #>
 function Get-BcDatabaseExportHistory {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
         [string] $environment = "*",
+        [string] $apiVersion = "v2.1",
         [DateTime] $startTime = (Get-Date).AddDays(-1),
         [DateTime] $endTime = (Get-Date).AddDays(1)
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-    $headers = @{ "Authorization" = $bearerAuthValue }
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        (Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.1/exports/history?start=$startTime&end=$endTime" -Headers $headers).value | Where-Object { $_.environmentName -like $environment }
+
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
+        $headers = @{ "Authorization" = $bearerAuthValue }
+        try {
+            (Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/exports/history?start=$startTime&end=$endTime" -Headers $headers).value | Where-Object { $_.environmentName -like $environment }
+        }
+        catch {
+            throw (GetExtendedErrorMessage $_)
+        }
     }
     catch {
-        throw (GetExtendedErrorMessage $_)
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
+    }
 }
 Export-ModuleMember -Function Get-BcDatabaseExportHistory

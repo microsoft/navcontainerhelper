@@ -1,4 +1,30 @@
 4.0.17
+New function Get-BcEnvironmentsUsedStorage, to retrieve a list of used storage.
+New function Get-BcEnvironmentsAvailableRestorePeriods, to retrieve restoer periods for environment.
+New function Get-BcEnvironmentsOperations, to retrieve list of operations for environemnts.
+New function Copy-BcEnvironment, to copy environment.
+New function Rename-BcEnvironment, to rename environment.
+New function Restore-BcEnvironment, to restore environment from backup.
+New function Wait-BcEnvironmentsReady, to wait for set of environments.
+New function Get-PackageInfoFromRapidStartFile, to exctract main information from RapidStart package.
+Add parameter apiVersion to Copy-BcEnvironment to allow set API version used during calls.
+Add parameter apiVersion to Get-BcDatabaseExportHistory to allow set API version used during calls.
+Add parameter apiVersion to Get-BcEnvironments to allow set API version used during calls.
+Add parameter apiVersion to Get-BcEnvironmentsAvailableRestorePeriods to allow set API version used during calls.
+Add parameter apiVersion to Get-BcEnvironmentsOperations to allow set API version used during calls.
+Add parameter apiVersion to Get-BcEnvironmentsUsedStorage to allow set API version used during calls.
+Add parameter apiVersion to Get-BcInstalledExtensions to allow set API version used during calls.
+Add parameter apiVersion to Get-BcPublishedApps to allow set API version used during calls.
+Add parameter apiVersion to Get-BcScheduledUpgrade to allow set API version used during calls.
+Add parameter apiVersion to Install-BcAppFromAppSource to allow set API version used during calls.
+Add parameter apiVersion to New-BcDatabaseExport to allow set API version used during calls.
+Add parameter apiVersion to New-BcEnvironment to allow set API version used during calls.
+Add parameter apiVersion to Remove-BcEnvironment to allow set API version used during calls.
+Add parameter apiVersion to Rename-BcEnvironment to allow set API version used during calls.
+Add parameter apiVersion to Reschedule-BcUpgrade to allow set API version used during calls.
+Add parameter apiVersion to Restore-BcEnvironment to allow set API version used during calls.
+Add parameter apiVersion to Set-BcEnvironmentApplicationInsightsKey to allow set API version used during calls.
+Add parameter basePath to Compile-AppInBCContainer to allow set own basePath different from container.
 
 4.0.16
 Add parameter -allowPreRelease to Get-LatestAlLanguageExtensionUrl to allow Pre-release versions (NOTE: older versions of BcContainerHelper will allow PreRelease versions)

@@ -10,4 +10,5 @@ param(
     -moduleDependencies @( 'BC.HelperFunctions' )
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "SaaSHelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "BC.SaasHelper.ps1")

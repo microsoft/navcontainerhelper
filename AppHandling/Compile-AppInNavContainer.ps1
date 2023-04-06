@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Use NAV/BC Container to Compile App
  .Description
@@ -16,6 +16,8 @@
   Folder in which the symbols of dependent apps will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\symbols.
  .Parameter appName
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
+ .Parameter basePath
+  Base Path of the files in the ALC output, to convert file paths to relative paths. This folder (or any of its parents) needs to be shared with the container.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
  .Parameter UpdateDependencies
@@ -82,6 +84,7 @@ function Compile-AppInBcContainer {
         [string] $appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
+        [string] $basePath = "",
         [switch] $UpdateSymbols,
         [switch] $UpdateDependencies,
         [switch] $CopySymbolsFromContainer,
@@ -294,28 +297,24 @@ try {
 
     $dependencies = @()
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
         $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
         AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
         $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test) {
         $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "appId" = ''; "version" = $appJsonObject.test }
         if (([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
             throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
         }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
         $appJsonObject.dependencies | ForEach-Object {
             $dep = $_
             try { $appId = $dep.id } catch { $appId = $dep.appId }
@@ -699,12 +698,25 @@ try {
 
     $devOpsResult = ""
     if ($result) {
+        $Parameters = @{
+            "FailOn"           = $FailOn
+            "AlcOutput"        = $result
+            "DoNotWriteToHost" = $true
+        }
         if ($gitHubActions) {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath (Get-BcContainerPath -containerName $containerName -path $ENV:GITHUB_WORKSPACE)
+            $Parameters += @{
+                "gitHubActions" = $true
+            }
+            if (-not $basePath) {
+                $basePath = $ENV:GITHUB_WORKSPACE
+            }
         }
-        else {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        if ($basePath) {
+            $Parameters += @{
+                "basePath" = (Get-BcContainerPath -containerName $containerName -path $basePath)
+            }
         }
+        $devOpsResult = Convert-ALCOutputToAzureDevOps @Parameters
     }
     if ($AzureDevOps -or $gitHubActions) {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
