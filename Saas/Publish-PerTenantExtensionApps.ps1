@@ -78,14 +78,16 @@ try {
         $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
         
         $authHeaders = @{ "Authorization" = "Bearer $($bcauthcontext.AccessToken)" }
+        Write-Host "$automationApiUrl/companies"
         $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
         $company = $companies.value | Where-Object { ($companyName -eq "") -or ($_.name -eq $companyName) } | Select-Object -First 1
         if (!($company)) {
             throw "No company $companyName"
         }
         $companyId = $company.id
-        Write-Host "Company $companyName has id $companyId"
+        Write-Host "Company '$companyName' has id $companyId"
         
+        Write-Host "$automationApiUrl/companies($companyId)/extensions"
         $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
         $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
         
@@ -161,7 +163,7 @@ try {
                     if ($null -eq $extensionUpload.systemId) {
                         throw "Unable to upload extension"
                     }
-                    $fileBody = (Invoke-WebRequest -UseBasicParsing $_).Content
+                    $fileBody = [System.IO.File]::ReadAllBytes($_)
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
