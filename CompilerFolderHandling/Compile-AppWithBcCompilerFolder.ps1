@@ -397,7 +397,7 @@ try {
         }
         if ($basePath) {
             $Parameters += @{
-                "basePath" = (Get-BcContainerPath -containerName $containerName -path $basePath)
+                "basePath" = $basePath
             }
         }
         $devOpsResult = Convert-ALCOutputToAzureDevOps @Parameters
