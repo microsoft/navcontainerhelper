@@ -143,11 +143,9 @@ try {
                     Write-Host @newLine "publishing and installing"
                 }
                 if (!$existingApp) {
-                    Write-Host "$automationApiUrl/companies($companyId)/extensionUpload"
                     $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $authHeaders).value
                     Write-Host @newLine "."
                     if ($extensionUpload -and $extensionUpload.systemId) {
-                        Write-Host "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))"
                         $extensionUpload = Invoke-RestMethod `
                             -Method Patch `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))" `
@@ -155,7 +153,6 @@ try {
                             -Body ($body | ConvertTo-Json -Compress)
                     }
                     else {
-                        Write-Host "$automationApiUrl/companies($companyId)/extensionUpload"
                         $ExtensionUpload = Invoke-RestMethod `
                             -Method Post `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload" `
@@ -166,9 +163,7 @@ try {
                     if ($null -eq $extensionUpload.systemId) {
                         throw "Unable to upload extension"
                     }
-                    Write-Host $_
-                    $fileBody = (Invoke-WebRequest -UseBasicParsing $_).Content
-                    Write-Host $extensionUpload.'extensionContent@odata.mediaEditLink'
+                    $fileBody = [System.IO.File]::ReadAllBytes($_)
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
