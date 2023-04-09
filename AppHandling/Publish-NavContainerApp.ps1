@@ -146,6 +146,9 @@ try {
         $appFiles | Where-Object { $_ } | ForEach-Object {
             $appFile = $_
 
+            Write-Host "'$appFile'"
+            Write-Host "'$copyInstalledAppsToFolder'"
+
             if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
                 Write-Host "Checking dependencies in $appFile"
                 Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
@@ -155,6 +158,7 @@ try {
                 if (!(Test-Path -Path $copyInstalledAppsToFolder)) {
                     New-Item -Path $copyInstalledAppsToFolder -ItemType Directory | Out-Null
                 }
+                Write-Host "Copy $appFile to $copyInstalledAppsToFolder"
                 Copy-Item -Path $appFile -Destination $copyInstalledAppsToFolder -force
             }
         
