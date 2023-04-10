@@ -105,7 +105,11 @@ try {
         }
 
         if ($caches.Contains('all') -or $caches.Contains('compilerFolders')) {
-            $folders += @("compiler")
+            # Remove CompilerFolders created 24h ago or earlier
+            Push-Location -path $bcContainerHelperConfig.hostHelperFolder
+            $compilerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder 'compiler'
+            $folders += @(Get-ChildItem -Path $compilerPath | Where-Object { $_.PSIsContainer } | Where-Object { $_.CreationTimeUtc -lt [DateTime]::UtcNow.AddDays(-1) } | ForEach-Object { Resolve-Path $_.FullName -Relative })
+            Pop-Location
         }
 
         if ($caches.Contains('all') -or $caches.Contains('bakFolderCache')) {
@@ -114,7 +118,7 @@ try {
     
         $folders | ForEach-Object {
             $folder = Join-Path $bcContainerHelperConfig.hostHelperFolder $_
-            Get-Item $folder -ErrorAction SilentlyContinue | ?{ $_.PSIsContainer } | ForEach-Object {
+            Get-Item $folder -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer } | ForEach-Object {
                 Write-Host "Removing Cache $($_.FullName)"
                 [System.IO.Directory]::Delete($_.FullName, $true)
             }
