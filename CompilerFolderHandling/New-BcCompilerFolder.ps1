@@ -166,6 +166,10 @@ try {
         $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
         Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
+        if ($isWindows) {
+            $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
+            Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
+        }
         Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
     }
 
