@@ -1,4 +1,7 @@
 4.0.17
+Use Random foldername as CompilerFolder
+Flush-ContainerHelperCache only removes compilerFolders older than 24 hours
+Copy NewtonSoft DLL to CompilerFolder
 New function Get-BcEnvironmentsUsedStorage, to retrieve a list of used storage.
 New function Get-BcEnvironmentsAvailableRestorePeriods, to retrieve restoer periods for environment.
 New function Get-BcEnvironmentsOperations, to retrieve list of operations for environemnts.

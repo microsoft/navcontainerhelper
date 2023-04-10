@@ -155,6 +155,7 @@ try {
                 if (!(Test-Path -Path $copyInstalledAppsToFolder)) {
                     New-Item -Path $copyInstalledAppsToFolder -ItemType Directory | Out-Null
                 }
+                Write-Host "Copy $appFile to $copyInstalledAppsToFolder"
                 Copy-Item -Path $appFile -Destination $copyInstalledAppsToFolder -force
             }
         
