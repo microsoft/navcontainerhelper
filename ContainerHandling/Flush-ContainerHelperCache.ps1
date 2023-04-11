@@ -63,7 +63,7 @@ try {
             if (Test-Path $artifactsCacheFolder) {
                 if ($keepDays) {
                     $removeBefore = [DateTime]::Now.Subtract([timespan]::FromDays($keepDays))
-                    Get-ChildItem -Path $artifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
+                    Get-ChildItem -Path $artifactsCacheFolder | Where-Object { $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                         $level1 = $_.FullName
                         Get-ChildItem -Path $level1 | ?{ $_.PSIsContainer } | ForEach-Object {
                             $level2 = $_.FullName
@@ -108,7 +108,10 @@ try {
             # Remove CompilerFolders created 24h ago or earlier
             Push-Location -path $bcContainerHelperConfig.hostHelperFolder
             $compilerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder 'compiler'
-            $folders += @(Get-ChildItem -Path $compilerPath | Where-Object { $_.PSIsContainer } | Where-Object { $_.CreationTimeUtc -lt [DateTime]::UtcNow.AddDays(-1) } | ForEach-Object { Resolve-Path $_.FullName -Relative })
+            if (Test-Path $compilerPath) {
+                $removeBefore = [DateTime]::UtcNow.AddDays(-$keepDays)
+                $folders += @(Get-ChildItem -Path $compilerPath | Where-Object { $_.PSIsContainer } | Where-Object { $_.CreationTimeUtc -lt $removeBefore } | ForEach-Object { Resolve-Path $_.FullName -Relative })
+            }
             Pop-Location
         }
 

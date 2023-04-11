@@ -198,7 +198,6 @@ try {
                     TestSasToken -sasToken $platformUrl
                     $retry = $false
                     do {
-                        Write-Host $platformUrl
                         $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
                         Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
                         Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
