@@ -1,4 +1,5 @@
 4.0.17
+Revert default of dependencyPublishingOption on Publish-BcContainerApp. Option Ignore causes issues when DevOps pipelines publish to environments.
 Use Random foldername as CompilerFolder
 Flush-ContainerHelperCache only removes compilerFolders older than 24 hours
 Copy NewtonSoft DLL to CompilerFolder
