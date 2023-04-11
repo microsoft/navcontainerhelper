@@ -94,7 +94,7 @@ function Publish-BcContainerApp {
         [string] $environment,
         [switch] $checkAlreadyInstalled,
         [ValidateSet('default','ignore','strict')]
-        [string] $dependencyPublishingOption = "ignore"
+        [string] $dependencyPublishingOption = "default"
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -243,7 +243,10 @@ try {
                 elseif ($syncMode -eq "ForceSync") {
                     $schemaUpdateMode = "forcesync"
                 }
-                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode&DependencyPublishingOption=$dependencyPublishingOption"
+                $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
+                if ($PSBoundParameters.ContainsKey('dependencyPublishingOption')) {
+                    $url += "&DependencyPublishingOption=$dependencyPublishingOption"
+                }
                 if ($tenant) {
                     $url += "&tenant=$tenant"
                 }
