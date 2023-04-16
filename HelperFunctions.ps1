@@ -1036,6 +1036,7 @@ function GetAppInfo {
     }
 
     $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
+        $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
@@ -1058,8 +1059,6 @@ function GetAppInfo {
                     $packageStream = [System.IO.File]::OpenRead($path)
                     $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                     $manifest = $package.ReadNavAppManifest()
-                    #$manifest | out-host
-                    #$manifest.Dependencies | Out-Host
                     $appInfo = @{
                         "appId" = $manifest.AppId
                         "publisher" = $manifest.AppPublisher
@@ -1075,16 +1074,16 @@ function GetAppInfo {
                     }
                 }
                 @{
-                    "id" = $appInfo.appId
-                    "appId" = $appInfo.appId
-                    "publisher" = $appInfo.publisher
-                    "name" = $appInfo.name
-                    "version" = [System.Version]$appInfo.version
-                    "dependencies" = @($appInfo.dependencies)
-                    "path" = $path
-                    "application" = $appInfo.application
-                    "platform" = $appInfo.platform
-                    "propagateDependencies" = $appInfo.propagateDependencies
+                    "Id" = $appInfo.appId
+                    "AppId" = $appInfo.appId
+                    "Publisher" = $appInfo.publisher
+                    "Name" = $appInfo.name
+                    "Version" = [System.Version]$appInfo.version
+                    "Dependencies" = @($appInfo.dependencies)
+                    "Path" = $path
+                    "Application" = $appInfo.application
+                    "Platform" = $appInfo.platform
+                    "PropagateDependencies" = $appInfo.propagateDependencies
                 }
             }
         }
