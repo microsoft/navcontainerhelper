@@ -53,8 +53,12 @@ Function Push-BcNuGetPackage {
         Invoke-RestMethod -UseBasicParsing -Uri $publishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
         Write-Host -ForegroundColor Green "NuGet package successfully submitted"
     }
+    catch [System.Net.WebException] {
+        if ($_.ErrorDetails.Error -ne 'Conflict') {
+            throw (GetExtendedErrorMessage $_)
+        }
+    }
     catch {
-        Write-Host $_.Exception.GetType()        
         throw (GetExtendedErrorMessage $_)
     }
     finally {
