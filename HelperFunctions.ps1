@@ -1059,8 +1059,8 @@ function GetAppInfo {
                     $packageStream = [System.IO.File]::OpenRead($path)
                     $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                     $manifest = $package.ReadNavAppManifest()
-                    #$manifest | out-host
-                    #$manifest.Dependencies | Out-Host
+                    $manifest | out-host
+                    $manifest.Dependencies | Out-Host
                     $appInfo = @{
                         "appId" = $manifest.AppId
                         "publisher" = $manifest.AppPublisher
@@ -1075,6 +1075,7 @@ function GetAppInfo {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
                 }
+                $appInfo | Out-Host
                 @{
                     "id" = $appInfo.appId
                     "appId" = $appInfo.appId
