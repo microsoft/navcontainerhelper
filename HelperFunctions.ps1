@@ -1036,6 +1036,7 @@ function GetAppInfo {
     }
 
     $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
+        $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
@@ -1064,8 +1065,9 @@ function GetAppInfo {
                     $manifest.Dependencies | Out-Host
                     Write-Host "done"
                     $manifest.Dependencies.GetEnumerator() | ForEach-Object { Write-Host 'xx'; Write-Host $_.AppId }
+                    Write-Host $manifest.AppId
                     $appInfo = @{
-                        "appId" = $manifest.AppId
+                        "appId" = $manifest.appId
                         "publisher" = $manifest.AppPublisher
                         "name" = $manifest.AppName
                         "version" = "$($manifest.AppVersion)"
