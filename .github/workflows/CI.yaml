@@ -7,10 +7,6 @@ on:
       - '**.md'
       - '.github/**'
     branches: [ master ]
-  workflow_run:
-    workflows: [ 'Pull Request Handler' ]
-    types:
-      - requested
 
 permissions:
   contents: read
