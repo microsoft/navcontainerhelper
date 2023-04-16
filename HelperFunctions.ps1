@@ -1068,7 +1068,7 @@ function GetAppInfo {
                         "publisher" = $manifest.AppPublisher
                         "name" = $manifest.AppName
                         "version" = "$($manifest.AppVersion)"
-                        "dependencies" = @($manifest.Dependencies | Where-Object { $_ } | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                        "dependencies" = @($manifest.Dependencies.GetEnumerator() | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
                         "application" = "$($manifest.Application)"
                         "platform" = "$($manifest.Platform)"
                         "propagateDependencies" = $manifest.PropagateDependencies
