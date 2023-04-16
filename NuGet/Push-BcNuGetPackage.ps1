@@ -54,9 +54,9 @@ Function Push-BcNuGetPackage {
         Write-Host -ForegroundColor Green "NuGet package successfully submitted"
     }
     catch [System.Net.WebException] {
-        if ($_.ErrorDetails.Error -ne 'Conflict') {
-            throw (GetExtendedErrorMessage $_)
-        }
+        $_.GetType() | out-host
+        $_ | out-host
+        throw (GetExtendedErrorMessage $_)
     }
     catch {
         throw (GetExtendedErrorMessage $_)
