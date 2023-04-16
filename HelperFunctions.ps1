@@ -1043,7 +1043,7 @@ function GetAppInfo {
         try {
             $appFiles | ForEach-Object {
                 $path = $_
-                Write-Host $path
+                Write-Host "'$path'"
                 $appInfoPath = "$_.json"
                 if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
