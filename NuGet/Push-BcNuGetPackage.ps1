@@ -56,7 +56,7 @@ Function Push-BcNuGetPackage {
     catch [System.Net.WebException] {
         $_.GetType() | out-host
         $_ | fl | out-host
-        $_.Exception | fl | out-host
+        $_.Exception.Status | out-host
         throw (GetExtendedErrorMessage $_)
     }
     catch {
