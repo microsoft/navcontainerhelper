@@ -54,6 +54,7 @@ Function Push-BcNuGetPackage {
         Write-Host -ForegroundColor Green "NuGet package successfully submitted"
     }
     catch {
+        Write-Host $_.Exception.GetType()        
         throw (GetExtendedErrorMessage $_)
     }
     finally {
