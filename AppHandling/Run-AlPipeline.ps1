@@ -1269,10 +1269,10 @@ if ($useCompilerFolder) {
         Write-Host $_.GetType()
         $_ | Out-Host
     }
-    $installedAppIds = @($installedApps | ForEach-Object { $_.AppId })
+    $installedAppIds = @($installedApps | Select-Object -ExpandProperty 'AppId')
 }
 else {
-    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters |  | ForEach-Object { $_.AppId })
+    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
 }
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {

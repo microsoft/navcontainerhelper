@@ -1082,16 +1082,16 @@ function GetAppInfo {
                 }
                 $appInfo | Out-Host
                 @{
-                    "id" = $appInfo.appId
-                    "appId" = $appInfo.appId
-                    "publisher" = $appInfo.publisher
-                    "name" = $appInfo.name
-                    "version" = [System.Version]$appInfo.version
-                    "dependencies" = @($appInfo.dependencies)
-                    "path" = $path
-                    "application" = $appInfo.application
-                    "platform" = $appInfo.platform
-                    "propagateDependencies" = $appInfo.propagateDependencies
+                    "Id" = $appInfo.appId
+                    "AppId" = $appInfo.appId
+                    "Publisher" = $appInfo.publisher
+                    "Name" = $appInfo.name
+                    "Version" = [System.Version]$appInfo.version
+                    "Dependencies" = @($appInfo.dependencies)
+                    "Path" = $path
+                    "Application" = $appInfo.application
+                    "Platform" = $appInfo.platform
+                    "PropagateDependencies" = $appInfo.propagateDependencies
                 }
             }
         }
