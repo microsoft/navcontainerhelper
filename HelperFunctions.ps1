@@ -1063,6 +1063,7 @@ function GetAppInfo {
                     Write-Host "Dependencies"
                     $manifest.Dependencies | Out-Host
                     Write-Host "done"
+                    $manifest.Dependencies.GetEnumerator() | ForEach-Object { Write-Host 'xx'; Write-Host $_.AppId }
                     $appInfo = @{
                         "appId" = $manifest.AppId
                         "publisher" = $manifest.AppPublisher
