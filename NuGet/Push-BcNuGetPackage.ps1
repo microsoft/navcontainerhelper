@@ -53,9 +53,9 @@ Function Push-BcNuGetPackage {
         Invoke-RestMethod -UseBasicParsing -Uri $publishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
         Write-Host -ForegroundColor Green "NuGet package successfully submitted"
     }
-    catch ([System.Net.WebException] $ex) {
-        if ($ex.Status -eq "ProtocolError") {
-            $response = $ex.Response as [System.Net.HttpWebResponse]
+    catch [System.Net.WebException] {
+        if ($_.Status -eq "ProtocolError") {
+            $response = $_.Response as [System.Net.HttpWebResponse]
             if ($response.StatusCode -eq [System.Net.HttpStatusCode]::Conflict) {
                 Write-Host -ForegroundColor Yellow "NuGet package already exists"
             }
