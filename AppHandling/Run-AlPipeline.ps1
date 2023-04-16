@@ -1258,7 +1258,10 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo | Select-Object -ExpandProperty 'AppId')
+    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo)
+    $installedApps  out-host
+    Write-Host '-------------------'
+    $installedAppIds = @($installedApps | Select-Object -ExpandProperty 'AppId')
 }
 else {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
