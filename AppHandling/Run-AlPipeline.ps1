@@ -1268,6 +1268,7 @@ if ($useCompilerFolder) {
     $installedApps | ForEach-Object {
         Write-Host $_.GetType()
         $_ | Out-Host
+        Write-Host $_.AppId
     }
     $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
