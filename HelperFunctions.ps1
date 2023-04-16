@@ -1060,13 +1060,15 @@ function GetAppInfo {
                     $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                     $manifest = $package.ReadNavAppManifest()
                     $manifest | out-host
+                    Write-Host "Dependencies"
                     $manifest.Dependencies | Out-Host
+                    Write-Host "done"
                     $appInfo = @{
                         "appId" = $manifest.AppId
                         "publisher" = $manifest.AppPublisher
                         "name" = $manifest.AppName
                         "version" = "$($manifest.AppVersion)"
-                        "dependencies" = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                        "dependencies" = @($manifest.Dependencies | Where-Object { $_ } | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
                         "application" = "$($manifest.Application)"
                         "platform" = "$($manifest.Platform)"
                         "propagateDependencies" = $manifest.PropagateDependencies
