@@ -1259,7 +1259,7 @@ $Parameters = @{
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
     $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo)
-    $installedApps  out-host
+    $installedApps | out-host
     Write-Host '-------------------'
     $installedAppIds = @($installedApps | Select-Object -ExpandProperty 'AppId')
 }
