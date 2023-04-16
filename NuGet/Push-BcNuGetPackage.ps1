@@ -55,7 +55,7 @@ Function Push-BcNuGetPackage {
     }
     catch [System.Net.WebException] {
         if ($_.Exception.Status -eq "ProtocolError" -and $_.Exception.Response -is [System.Net.HttpWebResponse]) {
-            $response = [System.Net.HttpWebResponse]($_.Response)
+            $response = [System.Net.HttpWebResponse]($_.Exception.Response)
             if ($response.StatusCode -eq [System.Net.HttpStatusCode]::Conflict) {
                 Write-Host -ForegroundColor Yellow "NuGet package already exists"
             }
