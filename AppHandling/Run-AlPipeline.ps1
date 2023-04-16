@@ -1258,18 +1258,7 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $existingAppFiles | out-host
-    Write-Host '-------------------'
     $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo)
-    Write-Host '-------------------'
-    $installedApps | out-host
-    $installedapps.count | out-host
-    Write-Host '-------------------'
-    $installedApps | ForEach-Object {
-        Write-Host $_.GetType()
-        $_ | Out-Host
-        Write-Host $_.AppId
-    }
     $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
 else {

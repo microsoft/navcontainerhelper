@@ -1043,7 +1043,6 @@ function GetAppInfo {
         try {
             $appFiles | ForEach-Object {
                 $path = $_
-                Write-Host "'$path'"
                 $appInfoPath = "$_.json"
                 if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
@@ -1060,12 +1059,6 @@ function GetAppInfo {
                     $packageStream = [System.IO.File]::OpenRead($path)
                     $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                     $manifest = $package.ReadNavAppManifest()
-                    $manifest | out-host
-                    Write-Host "Dependencies"
-                    $manifest.Dependencies | Out-Host
-                    Write-Host "done"
-                    $manifest.Dependencies.GetEnumerator() | ForEach-Object { Write-Host 'xx'; Write-Host $_.AppId }
-                    Write-Host $manifest.AppId
                     $appInfo = @{
                         "appId" = $manifest.appId
                         "publisher" = $manifest.AppPublisher
@@ -1080,7 +1073,6 @@ function GetAppInfo {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
                 }
-                $appInfo | Out-Host
                 @{
                     "Id" = $appInfo.appId
                     "AppId" = $appInfo.appId
