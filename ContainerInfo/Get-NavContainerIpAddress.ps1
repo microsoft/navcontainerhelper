@@ -22,20 +22,14 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     $ip = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-        if ($global:IP) {
-            $ip = $global:IP
-        }
-        else {
-            $ip = ""
-            $ips = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.IPAddress -ne "127.0.0.1" }
-            if ($ips) {
-                $ips | ForEach-Object {
-                    if ("$ip" -eq "") {
-                        $ip = $_.IPAddress
-                    }
+        $ip = ""
+        $ips = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.IPAddress -ne "127.0.0.1" }
+        if ($ips) {
+            $ips | ForEach-Object {
+                if ("$ip" -eq "") {
+                    $ip = $_.IPAddress
                 }
             }
-            $global:IP = $ip
         }
         $ip
     }
