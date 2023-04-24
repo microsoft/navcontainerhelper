@@ -1,4 +1,6 @@
 4.0.17
+New Functions New-AadAppsForBc (using Microsoft.Graph module) as a replacement for Create-AadAppsForBc (using Azure AD module, which is deprecated) to create AAD Apps for BC
+New Function Remove-AadAppsForBc to remove AAD Apps for BC
 Issue #2970 Regression: Get-BcContainerIpAddress sometimes returns a wrong value
 Revert default of dependencyPublishingOption on Publish-BcContainerApp. Option Ignore causes issues when DevOps pipelines publish to environments.
 Use Random foldername as CompilerFolder

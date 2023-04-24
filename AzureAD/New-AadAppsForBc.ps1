@@ -68,37 +68,35 @@ try {
     }
 
     # Connect to Microsoft.Graph
-    if ($useCurrentMicrosoftGraphConnection) {
-        $account = Get-MgContext
-    }
-    elseif ($bcAuthContext) {
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $jwtToken = Parse-JWTtoken -token $bcAuthContext.accessToken
-        if ($jwtToken.aud -ne 'https://graph.microsoft.com') {
-            Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.microsoft.com"
-        }
-        Connect-MgGraph -AccessToken $bcAuthContext.accessToken
-        $account = Get-MgContext
-    }
-    else {
-        if ($accessToken) {
-            Connect-MgGraph -AadAccessToken $accessToken
+    if (!$useCurrentMicrosoftGraphConnection) {
+        if ($bcAuthContext) {
+            $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+            $jwtToken = Parse-JWTtoken -token $bcAuthContext.accessToken
+            if ($jwtToken.aud -ne 'https://graph.microsoft.com') {
+                Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.microsoft.com"
+            }
+            Connect-MgGraph -AccessToken $bcAuthContext.accessToken
         }
         else {
-            Connect-MgGraph
+            if ($accessToken) {
+                Connect-MgGraph -accessToken $accessToken
+            }
+            else {
+                Connect-MgGraph -Scopes 'Application.ReadWrite.All'
+            }
         }
-        $account = Get-MgContext
     }
+    $account = Get-MgContext
 
     $AdProperties = @{}
 
     $aadTenant = $account.TenantId
     $AdProperties["AadTenant"] = $AadTenant
 
-    if ($null -eq $account.Account.Type) {
+    if ($null -eq $account.Account) {
         $adUser = Get-MgServicePrincipal -Filter "AppId eq '$($account.ClientId)'"
     } else {
-        $adUser = Get-MgUser -UserId $account.Account.Id
+        $adUser = Get-MgUser -UserId $account.Account
     }
     if (!$adUser) {
         throw "Could not identify Aad Tenant"
@@ -362,5 +360,4 @@ finally {
     TrackTrace -telemetryScope $telemetryScope
 }
 }
-Set-Alias -Name New-AadAppsForNav -Value New-AadAppsForBc
-Export-ModuleMember -Function New-AadAppsForBc -Alias New-AadAppsForNav
+Export-ModuleMember -Function New-AadAppsForBc
