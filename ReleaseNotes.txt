@@ -1,4 +1,5 @@
 4.0.17
+Issue #2955 Australian artifact for BC 20.5 OnPrem contains an expired license file
 New Functions New-AadAppsForBc (using Microsoft.Graph module) as a replacement for Create-AadAppsForBc (using Azure AD module, which is deprecated) to create AAD Apps for BC
 New Function Remove-AadAppsForBc to remove AAD Apps for BC
 Issue #2970 Regression: Get-BcContainerIpAddress sometimes returns a wrong value
