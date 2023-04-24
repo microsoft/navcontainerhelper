@@ -81,7 +81,8 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Copy-BcNuGetPackageToFolder', 'Copy-CompanyInBcContainer', 
                'Copy-FileFromBcContainer', 'Copy-FileToBcContainer', 
                'Create-AadAppsForNav', 'Create-AadUsersInBcContainer', 
-               'Create-AlProjectFolderFromBcContainer', 'Create-MyDeltaFolder', 
+               'Create-AlProjectFolderFromBcContainer', 
+               'Create-CustomTraefikImage', 'Create-MyDeltaFolder', 
                'Create-MyOriginalFolder', 'Download-Artifacts', 'Download-File', 
                'Enter-BcContainer', 'Export-BcContainerDatabasesAsBacpac', 
                'Export-ModifiedObjectsAsDeltas', 'Export-NavContainerObjects', 
@@ -251,6 +252,9 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = '4.0.17
+Issue #2955 Australian artifact for BC 20.5 OnPrem contains an expired license file
+New Functions New-AadAppsForBc (using Microsoft.Graph module) as a replacement for Create-AadAppsForBc (using Azure AD module, which is deprecated) to create AAD Apps for BC
+New Function Remove-AadAppsForBc to remove AAD Apps for BC
 Issue #2970 Regression: Get-BcContainerIpAddress sometimes returns a wrong value
 Revert default of dependencyPublishingOption on Publish-BcContainerApp. Option Ignore causes issues when DevOps pipelines publish to environments.
 Use Random foldername as CompilerFolder
@@ -282,7 +286,8 @@ Add parameter apiVersion to Reschedule-BcUpgrade to allow set API version used d
 Add parameter apiVersion to Restore-BcEnvironment to allow set API version used during calls.
 Add parameter apiVersion to Set-BcEnvironmentApplicationInsightsKey to allow set API version used during calls.
 Add parameter basePath to Compile-AppInBCContainer to allow set GIT basePath when not using GITHUB.
-Add parameter basePath to Compile-AppWithBcCompilerFolder to allow set GIT basePath when not using GITHUB.'
+Add parameter basePath to Compile-AppWithBcCompilerFolder to allow set GIT basePath when not using GITHUB.
+Add function Create-CustomTraefikImage to create docker image, based on best generic OS version'
 
         # Prerelease string of this module
         # Prerelease = ''
