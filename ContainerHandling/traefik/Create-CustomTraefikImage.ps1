@@ -74,12 +74,19 @@ LABEL org.opencontainers.image.vendor="Traefik Labs" \
             Write-Host "Set custom Traefik image in BcContainerHelper config"
             # Only change TraefikImage setting - do not write all settings
             $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
-            $config = Get-Content $bcContainerHelperConfigFile -Encoding UTF8 | ConvertFrom-Json
-            if (!($config.PSObject.Properties.Name -eq 'TraefikImage')) {
-                $config | Add-Member -MemberType NoteProperty -Name 'TraefikImage' -Value $imageName
+            if (Test-Path $bcContainerHelperConfigFile) {
+                $config = Get-Content $bcContainerHelperConfigFile -Encoding UTF8 | ConvertFrom-Json
+                if (!($config.PSObject.Properties.Name -eq 'TraefikImage')) {
+                    $config | Add-Member -MemberType NoteProperty -Name 'TraefikImage' -Value $imageName
+                }
+                else {
+                    $config.TraefikImage = $imageName
+                }
             }
             else {
-                $config.TraefikImage = $imageName
+                $config = @{
+                    "TraefikImage" = $imageName
+                }
             }
             $config | ConvertTo-Json | Set-Content -Encoding UTF8 -Path $bcContainerHelperConfigFile
         }
