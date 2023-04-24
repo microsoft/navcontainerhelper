@@ -132,7 +132,13 @@ try {
     
             $appManifestPath = Join-Path $appArtifactPath "manifest.json"
             $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-    
+
+            # Patch wrong license file in ONPREM AU version 20.5.45456.45889
+            if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
+                Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
+                Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
+            }
+            
             $cuFixMapping = @{
                 '11.0.48794.0' = 'cu53';
                 '11.0.48962.0' = 'cu54';
