@@ -1258,10 +1258,11 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo | Select-Object -ExpandProperty 'AppId')
+    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo)
+    $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
 else {
-    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
+    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId })
 }
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
