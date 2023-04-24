@@ -1,0 +1,98 @@
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency: Release
+
+defaults:
+  run:
+    shell: PowerShell
+
+jobs:
+  Deploy:
+    runs-on: [ windows-latest ]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Deploy
+        run: |
+          try {
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
+            New-Item -path $path -itemType Directory | Out-Null
+            Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
+
+            Remove-Item -Path (Join-Path $path "Tests") -Force -Recurse
+            Remove-Item -Path (Join-Path $path ".github") -Force -Recurse
+            Remove-Item -Path (Join-Path $path ".git") -Force -Recurse
+            Remove-Item -Path (Join-Path $path ".gitignore") -Force
+            Remove-Item -Path (Join-Path $path "README.md") -Force
+
+            $versionFile = Join-Path $path 'Version.txt'
+            $version = (Get-Content -Path $versionFile).split('-')[0]
+            Write-Host "BcContainerHelper version $Version"
+            Set-Content -Path $versionFile -Value $version
+
+            $modulePath = Join-Path $ENV:GITHUB_WORKSPACE "BcContainerHelper.psm1"
+            Import-Module $modulePath -DisableNameChecking
+
+            $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
+            $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
+
+            $releaseNotes = Get-Content -Path (Join-Path $path "ReleaseNotes.txt")
+            $idx = $releaseNotes.IndexOf($version)
+            if ($idx -lt 0) {
+                throw 'No release notes identified'
+            }
+            $versionReleaseNotes = @()
+            while ($releaseNotes[$idx]) {
+                $versionReleaseNotes += $releaseNotes[$idx]
+                $idx++
+            }
+
+            Write-Host "Release Notes:"
+            Write-Host $VersionReleaseNotes
+
+            Write-Host "Update Module Manifest"
+            Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
+                                  -RootModule "BcContainerHelper.psm1" `
+                                  -ModuleVersion $version `
+                                  -Author "Freddy Kristiansen" `
+                                  -FunctionsToExport $functionsToExport `
+                                  -AliasesToExport $aliasesToExport `
+                                  -CompanyName "Microsoft" `
+                                  -ReleaseNotes $versionReleaseNotes
+
+
+            $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
+            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
+
+            Remove-Module BcContainerHelper
+          
+            Write-Host $path
+           
+            Write-Host "Signing scripts"
+            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
+            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
+                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
+            Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
+
+            Write-Host "Upload to storage (preview)"
+            $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
+            New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+
+            Compress-Archive -path $path -DestinationPath "$($path).zip"
+            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
+            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
+
+            Write-Host "Publishing Module"
+            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
+          }
+          catch {
+            Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }

@@ -91,7 +91,10 @@ function Publish-BcContainerApp {
         [switch] $replacePackageId,
         [string] $PublisherAzureActiveDirectoryTenantId,
         [Hashtable] $bcAuthContext,
-        [string] $environment
+        [string] $environment,
+        [switch] $checkAlreadyInstalled,
+        [ValidateSet('default','ignore','strict')]
+        [string] $dependencyPublishingOption = "default"
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -102,10 +105,11 @@ try {
     if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
         $containerName = $bcContainerHelperConfig.defaultContainerName
     }
-
+    if ($useDevEndpoint) { $checkAlreadyInstalled = $false }
+    $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-        $appFolder = Join-Path $extensionsFolder "$containerName\$([guid]::NewGuid().ToString())"
+        $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([guid]::NewGuid().ToString())"
         if ($appFile -is [string] -and $appFile.Startswith(':')) {
             New-Item $appFolder -ItemType Directory | Out-Null
             $destFile = Join-Path $appFolder ([System.IO.Path]::GetFileName($appFile.SubString(1)).Replace('*','').Replace('?',''))
@@ -120,15 +124,25 @@ try {
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
         $version = [System.Version]($navversion.split('-')[0])
         $force = ($version.Major -ge 14)
+        if ($checkAlreadyInstalled) {
+            $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object {
+                @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+            }
+        }
     }
     else {
-        $appFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+        $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         $force = $true
+        if ($checkAlreadyInstalled) {
+            $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled } | ForEach-Object {
+                @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
+            }
+        }
     }
 
     try {
-        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -WarningAction SilentlyContinue)
+        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $installedApps -WarningAction SilentlyContinue)
         $appFiles | Where-Object { $_ } | ForEach-Object {
             $appFile = $_
 
@@ -141,6 +155,7 @@ try {
                 if (!(Test-Path -Path $copyInstalledAppsToFolder)) {
                     New-Item -Path $copyInstalledAppsToFolder -ItemType Directory | Out-Null
                 }
+                Write-Host "Copy $appFile to $copyInstalledAppsToFolder"
                 Copy-Item -Path $appFile -Destination $copyInstalledAppsToFolder -force
             }
         
@@ -150,7 +165,7 @@ try {
             elseif ($customconfig.ServerInstance -eq "") {
                 throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
             }
-        
+
             if ($useDevEndpoint) {
         
                 if ($scope -eq "Global") {
@@ -229,6 +244,9 @@ try {
                     $schemaUpdateMode = "forcesync"
                 }
                 $url = "$devServerUrl/dev/apps?SchemaUpdateMode=$schemaUpdateMode"
+                if ($PSBoundParameters.ContainsKey('dependencyPublishingOption')) {
+                    $url += "&DependencyPublishingOption=$dependencyPublishingOption"
+                }
                 if ($tenant) {
                     $url += "&tenant=$tenant"
                 }
@@ -271,7 +289,10 @@ try {
                     Write-Host "Re-enablssing SSL Verification"
                     [SslVerification]::Enable()
                 }
-        
+                if ($bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp -gt 0) {
+                    # Avoid race condition
+                    Start-Sleep -Seconds $bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp
+                }
             }
             else {
         

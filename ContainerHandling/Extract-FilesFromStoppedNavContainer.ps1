@@ -154,7 +154,7 @@ try {
             Move-Item -Path (Get-Item "$path\databases\*.mdf").FullName -Destination "$path\databases\CRONUS.mdf"
             Move-Item -Path (Get-Item "$path\databases\*.ldf").FullName -Destination "$path\databases\CRONUS.ldf"
         } else {
-            $folder = Get-ChildItem -Path "$path\databases" -Directory
+            $folder = Get-ChildItem -Path "$path\databases" | Where-Object { $_.PSIsContainer }
             if ($folder) {
                 $name = $folder.Name
                 Move-Item -Path (Get-Item "$path\databases\$Name\*.mdf").FullName -Destination "$path\databases\$name.mdf"

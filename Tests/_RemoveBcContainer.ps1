@@ -1,2 +1,1 @@
-﻿Remove-BCContainer -containerName $bcsContainerName
-Remove-BCContainer -containerName $bcContainerName
+﻿Remove-BCContainer -containerName $bcContainerName

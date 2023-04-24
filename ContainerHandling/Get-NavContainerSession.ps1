@@ -36,8 +36,29 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
-            $containerId = Get-BcContainerId -containerName $containerName
-            $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            if ($isInsideContainer) {
+                $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+            }
+            elseif ($isPsCore -or !$isAdministrator) {
+                $UUID = (Get-WmiObject -Class "Win32_ComputerSystemProduct").UUID
+                $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
+                Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential)
+                    $winrmuser = get-localuser -name $credential.UserName -ErrorAction SilentlyContinue
+                    if (!$winrmuser) {
+                        $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
+                        winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}')
+                        winrm set winrm/config/service/Auth '@{Basic="true"}'
+                        Write-Host "`nCreating Container user $($credential.UserName)"
+                        New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
+                        Add-LocalGroupMember -Group administrators -Member $credential.UserName
+                    }
+                } -argumentList $credential
+                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -useSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+            }
+            else {
+                $containerId = Get-BcContainerId -containerName $containerName
+                $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            }
             $newsession = $true
         }
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)

@@ -1,14 +1,47 @@
-﻿function Get-DefaultCredential {
+﻿$useTimeOutWebClient = $false
+if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
+$Source = @"
+	using System.Net;
+ 
+	public class TimeoutWebClient : WebClient
+	{
+        int theTimeout;
+
+        public TimeoutWebClient(int timeout)
+        {
+            theTimeout = timeout;
+        }
+
+		protected override WebRequest GetWebRequest(System.Uri address)
+		{
+			WebRequest request = base.GetWebRequest(address);
+			if (request != null)
+			{
+				request.Timeout = theTimeout;
+			}
+			return request;
+		}
+ 	}
+"@;
+ 
+try {
+    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    $useTimeOutWebClient = $true
+}
+catch {}
+}
+
+function Get-DefaultCredential {
     Param(
         [string]$Message,
         [string]$DefaultUserName,
         [switch]$doNotAskForCredential
     )
 
-    if (Test-Path "$hostHelperFolder\settings.ps1") {
-        . "$hostHelperFolder\settings.ps1"
-        if (Test-Path "$hostHelperFolder\aes.key") {
-            $key = Get-Content -Path "$hostHelperFolder\aes.key"
+    if (Test-Path "$($bcContainerHelperConfig.hostHelperFolder)\settings.ps1") {
+        . "$($bcContainerHelperConfig.hostHelperFolder)\settings.ps1"
+        if (Test-Path "$($bcContainerHelperConfig.hostHelperFolder)\aes.key") {
+            $key = Get-Content -Path "$($bcContainerHelperConfig.hostHelperFolder)\aes.key"
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword -Key $key))
         } else {
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword))
@@ -42,26 +75,35 @@ function CmdDo {
         [string] $command = "",
         [string] $arguments = "",
         [switch] $silent,
-        [switch] $returnValue
+        [switch] $returnValue,
+        [string] $inputStr = ""
     )
 
     $oldNoColor = "$env:NO_COLOR"
     $env:NO_COLOR = "Y"
     $oldEncoding = [Console]::OutputEncoding
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
     try {
         $result = $true
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = $command
         $pinfo.RedirectStandardError = $true
         $pinfo.RedirectStandardOutput = $true
+        if ($inputStr) {
+            $pinfo.RedirectStandardInput = $true
+        }
         $pinfo.WorkingDirectory = Get-Location
         $pinfo.UseShellExecute = $false
         $pinfo.Arguments = $arguments
+        $pinfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Minimized
+
         $p = New-Object System.Diagnostics.Process
         $p.StartInfo = $pinfo
         $p.Start() | Out-Null
-    
+        if ($inputStr) {
+            $p.StandardInput.WriteLine($inputStr)
+            $p.StandardInput.Close()
+        }
         $outtask = $p.StandardOutput.ReadToEndAsync()
         $errtask = $p.StandardError.ReadToEndAsync()
         $p.WaitForExit();
@@ -89,7 +131,7 @@ function CmdDo {
         }
     }
     finally {
-    #    [Console]::OutputEncoding = $oldEncoding
+        try { [Console]::OutputEncoding = $oldEncoding } catch {}
         $env:NO_COLOR = $oldNoColor
     }
 }
@@ -266,16 +308,16 @@ function TestSasToken {
         $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
         if ($st) {
             if ([DateTime]::Now -lt [DateTime]$st) {
-                Write-Host "ERROR: The sas token provided isn't valid before $(([DateTime]$st).ToString())"
+                Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
             }
         }
         if ($se) {
             if ([DateTime]::Now -gt [DateTime]$se) {
-                Write-Host "ERROR: The sas token provided expired on $(([DateTime]$se).ToString())"
+                Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
             }
             elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
                 $span = ([DateTime]$se).Subtract([DateTime]::Now)
-                Write-Host "WARNING: The sas token provided will expire on $(([DateTime]$se).ToString())"
+                Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
             }
         }
     }
@@ -285,13 +327,13 @@ function Expand-7zipArchive {
     Param (
         [Parameter(Mandatory=$true)]
         [string] $Path,
-        [string] $DestinationPath
+        [string] $DestinationPath,
+        [switch] $use7zipIfAvailable = $bcContainerHelperConfig.use7zipIfAvailable
     )
 
     $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
-
     $use7zip = $false
-    if ($bcContainerHelperConfig.use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
+    if ($use7zipIfAvailable -and (Test-Path -Path $7zipPath -PathType Leaf)) {
         try {
             $use7zip = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($7zipPath).FileMajorPart -ge 19
         }
@@ -304,7 +346,11 @@ function Expand-7zipArchive {
         Write-Host "using 7zip"
         Set-Alias -Name 7z -Value $7zipPath
         $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
+        $global:LASTEXITCODE = 0
         Invoke-Expression -Command $command | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            throw "Error $LASTEXITCODE extracting $path"
+        }
     } else {
         Write-Host "using Expand-Archive"
         Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
@@ -336,7 +382,7 @@ function GetTestToolkitApps {
 
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | % {
+                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
                     @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                 }
     
@@ -355,12 +401,12 @@ function GetTestToolkitApps {
             }
         }
 
-        $apps | % {
+        $apps | ForEach-Object {
             $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
             if (!($appFile)) {
                 $appFile = $_
             }
-            $appFile
+            $appFile.FullName
         }
     } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
 }
@@ -384,15 +430,20 @@ function GetExtendedErrorMessage {
         }
         $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
+        try {
+            if ($webResponse.StatusDescription) {
+                $message += "`r`n$($webResponse.StatusDescription)"
+            }
+        } catch {}
         $reqstream = $webResponse.GetResponseStream()
         $sr = new-object System.IO.StreamReader $reqstream
         $result = $sr.ReadToEnd()
         try {
             $json = $result | ConvertFrom-Json
-            $message += " $($json.Message)"
+            $message += "`r`n$($json.Message)"
         }
         catch {
-            $message += " $result"
+            $message += "`r`n$result"
         }
         try {
             $correlationX = $webResponse.GetResponseHeader('ms-correlation-x')
@@ -424,26 +475,29 @@ function CopyAppFilesToFolder {
         $appFile = $_
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
-            $appFile = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $appFile = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             Download-File -sourceUrl $appUrl -destinationFile $appFile
             CopyAppFilesToFolder -appFile $appFile -folder $folder
             Remove-Item -Path $appFile -Force
         }
         elseif (Test-Path $appFile -PathType Container) {
-            get-childitem $appFile -Filter '*.app' -Recurse | % {
+            get-childitem $appFile -Filter '*.app' -Recurse | ForEach-Object {
                 $destFile = Join-Path $folder $_.Name
+                if (Test-Path $destFile) {
+                    Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                }
                 Copy-Item -Path $_.FullName -Destination $destFile -Force
                 $destFile
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
-            if ([string]::new([char[]](Get-Content $appFile -Encoding byte -TotalCount 2)) -eq "PK") {
-                $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                 $copied = $false
                 try {
                     if ($appFile -notlike "*.zip") {
                         $orgAppFile = $appFile
-                        $appFile = Join-Path (Get-TempDir) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
+                        $appFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
                         Copy-Item $orgAppFile $appFile
                         $copied = $true
                     }
@@ -459,6 +513,9 @@ function CopyAppFilesToFolder {
             }
             else {
                 $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
+                if (Test-Path $destFile) {
+                    Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                }
                 Copy-Item -Path $appFile -Destination $destFile -Force
                 $destFile
             }
@@ -747,10 +804,6 @@ function Get-WWWRootPath {
     }
 }
 
-function Get-TempDir {
-    (Get-Item -Path $env:temp).FullName
-}
-
 function Parse-JWTtoken([string]$token) {
     if ($token.Contains(".") -and $token.StartsWith("eyJ")) {
         $tokenPayload = $token.Split(".")[1].Replace('-', '+').Replace('_', '/')
@@ -798,7 +851,11 @@ Function CreatePsTestToolFolder {
 
     Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
         if (!(Test-Path $myNewtonSoftDllPath)) {
-            $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+            if (!(Test-Path $newtonSoftDllPath)) {
+                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+            }
+            $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
             Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
         }
         if (!(Test-Path $myClientDllPath)) {
@@ -855,4 +912,198 @@ function testPfxCertificate([string] $pfxFile, [SecureString] $pfxPassword, [str
     if ([DateTime]::Now -gt $cert.NotAfter.AddDays(-14)) {
         Write-Host -ForegroundColor Yellow "$certkind certificate will expire on $($cert.GetExpirationDateString())"
     }
+}
+
+function GetHash {
+    param(
+        [string] $str
+    )
+
+    $stream = [IO.MemoryStream]::new([Text.Encoding]::UTF8.GetBytes($str))
+    (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
+}
+
+function Wait-Task {
+    param(
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [System.Threading.Tasks.Task[]]$Task
+    )
+
+    Begin {
+        $Tasks = @()
+    }
+
+    Process {
+        $Tasks += $Task
+    }
+
+    End {
+        While (-not [System.Threading.Tasks.Task]::WaitAll($Tasks, 200)) {}
+        $Tasks.ForEach( { $_.GetAwaiter().GetResult() })
+    }
+}
+Set-Alias -Name await -Value Wait-Task -Force
+
+function DownloadFileLow {
+    Param(
+        [string] $sourceUrl,
+        [string] $destinationFile,
+        [switch] $dontOverwrite,
+        [switch] $useDefaultCredentials,
+        [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
+        [int] $timeout = 100
+    )
+
+    if ($useTimeOutWebClient) {
+        Write-Host "Downloading using WebClient"
+        $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
+        $headers.Keys | ForEach-Object {
+            $webClient.Headers.Add($_, $headers."$_")
+        }
+        $webClient.UseDefaultCredentials = $useDefaultCredentials
+        if (Test-Path $destinationFile -PathType Leaf) {
+            if ($dontOverwrite) { 
+                return
+            }
+            Remove-Item -Path $destinationFile -Force
+        }
+        try {
+            $webClient.DownloadFile($sourceUrl, $destinationFile)
+        }
+        finally {
+            $webClient.Dispose()
+        }
+    }
+    else {
+        Write-Host "Downloading using HttpClient"
+        if ($useDefaultCredentials) {
+            $handler = New-Object System.Net.Http.HttpClientHandler
+            $handler.UseDefaultCredentials = $true
+            $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+        }
+        else {
+            $httpClient = New-Object System.Net.Http.HttpClient
+        }
+        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+        $headers.Keys | ForEach-Object {
+            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+        }
+        $stream = $null
+        $fileStream = $null
+        if ($dontOverwrite) {
+            $fileMode = [System.IO.FileMode]::CreateNew
+        }
+        else {
+            $fileMode = [System.IO.FileMode]::Create
+        }
+        try {
+            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+            $fileStream.Close()
+        }
+        finally {
+            if ($fileStream) {
+                $fileStream.Dispose()
+            }
+            if ($stream) {
+                $stream.Dispose()
+            }
+        }
+    }
+}
+
+function GetAppInfo {
+    Param(
+        [string[]] $appFiles,
+        [string] $compilerFolder,
+        [switch] $cacheAppInfo
+    )
+
+    $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
+    if ($isLinux) {
+        $alcPath = Join-Path $binPath 'linux'
+    }
+    else {
+        $alcPath = Join-Path $binPath 'win32'
+    }
+    if (-not (Test-Path $alcPath)) {
+        $alcPath = $binPath
+    }
+    $alcDllPath = $alcPath
+    if (!$isLinux -and !$isPsCore) {
+        $alcDllPath = $binPath
+    }
+
+    $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
+        $ErrorActionPreference = "STOP"
+        $assembliesAdded = $false
+        $packageStream = $null
+        $package = $null
+        try {
+            $appFiles | ForEach-Object {
+                $path = $_
+                $appInfoPath = "$_.json"
+                if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
+                    $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
+                }
+                else {
+                    if (!$assembliesAdded) {
+                        Add-Type -AssemblyName System.IO.Compression.FileSystem
+                        Add-Type -AssemblyName System.Text.Encoding
+                        Add-Type -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
+                        Add-Type -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
+                        Add-Type -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+                        $assembliesAdded = $true
+                    }
+                    $packageStream = [System.IO.File]::OpenRead($path)
+                    $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                    $manifest = $package.ReadNavAppManifest()
+                    $appInfo = @{
+                        "appId" = $manifest.AppId
+                        "publisher" = $manifest.AppPublisher
+                        "name" = $manifest.AppName
+                        "version" = "$($manifest.AppVersion)"
+                        "dependencies" = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                        "application" = "$($manifest.Application)"
+                        "platform" = "$($manifest.Platform)"
+                        "propagateDependencies" = $manifest.PropagateDependencies
+                    }
+                    if ($cacheAppInfo) {
+                        $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
+                    }
+                }
+                @{
+                    "Id" = $appInfo.appId
+                    "AppId" = $appInfo.appId
+                    "Publisher" = $appInfo.publisher
+                    "Name" = $appInfo.name
+                    "Version" = [System.Version]$appInfo.version
+                    "Dependencies" = @($appInfo.dependencies)
+                    "Path" = $path
+                    "Application" = $appInfo.application
+                    "Platform" = $appInfo.platform
+                    "PropagateDependencies" = $appInfo.propagateDependencies
+                }
+            }
+        }
+        catch [System.Reflection.ReflectionTypeLoadException] {
+            if ($_.Exception.LoaderExceptions) {
+                $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
+                    Write-Host "LoaderException: $($_.Message)"
+                }
+            }
+            throw
+        }
+        finally {
+            if ($package) {
+                $package.Dispose()
+            }
+            if ($packageStream) {
+                $packageStream.Dispose()
+            }
+        }
+    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
+    $job | Wait-Job | Receive-Job
+    $job | Remove-Job
 }

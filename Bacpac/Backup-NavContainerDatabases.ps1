@@ -33,7 +33,7 @@ function Backup-BcContainerDatabases {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
     if ("$bakFolder" -eq "") {
         $bakFolder = $containerFolder
     }
@@ -45,11 +45,11 @@ try {
         else {
             $folderPrefix = "onprem"
         }
-        $bakFolder = Join-Path $containerHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
+        $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
     }
     $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($bakFolder, $tenant, $databasecredential, $compress)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
        
         function Backup {
             Param (
@@ -83,6 +83,10 @@ try {
             $databaseServerInstance = "$databaseServer\$databaseInstance"
         }
 
+        if ($databaseServer -eq "localhost") {
+            $bakFolder = $containerBakFolder
+        }
+
         if (!(Test-Path $bakFolder)) {
             New-Item $bakFolder -ItemType Directory | Out-Null
         }
@@ -111,7 +115,7 @@ try {
         } else {
             Backup -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
         }
-    } -ArgumentList $containerbakFolder, $tenant, $databasecredential, $compress
+    } -ArgumentList $containerbakFolder, $bakFolder, $tenant, $databasecredential, $compress
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

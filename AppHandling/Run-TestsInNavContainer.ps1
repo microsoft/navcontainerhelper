@@ -120,13 +120,14 @@ function Run-TestsInBcContainer {
         [int] $testPage,
         [string] $culture = "en-US",
         [string] $timezone = "",
-        [switch] $debugMode,
+        [switch] $debugMode = $bcContainerHelperConfig.debugMode,
         [switch] $restartContainerAndRetry,
         [switch] $usePublicWebBaseUrl,
         [string] $useUrl = "",
         [switch] $connectFromHost,
         [Hashtable] $bcAuthContext,
-        [string] $environment
+        [string] $environment,
+        [switch] $renewClientContextBetweenTests = $bcContainerHelperConfig.renewClientContextBetweenTests
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -216,7 +217,7 @@ try {
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
-    $PsTestToolFolder = Join-Path $extensionsFolder "$containerName\PsTestTool"
+    $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
@@ -268,8 +269,12 @@ try {
     
                 Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
                 
-                    $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
                     if (!(Test-Path $myNewtonSoftDllPath)) {
+                        $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+                        if (!(Test-Path $newtonSoftDllPath)) {
+                            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+                        }
+                        $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
                         Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
                     }
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -306,7 +311,22 @@ try {
                 try {
                     $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
 
-                    $result = Run-Tests -clientContext $clientContext `
+                    $Param = @{}
+                    if ($renewClientContextBetweenTests) {
+                        $Param = @{ "renewClientContext" = { 
+                                if ($renewClientContextBetweenTests) {
+                                    Write-Host "Renewing Client Context"
+                                    Remove-ClientContext -clientContext $clientContext
+                                    $clientContext = $null
+                                    $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                    Write-Host "Client Context renewed"
+                                }
+                                $clientContext
+                            }
+                        }
+                    }
+
+                    $result = Run-Tests @Param -clientContext $clientContext `
                               -TestSuite $testSuite `
                               -TestGroup $testGroup `
                               -TestCodeunit $testCodeunit `
@@ -328,9 +348,6 @@ try {
                 }
                 catch {
                     Write-Host $_.ScriptStackTrace
-                    if ($debugMode -and $clientContext) {
-                        Dump-ClientContext -clientcontext $clientContext 
-                    }
                     throw
                 }
                 finally {
@@ -357,9 +374,13 @@ try {
                     }
                 }
 
-                $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
     
-                    $newtonSoftDllPath = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll").FullName
+                    $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+                    if (!(Test-Path $newtonSoftDllPath)) {
+                        $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+                    }
+                    $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
                     $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
                     [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
@@ -412,7 +433,22 @@ try {
 
                         $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
 
-                        Run-Tests -clientContext $clientContext `
+                        $Param = @{}
+                        if ($renewClientContextBetweenTests) {
+                            $Param = @{ "renewClientContext" = { 
+                                    if ($renewClientContextBetweenTests) {
+                                        Write-Host "Renewing Client Context"
+                                        Remove-ClientContext -clientContext $clientContext
+                                        $clientContext = $null
+                                        $clientContext = New-ClientContext -serviceUrl $serviceUrl -auth $clientServicesCredentialType -credential $credential -interactionTimeout $interactionTimeout -culture $culture -timezone $timezone -debugMode:$debugMode
+                                        Write-Host "Client Context renewed"
+                                    }
+                                    $clientContext
+                                }
+                            }
+                        }
+
+                        Run-Tests @Param -clientContext $clientContext `
                                   -TestSuite $testSuite `
                                   -TestGroup $testGroup `
                                   -TestCodeunit $testCodeunit `
@@ -434,9 +470,6 @@ try {
                     }
                     catch {
                         Write-Host $_.ScriptStackTrace
-                        if ($debugMode -and $clientContext) {
-                            Dump-ClientContext -clientcontext $clientContext 
-                        }
                         throw
                     }
                     finally {
@@ -447,7 +480,7 @@ try {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests
+                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests.IsPresent
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }

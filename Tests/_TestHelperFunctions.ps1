@@ -1,4 +1,14 @@
-﻿function randomchar([string]$str)
+﻿$modulePath = Join-Path $PSScriptRoot "..\BcContainerHelper.psd1"
+Remove-Module BcContainerHelper -ErrorAction Ignore
+Import-Module $modulePath -DisableNameChecking
+
+$modulePath = Join-Path $PSScriptRoot "..\BcContainerHelper.psm1"
+Remove-Module BcContainerHelper -ErrorAction Ignore
+Import-Module $modulePath -DisableNameChecking
+
+$bcContainerHelperConfig.killPsSessionProcess = $true
+
+function randomchar([string]$str)
 {
     $rnd = Get-Random -Maximum $str.length
     [string]$str[$rnd]
@@ -30,3 +40,4 @@ function Get-RandomPasswordAsSecureString {
     ConvertTo-SecureString -String (Get-RandomPassword) -AsPlainText -Force
 }
 
+$credential = [PSCredential]::new("admin", (Get-RandomPasswordAsSecureString))

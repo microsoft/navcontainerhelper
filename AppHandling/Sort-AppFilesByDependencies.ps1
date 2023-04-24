@@ -19,6 +19,7 @@ function Sort-AppFilesByDependencies {
         [Parameter(Mandatory=$false)]
         [string[]] $appFiles,
         [string[]] $includeOnlyAppIds = @(),
+        $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies
     )
@@ -32,7 +33,7 @@ try {
 
     $sharedFolder = ""
     if ($containerName) {
-        $sharedFolder = Join-Path $extensionsFolder "$containerName\$([Guid]::NewGuid().ToString())"
+        $sharedFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([Guid]::NewGuid().ToString())"
         New-Item $sharedFolder -ItemType Directory | Out-Null
     }
     try {
@@ -41,23 +42,24 @@ try {
         $files = @{}
         $appFiles | ForEach-Object {
             $appFile = $_
-            if ($containerName) {
+            if (Test-BcContainer -containerName $containerName) {
                 $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
                 Copy-Item -Path $appFile -Destination $destFile
                 $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)
                     Get-NavAppInfo -Path $appFile | ConvertTo-Json -Depth 99
                 } -argumentList (Get-BcContainerPath -containerName $containerName -path $destFile) | ConvertFrom-Json
-                #Remove-Item -Path $destFile
+                Remove-Item -Path $destFile
+                $appJson.Version = "$($appJson.Version.Major).$($appJson.Version.Minor).$($appJson.Version.Build).$($appJson.Version.Revision)"
                 $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
                 if ($appJson.Dependencies) {
-                    $appJson.Dependencies | % { if ($_) { 
+                    $appJson.Dependencies | ForEach-Object { if ($_) { 
                         $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
-                        $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue $_.MinVersion.ToString()
+                        $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue "$($_.MinVersion.Major).$($_.MinVersion.Minor).$($_.MinVersion.Build).$($_.MinVersion.Revision)"
                     } }
                 }
             }
             else {
-                $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                 try {
                     Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
                     $appJsonFile = Join-Path $tmpFolder "app.json"
@@ -75,8 +77,11 @@ try {
                     Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
-            $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
-            $apps += @($appJson)
+            $key = "$($appJson.Id):$($appJson.Version)"
+            if (-not $files.ContainsKey($key)) {
+                $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
+                $apps += @($appJson)
+            }
         }
         
         # Populate SortedApps and UnresolvedDependencies
@@ -93,8 +98,12 @@ try {
         
         function AddDependency { Param($dependency)
             $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
-            $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId }
+            $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId } | Sort-Object -Property @{ "Expression" = "[System.Version]Version" }
             if ($dependentApp) {
+                if ($dependentApp -is [Array]) {
+                    Write-Host -ForegroundColor Yellow "AppFiles contains multiple versions of the app with AppId $dependencyAppId"
+                    $dependentApp = $dependentApp | Select-Object -Last 1
+                }
                 AddAnApp -AnApp $dependentApp
             }
             else {
@@ -136,6 +145,25 @@ try {
         $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
         $apps | ForEach-Object { AddAnApp -AnApp $_ }
     
+        if ($excludeInstalledApps) {
+            $script:sortedApps = $script:sortedApps | ForEach-Object {
+                $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
+                $app = $_
+                $installedApp = $excludeInstalledApps | Where-Object { $_.id -eq $app.id }
+                if (!$installedApp) {
+                    $app
+                }
+                elseif ([System.Version]$app.Version -eq $installedApp.Version ) {
+                    Write-Host "$appName is already installed with the same version"
+                }
+                elseif ([System.Version]$app.Version -lt $installedApp.Version ) {
+                    Write-Host "$appName is already installed with a newer version"
+                }
+                else {
+                    $app
+                }
+            }
+        }
         if ($includeOnlyAppIds) {
             $script:sortedApps | ForEach-Object { $_ | Add-Member -NotePropertyName 'Included' -NotePropertyValue $false }
             $includeOnlyAppIds | ForEach-Object { MarkSortedApps -AppId $_ }

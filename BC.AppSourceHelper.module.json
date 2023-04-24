@@ -1,0 +1,20 @@
+{
+    "GUID": "325e1f63-e3d3-43d5-954d-2ac74f59bc7d",
+    "Author": "Freddy Kristiansen",
+    "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
+    "Description": "PowerShell module with AppSource helper functions for Business Central Development",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "BC.AppSourceHelper.ps1",
+        "AppSource\\*"
+    ]
+}

@@ -101,7 +101,7 @@ try {
     if ($traefikToml -is [string]) {
         if ($traefikToml.ToLower().StartsWith("http://") -or $traefikToml.ToLower().StartsWith("https://")) {
             $traefikTomlFile = (Join-Path $PSScriptRoot "traefik\template_traefik_custom.toml")
-            (New-Object System.Net.WebClient).DownloadFile($traefikToml, $traefikTomlFile)
+            DownloadFileLow -sourceUrl $traefikToml -destinationFile $traefikTomlFile
         } else {
             if (!(Test-Path $traefikToml)) {
                 throw "File $traefikToml does not exist"
@@ -130,7 +130,7 @@ try {
     if($CrtFile) {
         if ($CrtFile -is [string]) {
             if ($CrtFile.ToLower().StartsWith("http://") -or $CrtFile.ToLower().StartsWith("https://")) {
-                (New-Object System.Net.WebClient).DownloadFile($CrtFile, $CrtFilePath)
+                DownloadFileLow -sourceUrl $CrtFile -destinationFile $CrtFilePath
             } else {
                 if (!(Test-Path $CrtFile)) {
                     throw "File $CrtFile does not exist"
@@ -146,7 +146,7 @@ try {
     if($CrtKeyFile) {
         if ($CrtKeyFile -is [string]) {
             if ($CrtKeyFile.ToLower().StartsWith("http://") -or $CrtKeyFile.ToLower().StartsWith("https://")) {
-                (New-Object System.Net.WebClient).DownloadFile($CrtKeyFile, $CrtKeyFilePath)
+                DownloadFileLow -sourceUrl $CrtKeyFile-destinationFile $CrtKeyFilePath
             } else {
                 if (!(Test-Path $CrtKeyFile)) {
                     throw "File $CrtKeyFile does not exist"

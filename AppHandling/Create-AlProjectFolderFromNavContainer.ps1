@@ -63,8 +63,8 @@ try {
 
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $ver = [System.Version]($navversion.split('-')[0])
-    $alFolder   = Join-Path $ExtensionsFolder "Original-$navversion-al"
-    $dotnetAssembliesFolder = Join-Path $ExtensionsFolder "$containerName\.netPackages"
+    $alFolder   = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-al"
+    $dotnetAssembliesFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\.netPackages"
 
     if (($useBaseLine -and !(Test-Path $alFolder -PathType Container)) -or !(Test-Path $dotnetAssembliesFolder -PathType Container)) {
         throw "Container $containerName was not started with -includeAL (or -doNotExportObjectsAsText was specified)"
@@ -90,9 +90,9 @@ try {
     }
     elseif ($ver.Major -ge 15) {
         $id = [Guid]::NewGuid().Guid
-        $appFile = Join-Path $ExtensionsFolder "BaseApp-$id.app"
-        $appFolder = Join-Path $ExtensionsFolder "BaseApp-$id"
-        $myAlFolder = Join-Path $ExtensionsFolder "al-$id"
+        $appFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\BaseApp-$id.app"
+        $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\BaseApp-$id"
+        $myAlFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\al-$id"
         try {
             $appName = "Base Application"
             if ($ver -lt [Version]("15.0.35659.0")) {

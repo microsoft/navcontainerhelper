@@ -79,20 +79,20 @@ try {
 
     $parameters = @{}
     if ($auth -eq "Windows") {
-        Write-Host "Using Windows Authentication"
+        #Write-Host "Using Windows Authentication"
         $parameters += @{ "usedefaultcredential" = $true }
     }
     else {
         if ($bcAuthContext) {
             $bcAuthContext = Renew-BcAuthContext $bcAuthContext
-            Write-Host "Using AAD Authentication"
+            #Write-Host "Using AAD Authentication"
             $headers += @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
         }
         else {
             if (!($credential)) {
                 throw "You need to specify credentials when you are not using Windows Authentication"
             }
-            Write-Host "Using Basic Authentication"
+            #Write-Host "Using Basic Authentication"
             $parameters += @{ "credential" = $credential }
         }
     }
@@ -107,7 +107,7 @@ try {
     
     $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
-        $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
+        $url = "$($protocol)$($ip):$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
     }
     else {
         $url = $customconfig.PublicODataBaseUrl.Replace("/OData","/api")
@@ -172,7 +172,7 @@ try {
     if (!$silent) {
         Write-Host "Invoke $Method on $url"
     }
-    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters
+    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters @allowUnencryptedAuthenticationParam
 
     if ($sslverificationdisabled) {
         [SslVerification]::Enable()

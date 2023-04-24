@@ -9,6 +9,8 @@
   If specified, all appFolders in the array are subFolders to this folder.
  .Parameter unknownDependencies
   If specified, this reference parameter will contain unresolved dependencies after sorting
+ .Parameter knownApps
+  If specified, this reference parameter will contain all known appids
  .Example
   $folders = Sort-AppFoldersByDependencies -appFolders @($folder1, $folder2)
 #>
@@ -19,7 +21,9 @@ function Sort-AppFoldersByDependencies {
         [Parameter(Mandatory=$false)]
         [string] $baseFolder = "",
         [Parameter(Mandatory=$false)]
-        [ref] $unknownDependencies
+        [ref] $unknownDependencies,
+        [Parameter(Mandatory=$false)]
+        [ref] $knownApps
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -49,8 +53,10 @@ try {
             if ($appJson.psobject.Members | Where-Object name -eq "dependencies") {
                 if ($appJson.dependencies) {
                     $appJson.dependencies = @($appJson.dependencies | % {
-                        if ($_.psobject.Members | where-object membertype -like 'noteproperty' | Where-Object name -eq "id") {
-                            New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version })
+                        if ($_.PSObject.Properties.Name -eq "id") {
+                            $name = "$(if ($_.PSObject.Properties.Name -eq "name") { $_.Name })"
+                            $publisher = "$(if ($_.PSObject.Properties.Name -eq "publisher") { $_.Publisher })"
+                            New-Object psobject -Property ([ordered]@{ "appId" = $_.id; "publisher" = $publisher; "name" = $name; "version" = $_.version })
                         }
                         else {
                             $_
@@ -87,8 +93,12 @@ try {
     
     function AddDependency { Param($dependency)
         $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
-        $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId }
+        $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId } | Sort-Object -Property @{ "Expression" = "[System.Version]Version" }
         if ($dependentApp) {
+            if ($dependentApp -is [Array]) {
+                Write-Host -ForegroundColor Yellow "AppFiles contains multiple versions of the app with AppId $dependencyAppId"
+                $dependentApp = $dependentApp | Select-Object -Last 1
+            }
             AddAnApp -AnApp $dependentApp
         }
         else {
@@ -117,6 +127,11 @@ try {
 
     $script:sortedApps | ForEach-Object {
         ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
+    }
+    if ($knownApps) {
+        $knownApps.value += @($script:sortedApps | ForEach-Object {
+            $_.Id
+		})
     }
     if ($unknownDependencies) {
         $unknownDependencies.value += @($script:unresolvedDependencies | ForEach-Object { if ($_) { 

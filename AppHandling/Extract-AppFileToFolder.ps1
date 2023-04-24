@@ -8,6 +8,10 @@
   Path of the folder in which the application File will be unpacked. If this folder exists, the content will be deleted. Default is $appFile.source.
  .Parameter GenerateAppJson
   Add this switch to generate an sample app.json file in the AppFolder, containing the manifest properties.
+ .Parameter ExcludeRuntimeProperty
+  Add this switch to remove the runtime version from the app.json 
+ .Parameter LatestSupportedRuntimeVersion
+  Add a version number to fail if the runtime version is higher than this version number
  .Parameter OpenFolder
   Add this parameter to open the destination folder in explorer
  .Example
@@ -18,6 +22,8 @@ function Extract-AppFileToFolder {
         [string] $appFilename,
         [string] $appFolder = "",
         [switch] $generateAppJson,
+        [switch] $excludeRuntimeProperty,
+        [string] $latestSupportedRuntimeVersion,
         [switch] $openFolder
     )
 
@@ -27,15 +33,15 @@ try {
     if ($appFolder -eq "") {
         if ($openFolder) {
             $generateAppJson = $true
-            $appFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+            $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         }
         else {
             $appFolder = "$($appFilename).source"
         }
     }
 
-    if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
-        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    if ("$appFolder" -eq "($bcContainerHelperConfig.hostHelperFolder)" -or "$appFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)\") {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $($bcContainerHelperConfig.hostHelperFolder)"
     }
 
     if (!(Test-Path $appFileName)) {
@@ -108,7 +114,14 @@ try {
     if ($generateAppJson) {
         #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
-        $runtime = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        if ($runtimeStr) {
+            $runtime = [System.Version]$runtimeStr
+        }
+        else {
+            $runtime = [System.Version]"9.2"
+        }
+
         $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
         $appJson = [ordered]@{
             "id" = $manifest.Package.App.Id
@@ -124,8 +137,21 @@ try {
                 "application" = $application
             }
         }
+        if ($latestSupportedRuntimeVersion -and $runtimeStr) {
+            Write-Host "App Runtime Version is '$runtimeStr'"
+            if ($runtime -gt [System.Version]$latestSupportedRuntimeVersion) {
+                throw "App is using runtime version $runtimeStr, latest supported runtime version is $latestSupportedRuntimeVersion."
+            }
+        }
+        if ($excludeRuntimeProperty.IsPresent) {
+            Write-Host "Excluding Runtime Version from app.json"
+        }
+        else {
+            $appJson += @{
+                "runtime" = "$($runtime.Major).$($runtime.Minor)"
+            }
+        }
         $appJson += [ordered]@{
-            "runtime" = $runtime
             "logo" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Logo" } | % { $_.Value } )".TrimStart('/')
             "url" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Url" } | % { $_.Value } )"
             "EULA" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "EULA" } | % { $_.Value } )"
@@ -138,7 +164,7 @@ try {
             "features" = @()
         }
 
-        if ($runtime -lt 8.0)  {
+        if ($runtime -lt [System.Version]"8.0")  {
             $appJson += @{
                 "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
             }
@@ -159,14 +185,14 @@ try {
             }
        
         }
-        if ($runtime -ge 5.0)  {
+        if ($runtime -ge [System.Version]"5.0")  {
             $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
             if ($appInsightsKey) {
                 $appJson += @{
                     "applicationInsightsKey" = "$appInsightsKey"
                 }
             }
-            elseif ($runtime -ge 7.2)  {
+            elseif ($runtime -ge [System.Version]"7.2")  {
                 $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | % { $_.Value } 
                 if ($appInsightsConnectionString) {
                     $appJson += @{
@@ -183,7 +209,7 @@ try {
         }
         $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
             $_.GetEnumerator() | % {
-                if ($runtime -gt 4.1) {
+                if ($runtime -gt [System.Version]"4.1") {
                     $propname = "id"
                 }
                 else {
@@ -225,7 +251,7 @@ try {
                 $appJson.supportedLocales += @($_.Local)
             }
         }
-        if ($runtime -ge 4.0)  {
+        if ($runtime -ge [System.Version]"4.0")  {
             $first = $true
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "internalsVisibleTo" } | % { 
                 if ($first) {
@@ -242,7 +268,7 @@ try {
                 }
             }
         }
-        if ($runtime -ge 6.0)  {
+        if ($runtime -ge [System.Version]"6.0") {
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "preprocessorSymbols" } | % { 
                 $first = $true
                 $_.GetEnumerator() | % {

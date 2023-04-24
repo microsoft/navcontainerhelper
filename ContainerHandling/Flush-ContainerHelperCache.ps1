@@ -13,6 +13,7 @@
   - bcartifacts are artifacts downloaded for spinning up containers
   - sandboxartifacts are artifacts downloaded for spinning up containers
   - images are images built on artifacts using New-BcImage or New-BcContainer
+  - compilerFolders are folders used for Dockerless builds
  .Parameter keepDays
   When specifying a value in keepDays, the function will try to keep cached information, which has been used during the last keepDays days. Default is 0 - to flush all cache.
  .Example
@@ -42,6 +43,7 @@ try {
            Write-Host "Other process terminated abnormally"
         }
 
+        $artifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
         $caches = $cache.ToLowerInvariant().Split(',')
     
         $folders = @()
@@ -54,15 +56,14 @@ try {
         }
     
         if ($caches.Contains('all') -or $caches.Contains('bcartifacts') -or $caches.Contains('sandboxartifacts')) {
-            $bcartifactsCacheFolder = $bcartifactsCacheFolder
             $subfolder = "*"
             if (!($caches.Contains('all') -or $caches.Contains('bcartifacts'))) {
                 $subfolder = "sandbox"
             }
-            if (Test-Path $bcartifactsCacheFolder) {
+            if (Test-Path $artifactsCacheFolder) {
                 if ($keepDays) {
                     $removeBefore = [DateTime]::Now.Subtract([timespan]::FromDays($keepDays))
-                    Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
+                    Get-ChildItem -Path $artifactsCacheFolder | Where-Object { $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                         $level1 = $_.FullName
                         Get-ChildItem -Path $level1 | ?{ $_.PSIsContainer } | ForEach-Object {
                             $level2 = $_.FullName
@@ -87,7 +88,7 @@ try {
                     }
                 }
                 else {
-                    Get-ChildItem -Path $bcartifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
+                    Get-ChildItem -Path $artifactsCacheFolder | ?{ $_.PSIsContainer -and $_.Name -like $subfolder } | ForEach-Object {
                         Write-Host "Removing Cache $($_.FullName)"
                         [System.IO.Directory]::Delete($_.FullName, $true)
                     }
@@ -102,14 +103,25 @@ try {
         if ($caches.Contains('all') -or $caches.Contains('applicationCache')) {
             $folders += @("extensions\applications-*-??","extensions\sandbox-applications-*-??","extensions\onprem-applications-*-??")
         }
-    
+
+        if ($caches.Contains('all') -or $caches.Contains('compilerFolders')) {
+            # Remove CompilerFolders created 24h ago or earlier
+            Push-Location -path $bcContainerHelperConfig.hostHelperFolder
+            $compilerPath = Join-Path $bcContainerHelperConfig.hostHelperFolder 'compiler'
+            if (Test-Path $compilerPath) {
+                $removeBefore = [DateTime]::UtcNow.AddDays(-$keepDays)
+                $folders += @(Get-ChildItem -Path $compilerPath | Where-Object { $_.PSIsContainer } | Where-Object { $_.CreationTimeUtc -lt $removeBefore } | ForEach-Object { Resolve-Path $_.FullName -Relative })
+            }
+            Pop-Location
+        }
+
         if ($caches.Contains('all') -or $caches.Contains('bakFolderCache')) {
             $folders += @("sandbox-*-bakfolders","onprem-*-bakfolders")
         }
     
         $folders | ForEach-Object {
-            $folder = Join-Path $hostHelperFolder $_
-            Get-Item $folder -ErrorAction SilentlyContinue | ?{ $_.PSIsContainer } | ForEach-Object {
+            $folder = Join-Path $bcContainerHelperConfig.hostHelperFolder $_
+            Get-Item $folder -ErrorAction SilentlyContinue | Where-Object { $_.PSIsContainer } | ForEach-Object {
                 Write-Host "Removing Cache $($_.FullName)"
                 [System.IO.Directory]::Delete($_.FullName, $true)
             }
@@ -135,9 +147,9 @@ try {
                         "artifactUrl=https://bcartifacts.azureedge.net/",
                         "artifactUrl=https://bcinsider.azureedge.net/",
                         "artifactUrl=https://bcprivate.azureedge.net/",
-                        "artifactUrl=https://bcpublicpreview.azureedge.net/" | % {
+                        "artifactUrl=https://bcpublicpreview.azureedge.net/" | ForEach-Object {
                             if ($artifactUrl -like "$($_)*") {
-                                $cacheFolder = Join-Path $bcartifactsCacheFolder $artifactUrl.SubString($_.Length)
+                                $cacheFolder = Join-Path $artifactsCacheFolder $artifactUrl.SubString($_.Length)
                                 if (-not (Test-Path $cacheFolder)) {
                                     Write-Host "$imageName was built on artifacts which was removed from the cache, removing image"
                                     if (-not (DockerDo -command rmi -parameters @("--force") -imageName $imageID -ErrorAction SilentlyContinue)) {

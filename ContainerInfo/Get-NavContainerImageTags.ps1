@@ -50,7 +50,7 @@ try {
 
         $repository = "$registry/$repository"
         $registry = "registry.hub.docker.com"
-        $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:${repository}:pull&service=registry.docker.io") | ConvertFrom-Json).token
+        $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:$($repository):pull&service=registry.docker.io") | ConvertFrom-Json).token
         $authorization = "Bearer $token"
 
     }
@@ -63,10 +63,10 @@ try {
     try {
         $url = "https://$registry/v2/$repository/tags/list"
         if ($pageSize -gt 0) {
-            $sometags = ($webclient.DownloadString("${url}?n=$pageSize") | ConvertFrom-Json)
+            $sometags = ($webclient.DownloadString("$($url)?n=$pageSize") | ConvertFrom-Json)
             $tags = $sometags
             while ($sometags.tags.Count -gt 0) {
-                $sometags = ($webclient.DownloadString("${url}?n=$pageSize&last=$($sometags.tags[$sometags.tags.Count-1])") | ConvertFrom-Json)
+                $sometags = ($webclient.DownloadString("$($url)?n=$pageSize&last=$($sometags.tags[$sometags.tags.Count-1])") | ConvertFrom-Json)
                 $tags.tags += $sometags.tags
             }
         } else {

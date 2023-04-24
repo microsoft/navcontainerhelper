@@ -10,6 +10,8 @@
   Name of the image getting build. Default is myimage:<tag describing version>.
  .Parameter baseImage
   BaseImage to use. Default is using Get-BestGenericImage to get the best generic image to use.
+ .Parameter databaseBackupPath
+  Path to database backup to use in place of Cronus backup. By default database backup from manifest is used. This parameter can be used to override this and use your custom backup.
  .Parameter registryCredential
   Credentials for the registry for baseImage if you are using a private registry (incl. bcinsider)
  .Parameter isolation
@@ -27,6 +29,12 @@
   Adding this parameter creates an image with multitenancy
  .Parameter addFontsFromPath
   Enumerate all fonts from this path or array of paths and install them in the container
+ .Parameter runSandboxAsOnPrem
+  This parameter will attempt to run sandbox artifacts as onprem (will only work with version 18 and later)
+ .Parameter populateBuildFolder
+  Adding this parameter causes the function to populate this folder with DOCKERFILE and other files needed to build the image instead of building the image
+ .Parameter additionalLabels
+  additionalLabels can contain an array of additional labels for the image
 #>
 function New-BcImage {
     Param (
@@ -34,6 +42,7 @@ function New-BcImage {
         [string] $artifactUrl,
         [string] $imageName = "myimage",
         [string] $baseImage = "",
+        [string] $databaseBackupPath = "",
         [PSCredential] $registryCredential,
         [ValidateSet('','process','hyperv')]
         [string] $isolation = "",
@@ -49,6 +58,9 @@ function New-BcImage {
         [switch] $includeTestFrameworkOnly,
         [switch] $includePerformanceToolkit,
         [switch] $skipIfImageAlreadyExists,
+        [switch] $runSandboxAsOnPrem,
+        [string] $populateBuildFolder = "",
+        [string[]] $additionalLabels = @(),
         $allImages
     )
 
@@ -126,13 +138,17 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 20348 -or $os.BuildNumber -eq 22000) { 
-        if ($isServerHost) {
-            $hostOs = "ltsc2022"
-        }
-        else {
-            $hostOs = "21H2"
-        }
+    if ($os.BuildNumber -eq 22621) {
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 22000) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 20348) { 
+        $hostOs = "ltsc2022"
+    }
+    elseif ($os.BuildNumber -eq 19045) { 
+        $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 19044) { 
         $hostOs = "21H2"
@@ -174,11 +190,22 @@ try {
 
     $appManifestPath = Join-Path $appArtifactPath "manifest.json"
     $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
-    if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+    if (!$runSandboxAsOnPrem -and $appManifest.PSObject.Properties.name -eq "isBcSandbox") {
         if ($appManifest.isBcSandbox) {
             if (!($PSBoundParameters.ContainsKey('multitenant')) -and !$skipDatabase) {
                 $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
             }
+        }
+    }
+
+    if ($appManifest.version -like "21.0.*" -and $licenseFile -eq "") {
+        Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
+        $country = $appManifest.Country.ToLowerInvariant()
+        if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
+            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+        }
+        else {
+            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
         }
     }
 
@@ -206,15 +233,19 @@ try {
 
     $imageName
 
-    $buildMutexName = "img-$imageName"
-    $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+    if ($populateBuildFolder -eq "") {
+        $buildMutexName = "img-$imageName"
+        $buildMutex = New-Object System.Threading.Mutex($false, $buildMutexName)
+}
     try {
         try {
-            if (!$buildMutex.WaitOne(1000)) {
-                Write-Host "Waiting for other process building image $imageName"
-                $buildMutex.WaitOne() | Out-Null
-                Write-Host "Other process completed building"
-                $allImages = @()
+            if ($populateBuildFolder -eq "") {
+                if (!$buildMutex.WaitOne(1000)) {
+                    Write-Host "Waiting for other process building image $imageName"
+                    $buildMutex.WaitOne() | Out-Null
+                    Write-Host "Other process completed building"
+                    $allImages = @()
+                }
             }
         }
         catch [System.Threading.AbandonedMutexException] {
@@ -295,139 +326,160 @@ try {
             Write-Host "Building$mtstr image $imageName based on $baseImage with $($artifactUrl.Split('?')[0])$dbstr"
             $startTime = [DateTime]::Now
             
-            if ($baseImage -eq $bestGenericImageName) {
-                Write-Host "Pulling latest image $baseImage"
-                DockerDo -command pull -imageName $baseImage | Out-Null
+            if ($populateBuildFolder) {
+                $genericTag = [Version]"1.0.2.14"
             }
             else {
-                $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
-                if (!($baseImageExists)) {
-                    Write-Host "Pulling non-existing base image $baseImage"
+                if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
+                    Write-Host "Pulling latest image $baseImage"
                     DockerDo -command pull -imageName $baseImage | Out-Null
                 }
-            }
-        
-            $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
-            Write-Host "Generic Tag: $genericTag"
-            if ($genericTag -lt [Version]"0.1.0.16") {
-                throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
-            }
-        
-            $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
-            if ("$containerOsVersion".StartsWith('10.0.14393.')) {
-                $containerOs = "ltsc2016"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
-                $containerOs = "1703"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
-                $containerOs = "1709"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
-                $containerOs = "1803"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
-                $containerOs = "ltsc2019"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
-                $containerOs = "1903"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
-                $containerOs = "1909"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
-                $containerOs = "2004"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
-                $containerOs = "20H2"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
-                $containerOs = "21H1"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
-                $containerOs = "21H2"
-            }
-            elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
-                $containerOs = "ltsc2022"
-            }
-            else {
-                $containerOs = "unknown"
-            }
-            Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
-            Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
-        
-            if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
-                ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
-                ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
-        
-                throw "The container operating system is newer than the host operating system, cannot use image"
-            
-            }
-        
-            if ($hostOsVersion -eq $containerOsVersion) {
-                if ($isolation -eq "") { 
-                    $isolation = "process"
+                else {
+                    $baseImageExists = docker images --format "{{.Repository}}:{{.Tag}}" | Where-Object { $_ -eq "$baseImage" }
+                    if (!($baseImageExists)) {
+                        Write-Host "Pulling non-existing base image $baseImage"
+                        DockerDo -command pull -imageName $baseImage | Out-Null
+                    }
                 }
-            }
-            elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
-                if ($isolation -eq "") {
-                    if ($containerOsVersion -le $hostOsVersion) {
+            
+                $genericTag = [Version](Get-BcContainerGenericTag -containerOrImageName $baseImage)
+                Write-Host "Generic Tag: $genericTag"
+                if ($genericTag -lt [Version]"0.1.0.16") {
+                    throw "Generic tag must be at least 0.1.0.16. Cannot build image based on $genericTag"
+                }
+        
+                $containerOsVersion = [Version](Get-BcContainerOsVersion -containerOrImageName $baseImage)
+                if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+                    $containerOs = "ltsc2016"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+                    $containerOs = "1703"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+                    $containerOs = "1709"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+                    $containerOs = "1803"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+                    $containerOs = "ltsc2019"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+                    $containerOs = "1903"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+                    $containerOs = "1909"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+                    $containerOs = "2004"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+                    $containerOs = "20H2"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+                    $containerOs = "21H1"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+                    $containerOs = "21H2"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+                    $containerOs = "22H2"
+                }
+                elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+                    $containerOs = "ltsc2022"
+                }
+                else {
+                    $containerOs = "unknown"
+                }
+                Write-Host "Container OS Version: $containerOsVersion ($containerOs)"
+                Write-Host "Host OS Version: $hostOsVersion ($hostOs)"
+            
+                if (($hostOsVersion.Major -lt $containerOsversion.Major) -or 
+                    ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -lt $containerOsversion.Minor) -or 
+                    ($hostOsVersion.Major -eq $containerOsversion.Major -and $hostOsVersion.Minor -eq $containerOsversion.Minor -and $hostOsVersion.Build -lt $containerOsversion.Build)) {
+            
+                    throw "The container operating system is newer than the host operating system, cannot use image"
+                }
+            
+                if ($hostOsVersion -eq $containerOsVersion) {
+                    if ($isolation -eq "") { 
                         $isolation = "process"
                     }
-                    else {
-                        $isolation = "hyperv"
-                    }
                 }
-            }
-            elseif ("$hostOsVersion".StartsWith('10.0.19043.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
-                if ($isolation -eq "") {
-                    Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
-                    $isolation = "process"
-                }
-            }
-            elseif ("$hostOsVersion".StartsWith('10.0.19044.') -and "$containerOsVersion".StartsWith("10.0.19041.")) {
-                if ($isolation -eq "") {
-                    Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H2 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
-                    $isolation = "process"
-                }
-            }
-            else {
-                if ($isolation -eq "") {
-                    if ($isAdministrator) {
-                        if (Get-HypervState -ne "Disabled") {
-                            $isolation = "hyperv"
+                elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
+                    if ($isolation -eq "") {
+                        if ($containerOsVersion -le $hostOsVersion) {
+                            $isolation = "process"
                         }
                         else {
-                            $isolation = "process"
-                            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                            $isolation = "hyperv"
                         }
                     }
-                    else {
-                        $isolation = "hyperv"
-                        Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                }
+                elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+                    if ($isolation -eq "") {
+                        Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
+                        $isolation = "process"
                     }
-        
                 }
-                elseif ($isolation -eq "process") {
-                    Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+                else {
+                    if ($isolation -eq "") {
+                        if ($isAdministrator) {
+                            if (Get-HypervState -ne "Disabled") {
+                                $isolation = "hyperv"
+                            }
+                            else {
+                                $isolation = "process"
+                                Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                            }
+                        }
+                        else {
+                            $isolation = "hyperv"
+                            Write-Host "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                        }
+            
+                    }
+                    elseif ($isolation -eq "process") {
+                        Write-Host "WARNING: Host OS and Base Image Container OS doesn't match and process isolation is specified. If you encounter issues, you could try to specify -isolation hyperv"
+                    }
                 }
+                Write-Host "Using $isolation isolation"
             }
-            Write-Host "Using $isolation isolation"
-        
-            $downloadsPath = $bcartifactsCacheFolder
+            
+            $downloadsPath = $bcContainerHelperConfig.bcartifactsCacheFolder
             if (!(Test-Path $downloadsPath)) {
                 New-Item $downloadsPath -ItemType Directory | Out-Null
             }
         
-            do {
-                $buildFolder = Join-Path $bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+            if ($populateBuildFolder) {
+                $buildFolder = $populateBuildFolder
+                if (Test-Path $buildFolder) {
+                    throw "$populateBuildFolder already exists"
+                }
+                New-Item $buildFolder -ItemType Directory | Out-Null
             }
-            until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
+            else {
+                do {
+                    $buildFolder = Join-Path $bcContainerHelperConfig.bcartifactsCacheFolder ([System.IO.Path]::GetRandomFileName())
+                }
+                until (New-Item $buildFolder -ItemType Directory -ErrorAction SilentlyContinue)
+            }
         
             try {
         
                 $myFolder = Join-Path $buildFolder "my"
                 new-Item -Path $myFolder -ItemType Directory | Out-Null
+
+                $InstallDotNet = ""
+                if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
+                    Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
+                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
+                    Write-Host "Patching prompt.ps1 due to issue #2891"
+                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
+                    $myScripts += @( "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" )
+                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.13-win.exe" -ArgumentList /quiet'
+                }
             
                 $myScripts | ForEach-Object {
                     if ($_ -is [string]) {
@@ -476,12 +528,12 @@ try {
                         $licenseFilePath = $licenseFile
                     }
                 }
-        
+                
                 Write-Host "Files in $($myfolder):"
-                get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+                get-childitem -Path $myfolder | ForEach-Object { Write-Host "- $($_.Name)" }
         
                 $isBcSandbox = "N"
-                if ($appManifest.PSObject.Properties.name -eq "isBcSandbox") {
+                if (!$runSandboxAsOnPrem -and $appManifest.PSObject.Properties.name -eq "isBcSandbox") {
                     if ($appManifest.isBcSandbox) {
                         $IsBcSandbox = "Y"
                     }
@@ -518,6 +570,11 @@ try {
                 if (!$skipDatabase) {
                     $dbPath = Join-Path $navDvdPath "SQLDemoDatabase\CommonAppData\Microsoft\Microsoft Dynamics NAV\ver\Database"
                     New-Item $dbPath -ItemType Directory | Out-Null
+                    if (($databaseBackupPath) -and (Test-Path $databaseBackupPath -PathType Leaf))
+                    {
+                        Write-Host "Using database backup from $databaseBackupPath"
+                        $databasePath = $databaseBackupPath
+                    }
                     Write-Host "Copying Database"
                     Copy-Item -path $databasePath -Destination $dbPath -Force
                     if ($licenseFilePath) {
@@ -526,7 +583,7 @@ try {
                     }
                 }
         
-                "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | % {
+                "Installers", "ConfigurationPackages", "TestToolKit", "UpgradeToolKit", "Extensions", "Applications","Applications.*" | ForEach-Object {
                     $appSubFolder = Join-Path $appArtifactPath $_
                     if (Test-Path $appSubFolder -PathType Container) {
                         $appSubFolder = (Get-Item $appSubFolder).FullName
@@ -540,10 +597,12 @@ try {
                     }
                 }
             
-                docker images --format "{{.Repository}}:{{.Tag}}" | % { 
-                    if ($_ -eq $imageName) 
-                    {
-                        docker rmi --no-prune $imageName -f | Out-Host
+                if ($populateBuildFolder -eq "") {
+                    docker images --format "{{.Repository}}:{{.Tag}}" | ForEach-Object { 
+                        if ($_ -eq $imageName) 
+                        {
+                            docker rmi --no-prune $imageName -f | Out-Host
+                        }
                     }
                 }
         
@@ -551,13 +610,13 @@ try {
                 
                 $skipDatabaseLabel = ""
                 if ($skipDatabase) {
-                    $skipDatabaseLabel = "skipdatabase=""Y"" \`n"
+                    $skipDatabaseLabel = "skipdatabase=""Y"" \`n      "
                 }
         
                 $multitenantLabel = ""
                 $multitenantParameter = ""
                 if ($multitenant) {
-                    $multitenantLabel = "multitenant=""Y"" \`n"
+                    $multitenantLabel = "multitenant=""Y"" \`n      "
                     $multitenantParameter = " -multitenant"
                 }
         
@@ -567,7 +626,7 @@ try {
                     $fontsFolder = Join-Path $buildFolder "Fonts"
                     New-Item $fontsFolder -ItemType Directory | Out-Null
                     $extensions = @(".fon", ".fnt", ".ttf", ".ttc", ".otf")
-                    Get-ChildItem $addFontsFromPath -ErrorAction Ignore | % {
+                    Get-ChildItem $addFontsFromPath -ErrorAction Ignore | ForEach-Object {
                         if ($extensions.Contains($_.Extension.ToLowerInvariant())) {
                             Copy-Item -Path $_.FullName -Destination $fontsFolder
                             $found = $true
@@ -579,7 +638,7 @@ try {
                         $dockerFileAddFonts = "COPY Fonts /Fonts/`nRUN . C:\Fonts\AddFonts.ps1`n"
                     }
                 }
-        
+
                 $TestToolkitParameter = ""
                 if ($genericTag -ge [Version]"0.1.0.18") {
                     if ($includeTestToolkit) {
@@ -603,6 +662,10 @@ try {
                     }
                 }
     
+                $additionalLabelsStr = ""
+                $additionalLabels | ForEach-Object {
+                    $additionalLabelsStr += "$_ \`n      "
+                }
 @"
 FROM $baseimage
 
@@ -611,6 +674,7 @@ ENV DatabaseServer=localhost DatabaseInstance=SQLEXPRESS DatabaseName=CRONUS IsB
 COPY my /run/
 COPY NAVDVD /NAVDVD/
 $DockerFileAddFonts
+$InstallDotNet
 
 RUN \Run\start.ps1 -installOnly$multitenantParameter$TestToolkitParameter
 
@@ -618,39 +682,47 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
       created="$([DateTime]::Now.ToUniversalTime().ToString("yyyyMMddHHmm"))" \
       nav="$nav" \
       cu="$cu" \
-      $($skipDatabaseLabel)$($multitenantLabel)country="$($appManifest.Country)" \
+      $($skipDatabaseLabel)$($multitenantLabel)$($additionalLabelsStr)country="$($appManifest.Country)" \
       version="$($appmanifest.Version)" \
       platform="$($appManifest.Platform)"
 "@ | Set-Content (Join-Path $buildFolder "DOCKERFILE")
 
-                $success = $false
-                try {
-                    docker build --isolation=$isolation --memory $memory --no-cache --tag $imageName $buildFolder | % {
-                        $_ | Out-Host
-                        if ($_ -like "Successfully built*") {
-                            $success = $true
+                if ($populateBuildFolder) {
+                    Write-Host "$populateBuildFolder populated, skipping build of image"
+                }
+                else {
+                    $success = $false
+                    try {
+                        docker build --isolation=$isolation --memory $memory --no-cache --tag $imageName $buildFolder | ForEach-Object {
+                            $_ | Out-Host
+                            if ($_ -like "Successfully built*") {
+                                $success = $true
+                            }
+                        }
+                    } catch {}
+                    if (!$success) {
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "Docker Build failed with exit code $LastExitCode"
+                        } else {
+                            throw "Docker Build didn't indicate successfully built"
                         }
                     }
-                } catch {}
-                if (!$success) {
-                    if ($LASTEXITCODE -ne 0) {
-                        throw "Docker Build failed with exit code $LastExitCode"
-                    } else {
-                        throw "Docker Build didn't indicate successfully built"
-                    }
-                }
-
-                $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
-                Write-Host "Building image took $timespend seconds"
     
+                    $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
+                    Write-Host "Building image took $timespend seconds"
+                }
             }
             finally {
-                Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
+                if ($populateBuildFolder -eq "") {
+                    Remove-Item $buildFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
             }
         }
     }
     finally {
-        $buildMutex.ReleaseMutex()
+        if ($populateBuildFolder -eq "") {
+            $buildMutex.ReleaseMutex()
+        }
     }
 }
 catch {

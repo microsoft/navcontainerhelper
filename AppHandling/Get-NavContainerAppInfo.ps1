@@ -15,6 +15,8 @@
   Specifies how (if any) you want to sort apps based on dependencies to other apps
  .Parameter publishedOnly
   Get published apps
+ .Parameter useNewFormat
+  Get published apps
  .Parameter appFilePath
   Specifies the path to a Business Central app package file (N.B. the path should be shared with the container)
  .Example
@@ -44,7 +46,9 @@ function Get-BcContainerAppInfo {
         [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
         [switch] $publishedOnly,
         [Parameter(Mandatory = $false, ParameterSetName = 'Original')]
-        [switch] $installedOnly
+        [switch] $installedOnly,
+        [Parameter(Mandatory = $false)]
+        [switch] $useNewFormat = $bcContainerHelperConfig.UseNewFormatForGetBcContainerAppInfo
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -69,7 +73,7 @@ try {
         $args += @{ "Tenant" = $tenant }
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($inArgs, $sort, $installedOnly, $useNewFormat)
 
         $script:installedApps = @()
 
@@ -88,7 +92,7 @@ try {
             #Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
             $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId  }
             if ($dependentApp) {
-                AddAnApp -AnApp $dependentApp
+                @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
             }
         }
 
@@ -107,18 +111,55 @@ try {
             $apps = Get-NAVAppInfo @inArgs | Where-Object { (!$installedOnly) -or ($_.IsInstalled -eq $true) } | ForEach-Object { Get-NAVAppInfo -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
         }
 
-        if ($sort -eq "None") {
+        if ($sort -ne "None") {
+            $apps | ForEach-Object { AddAnApp -AnApp $_ }
+            $apps = $script:installedApps
+            if ($sort -eq "DependenciesLast") {
+                [Array]::Reverse($apps)
+            }
+        }
+        if (!$useNewFormat) {
             $apps
         }
         else {
-            $apps | ForEach-Object { AddAnApp -AnApp $_ }
-            if ($sort -eq "DependenciesLast") {
-                [Array]::Reverse($script:installedApps)
+            $apps | ForEach-Object { 
+                $app = $_
+                $newApp = [ordered]@{}
+                $app.PSObject.Properties.Name | ForEach-Object {
+                    if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
+                        $v = @($app."$_")
+                        $newApp."$_" = ConvertTo-Json -InputObject $v -Depth 1 -Compress
+                    }
+                    elseif ($app."$_") {
+                        if ($app."$_" -is [string] -or $app."$_" -is [System.Version] -or $app."$_" -is [boolean]) {
+                            $newApp."$_" = $app."$_"
+                        }
+                        else {
+                            $newApp."$_" = "$($app."$_")"
+                        }
+                    }
+                }
+                $newApp
             }
-            $script:installedApps
         }
-
-    } -ArgumentList $args, $sort, $installedOnly | Where-Object {$_ -isnot [System.String]}
+    } -ArgumentList $args, $sort, $installedOnly, $useNewFormat | Where-Object {$_ -isnot [System.String]} | ForEach-Object {
+        $app = $_
+        if (!$useNewFormat) {
+            $app
+        }
+        else {
+            $newApp = [ordered]@{}
+            $app.Keys | ForEach-Object {
+                if ($_ -eq "Dependencies" -or $_ -eq "Screenshots" -or $_ -eq "Capabilities") {
+                    $newApp."$_" = @($app."$_" | ConvertFrom-Json | ForEach-Object { if ($_) { $_ } } )
+                }
+                else {
+                    $newApp."$_" = $app."$_"
+                }
+            }
+            [PSCustomObject]$newApp
+        }
+    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

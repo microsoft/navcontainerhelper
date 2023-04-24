@@ -62,7 +62,21 @@ function Wait-BcContainerReady {
             }
 
         } while (!($log.Contains("Ready for connections!")))
+        if ($bcContainerHelperConfig.usePsSession) {
+            try {
+                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
+            } catch {}
+        }
         Write-Host
+
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            $boo = $true
+            while (Get-NAVServerInstance | Get-NavTenant | Where-Object { $_.State -eq "Mounting" }) {
+                if ($boo) { Write-Host "Waiting for tenants to be mounted"; $boo = $false }
+                Start-Sleep -Seconds 1
+            }
+        }
+    
     }
 }
 Set-Alias -Name Wait-NavContainerReady -Value Wait-BcContainerReady

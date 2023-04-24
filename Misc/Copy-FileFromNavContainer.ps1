@@ -31,7 +31,7 @@ try {
     $id = Get-BcContainerId -containerName $containerName 
 
     # running hyperv containers doesn't support docker cp
-    $tempFile = Join-Path $hostHelperFolder ([GUID]::NewGuid().ToString())
+    $tempFile = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().ToString())
     try {
         if (Test-Path $localPath -PathType Container) {
             throw "localPath ($localPath) already exists as a folder. Cannot copy file, LocalPath needs to specify a filename."

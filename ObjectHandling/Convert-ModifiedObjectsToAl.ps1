@@ -72,11 +72,11 @@ try {
         if ($filter -ne "None") {
             throw "You cannot set the filter if you are using doNotUseDeltas - you need to convert the full app"
         }
-        $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\objects$suffix"
+        $myDeltaFolder  = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\objects$suffix"
         Export-NavContainerObjects -containerName $containerName -sqlCredential $sqlCredential -objectsFolder $myDeltaFolder -exportTo 'txt folder (new syntax)' -filter ""
 
         if ("$dotNetAddInsPackage" -eq "") {
-            $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
+            $dotNetAddInsPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\coredotnetaddins.al"
             Copy-Item -Path (Join-Path $PSScriptRoot "coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
         }
     }
@@ -85,10 +85,10 @@ try {
             $filter = "Modified=1"
         }
         Export-ModifiedObjectsAsDeltas -containerName $containerName -sqlCredential $sqlCredential -useNewSyntax -filter $filter -originalFolder $originalFolder
-        $myDeltaFolder  = Join-Path $ExtensionsFolder "$containerName\delta$suffix"
+        $myDeltaFolder  = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\delta$suffix"
     }
 
-    $myAlFolder = Join-Path $ExtensionsFolder "$containerName\al$suffix"
+    $myAlFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\al$suffix"
 
     Convert-Txt2Al -containerName $runTxt2AlInContainer `
                    -myDeltaFolder $myDeltaFolder `

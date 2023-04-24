@@ -25,12 +25,17 @@ function Invoke-ScriptInBcContainer {
         [bool] $useSession = $bcContainerHelperConfig.usePsSession
     )
 
-    $file = Join-Path $hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+    $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
     if (!$useSession) {
-        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-        if ("$containerFile" -eq "") {
+        if ($isInsideContainer) {
             $useSession = $true
+        }
+        else {
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+            if ("$containerFile" -eq "") {
+                $useSession = $true
+            }
         }
     }
 
@@ -39,12 +44,20 @@ function Invoke-ScriptInBcContainer {
             $session = Get-BcContainerSession -containerName $containerName -silent
         }
         catch {
-            $useSession = $false
+            if ($isInsideContainer) {
+                Write-Host "Error trying to establish session, retrying in 5 seconds"
+                Start-Sleep -Seconds 5
+                $session = Get-BcContainerSession -containerName $containerName -silent
+            }
+            else {
+                $useSession = $false
+            }
         }
     }
     if ($useSession) {
         $startTime = [DateTime]::Now
         try {
+            Invoke-Command -Session $session -ScriptBlock { param($a) $WarningPreference = $a } -ArgumentList $bcContainerHelperConfig.WarningPreference
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
         catch {
@@ -164,21 +177,33 @@ $ErrorActionPreference = "Stop"
 $startTime = [DateTime]::Now
 ' | Add-Content $file
 
+"`$WarningPreference = '$($bcContainerHelperConfig.WarningPreference)'
+" | Add-Content $file
+
 "`$containerName = '$containerName'
 " | Add-Content $file
 
             if ($bcContainerHelperConfig.addTryCatchToScriptBlock) {
-                if ($scriptblock.Ast.ParamBlock) {
-                    $script = $scriptBlock.Ast.Extent.text.Replace($scriptblock.Ast.ParamBlock.Extent.Text,'').Trim()
-                    if ($script.StartsWith('{')) {
-                        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                $ast = $scriptblock.Ast
+                if ($ast -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+                    $ast = $ast.Body
+                }
+                if ($ast -is [System.Management.Automation.Language.ScriptBlockAst]) {
+                    if ($ast.ParamBlock) {
+                        $script = $ast.Extent.text.Replace($ast.ParamBlock.Extent.Text,'').Trim()
+                        if ($script.StartsWith('{')) {
+                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                        }
+                        else {
+                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                        }
                     }
                     else {
-                        "`$result = Invoke-Command -ScriptBlock { $($scriptblock.Ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                        "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
                     }
                 }
                 else {
-                    "`$result = Invoke-Command -ScriptBlock { try $($scriptBlock.Ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                    throw "Unsupported Scriptblock type $($ast.GetType())"
                 }
 @'
 $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
@@ -237,6 +262,8 @@ if ($exception) {
 #Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
 
                 $ErrorActionPreference = "Stop"
+#                $file | Out-Host
+#                Get-Content -path $file | Out-Host
                 docker exec $containerName powershell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
@@ -244,8 +271,7 @@ if ($exception) {
                     throw "Error executing script in Container"
                 }
                 if (Test-Path -Path $hostOutputFile -PathType Leaf) {
-
-#Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
+#                   Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
                     $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
                     $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
                     if ($exception) {

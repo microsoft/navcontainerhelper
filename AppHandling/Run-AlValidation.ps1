@@ -178,14 +178,15 @@ Write-Host -ForegroundColor Yellow @'
 }
 
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
-    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
     try {
         Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
         $appJsonFile = Join-Path $tmpFolder "app.json"
         $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     }
     catch {
-        throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
+        Write-Host -ForegroundColor Red "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package, ignoring application dependency check"
+        return $minVersion
     }
     finally {
         if (Test-Path $tmpFolder) {
@@ -196,7 +197,7 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $version = $appJson.application
     }
     else {
-        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | % { $_.Version }
+        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | ForEach-Object { $_.Version }
         if (!$version) {
             $version = $minVersion
         }
@@ -348,7 +349,7 @@ $version = [System.Version]::new($currentArtifactUrl.Split('/')[4])
 $currentVersion = "$($version.Major).$($version.Minor)"
 $validateVersion = "17.0"
 
-$tmpAppsFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+$tmpAppsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
 @(CopyAppFilesToFolder -appFiles @($installApps+$apps) -folder $tmpAppsFolder) | % {
     $appFile = $_
     $version = GetApplicationDependency -appFile $appFile -minVersion $validateVersion
@@ -420,7 +421,7 @@ if ($artifactUrl) {
 $prevProgressPreference = $progressPreference
 $progressPreference = 'SilentlyContinue'
 
-$appPackagesFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+$appPackagesFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
 New-Item $appPackagesFolder -ItemType Directory | Out-Null
 
 try {
