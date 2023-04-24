@@ -15,86 +15,26 @@ function Create-CustomTraefikImage {
     [CmdletBinding()]
     Param (
         [string] $imageName = "mytraefik",
+        [string] $traefikVersion = "v1.7.33",
         [switch] $doNotUpdateConfig
     )    
 
     Process {
       $originalPath = Get-Location
-
-      function PullDockerImage {
-          Param(
-              [Parameter(Mandatory=$true)]
-              [string]$imageName
-          )
-
-          $result = $true
-          $arguments = ("pull $imageName")
-          $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-          $pinfo.FileName = "docker.exe"
-          $pinfo.RedirectStandardError = $true
-          $pinfo.RedirectStandardOutput = $true
-          $pinfo.CreateNoWindow = $true
-          $pinfo.UseShellExecute = $false
-          $pinfo.Arguments = $arguments
-          $p = New-Object System.Diagnostics.Process
-          $p.StartInfo = $pinfo
-          $p.Start() | Out-Null
-
-          $outtask = $null
-          $errtask = $p.StandardError.ReadToEndAsync()
-          $out = ""
-          $err = ""
-
-          do {
-              if ($null -eq $outtask) {
-                  $outtask = $p.StandardOutput.ReadLineAsync()
-              }
-              $outtask.Wait(100) | Out-Null
-              if ($outtask.IsCompleted) {
-                  $outStr = $outtask.Result
-                  if ($null -eq $outStr) {
-                      break
-                  }
-                  if (!$silent) {
-                      Write-Host $outStr
-                  }
-                  $out += $outStr
-                  $outtask = $null
-              } elseif ($outtask.IsCanceled) {
-                  break
-              } elseif ($outtask.IsFaulted) {
-                  break
-              }
-          } while(!($p.HasExited))
-
-          $err = $errtask.Result
-          $p.WaitForExit();
-
-          if ($p.ExitCode -ne 0) {
-              $result = $false
-              if (!$silent) {
-                  $err = $err.Trim()
-                  if ("$error" -ne "") {
-                      Write-Host $error -ForegroundColor Red
-                  }
-                  Write-Host "ExitCode: "+$p.ExitCode -ForegroundColor Red
-                  Write-Host "Commandline: docker $arguments" -ForegroundColor Red
-              }
-          }
-          return $result
-      }
-
-
       try {
           $bestGenericImage = Get-BestGenericImageName
-          $servercoreVersion = $bestGenericImage.Split(':')[1]
+          $servercoreVersion = $bestGenericImage.Split(':')[1].Split('-')[0]
           $serverCoreImage = "mcr.microsoft.com/windows/servercore:$serverCoreVersion"
 
           Write-Host "Pulling $serverCoreImage (this might take some time)"
-          if (!(PullDockerImage -imageName $serverCoreImage))  {
+          if (!(DockerDo -imageName $serverCoreImage -command 'pull'))  {
               throw "Error pulling image"
           }
-          $traefikVersion = "v1.7.33"
+          
+          if ((-not $traefikVersion) -or ($traefikVersion -eq "")) {
+              Write-Warning "Parameter 'traefikVersion' is not set or invalid. Using default version 'v1.7.33' instead."
+              $traefikVersion = "v1.7.33" # fallback in case of invalid parameter set
+          }
 
           New-Item 'C:\build\Traefik' -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
           Set-Location 'C:\build\Traefik'
@@ -123,12 +63,8 @@ LABEL org.opencontainers.image.vendor="Traefik Labs" \
             $bcContainerHelperConfig.TraefikImage = $imageName + ":latest"
             $bcContainerHelperConfig | ConvertTo-Json | Set-Content "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
           }
-
-          Set-Location $originalPath
-      } catch {
-          Set-Location $originalPath
-
-          throw $_
+      } finally {
+          Set-Location $originalPath      
       }
     }
 }
