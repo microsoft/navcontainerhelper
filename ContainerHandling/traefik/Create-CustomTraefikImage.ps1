@@ -15,6 +15,7 @@ function Create-CustomTraefikImage {
     [CmdletBinding()]
     Param (
         [string] $imageName = "mytraefik",
+        [Parameter(Mandatory=$true)]
         [string] $traefikVersion = "v1.7.33",
         [switch] $doNotUpdateConfig
     )    
@@ -29,11 +30,6 @@ function Create-CustomTraefikImage {
           Write-Host "Pulling $serverCoreImage (this might take some time)"
           if (!(DockerDo -imageName $serverCoreImage -command 'pull'))  {
               throw "Error pulling image"
-          }
-          
-          if ((-not $traefikVersion) -or ($traefikVersion -eq "")) {
-              Write-Warning "Parameter 'traefikVersion' is not set or invalid. Using default version 'v1.7.33' instead."
-              $traefikVersion = "v1.7.33" # fallback in case of invalid parameter set
           }
 
           New-Item 'C:\build\Traefik' -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
