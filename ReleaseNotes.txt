@@ -34,6 +34,7 @@ Add parameter apiVersion to Restore-BcEnvironment to allow set API version used 
 Add parameter apiVersion to Set-BcEnvironmentApplicationInsightsKey to allow set API version used during calls.
 Add parameter basePath to Compile-AppInBCContainer to allow set GIT basePath when not using GITHUB.
 Add parameter basePath to Compile-AppWithBcCompilerFolder to allow set GIT basePath when not using GITHUB.
+Add function Create-CustomTraefikImage to create docker image, based on best generic OS version
 
 4.0.16
 Add parameter -allowPreRelease to Get-LatestAlLanguageExtensionUrl to allow Pre-release versions (NOTE: older versions of BcContainerHelper will allow PreRelease versions)
