@@ -4,8 +4,10 @@
  .Description
   Create a custom Traefik docker image, based on the best generic image version according to your Windows version.
   This is useful when using Windows Server 2022 for example, where no prebuilt image is provided.
+ .Parameter traefikVersion
+  Version of Traefik to use. Default value is v1.7.33
  .Parameter imageName
-  Name of the docker image, which will be created. Default value is "mytraefik"
+  Name of the docker image, which will be created. Default value is mytraefik:$traefikVersion
  .Parameter doNotUpdateConfig
   Specifies to only create the traefik image, but not updating the BcContainerHelper configuration to use this Traefik image.
  .Example
@@ -14,35 +16,48 @@
 function Create-CustomTraefikImage {
     [CmdletBinding()]
     Param (
-        [string] $imageName = "mytraefik",
-        [Parameter(Mandatory=$true)]
-        [string] $traefikVersion = "v1.7.33",
+        [string] $traefikVersion = '',
+        [string] $imageName = '',
         [switch] $doNotUpdateConfig
     )    
 
-    Process {
-      $originalPath = Get-Location
-      try {
-          $bestGenericImage = Get-BestGenericImageName
-          $servercoreVersion = $bestGenericImage.Split(':')[1].Split('-')[0]
-          $serverCoreImage = "mcr.microsoft.com/windows/servercore:$serverCoreVersion"
+    # Set default traefikVersion if not specified
+    if ([String]::IsNullOrEmpty($traefikVersion)) {
+        $traefikVersion = "v1.7.33"
+    }
 
-          Write-Host "Pulling $serverCoreImage (this might take some time)"
-          if (!(DockerDo -imageName $serverCoreImage -command 'pull'))  {
-              throw "Error pulling image"
-          }
+    # Set default imageName if not specified
+    if ([String]::IsNullOrEmpty($imageName)) {
+        $imageName = "mytraefik:$traefikVersion"
+    }
 
-          New-Item 'C:\build\Traefik' -ItemType Directory -ErrorAction SilentlyContinue | Out-Null
-          Set-Location 'C:\build\Traefik'
+    # Add :latest if no tag is specified
+    if ($imageName -notlike "*:*") {
+        $imageName += ":$traefikVersion"
+    }
 
-          @"
+    # Use TempFolder under hostHelperFolder
+    $tempFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().ToString())
+    New-Item $tempFolder -ItemType Directory | Out-Null
+    Push-Location -Path $tempFolder
+    try {
+        $bestGenericImage = Get-BestGenericImageName
+        $servercoreVersion = $bestGenericImage.Split(':')[1].Split('-')[0]
+        $serverCoreImage = "mcr.microsoft.com/windows/servercore:$serverCoreVersion"
+
+        Write-Host "Pulling $serverCoreImage (this might take some time)"
+        if (!(DockerDo -imageName $serverCoreImage -command 'pull'))  {
+            throw "Error pulling image"
+        }
+
+        Download-File -SourceUrl "https://github.com/traefik/traefik/releases/download/$traefikVersion/traefik_windows-amd64.exe" -DestinationFile (Join-Path $tempFolder "traefik.exe")
+
+        @"
 FROM $serverCoreImage
 SHELL ["powershell", "-Command", "`$ErrorActionPreference = 'Stop'; `$ProgressPreference = 'SilentlyContinue';"]
-RUN Invoke-WebRequest \
-    -Uri "https://github.com/traefik/traefik/releases/download/$traefikVersion/traefik_windows-amd64.exe" \
-    -OutFile "/traefik.exe"
+COPY traefik.exe traefik.exe
 EXPOSE 80
-ENTRYPOINT [ "/traefik" ]
+ENTRYPOINT [ "/traefik.exe" ]
 # Metadata
 LABEL org.opencontainers.image.vendor="Traefik Labs" \
     org.opencontainers.image.url="https://traefik.io" \
@@ -52,16 +67,27 @@ LABEL org.opencontainers.image.vendor="Traefik Labs" \
     org.opencontainers.image.documentation="https://docs.traefik.io"
 "@ | Set-Content 'DOCKERFILE'
 
-          docker build --tag $imageName .
-          
-          if (!$doNotUpdateConfig) {
+        docker build --tag $imageName . | Out-Host
+
+        if (!$doNotUpdateConfig) {
+            $bcContainerHelperConfig.TraefikImage = $imageName
             Write-Host "Set custom Traefik image in BcContainerHelper config"
-            $bcContainerHelperConfig.TraefikImage = $imageName + ":latest"
-            $bcContainerHelperConfig | ConvertTo-Json | Set-Content "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
-          }
-      } finally {
-          Set-Location $originalPath      
-      }
+            # Only change TraefikImage setting - do not write all settings
+            $bcContainerHelperConfigFile = "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json"
+            $config = Get-Content $bcContainerHelperConfigFile -Encoding UTF8 | ConvertFrom-Json
+            if (!($config.PSObject.Properties.Name -eq 'TraefikImage')) {
+                $config | Add-Member -MemberType NoteProperty -Name 'TraefikImage' -Value $imageName
+            }
+            else {
+                $config.TraefikImage = $imageName
+            }
+            $config | ConvertTo-Json | Set-Content -Encoding UTF8 -Path $bcContainerHelperConfigFile
+        }
+
+        $imageName
+    } finally {
+        Pop-Location
+        Remove-Item $tempFolder -Recurse -Force
     }
 }
 Export-ModuleMember -Function Create-CustomTraefikImage
