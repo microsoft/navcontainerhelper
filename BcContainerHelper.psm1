@@ -249,6 +249,8 @@ if ($isWindows) {
 # Azure AD specific functions
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadUsersInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AzureAD\New-AadAppsForBc.ps1")
+. (Join-Path $PSScriptRoot "AzureAD\Remove-AadAppsForBc.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
