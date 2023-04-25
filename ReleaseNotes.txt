@@ -1,4 +1,5 @@
 4.0.17
+Issue #2940 Add licenseFileUri parameter to Replace-BcServerContainer
 Issue #2969 dotnet core is missing in .netpackages export when creating a container with -includeAL
 Issue #2955 Australian artifact for BC 20.5 OnPrem contains an expired license file
 New Functions New-AadAppsForBc (using Microsoft.Graph module) as a replacement for Create-AadAppsForBc (using Azure AD module, which is deprecated) to create AAD Apps for BC
