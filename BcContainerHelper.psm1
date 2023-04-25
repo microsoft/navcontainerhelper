@@ -11,6 +11,7 @@ param(
     -moduleName $MyInvocation.MyCommand.Name `
 
 . (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "SaaSHelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "BC.HelperFunctions.ps1")
 
 if ($isMacOS) {
