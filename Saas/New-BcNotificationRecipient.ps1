@@ -11,10 +11,8 @@
   API version. Default is v2.15.
  .Example
   $bcauthContext = New-BcAuthContext -includeDeviceLogin
-  New-BcNotificationRecipient -bcAuthContext $bcauthContext
+  New-BcNotificationRecipient -bcAuthContext $bcAuthContext -NotificationRecipientMail $Email -NotificationRecipientName $Name
 #>
-
-### EXAMPLE ABOVE
 
 function New-BcNotificationRecipient {
     Param(
@@ -34,10 +32,7 @@ function New-BcNotificationRecipient {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{ "Authorization" = $bearerAuthValue }
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             Invoke-RestMethod -Method Put -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/settings/notification/recipients" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
         }

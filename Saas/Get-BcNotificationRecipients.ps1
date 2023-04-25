@@ -23,10 +23,7 @@ function Get-BcNotificationRecipients {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $headers = @{ "Authorization" = $bearerAuthValue }
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
         (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/settings/notification/recipients" -Headers $headers).Value
         }
