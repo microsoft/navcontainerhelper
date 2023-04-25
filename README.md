@@ -7,7 +7,7 @@ Documentation will be on the wiki.
 # Getting Started
 
 ## VM on Azure
-- Follow the steps on https://aka.ms/getbc
+Follow the steps on https://aka.ms/getbc
 
 ## Local Installation on Windows or Windows Server
 This would be the Steps to install Docker and BCContainerHelper on Windows 11 or Windows Server 2022:
