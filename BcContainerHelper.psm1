@@ -109,15 +109,15 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerSharedFolders.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerPath.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerName.ps1")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerDebugInfo")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerDebugInfo.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Test-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEventLog.ps1")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags")
-
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerLicenseInformation.ps1")
 # CompilerFolder Handling Functions
 . (Join-Path $PSScriptRoot "CompilerFolderHandling\New-BcCompilerFolder.ps1")
 . (Join-Path $PSScriptRoot "CompilerFolderHandling\Remove-BcCompilerFolder.ps1")
@@ -145,6 +145,7 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-LatestAlLanguageExtensionUrl.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-AlLanguageExtensionFromArtifacts.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\traefik\Add-DomainToTraefikConfig.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\traefik\Create-CustomTraefikImage.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Set-BcContainerServerConfiguration.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Restart-BcContainerServiceTier.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Import-TestToolkitToNavContainer.ps1")
@@ -249,6 +250,8 @@ if ($isWindows) {
 # Azure AD specific functions
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadUsersInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "AzureAD\New-AadAppsForBc.ps1")
+. (Join-Path $PSScriptRoot "AzureAD\Remove-AadAppsForBc.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")

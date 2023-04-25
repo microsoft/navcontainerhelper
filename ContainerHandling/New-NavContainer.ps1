@@ -2302,6 +2302,9 @@ if (-not `$restartingInstance) {
             if ($Version.Major -lt 22) {
                 $paths += @('C:\Windows\assembly', 'C:\Windows\Microsoft.NET\assembly')
             }
+            else {
+                $paths += @('C:\Program Files\dotnet\Shared')
+            }
             $paths += @($serviceTierFolder)
 
             $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"

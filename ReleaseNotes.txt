@@ -1,4 +1,8 @@
 4.0.17
+Issue #2969 dotnet core is missing in .netpackages export when creating a container with -includeAL
+Issue #2955 Australian artifact for BC 20.5 OnPrem contains an expired license file
+New Functions New-AadAppsForBc (using Microsoft.Graph module) as a replacement for Create-AadAppsForBc (using Azure AD module, which is deprecated) to create AAD Apps for BC
+New Function Remove-AadAppsForBc to remove AAD Apps for BC
 Issue #2970 Regression: Get-BcContainerIpAddress sometimes returns a wrong value
 Revert default of dependencyPublishingOption on Publish-BcContainerApp. Option Ignore causes issues when DevOps pipelines publish to environments.
 Use Random foldername as CompilerFolder
@@ -31,6 +35,8 @@ Add parameter apiVersion to Restore-BcEnvironment to allow set API version used 
 Add parameter apiVersion to Set-BcEnvironmentApplicationInsightsKey to allow set API version used during calls.
 Add parameter basePath to Compile-AppInBCContainer to allow set GIT basePath when not using GITHUB.
 Add parameter basePath to Compile-AppWithBcCompilerFolder to allow set GIT basePath when not using GITHUB.
+New function Get-NavContainerLicenseInformation to get Business Central license information directly from BcContainerHelper.
+Add function Create-CustomTraefikImage to create docker image, based on best generic OS version
 
 4.0.16
 Add parameter -allowPreRelease to Get-LatestAlLanguageExtensionUrl to allow Pre-release versions (NOTE: older versions of BcContainerHelper will allow PreRelease versions)
