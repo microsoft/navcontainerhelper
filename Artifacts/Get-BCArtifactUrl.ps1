@@ -11,13 +11,15 @@
   The version of Business Central (will search for entries where the version starts with this value of the parameter)
  .Parameter select
   All or only the latest (Default Latest):
-    - All: will return all possible urls in the selection
-    - Latest: will sort on version, and return latest version
-    - Closest: will return the closest version to the version specified in version (must be a full version number)
-    - SecondToLastMajor: will return the latest version where Major version number is second to Last (used to get Next Minor version from insider)
-    - Current: will return the currently active sandbox release
-    - NextMajor: will return the next major sandbox release (will return empty if no Next Major is available)
-    - NextMinor: will return the next minor sandbox release (will return NextMajor when the next release is a major release)
+    - All: will return all possible urls in the selection.
+    - Latest: will sort on version, and return latest version.
+    - Daily: will return the latest build from yesterday (ignoring builds from today). Daily only works with Sandbox artifacts.
+    - Weekly: will return the latest build from last week (ignoring builds from this wwek). Weekly only works with Sandbox artifacts.
+    - Closest: will return the closest version to the version specified in version (must be a full version number).
+    - SecondToLastMajor: will return the latest version where Major version number is second to Last (used to get Next Minor version from insider).
+    - Current: will return the currently active sandbox release.
+    - NextMajor: will return the next major sandbox release (will return empty if no Next Major is available).
+    - NextMinor: will return the next minor sandbox release (will return NextMajor when the next release is a major release).
  .Parameter storageAccount
   The storageAccount that is being used where artifacts are stored (default is bcartifacts, usually should not be changed).
  .Parameter sasToken
@@ -61,6 +63,9 @@ try {
             Write-Host -ForegroundColor Yellow 'On-premises build for 16.18 was replaced by 16.19.35126.0, using this version number instead'
             $version = '16.19.35126.0'
         }
+        if ($select -eq "Weekly" -or $select -eq "Daily") {
+            $select = 'Latest'
+        }
     }
 
     if ($select -eq "Weekly" -or $select -eq "Daily") {
@@ -70,8 +75,8 @@ try {
         else {
             $ignoreBuildsAfter = [DateTime]::Today.AddDays(-[datetime]::Today.DayOfWeek)
         }
-        if ($type -eq 'OnPrem' -or $version -ne '' -or ($after) -or ($before)) {
-            throw 'You cannot specify type=OnPrem, version, before or after  when selecting Daily or Weekly build'
+        if ($version -ne '' -or ($after) -or ($before)) {
+            throw 'You cannot specify version, before or after  when selecting Daily or Weekly build'
         }
         $current = Get-BCArtifactUrl -country $country -select Latest -doNotCheckPlatform:$doNotCheckPlatform
         Write-Verbose "Current build is $current"
