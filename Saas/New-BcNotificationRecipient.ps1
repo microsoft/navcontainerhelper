@@ -17,8 +17,12 @@
 function New-BcNotificationRecipient {
     Param(
         [Parameter(Mandatory = $true)]
-        [Hashtable] $bcAuthContext,
-        [string] $apiVersion = "v2.6",
+        [Hashtable] 
+        $bcAuthContext,
+        [string] 
+        $apiVersion = "v2.6",
+        [string] 
+        $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [String]
         $NotificationRecipientMail,
@@ -32,7 +36,7 @@ function New-BcNotificationRecipient {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             Invoke-RestMethod -Method Put -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/settings/notification/recipients" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
         }
