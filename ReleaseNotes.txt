@@ -34,6 +34,7 @@ Add parameter apiVersion to Restore-BcEnvironment to allow set API version used 
 Add parameter apiVersion to Set-BcEnvironmentApplicationInsightsKey to allow set API version used during calls.
 Add parameter basePath to Compile-AppInBCContainer to allow set GIT basePath when not using GITHUB.
 Add parameter basePath to Compile-AppWithBcCompilerFolder to allow set GIT basePath when not using GITHUB.
+New function Get-NavContainerLicenseInformation to get Business Central license information directly from BcContainerHelper.
 Add function Create-CustomTraefikImage to create docker image, based on best generic OS version
 
 4.0.16
