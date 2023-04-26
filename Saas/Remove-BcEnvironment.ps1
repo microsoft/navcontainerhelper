@@ -43,7 +43,7 @@ function Remove-BcEnvironment {
             throw "The BcContainerHelper Remove-BcEnvironment function cannot be used to remove Production environments"
         }
         else {
-            $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+            $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
             Write-Host "Submitting environment removal request for $applicationFamily/$environment"
             try {

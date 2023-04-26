@@ -55,7 +55,7 @@ function Rename-BcEnvironment {
             Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $newEnvironmentName -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "rename" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "rename" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
         $body = @{}
         "NewEnvironmentName" | % {

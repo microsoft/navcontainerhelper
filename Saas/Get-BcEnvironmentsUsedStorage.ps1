@@ -33,7 +33,7 @@ function Get-BcEnvironmentsUsedStorage {
         if (($null -eq $environment) -or ($environment -eq "")) {
             $applicationFamily = ''
         }
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "usedstorage" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "usedstorage" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
             if ($null -ne $Result.Value) {

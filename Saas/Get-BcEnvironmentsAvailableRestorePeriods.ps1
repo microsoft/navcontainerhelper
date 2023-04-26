@@ -29,7 +29,7 @@ function Get-BcEnvironmentsAvailableRestorePeriods {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "availableRestorePeriods" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "availableRestorePeriods" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
             if ($null -ne $Result.Value) {
