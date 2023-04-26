@@ -63,7 +63,7 @@ function Restore-BcEnvironment {
             Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "/restore" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "restore" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
         $environmentName = $environment
         $body = @{}

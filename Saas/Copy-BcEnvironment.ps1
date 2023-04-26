@@ -62,7 +62,7 @@ function Copy-BcEnvironment {
             Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         }
 
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "copy" -environment $sourceEnvironment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "copy" -environment $sourceEnvironment -applicationFamily $applicationFamily -apiVersion $apiVersion
 
         $type = $environmentType
         $environmentName = $environment

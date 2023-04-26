@@ -33,7 +33,7 @@ function Get-BcEnvironmentsOperations {
         if (($null -eq $environment) -or ($environment -eq "")) {
             $applicationFamily = ''
         }
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $authContext -endPoint "operations" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "operations" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
             if ($null -ne $Result.Value) {
