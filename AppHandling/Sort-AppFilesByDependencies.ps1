@@ -21,7 +21,8 @@ function Sort-AppFilesByDependencies {
         [string[]] $includeOnlyAppIds = @(),
         $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
-        [ref] $unknownDependencies
+        [ref] $unknownDependencies,
+        [switch] $excludeRuntimePackages
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -42,7 +43,32 @@ try {
         $files = @{}
         $appFiles | ForEach-Object {
             $appFile = $_
-            if (Test-BcContainer -containerName $containerName) {
+            $includeIt = $true
+            if ($excludeRuntimePackages -or !(Test-BcContainer -containerName $containerName)) {
+                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+                try {
+                    Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
+                    $appJsonFile = Join-Path $tmpFolder "app.json"
+                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                }
+                catch {
+                    if ($_.exception.message -eq "You cannot extract a runtime package") {
+                        if ($excludeRuntimePackages) {
+                            $includeIt = $false
+                        }
+                        else {
+                            throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
+                        }
+                    }
+                    else {
+                        throw "Unable to extract and analyze appFile $appFile"
+                    }
+                }
+                finally {
+                    Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+            }
+            else {
                 $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
                 Copy-Item -Path $appFile -Destination $destFile
                 $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)
@@ -58,29 +84,12 @@ try {
                     } }
                 }
             }
-            else {
-                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-                try {
-                    Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
-                    $appJsonFile = Join-Path $tmpFolder "app.json"
-                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+            if ($includeIt) {
+                $key = "$($appJson.Id):$($appJson.Version)"
+                if (-not $files.ContainsKey($key)) {
+                    $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
+                    $apps += @($appJson)
                 }
-                catch {
-                    if ($_.exception.message -eq "You cannot extract a runtime package") {
-                        throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
-                    }
-                    else {
-                        throw "Unable to extract and analyze appFile $appFile"
-                    }
-                }
-                finally {
-                    Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
-                }
-            }
-            $key = "$($appJson.Id):$($appJson.Version)"
-            if (-not $files.ContainsKey($key)) {
-                $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
-                $apps += @($appJson)
             }
         }
         
@@ -142,8 +151,8 @@ try {
             }
         }
 
-        $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
-        $apps | ForEach-Object { AddAnApp -AnApp $_ }
+        $apps | Where-Object { $_ } | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
+        $apps | Where-Object { $_ } | ForEach-Object { AddAnApp -AnApp $_ }
     
         if ($excludeInstalledApps) {
             $script:sortedApps = $script:sortedApps | ForEach-Object {
