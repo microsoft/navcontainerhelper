@@ -3,7 +3,7 @@
   Function for setting Update Window on a Business Central online environment
  .Description
   Function for setting Update Window on a Business Central online environment.
-  The Update Window has to be at least 6 hours long!
+  The Update Window has to be at least 6 hours long.
   If the Parameter timeZoneId is not set, the timezone set in the target Business Central Environment will be used.
  .Parameter bcAuthContext
   Authorization Context created by New-BcAuthContext.
@@ -14,15 +14,14 @@
  .Parameter apiVersion
   API version. Default is v2.18.
  .Parameter preferredStartTime
-  Start of environment update window, Format HH:mm, 30 minute increments
+  Start of environment update window (Format HH:mm, 30 minute increments; validation implemented)
  .Parameter preferredEndTime
-  End of environment update window, Format HH:mm, 30 minute increments
+  End of environment update window (Format HH:mm, 30 minute increments; validation implemented)
  .Parameter timeZoneId
   Timezone in Windows default format, e.g. "W. Europe Standard Time"
-  If set, the time zone for the environment update window is set accordingly.  
-  If not set, default timeZone from the target environment is used
+  If set, the timezone for the environment update window is set accordingly.  
+  If not set, default timezone from the target environment is used
  .Example
-  TBD
   $bcauthContext = New-BcAuthContext -includeDeviceLogin
   Set-BcEnvironmentUpdateWindow -bcAuthContext $bcAuthContext -environment "Sandbox" -preferredStartTime "22:00" -preferredEndTime "05:00" -timeZoneId "W. Europe Standard Time"
 #>

@@ -12,7 +12,6 @@
  .Parameter apiVersion
   API version. Default is v2.18.
  .Example
-  TBD
   $bcauthContext = New-BcAuthContext -includeDeviceLogin
   Get-BcEnvironmentUpdateWindow -bcAuthContext $bcAuthContext -environment "Sandbox"
 #>
