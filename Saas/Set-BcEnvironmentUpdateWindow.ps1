@@ -10,7 +10,7 @@
  .Parameter applicationFamily
   Application Family in which the environment is located. Default is BusinessCentral.
  .Parameter environment
-  Name of the new environment on which you want to set the Update Window for
+  Name of the environment which you want to set the Update Window for
  .Parameter apiVersion
   API version. Default is v2.18.
  .Parameter preferredStartTime
@@ -19,10 +19,12 @@
   End of environment update window, Format HH:mm, 30 minute increments
  .Parameter timeZoneId
   Timezone in Windows default format, e.g. "W. Europe Standard Time"
+  If set, the time zone for the environment update window is set accordingly.  
   If not set, default timeZone from the target environment is used
  .Example
   TBD
-  Set-BcEnvironmentUpdateWindow -$bcAuthContext $bcAuthContext -environment $environment -preferredStartTime "22:00" -preeferredEndTime "05:00" -timeZoneId "W. Europe Standard Time"
+  $bcauthContext = New-BcAuthContext -includeDeviceLogin
+  Set-BcEnvironmentUpdateWindow -bcAuthContext $bcAuthContext -environment "Sandbox" -preferredStartTime "22:00" -preferredEndTime "05:00" -timeZoneId "W. Europe Standard Time"
 #>
 function Set-BcEnvironmentUpdateWindow {
     Param(
@@ -33,10 +35,10 @@ function Set-BcEnvironmentUpdateWindow {
         [string] $environment,
         [string] $apiVersion = "v2.18",
         [Parameter(Mandatory = $true)]
-        [ValidatePattern("[00-23]:[00,30]")] 
+        [ValidatePattern("^([0-1]?[0-9]|2[0-3]):(00|30)$")] 
         [string] $preferredStartTime,
         [Parameter(Mandatory = $true)]
-        [ValidatePattern("[00-23]:[00,30]")] 
+        [ValidatePattern("^([0-1]?[0-9]|2[0-3]):(00|30)$")] 
         [string] $preferredEndTime,
         [string] $timeZoneId
     )
@@ -44,32 +46,16 @@ function Set-BcEnvironmentUpdateWindow {
     $body = @{ "preferredStartTime" = $preferredStartTime }
     $body += @{ "preferredEndTime" = $preferredEndTime }
 
-    if($null -ne $timeZoneId){
-        $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-        try {
-            $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
-            try {
-                $timeZoneResult = Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/v2.18/applications/businesscentral/environments/Production/settings/upgrade" -Headers $headers
-            }
-            catch {
-                throw (GetExtendedErrorMessage $_)
-            }
-        }
-        catch {
-            TrackException -telemetryScope $telemetryScope -errorRecord $_
-            throw
-        }
-        finally {
-            TrackTrace -telemetryScope $telemetryScope
-        }
-        $timeZoneId = $timeZoneResult.timeZoneId
-    }
-
-    $body += @{ "timeZoneId" = $timeZoneId }
-
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
         $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
+        if ([string]::IsNullOrEmpty($timeZoneId)) {
+            $timeZoneResult = Get-BcEnvironmentUpdateWindow -bcAuthContext $bcAuthContext -environment $environment
+            $timeZoneId = $timeZoneResult.timeZoneId
+        }
+
+        $body += @{ "timeZoneId" = $timeZoneId }
+
         try {
             Invoke-RestMethod -Method Put -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/settings/upgrade" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
         }
