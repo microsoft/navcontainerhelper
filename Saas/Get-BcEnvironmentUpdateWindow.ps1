@@ -27,9 +27,9 @@ function Get-BcEnvironmentUpdateWindow {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion -endPoint 'settings/upgrade'
         try {
-            Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/settings/upgrade" -Headers $headers
+            Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers
         }
         catch {
             throw (GetExtendedErrorMessage $_)

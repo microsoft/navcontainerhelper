@@ -47,7 +47,7 @@ function Set-BcEnvironmentUpdateWindow {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion -endPoint 'settings/upgrade'
         if ([string]::IsNullOrEmpty($timeZoneId)) {
             $timeZoneResult = Get-BcEnvironmentUpdateWindow -bcAuthContext $bcAuthContext -environment $environment
             $timeZoneId = $timeZoneResult.timeZoneId
@@ -56,7 +56,7 @@ function Set-BcEnvironmentUpdateWindow {
         $body += @{ "timeZoneId" = $timeZoneId }
 
         try {
-            Invoke-RestMethod -Method Put -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/settings/upgrade" -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
+            Invoke-RestMethod -Method Put -UseBasicParsing -Uri $endPointURL -Headers $headers -ContentType "application/json" -Body ($body | ConvertTo-Json)
         }
         catch {
             throw (GetExtendedErrorMessage $_)
