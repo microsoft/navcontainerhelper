@@ -115,7 +115,7 @@ try {
         $jsonHeader = @{ "Content-Type" = 'application/json'}
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
-            Sort-AppFilesByDependencies -appFiles $appFiles | ForEach-Object {
+            Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
                 Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
                 $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
                 Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null

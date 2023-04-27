@@ -1,6 +1,10 @@
 4.0.17
+New Parameter excludeRuntimePackages on Sort-AppFilesByDependencies, causes the function to exclude Runtime Packages form the sort
+Publish-PerTenantExtensionApps will ignore runtime packages when publishing a collection of apps to an environment
 Issue #2915 Get-BcArtifactUrl -select daily or weekly not documented
 Issue #2940 Add licenseFileUri parameter to Replace-BcServerContainer
+New function Get-BcNotificationRecipients, to retrieve a list of Business Central Online notification recipients.
+New function New-BcNotificationRecipient, to create a Business Central Online notification recipient.
 Issue #2969 dotnet core is missing in .netpackages export when creating a container with -includeAL
 Issue #2955 Australian artifact for BC 20.5 OnPrem contains an expired license file
 New Functions New-AadAppsForBc (using Microsoft.Graph module) as a replacement for Create-AadAppsForBc (using Azure AD module, which is deprecated) to create AAD Apps for BC
