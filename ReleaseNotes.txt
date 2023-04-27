@@ -1,4 +1,5 @@
 4.0.17
+Issue #3014 New-BcCompilerFolder requires 7zip
 Add parameters for PowerPlatform Authentication to New-ALGoAuthContext (for use with upcoming feature to have PP in AL-Go)
 New Parameter excludeRuntimePackages on Sort-AppFilesByDependencies, causes the function to exclude Runtime Packages form the sort
 Publish-PerTenantExtensionApps will ignore runtime packages when publishing a collection of apps to an environment

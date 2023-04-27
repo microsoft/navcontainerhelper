@@ -353,7 +353,19 @@ function Expand-7zipArchive {
         }
     } else {
         Write-Host "using Expand-Archive"
-        Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
+        if ([System.IO.Path]::GetExtension($path) -eq '.zip') {
+            Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
+        }
+        else {
+            $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([guid]::NewGuid().ToString()).zip"
+            Copy-Item -Path $Path -Destination $tempZip -Force
+            try {
+                Expand-Archive -Path $tempZip -DestinationPath "$DestinationPath" -Force
+            }
+            finally {
+                Remove-Item -Path $tempZip -Force
+            }
+        }
     }
 }
 
