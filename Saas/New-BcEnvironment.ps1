@@ -51,7 +51,7 @@ function New-BcEnvironment {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         Wait-BcEnvironmentsReady -environments @($environment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion -environment $environment
 
         $body = @{}
         "environmentType", "countryCode", "applicationVersion", "ringName" | % {
