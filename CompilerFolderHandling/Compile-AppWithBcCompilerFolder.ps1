@@ -281,6 +281,13 @@ try {
     if (Test-Path $dllsPath) {
         $probingPaths += @((Join-Path $dllsPath "Service"),(Join-Path $dllsPath "Mock Assemblies"))
     }
+
+    Get-ChildItem -Path 'C:\Program Files\dotnet\shared' | ForEach-Object {
+        Write-Host $_.FullName
+        Write-Host "--------------"
+        Get-ChildItem -Path $_.FullName | ForEach-Object { Write-Host $_.FullName }
+    }
+
     if ($platformversion.Major -ge 22) {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Program Files\dotnet\Shared') + $probingPaths
     }
