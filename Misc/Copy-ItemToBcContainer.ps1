@@ -11,7 +11,7 @@
   Path in the container where the item will be placed.
   If the source item is a folder, 'containerPath' will be created (or treated) as a folder and all items inside the source folder will be copied to it.
  .Example
-  Copy-ItemToBcContainer -containerName test2 -localPath "c:\temp\myfile.txt" -containerPath "c:\run\my\myfile.txt"
+  Copy-ItemToBcContainer -containerName test2 -localPath "c:\build" -containerPath "c:\temp\build"
 #>
 function Copy-ItemToBcContainer {
     Param (

@@ -11,7 +11,7 @@
   Path on the host where the item will be placed.
   If the source item is a folder, 'localPath' will be created (or treated) as a folder and all items inside the source folder will be copied to it.
  .Example
-  Copy-ItemFromBcContainer -containerName test2 -containerPath "c:\run\my" -localPath "c:\temp\copy-of-my"
+  Copy-ItemFromBcContainer -containerName test2 -containerPath "c:\temp\build" -localPath "c:\temp\build-copy"
 #>
 function Copy-ItemFromBcContainer {
     Param (
