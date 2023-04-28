@@ -289,7 +289,7 @@ try {
     }
 
     if ($platformversion.Major -ge 22) {
-        $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\6.0.16', 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\6.0.16') + $probingPaths
+        $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\7.0.5', 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\7.0.5') + $probingPaths
     }
     else {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Windows\Microsoft.NET\Assembly') + $probingPaths
