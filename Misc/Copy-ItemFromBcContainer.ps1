@@ -18,8 +18,8 @@ function Copy-ItemFromBcContainer {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [Parameter(Mandatory = $true)]
         [string] $containerPath,
-        [Parameter(Mandatory = $false)]
-        [string] $localPath = $containerPath
+        [Parameter(Mandatory = $true)]
+        [string] $localPath
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
