@@ -1,4 +1,5 @@
 # SaaS specific functions
+. (Join-Path $PSScriptRoot "SaaSHelperFunctions.ps1")
 . (Join-Path $PSScriptRoot "Saas\Copy-BcEnvironment.ps1")
 . (Join-Path $PSScriptRoot "Saas\Get-BcDatabaseExportHistory.ps1")
 . (Join-Path $PSScriptRoot "Saas\Get-BcEnvironments.ps1")
