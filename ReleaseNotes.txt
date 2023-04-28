@@ -17,9 +17,9 @@ Revert default of dependencyPublishingOption on Publish-BcContainerApp. Option I
 Use Random foldername as CompilerFolder
 Flush-ContainerHelperCache only removes compilerFolders older than 24 hours
 Copy NewtonSoft DLL to CompilerFolder
-New function Get-BcEnvironmentsUsedStorage, to retrieve a list of used storage.
-New function Get-BcEnvironmentsAvailableRestorePeriods, to retrieve restoer periods for environment.
-New function Get-BcEnvironmentsOperations, to retrieve list of operations for environemnts.
+New function Get-BcUsedStorage, to retrieve a list of used storage.
+New function Get-BcAvailableRestorePeriods, to retrieve restoer periods for environment.
+New function Get-BcOperations, to retrieve list of operations for environemnts.
 New function Copy-BcEnvironment, to copy environment.
 New function Rename-BcEnvironment, to rename environment.
 New function Restore-BcEnvironment, to restore environment from backup.
@@ -28,9 +28,9 @@ New function Get-PackageInfoFromRapidStartFile, to exctract main information fro
 Add parameter apiVersion to Copy-BcEnvironment to allow set API version used during calls.
 Add parameter apiVersion to Get-BcDatabaseExportHistory to allow set API version used during calls.
 Add parameter apiVersion to Get-BcEnvironments to allow set API version used during calls.
-Add parameter apiVersion to Get-BcEnvironmentsAvailableRestorePeriods to allow set API version used during calls.
-Add parameter apiVersion to Get-BcEnvironmentsOperations to allow set API version used during calls.
-Add parameter apiVersion to Get-BcEnvironmentsUsedStorage to allow set API version used during calls.
+Add parameter apiVersion to Get-BcAvailableRestorePeriods to allow set API version used during calls.
+Add parameter apiVersion to Get-BcOperations to allow set API version used during calls.
+Add parameter apiVersion to Get-BcUsedStorage to allow set API version used during calls.
 Add parameter apiVersion to Get-BcInstalledExtensions to allow set API version used during calls.
 Add parameter apiVersion to Get-BcPublishedApps to allow set API version used during calls.
 Add parameter apiVersion to Get-BcScheduledUpgrade to allow set API version used during calls.

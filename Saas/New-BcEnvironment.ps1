@@ -51,7 +51,7 @@ function New-BcEnvironment {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         Wait-BcEnvironmentsReady -environments @($environment) -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily
 
-        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion
+        $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -applicationFamily $applicationFamily -apiVersion $apiVersion -environment $environment
 
         $body = @{}
         "environmentType", "countryCode", "applicationVersion", "ringName" | % {
@@ -82,7 +82,7 @@ function New-BcEnvironment {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
                 $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                $Operation = (Get-BcOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status
             if ($Operation.status -eq "failed") {

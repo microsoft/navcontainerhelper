@@ -14,12 +14,12 @@
   API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcEnvironmentsUsedStorage -bcAuthContext $authContext -environment "Sandbox"
+  Get-BcUsedStorage -bcAuthContext $authContext -environment "Sandbox"
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcEnvironmentsUsedStorage -bcAuthContext $authContext
+  Get-BcUsedStorage -bcAuthContext $authContext
 #>
-function Get-BcEnvironmentsUsedStorage {
+function Get-BcUsedStorage {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -36,7 +36,7 @@ function Get-BcEnvironmentsUsedStorage {
         $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "usedstorage" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
-            if ($null -ne $Result.Value) {
+            if ($Result.PSObject.Properties.Name -eq 'Value') {
                 $Result.Value
             }
             else {
@@ -55,4 +55,5 @@ function Get-BcEnvironmentsUsedStorage {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Get-BcEnvironmentsUsedStorage
+Set-Alias -Name Get-BcEnvironmentsUsedStorage -Value Get-BcUsedStorage
+Export-ModuleMember -Function Get-BcUsedStorage -Alias Get-BcEnvironmentsUsedStorage
