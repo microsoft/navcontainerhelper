@@ -1,6 +1,9 @@
 4.0.17
 New function Get-BcEnvironmentUpdateWindow, to retrieve the update window of a Business Central Online environment.
 New function Set-BcEnvironmentUpdateWindow, to set the update window of a Business Central Online environment.
+Issue #3013 Patch wrong version of Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll in 22.0 and 22.1
+Issue #3014 New-BcCompilerFolder requires 7zip
+Add parameters for PowerPlatform Authentication to New-ALGoAuthContext (for use with upcoming feature to have PP in AL-Go)
 New Parameter excludeRuntimePackages on Sort-AppFilesByDependencies, causes the function to exclude Runtime Packages form the sort
 Publish-PerTenantExtensionApps will ignore runtime packages when publishing a collection of apps to an environment
 Issue #2915 Get-BcArtifactUrl -select daily or weekly not documented
