@@ -97,7 +97,10 @@ try {
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
-                if (([System.Version]$version).Major -ge 16) {
+                if (([System.Version]$version).Major -ge 22) {
+                    $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/22.0/Microsoft_CreateTestUsers_22.0.22.0.app"
+                }
+                elseif (([System.Version]$version).Major -ge 16) {
                     $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/16.0.7.0/createtestusers-testapps.zip"
                 }
                 else {
