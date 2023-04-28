@@ -14,12 +14,12 @@
   API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcEnvironmentsOperations  -bcAuthContext $authContext
+  Get-BcOperations  -bcAuthContext $authContext
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcEnvironmentsOperations  -bcAuthContext $authContext -environment "MySandbox"
+  Get-BcOperations  -bcAuthContext $authContext -environment "MySandbox"
 #>
-function Get-BcEnvironmentsOperations {
+function Get-BcOperations {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -36,7 +36,7 @@ function Get-BcEnvironmentsOperations {
         $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "operations" -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
-            if ($null -ne $Result.Value) {
+            if ($Result.PSObject.Properties.Name -eq 'Value') {
                 $Result.Value
             }
             else {
@@ -56,4 +56,5 @@ function Get-BcEnvironmentsOperations {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Get-BcEnvironmentsOperations
+Set-Alias -Name Get-BcEnvironmentsOperations -Value Get-BcOperations
+Export-ModuleMember -Function Get-BcOperations -Alias Get-BcEnvironmentsOperations

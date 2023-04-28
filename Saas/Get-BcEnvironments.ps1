@@ -33,7 +33,7 @@ function Get-BcEnvironments {
         $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
         try {
             $Result = (Invoke-RestMethod -Method Get -UseBasicParsing -Uri $endPointURL -Headers $headers)
-            if ($null -ne $Result.Value) {
+            if ($Result.PSObject.Properties.Name -eq 'Value') {
                 $Result.Value
             }
             else {

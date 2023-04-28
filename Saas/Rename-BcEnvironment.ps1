@@ -82,7 +82,7 @@ function Rename-BcEnvironment {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
                 $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                $Operation = (Get-BcOperations -bcAuthContext $bcAuthContext -apiVersion $apiVersion -applicationFamily $applicationFamily | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status
             if ($Operation.status -eq "failed") {
