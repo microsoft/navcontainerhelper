@@ -4,6 +4,7 @@
  .Description
   For many scenarios in AL-Go for GitHub, a AUTHCONTEXT secret is needed.
   This function converts a authContext hashtable obtained by New-BcAuthContext to a json string with the needed properties.
+  The authContext can optionally also contain credentials for PowerPlatform authentication.
  .Parameter authContext
   Authorization Context obtained by New-BcAuthContext.
  .Parameter ppTenantId
@@ -22,11 +23,13 @@
  .Example
   New-ALGoAuthContext -ppTenantId $ppTenantId -ppApplicationId $ppApplicationId -ppClientSecret $ppClientSecret | Set-Clipboard
  .Example
+  New-ALGoAuthContext -authContext $authContext -ppUsername $ppUsername -ppPassword $ppPassword | Set-Clipboard
+ .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  New-ALGoAuthContext -authContext $authContext -ppTenantId $ppTenantId -ppApplicationId $ppApplicationId -ppClientSecret $ppClientSecret | Set-Clipboard
+  New-ALGoAuthContext -authContext $authContext -ppApplicationId $ppApplicationId -ppClientSecret $ppClientSecret | Set-Clipboard
  #>
  
- function New-ALGoAuthContext {
+function New-ALGoAuthContext {
     Param(
         [Parameter(Mandatory=$false, ValueFromPipeline)]
         [Alias('bcAuthContext')]
@@ -59,7 +62,6 @@
             }
         }
     }
-    $needPpTenantId = $false
     if ($ppApplicationId) {
         if (-not $ppClientSecret) {
             throw "You need to specify ppClientSecret together with ppApplicationId"
@@ -71,7 +73,17 @@
             "ppApplicationId" = $ppApplicationId
             "ppClientSecret" = $ppClientSecret | Get-PlainText
         }
-        $needPpTenantId = $true
+        if (-not $ppTenantId) {
+            if ($authContext) {
+                $ppTenantId = $authContext.tenantID
+            }
+            else {
+                throw "You need to specify ppTenantId"
+            }
+        }
+        $ht += @{
+            "ppTenantId" = $ppTenantId
+        }
     }
     elseif ($ppUsername) {
         if (-not $ppPassword) {
@@ -83,20 +95,6 @@
         $ht += @{
             "ppUsername" = $ppUsername
             "ppPassword" = $ppPassword | Get-PlainText
-        }
-        $needPpTenantId = $true
-    }
-    if ($needPpTenantId) {
-        if (-not $ppTenantId) {
-            if ($authContext) {
-                $ppTenantId = $authContext.tenantID
-            }
-            else {
-                throw "You need to specify ppTenantId"
-            }
-        }
-        $ht += @{
-            "ppTenantId" = $ppTenantId
         }
     }
     $algoauthcontext = $ht | ConvertTo-Json -Depth 99 -Compress
