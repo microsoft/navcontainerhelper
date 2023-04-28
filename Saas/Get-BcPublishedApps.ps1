@@ -33,7 +33,7 @@ function Get-BcPublishedApps {
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $headers = @{ "Authorization" = $bearerAuthValue }
         try {
-        (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
+            (Invoke-RestMethod -Method Get -UseBasicParsing -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/$applicationFamily/environments/$environment/apps" -Headers $headers).Value
         }
         catch {
             throw (GetExtendedErrorMessage $_)

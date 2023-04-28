@@ -471,7 +471,7 @@ try {
                 }
                 catch {
                     $throw = $true
-                    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+                    if ($customConfig.ServerInstance -ne '' -and $customConfig.ClientServicesCredentialType -eq "Windows") {
                         try {
                             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($url, $symbolsFile)
                                 $webClient = [System.Net.WebClient]::new()

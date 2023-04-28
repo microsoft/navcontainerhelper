@@ -55,11 +55,13 @@ function Copy-BcEnvironment {
         }
 
         $bcEnvironment = $bcEnvironments | Where-Object { $_.name -eq $environment }
-        if ($bcEnvironment -and !($force.IsPresent)) {
-            throw "Environment named $environment exists"
-        }
-        if (($bcEnvironment) -and ($force.IsPresent)) {
-            Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+        if ($bcEnvironment) {
+            if ($force.IsPresent) {
+                Remove-BcEnvironment -bcAuthContext $bcAuthContext -environment $environment -applicationFamily $applicationFamily -apiVersion $apiVersion
+            }
+            else {
+                throw "Environment named $environment exists"
+            }
         }
 
         $bcAuthContext, $headers, $endPointURL = Create-SaasUrl -bcAuthContext $bcAuthContext -endPoint "copy" -environment $sourceEnvironment -applicationFamily $applicationFamily -apiVersion $apiVersion
@@ -92,7 +94,7 @@ function Copy-BcEnvironment {
                 Start-Sleep -Seconds 2
                 Write-Host -NoNewline "."
                 $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                $Operation = (Get-BcEnvironmentsOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
+                $Operation = (Get-BcOperations -bcAuthContext $bcAuthContext | Where-Object { ($_.productFamily -eq $applicationFamily) -and ($_.type -eq $environmentResult.type) -and ($_.id -eq $environmentResult.id) })
             } while ($Operation.status -in "queued", "scheduled", "running")
             Write-Host $Operation.status
             if ($Operation.status -eq "failed") {
