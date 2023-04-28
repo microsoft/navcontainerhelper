@@ -280,6 +280,12 @@ try {
                                         }
                                     }
                                 }
+                                $adDLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                                if ((Test-Path $adDLL) -and ([System.Version]$appManifest.Version -ge [System.Version]'22.0.0.0')  -and ([System.Version]$appManifest.Version -lt [System.Version]'22.2.0.0')) {
+                                    Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $adDLL"
+                                    Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/Microsoft.IdentityModel.Clients.ActiveDirectory.dll' -destinationFile $adDLL
+                                    Unblock-File -Path $adDLL
+                                } 
                             }
                         }
                     }
