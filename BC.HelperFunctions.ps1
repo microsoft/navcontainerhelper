@@ -138,7 +138,7 @@ function Get-ContainerHelperConfig {
             catch {}
         }
 
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "" -and $isWindows) {
             $versions = Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.NETCore.App" | ForEach-Object { 
                 try {
                     [System.Version]$_.Name
