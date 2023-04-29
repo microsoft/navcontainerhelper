@@ -281,8 +281,14 @@ try {
     if (Test-Path $dllsPath) {
         $probingPaths += @((Join-Path $dllsPath "Service"),(Join-Path $dllsPath "Mock Assemblies"))
     }
+
     if ($platformversion.Major -ge 22) {
-        $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Program Files\dotnet\Shared') + $probingPaths
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion) {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)") + $probingPaths
+        }
+        else {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared") + $probingPaths
+        }
     }
     else {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Windows\Microsoft.NET\Assembly') + $probingPaths
