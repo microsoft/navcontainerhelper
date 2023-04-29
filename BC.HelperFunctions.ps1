@@ -95,6 +95,7 @@ function Get-ContainerHelperConfig {
             "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
+            "dotNetCoreRuntimeVersion" = ""
         }
 
         if ($isInsider) {
@@ -135,6 +136,17 @@ function Get-ContainerHelperConfig {
                 $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -string "P@ss$($myinspect.Id.SubString(48))" -AsPlainText -Force)
             }
             catch {}
+        }
+
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
+            $versions = Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.NETCore.App" | ForEach-Object { 
+                try {
+                    [System.Version]$_.Name
+                }
+                catch {
+                }
+            }
+            $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
