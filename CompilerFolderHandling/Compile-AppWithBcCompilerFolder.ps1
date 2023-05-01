@@ -283,11 +283,14 @@ try {
     }
 
     if ($platformversion.Major -ge 22) {
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion) {
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -and $bcContainerHelperConfig.dotNetCoreSharedFolder) {
             $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.NETCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.AspNetCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)")) + $probingPaths
         }
-        else {
+        elseif ($bcContainerHelperConfig.dotNetCoreSharedFolder) {
             $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) + $probingPaths
+        }
+        else {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
         }
     }
     else {
