@@ -96,6 +96,7 @@ function Get-ContainerHelperConfig {
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
             "dotNetCoreRuntimeVersion" = ""
+            "dotNetCoreSharedFolder" = ""
         }
 
         if ($isInsider) {
@@ -138,16 +139,30 @@ function Get-ContainerHelperConfig {
             catch {}
         }
 
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "" -and $isWindows) {
-            if (Test-Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App') {
-                $versions = Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.NETCore.App" | ForEach-Object { 
-                    try {
-                        [System.Version]$_.Name
-                    }
-                    catch {
-                    }
+        if ($bcContainerHelperConfig.dotNetCoreSharedFolder -eq "") {
+            if ($isWindows) {
+                $bcContainerHelperConfig.dotNetCoreSharedFolder = 'C:\Program Files\dotnet\shared'
+            }
+            elseif ($IsLinux) {
+                $bcContainerHelperConfig.dotNetCoreSharedFolder = '/usr/share/dotnet/shared'
+                if (-not (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
+                    $bcContainerHelperConfig.dotNetCoreSharedFolder = '/home/user/dotnet/shared'
                 }
-                $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
+            }
+        }
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
+            if ($bcContainerHelperConfig.dotNetCoreSharedFolder -and (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
+                $netCoreAppFolder = Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder 'Microsoft.NETCore.App'
+                if (Test-Path $netCoreAppFolder) {
+                    $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
+                        try {
+                            [System.Version]$_.Name
+                        }
+                        catch {
+                        }
+                    }
+                    $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
+                }
             }
         }
 

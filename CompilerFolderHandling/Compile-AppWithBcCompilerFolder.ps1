@@ -283,11 +283,14 @@ try {
     }
 
     if ($platformversion.Major -ge 22) {
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion) {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)") + $probingPaths
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -and $bcContainerHelperConfig.dotNetCoreSharedFolder) {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.NETCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.AspNetCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)")) + $probingPaths
+        }
+        elseif ($bcContainerHelperConfig.dotNetCoreSharedFolder) {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) + $probingPaths
         }
         else {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared") + $probingPaths
+            $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
         }
     }
     else {
