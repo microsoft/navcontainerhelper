@@ -139,18 +139,18 @@ function Get-ContainerHelperConfig {
             catch {}
         }
 
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
-            if ($bcContainerHelperConfig.dotNetCoreSharedFolder -eq "") {
-                if ($isWindows) {
-                    $bcContainerHelperConfig.dotNetCoreSharedFolder = 'C:\Program Files\dotnet\shared'
-                }
-                elseif ($IsLinux) {
-                    $bcContainerHelperConfig.dotNetCoreSharedFolder = '/usr/share/dotnet/shared'
-                    if (-not (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
-                        $bcContainerHelperConfig.dotNetCoreSharedFolder = '/home/user/dotnet/shared'
-                    }
+        if ($bcContainerHelperConfig.dotNetCoreSharedFolder -eq "") {
+            if ($isWindows) {
+                $bcContainerHelperConfig.dotNetCoreSharedFolder = 'C:\Program Files\dotnet\shared'
+            }
+            elseif ($IsLinux) {
+                $bcContainerHelperConfig.dotNetCoreSharedFolder = '/usr/share/dotnet/shared'
+                if (-not (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
+                    $bcContainerHelperConfig.dotNetCoreSharedFolder = '/home/user/dotnet/shared'
                 }
             }
+        }
+        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
             if ($bcContainerHelperConfig.dotNetCoreSharedFolder -and (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
                 $netCoreAppFolder = Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder 'Microsoft.NETCore.App'
                 if (Test-Path $netCoreAppFolder) {
