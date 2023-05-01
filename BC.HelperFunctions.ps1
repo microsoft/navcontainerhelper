@@ -155,20 +155,19 @@ function Get-ContainerHelperConfig {
             }
             elseif ($IsLinux) {
                 Write-Host "Checking for dotnet core runtime version"
-                dotnet --info
-#                Get-ChildItem '/home/' -Recurse -Directory | ForEach-Object { try { Write-Host $_.FullName } catch {} }
-#                if (Test-Path '/home/user/dotnet/shared/Microsoft.NETCore.App') {
-#                    $versions = Get-ChildItem "/home/user/dotnet/shared/Microsoft.NETCore.App" | ForEach-Object { 
-#                        try {
-#                            Write-Host $_.Name
-#                            [System.Version]$_.Name
-#                        }
-#                        catch {
-#                        }
-#                    }
-#                    $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
-#                    Write-Host $bcContainerHelperConfig.dotNetCoreRuntimeVersion
-#                }
+                Get-ChildItem '/usr/share/dotnet/shared/Microsoft.NETCore.App' -Recurse -Directory | ForEach-Object { try { Write-Host $_.FullName } catch {} }
+                if (Test-Path '/usr/share/dotnet/shared/Microsoft.NETCore.App') {
+                    $versions = Get-ChildItem "/home/user/dotnet/shared/Microsoft.NETCore.App" | ForEach-Object { 
+                        try {
+                            Write-Host $_.Name
+                            [System.Version]$_.Name
+                        }
+                        catch {
+                        }
+                    }
+                    $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
+                    Write-Host $bcContainerHelperConfig.dotNetCoreRuntimeVersion
+                }
             }
         }
 
