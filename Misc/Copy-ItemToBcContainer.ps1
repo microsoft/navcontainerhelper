@@ -30,7 +30,6 @@ function Copy-ItemToBcContainer {
         }
         Write-Host "Copy '$localPath' from host to '$containerPath' on container $containerName"
 
-        # running hyperv containers doesn't support docker cp
         $tempItem = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().ToString())
         try {
             Copy-Item -Path $localPath -Destination $tempItem -Recurse
