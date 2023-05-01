@@ -139,14 +139,16 @@ function Get-ContainerHelperConfig {
         }
 
         if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "" -and $isWindows) {
-            $versions = Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.NETCore.App" | ForEach-Object { 
-                try {
-                    [System.Version]$_.Name
+            if (Test-Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App') {
+                $versions = Get-ChildItem "C:\Program Files\dotnet\shared\Microsoft.NETCore.App" | ForEach-Object { 
+                    try {
+                        [System.Version]$_.Name
+                    }
+                    catch {
+                    }
                 }
-                catch {
-                }
+                $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
             }
-            $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {
