@@ -284,7 +284,7 @@ try {
 
     if ($platformversion.Major -ge 22) {
         if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion) {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.NETCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.AspNetCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)")
+            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.NETCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.AspNetCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)")) + $probingPaths
         }
         else {
             $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) + $probingPaths

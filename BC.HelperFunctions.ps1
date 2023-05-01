@@ -153,7 +153,7 @@ function Get-ContainerHelperConfig {
             }
             if ($bcContainerHelperConfig.dotNetCoreSharedFolder -and (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
                 $netCoreAppFolder = Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder 'Microsoft.NETCore.App'
-                if (Test-Path $netCoreAppFolder {
+                if (Test-Path $netCoreAppFolder) {
                     $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
                         try {
                             [System.Version]$_.Name
