@@ -162,8 +162,6 @@ function Get-ContainerHelperConfig {
                         }
                     }
                     $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
-                    Write-Host $bccontainerhelperconfig.dotNetCoreSharedFolder
-                    Write-Host $bccontainerhelperconfig.dotnetcoreruntimeversion
                 }
             }
         }
