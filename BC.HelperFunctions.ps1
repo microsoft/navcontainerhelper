@@ -155,7 +155,7 @@ function Get-ContainerHelperConfig {
             }
             elseif ($IsLinux) {
                 Write-Host "Checking for dotnet core runtime version"
-                Get-ChildItem '/usr/share/dotnet/shared/Microsoft.NETCore.App' -Recurse -Directory | ForEach-Object { try { Write-Host $_.FullName } catch {} }
+                Get-ChildItem '/usr/share/dotnet' -Recurse -Directory | ForEach-Object { try { Write-Host $_.FullName } catch {} }
                 if (Test-Path '/usr/share/dotnet/shared/Microsoft.NETCore.App') {
                     $versions = Get-ChildItem '/usr/share/dotnet/shared/Microsoft.NETCore.App' | ForEach-Object { 
                         try {
