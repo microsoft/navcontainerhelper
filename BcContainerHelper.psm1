@@ -176,6 +176,8 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Copy-ItemFromBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Copy-ItemToBcContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Add-FontsToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "Misc\Set-BcContainerFeatureKeys.ps1")
 . (Join-Path $PSScriptRoot "Misc\Import-PfxCertificateToNavContainer.ps1")
