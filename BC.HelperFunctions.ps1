@@ -146,7 +146,7 @@ function Get-ContainerHelperConfig {
                 }
                 elseif ($IsLinux) {
                     $bcContainerHelperConfig.dotNetCoreSharedFolder = '/usr/share/dotnet/shared'
-                    if (-not (Test-Path $dotnetShared)) {
+                    if (-not (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
                         $bcContainerHelperConfig.dotNetCoreSharedFolder = '/home/user/dotnet/shared'
                     }
                 }
