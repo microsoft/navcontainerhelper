@@ -28,5 +28,3 @@
 
     return $bcAuthContext, $headers, $endPointURL
 }
-
-Export-ModuleMember -Function Create-SaasUrl
