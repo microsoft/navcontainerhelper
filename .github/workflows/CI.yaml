@@ -15,7 +15,7 @@ permissions:
   checks: write
 
 concurrency:
-  group: 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
+  group: 'runTests-${{ github.ref }}'
   cancel-in-progress: true
 
 defaults:
@@ -23,96 +23,17 @@ defaults:
     shell: powershell
 
 jobs:
-  Initialization:
-    runs-on: windows-latest
-    outputs:
-      checkRunId: ${{ steps.CreateCheckRun.outputs.checkRunId }}
-    steps:
-      - name: Create CI Workflow Check Run
-        id: CreateCheckRun
-        if: github.event_name == 'workflow_run'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var details_url = context.serverUrl.concat('/',context.repo.owner,'/',context.repo.repo,'/actions/runs/',context.runId)
-            var response = await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'CI Workflow',
-              head_sha: '${{ github.event.workflow_run.head_sha }}',
-              status: 'queued',
-              details_url: details_url,
-              output: {
-                title: 'CI Workflow',
-                summary: '[Workflow Details]('.concat(details_url,')')
-              }
-            });
-            core.setOutput('checkRunId', response.data.id);
-
-      - name: Investigate Pull Request
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
-        env:
-          event: ${{ toJson( github.event ) }}
-        run: |
-          $errorActionPreference = 'STOP'
-          Write-Host 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
-          Write-Host '${{ github.event.workflow_run.head_sha }}'
-          $event = $ENV:EVENT | ConvertFrom-Json
-          $headers = @{             
-              "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
-              "Accept" = "application/vnd.github.baptiste-preview+json"
-          }
-          if ($event.workflow_run.pull_requests.Count -gt 1) {
-            throw "Multiple PRs in the same workflow_run isn't supported by CI/CD workflow yet"
-          }
-          $event.workflow_run.pull_requests | ForEach-Object {
-            $url = "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)/compare/$($_.base.SHA)...$($_.head.SHA)"
-            $response = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $url | ConvertFrom-Json
-            Write-Host "Files Changed:"
-            $response.files | ForEach-Object {
-              $filename = $_.filename
-              $status = $_.status
-              Write-Host "- $filename $status"
-              if ($filename -like ".github\workflows\*.yaml" -or $filename -like ".github\workflows\*.yml") {
-                throw "Changes to .yaml files are not allowed form a fork"
-              }
-            }
-          }
-
   AnalyzeTests:
     runs-on: [ windows-latest ]
-    needs: [ Initialization ]
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
       linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
-      - name: Update CI Workflow Check Run
-        if: github.event_name == 'workflow_run'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var response = await github.rest.checks.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              status: 'in_progress'
-            });
-
       - name: Checkout
-        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v3
         with:
           lfs: true
     
-      - name: Checkout Pull Request
-        if: github.event_name == 'workflow_run'
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          ref: ${{ github.event.workflow_run.head_sha }}
-
       - name: Analyze
         id: Analyze
         run: |
@@ -132,18 +53,10 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v3
         with:
           lfs: true
     
-      - name: Checkout Pull Request
-        if: github.event_name == 'workflow_run'
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          ref: ${{ github.event.workflow_run.head_sha }}
-
       - name: Run Tests
         run: |
           try {
@@ -173,18 +86,10 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v3
         with:
           lfs: true
     
-      - name: Checkout Pull Request
-        if: github.event_name == 'workflow_run'
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          ref: ${{ github.event.workflow_run.head_sha }}
-
       - name: Run Tests
         run: |
           try {
@@ -214,18 +119,10 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        if: github.event_name != 'workflow_run'
         uses: actions/checkout@v3
         with:
           lfs: true
     
-      - name: Checkout Pull Request
-        if: github.event_name == 'workflow_run'
-        uses: actions/checkout@v3
-        with:
-          lfs: true
-          ref: ${{ github.event.workflow_run.head_sha }}
-
       - name: Run Tests
         run: |
           try {
@@ -323,26 +220,9 @@ jobs:
             Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
           
             Write-Host "Publishing Module"
-            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags -force
+            Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
           }
           catch {
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
-
-  UpdatePRcheck:
-    if: always() && github.event_name == 'workflow_run'
-    runs-on: [ windows-latest ]
-    needs: [ Initialization, PS5, PS7 ]
-    steps:
-      - name: Update CI Workflow Check Run
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var response = await github.rest.checks.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.PS5.result }}'
-            });
