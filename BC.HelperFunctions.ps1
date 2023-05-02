@@ -161,8 +161,8 @@ function Get-ContainerHelperConfig {
                         catch {
                         }
                     }
-                    Write-Host "DotNetCore Versions installed:"
-                    $versions | ForEach-Object { Write-Host "- $_" }
+#                    Write-Host "DotNetCore Versions installed:"
+#                    $versions | ForEach-Object { Write-Host "- $_" }
                     $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
                 }
             }
