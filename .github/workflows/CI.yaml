@@ -46,7 +46,7 @@ jobs:
 
   PS5:
     runs-on: [ windows-latest ]
-    needs: [ Initialization, AnalyzeTests ]
+    needs: [ AnalyzeTests ]
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
@@ -79,7 +79,7 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    needs: [ Initialization, AnalyzeTests ]
+    needs: [ AnalyzeTests ]
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
@@ -112,7 +112,7 @@ jobs:
     defaults:
       run:
         shell: pwsh
-    needs: [ Initialization, AnalyzeTests ]
+    needs: [ AnalyzeTests ]
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.linuxtests)}}
