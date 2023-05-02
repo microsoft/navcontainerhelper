@@ -601,6 +601,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                     "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                          "; Write-Host $gitLab
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions                   "; Write-Host $gitHubActions
+Write-Host -NoNewLine -ForegroundColor Yellow "vsixFile                        "; Write-Host $vsixFile
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                    "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile             "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxPassword         "; if ($codeSignCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
@@ -852,6 +853,7 @@ Measure-Command {
     $Parameters = @{}
     $useExistingContainer = $false
 
+    $compilerFolder = ''
     if ($useCompilerFolder) {
         Write-Host "Creating CompilerFolder"
         $compilerFolder = New-BcCompilerFolder `
@@ -859,6 +861,7 @@ Measure-Command {
             -cacheFolder $artifactCachePath `
             -vsixFile $vsixFile `
             -containerName $containerName
+        Write-Host "CompilerFolder $compilerFolder created"
     }
     if ($filesOnly -or !$doNotPublishApps) {
         # If we are going to build using a filesOnly container or we are going to publish apps, we need a container
@@ -2392,7 +2395,7 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($useCompilerFolder) {
+    if ($useCompilerFolder -and $compilerFolder) {
         Remove-BcCompilerFolder -compilerFolder $compilerFolder
     }
     if (!$doNotPublishApps) {
