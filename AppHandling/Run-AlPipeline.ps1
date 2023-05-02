@@ -852,6 +852,7 @@ Measure-Command {
     $Parameters = @{}
     $useExistingContainer = $false
 
+    $compilerFolder = ''
     if ($useCompilerFolder) {
         Write-Host "Creating CompilerFolder"
         $compilerFolder = New-BcCompilerFolder `
@@ -859,6 +860,7 @@ Measure-Command {
             -cacheFolder $artifactCachePath `
             -vsixFile $vsixFile `
             -containerName $containerName
+        Write-Host "CompilerFolder $compilerFolder created"
     }
     if ($filesOnly -or !$doNotPublishApps) {
         # If we are going to build using a filesOnly container or we are going to publish apps, we need a container
