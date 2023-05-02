@@ -293,6 +293,9 @@ try {
             $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
         }
     }
+    elseif ($isLinux) {
+        $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
+    }
     else {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Windows\Microsoft.NET\Assembly') + $probingPaths
     }
