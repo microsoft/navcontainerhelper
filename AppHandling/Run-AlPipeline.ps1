@@ -2394,7 +2394,7 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($useCompilerFolder) {
+    if ($useCompilerFolder -and $compilerFolder) {
         Remove-BcCompilerFolder -compilerFolder $compilerFolder
     }
     if (!$doNotPublishApps) {
