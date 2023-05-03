@@ -125,6 +125,13 @@ try {
         Copy-Item -Path (Join-Path $dllsPath 'Service\DocumentFormat.OpenXml.dll') -Destination (Join-Path $dllsPath 'OpenXML') -Force -ErrorAction SilentlyContinue
         $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
+        if ($isLinux) {
+            New-Item -Path (Join-Path $dllsPath 'dotnet') -ItemType Directory | Out-Null
+            $sharedZipFile = Join-Path $compilerFolder 'shared.zip'
+            Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/shared.zip' -destinationFile $sharedZipFile
+            Expand-7zipArchive -Path $sharedZipFile -DestinationPath (Join-Path $dllsPath 'dotnet')
+            Remove-Item -Path $sharedZipFile -Recurse -Force
+        }
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
