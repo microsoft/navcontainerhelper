@@ -129,7 +129,7 @@ try {
         $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         if ($version -ge "22.0.0.0" -and $dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion) {
-            Write-Host "Downloading dotnet runtime version $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion) from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
+            Write-Host "Has dotnetRuntimeVersion $dotNetRuntimeVersionInstalled - downloading minimum required version $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion) from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
             $dotnetFolder = Join-Path $compilerFolder 'dotnet'
             $dotnetZipFile = "$($dotnetFolder).zip"
             Download-File -sourceUrl $bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl -destinationFile $dotnetZipFile
