@@ -1843,7 +1843,7 @@ Write-Host -ForegroundColor Yellow @'
                     "serverInstance" = $serverInstance
                     "port" = [int]$Port
                     "tenant" = $tenant
-                    "authentication" =  'UserPassword'
+                    "authentication" =  $auth
                 }
             }
             UpdateLaunchJson -launchJsonFile $launchJsonFile -launchSettings $launchSettings
