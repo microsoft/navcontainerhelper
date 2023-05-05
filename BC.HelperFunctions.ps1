@@ -139,28 +139,6 @@ function Get-ContainerHelperConfig {
             catch {}
         }
 
-        if ($isWindows) {
-            $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
-            if (Test-Path $dotNetSharedFolder) {
-                $netCoreAppFolder = Join-Path $dotNetSharedFolder 'Microsoft.NETCore.App'
-                if (Test-Path $netCoreAppFolder) {
-                    $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
-                        try {
-                            if (Test-Path (Join-Path $dotNetSharedFolder "Microsoft.AspNetCore.App/$($_.Name)")) {
-                                [System.Version]$_.Name
-                            }
-                        }
-                        catch {
-                        }
-                    }
-                    $dotNetRuntimeVersionInstalled = $versions | Sort-Object -Descending | Select-Object -First 1
-                    if (!$silent) {
-                        Write-Host "Latest dotnet runtime version installed: $dotNetRuntimeVersionInstalled"
-                    }
-                }
-            }
-        }
-
         if ($bcContainerHelperConfig.UseVolumes) {
             if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
                 $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
