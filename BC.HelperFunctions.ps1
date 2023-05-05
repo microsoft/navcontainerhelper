@@ -142,7 +142,7 @@ function Get-ContainerHelperConfig {
         if ($isWindows) {
             $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
             if (Test-Path $dotNetSharedFolder) {
-                $netCoreAppFolder = Join-Path $dotNetCoreSharedFolder 'Microsoft.NETCore.App'
+                $netCoreAppFolder = Join-Path $dotNetSharedFolder 'Microsoft.NETCore.App'
                 if (Test-Path $netCoreAppFolder) {
                     $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
                         try {
