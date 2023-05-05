@@ -77,10 +77,12 @@ try {
         $dllsPath = Join-Path $compilerFolder 'dlls'
     }
 
+    $newtonSoftDllPath = ''
     if ($includeAL -or !(Test-Path $symbolsPath)) {
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
+        $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
     }
 
     # IncludeAL will populate folder with AL files (like New-BcContainer)
@@ -118,6 +120,7 @@ try {
         }
         $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service" -Resolve
         Copy-Item -Path $serviceTierFolder -Filter '*.dll' -Destination $dllsPath -Recurse
+        $newtonSoftDllPath = Join-Path $dllsPath "Newtonsoft.Json.dll"
         Remove-Item -Path (Join-Path $dllsPath 'Service\Management') -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path (Join-Path $dllsPath 'Service\WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path (Join-Path $dllsPath 'Service\SideServices') -Recurse -Force -ErrorAction SilentlyContinue
@@ -176,8 +179,7 @@ try {
         $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
         Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
-        if ($isWindows) {
-            $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
+        if ($isWindows -and $newtonSoftDllPath) {
             Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
         }
         Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
