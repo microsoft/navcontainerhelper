@@ -125,12 +125,14 @@ try {
         Copy-Item -Path (Join-Path $dllsPath 'Service\DocumentFormat.OpenXml.dll') -Destination (Join-Path $dllsPath 'OpenXML') -Force -ErrorAction SilentlyContinue
         $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
-        if ($isLinux) {
-            New-Item -Path (Join-Path $dllsPath 'dotnet') -ItemType Directory | Out-Null
-            $sharedZipFile = Join-Path $compilerFolder 'shared.zip'
-            Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/shared.zip' -destinationFile $sharedZipFile
-            Expand-7zipArchive -Path $sharedZipFile -DestinationPath (Join-Path $dllsPath 'dotnet')
-            Remove-Item -Path $sharedZipFile -Recurse -Force
+        if ($dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion) {
+            $dotnetFolder = Join-Path $compilerFolder 'dotnet'
+            $dotnetZipFile = "$($dotnetFolder).zip"
+            Download-File -sourceUrl $bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl -destinationFile $dotnetZipFile
+            Expand-7zipArchive -Path $dotnetZipFile -DestinationPath $dotnetFolder
+            Move-Item -Path (Join-Path $dotnetFolder 'shared') -Destination $dllsPath
+            Remove-Item -Path $dotnetZipFile -Force
+            Remove-Item -Path $dotnetFolder -Recurse -Force
         }
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {

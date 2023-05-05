@@ -282,19 +282,15 @@ try {
         $probingPaths += @((Join-Path $dllsPath "Service"),(Join-Path $dllsPath "Mock Assemblies"))
     }
 
-    if ($platformversion.Major -ge 22) {
-        if ($isLinux) {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $dllsPath "dotnet")) + $probingPaths
-        }
-        elseif ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -and $bcContainerHelperConfig.dotNetCoreSharedFolder) {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.NETCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder "Microsoft.AspNetCore.App/$($bcContainerHelperConfig.dotNetCoreRuntimeVersion)")) + $probingPaths
-        }
-        elseif ($bcContainerHelperConfig.dotNetCoreSharedFolder) {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML"), (Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) + $probingPaths
-        }
-        else {
-            $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
-        }
+    $sharedFolder = Join-Path $dllsPath "shared"
+    if (Test-Path $sharedFolder) {
+        $probingPaths = @((Join-Path $dllsPath "OpenXML"), $sharedFolder) + $probingPaths
+    }
+    elseif ($isLinux) {
+        $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
+    }
+    elseif ($platformversion.Major -ge 22) {
+        $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled") + $probingPaths
     }
     else {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Windows\Microsoft.NET\Assembly') + $probingPaths

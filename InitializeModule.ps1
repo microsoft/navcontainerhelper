@@ -42,6 +42,7 @@ if (!$silent) {
     Write-Host "$($moduleName.SubString(0,$moduleName.Length-5)) version $BcContainerHelperVersion"
 }
 $isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersion -like "*-preview*"
+$dotNetRuntimeVersionInstalled = [System.Version]::new(0,0,0)
 
 $depVersion = "0.0"
 if (!$isInsider) { 

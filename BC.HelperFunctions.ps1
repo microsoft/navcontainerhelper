@@ -95,8 +95,8 @@ function Get-ContainerHelperConfig {
             "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
-            "dotNetCoreRuntimeVersion" = ""
-            "dotNetCoreSharedFolder" = ""
+            "MinimumDotNetRuntimeVersion" = [System.Version]"7.0.5"
+            "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/a3b948f2-2335-4c9e-88e6-75794a2824c0/7807d990e142c3a4d8da7d426b5f18a2/dotnet-sdk-7.0.203-win-x64.zip'
         }
 
         if ($isInsider) {
@@ -139,31 +139,21 @@ function Get-ContainerHelperConfig {
             catch {}
         }
 
-        if ($bcContainerHelperConfig.dotNetCoreSharedFolder -eq "") {
-            if ($isWindows) {
-                $bcContainerHelperConfig.dotNetCoreSharedFolder = 'C:\Program Files\dotnet\shared'
-            }
-            elseif ($IsLinux) {
-                $bcContainerHelperConfig.dotNetCoreSharedFolder = '/usr/share/dotnet/shared'
-                if (-not (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
-                    $bcContainerHelperConfig.dotNetCoreSharedFolder = '/home/user/dotnet/shared'
-                }
-            }
-        }
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
-            if ($bcContainerHelperConfig.dotNetCoreSharedFolder -and (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
-                $netCoreAppFolder = Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder 'Microsoft.NETCore.App'
+        if ($isWindows) {
+            $dotNetSharedFolder = 'C:\Program Files\dotnet\shared'
+            if (Test-Path $dotNetSharedFolder) {
+                $netCoreAppFolder = Join-Path $dotNetCoreSharedFolder 'Microsoft.NETCore.App'
                 if (Test-Path $netCoreAppFolder) {
                     $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
                         try {
-                            [System.Version]$_.Name
+                            if (Test-Path (Join-Path $dotNetSharedFolder "Microsoft.AspNetCore.App/$($_.Name)")) {
+                                [System.Version]$_.Name
+                            }
                         }
                         catch {
                         }
                     }
-#                    Write-Host "DotNetCore Versions installed:"
-#                    $versions | ForEach-Object { Write-Host "- $_" }
-                    $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
+                    $dotNetRuntimeVersionInstalled = $versions | Sort-Object -Descending | Select-Object -First 1
                 }
             }
         }
