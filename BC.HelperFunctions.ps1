@@ -154,6 +154,9 @@ function Get-ContainerHelperConfig {
                         }
                     }
                     $dotNetRuntimeVersionInstalled = $versions | Sort-Object -Descending | Select-Object -First 1
+                    if (!$silent) {
+                        Write-Host "Latest dotnet runtime version installed: $dotNetRuntimeVersionInstalled"
+                    }
                 }
             }
         }
