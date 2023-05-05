@@ -290,7 +290,12 @@ try {
         $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
     }
     elseif ($platformversion.Major -ge 22) {
-        $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled") + $probingPaths
+        if ($dotNetRuntimeVersionInstalled -ge $bcContainerHelperConfig.MinimumDotNetRuntimeVersion) {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled") + $probingPaths
+        }
+        else {
+            $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
+        }
     }
     else {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), 'C:\Windows\Microsoft.NET\Assembly') + $probingPaths

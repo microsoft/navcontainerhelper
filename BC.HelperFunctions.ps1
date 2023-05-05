@@ -95,8 +95,8 @@ function Get-ContainerHelperConfig {
             "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
-            "MinimumDotNetRuntimeVersion" = [System.Version]"7.0.5"
-            "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/a3b948f2-2335-4c9e-88e6-75794a2824c0/7807d990e142c3a4d8da7d426b5f18a2/dotnet-sdk-7.0.203-win-x64.zip'
+            "MinimumDotNetRuntimeVersion" = [System.Version]"6.0.16"
+            "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
         }
 
         if ($isInsider) {
