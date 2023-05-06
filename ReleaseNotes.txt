@@ -1,4 +1,4 @@
-4.0.18
+5.0.0
 Had to increase version number due to pre-release runnumber ran past 999
 New functions Copy-ItemToBcContainer and Copy-ItemFromBcContainer to copy folders or files to or from a container
 Allow ConvertTo-HashTable to also convert from OrderedDictionary or HashTable to a new HashTable recursively
