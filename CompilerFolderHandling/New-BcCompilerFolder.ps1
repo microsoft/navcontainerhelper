@@ -128,16 +128,6 @@ try {
         Copy-Item -Path (Join-Path $dllsPath 'Service\DocumentFormat.OpenXml.dll') -Destination (Join-Path $dllsPath 'OpenXML') -Force -ErrorAction SilentlyContinue
         $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
-        if ($version -ge "22.0.0.0" -and $dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion) {
-            Write-Host "Has dotnetRuntimeVersion $dotNetRuntimeVersionInstalled - downloading minimum required version $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion) from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
-            $dotnetFolder = Join-Path $compilerFolder 'dotnet'
-            $dotnetZipFile = "$($dotnetFolder).zip"
-            Download-File -sourceUrl $bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl -destinationFile $dotnetZipFile
-            Expand-7zipArchive -Path $dotnetZipFile -DestinationPath $dotnetFolder
-            Move-Item -Path (Join-Path $dotnetFolder 'shared') -Destination $dllsPath
-            Remove-Item -Path $dotnetZipFile -Force
-            Remove-Item -Path $dotnetFolder -Recurse -Force
-        }
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
             Copy-Item -Path (Join-Path $extensionsFolder '*.app') -Destination $symbolsPath
@@ -170,6 +160,18 @@ try {
                 Get-ChildItem -Path $platformAppsPath -Filter '*.app' -Recurse | ForEach-Object { Copy-Item -Path $_.FullName -Destination $symbolsPath }
             }
         }
+    }
+
+    $dotNetSharedFolder = Join-Path $dllsPath 'shared'
+    if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion)) {
+        Write-Host "Downloading minimum required version $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion) from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
+        $dotnetFolder = Join-Path $compilerFolder 'dotnet'
+        $dotnetZipFile = "$($dotnetFolder).zip"
+        Download-File -sourceUrl $bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl -destinationFile $dotnetZipFile
+        Expand-7zipArchive -Path $dotnetZipFile -DestinationPath $dotnetFolder
+        Move-Item -Path (Join-Path $dotnetFolder 'shared') -Destination $dllsPath
+        Remove-Item -Path $dotnetZipFile -Force
+        Remove-Item -Path $dotnetFolder -Recurse -Force
     }
 
     $containerCompilerPath = Join-Path $compilerFolder 'compiler'
