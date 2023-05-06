@@ -164,8 +164,13 @@ try {
 
     $dotNetSharedFolder = Join-Path $dllsPath 'shared'
     if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion)) {
-        Write-Host "$dotNetRuntimeVersionInstalled"
-        Write-Host "Downloading minimum required version $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion) from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
+        if ("$dotNetRuntimeVersionInstalled" -eq "0.0.0") {
+            Write-Host "dotnet runtime version is not installed/cannot be used"
+        }
+        else {
+            Write-Host "dotnet runtime version $dotNetRuntimeVersionInstalled is installed, but minimum required version is $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion)"
+        }
+        Write-Host "Downloading minimum required dotnet version from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
         $dotnetFolder = Join-Path $compilerFolder 'dotnet'
         $dotnetZipFile = "$($dotnetFolder).zip"
         Download-File -sourceUrl $bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl -destinationFile $dotnetZipFile
