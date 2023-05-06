@@ -95,8 +95,8 @@ function Get-ContainerHelperConfig {
             "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
-            "dotNetCoreRuntimeVersion" = ""
-            "dotNetCoreSharedFolder" = ""
+            "MinimumDotNetRuntimeVersion" = [System.Version]"6.0.16"
+            "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
         }
 
         if ($isInsider) {
@@ -137,33 +137,6 @@ function Get-ContainerHelperConfig {
                 $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -string "P@ss$($myinspect.Id.SubString(48))" -AsPlainText -Force)
             }
             catch {}
-        }
-
-        if ($bcContainerHelperConfig.dotNetCoreSharedFolder -eq "") {
-            if ($isWindows) {
-                $bcContainerHelperConfig.dotNetCoreSharedFolder = 'C:\Program Files\dotnet\shared'
-            }
-            elseif ($IsLinux) {
-                $bcContainerHelperConfig.dotNetCoreSharedFolder = '/usr/share/dotnet/shared'
-                if (-not (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
-                    $bcContainerHelperConfig.dotNetCoreSharedFolder = '/home/user/dotnet/shared'
-                }
-            }
-        }
-        if ($bcContainerHelperConfig.dotNetCoreRuntimeVersion -eq "") {
-            if ($bcContainerHelperConfig.dotNetCoreSharedFolder -and (Test-Path $bcContainerHelperConfig.dotNetCoreSharedFolder)) {
-                $netCoreAppFolder = Join-Path $bcContainerHelperConfig.dotNetCoreSharedFolder 'Microsoft.NETCore.App'
-                if (Test-Path $netCoreAppFolder) {
-                    $versions = Get-ChildItem $netCoreAppFolder | ForEach-Object { 
-                        try {
-                            [System.Version]$_.Name
-                        }
-                        catch {
-                        }
-                    }
-                    $bcContainerHelperConfig.dotNetCoreRuntimeVersion = $versions | Sort-Object -Descending | Select-Object -First 1 | ForEach-Object { $_.ToString() }
-                }
-            }
         }
 
         if ($bcContainerHelperConfig.UseVolumes) {

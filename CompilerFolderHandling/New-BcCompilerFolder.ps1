@@ -77,10 +77,12 @@ try {
         $dllsPath = Join-Path $compilerFolder 'dlls'
     }
 
+    $newtonSoftDllPath = ''
     if ($includeAL -or !(Test-Path $symbolsPath)) {
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
+        $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
     }
 
     # IncludeAL will populate folder with AL files (like New-BcContainer)
@@ -118,6 +120,7 @@ try {
         }
         $serviceTierFolder = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service" -Resolve
         Copy-Item -Path $serviceTierFolder -Filter '*.dll' -Destination $dllsPath -Recurse
+        $newtonSoftDllPath = Join-Path $dllsPath "Newtonsoft.Json.dll"
         Remove-Item -Path (Join-Path $dllsPath 'Service\Management') -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path (Join-Path $dllsPath 'Service\WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path (Join-Path $dllsPath 'Service\SideServices') -Recurse -Force -ErrorAction SilentlyContinue
@@ -159,6 +162,24 @@ try {
         }
     }
 
+    $dotNetSharedFolder = Join-Path $dllsPath 'shared'
+    if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion)) {
+        if ("$dotNetRuntimeVersionInstalled" -eq "0.0.0") {
+            Write-Host "dotnet runtime version is not installed/cannot be used"
+        }
+        else {
+            Write-Host "dotnet runtime version $dotNetRuntimeVersionInstalled is installed, but minimum required version is $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion)"
+        }
+        Write-Host "Downloading minimum required dotnet version from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
+        $dotnetFolder = Join-Path $compilerFolder 'dotnet'
+        $dotnetZipFile = "$($dotnetFolder).zip"
+        Download-File -sourceUrl $bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl -destinationFile $dotnetZipFile
+        Expand-7zipArchive -Path $dotnetZipFile -DestinationPath $dotnetFolder
+        Move-Item -Path (Join-Path $dotnetFolder 'shared') -Destination $dllsPath
+        Remove-Item -Path $dotnetZipFile -Force
+        Remove-Item -Path $dotnetFolder -Recurse -Force
+    }
+
     $containerCompilerPath = Join-Path $compilerFolder 'compiler'
     if ($vsixFile) {
         # If a vsix file was specified unpack directly to compilerfolder
@@ -166,8 +187,7 @@ try {
         $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
         Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
-        if ($isWindows) {
-            $newtonSoftDllPath = Join-Path $platformArtifactPath "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll" -Resolve
+        if ($isWindows -and $newtonSoftDllPath) {
             Copy-Item -Path $newtonSoftDllPath -Destination (Join-Path $containerCompilerPath 'extension\bin') -Force -ErrorAction SilentlyContinue
         }
         Remove-Item -Path $tempZip -Force -ErrorAction SilentlyContinue
