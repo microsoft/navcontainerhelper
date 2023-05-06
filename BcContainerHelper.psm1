@@ -18,10 +18,10 @@ if ($isMacOS) {
     throw "BcContainerHelper isn't supported on MacOS"
 }
 elseif ($isLinux) {
-    Write-Warning "BcContainerHelper running on Linux is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
+    Write-Host "Running on Linux"
 }
 elseif ($isPsCore) {
-    Write-Warning "BcContainerHelper running on PowerShell 7 is work-in-progress. Please report any issues on https://github.com/microsoft/navcontainerhelper/issues."
+    Write-Host "Running on PowerShell 7"
 }
 
 if ($useVolumes -or $isInsideContainer) {
