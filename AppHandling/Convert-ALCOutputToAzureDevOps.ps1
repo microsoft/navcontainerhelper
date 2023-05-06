@@ -43,7 +43,7 @@ try {
 
     foreach($line in $AlcOutput) {
         switch -regex ($line) {
-            "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
+            "^warning (\w{2,3}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
                     $file = $Matches[3]
                     if ($file -like "$($basePath)*") {
@@ -83,7 +83,7 @@ try {
                 $hasError = $true
                 break
             }
-            "^(.*)error (\w{2}\d{4}): (.*)$"
+            "^(.*)error (\w{2,3}\d{4}): (.*)$"
             #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
             {
                 if ($gitHubActions) {
@@ -95,7 +95,7 @@ try {
                 $hasError = $true
                 break
             }
-            "^(.*)\((\d+),(\d+)\): warning (\w{2}\d{4}): (.*)$"
+            "^(.*)\((\d+),(\d+)\): warning (\w{2,3}\d{4}): (.*)$"
             #Prepared for unified warning format
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
