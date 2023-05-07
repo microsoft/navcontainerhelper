@@ -26,6 +26,8 @@
   Include this switch if you want to include a device login prompt if no other way to authenticate succeeds
  .Parameter deviceLoginTimeout
   Timespan indicating the timeout while waiting for user to perform devicelogin. Default is 5 minutes.
+ .Parameter deviceCode
+  When deviceLogin expires, the deviceCode will be returned. You can use this to re-authenticate using the deviceCode and wait for the user to authenticate.
  .Parameter silent
   Include silent to avoid unnecessary output from the function
  .Example
@@ -152,16 +154,18 @@ try {
                 $accessToken = $TokenRequest.access_token
                 $jwtToken = Parse-JWTtoken -token $accessToken
                 if (!$silent) { Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))" }
-    
                 $authContext += @{
                     "AccessToken"  = $accessToken
                     "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                    "RefreshToken" = $TokenRequest.refresh_token
+                    "RefreshToken" = $null
                     "Credential"   = $credential
                     "ClientSecret" = $null
                     "appid"        = ""
                     "name"         = $jwtToken.name
                     "upn"          = $jwtToken.unique_name
+                }
+                if ($TokenRequest.PSObject.Properties.Name -eq 'refresh_token') {
+                    $authContext.RefreshToken = $TokenRequest.refresh_token
                 }
                 if ($tenantID -eq "Common") {
                     if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
@@ -313,12 +317,15 @@ try {
                 $authContext += @{
                     "AccessToken"  = $accessToken
                     "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                    "RefreshToken" = $TokenRequest.refresh_token
+                    "RefreshToken" = $null
                     "Credential"   = $null
                     "ClientSecret" = $null
                     "appid"        = ""
                     "name"         = $jwtToken.name
                     "upn"          = $jwtToken.unique_name
+                }
+                if ($TokenRequest.PSObject.Properties.Name -eq 'refresh_token') {
+                    $authContext.RefreshToken = $TokenRequest.refresh_token
                 }
                 if ($tenantID -eq "Common") {
                     Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)"
