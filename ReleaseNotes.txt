@@ -1,3 +1,7 @@
+5.0.1
+Fix issue with New-AadAppsForBC, invalid return when not specifying useCurrentMicrosoftGraphConnection
+Replace -IncludePowerBiAadApp and -IncludeEMailAadApp with -IncludeOtherServicesAadApp on New-AadAppsForBC (acc. https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/register-app-azure)
+
 5.0.0
 Had to increase version number due to pre-release runnumber ran past 999
 New functions Copy-ItemToBcContainer and Copy-ItemFromBcContainer to copy folders or files to or from a container

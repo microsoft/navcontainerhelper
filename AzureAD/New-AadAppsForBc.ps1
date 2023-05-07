@@ -3,7 +3,7 @@
   Create Apps in Azure Active Directory to allow Single Signon when using AAD
  .Description
   This function will create an app in AAD, to allow Web and Windows Client to use AAD for authentication
-  Optionally the function can also create apps for the Excel AddIn and/or PowerBI integration
+  Optionally the function can also create apps for the Excel AddIn and/or Other services integration
  .Parameter accessToken
   Accesstoken for Microsoft Graph with permissions to create apps in the AAD
  .Parameter appIdUri
@@ -14,10 +14,9 @@
   Path of the image you want to use for the SSO App
  .Parameter IncludeExcelAadApp
   Add this switch to request the function to also create an AAD app for the Excel AddIn
- .Parameter IncludePowerBiAadApp
-  Add this switch to request the function to also create an AAD app for the PowerBI service
- .Parameter IncludeEMailAadApp
-  Add this switch to request the function to also create an AAD app for the EMail service
+ .Parameter IncludeOtherServicesAadApp
+  Add this switch to request the function to also create an AAD app for other services (including PowerBI, SharePoint, Universal Print, etc.)
+  https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/register-app-azure
  .Parameter IncludeApiAccess
   Add this switch to add application permissions for Web Services API and automation API
  .Parameter Singletenant
@@ -43,8 +42,7 @@ function New-AadAppsForBc {
         [Parameter(Mandatory=$false)]
         [string] $iconPath,
         [switch] $IncludeExcelAadApp,
-        [switch] $IncludePowerBiAadApp,
-        [switch] $IncludeEmailAadApp,
+        [switch] $IncludeOtherServicesAadApp,
         [switch] $IncludeApiAccess,
         [switch] $SingleTenant,
         [switch] $preAuthorizePowerShell,
@@ -287,69 +285,56 @@ try {
         $AdProperties["ExcelAdAppKeyValue"] = $admspwd.SecretText
     }
 
-    # PowerBI Ad App
-    if ($IncludePowerBiAadApp) {
-        # Remove "old" PowerBI AD Application
-        $PowerBiIdentifierUri = $appIdUri.Replace('://','://pbi.')
-        Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $PowerBiIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
-    
+    # Other Services Ad App
+    if ($IncludeOtherServicesAadApp) {
+        # Remove "old" Other Services AD Application
+        $OtherServicesIdentifierUri = $appIdUri.Replace('://','://other.')
+        Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $OtherServicesIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
+
         # Create AD Application
-        Write-Host "Creating AAD App for PowerBI Service"
+        Write-Host "Creating AAD App for Other Services"
+
+        # Microsoft Graph
+        $graphRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
+        $graphRRA.ResourceAppId = "00000003-0000-0000-c000-000000000000"           # Microsoft Graph
+        $graphRRA.ResourceAccess = @(
+            @{ "Id" = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"; "Type" = "Scope" }   # User.Read
+            @{ "Id" = "5fa075e9-b951-4165-947b-c63396ff0a37"; "Type" = "Scope" }   # PrinterShare.ReadBasic.All
+            @{ "Id" = "21f0d9c0-9f13-48b3-94e0-b6b231c7d320"; "Type" = "Scope" }   # PrintJob.Create
+            @{ "Id" = "6a71a747-280f-4670-9ca0-a9cbf882b274"; "Type" = "Scope" }   # PrintJob.ReadBasic
+            @{ "Id" = "9769c687-087d-48ac-9cb3-c37dde652038"; "Type" = "Scope" }   # EWS.AccessAsUser.All
+            @{ "Id" = "d56682ec-c09e-4743-aaf4-1a3aac4caa21"; "Type" = "Scope" }   # Contacts.ReadWrite
+
+        )
+
         $powerBIRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
         $powerBIRRA.ResourceAppId = "00000009-0000-0000-c000-000000000000"         # Power BI Service
         $powerBIRRA.ResourceAccess = @(
             @{ "Id" = "4ae1bf56-f562-4747-b7bc-2fa0874ed46f"; "Type" = "Scope" }   # Report.Read.All
+            @{ "Id" = "b2f1b2fa-f35c-407c-979c-a858a808ba85"; "Type" = "Scope" }   # Workspace.Read.All
         )
-        $graphRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
-        $graphRRA.ResourceAppId = "00000003-0000-0000-c000-000000000000"           # Microsoft Graph
-        $graphRRA.ResourceAccess = @(
-            @{ "Id" = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"; "Type" = "Scope" }   # User.Read
+
+        $sharePointRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
+        $sharepointRRA.ResourceAppId = "00000003-0000-0ff1-ce00-000000000000"      # Sharepoint Service
+        $sharepointRRA.ResourceAccess = @(
+            @{ "Id" = "56680e0d-d2a3-4ae1-80d8-3c4f2100e3d0"; "Type" = "Scope" }   # AllSites.FullControl
+            @{ "Id" = "82866913-39a9-4be7-8091-f4fa781088ae"; "Type" = "Scope" }   # User.ReadWrite.All
         )
-        $powerBIAppResourceAccessList = @($powerBIRRA, $graphRRA)
-        $powerBiAdApp = New-MgApplication `
-            -DisplayName "PowerBI Service for $publicWebBaseUrl" `
-            -IdentifierUris $PowerBiIdentifierUri `
+
+        $otherServicesAppResourceAccessList = @($graphRRA, $powerBIRRA, $sharepointRRA)
+        $otherServicesAdApp = New-MgApplication `
+            -DisplayName "Other Services for $publicWebBaseUrl" `
+            -IdentifierUris $OtherServicesIdentifierUri `
             -Web @{ "RedirectUris" = $oAuthReplyUrls } `
             -SignInAudience $signInAudience `
-            -RequiredResourceAccess $powerBIAppResourceAccessList
+            -RequiredResourceAccess $otherServicesAppResourceAccessList
           
-        $PowerBiAdAppId = $powerBiAdApp.AppId.ToString()
-        $AdProperties["PowerBiAdAppId"] = $PowerBiAdAppId 
+        $OtherServicesAdAppId = $otherServicesAdApp.AppId.ToString()
+        $AdProperties["OtherServicesAdAppId"] = $OtherServicesAdAppId
     
-        $admspwd = Add-MgApplicationPassword -ApplicationId $PowerBiAdApp.Id -PasswordCredential @{ "DisplayName" = "Password" }
-        $AdProperties["PowerBiAdAppKeyValue"] = $admspwd.SecretText
-    }
-
-    # EMail App
-    if ($IncludeEmailAadApp) {
-        # Remove "old" Email AD Application
-        $EMailIdentifierUri = $appIdUri.Replace('://','://email.')
-        Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $EMailIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
-    
-        # Create AD Application
-        Write-Host "Creating AAD App for EMail Service"
-        $graphRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
-        $graphRRA.ResourceAppId = "00000003-0000-0000-c000-000000000000"           # Microsoft Graph
-        $graphRRA.ResourceAccess = @(
-            @{ "Id" = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"; "Type" = "Scope" }   # User.Read
-            @{ "Id" = "64a6cdd6-aab1-4aaf-94b8-3cc8405e90d0"; "Type" = "Scope" }   # Email
-            @{ "Id" = "e383f46e-2787-4529-855e-0e479a3ffac0"; "Type" = "Scope" }   # Mail.ReadWrite
-            @{ "Id" = "024d486e-b451-40bb-833d-3e66d98c5c73"; "Type" = "Scope" }   # Mail.Send
-        )
-        $eMailAppResourceAccessList = @($graphRRA)
-        $EMailAdApp = New-MgApplication `
-            -DisplayName "EMail Service for $publicWebBaseUrl" `
-            -IdentifierUris $EMailIdentifierUri `
-            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true }; "RedirectUris" = $oAuthReplyUrls } `
-            -SignInAudience $signInAudience `
-            -RequiredResourceAccess $eMailAppResourceAccessList
-        
-        $EMailAdAppId = $EMailAdApp.AppId.ToString()
-        $AdProperties["EMailAdAppId"] = $EMailAdAppId 
-    
-        $admspwd = Add-MgApplicationPassword -ApplicationId $EmailAdApp.Id -PasswordCredential @{ "DisplayName" = "Password" }
-        $AdProperties["EMailAdAppKeyValue"] = $admspwd.SecretText
-    }
+        $admspwd = Add-MgApplicationPassword -ApplicationId $otherServicesAdApp.Id -PasswordCredential @{ "DisplayName" = "Password" }
+        $AdProperties["OtherServicesAdAppKeyValue"] = $admspwd.SecretText
+    }        
 
     $AdProperties
 }
