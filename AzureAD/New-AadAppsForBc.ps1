@@ -275,7 +275,8 @@ try {
         $excelAdApp = New-MgApplication `
             -DisplayName "Excel AddIn for $publicWebBaseUrl" `
             -IdentifierUris $ExcelIdentifierUri `
-            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true }; "RedirectUris" = ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*")) } `
+            -Spa @{ "RedirectUris" = ($oAuthReplyUrls+@("https://az689774.vo.msecnd.net/dynamicsofficeapp/v1.3.0.0/*")) } `
+            -Web @{ "ImplicitGrantSettings" = @{ "EnableIdTokenIssuance" = $true; "EnableAccessTokenIssuance" = $true } } `
             -SignInAudience $signInAudience `
             -RequiredResourceAccess $excelAppResourceAccessList
 
