@@ -75,14 +75,14 @@ try {
             if ($jwtToken.aud -ne 'https://graph.microsoft.com') {
                 Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.microsoft.com"
             }
-            Connect-MgGraph -AccessToken $bcAuthContext.accessToken
+            Connect-MgGraph -AccessToken $bcAuthContext.accessToken | Out-Null
         }
         else {
             if ($accessToken) {
-                Connect-MgGraph -accessToken $accessToken
+                Connect-MgGraph -accessToken $accessToken | Out-Null
             }
             else {
-                Connect-MgGraph -Scopes 'Application.ReadWrite.All'
+                Connect-MgGraph -Scopes 'Application.ReadWrite.All' | Out-Null
             }
         }
     }
