@@ -1,3 +1,6 @@
+5.0.2
+Issue #2934 Add setting to containerHelper config: DoNotUseCdnForArtifacts to allow people to grab Artfacts directly from blob storage instead of CDN
+
 5.0.1
 Fix issue with New-AadAppsForBC, invalid return when not specifying useCurrentMicrosoftGraphConnection
 Replace -IncludePowerBiAadApp and -IncludeEMailAadApp with -IncludeOtherServicesAadApp on New-AadAppsForBC (acc. https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/administration/register-app-azure)
