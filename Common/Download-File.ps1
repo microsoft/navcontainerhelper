@@ -24,6 +24,19 @@ function Download-File {
         [int]    $timeout = 100
     )
 
+function ReplaceCDN {
+    Param(
+        [string] $sourceUrl
+    )
+
+    $cdnStr = '.azureedge.net'
+    if ($sourceUrl -like "https://bcartifacts$cdnStr/*" -or $sourceUrl -like "https://bcinsider$cdnStr/*" -or $sourceUrl -like "https://bcprivate$cdnStr/*" -or $sourceUrl -like "https://bcpublicpreview$cdnStr/*") {
+        $idx = $sourceUrl.IndexOf("$cdnStr/",[System.StringComparison]::InvariantCultureIgnoreCase)
+        $sourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + $cdnStr.Length)
+    }
+    $sourceUrl
+}
+
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
@@ -62,23 +75,24 @@ try {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts) {
+            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+        }
         try {
             DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
         }
         catch {
             try {
                 $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
-                if ($sourceUrl -like "https://bcartifacts.azureedge.net/*" -or $sourceUrl -like "https://bcinsider.azureedge.net/*" -or $sourceUrl -like "https://bcprivate.azureedge.net/*" -or $sourceUrl -like "https://bcpublicpreview.azureedge.net/*") {
-                    $idx = $sourceUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
-                    $newSourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + 14)
-                    Write-Host "Could not download from $($sourceUrl.SubString(0,$idx + 14))/..., retrying from $($newSourceUrl.SubString(0,$idx + 22))/ in $waittime seconds..."
+                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+                if ($sourceUrl -eq $newSourceUrl) {
+                    Write-Host "Error downloading..., retrying in $waittime seconds..."
                 }
                 else {
-                    Write-Host "Error downloading..., retrying in $waittime seconds..."
-                    $newSourceUrl = $sourceUrl
+                    Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
                 }
                 Start-Sleep -Seconds $waittime
-                DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
+                DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
             }
             catch {
                 throw (GetExtendedErrorMessage $_)

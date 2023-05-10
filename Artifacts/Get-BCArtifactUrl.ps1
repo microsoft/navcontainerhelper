@@ -162,6 +162,11 @@ try {
         $storageAccount = $storageAccount -replace ".azureedge.net", ".blob.core.windows.net"
 
         $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
+
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts) {
+            $BaseUrl = $GetListUrl
+        }
+
         if (!([string]::IsNullOrEmpty($sasToken))) {
             $GetListUrl += $sasToken + "&comp=list&restype=container"
         }
