@@ -129,36 +129,39 @@ try {
                 }
             }
             try { [System.IO.File]::WriteAllText((Join-Path $appArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
-    
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
-            # Patch wrong license file in ONPREM AU version 20.5.45456.45889
-            if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
-                Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
-                Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
-            }
-            
-            $cuFixMapping = @{
-                '11.0.48794.0' = 'cu53';
-                '11.0.48962.0' = 'cu54';
-                '11.0.49061.0' = 'cu55';
-                '11.0.49175.0' = 'cu56';
-                '11.0.49240.0' = 'cu57';
-                '11.0.49345.0' = 'cu58';
-                '11.0.49497.0' = 'cu59';
-                '11.0.49618.0' = 'cu60';
-            }
-            if ($appManifest.version -in $cuFixMapping.Keys) {
-                $appManifest.cu = $cuFixMapping[$appManifest.version]
-                $appManifest | ConvertTo-Json | Set-Content -Path $appManifestPath
-            }
-    
-            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-                $redir = $true
-                $artifactUrl = $appManifest.ApplicationUrl
-                if ($artifactUrl -notlike 'https://*') {
-                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
+            $coreArtifact = $appUri.AbsolutePath -like "*/core"
+            if (-not $coreArtifact) {
+                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+                $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+                # Patch wrong license file in ONPREM AU version 20.5.45456.45889
+                if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
+                    Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
+                    Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
+                }
+                
+                $cuFixMapping = @{
+                    '11.0.48794.0' = 'cu53';
+                    '11.0.48962.0' = 'cu54';
+                    '11.0.49061.0' = 'cu55';
+                    '11.0.49175.0' = 'cu56';
+                    '11.0.49240.0' = 'cu57';
+                    '11.0.49345.0' = 'cu58';
+                    '11.0.49497.0' = 'cu59';
+                    '11.0.49618.0' = 'cu60';
+                }
+                if ($appManifest.version -in $cuFixMapping.Keys) {
+                    $appManifest.cu = $cuFixMapping[$appManifest.version]
+                    $appManifest | ConvertTo-Json | Set-Content -Path $appManifestPath
+                }
+        
+                if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                    $redir = $true
+                    $artifactUrl = $appManifest.ApplicationUrl
+                    if ($artifactUrl -notlike 'https://*') {
+                        $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
+                    }
                 }
             }
     
@@ -319,4 +322,3 @@ finally {
     TrackTrace -telemetryScope $telemetryScope
 }
 }
-Export-ModuleMember -Function Download-Artifacts
