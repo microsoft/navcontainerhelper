@@ -4,7 +4,7 @@
  .Description
   Download artifacts from artifacts storage
  .Parameter artifactUrl
-  Url for application artifact to use.
+  Url for artifact to use.
  .Parameter includePlatform
   Add this switch to include the platform artifact in the download
  .Parameter force
@@ -49,7 +49,7 @@ try {
     try {
         try {
             if (!$appMutex.WaitOne(1000)) {
-                Write-Host "Waiting for other process downloading application artifact '$($artifactUrl.Split('?')[0])'"
+                Write-Host "Waiting for other process downloading artifact '$($artifactUrl.Split('?')[0])'"
                 $appMutex.WaitOne() | Out-Null
                 Write-Host "Other process completed download"
             }
@@ -77,13 +77,13 @@ try {
                 }
             }
             if (-not $exists) {
-                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
+                Write-Host "Downloading artifact $($appUri.AbsolutePath)"
                 TestSasToken -sasToken $artifactUrl
                 $retry = $false
                 do {
                     $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
                     Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
-                    Write-Host "Unpacking application artifact to tmp folder " -NoNewline
+                    Write-Host "Unpacking artifact to tmp folder " -NoNewline
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                     try {
                         Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
@@ -130,9 +130,8 @@ try {
             }
             try { [System.IO.File]::WriteAllText((Join-Path $appArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
 
-            $coreArtifact = $appUri.AbsolutePath -like "*/core"
-            if (-not $coreArtifact) {
-                $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            if (Test-Path $appManifestPath) {
                 $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
                 # Patch wrong license file in ONPREM AU version 20.5.45456.45889
