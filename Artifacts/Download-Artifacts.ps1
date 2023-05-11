@@ -322,3 +322,4 @@ finally {
     TrackTrace -telemetryScope $telemetryScope
 }
 }
+Export-ModuleMember -Function Download-Artifacts
