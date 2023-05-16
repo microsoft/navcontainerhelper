@@ -83,6 +83,9 @@ try {
         if ($current) {
             $currentversion = [System.Version]($current.Split('/')[4])
             $periodic = Get-BCArtifactUrl -country $country -select Latest -doNotCheckPlatform:$doNotCheckPlatform -before ($ignoreBuildsAfter.ToUniversalTime()) -version "$($currentversion.Major).$($currentversion.Minor)"
+            if (-not $periodic) {
+                $periodic = Get-BCArtifactUrl -country $country -select First -doNotCheckPlatform:$doNotCheckPlatform -after ($ignoreBuildsAfter.ToUniversalTime()) -version "$($currentversion.Major).$($currentversion.Minor)"
+            }
             Write-Verbose "Periodic build is $periodic"
             if ($periodic) { $current = $periodic }
         }

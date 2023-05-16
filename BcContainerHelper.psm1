@@ -227,6 +227,7 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "Api\Invoke-NavContainerApi.ps1")
 
 # Configuration Package Handling
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\Get-PackageInfoFromRapidStartFile.ps1")
 . (Join-Path $PSScriptRoot "ConfigPackageHandling\Import-ConfigPackageInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ConfigPackageHandling\Remove-ConfigPackageInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ConfigPackageHandling\UploadImportAndApply-ConfigPackageInBcContainer.ps1")
