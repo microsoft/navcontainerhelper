@@ -1,6 +1,5 @@
 ﻿function New-ALGoRepo {
     Param(
-        $tmpFolder = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())),
         [Parameter(Mandatory=$true)]
         $org,
         [Parameter(Mandatory=$true)]
@@ -12,7 +11,8 @@
         [Parameter(Mandatory=$true)]
         [ValidateSet('public','private')]
         $accessControl,
-        [Parameter(Mandatory=$true)]
+        $algoBranch = 'main',
+        $description = $repo,
         $apps = @(),
         [HashTable] $addRepoSettings = @{},
         [HashTable] $addProjectSettings = @{},
@@ -23,7 +23,8 @@
         [switch] $additionalCountriesAlways,
         [switch] $openFolder,
         [switch] $openVSCode,
-        [switch] $openBrowser
+        [switch] $openBrowser,
+        $tmpFolder = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString()))
     )
 
     # Well known AppIds
@@ -205,18 +206,18 @@
     Set-Location $tmpFolder
 
     $repository = "$org/$repo"
-    invoke-gh repo create $repository --$accessControl --clone
+    invoke-gh repo create $repository --$accessControl --clone --description $description
     $folder = Join-Path $tmpFolder $repo
     Set-Location $folder
 
     Write-Host "Downloading and applying AL-Go-$AppType template"
-    $templateUrl = "https://github.com/microsoft/AL-Go-$AppType/archive/refs/heads/main.zip"
+    $templateUrl = "https://github.com/microsoft/AL-Go-$AppType/archive/refs/heads/$($algoBranch).zip"
     $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
     Download-File -sourceUrl $templateUrl -destinationFile $tempZip
     Expand-7zipArchive -Path $tempZip -DestinationPath $folder
     Remove-Item -Path $tempZip -Force
-    Copy-Item -Path "AL-Go-$appType-main\*" -Recurse -Destination . -Force
-    Remove-Item -Path "AL-Go-$appType-main" -Recurse -Force
+    Copy-Item -Path "AL-Go-$appType-$algoBranch\*" -Recurse -Destination . -Force
+    Remove-Item -Path "AL-Go-$appType-$algoBranch" -Recurse -Force
 
     Write-Host "Committing and pushing template"
     invoke-git -silent add *

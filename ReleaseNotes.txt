@@ -117,6 +117,7 @@ Adding additional properties to telemetry. Set MicrosoftTelemetryConnectionStrin
 Add parameter 'features' to Run-AlPipeline which allows for setting the compiler features 
 Add SchemaSyncMode to Publish-PerTenantExtensionApps
 Use submodules inside BcContainerHelper
+New PROOF OF CONCEPT PREVIEW function New-ALGoRepo to create a new AL-Go repository based on PTE or AppSource App templates
 
 4.0.7
 Issue #2765 Unused param in Publish-BuildOutputToAzureFeed.ps1

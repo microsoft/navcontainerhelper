@@ -131,7 +131,7 @@ FunctionsToExport = 'Add-FontsToBcContainer', 'Add-GitToAlProjectFolder',
                'Invoke-IngestionApiPut', 'Invoke-NavContainerCodeunit', 
                'Invoke-ScriptInBcContainer', 'New-AadAppsForBc', 
                'New-ALGoAppSourceContext', 'New-ALGoAuthContext', 
-               'New-ALGoNugetContext', 'New-ALGoStorageContext', 
+               'New-ALGoNugetContext', 'New-ALGoRepo', 'New-ALGoStorageContext', 
                'New-AppSourceSubmission', 'New-BcAuthContext', 
                'New-BcCompilerFolder', 'New-BcContainer', 'New-BcContainerBcUser', 
                'New-BcContainerTenant', 'New-BcContainerWindowsUser', 
@@ -257,7 +257,9 @@ PrivateData = @{
 
         # ReleaseNotes of this module
         ReleaseNotes = '5.0.2
-Issue #2934 Add setting to containerHelper config: DoNotUseCdnForArtifacts to allow people to grab Artfacts directly from blob storage instead of CDN'
+Issue #2934 Add setting to containerHelper config: DoNotUseCdnForArtifacts to allow people to grab Artfacts directly from blob storage instead of CDN
+Issue #3047 Get-BCArtifactUrl -select Daily returns latest every time if a new major.minor is shipped
+Issue #3048 Unable to import .rapidstart file - ''Get-PackageInfoFromRapidStartFile'' is not recognized'
 
         # Prerelease string of this module
         # Prerelease = ''
