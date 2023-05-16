@@ -1,3 +1,6 @@
+5.0.3
+Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
+
 5.0.2
 Issue #2934 Add setting to containerHelper config: DoNotUseCdnForArtifacts to allow people to grab Artfacts directly from blob storage instead of CDN
 Issue #3047 Get-BCArtifactUrl -select Daily returns latest every time if a new major.minor is shipped
