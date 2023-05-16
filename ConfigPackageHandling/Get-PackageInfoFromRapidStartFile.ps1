@@ -35,7 +35,7 @@ function Get-PackageInfoFromRapidStartFile {
             $readText.Split([Environment]::NewLine) | ForEach-Object {
                 if ($_.IndexOf('DataList') -ne -1 ) {
                     [xml]$package = ($_ + '</DataList>')
-                    $package.'DataList'
+                    $packageInfo = $package.'DataList'
                     break
                 }
             }
