@@ -4,7 +4,7 @@
  .Description
   Download artifacts from artifacts storage
  .Parameter artifactUrl
-  Url for application artifact to use.
+  Url for artifact to use.
  .Parameter includePlatform
   Add this switch to include the platform artifact in the download
  .Parameter force
@@ -49,7 +49,7 @@ try {
     try {
         try {
             if (!$appMutex.WaitOne(1000)) {
-                Write-Host "Waiting for other process downloading application artifact '$($artifactUrl.Split('?')[0])'"
+                Write-Host "Waiting for other process downloading artifact '$($artifactUrl.Split('?')[0])'"
                 $appMutex.WaitOne() | Out-Null
                 Write-Host "Other process completed download"
             }
@@ -77,13 +77,13 @@ try {
                 }
             }
             if (-not $exists) {
-                Write-Host "Downloading application artifact $($appUri.AbsolutePath)"
+                Write-Host "Downloading artifact $($appUri.AbsolutePath)"
                 TestSasToken -sasToken $artifactUrl
                 $retry = $false
                 do {
                     $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
                     Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
-                    Write-Host "Unpacking application artifact to tmp folder " -NoNewline
+                    Write-Host "Unpacking artifact to tmp folder " -NoNewline
                     $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
                     try {
                         Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
@@ -129,36 +129,38 @@ try {
                 }
             }
             try { [System.IO.File]::WriteAllText((Join-Path $appArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
-    
-            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
-            $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
 
-            # Patch wrong license file in ONPREM AU version 20.5.45456.45889
-            if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
-                Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
-                Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
-            }
-            
-            $cuFixMapping = @{
-                '11.0.48794.0' = 'cu53';
-                '11.0.48962.0' = 'cu54';
-                '11.0.49061.0' = 'cu55';
-                '11.0.49175.0' = 'cu56';
-                '11.0.49240.0' = 'cu57';
-                '11.0.49345.0' = 'cu58';
-                '11.0.49497.0' = 'cu59';
-                '11.0.49618.0' = 'cu60';
-            }
-            if ($appManifest.version -in $cuFixMapping.Keys) {
-                $appManifest.cu = $cuFixMapping[$appManifest.version]
-                $appManifest | ConvertTo-Json | Set-Content -Path $appManifestPath
-            }
-    
-            if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
-                $redir = $true
-                $artifactUrl = $appManifest.ApplicationUrl
-                if ($artifactUrl -notlike 'https://*') {
-                    $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
+            $appManifestPath = Join-Path $appArtifactPath "manifest.json"
+            if (Test-Path $appManifestPath) {
+                $appManifest = Get-Content $appManifestPath | ConvertFrom-Json
+
+                # Patch wrong license file in ONPREM AU version 20.5.45456.45889
+                if ($artifactUrl -like '*/onprem/20.5.45456.45889/au') {
+                    Write-Host "INFO: Patching wrong license file in ONPREM AU version 20.5.45456.45889"
+                    Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/21demolicense/au/3048953.flf' -destinationFile (Join-Path $appArtifactPath 'database/Cronus.flf')
+                }
+                
+                $cuFixMapping = @{
+                    '11.0.48794.0' = 'cu53';
+                    '11.0.48962.0' = 'cu54';
+                    '11.0.49061.0' = 'cu55';
+                    '11.0.49175.0' = 'cu56';
+                    '11.0.49240.0' = 'cu57';
+                    '11.0.49345.0' = 'cu58';
+                    '11.0.49497.0' = 'cu59';
+                    '11.0.49618.0' = 'cu60';
+                }
+                if ($appManifest.version -in $cuFixMapping.Keys) {
+                    $appManifest.cu = $cuFixMapping[$appManifest.version]
+                    $appManifest | ConvertTo-Json | Set-Content -Path $appManifestPath
+                }
+        
+                if ($appManifest.PSObject.Properties.name -eq "applicationUrl") {
+                    $redir = $true
+                    $artifactUrl = $appManifest.ApplicationUrl
+                    if ($artifactUrl -notlike 'https://*') {
+                        $artifactUrl = "https://$($appUri.Host)/$artifactUrl$($appUri.Query)"
+                    }
                 }
             }
     
