@@ -26,9 +26,9 @@ try {
             $a = ""
         }
 
-        $id = docker ps $a --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | % { $_.split('/')[0] }
+        $id = docker ps $a --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | ForEach-Object { $_.split('/')[0] }
         if (!($id)) {
-            $id = docker ps $a --no-trunc --filter "id=$containerName"
+            $id = docker ps $a -q --no-trunc --filter "id=$containerName"
         }
         if ($id) {
             $inspect = docker inspect $id | ConvertFrom-Json
