@@ -63,7 +63,10 @@ try {
             
             $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.dll")
             if (!($ManagementModule)) {
-                throw "Unable to locate management module in artifacts"
+                $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.Dynamics.Nav.Management.dll")
+                if (!($ManagementModule)) {
+                    throw "Unable to locate management module in artifacts"
+                }
             }
 
             $manifest = Get-Content -Path (Join-Path $artifactPath[0] "manifest.json") | ConvertFrom-Json
