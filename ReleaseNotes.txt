@@ -1,6 +1,7 @@
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
 Issue #3054 BcContainerHelper doesn't work with Docker 24.0.0. Docker error "WARNING: Ignoring custom format, because both --format and --quiet are set
+Issue #3055 Unnecessary administrator check when creating container that uses external database server
 
 5.0.2
 Issue #2934 Add setting to containerHelper config: DoNotUseCdnForArtifacts to allow people to grab Artfacts directly from blob storage instead of CDN

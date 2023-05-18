@@ -61,7 +61,7 @@ try {
             Write-Host "Downloading Artifacts $($artifactUrl.Split('?')[0])"
             $artifactPath = Download-Artifacts $artifactUrl -includePlatform
             
-            $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.psm1")
+            $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.dll")
             if (!($ManagementModule)) {
                 throw "Unable to locate management module in artifacts"
             }
@@ -81,7 +81,7 @@ try {
             }
 
             Write-Host "Importing PowerShell module $($ManagementModule.FullName)"
-            Import-Module $ManagementModule.FullName
+            Import-Module $ManagementModule.FullName -NoClobber
 
             $databaseServerInstance = $databaseServer
             if ($databaseInstance) {
