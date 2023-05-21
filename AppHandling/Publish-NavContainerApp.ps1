@@ -34,6 +34,8 @@
   Specify language version that is used for installing the app. The value must be a valid culture name for a language in Business Central, such as en-US or da-DK. If the specified language does not exist on the Business Central Server instance, then en-US is used.
  .Parameter includeOnlyAppIds
   Array of AppIds. If specified, then include Only Apps in the specified AppFile array or archive which is contained in this Array and their dependencies
+ .Parameter excludeRuntimePackages
+  If specified, then runtime packages will be excluded
  .Parameter copyInstalledAppsToFolder
   If specified, the installed apps will be copied to this folder in addition to being installed in the container
  .Parameter replaceDependencies
@@ -94,7 +96,8 @@ function Publish-BcContainerApp {
         [string] $environment,
         [switch] $checkAlreadyInstalled,
         [ValidateSet('default','ignore','strict')]
-        [string] $dependencyPublishingOption = "default"
+        [string] $dependencyPublishingOption = "default",
+        [switch] $excludeRuntimePackages
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -142,7 +145,7 @@ try {
     }
 
     try {
-        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $installedApps -WarningAction SilentlyContinue)
+        $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $installedApps -excludeRuntimePackages:$excludeRuntimePackages -WarningAction SilentlyContinue)
         $appFiles | Where-Object { $_ } | ForEach-Object {
             $appFile = $_
 
