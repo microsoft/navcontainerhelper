@@ -1,3 +1,6 @@
+5.0.4
+Add new parameter -excludeRuntimePackages to Publish-BcContainerApp, to exclude installation of runtime packages
+
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
 Issue #3054 BcContainerHelper doesn't work with Docker 24.0.0. Docker error "WARNING: Ignoring custom format, because both --format and --quiet are set
