@@ -1,5 +1,6 @@
 5.0.4
 Add new parameter -excludeRuntimePackages to Publish-BcContainerApp, to exclude installation of runtime packages
+Issue #3061 Remove-BcEnvironment without doNotWait stopped working
 
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object

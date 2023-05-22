@@ -25,7 +25,7 @@ function Remove-BcEnvironment {
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [string] $environment,
-        [string] $apiVersion = "v2.15",
+        [string] $apiVersion = "v2.18",
         [switch] $doNotWait
     )
 
