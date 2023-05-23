@@ -43,4 +43,5 @@ function Get-BcEnvironmentUpdateWindow {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Get-BcEnvironmentUpdateWindow
+Set-Alias -Name Get-BcUpdateWindow -Value Get-BcEnvironmentUpdateWindow
+Export-ModuleMember -Function Get-BcEnvironmentUpdateWindow -Alias Get-BcUpdateWindow

@@ -14,9 +14,9 @@
   API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcAvailableRestorePeriods -bcAuthContext $authContext -environment "MySandbox"
+  Get-BcEnvironmentAvailableRestorePeriods -bcAuthContext $authContext -environment "MySandbox"
 #>
-function Get-BcAvailableRestorePeriods {
+function Get-BcEnvironmentAvailableRestorePeriods {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -51,6 +51,7 @@ function Get-BcAvailableRestorePeriods {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Set-Alias -Name Get-BcEnvironmentsAvailableRestorePeriods -Value Get-BcAvailableRestorePeriods
-Export-ModuleMember -Function Get-BcAvailableRestorePeriods -Alias Get-BcEnvironmentsAvailableRestorePeriods
+Set-Alias -Name Get-BcEnvironmentsAvailableRestorePeriods -Value Get-BcEnvironmentAvailableRestorePeriods
+Set-Alias -Name Get-BcAvailableRestorePeriods -Value Get-BcEnvironmentAvailableRestorePeriods
+Export-ModuleMember -Function Get-BcEnvironmentAvailableRestorePeriods -Alias Get-BcEnvironmentsAvailableRestorePeriods,Get-BcAvailableRestorePeriods
 

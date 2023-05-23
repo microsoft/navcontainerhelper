@@ -18,9 +18,9 @@
   end time for the query (get export history until this time)
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcDatabaseExportHistory -bcAuthContext $authContext
+  Get-BcEnvironmentDatabaseExportHistory -bcAuthContext $authContext
 #>
-function Get-BcDatabaseExportHistory {
+function Get-BcEnvironmentDatabaseExportHistory {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -52,4 +52,5 @@ function Get-BcDatabaseExportHistory {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Get-BcDatabaseExportHistory
+Set-Alias -Name Get-BcDatabaseExportHistory -Value Get-BcEnvironmentDatabaseExportHistory
+Export-ModuleMember -Function Get-BcEnvironmentDatabaseExportHistory -Alias Get-BcDatabaseExportHistory

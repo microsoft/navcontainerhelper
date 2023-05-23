@@ -20,11 +20,11 @@
   Specifies if the upgrade window for the environment should be ignored. Default is false.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  $ScheduledUpgrade = Get-BcScheduledUpgrade -bcAuthContext $authContext -environment "Sandbox"
-  Reschedule-BcUpgrade -bcAuthContext $authContext -environment "Sandbox" -runOn $ScheduledUpgrade.earliestSelectableUpgradeDate
+  $ScheduledUpgrade = Get-BcEnvironmentScheduledUpgrade -bcAuthContext $authContext -environment "Sandbox"
+  Reschedule-BcEnvironmentUpgrade -bcAuthContext $authContext -environment "Sandbox" -runOn $ScheduledUpgrade.earliestSelectableUpgradeDate
 #>
 
-function Reschedule-BcUpgrade {
+function Reschedule-BcEnvironmentUpgrade {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -65,4 +65,5 @@ function Reschedule-BcUpgrade {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Reschedule-BcUpgrade
+Set-Alias -Name Reschedule-BcUpgrade -Value Reschedule-BcEnvironmentUpgrade
+Export-ModuleMember -Function Reschedule-BcEnvironmentUpgrade -Alias Reschedule-BcUpgrade

@@ -14,10 +14,10 @@
   API version. Default is v2.3.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcScheduledUpgrade -bcAuthContext $authContext -environment "Sandbox"
+  Get-BcEnvironmentScheduledUpgrade -bcAuthContext $authContext -environment "Sandbox"
 #>
 
-function Get-BcScheduledUpgrade {
+function Get-BcEnvironmentScheduledUpgrade {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -47,4 +47,5 @@ function Get-BcScheduledUpgrade {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Get-BcScheduledUpgrade
+Set-Alias -Name Get-BcScheduledUpgrade -Value Get-BcEnvironmentScheduledUpgrade
+Export-ModuleMember -Function Get-BcEnvironmentScheduledUpgrade -Alias Get-BcScheduledUpgrade

@@ -22,9 +22,9 @@
   Include this flag if you do not want to wait for the backup to complete
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  New-BcDatabaseExport -bcAuthContext $authContext -environment "Production" -storageAccountSasUri $storageAccountSasUri -blobContainerName $blobContainerName -blobName $blobName -doNotWait
+  New-BcEnvironmentDatabaseExport -bcAuthContext $authContext -environment "Production" -storageAccountSasUri $storageAccountSasUri -blobContainerName $blobContainerName -blobName $blobName -doNotWait
 #>
-function New-BcDatabaseExport {
+function New-BcEnvironmentDatabaseExport {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -94,4 +94,6 @@ function New-BcDatabaseExport {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function New-BcDatabaseExport
+Set-Alias -Name New-BcDatabaseExport -Value New-BcEnvironmentDatabaseExport
+Export-ModuleMember -Function New-BcEnvironmentDatabaseExport -Alias New-BcDatabaseExport
+
