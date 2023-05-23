@@ -25,7 +25,7 @@
   Include this switch if you want to allow this function to install AppSource apps on a production environment
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Install-BcAppFromAppSource -bcAuthContext $authContext -AppId '55ba54a3-90c7-4d3f-bc73-68eaa51fd5f8' -acceptIsvEula
+  Install-BcAppFromAppSource -bcAuthContext $authContext -environment 'MySandbox' -AppId '55ba54a3-90c7-4d3f-bc73-68eaa51fd5f8' -acceptIsvEula
 #>
 function Install-BcAppFromAppSource {
     Param (

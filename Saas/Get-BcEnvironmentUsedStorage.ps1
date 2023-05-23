@@ -14,12 +14,12 @@
   API version. Default is v2.15.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcUsedStorage -bcAuthContext $authContext -environment "Sandbox"
+  Get-BcEnvironmentUsedStorage -bcAuthContext $authContext -environment "Sandbox"
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcUsedStorage -bcAuthContext $authContext
+  Get-BcEnvironmentUsedStorage -bcAuthContext $authContext
 #>
-function Get-BcUsedStorage {
+function Get-BcEnvironmentUsedStorage {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -55,5 +55,6 @@ function Get-BcUsedStorage {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Set-Alias -Name Get-BcEnvironmentsUsedStorage -Value Get-BcUsedStorage
-Export-ModuleMember -Function Get-BcUsedStorage -Alias Get-BcEnvironmentsUsedStorage
+Set-Alias -Name Get-BcEnvironmentsUsedStorage -Value Get-BcEnvironmentUsedStorage
+Set-Alias -Name Get-BcUsedStorage -Value Get-BcEnvironmentUsedStorage
+Export-ModuleMember -Function Get-BcEnvironmentUsedStorage -Alias Get-BcEnvironmentsUsedStorage,Get-BcUsedStorage

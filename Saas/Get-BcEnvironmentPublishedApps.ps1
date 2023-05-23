@@ -14,9 +14,9 @@
   API version. Default is v2.6.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
-  Get-BcPublishedApps -bcAuthContext $authContext -environment "Sandbox"
+  Get-BcEnvironmentPublishedApps -bcAuthContext $authContext -environment "Sandbox"
 #>
-function Get-BcPublishedApps {
+function Get-BcEnvironmentPublishedApps {
     Param(
         [Parameter(Mandatory = $true)]
         [Hashtable] $bcAuthContext,
@@ -47,4 +47,5 @@ function Get-BcPublishedApps {
         TrackTrace -telemetryScope $telemetryScope
     }
 }
-Export-ModuleMember -Function Get-BcPublishedApps
+Set-Alias -Name Get-BcPublishedApps -Value Get-BcEnvironmentPublishedApps
+Export-ModuleMember -Function Get-BcEnvironmentPublishedApps -Alias Get-BcPublishedApps
