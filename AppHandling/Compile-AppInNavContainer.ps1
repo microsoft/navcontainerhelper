@@ -485,6 +485,14 @@ try {
                     }
                     if ($throw) {
                         Write-Host "ERROR $($_.Exception.Message)"
+                        if ($_.Exception.InnerException)
+                        {
+                            Write-Host "ERROR $($_.Exception.InnerException.Message)"
+                            if ($_.Exception.InnerException.InnerException)
+                            {
+                                Write-Host "ERROR $($_.Exception.InnerException.InnerException.Message)"
+                            }
+                        }
                         throw (GetExtendedErrorMessage $_)
                     }
                 }

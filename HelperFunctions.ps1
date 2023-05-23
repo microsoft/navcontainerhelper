@@ -987,39 +987,68 @@ function DownloadFileLow {
         }
     }
     else {
-        Write-Host "Downloading using HttpClient"
-        if ($useDefaultCredentials) {
-            $handler = New-Object System.Net.Http.HttpClientHandler
-            $handler.UseDefaultCredentials = $true
-            $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
-        }
-        else {
-            $httpClient = New-Object System.Net.Http.HttpClient
-        }
-        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
-        $headers.Keys | ForEach-Object {
-            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
-        }
-        $stream = $null
-        $fileStream = $null
-        if ($dontOverwrite) {
-            $fileMode = [System.IO.FileMode]::CreateNew
-        }
-        else {
-            $fileMode = [System.IO.FileMode]::Create
-        }
-        try {
-            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
-            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
-            $fileStream.Close()
-        }
-        finally {
-            if ($fileStream) {
-                $fileStream.Dispose()
+        if ($PSVersionTable.PSVersion -ge "7.0.0") {
+            Write-Host "Downloading using Invoke-WebRequest"
+            if ($useDefaultCredentials) {
+                $response = Invoke-WebRequest -UseDefaultCredentials -TimeoutSec $timeout -Headers $headers -Uri $sourceUrl -SkipCertificateCheck
             }
-            if ($stream) {
-                $stream.Dispose()
+            else {
+                $response = Invoke-WebRequest -TimeoutSec $timeout -Headers $headers -Uri $sourceUrl -SkipCertificateCheck
+            }
+
+            $fileStream = $null
+            if ($dontOverwrite) {
+                $fileMode = [System.IO.FileMode]::CreateNew
+            }
+            else {
+                $fileMode = [System.IO.FileMode]::Create
+            }
+            try {
+                $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+                $fileStream.Write($response.Content)
+                $fileStream.Close()
+            }
+            finally {
+                if ($fileStream) {
+                    $fileStream.Dispose()
+                }
+            }
+        }
+        else {
+            Write-Host "Downloading using HttpClient"
+            if ($useDefaultCredentials) {
+                $handler = New-Object System.Net.Http.HttpClientHandler
+                $handler.UseDefaultCredentials = $true
+                $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+            }
+            else {
+                $httpClient = New-Object System.Net.Http.HttpClient
+            }
+            $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+            $headers.Keys | ForEach-Object {
+                $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+            }
+            $stream = $null
+            $fileStream = $null
+            if ($dontOverwrite) {
+                $fileMode = [System.IO.FileMode]::CreateNew
+            }
+            else {
+                $fileMode = [System.IO.FileMode]::Create
+            }
+            try {
+                $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+                $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+                $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+                $fileStream.Close()
+            }
+            finally {
+                if ($fileStream) {
+                    $fileStream.Dispose()
+                }
+                if ($stream) {
+                    $stream.Dispose()
+                }
             }
         }
     }
