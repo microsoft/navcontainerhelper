@@ -1,4 +1,4 @@
-﻿$useTimeOutWebClient = $false
+$useTimeOutWebClient = $false
 if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
 $Source = @"
 	using System.Net;
@@ -431,14 +431,24 @@ function GetExtendedErrorMessage {
     $exception = $errorRecord.Exception
     $message = $exception.Message
 
+    if ($errorRecord.ErrorDetails) {
     try {
         $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
         $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
     }
     catch {}
+    }
     try {
         if ($exception -is [System.Management.Automation.MethodInvocationException]) {
             $exception = $exception.InnerException
+        }
+        if ($exception -is [System.Net.Http.HttpRequestException]) {
+            $message += "`r`n$($exception.Message)"
+            if ($exception.InnerException) {
+                if ($exception.InnerException -is [System.Security.Authentication.AuthenticationException]) {
+                    $message += "`r`n$($exception.InnerException.Message)"
+                }
+            }
         }
         $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
