@@ -1,6 +1,6 @@
-$useTimeOutWebClient = $false
+﻿$useTimeOutWebClient = $false
 if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
-$Source = @"
+$timeoutWebClientCode = @"
 	using System.Net;
  
 	public class TimeoutWebClient : WebClient
@@ -25,11 +25,29 @@ $Source = @"
 "@;
  
 try {
-    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
     $useTimeOutWebClient = $true
 }
 catch {}
 }
+
+$sslCallbackCode = @"
+	using System.Net.Security;
+	using System.Security.Cryptography.X509Certificates;
+
+	public static class SslVerification
+	{
+		public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+		public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+		public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+	}
+"@
+try {
+    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+        Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    }
+}
+catch {}
 
 function Get-DefaultCredential {
     Param(
@@ -432,11 +450,11 @@ function GetExtendedErrorMessage {
     $message = $exception.Message
 
     if ($errorRecord.ErrorDetails) {
-    try {
-        $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
-        $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
-    }
-    catch {}
+        try {
+            $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
+            $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
+        }
+        catch {}
     }
     try {
         if ($exception -is [System.Management.Automation.MethodInvocationException]) {
@@ -972,12 +990,17 @@ function DownloadFileLow {
         [string] $destinationFile,
         [switch] $dontOverwrite,
         [switch] $useDefaultCredentials,
+        [switch] $skipCertificateCheck,
         [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [int] $timeout = 100
     )
 
     if ($useTimeOutWebClient) {
         Write-Host "Downloading using WebClient"
+        if ($skipCertificateCheck) {
+            Write-Host "Disabling SSL Verification"
+            [SslVerification]::Disable()
+        }
         $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
         $headers.Keys | ForEach-Object {
             $webClient.Headers.Add($_, $headers."$_")
@@ -994,71 +1017,51 @@ function DownloadFileLow {
         }
         finally {
             $webClient.Dispose()
+            if ($skipCertificateCheck) {
+                Write-Host "Restoring SSL Verification"
+                [SslVerification]::Enable()
+            }
         }
     }
     else {
-        if ($PSVersionTable.PSVersion -ge "7.0.0") {
-            Write-Host "Downloading using Invoke-WebRequest"
-            if ($useDefaultCredentials) {
-                $response = Invoke-WebRequest -UseDefaultCredentials -TimeoutSec $timeout -Headers $headers -Uri $sourceUrl -SkipCertificateCheck
-            }
-            else {
-                $response = Invoke-WebRequest -TimeoutSec $timeout -Headers $headers -Uri $sourceUrl -SkipCertificateCheck
-            }
-
-            $fileStream = $null
-            if ($dontOverwrite) {
-                $fileMode = [System.IO.FileMode]::CreateNew
-            }
-            else {
-                $fileMode = [System.IO.FileMode]::Create
-            }
-            try {
-                $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-                $fileStream.Write($response.Content)
-                $fileStream.Close()
-            }
-            finally {
-                if ($fileStream) {
-                    $fileStream.Dispose()
-                }
-            }
+        Write-Host "Downloading using HttpClient"
+        
+        $handler = New-Object System.Net.Http.HttpClientHandler
+        if ($skipCertificateCheck) {
+            Write-Host "Disabling SSL Verification"
+            $handler.ServerCertificateCustomValidationCallback = [SslVerification]::DisabledServerCertificateValidationCallback
+        }
+        if ($useDefaultCredentials) {
+            $handler.UseDefaultCredentials = $true
+        }
+        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+        $headers.Keys | ForEach-Object {
+            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+        }
+        $stream = $null
+        $fileStream = $null
+        if ($dontOverwrite) {
+            $fileMode = [System.IO.FileMode]::CreateNew
         }
         else {
-            Write-Host "Downloading using HttpClient"
-            if ($useDefaultCredentials) {
-                $handler = New-Object System.Net.Http.HttpClientHandler
-                $handler.UseDefaultCredentials = $true
-                $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+            $fileMode = [System.IO.FileMode]::Create
+        }
+        try {
+            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+            $fileStream.Close()
+        }
+        finally {
+            if ($fileStream) {
+                $fileStream.Dispose()
             }
-            else {
-                $httpClient = New-Object System.Net.Http.HttpClient
+            if ($stream) {
+                $stream.Dispose()
             }
-            $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
-            $headers.Keys | ForEach-Object {
-                $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
-            }
-            $stream = $null
-            $fileStream = $null
-            if ($dontOverwrite) {
-                $fileMode = [System.IO.FileMode]::CreateNew
-            }
-            else {
-                $fileMode = [System.IO.FileMode]::Create
-            }
-            try {
-                $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
-                $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-                $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
-                $fileStream.Close()
-            }
-            finally {
-                if ($fileStream) {
-                    $fileStream.Dispose()
-                }
-                if ($stream) {
-                    $stream.Dispose()
-                }
+            if ($skipCertificateCheck) {
+                Write-Host "Restoring SSL Verification" # no action required - only to enforce blocks consistency
             }
         }
     }

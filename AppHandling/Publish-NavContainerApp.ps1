@@ -1,3 +1,21 @@
+$sslCallbackCode = @"
+	using System.Net.Security;
+	using System.Security.Cryptography.X509Certificates;
+
+	public static class SslVerification
+	{
+		public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+		public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+		public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+	}
+"@
+try {
+    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+        Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    }
+}
+catch {}
+
 <# 
  .Synopsis
   Publish App to a NAV/BC Container
@@ -189,6 +207,17 @@ try {
                 }
                 else {
                     $handler = New-Object System.Net.Http.HttpClientHandler
+                    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
+                        $protocol = "https://"
+                    }
+                    else {
+                        $protocol = "http://"
+                    }
+                    $sslVerificationDisabled = ($protocol -eq "https://")
+                    if ($sslVerificationDisabled) {
+                        Write-Host "Disabling SSL Verification"
+                        $handler.ServerCertificateCustomValidationCallback = [SslVerification]::DisabledServerCertificateValidationCallback
+                    }
                     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
                         $handler.UseDefaultCredentials = $true
                     }
@@ -204,13 +233,6 @@ try {
                     }
                     $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
                     $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-                    
-                    if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
-                        $protocol = "https://"
-                    }
-                    else {
-                        $protocol = "http://"
-                    }
                 
                     $ip = Get-BcContainerIpAddress -containerName $containerName
                     if ($ip) {
@@ -218,24 +240,6 @@ try {
                     }
                     else {
                         $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$($customConfig.ServerInstance)"
-                    }
-                
-                    $sslVerificationDisabled = ($protocol -eq "https://")
-                    if ($sslVerificationDisabled) {
-                        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-                        {
-                            Add-Type -TypeDefinition "
-                                using System.Net.Security;
-                                using System.Security.Cryptography.X509Certificates;
-                                public static class SslVerification
-                                {
-                                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                                }"
-                        }
-                        Write-Host "Disabling SSL Verification"
-                        [SslVerification]::Disable()
                     }
                 }
                 
@@ -289,8 +293,7 @@ try {
                 }
             
                 if ($sslverificationdisabled) {
-                    Write-Host "Re-enablssing SSL Verification"
-                    [SslVerification]::Enable()
+                    Write-Host "Restoring SSL Verification" # no action required - only to enforce blocks consistency
                 }
                 if ($bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp -gt 0) {
                     # Avoid race condition
