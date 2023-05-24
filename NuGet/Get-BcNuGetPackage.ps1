@@ -68,7 +68,7 @@ Function Get-BcNuGetPackage {
         }
 
         $packageVersion = $packageMetadata.versions | Where-Object { [System.Version]$_.version -ge $version } | Sort-Object { [System.Version]$_.version } | Select-Object -Last 1
-        if ($packageVersion.'@id' -notlike 'https://*' -and $searchUrl -like 'https://pkgs.dev.azure.com/*/v3/query2/') {
+        if ($packageVersion.'@id' -notlike 'https://*' -and (($searchUrl -like 'https://pkgs.dev.azure.com/*/v3/query2/') -or ($searchUrl -like 'https://*.pkgs.visualstudio.com/_packaging/*/nuget/v3/query2/'))) {
             # Azure DevOps doesn't store URLs to package metadata in @id
             $contentUrl = "$($searchUrl.Substring(0,$searchUrl.Length-10).Replace('/_packaging/','/_apis/packaging/feeds/'))packages/$($packageVersion.'@id')/versions/$($packageVersion.Version)/content"
         }
