@@ -299,9 +299,6 @@ try {
             }
             else {
                 Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
-                    Write-Host "sleeping for 60 seconds"
-                    Start-Sleep -Seconds 60
-                    Write-Host "done sleeping"
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
                         $publishArgs += @{ "Scope" = $scope }
