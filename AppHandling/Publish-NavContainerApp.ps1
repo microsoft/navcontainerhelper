@@ -302,7 +302,7 @@ try {
                 Start-Sleep -seconds 120
 
                 Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
-        
+                try {
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
                         $publishArgs += @{ "Scope" = $scope }
@@ -391,7 +391,11 @@ try {
                             Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
                         }
                     }
-        
+                }
+                catch {
+                    Write-Host "xxxxxxxx Error publishing $appFile"
+                    throw
+                }
                 } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
             }
             Write-Host -ForegroundColor Green "App $([System.IO.Path]::GetFileName($appFile)) successfully published"
