@@ -47,10 +47,10 @@ function Get-BcContainerSession {
                     if (!$winrmuser) {
                         $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
                         winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}')
-                        winrm set winrm/config/service/Auth '@{Basic="true"}'
+                        winrm set winrm/config/service/Auth '@{Basic="true"}' | Out-Null
                         Write-Host "`nCreating Container user $($credential.UserName)"
                         New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
-                        Add-LocalGroupMember -Group administrators -Member $credential.UserName
+                        Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
                     }
                 } -argumentList $credential
                 $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -useSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
