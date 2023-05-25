@@ -57,9 +57,6 @@ function Invoke-ScriptInBcContainer {
     if ($useSession) {
         $startTime = [DateTime]::Now
         try {
-            Write-Host "---------------------------"
-            Write-Host $scriptblock.ToString()
-            Write-Host "---------------------------"
             Invoke-Command -Session $session -ScriptBlock { param($a) $WarningPreference = $a } -ArgumentList $bcContainerHelperConfig.WarningPreference
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
         }
