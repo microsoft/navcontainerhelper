@@ -53,7 +53,7 @@ function Get-BcContainerSession {
                         Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
                     }
                 } -argumentList $credential
-                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -useSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck -OperationTimeout 0)
+                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -useSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
             else {
                 $containerId = Get-BcContainerId -containerName $containerName
