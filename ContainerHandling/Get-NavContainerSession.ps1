@@ -25,6 +25,7 @@ function Get-BcContainerSession {
         $session = $null
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
+            Write-Host "Found session"
             try {
                 Invoke-Command -Session $session -ScriptBlock { $true } | Out-Null
                 if (!$reinit) { return $session }
@@ -35,11 +36,12 @@ function Get-BcContainerSession {
                 $session = $null
             }
         }
+        
         if (!$session) {
             Write-Host "IsInsideContainer $isInsideContainer"
             Write-Host "IsPsCore $isPsCore"
             Write-Host "IsAdministrator $isAdministrator"
-            
+
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
@@ -67,6 +69,7 @@ function Get-BcContainerSession {
             }
             $newsession = $true
         }
+        Write-Host "Initialize session"
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
