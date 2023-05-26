@@ -36,6 +36,10 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
+            Write-Host "IsInsideContainer $isInsideContainer"
+            Write-Host "IsPsCore $isPsCore"
+            Write-Host "IsAdministrator $isAdministrator"
+            
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
