@@ -25,7 +25,6 @@ function Get-BcContainerSession {
         $session = $null
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
-            Write-Host "Found session"
             try {
                 Invoke-Command -Session $session -ScriptBlock { $true } | Out-Null
                 if (!$reinit) { return $session }
@@ -36,21 +35,14 @@ function Get-BcContainerSession {
                 $session = $null
             }
         }
-
         if (!$session) {
-            Write-Host "IsInsideContainer $isInsideContainer"
-            Write-Host "IsPsCore $isPsCore"
-            Write-Host "IsAdministrator $isAdministrator"
-
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
             elseif (!$isAdministrator) {
                 $UUID = (Get-WmiObject -Class "Win32_ComputerSystemProduct").UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
-                winrm get winrm/config | Out-Host
                 Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential)
-                    winrm get winrm/config | Out-Host
                     $winrmuser = get-localuser -name $credential.UserName -ErrorAction SilentlyContinue
                     if (!$winrmuser) {
                         $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
@@ -69,7 +61,6 @@ function Get-BcContainerSession {
             }
             $newsession = $true
         }
-        Write-Host "Initialize session"
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'

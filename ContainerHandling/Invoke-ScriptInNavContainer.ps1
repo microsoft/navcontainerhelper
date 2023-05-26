@@ -25,9 +25,6 @@ function Invoke-ScriptInBcContainer {
         [bool] $useSession = $bcContainerHelperConfig.usePsSession
     )
 
-    Write-Host "IsInsideContainer $isInsideContainer"
-    Write-Host "Invoke Script in Container $useSession"
-    Write-Host $scriptblock.ToString()
     $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
     if (!$useSession) {
@@ -42,12 +39,9 @@ function Invoke-ScriptInBcContainer {
         }
     }
 
-    Write-Host "useSession: $useSession"
-
     if ($useSession) {
         try {
             $session = Get-BcContainerSession -containerName $containerName -silent
-            $session | Out-Host
         }
         catch {
             if ($isInsideContainer) {
@@ -60,8 +54,6 @@ function Invoke-ScriptInBcContainer {
             }
         }
     }
-
-    Write-Host "useSession: $useSession"
 
     if ($useSession) {
         $startTime = [DateTime]::Now
