@@ -39,7 +39,7 @@ function Get-BcContainerSession {
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
-            elseif ($isPsCore -or !$isAdministrator) {
+            elseif (!$isAdministrator) {
                 $UUID = (Get-WmiObject -Class "Win32_ComputerSystemProduct").UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
                 Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential)
