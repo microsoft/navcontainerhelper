@@ -36,7 +36,7 @@ function Get-BcContainerSession {
                 $session = $null
             }
         }
-        
+
         if (!$session) {
             Write-Host "IsInsideContainer $isInsideContainer"
             Write-Host "IsPsCore $isPsCore"
@@ -45,7 +45,7 @@ function Get-BcContainerSession {
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
-            elseif ($isPsCore -or !$isAdministrator) {
+            elseif (!$isAdministrator) {
                 $UUID = (Get-WmiObject -Class "Win32_ComputerSystemProduct").UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
                 winrm get winrm/config | Out-Host
