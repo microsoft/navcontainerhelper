@@ -456,13 +456,13 @@ function GetExtendedErrorMessage {
     $exception = $errorRecord.Exception
     $message = $exception.Message
 
-    if ($errorRecord.ErrorDetails) {
-        try {
+    try {
+        if ($errorRecord.ErrorDetails) {
             $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
             $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
         }
-        catch {}
     }
+    catch {}
     try {
         if ($exception -is [System.Management.Automation.MethodInvocationException]) {
             $exception = $exception.InnerException

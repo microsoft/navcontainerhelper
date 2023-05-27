@@ -1,21 +1,3 @@
-$sslCallbackCode = @"
-	using System.Net.Security;
-	using System.Security.Cryptography.X509Certificates;
-
-	public static class SslVerification
-	{
-		public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-		public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
-		public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-	}
-"@
-try {
-    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
-        Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
-    }
-}
-catch {}
-
 <# 
  .Synopsis
   Publish App to a NAV/BC Container
