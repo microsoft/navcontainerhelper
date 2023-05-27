@@ -64,23 +64,6 @@ try {
     }
 
     $sslVerificationDisabled = ($protocol -eq "https://")
-    if ($sslVerificationDisabled) {
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-        {
-            Add-Type -TypeDefinition "
-                using System.Net.Security;
-                using System.Security.Cryptography.X509Certificates;
-                public static class SslVerification
-                {
-                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                }"
-        }
-        Write-Host "Disabling SSL Verification"
-        [SslVerification]::Disable()
-    }
-    
     $timeout = 300000
     $useDefaultCredentials = $false
     $headers = @{}
@@ -104,16 +87,11 @@ try {
     $url = "$devServerUrl/dev/packages?publisher=$([uri]::EscapeDataString($publisher))&appName=$([uri]::EscapeDataString($appName))&versionText=$($appVersion)&tenant=$tenant"
     Write-Host "Url : $Url"
     try {
-        DownloadFileLow -sourceUrl $url -destinationFile $appFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
+        DownloadFileLow -sourceUrl $url -destinationFile $appFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers -skipCertificateCheck:$sslVerificationDisabled
     }
     catch [System.Net.WebException] {
         Write-Host "ERROR $($_.Exception.Message)"
         throw (GetExtendedErrorMessage $_)
-    }
-
-    if ($sslverificationdisabled) {
-        Write-Host "Re-enabling SSL Verification"
-        [SslVerification]::Enable()
     }
 
     $appFile

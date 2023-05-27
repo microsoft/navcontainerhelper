@@ -1243,16 +1243,18 @@ function Disable-SslVerification
 {
     if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
     {
-        Add-Type -TypeDefinition  @"
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-public static class SslVerification
-{
-    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-}
+$sslCallbackCode = @"
+    using System.Net.Security;
+    using System.Security.Cryptography.X509Certificates;
+
+    public static class SslVerification
+    {
+        public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+    }
 "@
+        Add-Type -TypeDefinition $sslCallbackCode
     }
     [SslVerification]::Disable()
 }
