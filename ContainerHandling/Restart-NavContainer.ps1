@@ -27,8 +27,16 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($renewBindings) {
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { 
-            Set-Content -Path "c:\run\PublicDnsName.txt" -Value ""
+        if ((docker inspect -f '{{.State.Running}}' $containerName) -eq "true") {
+            Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { 
+                Set-Content -Path "c:\run\PublicDnsName.txt" -Value ""
+            }
+        }
+        else {
+            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            Set-Content -Path $tempFile -Value ""
+            docker cp $tempFile "$($containerName):c:\run\PublicDnsName.txt"
+            Remove-Item -Path $tempFile
         }
     }
 
