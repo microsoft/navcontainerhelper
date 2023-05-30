@@ -1,6 +1,6 @@
 ﻿$useTimeOutWebClient = $false
 if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
-$Source = @"
+    $timeoutWebClientCode = @"
 	using System.Net;
  
 	public class TimeoutWebClient : WebClient
@@ -24,12 +24,30 @@ $Source = @"
  	}
 "@;
  
+    try {
+        Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
+        $useTimeOutWebClient = $true
+    }
+    catch {}
+}
+
+$sslCallbackCode = @"
+	using System.Net.Security;
+	using System.Security.Cryptography.X509Certificates;
+
+	public static class SslVerification
+	{
+		public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+		public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+		public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+	}
+"@
 try {
-    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
-    $useTimeOutWebClient = $true
+    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+        Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    }
 }
 catch {}
-}
 
 function Get-DefaultCredential {
     Param(
@@ -43,10 +61,12 @@ function Get-DefaultCredential {
         if (Test-Path "$($bcContainerHelperConfig.hostHelperFolder)\aes.key") {
             $key = Get-Content -Path "$($bcContainerHelperConfig.hostHelperFolder)\aes.key"
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword -Key $key))
-        } else {
+        }
+        else {
             New-Object System.Management.Automation.PSCredential ($DefaultUserName, (ConvertTo-SecureString -String $adminPassword))
         }
-    } else {
+    }
+    else {
         if (!$doNotAskForCredential) {
             Get-Credential -username $DefaultUserName -Message $Message
         }
@@ -55,7 +75,7 @@ function Get-DefaultCredential {
 
 function Get-DefaultSqlCredential {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$containerName,
         [System.Management.Automation.PSCredential]$sqlCredential = $null,
         [switch]$doNotAskForCredential
@@ -122,11 +142,11 @@ function CmdDo {
                 Write-Host $message
             }
             if ($returnValue) {
-                $message.Replace("`r","").Split("`n")
+                $message.Replace("`r", "").Split("`n")
             }
         }
         else {
-            $message += "`n`nExitCode: "+$p.ExitCode + "`nCommandline: $command $arguments"
+            $message += "`n`nExitCode: " + $p.ExitCode + "`nCommandline: $command $arguments"
             throw $message
         }
     }
@@ -138,9 +158,9 @@ function CmdDo {
 
 function DockerDo {
     Param(
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$imageName,
-        [ValidateSet('run','start','pull','restart','stop', 'rmi')]
+        [ValidateSet('run', 'start', 'pull', 'restart', 'stop', 'rmi')]
         [string]$command = "run",
         [switch]$accept_eula,
         [switch]$accept_outdated,
@@ -160,7 +180,7 @@ function DockerDo {
     }
 
     $result = $true
-    $arguments = ("$command "+[string]::Join(" ", $parameters)+" $imageName")
+    $arguments = ("$command " + [string]::Join(" ", $parameters) + " $imageName")
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     $pinfo.FileName = "docker.exe"
     $pinfo.RedirectStandardError = $true
@@ -196,16 +216,19 @@ function DockerDo {
                 $registry = $imageName.Split("/")[0]
                 if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
                     throw "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate."
-                } else {
+                }
+                else {
                     throw "You need to login to $registry prior to pulling images."
                 }
             }
-        } elseif ($outtask.IsCanceled) {
-            break
-        } elseif ($outtask.IsFaulted) {
+        }
+        elseif ($outtask.IsCanceled) {
             break
         }
-    } while(!($p.HasExited))
+        elseif ($outtask.IsFaulted) {
+            break
+        }
+    } while (!($p.HasExited))
     
     $err = $errtask.Result
     $p.WaitForExit();
@@ -225,12 +248,13 @@ function DockerDo {
                     $registry = $imageName.Split("/")[0]
                     if ($registry -eq "bcinsider.azurecr.io" -or $registry -eq "bcprivate.azurecr.io") {
                         $errorMessage += "You need to login to $registry prior to pulling images. Get credentials through the ReadyToGo program on Microsoft Collaborate.`r`n"
-                    } else {
+                    }
+                    else {
                         $errorMessage += "You need to login to $registry prior to pulling images.`r`n"
                     }
                 }
             }
-            $errorMessage += "ExitCode: "+$p.ExitCode + "`r`nCommandline: docker $arguments"
+            $errorMessage += "ExitCode: " + $p.ExitCode + "`r`nCommandline: docker $arguments"
             Write-Error -Message $errorMessage
         }
     }
@@ -304,8 +328,8 @@ function TestSasToken {
     )
 
     if ($sasToken.Contains('?')) {
-        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
-        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3))}
+        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | % { [Uri]::UnescapeDataString($_.Substring(3)) }
+        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3)) }
         if ($st) {
             if ([DateTime]::Now -lt [DateTime]$st) {
                 Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
@@ -325,7 +349,7 @@ function TestSasToken {
 
 function Expand-7zipArchive {
     Param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string] $Path,
         [string] $DestinationPath,
         [switch] $use7zipIfAvailable = $bcContainerHelperConfig.use7zipIfAvailable
@@ -345,13 +369,14 @@ function Expand-7zipArchive {
     if ($use7zip) {
         Write-Host "using 7zip"
         Set-Alias -Name 7z -Value $7zipPath
-        $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path,$DestinationPath
+        $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path, $DestinationPath
         $global:LASTEXITCODE = 0
         Invoke-Expression -Command $command | Out-Null
         if ($LASTEXITCODE -ne 0) {
             throw "Error $LASTEXITCODE extracting $path"
         }
-    } else {
+    }
+    else {
         Write-Host "using Expand-Archive"
         if ([System.IO.Path]::GetExtension($path) -eq '.zip') {
             Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
@@ -414,7 +439,7 @@ function GetTestToolkitApps {
         }
 
         $apps | ForEach-Object {
-            $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app","_*.app")
+            $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app", "_*.app")
             if (!($appFile)) {
                 $appFile = $_
             }
@@ -432,13 +457,23 @@ function GetExtendedErrorMessage {
     $message = $exception.Message
 
     try {
-        $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
-        $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
+        if ($errorRecord.ErrorDetails) {
+            $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
+            $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
+        }
     }
     catch {}
     try {
         if ($exception -is [System.Management.Automation.MethodInvocationException]) {
             $exception = $exception.InnerException
+        }
+        if ($exception -is [System.Net.Http.HttpRequestException]) {
+            $message += "`r`n$($exception.Message)"
+            if ($exception.InnerException) {
+                if ($exception.InnerException -is [System.Security.Authentication.AuthenticationException]) {
+                    $message += "`r`n$($exception.InnerException.Message)"
+                }
+            }
         }
         $webException = [System.Net.WebException]$exception
         $webResponse = $webException.Response
@@ -446,7 +481,8 @@ function GetExtendedErrorMessage {
             if ($webResponse.StatusDescription) {
                 $message += "`r`n$($webResponse.StatusDescription)"
             }
-        } catch {}
+        }
+        catch {}
         $reqstream = $webResponse.GetResponseStream()
         $sr = new-object System.IO.StreamReader $reqstream
         $result = $sr.ReadToEnd()
@@ -465,7 +501,7 @@ function GetExtendedErrorMessage {
         }
         catch {}
     }
-    catch{}
+    catch {}
     $message
 }
 
@@ -483,7 +519,7 @@ function CopyAppFilesToFolder {
     if (!(Test-Path $folder)) {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
-    $appFiles | Where-Object{ $_ } | % {
+    $appFiles | Where-Object { $_ } | % {
         $appFile = $_
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
@@ -544,254 +580,254 @@ function getCountryCode {
     )
 
     $countryCodes = @{
-        "Afghanistan" = "AF"
-        "Åland Islands" = "AX"
-        "Albania" = "AL"
-        "Algeria" = "DZ"
-        "American Samoa" = "AS"
-        "AndorrA" = "AD"
-        "Angola" = "AO"
-        "Anguilla" = "AI"
-        "Antarctica" = "AQ"
-        "Antigua and Barbuda" = "AG"
-        "Argentina" = "AR"
-        "Armenia" = "AM"
-        "Aruba" = "AW"
-        "Australia" = "AU"
-        "Austria" = "AT"
-        "Azerbaijan" = "AZ"
-        "Bahamas" = "BS"
-        "Bahrain" = "BH"
-        "Bangladesh" = "BD"
-        "Barbados" = "BB"
-        "Belarus" = "BY"
-        "Belgium" = "BE"
-        "Belize" = "BZ"
-        "Benin" = "BJ"
-        "Bermuda" = "BM"
-        "Bhutan" = "BT"
-        "Bolivia" = "BO"
-        "Bosnia and Herzegovina" = "BA"
-        "Botswana" = "BW"
-        "Bouvet Island" = "BV"
-        "Brazil" = "BR"
-        "British Indian Ocean Territory" = "IO"
-        "Brunei Darussalam" = "BN"
-        "Bulgaria" = "BG"
-        "Burkina Faso" = "BF"
-        "Burundi" = "BI"
-        "Cambodia" = "KH"
-        "Cameroon" = "CM"
-        "Canada" = "CA"
-        "Cape Verde" = "CV"
-        "Cayman Islands" = "KY"
-        "Central African Republic" = "CF"
-        "Chad" = "TD"
-        "Chile" = "CL"
-        "China" = "CN"
-        "Christmas Island" = "CX"
-        "Cocos (Keeling) Islands" = "CC"
-        "Colombia" = "CO"
-        "Comoros" = "KM"
-        "Congo" = "CG"
-        "Congo, The Democratic Republic of the" = "CD"
-        "Cook Islands" = "CK"
-        "Costa Rica" = "CR"
-        "Cote D'Ivoire" = "CI"
-        "Croatia" = "HR"
-        "Cuba" = "CU"
-        "Cyprus" = "CY"
-        "Czech Republic" = "CZ"
-        "Denmark" = "DK"
-        "Djibouti" = "DJ"
-        "Dominica" = "DM"
-        "Dominican Republic" = "DO"
-        "Ecuador" = "EC"
-        "Egypt" = "EG"
-        "El Salvador" = "SV"
-        "Equatorial Guinea" = "GQ"
-        "Eritrea" = "ER"
-        "Estonia" = "EE"
-        "Ethiopia" = "ET"
-        "Falkland Islands (Malvinas)" = "FK"
-        "Faroe Islands" = "FO"
-        "Fiji" = "FJ"
-        "Finland" = "FI"
-        "France" = "FR"
-        "French Guiana" = "GF"
-        "French Polynesia" = "PF"
-        "French Southern Territories" = "TF"
-        "Gabon" = "GA"
-        "Gambia" = "GM"
-        "Georgia" = "GE"
-        "Germany" = "DE"
-        "Ghana" = "GH"
-        "Gibraltar" = "GI"
-        "Greece" = "GR"
-        "Greenland" = "GL"
-        "Grenada" = "GD"
-        "Guadeloupe" = "GP"
-        "Guam" = "GU"
-        "Guatemala" = "GT"
-        "Guernsey" = "GG"
-        "Guinea" = "GN"
-        "Guinea-Bissau" = "GW"
-        "Guyana" = "GY"
-        "Haiti" = "HT"
-        "Heard Island and Mcdonald Islands" = "HM"
-        "Holy See (Vatican City State)" = "VA"
-        "Honduras" = "HN"
-        "Hong Kong" = "HK"
-        "Hungary" = "HU"
-        "Iceland" = "IS"
-        "India" = "IN"
-        "Indonesia" = "ID"
-        "Iran, Islamic Republic Of" = "IR"
-        "Iraq" = "IQ"
-        "Ireland" = "IE"
-        "Isle of Man" = "IM"
-        "Israel" = "IL"
-        "Italy" = "IT"
-        "Jamaica" = "JM"
-        "Japan" = "JP"
-        "Jersey" = "JE"
-        "Jordan" = "JO"
-        "Kazakhstan" = "KZ"
-        "Kenya" = "KE"
-        "Kiribati" = "KI"
-        "Korea, Democratic People's Republic of" = "KP"
-        "Korea, Republic of" = "KR"
-        "Kuwait" = "KW"
-        "Kyrgyzstan" = "KG"
-        "Lao People's Democratic Republic" = "LA"
-        "Latvia" = "LV"
-        "Lebanon" = "LB"
-        "Lesotho" = "LS"
-        "Liberia" = "LR"
-        "Libyan Arab Jamahiriya" = "LY"
-        "Liechtenstein" = "LI"
-        "Lithuania" = "LT"
-        "Luxembourg" = "LU"
-        "Macao" = "MO"
-        "Macedonia, The Former Yugoslav Republic of" = "MK"
-        "Madagascar" = "MG"
-        "Malawi" = "MW"
-        "Malaysia" = "MY"
-        "Maldives" = "MV"
-        "Mali" = "ML"
-        "Malta" = "MT"
-        "Marshall Islands" = "MH"
-        "Martinique" = "MQ"
-        "Mauritania" = "MR"
-        "Mauritius" = "MU"
-        "Mayotte" = "YT"
-        "Mexico" = "MX"
-        "Micronesia, Federated States of" = "FM"
-        "Moldova, Republic of" = "MD"
-        "Monaco" = "MC"
-        "Mongolia" = "MN"
-        "Montserrat" = "MS"
-        "Morocco" = "MA"
-        "Mozambique" = "MZ"
-        "Myanmar" = "MM"
-        "Namibia" = "NA"
-        "Nauru" = "NR"
-        "Nepal" = "NP"
-        "Netherlands" = "NL"
-        "Netherlands Antilles" = "AN"
-        "New Caledonia" = "NC"
-        "New Zealand" = "NZ"
-        "Nicaragua" = "NI"
-        "Niger" = "NE"
-        "Nigeria" = "NG"
-        "Niue" = "NU"
-        "Norfolk Island" = "NF"
-        "Northern Mariana Islands" = "MP"
-        "Norway" = "NO"
-        "Oman" = "OM"
-        "Pakistan" = "PK"
-        "Palau" = "PW"
-        "Palestinian Territory, Occupied" = "PS"
-        "Panama" = "PA"
-        "Papua New Guinea" = "PG"
-        "Paraguay" = "PY"
-        "Peru" = "PE"
-        "Philippines" = "PH"
-        "Pitcairn" = "PN"
-        "Poland" = "PL"
-        "Portugal" = "PT"
-        "Puerto Rico" = "PR"
-        "Qatar" = "QA"
-        "Reunion" = "RE"
-        "Romania" = "RO"
-        "Russian Federation" = "RU"
-        "RWANDA" = "RW"
-        "Saint Helena" = "SH"
-        "Saint Kitts and Nevis" = "KN"
-        "Saint Lucia" = "LC"
-        "Saint Pierre and Miquelon" = "PM"
-        "Saint Vincent and the Grenadines" = "VC"
-        "Samoa" = "WS"
-        "San Marino" = "SM"
-        "Sao Tome and Principe" = "ST"
-        "Saudi Arabia" = "SA"
-        "Senegal" = "SN"
-        "Serbia and Montenegro" = "CS"
-        "Seychelles" = "SC"
-        "Sierra Leone" = "SL"
-        "Singapore" = "SG"
-        "Slovakia" = "SK"
-        "Slovenia" = "SI"
-        "Solomon Islands" = "SB"
-        "Somalia" = "SO"
-        "South Africa" = "ZA"
+        "Afghanistan"                                  = "AF"
+        "Åland Islands"                                = "AX"
+        "Albania"                                      = "AL"
+        "Algeria"                                      = "DZ"
+        "American Samoa"                               = "AS"
+        "AndorrA"                                      = "AD"
+        "Angola"                                       = "AO"
+        "Anguilla"                                     = "AI"
+        "Antarctica"                                   = "AQ"
+        "Antigua and Barbuda"                          = "AG"
+        "Argentina"                                    = "AR"
+        "Armenia"                                      = "AM"
+        "Aruba"                                        = "AW"
+        "Australia"                                    = "AU"
+        "Austria"                                      = "AT"
+        "Azerbaijan"                                   = "AZ"
+        "Bahamas"                                      = "BS"
+        "Bahrain"                                      = "BH"
+        "Bangladesh"                                   = "BD"
+        "Barbados"                                     = "BB"
+        "Belarus"                                      = "BY"
+        "Belgium"                                      = "BE"
+        "Belize"                                       = "BZ"
+        "Benin"                                        = "BJ"
+        "Bermuda"                                      = "BM"
+        "Bhutan"                                       = "BT"
+        "Bolivia"                                      = "BO"
+        "Bosnia and Herzegovina"                       = "BA"
+        "Botswana"                                     = "BW"
+        "Bouvet Island"                                = "BV"
+        "Brazil"                                       = "BR"
+        "British Indian Ocean Territory"               = "IO"
+        "Brunei Darussalam"                            = "BN"
+        "Bulgaria"                                     = "BG"
+        "Burkina Faso"                                 = "BF"
+        "Burundi"                                      = "BI"
+        "Cambodia"                                     = "KH"
+        "Cameroon"                                     = "CM"
+        "Canada"                                       = "CA"
+        "Cape Verde"                                   = "CV"
+        "Cayman Islands"                               = "KY"
+        "Central African Republic"                     = "CF"
+        "Chad"                                         = "TD"
+        "Chile"                                        = "CL"
+        "China"                                        = "CN"
+        "Christmas Island"                             = "CX"
+        "Cocos (Keeling) Islands"                      = "CC"
+        "Colombia"                                     = "CO"
+        "Comoros"                                      = "KM"
+        "Congo"                                        = "CG"
+        "Congo, The Democratic Republic of the"        = "CD"
+        "Cook Islands"                                 = "CK"
+        "Costa Rica"                                   = "CR"
+        "Cote D'Ivoire"                                = "CI"
+        "Croatia"                                      = "HR"
+        "Cuba"                                         = "CU"
+        "Cyprus"                                       = "CY"
+        "Czech Republic"                               = "CZ"
+        "Denmark"                                      = "DK"
+        "Djibouti"                                     = "DJ"
+        "Dominica"                                     = "DM"
+        "Dominican Republic"                           = "DO"
+        "Ecuador"                                      = "EC"
+        "Egypt"                                        = "EG"
+        "El Salvador"                                  = "SV"
+        "Equatorial Guinea"                            = "GQ"
+        "Eritrea"                                      = "ER"
+        "Estonia"                                      = "EE"
+        "Ethiopia"                                     = "ET"
+        "Falkland Islands (Malvinas)"                  = "FK"
+        "Faroe Islands"                                = "FO"
+        "Fiji"                                         = "FJ"
+        "Finland"                                      = "FI"
+        "France"                                       = "FR"
+        "French Guiana"                                = "GF"
+        "French Polynesia"                             = "PF"
+        "French Southern Territories"                  = "TF"
+        "Gabon"                                        = "GA"
+        "Gambia"                                       = "GM"
+        "Georgia"                                      = "GE"
+        "Germany"                                      = "DE"
+        "Ghana"                                        = "GH"
+        "Gibraltar"                                    = "GI"
+        "Greece"                                       = "GR"
+        "Greenland"                                    = "GL"
+        "Grenada"                                      = "GD"
+        "Guadeloupe"                                   = "GP"
+        "Guam"                                         = "GU"
+        "Guatemala"                                    = "GT"
+        "Guernsey"                                     = "GG"
+        "Guinea"                                       = "GN"
+        "Guinea-Bissau"                                = "GW"
+        "Guyana"                                       = "GY"
+        "Haiti"                                        = "HT"
+        "Heard Island and Mcdonald Islands"            = "HM"
+        "Holy See (Vatican City State)"                = "VA"
+        "Honduras"                                     = "HN"
+        "Hong Kong"                                    = "HK"
+        "Hungary"                                      = "HU"
+        "Iceland"                                      = "IS"
+        "India"                                        = "IN"
+        "Indonesia"                                    = "ID"
+        "Iran, Islamic Republic Of"                    = "IR"
+        "Iraq"                                         = "IQ"
+        "Ireland"                                      = "IE"
+        "Isle of Man"                                  = "IM"
+        "Israel"                                       = "IL"
+        "Italy"                                        = "IT"
+        "Jamaica"                                      = "JM"
+        "Japan"                                        = "JP"
+        "Jersey"                                       = "JE"
+        "Jordan"                                       = "JO"
+        "Kazakhstan"                                   = "KZ"
+        "Kenya"                                        = "KE"
+        "Kiribati"                                     = "KI"
+        "Korea, Democratic People's Republic of"       = "KP"
+        "Korea, Republic of"                           = "KR"
+        "Kuwait"                                       = "KW"
+        "Kyrgyzstan"                                   = "KG"
+        "Lao People's Democratic Republic"             = "LA"
+        "Latvia"                                       = "LV"
+        "Lebanon"                                      = "LB"
+        "Lesotho"                                      = "LS"
+        "Liberia"                                      = "LR"
+        "Libyan Arab Jamahiriya"                       = "LY"
+        "Liechtenstein"                                = "LI"
+        "Lithuania"                                    = "LT"
+        "Luxembourg"                                   = "LU"
+        "Macao"                                        = "MO"
+        "Macedonia, The Former Yugoslav Republic of"   = "MK"
+        "Madagascar"                                   = "MG"
+        "Malawi"                                       = "MW"
+        "Malaysia"                                     = "MY"
+        "Maldives"                                     = "MV"
+        "Mali"                                         = "ML"
+        "Malta"                                        = "MT"
+        "Marshall Islands"                             = "MH"
+        "Martinique"                                   = "MQ"
+        "Mauritania"                                   = "MR"
+        "Mauritius"                                    = "MU"
+        "Mayotte"                                      = "YT"
+        "Mexico"                                       = "MX"
+        "Micronesia, Federated States of"              = "FM"
+        "Moldova, Republic of"                         = "MD"
+        "Monaco"                                       = "MC"
+        "Mongolia"                                     = "MN"
+        "Montserrat"                                   = "MS"
+        "Morocco"                                      = "MA"
+        "Mozambique"                                   = "MZ"
+        "Myanmar"                                      = "MM"
+        "Namibia"                                      = "NA"
+        "Nauru"                                        = "NR"
+        "Nepal"                                        = "NP"
+        "Netherlands"                                  = "NL"
+        "Netherlands Antilles"                         = "AN"
+        "New Caledonia"                                = "NC"
+        "New Zealand"                                  = "NZ"
+        "Nicaragua"                                    = "NI"
+        "Niger"                                        = "NE"
+        "Nigeria"                                      = "NG"
+        "Niue"                                         = "NU"
+        "Norfolk Island"                               = "NF"
+        "Northern Mariana Islands"                     = "MP"
+        "Norway"                                       = "NO"
+        "Oman"                                         = "OM"
+        "Pakistan"                                     = "PK"
+        "Palau"                                        = "PW"
+        "Palestinian Territory, Occupied"              = "PS"
+        "Panama"                                       = "PA"
+        "Papua New Guinea"                             = "PG"
+        "Paraguay"                                     = "PY"
+        "Peru"                                         = "PE"
+        "Philippines"                                  = "PH"
+        "Pitcairn"                                     = "PN"
+        "Poland"                                       = "PL"
+        "Portugal"                                     = "PT"
+        "Puerto Rico"                                  = "PR"
+        "Qatar"                                        = "QA"
+        "Reunion"                                      = "RE"
+        "Romania"                                      = "RO"
+        "Russian Federation"                           = "RU"
+        "RWANDA"                                       = "RW"
+        "Saint Helena"                                 = "SH"
+        "Saint Kitts and Nevis"                        = "KN"
+        "Saint Lucia"                                  = "LC"
+        "Saint Pierre and Miquelon"                    = "PM"
+        "Saint Vincent and the Grenadines"             = "VC"
+        "Samoa"                                        = "WS"
+        "San Marino"                                   = "SM"
+        "Sao Tome and Principe"                        = "ST"
+        "Saudi Arabia"                                 = "SA"
+        "Senegal"                                      = "SN"
+        "Serbia and Montenegro"                        = "CS"
+        "Seychelles"                                   = "SC"
+        "Sierra Leone"                                 = "SL"
+        "Singapore"                                    = "SG"
+        "Slovakia"                                     = "SK"
+        "Slovenia"                                     = "SI"
+        "Solomon Islands"                              = "SB"
+        "Somalia"                                      = "SO"
+        "South Africa"                                 = "ZA"
         "South Georgia and the South Sandwich Islands" = "GS"
-        "Spain" = "ES"
-        "Sri Lanka" = "LK"
-        "Sudan" = "SD"
-        "Suriname" = "SR"
-        "Svalbard and Jan Mayen" = "SJ"
-        "Swaziland" = "SZ"
-        "Sweden" = "SE"
-        "Switzerland" = "CH"
-        "Syrian Arab Republic" = "SY"
-        "Taiwan, Province of China" = "TW"
-        "Tajikistan" = "TJ"
-        "Tanzania, United Republic of" = "TZ"
-        "Thailand" = "TH"
-        "Timor-Leste" = "TL"
-        "Togo" = "TG"
-        "Tokelau" = "TK"
-        "Tonga" = "TO"
-        "Trinidad and Tobago" = "TT"
-        "Tunisia" = "TN"
-        "Turkey" = "TR"
-        "Turkmenistan" = "TM"
-        "Turks and Caicos Islands" = "TC"
-        "Tuvalu" = "TV"
-        "Uganda" = "UG"
-        "Ukraine" = "UA"
-        "United Arab Emirates" = "AE"
-        "United Kingdom" = "GB"
-        "United States" = "US"
-        "United States Minor Outlying Islands" = "UM"
-        "Uruguay" = "UY"
-        "Uzbekistan" = "UZ"
-        "Vanuatu" = "VU"
-        "Venezuela" = "VE"
-        "Viet Nam" = "VN"
-        "Virgin Islands, British" = "VG"
-        "Virgin Islands, U.S." = "VI"
-        "Wallis and Futuna" = "WF"
-        "Western Sahara" = "EH"
-        "Yemen" = "YE"
-        "Zambia" = "ZM"
-        "Zimbabwe" = "ZW"
-        "Hong Kong SAR" = "HK"
-        "Serbia" = "RS"
-        "Korea" = "KR"
-        "Taiwan" = "TW"
-        "Vietnam" = "VN"
+        "Spain"                                        = "ES"
+        "Sri Lanka"                                    = "LK"
+        "Sudan"                                        = "SD"
+        "Suriname"                                     = "SR"
+        "Svalbard and Jan Mayen"                       = "SJ"
+        "Swaziland"                                    = "SZ"
+        "Sweden"                                       = "SE"
+        "Switzerland"                                  = "CH"
+        "Syrian Arab Republic"                         = "SY"
+        "Taiwan, Province of China"                    = "TW"
+        "Tajikistan"                                   = "TJ"
+        "Tanzania, United Republic of"                 = "TZ"
+        "Thailand"                                     = "TH"
+        "Timor-Leste"                                  = "TL"
+        "Togo"                                         = "TG"
+        "Tokelau"                                      = "TK"
+        "Tonga"                                        = "TO"
+        "Trinidad and Tobago"                          = "TT"
+        "Tunisia"                                      = "TN"
+        "Turkey"                                       = "TR"
+        "Turkmenistan"                                 = "TM"
+        "Turks and Caicos Islands"                     = "TC"
+        "Tuvalu"                                       = "TV"
+        "Uganda"                                       = "UG"
+        "Ukraine"                                      = "UA"
+        "United Arab Emirates"                         = "AE"
+        "United Kingdom"                               = "GB"
+        "United States"                                = "US"
+        "United States Minor Outlying Islands"         = "UM"
+        "Uruguay"                                      = "UY"
+        "Uzbekistan"                                   = "UZ"
+        "Vanuatu"                                      = "VU"
+        "Venezuela"                                    = "VE"
+        "Viet Nam"                                     = "VN"
+        "Virgin Islands, British"                      = "VG"
+        "Virgin Islands, U.S."                         = "VI"
+        "Wallis and Futuna"                            = "WF"
+        "Western Sahara"                               = "EH"
+        "Yemen"                                        = "YE"
+        "Zambia"                                       = "ZM"
+        "Zimbabwe"                                     = "ZW"
+        "Hong Kong SAR"                                = "HK"
+        "Serbia"                                       = "RS"
+        "Korea"                                        = "KR"
+        "Taiwan"                                       = "TW"
+        "Vietnam"                                      = "VN"
     }
 
     $countryCode = $countryCode.Trim()
@@ -888,13 +924,13 @@ function GetRandomPassword {
     $numbers = '0123456789'
 
     ((RandomChar $cons).ToUpper() + `
-     (RandomChar $voc) + `
-     (RandomChar $cons) + `
-     (RandomChar $voc) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers) + `
-     (RandomChar $numbers))
+    (RandomChar $voc) + `
+    (RandomChar $cons) + `
+    (RandomChar $voc) + `
+    (RandomChar $numbers) + `
+    (RandomChar $numbers) + `
+    (RandomChar $numbers) + `
+    (RandomChar $numbers))
 }
 
 function getVolumeMountParameter($volumes, $hostPath, $containerPath) {
@@ -962,13 +998,18 @@ function DownloadFileLow {
         [string] $destinationFile,
         [switch] $dontOverwrite,
         [switch] $useDefaultCredentials,
+        [switch] $skipCertificateCheck,
         [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [int] $timeout = 100
     )
 
     if ($useTimeOutWebClient) {
         Write-Host "Downloading using WebClient"
-        $webClient = New-Object TimeoutWebClient -ArgumentList (1000*$timeout)
+        if ($skipCertificateCheck) {
+            Write-Host "Disabling SSL Verification"
+            [SslVerification]::Disable()
+        }
+        $webClient = New-Object TimeoutWebClient -ArgumentList (1000 * $timeout)
         $headers.Keys | ForEach-Object {
             $webClient.Headers.Add($_, $headers."$_")
         }
@@ -984,18 +1025,24 @@ function DownloadFileLow {
         }
         finally {
             $webClient.Dispose()
+            if ($skipCertificateCheck) {
+                Write-Host "Restoring SSL Verification"
+                [SslVerification]::Enable()
+            }
         }
     }
     else {
         Write-Host "Downloading using HttpClient"
+        
+        $handler = New-Object System.Net.Http.HttpClientHandler
+        if ($skipCertificateCheck) {
+            Write-Host "Disabling SSL Verification"
+            $handler.ServerCertificateCustomValidationCallback = [SslVerification]::DisabledServerCertificateValidationCallback
+        }
         if ($useDefaultCredentials) {
-            $handler = New-Object System.Net.Http.HttpClientHandler
             $handler.UseDefaultCredentials = $true
-            $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
         }
-        else {
-            $httpClient = New-Object System.Net.Http.HttpClient
-        }
+        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
         $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
         $headers.Keys | ForEach-Object {
             $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
@@ -1020,6 +1067,9 @@ function DownloadFileLow {
             }
             if ($stream) {
                 $stream.Dispose()
+            }
+            if ($skipCertificateCheck) {
+                Write-Host "Restoring SSL Verification" # no action required - only to enforce blocks consistency
             }
         }
     }
@@ -1072,13 +1122,13 @@ function GetAppInfo {
                     $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
                     $manifest = $package.ReadNavAppManifest()
                     $appInfo = @{
-                        "appId" = $manifest.AppId
-                        "publisher" = $manifest.AppPublisher
-                        "name" = $manifest.AppName
-                        "version" = "$($manifest.AppVersion)"
-                        "dependencies" = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
-                        "application" = "$($manifest.Application)"
-                        "platform" = "$($manifest.Platform)"
+                        "appId"                 = $manifest.AppId
+                        "publisher"             = $manifest.AppPublisher
+                        "name"                  = $manifest.AppName
+                        "version"               = "$($manifest.AppVersion)"
+                        "dependencies"          = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                        "application"           = "$($manifest.Application)"
+                        "platform"              = "$($manifest.Platform)"
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     if ($cacheAppInfo) {
@@ -1086,15 +1136,15 @@ function GetAppInfo {
                     }
                 }
                 @{
-                    "Id" = $appInfo.appId
-                    "AppId" = $appInfo.appId
-                    "Publisher" = $appInfo.publisher
-                    "Name" = $appInfo.name
-                    "Version" = [System.Version]$appInfo.version
-                    "Dependencies" = @($appInfo.dependencies)
-                    "Path" = $path
-                    "Application" = $appInfo.application
-                    "Platform" = $appInfo.platform
+                    "Id"                    = $appInfo.appId
+                    "AppId"                 = $appInfo.appId
+                    "Publisher"             = $appInfo.publisher
+                    "Name"                  = $appInfo.name
+                    "Version"               = [System.Version]$appInfo.version
+                    "Dependencies"          = @($appInfo.dependencies)
+                    "Path"                  = $path
+                    "Application"           = $appInfo.application
+                    "Platform"              = $appInfo.platform
                     "PropagateDependencies" = $appInfo.propagateDependencies
                 }
             }

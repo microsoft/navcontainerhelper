@@ -391,25 +391,8 @@ try {
             $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$ServerInstance"
         }
     
-        $sslVerificationDisabled = ($protocol -eq "https://")
-        if ($sslVerificationDisabled) {
-            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-            {
-                Add-Type -TypeDefinition "
-                    using System.Net.Security;
-                    using System.Security.Cryptography.X509Certificates;
-                    public static class SslVerification
-                    {
-                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                    }"
-            }
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
-        }
-    
         $timeout = 300000
+        $sslVerificationDisabled = ($protocol -eq "https://")    
         if ($customConfig.ClientServicesCredentialType -eq "Windows") {
             $useDefaultCredentials = $true
         }
@@ -467,7 +450,7 @@ try {
                 }
                 Write-Host "Url : $Url"
                 try {
-                    DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers
+                    DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers -skipCertificateCheck:$sslVerificationDisabled
                 }
                 catch {
                     $throw = $true
@@ -559,11 +542,6 @@ try {
             }
         }
         $depidx++
-    }
- 
-    if ($sslverificationdisabled) {
-        Write-Host "Re-enabling SSL Verification"
-        [SslVerification]::Enable()
     }
 
     $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies )
