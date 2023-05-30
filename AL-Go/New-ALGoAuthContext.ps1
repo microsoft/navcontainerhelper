@@ -57,6 +57,7 @@ function New-ALGoAuthContext {
         else {
             $ht = @{
                 "TenantID" = $authContext.TenantID
+                "ClientID" = $authContext.ClientID
                 "RefreshToken" = $authContext.RefreshToken
                 "Scopes" = $authContext.Scopes
             }
