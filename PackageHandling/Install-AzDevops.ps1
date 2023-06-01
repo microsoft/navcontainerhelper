@@ -10,16 +10,19 @@ function Install-AzDevops {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
-    Try {
+    try {
         $az_upgrade = Write-Output n | az upgrade 2>&1
     } catch {
-        $az_upgrade = ""
+        $az_upgrade = "Latest version available"
     }
 
     if (@($az_upgrade | Select-String "Latest version available").Count -ne 0) {
-        Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
+        $ProgressPreference = 'SilentlyContinue' 
+        Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi 
+        Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'
+        Remove-Item .\AzureCLI.msi
     }
+    
     $extensions = az extension list -o json | ConvertFrom-Json
 
     $devopsFound = $False
