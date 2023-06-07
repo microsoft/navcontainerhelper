@@ -271,3 +271,12 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
+
+# Alpaca Container Handling
+. (Join-Path $PSScriptRoot "Alpaca\HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Remove-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Stop-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Start-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Get-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Wait-AlpacaBcContainerReady.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\New-AlpacaBcContainer.ps1")

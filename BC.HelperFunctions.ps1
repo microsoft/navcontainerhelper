@@ -98,6 +98,13 @@ function Get-ContainerHelperConfig {
             "DoNotUseCdnForArtifacts" = $false
             "MinimumDotNetRuntimeVersion" = [System.Version]"6.0.16"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
+            "AlpacaSettings" = [PSCustomObject]@{
+                "BaseUrl" = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com/api/docker/release"
+                "ApiVersion" = "0.12"
+                "RunFolderUrl" = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com/automation/0.11/startupfile/package/{0}"
+                "OAuthClientId" = "826586f0-e95e-4afb-80bf-086c79dc3fa7"
+                "OAuthScopes" = "api://b52e8b6a-2953-4a08-8e28-5cf45a2dffdc/.default offline_access"
+            }
         }
 
         if ($isInsider) {
