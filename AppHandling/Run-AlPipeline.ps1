@@ -120,6 +120,8 @@
   Include this switch to indicate that you do not want to publish the app. Including this switch will also mean that upgrade won't happen and tests won't run.
  .Parameter uninstallRemovedApps
   Include this switch to indicate that you want to uninstall apps, which are included in previousApps, but not included (upgraded) in apps, i.e. removed apps
+ .Parameter useCompilerFolder
+  Include this switch to indicate that you want to use the compiler folder instead of creating a docker container for app compilation.
  .Parameter reUseContainer
   Including the reUseContainer switch causes pipeline to reuse the container with the given name if it exists
  .Parameter keepContainer
@@ -174,6 +176,10 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
+ .Parameter PreCompileApp
+  Custom script to run before compiling an app. The script will be run only if `useCompilerFolder` switch is set.
+ .Parameter PostCompileApp
+  Custom script to run after compiling an app. The script will be run only if `useCompilerFolder` switch is set.
  .Parameter GetBcContainerAppInfo
   Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
@@ -274,6 +280,7 @@ Param(
     [switch] $doNotPerformUpgrade,
     [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
+    [Parameter(ParameterSetName='UseCompilerFolder')]
     [switch] $useCompilerFolder = $bcContainerHelperConfig.useCompilerFolder,
     [switch] $reUseContainer,
     [switch] $keepContainer,
@@ -301,6 +308,10 @@ Param(
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
+    [Parameter(ParameterSetName='UseCompilerFolder')]
+    [scriptblock] $PreCompileApp,
+    [Parameter(ParameterSetName='UseCompilerFolder')]
+    [scriptblock] $PostCompileApp,
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
     [scriptblock] $UnPublishBcContainerApp,
@@ -710,6 +721,15 @@ if ($CompileAppInBcContainer) {
 else {
     $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
 }
+
+if ($PreCompileApp) {
+    Write-Host -ForegroundColor Yellow "Custom pre-compilation script defined."; Write-Host $PreCompileApp.ToString()
+}
+
+if($PostCompileApp) {
+    Write-Host -ForegroundColor Yellow "Custom post-compilation script defined."; Write-Host $PostCompileApp.ToString()
+}
+
 if ($GetBcContainerAppInfo) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
@@ -1746,11 +1766,34 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    # Script block for compiling an app using a compiler folder
+    $CompileAppWithBCCompilerFolder = {
+        Param(
+            [scriptblock] $PreCompileApp,
+            [scriptblock] $PostCompileApp,
+            $Parameters
+        )
+
+        if($PreCompileApp) {
+            Write-Host "Running custom PreCompileApp"
+            Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList $Parameters
+        }
+
+        $appFile = Compile-AppWithBcCompilerFolder @Parameters
+
+        if($PostCompileApp) {
+            Write-Host "Running custom PostCompileApp"
+            Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $Parameters
+        }
+        
+        return $appFile
+    }
+
     try {
         Write-Host "`nCompiling $($Parameters.appProjectFolder)"
         $withCops = $Parameters+$CopParameters
         if ($useCompilerFolder) {
-            $appFile = Compile-AppWithBcCompilerFolder @parameters
+            $appFile = Invoke-Command -ScriptBlock $CompileAppWithBCCompilerFolder -ArgumentList $PreCompileApp, $PostCompileApp, $Parameters
         }
         else {
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $withCops
@@ -1760,7 +1803,7 @@ Write-Host -ForegroundColor Yellow @'
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
             if ($useCompilerFolder) {
-                $appFile = Compile-AppWithBcCompilerFolder @parameters
+                $appFile = Invoke-Command -ScriptBlock $CompileAppWithBCCompilerFolder -ArgumentList $PreCompileApp, $PostCompileApp, $Parameters
             }
             else {
                 $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
