@@ -1657,6 +1657,9 @@ Write-Host -ForegroundColor Yellow @'
         "appProjectFolder" = $folder
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
+        "isApp" = $app
+        "isTestApp" = $testApp
+        "isBCPTApp" = $bcptTestApp
         "AzureDevOps" = $azureDevOps
         "GitHubActions" = $gitHubActions
         "preProcessorSymbols" = $preProcessorSymbols
