@@ -177,10 +177,10 @@
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
  .Parameter PreCompileApp
-  Custom script to run before compiling an app. The script will be run only if `useCompilerFolder` switch is set.
+  Custom script to run before compiling an app.
   The script accepts the compilation parameters as a reference parameter.
  .Parameter PostCompileApp
-  Custom script to run after compiling an app. The script will be run only if `useCompilerFolder` switch is set.
+  Custom script to run after compiling an app.
   The script accepts the file path of the produced .app file and the used compilation parameters as parameters.
  .Parameter GetBcContainerAppInfo
   Override function parameter for Get-BcContainerAppInfo
@@ -282,7 +282,6 @@ Param(
     [switch] $doNotPerformUpgrade,
     [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
-    [Parameter(ParameterSetName='UseCompilerFolder')]
     [switch] $useCompilerFolder = $bcContainerHelperConfig.useCompilerFolder,
     [switch] $reUseContainer,
     [switch] $keepContainer,
@@ -310,9 +309,7 @@ Param(
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
-    [Parameter(ParameterSetName='UseCompilerFolder')]
     [scriptblock] $PreCompileApp,
-    [Parameter(ParameterSetName='UseCompilerFolder')]
     [scriptblock] $PostCompileApp,
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
@@ -1774,7 +1771,7 @@ Write-Host -ForegroundColor Yellow @'
     $compilationParams = $Parameters + $CopParameters
 
     # Run pre-compile script if specified
-    if($PreCompileApp -and $useCompilerFolder) {
+    if($PreCompileApp) {
         Write-Host "Running custom pre-compilation script..."
 
         Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList ([ref] $compilationParams)
@@ -1806,7 +1803,7 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     # Run post-compile script if specified
-    if($PostCompileApp -and $useCompilerFolder) {
+    if($PostCompileApp) {
         Write-Host "Running custom post-compilation script..."
 
         Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $appFile, $compilationParams
