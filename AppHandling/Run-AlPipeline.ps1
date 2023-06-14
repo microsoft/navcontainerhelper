@@ -726,7 +726,8 @@ if ($PreCompileApp) {
     Write-Host -ForegroundColor Yellow "Custom pre-compilation script defined."; Write-Host $PreCompileApp.ToString()
 }
 
-if($PostCompileApp) {
+if ($PostCompileApp) {
+
     Write-Host -ForegroundColor Yellow "Custom post-compilation script defined."; Write-Host $PostCompileApp.ToString()
 }
 
@@ -1775,14 +1776,16 @@ Write-Host -ForegroundColor Yellow @'
         )
 
         if($PreCompileApp) {
-            Write-Host "Running custom PreCompileApp"
+            Write-Host "Running custom pre-compilation script..."
+
             Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList $Parameters
         }
 
         $appFile = Compile-AppWithBcCompilerFolder @Parameters
 
         if($PostCompileApp) {
-            Write-Host "Running custom PostCompileApp"
+            Write-Host "Running custom post-compilation script..."
+
             Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $Parameters
         }
         
