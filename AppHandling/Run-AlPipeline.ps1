@@ -178,10 +178,29 @@
   Override function parameter for Compile-AppInBcContainer
  .Parameter PreCompileApp
   Custom script to run before compiling an app.
-  The script accepts the compilation parameters as a reference parameter.
+  The script should accept the type of the app and a reference to the compilation parameters.
+  Possible values for $appType are: app, testApp, bcptApp
+  Example:
+  {
+    param(
+        [string] $appType,
+        [ref] $compilationParams
+    )
+    ...
+  }
  .Parameter PostCompileApp
   Custom script to run after compiling an app.
-  The script accepts the file path of the produced .app file and the used compilation parameters as parameters.
+  The script should accept the file path of the produced .app file, the type of the app, and a hashtable of the compilation parameters.
+  Possible values for $appType are: app, testApp, bcptApp
+  Example:
+  {
+    param(
+        [string] $appFilePath,
+        [string] $appType,
+        [hashtable] $compilationParams
+    )
+    ...
+  }
  .Parameter GetBcContainerAppInfo
   Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
@@ -1654,9 +1673,6 @@ Write-Host -ForegroundColor Yellow @'
         "appProjectFolder" = $folder
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
-        "isApp" = $app
-        "isTestApp" = $testApp
-        "isBCPTApp" = $bcptTestApp
         "AzureDevOps" = $azureDevOps
         "GitHubActions" = $gitHubActions
         "preProcessorSymbols" = $preProcessorSymbols
@@ -1768,13 +1784,20 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    $appType = switch ($true) {
+        $app { "app" }
+        $testApp { "testApp" }
+        $bcptTestApp { "bcptApp" }
+        Default { "app" }
+    }
+
     $compilationParams = $Parameters + $CopParameters
 
     # Run pre-compile script if specified
     if($PreCompileApp) {
         Write-Host "Running custom pre-compilation script..."
 
-        Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList ([ref] $compilationParams)
+        Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList $appType, ([ref] $compilationParams)
     }
 
     try {
@@ -1806,7 +1829,7 @@ Write-Host -ForegroundColor Yellow @'
     if($PostCompileApp) {
         Write-Host "Running custom post-compilation script..."
 
-        Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $appFile, $compilationParams
+        Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $appFile, $appType, $compilationParams
     }
 
     if ($useDevEndpoint) {
