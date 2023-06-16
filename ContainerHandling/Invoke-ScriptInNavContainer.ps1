@@ -54,6 +54,7 @@ function Invoke-ScriptInBcContainer {
             }
         }
     }
+    Write-Host $useSession
     if ($useSession) {
         $startTime = [DateTime]::Now
         try {
