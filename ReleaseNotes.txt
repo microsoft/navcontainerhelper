@@ -4,6 +4,7 @@ Issue #3061 Remove-BcEnvironment without doNotWait stopped working
 Align naming of all SaaS functions. Get-BcEnvironmentUpdateWindow, Get-BcEnvironmentScheduledUpgrade, Get-BcEnvironmentUsedStorage,... (added Alias' for all former names)
 Issue #3071 Restart-BCContainer with renewBindings fails because container is not running
 Add functions for supporting Alpaca Containers
+Add parameters `PreCompileApp` and `PostCompileApp` to `Run-AlPipeline` to allow running custom scripts before and after compiling an app.
 
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
