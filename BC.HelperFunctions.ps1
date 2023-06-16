@@ -13,7 +13,8 @@ function Get-ContainerHelperConfig {
             "bcartifactsCacheFolder" = ""
             "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
-            "usePsSession" = $isAdministrator -or $isPsCore
+            "usePsSession" = $true
+            "tryWinRmSession" = !$isAdministrator
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
             "useVolumes" = $false

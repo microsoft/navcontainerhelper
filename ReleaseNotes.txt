@@ -5,6 +5,7 @@ Align naming of all SaaS functions. Get-BcEnvironmentUpdateWindow, Get-BcEnviron
 Issue #3071 Restart-BCContainer with renewBindings fails because container is not running
 Add functions for supporting Alpaca Containers
 Issue #3089 Regression: Cannot find path 'C:\Windows\SysWow64\NavSip.dll' because it does not exist.
+Issue #3087 Enter-BCContainer on PowerShell 7 doesn't seem to work
 
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
