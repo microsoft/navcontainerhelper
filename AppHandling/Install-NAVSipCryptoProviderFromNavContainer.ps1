@@ -41,7 +41,7 @@ try {
     Write-Host "Copy SIP crypto provider from container $containerName"
     Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip64Path
     try {
-        Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path
+        Copy-FileFromBcContainer -containerName $containerName -ContainerPath $navSip32Path -ErrorAction SilentlyContinue
     }
     catch {}
 
