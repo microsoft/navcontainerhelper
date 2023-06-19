@@ -120,6 +120,8 @@
   Include this switch to indicate that you do not want to publish the app. Including this switch will also mean that upgrade won't happen and tests won't run.
  .Parameter uninstallRemovedApps
   Include this switch to indicate that you want to uninstall apps, which are included in previousApps, but not included (upgraded) in apps, i.e. removed apps
+ .Parameter useCompilerFolder
+  Include this switch to indicate that you want to use the compiler folder instead of creating a docker container for app compilation.
  .Parameter reUseContainer
   Including the reUseContainer switch causes pipeline to reuse the container with the given name if it exists
  .Parameter keepContainer
@@ -174,6 +176,44 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
+ .Parameter PreCompileApp
+  Custom script to run before compiling an app.
+  The script should accept the type of the app and a reference to the compilation parameters.
+  Possible values for $appType are: app, testApp, bcptApp
+  Example:
+  {
+    param(
+        [string] $appType,
+        [ref] $compilationParams
+    )
+    ...
+    # Change the output folder based on the app type
+    switch($appType) {
+        "app" {
+            $compilationParams.Value.appOutputFolder = "MyApps"
+        }
+        "testApp" {
+            $compilationParams.Value.appOutputFolder = "MyTestApps"
+        }
+        "bcptApp" {
+            $compilationParams.Value.appOutputFolder = "MyBcptApps"
+        }
+    }
+    ...
+  }
+ .Parameter PostCompileApp
+  Custom script to run after compiling an app.
+  The script should accept the file path of the produced .app file, the type of the app, and a hashtable of the compilation parameters.
+  Possible values for $appType are: app, testApp, bcptApp
+  Example:
+  {
+    param(
+        [string] $appFilePath,
+        [string] $appType,
+        [hashtable] $compilationParams
+    )
+    ...
+  }
  .Parameter GetBcContainerAppInfo
   Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
@@ -301,6 +341,8 @@ Param(
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
+    [scriptblock] $PreCompileApp,
+    [scriptblock] $PostCompileApp,
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
     [scriptblock] $UnPublishBcContainerApp,
@@ -710,6 +752,15 @@ if ($CompileAppInBcContainer) {
 else {
     $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
 }
+
+if ($PreCompileApp) {
+    Write-Host -ForegroundColor Yellow "Custom pre-compilation script defined."; Write-Host $PreCompileApp.ToString()
+}
+
+if ($PostCompileApp) {
+    Write-Host -ForegroundColor Yellow "Custom post-compilation script defined."; Write-Host $PostCompileApp.ToString()
+}
+
 if ($GetBcContainerAppInfo) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
@@ -1746,29 +1797,56 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    $appType = switch ($true) {
+        $app { "app" }
+        $testApp { "testApp" }
+        $bcptTestApp { "bcptApp" }
+        Default { "app" }
+    }
+
+    $compilationParams = $Parameters + $CopParameters
+
+    # Run pre-compile script if specified
+    if($PreCompileApp) {
+        Write-Host "Running custom pre-compilation script..."
+
+        Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList $appType, ([ref] $compilationParams)
+    }
+
     try {
-        Write-Host "`nCompiling $($Parameters.appProjectFolder)"
-        $withCops = $Parameters+$CopParameters
+        Write-Host "`nCompiling $($compilationParams.appProjectFolder)"
         if ($useCompilerFolder) {
-            $appFile = Compile-AppWithBcCompilerFolder @parameters
+            $appFile = Compile-AppWithBcCompilerFolder @compilationParams
         }
         else {
-            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $withCops
+            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
         }
     }
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
+
+            # Remove Cops parameters
+            $compilationParamsCopy = $compilationParams.Clone()
+            $compilationParamsCopy.Keys | Where-Object {$_ -in $CopParameters.Keys} | ForEach-Object { $compilationParams.Remove($_) }
+
             if ($useCompilerFolder) {
-                $appFile = Compile-AppWithBcCompilerFolder @parameters
+                $appFile = Compile-AppWithBcCompilerFolder @compilationParams
             }
             else {
-                $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
+                $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
             }
         }
         else {
             throw $_
         }
+    }
+
+    # Run post-compile script if specified
+    if($PostCompileApp) {
+        Write-Host "Running custom post-compilation script..."
+
+        Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $appFile, $appType, $compilationParams
     }
 
     if ($useDevEndpoint) {
