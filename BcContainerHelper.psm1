@@ -280,3 +280,5 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "Alpaca\Get-AlpacaBcContainer.ps1")
 . (Join-Path $PSScriptRoot "Alpaca\Wait-AlpacaBcContainerReady.ps1")
 . (Join-Path $PSScriptRoot "Alpaca\New-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Invoke-ScriptInAlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Alpaca\Get-AlpacaBcContainerEventlog.ps1")

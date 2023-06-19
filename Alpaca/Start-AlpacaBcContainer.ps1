@@ -8,6 +8,8 @@
   Authorization Context for Alpaca obtained by New-BcAuthContext with -clientId $bcContainerHelperConfig.AlpacaSettings.OAuthClientId -Scopes $bcContainerHelperConfig.AlpacaSettings.OAuthScopes
  .PARAMETER containerId
   Container id of the Alpaca Container to start.
+ .PARAMETER doNotWait
+  Include this switch if you do not want to wait for the container to be ready.
  .EXAMPLE
   $authContext = New-BcAuthContext -clientId $bcContainerHelperConfig.AlpacaSettings.OAuthClientId -Scopes $bcContainerHelperConfig.AlpacaSettings.OAuthScopes -includeDeviceLogin
   Start-AlpacaBcContainer -authContext $authContext -containerId $containerId
