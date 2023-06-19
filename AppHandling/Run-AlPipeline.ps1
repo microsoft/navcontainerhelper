@@ -1812,7 +1812,11 @@ Write-Host -ForegroundColor Yellow @'
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
-            $compilationParams = $Parameters
+
+            # Remove Cops parameters
+            $compilationParamsCopy = $compilationParams.Clone()
+            $compilationParamsCopy.Keys | Where-Object {$_ -in $CopParameters.Keys} | ForEach-Object { $compilationParams.Remove($_) }
+
             if ($useCompilerFolder) {
                 $appFile = Compile-AppWithBcCompilerFolder @compilationParams
             }
