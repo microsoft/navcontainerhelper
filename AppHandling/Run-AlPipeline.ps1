@@ -187,6 +187,19 @@
         [ref] $compilationParams
     )
     ...
+    # Change the output folder based on the app type
+    switch($appType) {
+        "app" {
+            $compilationParams.Value.appOutputFolder = "MyApps"
+        }
+        "testApp" {
+            $compilationParams.Value.appOutputFolder = "MyTestApps"
+        }
+        "bcptApp" {
+            $compilationParams.Value.appOutputFolder = "MyBcptApps"
+        }
+    }
+    ...
   }
  .Parameter PostCompileApp
   Custom script to run after compiling an app.
