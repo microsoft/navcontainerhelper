@@ -51,7 +51,7 @@ function Get-BcContainerSession {
                 if (!$tryWinRmSession) {
                     throw "Unable to create a session for container $containerName (tryWinRmSession is false)"
                 }
-                $UUID = (Get-WmiObject -Class "Win32_ComputerSystemProduct").UUID
+                $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
                 Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential)
                     $winrmuser = get-localuser -name $credential.UserName -ErrorAction SilentlyContinue
