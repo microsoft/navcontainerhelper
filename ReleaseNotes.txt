@@ -7,6 +7,7 @@ Add functions for supporting Alpaca Containers
 Issue #3089 Regression: Cannot find path 'C:\Windows\SysWow64\NavSip.dll' because it does not exist.
 Issue #3087 Enter-BCContainer on PowerShell 7 doesn't seem to work
 Add parameters `PreCompileApp` and `PostCompileApp` to `Run-AlPipeline` to allow running custom scripts before and after compiling an app.
+Add parameter `EnableExternalRulesets` to compile functions to support new alc feature.
 
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
