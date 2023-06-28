@@ -75,13 +75,21 @@ function Invoke-ScriptInAlpacaBcContainer {
             }
         }
         else {
-            $sb.AppendLine("`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }") | Out-Null
+            $script = $ast.Extent.text.Trim()
+            if ($script.StartsWith('{')) {
+                $sb.AppendLine("`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }") | Out-Null
+            }
+            else {
+                $sb.AppendLine("`$result = Invoke-Command -ScriptBlock { try { $($ast.Extent.text) } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }") | Out-Null
+            }
+
         }
     }
     else {
         throw "Unsupported Scriptblock type $($ast.GetType())"
     }
     $sb.AppendLine('return [System.Management.Automation.PSSerializer]::Serialize($result)') | Out-Null
+    #$sb.ToString() | Out-Host
     $uri, $headers = Get-UriAndHeadersForAlpaca -authContext $authContext -serviceUrl "Task/$containerId/execute"
     $result = Invoke-RestMethod -Method PATCH -Uri $uri -Headers $headers -Body ($sb.ToString().Trim() | ConvertTo-Json -Compress)
     $resultStr = $result.ToString()
@@ -92,9 +100,12 @@ function Invoke-ScriptInAlpacaBcContainer {
         # Get return value
         $output = [System.Management.Automation.PSSerializer]::Deserialize($resultStr.SubString($idx))
     }
-    else {
+    elseif ($result -is [System.Xml.XmlDocument]) {
         # No output to host - get return value
         $output = [System.Management.Automation.PSSerializer]::Deserialize($result.OuterXml)
+    }
+    else {
+        $output = ''
     }
     $exception = $output | Where-Object { $_ -like "::EXCEPTION::*" }
     if ($exception) {

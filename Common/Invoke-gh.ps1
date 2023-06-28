@@ -23,7 +23,12 @@ function invoke-gh {
             $arguments += "$_ "
         }
     }
-    cmdDo -command gh -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
+    try {
+        cmdDo -command gh -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
+    }
+    catch [System.Management.Automation.MethodInvocationException] {
+        throw "It looks like GitHub CLI is not installed. Please install GitHub CLI from https://cli.github.com/"
+    }
 }
 
 Export-ModuleMember -Function Invoke-gh

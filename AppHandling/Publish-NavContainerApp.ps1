@@ -109,6 +109,7 @@ try {
         $containerName = $bcContainerHelperConfig.defaultContainerName
     }
     if ($useDevEndpoint) { $checkAlreadyInstalled = $false }
+    $isCloudBcContainer = isCloudBcContainer -authContext $bcAuthContext -containerId $environment
     $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -138,8 +139,15 @@ try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         $force = $true
         if ($checkAlreadyInstalled) {
-            $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled } | ForEach-Object {
-                @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
+            if ($isCloudBcContainer) {
+                $installedApps = Invoke-ScriptInAlpacaBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
+                    Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true } | ForEach-Object { Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version }
+                }
+            }
+            else {
+                $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled } | ForEach-Object {
+                    @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
+                }
             }
         }
     }
@@ -162,11 +170,13 @@ try {
                 Copy-Item -Path $appFile -Destination $copyInstalledAppsToFolder -force
             }
         
-            if ($bcAuthContext -and $environment) {
-                $useDevEndpoint = $true
-            }
-            elseif ($customconfig.ServerInstance -eq "") {
-                throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
+            if (!$isCloudBcContainer) {
+                if ($bcAuthContext -and $environment) {
+                    $useDevEndpoint = $true
+                }
+                elseif ($customconfig.ServerInstance -eq "") {
+                    throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
+                }
             }
 
             if ($useDevEndpoint) {
@@ -178,14 +188,20 @@ try {
                 $sslVerificationDisabled = $false
                 if ($bcAuthContext -and $environment) {
                     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                    $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
-                    $tenant = ""
-        
-                    $handler = New-Object System.Net.Http.HttpClientHandler
-                    $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-                    $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
-                    $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-                    $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+                    if ($isCloudBcContainer) {
+
+                        throw "TODO"
+                    }
+                    else {
+                        $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
+                        $tenant = ""
+            
+                        $handler = New-Object System.Net.Http.HttpClientHandler
+                        $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+                        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
+                        $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+                        $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+                    }
                 }
                 else {
                     $handler = New-Object System.Net.Http.HttpClientHandler
@@ -283,7 +299,7 @@ try {
                 }
             }
             else {
-                Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
+                [ScriptBlock] $scriptblock = { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
                         $publishArgs += @{ "Scope" = $scope }
@@ -372,7 +388,22 @@ try {
                             Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
                         }
                     }
-                } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
+                }
+                if ($isCloudBcContainer) {
+                    $containerPath = Join-Path 'C:\DL' ([System.IO.Path]::GetFileName($appfile))
+                    Copy-FileToCloudBcContainer -authContext $authContext -containerId $environment -localPath $appFile -containerPath $containerPath
+                    Invoke-ScriptInCloudBcContainer `
+                        -authContext $authContext `
+                        -containerId $environment `
+                        -ScriptBlock $scriptblock `
+                        -ArgumentList $containerPath, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
+                }
+                else {
+                    Invoke-ScriptInBcContainer `
+                        -containerName $containerName `
+                        -ScriptBlock $scriptblock `
+                        -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
+                }
             }
             Write-Host -ForegroundColor Green "App $([System.IO.Path]::GetFileName($appFile)) successfully published"
         }
