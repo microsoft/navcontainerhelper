@@ -141,16 +141,6 @@ try {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
     }
 
-    $GenerateReportLayoutParam = ""
-    if (($GenerateReportLayout -ne "NotSpecified") -and ($platformversion.Major -ge 14)) {
-        if ($GenerateReportLayout -eq "Yes") {
-            $GenerateReportLayoutParam = "/GenerateReportLayout+"
-        }
-        else {
-            $GenerateReportLayoutParam = "/GenerateReportLayout-"
-        }
-    }
-
     $dependencies = @()
 
     if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
@@ -232,7 +222,17 @@ try {
     }
     $platformversion = $systemSymbolsApp.Version
     Write-Host "Platform version: $platformversion"
- 
+
+    $GenerateReportLayoutParam = ""
+    if (($GenerateReportLayout -ne "NotSpecified") -and ($platformversion.Major -ge 14)) {
+        if ($GenerateReportLayout -eq "Yes") {
+            $GenerateReportLayoutParam = "/GenerateReportLayout+"
+        }
+        else {
+            $GenerateReportLayoutParam = "/GenerateReportLayout-"
+        }
+    }
+
     if ($updateDependencies) {
         $appJsonFile = Join-Path $appProjectFolder 'app.json'
         $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
