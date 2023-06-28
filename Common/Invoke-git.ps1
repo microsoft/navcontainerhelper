@@ -23,6 +23,11 @@ function invoke-git {
             $arguments += "$_ "
         }
     }
-    cmdDo -command git -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
+    try {
+        cmdDo -command git -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
+    }
+    catch [System.Management.Automation.MethodInvocationException] {
+        throw "It looks like Git is not installed. Please install Git from https://git-scm.com/download"
+    }
 }
 Export-ModuleMember -Function Invoke-git

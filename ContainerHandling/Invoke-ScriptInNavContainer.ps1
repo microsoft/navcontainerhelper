@@ -199,7 +199,13 @@ $startTime = [DateTime]::Now
                         }
                     }
                     else {
-                        "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                        $script = $ast.Extent.text.Trim()
+                        if ($script.StartsWith('{')) {
+                            "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                        }
+                        else {
+                            "`$result = Invoke-Command -ScriptBlock { try { $($ast.Extent.text) } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                        }
                     }
                 }
                 else {
