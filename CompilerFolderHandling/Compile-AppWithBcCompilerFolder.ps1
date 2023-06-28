@@ -34,6 +34,8 @@
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
+ .Parameter enableExternalRulesets
+  Add this switch to Enable External Rulesets
  .Parameter CustomCodeCops
   Add custom AL code Cops when compiling apps.
  .Parameter Failon
@@ -84,6 +86,7 @@ function Compile-AppWithBcCompilerFolder {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [switch] $enableExternalRulesets,
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
@@ -346,6 +349,10 @@ try {
 
     if ($rulesetFile) {
         $alcParameters += @("/ruleset:$rulesetfile")
+    }
+
+    if ($enableExternalRulesets) {
+        $alcParameters += @("/enableexternalrulesets")
     }
 
     if ($nowarn) {
