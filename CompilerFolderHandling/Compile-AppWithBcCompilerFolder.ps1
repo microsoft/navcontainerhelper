@@ -34,6 +34,8 @@
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
+ .Parameter enableExternalRulesets
+  Add this switch to Enable External Rulesets
  .Parameter CustomCodeCops
   Add custom AL code Cops when compiling apps.
  .Parameter Failon
@@ -84,6 +86,7 @@ function Compile-AppWithBcCompilerFolder {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [switch] $enableExternalRulesets,
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
@@ -136,16 +139,6 @@ try {
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
         New-Item -Path $appSymbolsFolder -ItemType Directory | Out-Null
-    }
-
-    $GenerateReportLayoutParam = ""
-    if (($GenerateReportLayout -ne "NotSpecified") -and ($platformversion.Major -ge 14)) {
-        if ($GenerateReportLayout -eq "Yes") {
-            $GenerateReportLayoutParam = "/GenerateReportLayout+"
-        }
-        else {
-            $GenerateReportLayoutParam = "/GenerateReportLayout-"
-        }
     }
 
     $dependencies = @()
@@ -229,7 +222,17 @@ try {
     }
     $platformversion = $systemSymbolsApp.Version
     Write-Host "Platform version: $platformversion"
- 
+
+    $GenerateReportLayoutParam = ""
+    if (($GenerateReportLayout -ne "NotSpecified") -and ($platformversion.Major -ge 14)) {
+        if ($GenerateReportLayout -eq "Yes") {
+            $GenerateReportLayoutParam = "/GenerateReportLayout+"
+        }
+        else {
+            $GenerateReportLayoutParam = "/GenerateReportLayout-"
+        }
+    }
+
     if ($updateDependencies) {
         $appJsonFile = Join-Path $appProjectFolder 'app.json'
         $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
@@ -346,6 +349,10 @@ try {
 
     if ($rulesetFile) {
         $alcParameters += @("/ruleset:$rulesetfile")
+    }
+
+    if ($enableExternalRulesets) {
+        $alcParameters += @("/enableexternalrulesets")
     }
 
     if ($nowarn) {

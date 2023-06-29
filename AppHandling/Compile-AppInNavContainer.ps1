@@ -42,6 +42,8 @@
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
+ .Parameter enableExternalRulesets
+  Add this switch to Enable External Rulesets
  .Parameter CustomCodeCops
   Add custom AL code Cops when compiling apps.
  .Parameter Failon
@@ -101,6 +103,7 @@ function Compile-AppInBcContainer {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [switch] $enableExternalRulesets,
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
@@ -544,7 +547,7 @@ try {
         $depidx++
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies )
 
         if ($updateDependencies) {
             $appJsonFile = Join-Path $appProjectFolder 'app.json'
@@ -633,6 +636,10 @@ try {
             $alcParameters += @("/ruleset:$rulesetfile")
         }
 
+        if ($enableExternalRulesets) {
+            $alcParameters += @("/enableexternalrulesets")
+        }
+
         if ($nowarn) {
             $alcParameters += @("/nowarn:$nowarn")
         }
@@ -667,7 +674,7 @@ try {
         if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
