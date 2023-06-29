@@ -222,6 +222,10 @@ try {
             Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
         }
+        catch {
+            Write-Host "ERROR: $($_.Exception.Message) [$($_.Exception.GetType().FullName)]"
+            throw
+        }
         finally {
             $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
             $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
