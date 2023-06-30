@@ -217,7 +217,7 @@ try {
                 }
             }
         }
-        catch [System.Net.WebException] {
+        catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
             Write-Host "ERROR $($_.Exception.Message)"
             Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
@@ -235,7 +235,7 @@ try {
             $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
         }
     }
-    catch [System.Net.WebException] {
+    catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
         Write-Host "ERROR $($_.Exception.Message)"
         throw (GetExtendedErrorMessage $_)
     }
