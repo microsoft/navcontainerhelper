@@ -470,22 +470,25 @@ function GetExtendedErrorMessage {
         if ($exception -is [System.Net.Http.HttpRequestException]) {
             $message += "`r`n$($exception.Message)"
             if ($exception.InnerException) {
-                if ($exception.InnerException -is [System.Security.Authentication.AuthenticationException]) {
+                if ($exception.InnerException -and $exception.InnerException.Message) {
                     $message += "`r`n$($exception.InnerException.Message)"
                 }
             }
+
         }
-        $webException = [System.Net.WebException]$exception
-        $webResponse = $webException.Response
-        try {
-            if ($webResponse.StatusDescription) {
-                $message += "`r`n$($webResponse.StatusDescription)"
+        else {
+            $webException = [System.Net.WebException]$exception
+            $webResponse = $webException.Response
+            try {
+                if ($webResponse.StatusDescription) {
+                    $message += "`r`n$($webResponse.StatusDescription)"
+                }
             }
+            catch {}
+            $reqstream = $webResponse.GetResponseStream()
+            $sr = new-object System.IO.StreamReader $reqstream
+            $result = $sr.ReadToEnd()
         }
-        catch {}
-        $reqstream = $webResponse.GetResponseStream()
-        $sr = new-object System.IO.StreamReader $reqstream
-        $result = $sr.ReadToEnd()
         try {
             $json = $result | ConvertFrom-Json
             $message += "`r`n$($json.Message)"
@@ -532,7 +535,7 @@ function CopyAppFilesToFolder {
             get-childitem $appFile -Filter '*.app' -Recurse | ForEach-Object {
                 $destFile = Join-Path $folder $_.Name
                 if (Test-Path $destFile) {
-                    Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
                 }
                 Copy-Item -Path $_.FullName -Destination $destFile -Force
                 $destFile
@@ -562,14 +565,14 @@ function CopyAppFilesToFolder {
             else {
                 $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
                 if (Test-Path $destFile) {
-                    Write-Host -ForegroundColor Yellow "WARNING: $([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
                 }
                 Copy-Item -Path $appFile -Destination $destFile -Force
                 $destFile
             }
         }
         else {
-            Write-Host -ForegroundColor Red "File not found: $appFile"
+            Write-Host -ForegroundColor Red "::WARNING::File not found: $appFile"
         }
     }
 }
