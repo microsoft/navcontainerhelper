@@ -177,6 +177,11 @@ try {
                 Write-Host "Running Docker image prune"
                 docker image prune -f > $null
             }
+            else {
+                $h = 24*$keepDays
+                Write-Host "Running Docker image prune --filter ""until=$($h)h"""
+                docker image prune -f --filter "until=$($h)h" > $null
+            }
             Write-Host "Completed"
         }
     }
