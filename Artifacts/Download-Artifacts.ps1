@@ -282,13 +282,13 @@ try {
                                         }
                                     }
                                 }
-                                $adDLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
-                                if ((Test-Path $adDLL) -and ([System.Version]$appManifest.Version -ge [System.Version]'22.0.0.0')  -and ([System.Version]$appManifest.Version -lt [System.Version]'22.2.0.0')) {
-                                    Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $adDLL"
-                                    Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/prerequisites/Microsoft.IdentityModel.Clients.ActiveDirectory.dll' -destinationFile $adDLL
-                                    if ($isWindows) {
-                                        Unblock-File -Path $adDLL
+                                $ad1DLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                                $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                                if ((Test-Path $ad1DLL) -and (Test-Path $ad2DLL)) {
+                                    if ((Get-Item $ad1DLL).Length -ne (Get-Item $ad2DLL).Length) {
+                                        Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $ad1DLL"
                                     }
+                                    Copy-Item -Path $ad2DLL -Destination $ad1DLL -Force
                                 } 
                             }
                         }

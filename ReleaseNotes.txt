@@ -11,6 +11,7 @@ Add parameter `EnableExternalRulesets` to compile functions to support new alc f
 Issue #3099 Compile-AppWithBcCompilerFolder: The variable '$platformversion' cannot be retrieved because it has not been set. 
 Flush-ContainerHelperCache will now also run docker image prune with a filter until=xxh (based on keepdays)
 Add 4 new parameters to Compile-AppInBcContainer and Compile-AppWithBcCompilerFolder: SourceRepositoryUrl, SourceCommit, BuildBy and BuildUrl. The value of these parameters will be stamped into the app manifest.
+Performance Tests doesn't run due to wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in the Applications\testframework\TestRunner\Internal folder
 
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object
