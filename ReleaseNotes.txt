@@ -12,6 +12,7 @@ Issue #3099 Compile-AppWithBcCompilerFolder: The variable '$platformversion' can
 Flush-ContainerHelperCache will now also run docker image prune with a filter until=xxh (based on keepdays)
 Add 4 new parameters to Compile-AppInBcContainer and Compile-AppWithBcCompilerFolder: SourceRepositoryUrl, SourceCommit, BuildBy and BuildUrl. The value of these parameters will be stamped into the app manifest.
 Performance Tests doesn't run due to wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in the Applications\testframework\TestRunner\Internal folder
+Add 4 new parameters to Run-AlPipeline: SourceRepositoryUrl, SourceCommit, BuildBy and BuildUrl. The value of these parameters will be stamped into the app manifest during compile.
 
 5.0.3
 Issue #3051 Unable to import .rapidstart file - The property 'Code' cannot be found on this object

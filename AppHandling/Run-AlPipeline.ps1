@@ -166,6 +166,14 @@
   Only relevant for AppSource Apps. Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
  .Parameter features
   Features to set when compiling the app.
+ .Parameter SourceRepositoryUrl
+  Repository holding the source code for the app. Will be stamped into the app manifest.
+ .Parameter SourceCommit
+  The commit identifier for the source code for the app. Will be stamped into the app manifest.
+ .Parameter BuildBy
+  Information about which product built the app. Will be stamped into the app manifest.
+ .Parameter BuildUrl
+  The URL for the build job, which built the app. Will be stamped into the app manifest.
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -336,6 +344,10 @@ Param(
     $AppSourceCopSupportedCountries = @(),
     [string] $obsoleteTagMinAllowedMajorMinor = "",
     [string[]] $features = @(),
+    [string] $sourceRepositoryUrl = '',
+    [string] $sourceCommit = '',
+    [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
+    [string] $buildUrl = '',
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
@@ -1802,6 +1814,13 @@ Write-Host -ForegroundColor Yellow @'
         $testApp { "testApp" }
         $bcptTestApp { "bcptApp" }
         Default { "app" }
+    }
+
+    $Parameters += @{
+        "sourceRepositoryUrl" = $sourceRepositoryUrl
+        "sourceCommit" = $sourceCommit
+        "buildBy" = $buildBy
+        "buildUrl" = $buildUrl
     }
 
     $compilationParams = $Parameters + $CopParameters
