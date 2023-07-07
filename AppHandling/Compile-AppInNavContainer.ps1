@@ -62,6 +62,14 @@
   Environment to use for the compilation.
  .Parameter assemblyProbingPaths
   Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
+ .Parameter SourceRepositoryUrl
+  Repository holding the source code for the app. Will be stamped into the app manifest.
+ .Parameter SourceCommit
+  The commit identifier for the source code for the app. Will be stamped into the app manifest.
+ .Parameter BuildBy
+  Information about which product built the app. Will be stamped into the app manifest.
+ .Parameter BuildUrl
+  The URL for the build job, which built the app. Will be stamped into the app manifest.
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
@@ -118,6 +126,10 @@ function Compile-AppInBcContainer {
         [Hashtable] $bcAuthContext,
         [string] $environment,
         [string[]] $treatWarningsAsErrors = $bcContainerHelperConfig.TreatWarningsAsErrors,
+        [string] $sourceRepositoryUrl = '',
+        [string] $sourceCommit = '',
+        [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
+        [string] $buildUrl = '',
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
@@ -547,7 +559,7 @@ try {
         $depidx++
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl )
 
         if ($updateDependencies) {
             $appJsonFile = Join-Path $appProjectFolder 'app.json'
@@ -657,6 +669,21 @@ try {
             }
         }
 
+        if ($alcVersion -ge [System.Version]"12.0.12.41479") {
+            if ($sourceRepositoryUrl) {
+                $alcParameters += @("/SourceRepositoryUrl:""$sourceRepositoryUrl""")
+            }
+            if ($sourceCommit) {
+                $alcParameters += @("/SourceCommit:""$sourceCommit""")
+            }
+            if ($buildBy) {
+                $alcParameters += @("/BuildBy:""$buildBy""")
+            }
+            if ($buildUrl) {
+                $alcParameters += @("/BuildUrl:""$buildUrl""")
+            }
+        }
+
         if ($assemblyProbingPaths) {
             $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
@@ -674,7 +701,7 @@ try {
         if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'

@@ -50,6 +50,14 @@
   Set reportSuppressedDiagnostics flag on ALC when compiling to ignore pragma warning disables
  .Parameter assemblyProbingPaths
   Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
+ .Parameter SourceRepositoryUrl
+  Repository holding the source code for the app. Will be stamped into the app manifest.
+ .Parameter SourceCommit
+  The commit identifier for the source code for the app. Will be stamped into the app manifest.
+ .Parameter BuildBy
+  Information about which product built the app. Will be stamped into the app manifest.
+ .Parameter BuildUrl
+  The URL for the build job, which built the app. Will be stamped into the app manifest.
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
@@ -99,6 +107,10 @@ function Compile-AppWithBcCompilerFolder {
         [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile','LcgTranslationFile')]
         [string[]] $features = @(),
         [string[]] $treatWarningsAsErrors = $bcContainerHelperConfig.TreatWarningsAsErrors,
+        [string] $sourceRepositoryUrl = '',
+        [string] $sourceCommit = '',
+        [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
+        [string] $buildUrl = '',
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
@@ -369,6 +381,21 @@ try {
         }
         else {
             Write-Host -ForegroundColor Yellow "ReportSuppressedDiagnostics was specified, but the version of the AL Language Extension does not support this. Get-LatestAlLanguageExtensionUrl returns a location for the latest AL Language Extension"
+        }
+    }
+
+    if ($alcVersion -ge [System.Version]"12.0.12.41479") {
+        if ($sourceRepositoryUrl) {
+            $alcParameters += @("/SourceRepositoryUrl:""$sourceRepositoryUrl""")
+        }
+        if ($sourceCommit) {
+            $alcParameters += @("/SourceCommit:""$sourceCommit""")
+        }
+        if ($buildBy) {
+            $alcParameters += @("/BuildBy:""$buildBy""")
+        }
+        if ($buildUrl) {
+            $alcParameters += @("/BuildUrl:""$buildUrl""")
         }
     }
 
