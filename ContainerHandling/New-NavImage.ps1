@@ -642,7 +642,7 @@ try {
                 $TestToolkitParameter = ""
                 if ($genericTag -ge [Version]"0.1.0.18") {
                     if ($includeTestToolkit) {
-                        if (!($licenseFile)) {
+                        if (!($licenseFile) -and ($appManifest.version -lt [Version]"22.0.0.0")) {
                             Write-Host "Cannot include TestToolkit without a licensefile, please specify licensefile"
                         }
                         $TestToolkitParameter = " -includeTestToolkit"
