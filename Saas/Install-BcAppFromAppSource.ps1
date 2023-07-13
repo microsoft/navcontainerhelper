@@ -23,6 +23,8 @@
   Include this switch to Install or Update needed dependencies
  .Parameter allowInstallationOnProduction
   Include this switch if you want to allow this function to install AppSource apps on a production environment
+ .Parameter useEnvironmentUpdateWindow
+  Include this switch if you want to install AppSource apps during the update window. The operations will be scheduled.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   Install-BcAppFromAppSource -bcAuthContext $authContext -environment 'MySandbox' -AppId '55ba54a3-90c7-4d3f-bc73-68eaa51fd5f8' -acceptIsvEula
@@ -41,7 +43,8 @@ function Install-BcAppFromAppSource {
         [string] $apiVersion = "v2.6",
         [switch] $acceptIsvEula,
         [switch] $installOrUpdateNeededDependencies,
-        [switch] $allowInstallationOnProduction
+        [switch] $allowInstallationOnProduction,
+        [switch] $useEnvironmentUpdateWindow
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -72,6 +75,7 @@ function Install-BcAppFromAppSource {
             if ($appVersion) { $body += @{ "targetVersion" = $appVersion } }
             if ($languageId) { $body += @{ "languageId" = $languageId } }
             if ($installOrUpdateNeededDependencies) { $body += @{ "installOrUpdateNeededDependencies" = $installOrUpdateNeededDependencies.ToBool() } }
+            if ($useEnvironmentUpdateWindow) { $body += @{ "useEnvironmentUpdateWindow" = $useEnvironmentUpdateWindow.ToBool() } }
 
             Write-Host "Installing $appId $appVersion on $($environment)"
             try {
@@ -84,37 +88,39 @@ function Install-BcAppFromAppSource {
             Write-Host "Operation ID $($operation.id)"
             $status = $operation.status
             Write-Host -NoNewline "$($status)."
-            $completed = $operation.Status -eq "succeeded"
-            $errCount = 0
-            while (-not $completed) {
-                Start-Sleep -Seconds 3
-                try {
-                    $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/BusinessCentral/environments/$environment/apps/$appId/operations" -UseBasicParsing
-                    $appInstallStatus = (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id }
-                    if ($status -ne $appInstallStatus.status) {
-                        Write-Host
-                        Write-Host -NoNewline "$($appInstallStatus.status)"
-                        $status = $appInstallStatus.status
-                    }
-                    $completed = $status -eq "succeeded"
-                    if ($status -eq "running" -or $status -eq "scheduled") {
-                        Write-Host -NoNewline "."
-                    }
-                    elseif (!$completed) {
-                        $errorMessage = $status
-                        try {
-                        (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id } | % { $errorMessage = $_.errorMessage }
+            if (!$useEnvironmentUpdateWindow.IsPresent) {
+                $completed = $operation.Status -eq "succeeded"
+                $errCount = 0
+                while (-not $completed) {
+                    Start-Sleep -Seconds 3
+                    try {
+                        $appInstallStatusResponse = Invoke-WebRequest -Headers $headers -Method Get -Uri "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/admin/$apiVersion/applications/BusinessCentral/environments/$environment/apps/$appId/operations" -UseBasicParsing
+                        $appInstallStatus = (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id }
+                        if ($status -ne $appInstallStatus.status) {
+                            Write-Host
+                            Write-Host -NoNewline "$($appInstallStatus.status)"
+                            $status = $appInstallStatus.status
                         }
-                        catch {}
-                        throw $errorMessage
+                        $completed = $status -eq "succeeded"
+                        if ($status -eq "running" -or $status -eq "scheduled") {
+                            Write-Host -NoNewline "."
+                        }
+                        elseif (!$completed) {
+                            $errorMessage = $status
+                            try {
+                        (ConvertFrom-Json $appInstallStatusResponse.Content).value | Where-Object { $_.id -eq $operation.id } | % { $errorMessage = $_.errorMessage }
+                            }
+                            catch {}
+                            throw $errorMessage
+                        }
+                        $errCount = 0
                     }
-                    $errCount = 0
-                }
-                catch {
-                    if ($errCount++ -gt 3) {
-                        throw (GetExtendedErrorMessage $_)
+                    catch {
+                        if ($errCount++ -gt 3) {
+                            throw (GetExtendedErrorMessage $_)
+                        }
+                        $completed = $false
                     }
-                    $completed = $false
                 }
             }
             Write-Host
