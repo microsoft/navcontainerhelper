@@ -213,8 +213,8 @@ try {
                     }
                     $sslVerificationDisabled = ($protocol -eq "https://")
                     if ($sslVerificationDisabled) {
-                        Write-Host "Disabling SSL Verification"
-                        $handler.ServerCertificateCustomValidationCallback = [SslVerification]::DisabledServerCertificateValidationCallback
+                        Write-Host "Disabling SSL Verification on HttpClient"
+                        [SslVerification]::DisableSsl($handler)
                     }
                     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
                         $handler.UseDefaultCredentials = $true
@@ -286,13 +286,14 @@ try {
                         throw $message
                     }
                 }
+                catch {
+                    GetExtendedErrorMessage -errorRecord $_ | Out-Host
+                    throw
+                }
                 finally {
                     $FileStream.Close()
                 }
             
-                if ($sslverificationdisabled) {
-                    Write-Host "Restoring SSL Verification" # no action required - only to enforce blocks consistency
-                }
                 if ($bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp -gt 0) {
                     # Avoid race condition
                     Start-Sleep -Seconds $bcContainerHelperConfig.NoOfSecondsToSleepAfterPublishBcContainerApp

@@ -1,5 +1,5 @@
 ﻿$useTimeOutWebClient = $false
-if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
+if ($PSVersionTable.PSVersion -lt "6.0.0" -or $useTimeOutWebClient) {
     $timeoutWebClientCode = @"
 	using System.Net;
  
@@ -23,31 +23,32 @@ if ($PSVersionTable.PSVersion -lt "6.0.0" -and !$useTimeOutWebClient) {
 		}
  	}
 "@;
- 
-    try {
-        Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
-        $useTimeOutWebClient = $true
-    }
-    catch {}
+if (-not ([System.Management.Automation.PSTypeName]"TimeoutWebClient").Type) {
+    Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
+    $useTimeOutWebClient = $true
+}
 }
 
 $sslCallbackCode = @"
-	using System.Net.Security;
-	using System.Security.Cryptography.X509Certificates;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
 
-	public static class SslVerification
-	{
-		public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-		public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
-		public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-	}
+public static class SslVerification
+{
+	public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+	public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+	public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+    public static void DisableSsl(System.Net.Http.HttpClientHandler handler) { handler.ServerCertificateCustomValidationCallback = DisabledServerCertificateValidationCallback; }
+}
 "@
-try {
-    if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type) {
+    if ($isPsCore) {
         Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
     }
+    else {
+        Add-Type -TypeDefinition $sslCallbackCode -Language CSharp -ReferencedAssemblies @('System.Net.Http') -WarningAction SilentlyContinue | Out-Null
+    }
 }
-catch {}
 
 function Get-DefaultCredential {
     Param(
@@ -1039,8 +1040,8 @@ function DownloadFileLow {
         
         $handler = New-Object System.Net.Http.HttpClientHandler
         if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification"
-            $handler.ServerCertificateCustomValidationCallback = [SslVerification]::DisabledServerCertificateValidationCallback
+            Write-Host "Disabling SSL Verification on HttpClient"
+            [SslVerification]::DisableSsl($handler)
         }
         if ($useDefaultCredentials) {
             $handler.UseDefaultCredentials = $true
@@ -1070,9 +1071,6 @@ function DownloadFileLow {
             }
             if ($stream) {
                 $stream.Dispose()
-            }
-            if ($skipCertificateCheck) {
-                Write-Host "Restoring SSL Verification" # no action required - only to enforce blocks consistency
             }
         }
     }

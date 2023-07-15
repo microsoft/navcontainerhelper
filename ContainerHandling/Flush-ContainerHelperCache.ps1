@@ -14,6 +14,8 @@
   - sandboxartifacts are artifacts downloaded for spinning up containers
   - images are images built on artifacts using New-BcImage or New-BcContainer
   - compilerFolders are folders used for Dockerless builds
+  - exitedContainers are containers which have been stopped
+  - all is all of the above (except for exited Containers)
  .Parameter keepDays
   When specifying a value in keepDays, the function will try to keep cached information, which has been used during the last keepDays days. Default is 0 - to flush all cache.
  .Example
@@ -46,6 +48,33 @@ try {
         $artifactsCacheFolder = $bcContainerHelperConfig.bcartifactsCacheFolder
         $caches = $cache.ToLowerInvariant().Split(',')
     
+        if ($caches.Contains('exitedcontainers')) {
+            docker container ls --format "{{.ID}}:{{.Names}}" --no-trunc -a --filter "status=exited" | ForEach-Object {
+                $containerID = $_.Split(':')[0]
+                $containerName = $_.Split(':')[1]
+                $inspect = docker inspect $containerID | ConvertFrom-Json
+                try {
+                    $finishedAt = [DateTime]::Parse($inspect.state.FinishedAt)
+                    $exitedDaysAgo = [DateTime]::Now.Subtract($finishedAt).Days
+                    if ($exitedDaysAgo -ge $keepDays) {
+                        if (($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")) {
+                            Write-Host "Removing container $containerName"
+                            docker rm $containerID -f
+                        }
+                        else {
+                            Write-Host "Container $containerName (exited $exitedDaysAgo day$(if($exitedDaysAgo -ne 1){'s'}) ago) is not recognized as a Business Central Container - not removing"
+                        }
+                    }
+                    else {
+                        Write-Host "Keeping container $containerName (exited $exitedDaysAgo day$(if($exitedDaysAgo -ne 1){'s'}) ago) - removing after $keepDays day$(if($keepDays -ne 1){'s'})"
+                    }
+                }
+                catch {
+                    # ignore any errors
+                }
+            }
+        }
+
         $folders = @()
         if ($caches.Contains('all') -or $caches.Contains('calSourceCache')) {
             $folders += @("extensions\original-*-??","extensions\original-*-??-newsyntax")
