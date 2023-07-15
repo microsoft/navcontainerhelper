@@ -1,5 +1,6 @@
 5.0.5
 Add new option (exitedContainers) on Flush-ContainerHelperCache. Note that exited containers are NOT remove by the all flag, you need all,exitedContainers
+Add resilience to Remove-BcContainerSession
 
 5.0.4
 Add new parameter -excludeRuntimePackages to Publish-BcContainerApp, to exclude installation of runtime packages
