@@ -311,7 +311,7 @@ if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
 else {
-    $DockerPull = { Param($imageName) docker pull $imageName }
+    $DockerPull = { Param($imageName) docker pull $imageName --quiet }
 }
 if ($NewBcContainer) {
     Write-Host -ForegroundColor Yellow "NewBccontainer override"; Write-Host $NewBcContainer.ToString()
