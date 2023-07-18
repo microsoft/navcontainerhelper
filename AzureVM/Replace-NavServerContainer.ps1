@@ -116,7 +116,7 @@ try {
         $imageName = Get-BestBcContainerImageName -imageName $imageName
         if ($alwaysPull) {
             Write-Host "Pulling docker Image $imageName"
-            docker pull $imageName
+            docker pull $imageName --quiet
         }
     }
     elseif ($navDockerImage) {
@@ -124,7 +124,7 @@ try {
         $imageName = Get-BestBcContainerImageName -imageName $imageName
         if ($alwaysPull) {
             Write-Host "Pulling docker Image $imageName"
-            docker pull $imageName
+            docker pull $imageName --quiet
         }
     }
 

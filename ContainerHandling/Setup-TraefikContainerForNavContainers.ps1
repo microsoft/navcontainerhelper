@@ -176,7 +176,7 @@ try {
     $pullRequired = "$(docker images -q $traefikImage)" -eq ""
     if ($pullRequired) {
         Write-Host "Pulling traefik"
-        docker pull $traefikImage
+        docker pull $traefikImage --quiet
     }
     else {
         Write-Host "Traefik image already up to date"
