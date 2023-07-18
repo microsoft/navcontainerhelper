@@ -67,7 +67,9 @@ LABEL org.opencontainers.image.vendor="Traefik Labs" \
     org.opencontainers.image.documentation="https://docs.traefik.io"
 "@ | Set-Content 'DOCKERFILE'
 
-        docker build --tag $imageName . | Out-Host
+        if (!(DockerDo -command build -parameters @("--tag $imageName") -imageName (Get-Location).Path)) {
+            throw "Docker Build didn't indicate success"
+        }
 
         if (!$doNotUpdateConfig) {
             $bcContainerHelperConfig.TraefikImage = $imageName

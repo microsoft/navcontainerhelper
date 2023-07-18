@@ -691,21 +691,8 @@ LABEL legal="http://go.microsoft.com/fwlink/?LinkId=837447" \
                     Write-Host "$populateBuildFolder populated, skipping build of image"
                 }
                 else {
-                    $success = $false
-                    try {
-                        docker build --isolation=$isolation --memory $memory --no-cache --tag $imageName $buildFolder | ForEach-Object {
-                            $_ | Out-Host
-                            if ($_ -like "Successfully built*") {
-                                $success = $true
-                            }
-                        }
-                    } catch {}
-                    if (!$success) {
-                        if ($LASTEXITCODE -ne 0) {
-                            throw "Docker Build failed with exit code $LastExitCode"
-                        } else {
-                            throw "Docker Build didn't indicate successfully built"
-                        }
+                    if (!(DockerDo -command build -parameters @("--isolation=$isolation", "--memory $memory", "--no-cache", "--tag $imageName") -imageName $buildFolder)) {
+                        throw "Docker Build didn't indicate success"
                     }
     
                     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
