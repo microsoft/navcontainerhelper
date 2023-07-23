@@ -33,7 +33,9 @@ try {
             if ($idx -gt 0) {
                 $dst = $dst.SubString(0,$idx)
             }
-            $sharedFolders += @{ $src = $dst }
+            if (-not ($sharedFolders[$src])) {
+                $sharedFolders += @{ $src = $dst }
+            }
         }
     }
     
