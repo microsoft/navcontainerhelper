@@ -702,6 +702,8 @@ if ($bcptTestSuites) { $bcptTestSuites | ForEach-Object { Write-Host "- $_" } } 
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
+$vsixFile = DetermineVsixFile -vsixFile $vsixFile
+
 $compilerFolder = ''
 
 if ($useCompilerFolder) {

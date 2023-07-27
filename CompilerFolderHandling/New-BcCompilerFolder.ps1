@@ -51,6 +51,8 @@ try {
     $version = [System.Version]($parts[4])
     $country = $parts[5]
 
+    $vsixFile = DetermineVsixFile -vsixFile $vsixFile
+
     if ($version -lt "16.0.0.0") {
         throw "Containerless compiling is not supported with versions before 16.0"
     }
