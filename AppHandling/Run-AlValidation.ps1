@@ -329,6 +329,8 @@ else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
 
+$vsixFile = DetermineVsixFile -vsixFile $vsixFile
+
 $currentArtifactUrl = ""
 
 if ("$validateVersion" -eq "" -and !$validateCurrent -and !$validateNextMinor -and !$validateNextMajor) {

@@ -1452,6 +1452,8 @@ try {
         $parameters += "--env bakfile=$bakFile"
     }
 
+    $vsixFile = DetermineVsixFile -vsixFile $vsixFile
+
     if ($vsixFile) {
         $vsixUrl = $vsixFile
         if ($vsixUrl.StartsWith("https://", "OrdinalIgnoreCase") -or $vsixUrl.StartsWith("http://", "OrdinalIgnoreCase")) {
