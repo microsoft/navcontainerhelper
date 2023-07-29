@@ -543,33 +543,36 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
-            if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
-                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-                $copied = $false
-                try {
-                    if ($appFile -notlike "*.zip") {
-                        $orgAppFile = $appFile
-                        $appFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
-                        Copy-Item $orgAppFile $appFile
-                        $copied = $true
+            Get-ChildItem $appFile | ForEach-Object {
+                $appFile = $_.FullName
+                if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+                    $copied = $false
+                    try {
+                        if ($appFile -notlike "*.zip") {
+                            $orgAppFile = $appFile
+                            $appFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
+                            Copy-Item $orgAppFile $appFile
+                            $copied = $true
+                        }
+                        Expand-Archive $appfile -DestinationPath $tmpFolder -Force
+                        Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | % {
+                            CopyAppFilesToFolder -appFile $_.FullName -folder $folder
+                        }
                     }
-                    Expand-Archive $appfile -DestinationPath $tmpFolder -Force
-                    Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | % {
-                        CopyAppFilesToFolder -appFile $_.FullName -folder $folder
+                    finally {
+                        Remove-Item -Path $tmpFolder -Recurse -Force
+                        if ($copied) { Remove-Item -Path $appFile -Force }
                     }
                 }
-                finally {
-                    Remove-Item -Path $tmpFolder -Recurse -Force
-                    if ($copied) { Remove-Item -Path $appFile -Force }
+                else {
+                    $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
+                    if (Test-Path $destFile) {
+                        Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    }
+                    Copy-Item -Path $appFile -Destination $destFile -Force
+                    $destFile
                 }
-            }
-            else {
-                $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
-                if (Test-Path $destFile) {
-                    Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                }
-                Copy-Item -Path $appFile -Destination $destFile -Force
-                $destFile
             }
         }
         else {

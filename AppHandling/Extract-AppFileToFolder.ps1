@@ -29,7 +29,7 @@ function Extract-AppFileToFolder {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    Set-StrictMode -Off
     if ($appFolder -eq "") {
         if ($openFolder) {
             $generateAppJson = $true
@@ -112,7 +112,6 @@ try {
     }
 
     if ($generateAppJson) {
-        #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
         $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
         if ($runtimeStr) {
@@ -171,19 +170,49 @@ try {
         }
         else {
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" } | % { 
-                $xmlResExp = [ordered]@{}
                 $resExp = [ordered]@{}
-                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile" | % {
+                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile","applyToDevExtension" | % {
                     $prop = $_
-                    if ($xmlResExp.PSObject.Properties.Name -eq $prop) {
+                    if ($manifest.Package.ResourceExposurePolicy.Attributes | Where-Object { $_.name -eq $prop } | % { $_.Value -eq "true" }) {
                         $resExp += @{
-                            "$prop" = $xmlResExp."$prop" -eq "true"
+                            "$prop" = $true
                         }
                     }
                 }
                 $appJson += @{ "resourceExposurePolicy" = $resExp }
             }
-       
+        }
+        if ($runtime -ge [System.Version]"12.0")  {
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Source" } | % { 
+                $node = $_
+                $ht = [ordered]@{}
+                "repositoryUrl", "commit" | % {
+                    $prop = $_
+                    if ($node) {
+                        $node.Attributes | Where-Object { $_.name -eq $prop } | % {
+                            $ht += @{
+                                "$prop" = $_.Value
+                            }
+                        }
+                    }
+                }
+                $appJson += @{ "source" = $ht }
+            }
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Build" } | % { 
+                $node = $_
+                $ht = [ordered]@{}
+                "by", "url" | % {
+                    $prop = $_
+                    if ($node) {
+                        $node.Attributes | Where-Object { $_.name -eq $prop } | % {
+                            $ht += @{
+                                "$prop" = $_.Value
+                            }
+                        }
+                    }
+                }
+                $appJson += @{ "build" = $ht }
+            }
         }
         if ($runtime -ge [System.Version]"5.0")  {
             $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
@@ -287,7 +316,6 @@ try {
             }
         }
         $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json") -Encoding UTF8
-        Set-StrictMode -Version 2.0
     }
 
     if ($openFolder) {
@@ -299,6 +327,7 @@ catch {
     throw
 }
 finally {
+    Set-StrictMode -Version 2.0
     TrackTrace -telemetryScope $telemetryScope
 }
 }
