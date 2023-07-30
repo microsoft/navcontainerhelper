@@ -228,19 +228,21 @@ try {
             $alcConfigPath = Join-Path $containerCompilerPath 'extension/bin/win32/alc.runtimeconfig.json'
             if (Test-Path $alcConfigPath) {
                 $oldAlcConfig = Get-Content -Path $alcConfigPath -Encoding UTF8 | ConvertFrom-Json
-                $newAlcConfig = @{
-                    "runtimeOptions" = @{
-                        "tfm" = "net6.0"
-                        "framework" = @{
-                            "name" = "Microsoft.NETCore.App"
-                            "version" = $oldAlcConfig.runtimeOptions.includedFrameworks[0].version
-                        }
-                        "configProperties" = @{
-                            "System.Reflection.Metadata.MetadataUpdater.IsSupported" = $false
+                if ($oldAlcConfig.runtimeOptions.PSObject.Properties.Name -eq 'includedFrameworks') {
+                    $newAlcConfig = @{
+                        "runtimeOptions" = @{
+                            "tfm" = "net6.0"
+                            "framework" = @{
+                                "name" = "Microsoft.NETCore.App"
+                                "version" = $oldAlcConfig.runtimeOptions.includedFrameworks[0].version
+                            }
+                            "configProperties" = @{
+                                "System.Reflection.Metadata.MetadataUpdater.IsSupported" = $false
+                            }
                         }
                     }
+                    $newAlcConfig | ConvertTo-Json | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
                 }
-                $newAlcConfig | ConvertTo-Json | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
             }
         }
     }
