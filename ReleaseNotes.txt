@@ -4,6 +4,8 @@ Add resilience to Remove-BcContainerSession
 Issue #3116 Publish-NavContainerApp: Exception setting "ServerCertificateCustomValidationCallback": "Cannot convert the "static bool DisabledServerCertificateValidationCallback
 Add new parameter -useEnvironmentUpdateWindow to Install-BcAppFromAppSource, to schedule installation of apps to run inside update window
 Issue #3118 Docker Pull sends recommendations on the error stream on PowerShell 5
+Support building using CompilerFolder on Linux (even when the Linux version of ALC isn't included in the ALLanguage vsix)
+Support latest or preview as "magic" values for VsixFile parameter Run-AlPipeline, Run-AlValidation, New-BcContainer and New-BcCompilerFolder) to always get latest or preview marketplace version
 
 5.0.4
 Add new parameter -excludeRuntimePackages to Publish-BcContainerApp, to exclude installation of runtime packages
