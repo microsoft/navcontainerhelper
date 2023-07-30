@@ -342,7 +342,7 @@ try {
         else {
             $alcCmd = "dotnet"
             $alcExe = 'alc.dll'
-            $alcParameters += @("./$alcExe")
+            $alcParameters += @((Join-Path $alcPath $alcExe))
             Write-Host "No Linux version of alc found. Using dotnet to run alc.dll."
         }
     }
