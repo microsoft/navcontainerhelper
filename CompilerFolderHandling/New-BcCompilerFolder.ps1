@@ -230,7 +230,7 @@ try {
                 $oldAlcConfig = Get-Content -Path $alcConfigPath -Encoding UTF8 | ConvertFrom-Json
                 $newAlcConfig = @{
                     "runtimeOptions" = @{
-                        "tfm": "net6.0",
+                        "tfm" = "net6.0"
                         "framework" = @{
                             "name" = "Microsoft.NETCore.App"
                             "version" = $oldAlcConfig.runtimeOptions.framework.version
