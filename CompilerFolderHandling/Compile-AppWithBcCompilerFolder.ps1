@@ -328,9 +328,9 @@ try {
     $alcPath = Join-Path $binPath 'win32'
     $alcExe = 'alc.exe'
     $alcCmd = ".\$alcExe"
-#    if (-not (Test-Path $alcPath)) {
+    if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
- #   }
+    }
 
     if ($isLinux) {
         $linuxPath = Join-Path $binPath 'linux'
@@ -342,6 +342,8 @@ try {
         else {
             $alcCmd = "dotnet"
             $alcParameters += @("./$alcExe")
+            Write-Host "No Linux version of alc found. Using dotnet to run alc.exe."
+            dotnet --list-runtimes | Out-Host
         }
     }
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
