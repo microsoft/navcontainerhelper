@@ -233,7 +233,7 @@ try {
                         "tfm" = "net6.0"
                         "framework" = @{
                             "name" = "Microsoft.NETCore.App"
-                            "version" = $oldAlcConfig.runtimeOptions.framework.version
+                            "version" = $oldAlcConfig.runtimeOptions.includedFrameworks[0].version
                         }
                         "configProperties" = @{
                             "System.Reflection.Metadata.MetadataUpdater.IsSupported" = $false
