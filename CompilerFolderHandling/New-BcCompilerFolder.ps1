@@ -240,7 +240,7 @@ try {
                         }
                     }
                 }
-                $newAlcConfig | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
+                $newAlcConfig | ConvertTo-Json | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
             }
         }
     }
