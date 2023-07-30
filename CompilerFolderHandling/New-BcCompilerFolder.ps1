@@ -217,8 +217,10 @@ try {
 
     if ($isLinux) {
         $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
-        # Set execute permissions on alc
-        & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
+        if (Test-Path $alcExePath) {
+            # Set execute permissions on alc
+            & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
+        }
     }
     $compilerFolder
 }
