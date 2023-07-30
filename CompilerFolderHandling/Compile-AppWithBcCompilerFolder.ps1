@@ -341,9 +341,9 @@ try {
         }
         else {
             $alcCmd = "dotnet"
+            $alcExe = 'alc.dll'
             $alcParameters += @("./$alcExe")
-            Write-Host "No Linux version of alc found. Using dotnet to run alc.exe."
-            dotnet --list-runtimes | Out-Host
+            Write-Host "No Linux version of alc found. Using dotnet to run alc.dll."
         }
     }
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
