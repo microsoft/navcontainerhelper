@@ -323,22 +323,33 @@ try {
     }
 
     Write-Host "Compiling..."
+    $alcParameters = @()
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
-    if ($isLinux) {
-        $alcPath = Join-Path $binPath 'linux'
-        $alcExe = 'alc'
+    $alcPath = Join-Path $binPath 'win32'
+    $alcExe = 'alc.exe'
+    $alcCmd = ".\$alcExe"
+    if (-not (Test-Path $alcPath)) {
+        $alcPath = $binPath
     }
-    else {
-        $alcPath = Join-Path $binPath 'win32'
-        $alcExe = 'alc.exe'
-        if (-not (Test-Path $alcPath)) {
-            $alcPath = $binPath
+
+    if ($isLinux) {
+        $linuxPath = Join-Path $binPath 'linux'
+        if (Test-Path $linuxPath) {
+            $alcPath = $linuxPath
+            $alcExe = 'alc'
+            $alcCmd = "./$alcExe"
+        }
+        else {
+            $alcCmd = "dotnet"
+            $alcExe = 'alc.dll'
+            $alcParameters += @((Join-Path $alcPath $alcExe))
+            Write-Host "No Linux version of alc found. Using dotnet to run alc.dll."
         }
     }
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
     [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion
 
-    $alcParameters = @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
+    $alcParameters += @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
     if ($GenerateReportLayoutParam) {
         $alcParameters += @($GenerateReportLayoutParam)
     }
@@ -411,8 +422,8 @@ try {
 
     Push-Location -Path $alcPath
     try {
-        Write-Host ".\$alcExe $([string]::Join(' ', $alcParameters))"
-        $result = & ".\$alcExe" $alcParameters | Out-String
+        Write-Host "$alcCmd $([string]::Join(' ', $alcParameters))"
+        $result = & $alcCmd $alcParameters | Out-String
     }
     finally {
         Pop-Location
