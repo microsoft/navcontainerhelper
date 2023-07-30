@@ -323,6 +323,7 @@ try {
     }
 
     Write-Host "Compiling..."
+    $alcParameters = @()
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     $alcPath = Join-Path $binPath 'win32'
     $alcExe = 'alc.exe'
@@ -339,13 +340,14 @@ try {
             $alcCmd = "./$alcExe"
         }
         else {
-            $alcCmd = "dotnet dotnet ./$alcexe"
+            $alcCmd = "dotnet"
+            $alcParameters += @("./$alcExe")
         }
     }
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
     [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion
 
-    $alcParameters = @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
+    $alcParameters += @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
     if ($GenerateReportLayoutParam) {
         $alcParameters += @($GenerateReportLayoutParam)
     }
