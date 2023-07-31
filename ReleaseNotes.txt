@@ -1,3 +1,5 @@
+5.0.6
+
 5.0.5
 Add new option (exitedContainers) on Flush-ContainerHelperCache. Note that exited containers are NOT remove by the all flag, you need all,exitedContainers
 Add resilience to Remove-BcContainerSession
