@@ -1,5 +1,5 @@
 # These owners will be the default owners for everything in the repo.
-* @microsoft/dynamics-smb-engineering-systems @microsoft/dynamics-smb-developertools
+* @microsoft/dynamics-smb-engineering-systems
 
 # Build system files
 /.github @microsoft/dynamics-smb-engineering-systems
