@@ -371,12 +371,6 @@ Param(
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
-    Write-host "CheckRelativePath"
-    Write-Host "- $baseFolder"
-    Write-Host "- $sharedFolder"
-    Write-Host "- $path"
-    Write-Host "- $name"
-    
     if ($path) {
         if (-not [System.IO.Path]::IsPathRooted($path)) {
             if (Test-Path -path (Join-Path $baseFolder $path)) {
@@ -397,7 +391,6 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
             }
         }
     }
-    Write-Host "= $path"
     $path
 }
 
@@ -450,12 +443,6 @@ if ($sharedFolder -and !(Test-Path $sharedFolder -PathType Container)) {
 if ($memoryLimit -eq "") {
     $memoryLimit = "8G"
 }
-
-try {
-    $appFolders | Out-Host
-    $appFolders.GetType() | Out-Host
-    $appFolders.Count | Out-Host
-} catch {}
 
 if ($installApps                    -is [String]) { $installApps = @($installApps.Split(',').Trim() | Where-Object { $_ }) }
 if ($installTestApps                -is [String]) { $installTestApps = @($installTestApps.Split(',').Trim() | Where-Object { $_ }) }
