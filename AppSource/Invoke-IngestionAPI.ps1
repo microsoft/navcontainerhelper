@@ -11,7 +11,8 @@ function Invoke-IngestionApiRestMethod {
         [string] $query = '',
         [Parameter(Mandatory=$false)]
         [string] $body = '',
-        [switch] $silent
+        [switch] $silent,
+        [switch] $ignore404
     )
 
     $authContext = Renew-BcAuthContext -bcAuthContext $authContext
@@ -53,20 +54,35 @@ function Invoke-IngestionApiRestMethod {
         }
         catch {
             $statusCode = 0
-            try {
-                $errorDetails = $_.ErrorDetails | ConvertFrom-Json
-                $statusCode = $errorDetails.statusCode
+            if ($_.Exception -is [System.Net.WebException]) {
+                $webException = [System.Net.WebException]$_.Exception
+                $webResponse = $webException.Response
+                if ($webResponse) {
+                    $statusCode = [int]$webResponse.StatusCode
+                }
             }
-            catch {}
-            if ($retries -gt 0 -and $statusCode -eq 500) {
-                $retries--
-                Write-Host "$(GetExtendedErrorMessage $_)".TrimEnd()
-                Write-Host "...retrying in $waittime minute(s)"
-                Start-Sleep -Seconds ($waitTime*60)
-                $waitTime = $waitTime * 2
+            if ($statusCode -eq 404 -and $ignore404) {
+                # fix for bug https://github.com/microsoft/navcontainerhelper/issues/3151
+                Write-Host -ForegroundColor Yellow "WARNING: Ingestion API returned an invalid nextlink, ignoring..."
+                $success = $true
             }
             else {
-                throw (GetExtendedErrorMessage $_)
+                try {
+                    $errorDetails = $_.ErrorDetails | ConvertFrom-Json
+                    $statusCode = $errorDetails.statusCode
+                }
+                catch {}
+
+                elseif ($retries -gt 0 -and $statusCode -eq 500) {
+                    $retries--
+                    Write-Host "$(GetExtendedErrorMessage $_)".TrimEnd()
+                    Write-Host "...retrying in $waittime minute(s)"
+                    Start-Sleep -Seconds ($waitTime*60)
+                    $waitTime = $waitTime * 2
+                }
+                else {
+                    throw (GetExtendedErrorMessage $_)
+                }
             }
         }
     } while (!$success)
@@ -128,18 +144,20 @@ function Invoke-IngestionApiGetCollection {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
     $nextlink = $path
+    $ignore404 = $false
     while ($nextlink) {
 
-        $ps = Invoke-IngestionApiRestMethod -authContext $authContext -method GET -headers $headers -path $nextlink -query $query -silent:$silent
+        $ps = Invoke-IngestionApiRestMethod -authContext $authContext -method GET -headers $headers -path $nextlink -query $query -silent:$silent -ignore404:$ignore404
 
-        if ($ps.PSObject.Properties.Name -eq 'nextlink') {
-            $nextlink = $ps.nextlink.SubString("v1.0/ingestion".Length)
-        }
-        else {
-            $nextlink = ""
-        }
-        if ($ps.value) {
-            $ps.value
+        $nextlink = ""
+        if ($ps) {
+            if ($ps.PSObject.Properties.Name -eq 'nextlink') {
+                $nextlink = $ps.nextlink.SubString("v1.0/ingestion".Length)
+                $ignore404 = $true
+            }
+            if ($ps.value) {
+                $ps.value
+            }
         }
     }
 }
