@@ -1,4 +1,5 @@
 5.0.6
+Issue #3151 Get-AppSourceProduct returns 404 Not Found
 
 5.0.5
 Add new option (exitedContainers) on Flush-ContainerHelperCache. Note that exited containers are NOT remove by the all flag, you need all,exitedContainers
