@@ -73,7 +73,7 @@ function Invoke-IngestionApiRestMethod {
                 }
                 catch {}
 
-                elseif ($retries -gt 0 -and $statusCode -eq 500) {
+                if ($retries -gt 0 -and $statusCode -eq 500) {
                     $retries--
                     Write-Host "$(GetExtendedErrorMessage $_)".TrimEnd()
                     Write-Host "...retrying in $waittime minute(s)"
