@@ -23,7 +23,10 @@
  .Parameter storageAccount
   The storageAccount that is being used where artifacts are stored (default is bcartifacts, usually should not be changed).
  .Parameter sasToken
-  The token that for accessing protected Azure Blob Storage (like insider builds).  Make sure to set the right storageAccount!
+  The token that for accessing protected Azure Blob Storage. Make sure to set the right storageAccount!
+  Note that Business Central Insider artifacts doesn't require a sasToken after September 1st 2023, you can use the switch -accept_insiderEula to accept the EULA instead.
+ .Parameter accept_insiderEula
+  Accept the EULA for Business Central Insider artifacts. This is required for using Business Central Insider artifacts without providing a SAS token after September 1st 2023.
  .Example
   Get the latest URL for Belgium: 
   Get-BCArtifactUrl -Type OnPrem -Select Latest -country be
@@ -44,6 +47,7 @@ function Get-BCArtifactUrl {
         [DateTime] $before,
         [String] $storageAccount = '',
         [String] $sasToken = '',
+        [switch] $accept_insiderEula,
         [switch] $doNotCheckPlatform
     )
 
@@ -101,9 +105,7 @@ try {
         if ($storageAccount -ne '' -or $type -eq 'OnPrem' -or $version -ne '') {
             throw "You cannot specify storageAccount, type=OnPrem or version when selecting $select release"
         }
-        if ($sasToken -eq '') {
-            throw "You need to specify an insider SasToken if you want to get $select release"
-        }
+
         $current = Get-BCArtifactUrl -country 'base' -select Latest -doNotCheckPlatform:$doNotCheckPlatform
         $currentversion = [System.Version]($current.Split('/')[4])
 
@@ -111,7 +113,7 @@ try {
         $nextmajorversion = "$($currentversion.Major+1).0."
 
         $publicpreviews = Get-BcArtifactUrl -country $country -storageAccount bcpublicpreview -select All -doNotCheckPlatform:$doNotCheckPlatform
-        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform
+        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
 
         $publicpreview = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
         $insider = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
@@ -152,7 +154,9 @@ try {
         }
     }
     else {
-        TestSasToken -sasToken $sasToken
+        if ($sasToken) {
+            TestSasToken -sasToken $sasToken
+        }
 
         if ($storageAccount -eq '') {
             $storageAccount = 'bcartifacts'
@@ -163,6 +167,17 @@ try {
         }
         $BaseUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
         $storageAccount = $storageAccount -replace ".azureedge.net", ".blob.core.windows.net"
+
+        if ($storageAccount -eq 'bcinsider.blob.core.windows.net') {
+            if (!$accept_insiderEULA) {
+                if ($sasToken) {
+                    Write-Host -ForegroundColor Yellow "After September 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
+                }
+                else {
+                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
+                }
+            }
+        }
 
         $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
 
@@ -179,7 +194,7 @@ try {
     
         if ($select -eq 'SecondToLastMajor') {
             if ($version) {
-                throw "You cannot specify a version when asking for the Second To Lst Major version"
+                throw "You cannot specify a version when asking for the Second To Last Major version"
             }
         }
         elseif ($select -eq 'Closest') {

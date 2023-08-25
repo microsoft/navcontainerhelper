@@ -6,6 +6,8 @@
   Adds shortcut on the desktop for Web Client and Container PowerShell prompt
  .Parameter accept_eula
   Switch, which you need to specify if you accept the eula for running NAV or Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
+ .Parameter accept_insiderEula
+  Switch, which you need to specify if you are going to create a container with an insider build of Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=2245051)
  .Parameter accept_outdated
   Specify accept_outdated to ignore error when running containers which are older than 90 days
  .Parameter containerName
@@ -174,11 +176,13 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
-  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
  .Example
   New-BcContainer -accept_eula -containerName test
+ .Example
+  New-BcContainer -accept_eula -containerName test -accept_insiderEula -artifactUrl (Get-BcArtifactUrl -accept_insiderEula -country dk -select NextMajor)
  .Example
   New-BcContainer -accept_eula -containerName test -multitenant
  .Example
@@ -191,6 +195,7 @@
 function New-BcContainer {
     Param (
         [switch] $accept_eula,
+        [switch] $accept_insiderEula,
         [switch] $accept_outdated = $true,
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $imageName = "",
@@ -530,6 +535,19 @@ try {
     if ($artifactUrl) {
         # When using artifacts, you always use best container os - no need to replatform
         $useBestContainerOS = $false
+
+        if ($artifactUrl -like 'https://bcinsider.blob.core.windows.net/*' -or $artifactUrl -like 'https://bcinsider.azureedge.net/*') {
+            if (!$accept_insiderEULA) {
+                $sasToken = "?$("$($artifactUrl)?".Split('?')[1])"
+                if ($sasToken) {
+                    TestSasToken -sasToken $sasToken
+                    Write-Host -ForegroundColor Yellow "After September 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
+                }
+                else {
+                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
+                }
+            }
+        }
 
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]

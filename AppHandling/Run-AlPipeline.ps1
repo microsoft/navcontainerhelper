@@ -11,6 +11,8 @@
   If a folder on the host computer is specified in the sharedFolder parameter, it will be shared with the container as c:\shared
  .Parameter licenseFile
   License file to use for AL Pipeline.
+ .Parameter accept_insiderEula
+  Switch, which you need to specify if you are going to create a container with an insider build of Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=2245051)
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
  .Parameter imageName
@@ -82,6 +84,7 @@
   This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
  .Parameter artifact
   The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select/sastoken, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
+  If you specify accept_insiderEula, you do not need to specify a sasToken
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS. Default is calling Get-BestGenericImageName.
  .Parameter buildArtifactFolder
@@ -133,7 +136,7 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
-  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter enableCodeCop
   Include this switch to include Code Cop Rules during compilation.
  .Parameter enableAppSourceCop
@@ -569,7 +572,7 @@ else {
     if ($additionalCountries) {
         $minver = $null
         @($country)+$additionalCountries | ForEach-Object {
-            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
+            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
             Write-Host "Found $($url.Split('?')[0])"
             if ($url) {
                 $ver = [Version]$url.Split('/')[4]
@@ -586,7 +589,7 @@ else {
         }
         $version = $minver.ToString()
     }
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
