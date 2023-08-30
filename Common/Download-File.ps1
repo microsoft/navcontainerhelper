@@ -7,6 +7,8 @@
   Url from which the file will get downloaded
  .Parameter destinationFile
   Destinatin for the downloaded file
+ .Parameter Headers
+  Specify a custom header for the request
  .Parameter dontOverwrite
   Specify dontOverwrite if you want top skip downloading if the file already exists
  .Parameter timeout
