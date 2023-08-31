@@ -23,16 +23,16 @@ function  Start-BcContainerAppDataUpgrade {
         [string] $appVersion = "",
         [string] $language = "",
         [string] $exclusiveAccessTicket = "",
-        [string] $path,
+        [string] $path = "",
         [switch] $force,
         [switch] $skipVersionCheck,
         [ValidateSet("Add", "Clean", "Development", "ForceSync", "None")]
-        [string] $syncMode
+        [string] $syncMode = ""
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $containerPath = $null
+        $containerPath = = ""
         if ($path) {
             $containerPath = (Get-BcContainerPath -containerName $containerName -path $path -throw)
         }
