@@ -23,7 +23,7 @@ function  Start-BcContainerAppDataUpgrade {
         [string] $appVersion = "",
         [string] $language = "",
         [string] $exclusiveAccessTicket = "",
-        [string] $path = "",
+        [string] $path,
         [switch] $force,
         [switch] $skipVersionCheck,
         [ValidateSet("Add", "Clean", "Development", "ForceSync", "None")]
@@ -32,23 +32,25 @@ function  Start-BcContainerAppDataUpgrade {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        if ($containerName) {
-            $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-            $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([guid]::NewGuid().ToString())"
-            if ($path -is [string] -and $path.Startswith(':')) {
-                New-Item $appFolder -ItemType Directory | Out-Null
-                $destPath = Join-Path $appFolder ([System.IO.Path]::GetFileName($path.SubString(1)).Replace('*', '').Replace('?', ''))
-                Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($path, $destPath)
-                    Copy-Item -Path $path -Destination $destPath -Force
-                } -argumentList (Get-BcContainerPath -containerName $containerName -path $path), (Get-BcContainerPath -containerName $containerName -path $destPath) | Out-Null
+        if ($path) {
+            if ($containerName) {
+                $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+                $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([guid]::NewGuid().ToString())"
+                if ($path -is [string] -and $path.Startswith(':')) {
+                    New-Item $appFolder -ItemType Directory | Out-Null
+                    $destPath = Join-Path $appFolder ([System.IO.Path]::GetFileName($path.SubString(1)).Replace('*', '').Replace('?', ''))
+                    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($path, $destPath)
+                        Copy-Item -Path $path -Destination $destPath -Force
+                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $path), (Get-BcContainerPath -containerName $containerName -path $destPath) | Out-Null
+                }
+                else {
+                    $destPath = CopyAppFilesToFolder -appFiles $path -folder $appFolder
+                }
             }
             else {
+                $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
                 $destPath = CopyAppFilesToFolder -appFiles $path -folder $appFolder
             }
-        }
-        else {
-            $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
-            $destPath = CopyAppFilesToFolder -appFiles $path -folder $appFolder
         }
 
         Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $language, $exclusiveAccessTicket, $destPath, $syncMode, $force, $skipVersionCheck)
