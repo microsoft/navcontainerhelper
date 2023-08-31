@@ -69,7 +69,7 @@ function  Start-BcContainerAppDataUpgrade {
             if ($exclusiveAccessTicket) {
                 $parameters += @{ "ExclusiveAccessTicket" = $exclusiveAccessTicket }
             }
-            if ($path) {
+            if ($destPath) {
                 $parameters += @{ "Path" = $destPath }
             }
             if ($syncMode) {
