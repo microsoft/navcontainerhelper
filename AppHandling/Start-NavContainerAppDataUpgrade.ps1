@@ -32,28 +32,12 @@ function  Start-BcContainerAppDataUpgrade {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $containerPath = $null
         if ($path) {
-            if ($containerName) {
-                $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-                $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([guid]::NewGuid().ToString())"
-                if ($path -is [string] -and $path.Startswith(':')) {
-                    New-Item $appFolder -ItemType Directory | Out-Null
-                    $destPath = Join-Path $appFolder ([System.IO.Path]::GetFileName($path.SubString(1)).Replace('*', '').Replace('?', ''))
-                    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($path, $destPath)
-                        Copy-Item -Path $path -Destination $destPath -Force
-                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $path), (Get-BcContainerPath -containerName $containerName -path $destPath) | Out-Null
-                }
-                else {
-                    $destPath = CopyAppFilesToFolder -appFiles $path -folder $appFolder
-                }
-            }
-            else {
-                $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
-                $destPath = CopyAppFilesToFolder -appFiles $path -folder $appFolder
-            }
+            $containerPath = (Get-BcContainerPath -containerName $containerName -path $path -throw)
         }
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $language, $exclusiveAccessTicket, $destPath, $syncMode, $force, $skipVersionCheck)
+        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $appVersion, $tenant, $language, $exclusiveAccessTicket, $containerPath, $syncMode, $force, $skipVersionCheck)
             Write-Host "Upgrading app $appName"
             $parameters = @{
                 "ServerInstance" = $ServerInstance;
@@ -69,8 +53,8 @@ function  Start-BcContainerAppDataUpgrade {
             if ($exclusiveAccessTicket) {
                 $parameters += @{ "ExclusiveAccessTicket" = $exclusiveAccessTicket }
             }
-            if ($destPath) {
-                $parameters += @{ "Path" = $destPath }
+            if ($containerPath) {
+                $parameters += @{ "Path" = $containerPath }
             }
             if ($syncMode) {
                 $parameters += @{ "SyncMode" = $syncMode }
@@ -82,7 +66,7 @@ function  Start-BcContainerAppDataUpgrade {
                 $parameters += @{ "SkipVersionCheck" = $skipVersionCheck }
             }
             Start-NAVAppDataUpgrade @parameters
-        } -ArgumentList $appName, $appVersion, $tenant, $language, $exclusiveAccessTicket, $destPath, $syncMode, $force, $skipVersionCheck
+        } -ArgumentList $appName, $appVersion, $tenant, $language, $exclusiveAccessTicket, $containerPath, $syncMode, $force, $skipVersionCheck
         Write-Host -ForegroundColor Green "App successfully upgraded"
     }
     catch {
