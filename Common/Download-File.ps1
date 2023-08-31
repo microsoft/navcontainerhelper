@@ -7,6 +7,8 @@
   Url from which the file will get downloaded
  .Parameter destinationFile
   Destinatin for the downloaded file
+ .Parameter Headers
+  Specify a custom header for the request
  .Parameter dontOverwrite
   Specify dontOverwrite if you want top skip downloading if the file already exists
  .Parameter timeout
@@ -20,6 +22,7 @@ function Download-File {
         [string] $sourceUrl,
         [Parameter(Mandatory=$true)]
         [string] $destinationFile,
+        [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [switch] $dontOverwrite,
         [int]    $timeout = 100
     )
@@ -79,7 +82,7 @@ try {
             $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl
         }
         try {
-            DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
+            DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
         }
         catch {
             try {
@@ -92,7 +95,7 @@ try {
                     Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
                 }
                 Start-Sleep -Seconds $waittime
-                DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout
+                DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
             }
             catch {
                 throw (GetExtendedErrorMessage $_)

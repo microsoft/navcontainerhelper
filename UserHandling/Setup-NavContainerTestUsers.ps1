@@ -48,7 +48,7 @@
  .Example
   Setup-BcContainerTestUsers -password $securePassword
  .Example
-  Setup-BcContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
+  Setup-BcContainerTestUsers -containerName test -tenant default -password $Credential.Password -credential $Credential
 #>
 function Setup-BcContainerTestUsers {
     Param (
