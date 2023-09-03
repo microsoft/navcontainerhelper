@@ -325,8 +325,14 @@ function AssumeNavContainer {
 function TestSasToken {
     Param
     (
-        [string] $sasToken
+        [string] $url
     )
+
+    $sasToken = "?$("$($url)?".Split('?')[1])"
+    if ($sasToken -eq '?') {
+        # No SAS token in URL
+        return
+    }
 
     try {
         $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }

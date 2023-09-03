@@ -155,7 +155,7 @@ try {
     }
     else {
         if ($sasToken) {
-            TestSasToken -sasToken $sasToken
+            TestSasToken -url $sasToken
         }
 
         if ($storageAccount -eq '') {

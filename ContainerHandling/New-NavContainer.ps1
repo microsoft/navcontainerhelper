@@ -539,12 +539,12 @@ try {
         if ($artifactUrl -like 'https://bcinsider.blob.core.windows.net/*' -or $artifactUrl -like 'https://bcinsider.azureedge.net/*') {
             if (!$accept_insiderEULA) {
                 $sasToken = "?$("$($artifactUrl)?".Split('?')[1])"
-                if ($sasToken) {
-                    TestSasToken -sasToken $sasToken
-                    Write-Host -ForegroundColor Yellow "After September 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
+                if ($sasToken -eq '?') {
+                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
                 }
                 else {
-                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
+                    TestSasToken -url $artifactUrl
+                    Write-Host -ForegroundColor Yellow "After September 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
                 }
             }
         }
