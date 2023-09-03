@@ -60,11 +60,12 @@ function  Start-BcContainerAppDataUpgrade {
                 $parameters += @{ "SyncMode" = $syncMode }
             }
             if ($force.IsPresent) {
-                $parameters += @{ "Force" = $force }
+                $parameters += @{ "Force" = $true }
             }
             if ($skipVersionCheck.IsPresent) {
-                $parameters += @{ "SkipVersionCheck" = $skipVersionCheck }
+                $parameters += @{ "SkipVersionCheck" = $true }
             }
+
             Start-NAVAppDataUpgrade @parameters
         } -ArgumentList $appName, $appVersion, $tenant, $language, $exclusiveAccessTicket, $containerPath, $syncMode, $force, $skipVersionCheck
         Write-Host -ForegroundColor Green "App successfully upgraded"
