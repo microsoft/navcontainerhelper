@@ -25,7 +25,7 @@
  .Parameter doNotWait
   Include this switch if you don't want to wait for completion of the environment
  .Parameter getCompanyInfo
-  Include this switch if you don't want to wait for completion of the environment
+  Include this switch if you want to list the companies after creating the environment. Uses the Business Central Automation API.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   New-BcEnvironment -bcAuthContext $authContext -countryCode 'us' -environment 'usSandbox'
