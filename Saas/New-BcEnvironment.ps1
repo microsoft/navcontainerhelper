@@ -24,8 +24,8 @@
   API version. Default is 2.3.
  .Parameter doNotWait
   Include this switch if you don't want to wait for completion of the environment
- .Parameter getCompanyInfo
-  Include this switch if you want to list the companies after creating the environment. Uses the Business Central Automation API.
+ .Parameter doNotGetCompanyInfo
+  Include this switch if you want to skip getting company information via the Automation API.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   New-BcEnvironment -bcAuthContext $authContext -countryCode 'us' -environment 'usSandbox'
@@ -46,7 +46,7 @@ function New-BcEnvironment {
         [string] $applicationInsightsKey = "",
         [string] $apiVersion = "v2.18",
         [switch] $doNotWait,
-        [switch] $getCompanyInfo
+        [switch] $doNotGetCompanyInfo
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -92,7 +92,7 @@ function New-BcEnvironment {
                 throw "Could not create environment with error: $($Operation.errorMessage)"
             }
 
-            if ($getCompanyInfo.IsPresent) {
+            if (!$doNotGetCompanyInfo.IsPresent) {
                 $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
                 try {
                     $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing

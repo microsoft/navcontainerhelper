@@ -1,5 +1,5 @@
 5.0.6
-Add switch "getCompanyInfo" to "New-BcEnvironment" to enable getting environment information after creation only when needed.
+Add switch "doNotGetCompanyInfo" to "New-BcEnvironment" to enable skipping getting environment information after environment creation.
 Issue #3151 Get-AppSourceProduct returns 404 Not Found
 Add parameters exclusiveAccessTicket, path, syncMode, force and skipVersionCheck to Start-BcContainerAppDataUpgrade.
 
