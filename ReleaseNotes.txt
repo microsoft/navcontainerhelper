@@ -1,6 +1,7 @@
 5.0.6
 Add switch "getCompanyInfo" to "New-BcEnvironment" to enable getting environment information after creation only when needed.
 Issue #3151 Get-AppSourceProduct returns 404 Not Found
+Add parameters exclusiveAccessTicket, path, syncMode, force and skipVersionCheck to Start-BcContainerAppDataUpgrade.
 
 5.0.5
 Add new option (exitedContainers) on Flush-ContainerHelperCache. Note that exited containers are NOT remove by the all flag, you need all,exitedContainers
