@@ -46,6 +46,10 @@
   Add this switch to Enable External Rulesets
  .Parameter CustomCodeCops
   Add custom AL code Cops when compiling apps.
+  You can specify a pattern like "Cop.*" to allow additional files not ending with *.dll. This is helpful if used with copyCustomCodeCopsToAnalyzersFolder.
+ .Parameter copyCustomCodeCopsToAnalyzersFolder
+  Add this switch to copy the passed CustomCodeCops into the alc analyzers folder inside the container.
+  All files passed in CustomCodeCops will be copied, but only *.dll files are added as an analyzer.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning
  .Parameter nowarn
@@ -113,6 +117,7 @@ function Compile-AppInBcContainer {
         [string] $rulesetFile,
         [switch] $enableExternalRulesets,
         [string[]] $CustomCodeCops = @(),
+        [switch] $copyCustomCodeCopsToAnalyzersFolder,
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
         [string[]] $preProcessorSymbols = @(),
@@ -216,18 +221,6 @@ try {
             throw "The rulesetFile ($rulesetFile) is not shared with the container."
         }
     }
-    
-    $CustomCodeCopFiles = @()
-    if ($CustomCodeCops.Count -gt 0) {
-        $CustomCodeCops | ForEach-Object {
-            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
-            if ("$customCopPath" -eq "") {
-                throw "The custom code cop ($_) is not shared with the container."
-            }
-
-            $CustomCodeCopFiles += $customCopPath
-        }
-    }
 
     if (!(Test-Path $appOutputFolder -PathType Container)) {
         New-Item $appOutputFolder -ItemType Directory | Out-Null
@@ -305,6 +298,39 @@ try {
             $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
+        }
+    }
+
+    $CustomCodeCopFiles = @();
+
+    if ($CustomCodeCops.Count -gt 0) {
+        $CustomCodeCops | ForEach-Object {
+            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+            if ("$customCopPath" -eq "") {
+                throw "The custom code cop ($_) is not shared with the container."
+            }
+
+            $customCopItems = Get-Item -Path $customCopPath | Select-Object -ExpandProperty 'FullName';
+
+            $customCopItems | ForEach-Object {
+                $customCopItem = $_;
+
+                if ($copyCustomCodeCopsToAnalyzersFolder.IsPresent) {
+                    $customCopItem = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                        $analyzersPath = 'C:\build\vsix\extension\bin\Analyzers';
+
+                        return (Copy-Item -Path $Using:customCopItem -Destination $analyzersPath -PassThru).FullName;
+                    }
+
+					if ($customCopItem -imatch '.dll$') {
+	                    Write-Host "Copied custom code cop $(Split-Path -Path $customCopItem -Leaf) to analyzers folder.";
+					}
+                }
+
+                if ($customCopItem -imatch '.dll$') {
+                    $CustomCodeCopFiles += $customCopItem;
+                }
+            }
         }
     }
 
