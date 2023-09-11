@@ -13,6 +13,8 @@
   License file to use for AL Pipeline.
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
+ .Parameter errorLog
+  Path to file where to output the alerts from the compiler.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
   Only speficy imagename if you are going to create multiple containers from the same artifacts.
@@ -336,6 +338,7 @@ Param(
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
     [string[]] $preProcessorSymbols = @(),
+    [string] $errorLog,
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
     [Hashtable] $bcAuthContext,
@@ -1710,6 +1713,7 @@ Write-Host -ForegroundColor Yellow @'
         "generatecrossreferences" = $generatecrossreferences
         "updateDependencies" = $UpdateDependencies
         "features" = $features
+        "errorLog" = $errorLog
     }
 
     if ($buildOutputFile) {

@@ -50,6 +50,8 @@
   Specify if you want Compilation to fail on Error or Warning
  .Parameter nowarn
   Specify a nowarn parameter for the compiler
+ .Parameter errorLog
+  Path to file where to output the alerts from the compiler
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
@@ -115,6 +117,7 @@ function Compile-AppInBcContainer {
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
+        [string] $errorLog,
         [string[]] $preProcessorSymbols = @(),
         [switch] $GenerateCrossReferences,
         [switch] $ReportSuppressedDiagnostics,
@@ -559,7 +562,7 @@ try {
         $depidx++
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $errorLog, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl )
 
         if ($updateDependencies) {
             $appJsonFile = Join-Path $appProjectFolder 'app.json'
@@ -656,6 +659,10 @@ try {
             $alcParameters += @("/nowarn:$nowarn")
         }
 
+        if ($errorLog) {
+            $alcParameters += @("/errorLog:$errorLog")
+        }
+
         if ($GenerateCrossReferences -and $platformversion.Major -ge 18) {
             $alcParameters += @("/generatecrossreferences")
         }
@@ -701,7 +708,7 @@ try {
         if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $errorLog, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl
     
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
