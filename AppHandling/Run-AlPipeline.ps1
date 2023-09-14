@@ -1,4 +1,4 @@
-<# 
+<#
  .Synopsis
   Run AL Pipeline
  .Description
@@ -13,7 +13,7 @@
   License file to use for AL Pipeline.
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
- .Parameter errorLog
+ .Parameter generateErrorLog
   Path to file where to output the alerts from the compiler.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
@@ -161,7 +161,7 @@
  .Parameter escapeFromCops
   If One of the cops causes an error in an app, then show the error, recompile the app without cops and continue
  .Parameter AppSourceCopMandatoryAffixes
-  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app. 
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app.
  .Parameter AppSourceCopSupportedCountries
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
  .Parameter obsoleteTagMinAllowedMajorMinor
@@ -337,8 +337,8 @@ Param(
     $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
+    [switch] $generateErrorLog,
     [string[]] $preProcessorSymbols = @(),
-    [string] $errorLog,
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
     [Hashtable] $bcAuthContext,
@@ -481,7 +481,7 @@ if ($bcptTestSuites) {
 if ($bcptTestFolders) {
     $bcptTestFolders | ForEach-Object {
         if (-not (Test-Path (Join-Path $_ "bcptSuite.json"))) {
-            throw "no bcptsuite.json found in bcpt test folder $_"        
+            throw "no bcptsuite.json found in bcpt test folder $_"
         }
         if ($addBcptTestSuites) {
             $bcptTestSuites += @((Join-Path $_ "bcptSuite.json"))
@@ -599,9 +599,9 @@ $escapeFromCops = $escapeFromCops -and ($enableCodeCop -or $enableAppSourceCop -
 
 if ($gitHubActions) { Write-Host "::group::Parameters" }
 Write-Host -ForegroundColor Yellow @'
-  _____                               _                
- |  __ \                             | |               
- | |__) |_ _ _ __ __ _ _ __ ___   ___| |_ ___ _ __ ___ 
+  _____                               _
+ |  __ \                             | |
+ | |__) |_ _ _ __ __ _ _ __ ___   ___| |_ ___ _ __ ___
  |  ___/ _` | '__/ _` | '_ ` _ \ / _ \ __/ _ \ '__/ __|
  | |  | (_| | | | (_| | | | | | |  __/ |_  __/ |  \__ \
  |_|   \__,_|_|  \__,_|_| |_| |_|\___|\__\___|_|  |___/
@@ -655,6 +655,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "; Write-Host $doNotRunBcptTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
+Write-Host -NoNewLine -ForegroundColor Yellow "generateErrorLog                "; Write-Host $generateErrorLog
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                     "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                          "; Write-Host $gitLab
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions                   "; Write-Host $gitHubActions
@@ -865,14 +866,14 @@ if ($gitHubActions) { Write-Host "::group::Pulling generic image" }
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
 
-  _____       _ _ _                                          _        _                            
- |  __ \     | | (_)                                        (_)      (_)                           
- | |__) |   _| | |_ _ __   __ _    __ _  ___ _ __   ___ _ __ _  ___   _ _ __ ___   __ _  __ _  ___ 
+  _____       _ _ _                                          _        _
+ |  __ \     | | (_)                                        (_)      (_)
+ | |__) |   _| | |_ _ __   __ _    __ _  ___ _ __   ___ _ __ _  ___   _ _ __ ___   __ _  __ _  ___
  |  ___/ | | | | | | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '__| |/ __| | | '_ ` _ \ / _` |/ _` |/ _ \
  | |   | |_| | | | | | | | (_| | | (_| |  __/ | | |  __/ |  | | (__  | | | | | | | (_| | (_| |  __/
  |_|    \__,_|_|_|_|_| |_|\__, |  \__, |\___|_| |_|\___|_|  |_|\___| |_|_| |_| |_|\__,_|\__, |\___|
-                           __/ |   __/ |                                                 __/ |     
-                          |___/   |___/                                                 |___/      
+                           __/ |   __/ |                                                 __/ |
+                          |___/   |___/                                                 |___/
 
 '@
 
@@ -903,14 +904,14 @@ $testToolkitInstalled = $false
 if ($gitHubActions) { Write-Host "::group::Creating container" }
 Write-Host -ForegroundColor Yellow @'
 
-   _____                _   _                               _        _                 
-  / ____|              | | (_)                             | |      (_)                
- | |     _ __ ___  __ _| |_ _ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __ 
+   _____                _   _                               _        _
+  / ____|              | | (_)                             | |      (_)
+ | |     _ __ ___  __ _| |_ _ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __
  | |    | '__/ _ \/ _` | __| | '_ \ / _` |  / __/ _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
- | |____| | |  __/ (_| | |_| | | | | (_| | | (__ (_) | | | | |_ (_| | | | | |  __/ |   
-  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|   
-                                     __/ |                                             
-                                    |___/                                              
+ | |____| | |  __/ (_| | |_| | | | | (_| | | (__ (_) | | | | |_ (_| | | | | |  __/ |
+  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|
+                                     __/ |
+                                    |___/
 
 '@
 
@@ -1013,7 +1014,7 @@ Measure-Command {
                 "credential" = $credential
                 "permissionsetId" = "SUPER"
                 "ChangePasswordAtNextLogOn" = $false
-                "assignPremiumPlan" = $assignPremiumPlan            
+                "assignPremiumPlan" = $assignPremiumPlan
             }
             New-BcContainerBcUser @Parameters
 
@@ -1038,14 +1039,14 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($gitHubActions) { Write-Host "::group::Resolving dependencies" }
 Write-Host -ForegroundColor Yellow @'
 
- _____                _       _                   _                           _                 _          
-|  __ \              | |     (_)                 | |                         | |               (_)         
-| |__) |___ ___  ___ | |_   ___ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___ ___ 
+ _____                _       _                   _                           _                 _
+|  __ \              | |     (_)                 | |                         | |               (_)
+| |__) |___ ___  ___ | |_   ___ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___ ___
 |  _  // _ \ __|/ _ \| \ \ / / | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \ __|
 | | \ \  __\__ \ (_) | |\ V /| | | | | (_| | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __\__ \
 |_|  \_\___|___/\___/|_| \_/ |_|_| |_|\__, |  \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___|___/
-                                       __/ |            | |                                                
-                                      |___/             |_|                                                
+                                       __/ |            | |
+                                      |___/             |_|
 
 '@
 $unknownAppDependencies = @()
@@ -1085,14 +1086,14 @@ if ($installApps) {
 if ($gitHubActions) { Write-Host "::group::Installing apps" }
 Write-Host -ForegroundColor Yellow @'
 
-  _____           _        _ _ _                                     
- |_   _|         | |      | | (_)                                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __  ___ 
+  _____           _        _ _ _
+ |_   _|         | |      | | (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` |  / _` | '_ \| '_ \/ __|
   _| |_| | | \__ \ |_ (_| | | | | | | | (_| | | (_| | |_) | |_) \__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-                                        __/ |       | |   | |        
-                                       |___/        |_|   |_|        
+                                        __/ |       | |   | |
+                                       |___/        |_|   |_|
 
 '@
 Measure-Command {
@@ -1189,14 +1190,14 @@ $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedA
 if ($missingAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
 Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _                                       _                           _                 _           
- |_   _|         | |      | | (_)                                     | |                         | |               (_)          
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___ 
+  _____           _        _ _ _                                       _                           _                 _
+ |_   _|         | |      | | (_)                                     | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` |  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
   _| |_| | | \__ \ || (_| | | | | | | | (_| | | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
-                                        __/ |       | |   | |                | |                                                 
-                                       |___/        |_|   |_|                |_|                                                 
+                                        __/ |       | |   | |                | |
+                                       |___/        |_|   |_|                |_|
 '@
 Measure-Command {
     Write-Host "Missing App dependencies"
@@ -1229,14 +1230,14 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
 Write-Host -ForegroundColor Yellow @'
-  _____                            _   _               _            _     _              _ _    _ _   
- |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |  
-   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_  | |_ ___   ___ | | | ___| |_ 
+  _____                            _   _               _            _     _              _ _    _ _
+ |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_  | |_ ___   ___ | | | ___| |_
    | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` | | __/ _ \/ __| __| | __/ _ \ / _ \| | |/ / | __|
-  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | || (_) | (_) | |   <| | |_ 
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | || (_) | (_) | |   <| | |_
  |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |  \__\___||___/\__|  \__\___/ \___/|_|_|\_\_|\__|
-                 | |                            __/ |                                                 
-                 |_|                           |___/                                                  
+                 | |                            __/ |
+                 |_|                           |___/
 '@
 Measure-Command {
     Write-Host -ForegroundColor Yellow "Importing Test Toolkit for additional country $testCountry"
@@ -1261,14 +1262,14 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($installTestApps) {
 if ($gitHubActions) { Write-Host "::group::Installing test apps" }
 Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _               _            _                           
- |_   _|         | |      | | (_)             | |          | |                          
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __  ___ 
+  _____           _        _ _ _               _            _
+ |_   _|         | |      | | (_)             | |          | |
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \/ __|
   _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) \__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/|___/
-                                        __/ |                          | |   | |        
-                                       |___/                           |_|   |_|        
+                                        __/ |                          | |   | |
+                                       |___/                           |_|   |_|
 '@
 Measure-Command {
 
@@ -1343,14 +1344,14 @@ $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $in
 if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
 Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _               _            _                             _                           _                 _           
- |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)          
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___ 
+  _____           _        _ _ _               _            _                             _                           _                 _
+ |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
   _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
-                                        __/ |                          | |   | |                | |                                                 
-                                       |___/                           |_|   |_|                |_|                                                 
+                                        __/ |                          | |   | |                | |
+                                       |___/                           |_|   |_|                |_|
 '@
 Measure-Command {
     Write-Host "Missing TestApp dependencies"
@@ -1380,14 +1381,14 @@ if ($appFolders -or $testFolders -or $bcptTestFolders) {
 if ($gitHubActions) { Write-Host "::group::Compiling apps" }
 Write-Host -ForegroundColor Yellow @'
 
-   _____                      _ _ _                                     
-  / ____|                    (_) (_)                                    
- | |     ___  _ __ ___  _ __  _| |_ _ __   __ _    __ _ _ __  _ __  ___ 
+   _____                      _ _ _
+  / ____|                    (_) (_)
+ | |     ___  _ __ ___  _ __  _| |_ _ __   __ _    __ _ _ __  _ __  ___
  | |    / _ \| '_ ` _ \| '_ \| | | | '_ \ / _` |  / _` | '_ \| '_ \/ __|
  | |____ (_) | | | | | | |_) | | | | | | | (_| | | (_| | |_) | |_) \__ \
   \_____\___/|_| |_| |_| .__/|_|_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-                       | |                 __/ |       | |   | |        
-                       |_|                |___/        |_|   |_|        
+                       | |                 __/ |       | |   | |
+                       |_|                |___/        |_|   |_|
 
 '@
 }
@@ -1410,14 +1411,14 @@ $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object
 if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
 Write-Host -ForegroundColor Yellow @'
-  _____                            _   _               _            _     _              _ _    _ _   
- |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |  
-   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_  | |_ ___   ___ | | | ___| |_ 
+  _____                            _   _               _            _     _              _ _    _ _
+ |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_  | |_ ___   ___ | | | ___| |_
    | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` | | __/ _ \/ __| __| | __/ _ \ / _ \| | |/ / | __|
-  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | || (_) | (_) | |   <| | |_ 
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | || (_) | (_) | |   <| | |_
  |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |  \__\___||___/\__|  \__\___/ \___/|_|_|\_\_|\__|
-                 | |                            __/ |                                                 
-                 |_|                           |___/                                                  
+                 | |                            __/ |
+                 |_|                           |___/
 '@
 Measure-Command {
         $measureText = ", test apps and importing test toolkit"
@@ -1443,14 +1444,14 @@ if ($installTestApps) {
 if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($gitHubActions) { Write-Host "::group::Installing test apps" }
 Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _               _            _                           
- |_   _|         | |      | | (_)             | |          | |                          
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __  ___ 
+  _____           _        _ _ _               _            _
+ |_   _|         | |      | | (_)             | |          | |
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \/ __|
   _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) \__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/|___/
-                                        __/ |                          | |   | |        
-                                       |___/                           |_|   |_|        
+                                        __/ |                          | |   | |
+                                       |___/                           |_|   |_|
 '@
 Measure-Command {
 
@@ -1516,14 +1517,14 @@ $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $in
 if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
 Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _               _            _                             _                           _                 _           
- |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)          
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___ 
+  _____           _        _ _ _               _            _                             _                           _                 _
+ |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
   _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
-                                        __/ |                          | |   | |                | |                                                 
-                                       |___/                           |_|   |_|                |_|                                                 
+                                        __/ |                          | |   | |                | |
+                                       |___/                           |_|   |_|                |_|
 '@
 Measure-Command {
     Write-Host "Missing TestApp dependencies"
@@ -1550,14 +1551,14 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($gitHubActions) { Write-Host "::group::Compiling test apps" }
 Write-Host -ForegroundColor Yellow @'
-   _____                      _ _ _               _           _                           
-  / ____|                    (_) (_)             | |         | |                          
- | |     ___  _ __ ___  _ __  _| |_ _ __   __ _  | |_ ___ ___| |_    __ _ _ __  _ __  ___ 
+   _____                      _ _ _               _           _
+  / ____|                    (_) (_)             | |         | |
+ | |     ___  _ __ ___  _ __  _| |_ _ __   __ _  | |_ ___ ___| |_    __ _ _ __  _ __  ___
  | |    / _ \| '_ ` _ \| '_ \| | | | '_ \ / _` | | __/ _ \ __| __|  / _` | '_ \| '_ \/ __|
  | |____ (_) | | | | | | |_) | | | | | | | (_| | | |_  __\__ \ |_  | (_| | |_) | |_) \__ \
   \_____\___/|_| |_| |_| .__/|_|_|_|_| |_|\__, |  \__\___|___/\__|  \__,_| .__/| .__/|___/
-                       | |                 __/ |                         | |   | |        
-                       |_|                |___/                          |_|   |_|        
+                       | |                 __/ |                         | |   | |
+                       |_|                |___/                          |_|   |_|
 '@
     }
 
@@ -1572,7 +1573,7 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($app) {
-        $CopParameters += @{ 
+        $CopParameters += @{
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
             "EnableUICop" = $enableUICop
@@ -1596,14 +1597,14 @@ Write-Host -ForegroundColor Yellow @'
                 }
                 if ($rulesetFile) {
                     Write-Host "Including custom ruleset"
-                    $ruleset.includedRuleSets += @(@{ 
+                    $ruleset.includedRuleSets += @(@{
                         "action" = "Default"
                         "path" = Get-BcContainerPath -containerName $containerName -path $ruleSetFile
                     })
                 }
                 $appSourceRulesetFile = Join-Path $folder "appsource.default.ruleset.json"
                 Download-File -sourceUrl "https://bcartifacts.azureedge.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
-                $ruleset.includedRuleSets += @(@{ 
+                $ruleset.includedRuleSets += @(@{
                     "action" = "Default"
                     "path" = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
                 })
@@ -1675,7 +1676,7 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($appJsonChanges) {
-        $appJsonContent = $appJson | ConvertTo-Json -Depth 99 
+        $appJsonContent = $appJson | ConvertTo-Json -Depth 99
         [System.IO.File]::WriteAllLines($appJsonFile, $appJsonContent)
     }
 
@@ -1713,11 +1714,11 @@ Write-Host -ForegroundColor Yellow @'
         "generatecrossreferences" = $generatecrossreferences
         "updateDependencies" = $UpdateDependencies
         "features" = $features
-        "errorLog" = $errorLog
+        "generateErrorLog" = $generateErrorLog
     }
 
     if ($buildOutputFile) {
-        $parameters.OutputTo = { Param($line) 
+        $parameters.OutputTo = { Param($line)
             Write-Host $line
             if ($line -like "$($folder)*") {
                 Add-Content -Path $buildOutputFile -Value $line.SubString($folder.Length+1) -Encoding UTF8
@@ -1779,7 +1780,7 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
     }
-    
+
     if ($enableAppSourceCop -and $app) {
         $appSourceCopJson = @{}
         $saveit = $false
@@ -1941,7 +1942,7 @@ Write-Host -ForegroundColor Yellow @'
                     $port = $config.DeveloperServicesPort
                     $serverInstance = $webUri.AbsolutePath.Trim('/')
                 }
-        
+
                 $launchSettings = [ordered]@{
                     "type" = 'al'
                     "request" = 'launch'
@@ -1974,14 +1975,14 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 if ($signApps -and !$useDevEndpoint -and !$useCompilerFolder) {
 if ($gitHubActions) { Write-Host "::group::Signing apps" }
 Write-Host -ForegroundColor Yellow @'
-  _____ _             _                                     
- / ____(_)           (_)                                    
- | (__  _  __ _ _ __  _ _ __   __ _    __ _ _ __  _ __  ___ 
+  _____ _             _
+ / ____(_)           (_)
+ | (__  _  __ _ _ __  _ _ __   __ _    __ _ _ __  _ __  ___
  \___ \| |/ _` | '_ \| | '_ \ / _` |  / _` | '_ \| '_ \/ __|
  ____) | | (_| | | | | | | | | (_| | | (_| | |_) | |_) \__ \
 |_____/|_|\__, |_| |_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-           __/ |               __/ |       | |   | |        
-          |___/               |___/        |_|   |_|        
+           __/ |               __/ |       | |   | |
+          |___/               |___/        |_|   |_|
 '@
 Measure-Command {
 $apps | ForEach-Object {
@@ -2008,14 +2009,14 @@ if (!$useDevEndpoint) {
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
 if ($gitHubActions) { Write-Host "::group::Installing previous apps" }
 Write-Host -ForegroundColor Yellow @'
-  _____           _        _ _ _                                    _                                         
- |_   _|         | |      | | (_)                                  (_)                                        
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _   _ __  _ __ _____   ___  ___  _   _ ___    __ _ _ __  _ __  ___ 
+  _____           _        _ _ _                                    _
+ |_   _|         | |      | | (_)                                  (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _   _ __  _ __ _____   ___  ___  _   _ ___    __ _ _ __  _ __  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | '_ \| '__/ _ \ \ / / |/ _ \| | | / __|  / _` | '_ \| '_ \/ __|
   _| |_| | | \__ \ || (_| | | | | | | | (_| | | |_) | | |  __/\ V /| | (_) | |_| \__ \ | (_| | |_) | |_) \__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, | | .__/|_|  \___| \_/ |_|\___/ \__,_|___/  \__,_| .__/| .__/|___/
-                                        __/ | | |                                            | |   | |        
-                                       |___/  |_|                                            |_|   |_|        
+                                        __/ | | |                                            | |   | |
+                                       |___/  |_|                                            |_|   |_|
 '@
 Measure-Command {
     if ($testCountry) {
@@ -2057,14 +2058,14 @@ if ($gitHubActions) { Write-Host "::endgroup::" }
 if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
 if ($gitHubActions) { Write-Host "::group::Publishing apps" }
 Write-Host -ForegroundColor Yellow @'
-  _____       _     _ _     _     _                                     
- |  __ \     | |   | (_)   | |   (_)                                    
- | |__) |   _| |__ | |_ ___| |__  _ _ __   __ _    __ _ _ __  _ __  ___ 
+  _____       _     _ _     _     _
+ |  __ \     | |   | (_)   | |   (_)
+ | |__) |   _| |__ | |_ ___| |__  _ _ __   __ _    __ _ _ __  _ __  ___
  |  ___/ | | | '_ \| | / __| '_ \| | '_ \ / _` |  / _` | '_ \| '_ \/ __|
  | |   | |_| | |_) | | \__ \ | | | | | | | (_| | | (_| | |_) | |_) \__ \
  |_|    \__,_|_.__/|_|_|___/_| |_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-                                           __/ |       | |   | |        
-                                          |___/        |_|   |_|        
+                                           __/ |       | |   | |
+                                          |___/        |_|   |_|
 '@
 Measure-Command {
 if ($testCountry) {
@@ -2082,7 +2083,7 @@ if (!($bcAuthContext)) {
 
 $upgradedApps = @()
 $apps | ForEach-Object {
-   
+
     $folder = $appsFolder[$_]
     $appJsonFile = Join-Path $folder "app.json"
     $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
@@ -2129,7 +2130,7 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
                 "version" = $_.Version
                 "uninstall" = $true
             }
-        
+
             if (!$doNotPublishApps) {
                 Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
             }
@@ -2138,7 +2139,7 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
 }
 
 $testApps+$bcptTestApps | ForEach-Object {
-   
+
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
@@ -2170,14 +2171,14 @@ if (!($doNotRunTests -and $doNotRunBcptTests)) {
 if ($ImportTestDataInBcContainer) {
 if ($gitHubActions) { Write-Host "::group::Importing test data" }
 Write-Host -ForegroundColor Yellow @'
-  _____                            _   _               _            _         _       _        
- |_   _|                          | | (_)             | |          | |       | |     | |       
-   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_    __| | __ _| |_ __ _ 
+  _____                            _   _               _            _         _       _
+ |_   _|                          | | (_)             | |          | |       | |     | |
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_    __| | __ _| |_ __ _
    | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` | | __/ _ \/ __| __|  / _` |/ _` | __/ _` |
   _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | (_| | (_| | || (_| |
  |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |  \__\___||___/\__|  \__,_|\__,_|\__\__,_|
-                 | |                            __/ |                                          
-                 |_|                           |___/                                           
+                 | |                            __/ |
+                 |_|                           |___/
 '@
 if (!$enableTaskScheduler) {
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
@@ -2215,14 +2216,14 @@ $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResult
 if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
 if ($gitHubActions) { Write-Host "::group::Running tests" }
 Write-Host -ForegroundColor Yellow @'
-  _____                   _               _            _       
- |  __ \                 (_)             | |          | |      
- | |__) |   _ _ __  _ __  _ _ __   __ _  | |_ ___  ___| |_ ___ 
+  _____                   _               _            _
+ |  __ \                 (_)             | |          | |
+ | |__) |   _ _ __  _ __  _ _ __   __ _  | |_ ___  ___| |_ ___
  |  _  / | | | '_ \| '_ \| | '_ \ / _` | | __/ _ \/ __| __/ __|
  | | \ \ |_| | | | | | | | | | | | (_| | | ||  __/\__ \ |_\__ \
  |_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, |  \__\___||___/\__|___/
-                                   __/ |                       
-                                  |___/                        
+                                   __/ |
+                                  |___/
 '@
 Measure-Command {
 if ($testCountry) {
@@ -2345,21 +2346,21 @@ $testAppIds.Keys | ForEach-Object {
 if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
     Write-Host "Copying test results to output"
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
-} 
+}
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
 if (!$doNotRunBcptTests -and $bcptTestSuites) {
 if ($gitHubActions) { Write-Host "::group::Running BCPT tests" }
 Write-Host -ForegroundColor Yellow @'
-  _____                   _               ____   _____ _____ _______   _            _       
- |  __ \                 (_)             |  _ \ / ____|  __ \__   __| | |          | |      
- | |__) |   _ _ __  _ __  _ _ __   __ _  | |_) | |    | |__) | | |    | |_ ___  ___| |_ ___ 
+  _____                   _               ____   _____ _____ _______   _            _
+ |  __ \                 (_)             |  _ \ / ____|  __ \__   __| | |          | |
+ | |__) |   _ _ __  _ __  _ _ __   __ _  | |_) | |    | |__) | | |    | |_ ___  ___| |_ ___
  |  _  / | | | '_ \| '_ \| | '_ \ / _` | |  _ <| |    |  ___/  | |    | __/ _ \/ __| __/ __|
  | | \ \ |_| | | | | | | | | | | | (_| | | |_) | |____| |      | |    | ||  __/\__ \ |_\__ \
  |_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, | |____/ \_____|_|      |_|     \__\___||___/\__|___/
-                                   __/ |                                                    
-                                  |___/                                                     
+                                   __/ |
+                                  |___/
 '@
 Measure-Command {
 if ($testCountry) {
@@ -2389,7 +2390,7 @@ $bcptTestSuites | ForEach-Object {
 if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
     Write-Host "Copying bcpt test results to output"
     Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
-} 
+}
 if ($gitHubActions) { Write-Host "::endgroup::" }
 }
 
@@ -2404,14 +2405,14 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
 if ($buildArtifactFolder) {
 if ($gitHubActions) { Write-Host "::group::Copy to build artifacts" }
 Write-Host -ForegroundColor Yellow @'
-  _____                     _          _           _ _     _              _   _  __           _       
- / ____|                   | |        | |         (_) |   | |            | | (_)/ _|         | |      
- | |     ___  _ __  _   _  | |_ ___   | |__  _   _ _| | __| |   __ _ _ __| |_ _| |_ __ _  ___| |_ ___ 
+  _____                     _          _           _ _     _              _   _  __           _
+ / ____|                   | |        | |         (_) |   | |            | | (_)/ _|         | |
+ | |     ___  _ __  _   _  | |_ ___   | |__  _   _ _| | __| |   __ _ _ __| |_ _| |_ __ _  ___| |_ ___
  | |    / _ \| '_ \| | | | | __/ _ \  | '_ \| | | | | |/ _` |  / _` | '__| __| |  _/ _` |/ __| __/ __|
  | |___| (_) | |_) | |_| | | || (_) | | |_) | |_| | | | (_| | | (_| | |  | |_| | || (_| | (__| |_\__ \
  \______\___/| .__/ \__, |  \__\___/  |_.__/ \__,_|_|_|\__,_|  \__,_|_|   \__|_|_| \__,_|\___|\__|___/
-             | |     __/ |                                                                            
-             |_|    |___/                                                                             
+             | |     __/ |
+             |_|    |___/
 '@
 
 Measure-Command {
@@ -2430,6 +2431,28 @@ if (!(Test-Path $destFolder -PathType Container)) {
 $testApps | ForEach-Object {
     Copy-Item -Path $_ -Destination $destFolder -Force
 }
+
+# Copy error logs to build artifact folder
+if($generateErrorLog) {
+    # Define destination folder for error logs
+    $destFolder = Join-Path $buildArtifactFolder "ErrorLogs"
+    if (!(Test-Path $destFolder -PathType Container)) {
+        New-Item $destFolder -ItemType Directory | Out-Null
+    }
+
+    # Copy error logs for all apps
+    @($apps, $testApps, $bcptTestApps) | ForEach-Object {
+        $currentAppFile = $_
+
+        # Naming convention for error log files is <appname>.errorLog.json
+        $currentErrorLogFilePath = $currentAppFile -replace ".app$", ".errorLog.json"
+
+        if (Test-Path $currentErrorLogFilePath) {
+            Copy-Item -Path $currentErrorLogFilePath -Destination $destFolder -Force
+        }
+    }
+}
+
 if ($createRuntimePackages) {
     $destFolder = Join-Path $buildArtifactFolder "RuntimePackages"
     if (!(Test-Path $destFolder -PathType Container)) {
@@ -2462,7 +2485,7 @@ if ($createRuntimePackages) {
                 "pfxFile" = $codeSignCertPfxFile
                 "pfxPassword" = $codeSignCertPfxPassword
             }
-            
+
             Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
         }
 
@@ -2490,14 +2513,14 @@ if (!$keepContainer) {
 if ($gitHubActions) { Write-Host "::group::Removing container" }
 if (!($err)) {
 Write-Host -ForegroundColor Yellow @'
-  _____                           _                               _        _                 
- |  __ \                         (_)                             | |      (_)                
- | |__) |___ _ __ ___   _____   ___ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __ 
+  _____                           _                               _        _
+ |  __ \                         (_)                             | |      (_)
+ | |__) |___ _ __ ___   _____   ___ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __
  |  _  // _ \ '_ ` _ \ / _ \ \ / / | '_ \ / _` |  / __/ _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
- | | \ \  __/ | | | | | (_) \ V /| | | | | (_| | | (_| (_) | | | | || (_| | | | | |  __/ |   
- |_|  \_\___|_| |_| |_|\___/ \_/ |_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|   
-                                           __/ |                                             
-                                          |___/                                              
+ | | \ \  __/ | | | | | (_) \ V /| | | | | (_| | | (_| (_) | | | | || (_| | | | | |  __/ |
+ |_|  \_\___|_| |_| |_|\___/ \_/ |_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|
+                                           __/ |
+                                          |___/
 '@
 }
 Measure-Command {

@@ -118,7 +118,7 @@ function Compile-AppInBcContainer {
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
-        [switch] $generateError,
+        [switch] $generateErrorLog,
         [string[]] $preProcessorSymbols = @(),
         [switch] $GenerateCrossReferences,
         [switch] $ReportSuppressedDiagnostics,
@@ -564,7 +564,7 @@ try {
     }
 
     $errorLogFilePath = ""
-    if($generateError) {
+    if($generateErrorLog) {
         $errorLogFilePath = (Join-Path $containerOutputFolder $($appName -replace '.app$','.errorLog.json'))
     }
 
