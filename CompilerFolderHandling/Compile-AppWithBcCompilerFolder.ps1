@@ -1,4 +1,4 @@
-﻿<# 
+﻿<#
  .Synopsis
   Compile app without docker (used by Run-AlPipeline to compile apps without docker)
  .Description
@@ -94,6 +94,7 @@ function Compile-AppWithBcCompilerFolder {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [switch] $generateErrorLog,
         [switch] $enableExternalRulesets,
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
@@ -143,7 +144,7 @@ try {
     AddTelemetryProperty -telemetryScope $telemetryScope -key "name" -value $appJsonObject.Name
     AddTelemetryProperty -telemetryScope $telemetryScope -key "version" -value $appJsonObject.Version
     AddTelemetryProperty -telemetryScope $telemetryScope -key "appname" -value $appName
-    
+
     if (!(Test-Path $appOutputFolder -PathType Container)) {
         New-Item $appOutputFolder -ItemType Directory | Out-Null
     }
@@ -382,6 +383,11 @@ try {
         $alcParameters += @("/nowarn:$nowarn")
     }
 
+    if ($generateErrorLog) {
+        $errorLogFilePath = $appOutputFile -replace ".app$", ".errorLog.json"
+        $alcParameters += @("/errorLog:""$errorLogFilePath""")
+    }
+
     if ($GenerateCrossReferences -and $platformversion.Major -ge 18) {
         $alcParameters += @("/generatecrossreferences")
     }
@@ -428,11 +434,11 @@ try {
     finally {
         Pop-Location
     }
-        
+
     if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
         "App generation failed with exit code $lastexitcode"
     }
-    
+
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
         $result = $result | ForEach-Object { $_ -replace "^(.*)warning ($regexp):(.*)`$", '$1error $2:$3' }
