@@ -31,6 +31,18 @@ Describe 'AppHandling' {
         $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols -credential $credential
         $navAppFile | Should -Exist
     }
+    It 'Compile-AppInNavContainer generates error log file' {
+        Copy-Item -Path (Join-Path $PSScriptRoot "nav-app") -Destination $navContainerPath -Recurse -Force
+        $appProjectFolder = Join-Path $navContainerPath "nav-app"
+        $appOutputFolder = Join-Path $appProjectFolder "output"
+        $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
+
+        $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -generateErrorLog -UpdateSymbols -credential $credential
+        $navAppFile | Should -Exist
+
+        $errorLogFile = $navAppFile -replace ".app$", ".errorLog.json"
+        $errorLogFile | Should -Exist
+    }
     It 'Extract-AppFileToFolder (nav app)' {
         $navAppFileName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
         $navAppFile = Join-Path $navContainerPath "nav-app\output\$navAppFileName"
