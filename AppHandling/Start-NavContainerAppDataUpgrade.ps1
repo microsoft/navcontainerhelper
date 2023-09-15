@@ -32,7 +32,7 @@ function  Start-BcContainerAppDataUpgrade {
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
-        $containerPath = = ""
+        $containerPath = ""
         if ($path) {
             $containerPath = (Get-BcContainerPath -containerName $containerName -path $path -throw)
         }
