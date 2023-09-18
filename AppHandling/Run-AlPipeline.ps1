@@ -14,7 +14,7 @@
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
  .Parameter generateErrorLog
-  Path to file where to output the alerts from the compiler.
+  Switch parameter on whether to generate an alerts log file. Default is false.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
   Only speficy imagename if you are going to create multiple containers from the same artifacts.
