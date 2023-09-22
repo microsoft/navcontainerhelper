@@ -1871,6 +1871,22 @@ Write-Host -ForegroundColor Yellow @'
             throw $_
         }
     }
+    finally {
+        # Copy error logs to build artifact folder
+        if($generateErrorLog -and $buildArtifactFolder) {
+            # Define destination folder for error logs
+            $destFolder = Join-Path $buildArtifactFolder "ErrorLogs"
+            if (!(Test-Path $destFolder -PathType Container)) {
+                New-Item $destFolder -ItemType Directory | Out-Null
+            }
+
+            $errorLogFile = Join-Path $appOutputFolder '*.errorLog.json' -Resolve -ErrorAction Ignore
+            if($errorLogFile) {
+                Write-Host "Copying error logs to $destFolder"
+                Copy-Item $errorLogFiles $destFolder -Force
+            }
+        }
+    }
 
     # Run post-compile script if specified
     if($PostCompileApp) {
@@ -2430,27 +2446,6 @@ if (!(Test-Path $destFolder -PathType Container)) {
 }
 $testApps | ForEach-Object {
     Copy-Item -Path $_ -Destination $destFolder -Force
-}
-
-# Copy error logs to build artifact folder
-if($generateErrorLog) {
-    # Define destination folder for error logs
-    $destFolder = Join-Path $buildArtifactFolder "ErrorLogs"
-    if (!(Test-Path $destFolder -PathType Container)) {
-        New-Item $destFolder -ItemType Directory | Out-Null
-    }
-
-    # Copy error logs for all apps
-    @($apps, $testApps, $bcptTestApps) | ForEach-Object {
-        $currentAppFile = $_
-
-        # Naming convention for error log files is <appname>.errorLog.json
-        $currentErrorLogFilePath = $currentAppFile -replace ".app$", ".errorLog.json"
-
-        if (Test-Path $currentErrorLogFilePath) {
-            Copy-Item -Path $currentErrorLogFilePath -Destination $destFolder -Force
-        }
-    }
 }
 
 if ($createRuntimePackages) {
