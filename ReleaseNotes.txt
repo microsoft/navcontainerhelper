@@ -3,6 +3,7 @@ Add switch "doNotGetCompanyInfo" to "New-BcEnvironment" to enable skipping getti
 Issue #3151 Get-AppSourceProduct returns 404 Not Found
 Add parameters exclusiveAccessTicket, path, syncMode, force and skipVersionCheck to Start-BcContainerAppDataUpgrade.
 Issue #3146 Publish-BcContainerApp not working headless
+Issue #3190 Sign-Tool stopped working in 23.0.12034.12480
 
 5.0.5
 Add new option (exitedContainers) on Flush-ContainerHelperCache. Note that exited containers are NOT remove by the all flag, you need all,exitedContainers
