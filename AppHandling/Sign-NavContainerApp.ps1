@@ -140,7 +140,7 @@ try {
             } else {
                 Write-Host "Downloading Signing Tools"
                 $winSdkSetupExe = "c:\run\install\winsdksetup.exe"
-                $winSdkSetupUrl = "https://bcartifacts.blob.core.windows.net/prerequisites/winsdksetup.exe"
+                $winSdkSetupUrl = "https://bcartifacts.azureedge.net/prerequisites/winsdksetup.exe"
                 (New-Object System.Net.WebClient).DownloadFile($winSdkSetupUrl,$winSdkSetupExe)
                 Write-Host "Installing Signing Tools"
                 Start-Process $winSdkSetupExe -ArgumentList "/features OptionId.SigningTools /q" -Wait
