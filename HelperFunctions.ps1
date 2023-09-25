@@ -1106,14 +1106,18 @@ function GetAppInfo {
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
+        Write-Host "APPS"
         try {
             $appFiles | ForEach-Object {
                 $path = $_
+                Write-Host "- $path"
                 $appInfoPath = "$_.json"
                 if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
+                    Write-Host "Found in cache"
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
                 }
                 else {
+                    $mo = Measure-Object {
                     if (!$assembliesAdded) {
                         Add-Type -AssemblyName System.IO.Compression.FileSystem
                         Add-Type -AssemblyName System.Text.Encoding
@@ -1138,6 +1142,8 @@ function GetAppInfo {
                     if ($cacheAppInfo) {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
+                    }
+                    Write-Host "$mo.TotalSeconds"
                 }
                 @{
                     "Id"                    = $appInfo.appId
