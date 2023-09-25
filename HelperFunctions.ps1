@@ -1086,8 +1086,6 @@ function GetAppInfo {
         [switch] $cacheAppInfo
     )
 
-    $tm = [System.Diagnostics.Stopwatch]::StartNew()
-
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1104,28 +1102,18 @@ function GetAppInfo {
     }
 
     $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
-        $total = [System.Diagnostics.Stopwatch]::StartNew()
         $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
-        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
-        "APPS"
-        $appFiles | ForEach-Object { "- $_"}
-        $tmx.Stop()
-        "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
-        "APPS"
         try {
             $appFiles | ForEach-Object {
                 $path = $_
-                "- $path"
                 $appInfoPath = "$_.json"
                 if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
-                    "Found in cache"
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
                 }
                 else {
-                    $tm = [System.Diagnostics.Stopwatch]::StartNew()
                     if (!$assembliesAdded) {
                         Add-Type -AssemblyName System.IO.Compression.FileSystem
                         Add-Type -AssemblyName System.Text.Encoding
@@ -1150,10 +1138,7 @@ function GetAppInfo {
                     if ($cacheAppInfo) {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
-                    $tm.Stop()
-                    "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
                 }
-                $tm = [System.Diagnostics.Stopwatch]::StartNew()
                 @{
                     "Id"                    = $appInfo.appId
                     "AppId"                 = $appInfo.appId
@@ -1166,41 +1151,27 @@ function GetAppInfo {
                     "Platform"              = $appInfo.platform
                     "PropagateDependencies" = $appInfo.propagateDependencies
                 }
-                $tm.Stop()
-                "Return Value, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
             }
         }
         catch [System.Reflection.ReflectionTypeLoadException] {
-            "EXCEPTION"
             if ($_.Exception.LoaderExceptions) {
                 $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
-                    "LoaderException: $($_.Message)"
+                    Write-Host "LoaderException: $($_.Message)"
                 }
             }
             throw
         }
         finally {
-            $tm = [System.Diagnostics.Stopwatch]::StartNew()
             if ($package) {
                 $package.Dispose()
             }
-            $tm.Stop()
-            "Package Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
-            $tm = [System.Diagnostics.Stopwatch]::StartNew()
             if ($packageStream) {
                 $packageStream.Dispose()
             }
-            $tm.Stop()
-            "Stream Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
         }
-        $total.Stop()
-        "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
-    $job | Wait-Job | Receive-Job | Out-Host
+    $job | Wait-Job | Receive-Job
     $job | Remove-Job
-    $tm.Stop()
-    Write-Host "Entire Function, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
-
 }
 
 function GetLatestAlLanguageExtensionUrl {
