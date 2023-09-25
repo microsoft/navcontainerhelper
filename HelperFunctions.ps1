@@ -1112,6 +1112,11 @@ function GetAppInfo {
         $packageStream = $null
         $package = $null
         Write-Host "APPS"
+        $appFiles | ForEach-Object { Write-Host "- $_"}
+        Write-Host "APPS"
+        $tmx.Stop()
+        Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
+        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
         try {
             $appFiles | ForEach-Object {
                 $tmx.Stop()
