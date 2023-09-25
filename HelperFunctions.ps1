@@ -1105,16 +1105,18 @@ function GetAppInfo {
 
     $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
         $total = [System.Diagnostics.Stopwatch]::StartNew()
+        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
+        $tmxTotal = 0.0d
         $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
         Write-Host "APPS"
-        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
         try {
             $appFiles | ForEach-Object {
                 $tmx.Stop()
                 Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
+                $tmxTotal += $tmx.Elapsed.TotalSeconds
                 $tmx = [System.Diagnostics.Stopwatch]::StartNew()
                 $path = $_
                 Write-Host "- $path"
@@ -1194,6 +1196,8 @@ function GetAppInfo {
         }
         $tmx.Stop()
         Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
+        $tmxTotal += $tmx.Elapsed.TotalSeconds
+        Write-Host "TMX Total: $tmxTotal seconds"
         $total.Stop()
         Write-Host "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
