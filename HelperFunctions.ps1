@@ -1086,6 +1086,8 @@ function GetAppInfo {
         [switch] $cacheAppInfo
     )
 
+    $tm = [System.Diagnostics.Stopwatch]::StartNew()
+
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1102,6 +1104,7 @@ function GetAppInfo {
     }
 
     $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
+        $total = [System.Diagnostics.Stopwatch]::StartNew()
         $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
@@ -1175,9 +1178,14 @@ function GetAppInfo {
                 $packageStream.Dispose()
             }
         }
+        $total.Stop()
+        Write-Host "Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
     $job | Wait-Job | Receive-Job
     $job | Remove-Job
+    $tm.Stop()
+    Write-Host "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+
 }
 
 function GetLatestAlLanguageExtensionUrl {
