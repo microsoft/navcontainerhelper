@@ -1171,20 +1171,23 @@ function GetAppInfo {
             throw
         }
         finally {
+            $tm = [System.Diagnostics.Stopwatch]::StartNew()
             if ($package) {
                 $package.Dispose()
             }
             if ($packageStream) {
                 $packageStream.Dispose()
             }
+            $tm.Stop()
+            Write-Host "Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
         }
         $total.Stop()
-        Write-Host "Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
+        Write-Host "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
     $job | Wait-Job | Receive-Job
     $job | Remove-Job
     $tm.Stop()
-    Write-Host "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+    Write-Host "Entire Function, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
 
 }
 
