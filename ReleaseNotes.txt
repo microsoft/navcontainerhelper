@@ -1,3 +1,7 @@
+5.0.7
+Run-AlValidation also needs to install NAVSIP dependencies (issue #3190)
+Performance problems when getting application information in Compile-AppWithCompilerFolder
+
 5.0.6
 Add switch "doNotGetCompanyInfo" to "New-BcEnvironment" to enable skipping getting environment information after environment creation.
 Issue #3151 Get-AppSourceProduct returns 404 Not Found
