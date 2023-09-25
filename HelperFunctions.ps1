@@ -1175,11 +1175,14 @@ function GetAppInfo {
             if ($package) {
                 $package.Dispose()
             }
+            $tm.Stop()
+            Write-Host "Package Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+            $tm = [System.Diagnostics.Stopwatch]::StartNew()
             if ($packageStream) {
                 $packageStream.Dispose()
             }
             $tm.Stop()
-            Write-Host "Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+            Write-Host "Stream Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
         }
         $total.Stop()
         Write-Host "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
