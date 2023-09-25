@@ -175,10 +175,15 @@ try {
 
     Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
     $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
+    $compilerFolderAppFiles.Count | Out-Host
+    $compilerFolderAppFiles.GetType() | Out-Host
+    $compilerFolderAppFiles[0].GetType() | Out-Host
+    $compilerFolderAppFiles | Out-Host
     $compilerFolderApps = @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppInfo)
 
     Write-Host "Enumerating Apps in Symbols Folder $appSymbolsFolder"
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | Select-Object -ExpandProperty FullName)
+    $existingAppFiles | Out-Host
     $existingApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder)
 
     $depidx = 0
