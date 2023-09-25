@@ -1110,8 +1110,12 @@ function GetAppInfo {
         $packageStream = $null
         $package = $null
         Write-Host "APPS"
+        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
         try {
             $appFiles | ForEach-Object {
+                $tmx.Stop()
+                Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
+                $tmx = [System.Diagnostics.Stopwatch]::StartNew()
                 $path = $_
                 Write-Host "- $path"
                 $appInfoPath = "$_.json"
@@ -1148,6 +1152,7 @@ function GetAppInfo {
                     $tm.Stop()
                     Write-Host "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
                 }
+                $tm = [System.Diagnostics.Stopwatch]::StartNew()
                 @{
                     "Id"                    = $appInfo.appId
                     "AppId"                 = $appInfo.appId
@@ -1160,9 +1165,12 @@ function GetAppInfo {
                     "Platform"              = $appInfo.platform
                     "PropagateDependencies" = $appInfo.propagateDependencies
                 }
+                $tm.Stop()
+                Write-Host "Return Value, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
             }
         }
         catch [System.Reflection.ReflectionTypeLoadException] {
+            Write-Host "EXCEPTION"
             if ($_.Exception.LoaderExceptions) {
                 $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
                     Write-Host "LoaderException: $($_.Message)"
@@ -1184,6 +1192,8 @@ function GetAppInfo {
             $tm.Stop()
             Write-Host "Stream Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
         }
+        $tmx.Stop()
+        Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
         $total.Stop()
         Write-Host "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
