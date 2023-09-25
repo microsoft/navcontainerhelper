@@ -1105,24 +1105,18 @@ function GetAppInfo {
 
     $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
         $total = [System.Diagnostics.Stopwatch]::StartNew()
-        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
-        $tmxTotal = 0.0d
         $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
         $package = $null
+        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
         Write-Host "APPS"
         $appFiles | ForEach-Object { Write-Host "- $_"}
-        Write-Host "APPS"
         $tmx.Stop()
         Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
-        $tmx = [System.Diagnostics.Stopwatch]::StartNew()
+        Write-Host "APPS"
         try {
             $appFiles | ForEach-Object {
-                $tmx.Stop()
-                Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
-                $tmxTotal += $tmx.Elapsed.TotalSeconds
-                $tmx = [System.Diagnostics.Stopwatch]::StartNew()
                 $path = $_
                 Write-Host "- $path"
                 $appInfoPath = "$_.json"
@@ -1199,10 +1193,6 @@ function GetAppInfo {
             $tm.Stop()
             Write-Host "Stream Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
         }
-        $tmx.Stop()
-        Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
-        $tmxTotal += $tmx.Elapsed.TotalSeconds
-        Write-Host "TMX Total: $tmxTotal seconds"
         $total.Stop()
         Write-Host "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
