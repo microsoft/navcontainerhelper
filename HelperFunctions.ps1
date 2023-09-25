@@ -1110,18 +1110,18 @@ function GetAppInfo {
         $packageStream = $null
         $package = $null
         $tmx = [System.Diagnostics.Stopwatch]::StartNew()
-        Write-Host "APPS"
-        $appFiles | ForEach-Object { Write-Host "- $_"}
+        "APPS"
+        $appFiles | ForEach-Object { "- $_"}
         $tmx.Stop()
-        Write-Host "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
-        Write-Host "APPS"
+        "TMX, Elapsed time: $($tmx.Elapsed.TotalSeconds) seconds"
+        "APPS"
         try {
             $appFiles | ForEach-Object {
                 $path = $_
-                Write-Host "- $path"
+                "- $path"
                 $appInfoPath = "$_.json"
                 if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
-                    Write-Host "Found in cache"
+                    "Found in cache"
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
                 }
                 else {
@@ -1151,7 +1151,7 @@ function GetAppInfo {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
                     $tm.Stop()
-                    Write-Host "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+                    "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
                 }
                 $tm = [System.Diagnostics.Stopwatch]::StartNew()
                 @{
@@ -1167,14 +1167,14 @@ function GetAppInfo {
                     "PropagateDependencies" = $appInfo.propagateDependencies
                 }
                 $tm.Stop()
-                Write-Host "Return Value, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+                "Return Value, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
             }
         }
         catch [System.Reflection.ReflectionTypeLoadException] {
-            Write-Host "EXCEPTION"
+            "EXCEPTION"
             if ($_.Exception.LoaderExceptions) {
                 $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
-                    Write-Host "LoaderException: $($_.Message)"
+                    "LoaderException: $($_.Message)"
                 }
             }
             throw
@@ -1185,18 +1185,18 @@ function GetAppInfo {
                 $package.Dispose()
             }
             $tm.Stop()
-            Write-Host "Package Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+            "Package Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
             $tm = [System.Diagnostics.Stopwatch]::StartNew()
             if ($packageStream) {
                 $packageStream.Dispose()
             }
             $tm.Stop()
-            Write-Host "Stream Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
+            "Stream Dispose, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
         }
         $total.Stop()
-        Write-Host "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
+        "Total, Elapsed time: $($total.Elapsed.TotalSeconds) seconds"
     } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
-    $job | Wait-Job | Receive-Job
+    $job | Wait-Job | Receive-Job | Out-Host
     $job | Remove-Job
     $tm.Stop()
     Write-Host "Entire Function, Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
