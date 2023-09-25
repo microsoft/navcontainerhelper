@@ -1117,7 +1117,7 @@ function GetAppInfo {
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
                 }
                 else {
-                    $mo = Measure-Object {
+                    $tm = [System.Diagnostics.Stopwatch]::StartNew()
                     if (!$assembliesAdded) {
                         Add-Type -AssemblyName System.IO.Compression.FileSystem
                         Add-Type -AssemblyName System.Text.Encoding
@@ -1142,8 +1142,8 @@ function GetAppInfo {
                     if ($cacheAppInfo) {
                         $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                     }
-                    }
-                    Write-Host "$mo.TotalSeconds"
+                    $tm.Stop()
+                    Write-Host "Elapsed time: $($tm.Elapsed.TotalSeconds) seconds"
                 }
                 @{
                     "Id"                    = $appInfo.appId
