@@ -174,11 +174,11 @@ try {
     }
 
     Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
-    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app'))
+    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
     $compilerFolderApps = @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppInfo)
 
     Write-Host "Enumerating Apps in Symbols Folder $appSymbolsFolder"
-    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app'))
+    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | Select-Object -ExpandProperty FullName)
     $existingApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder)
 
     $depidx = 0
