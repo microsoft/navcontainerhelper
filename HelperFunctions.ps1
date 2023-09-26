@@ -1079,6 +1079,14 @@ function DownloadFileLow {
     }
 }
 
+function LoadDLL {
+    Param(
+        [string] $path
+    )
+    $bytes = [System.IO.File]::ReadAllBytes($path)
+    [System.Reflection.Assembly]::Load($bytes) | Out-Null
+}
+
 function GetAppInfo {
     Param(
         [string[]] $appFiles,
@@ -1086,6 +1094,7 @@ function GetAppInfo {
         [switch] $cacheAppInfo
     )
 
+    Write-Host "Getting .app info"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1101,77 +1110,77 @@ function GetAppInfo {
         $alcDllPath = $binPath
     }
 
-    $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
-        $ErrorActionPreference = "STOP"
-        $assembliesAdded = $false
-        $packageStream = $null
-        $package = $null
-        try {
-            $appFiles | ForEach-Object {
-                $path = $_
-                $appInfoPath = "$_.json"
-                if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
-                    $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
+    $ErrorActionPreference = "STOP"
+    $assembliesAdded = $false
+    $packageStream = $null
+    $package = $null
+    try {
+        $appFiles | ForEach-Object {
+            $path = $_
+            Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
+            $appInfoPath = "$_.json"
+            if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
+                $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
+                Write-Host " (cached)"
+            }
+            else {
+                if (!$assembliesAdded) {
+                    Add-Type -AssemblyName System.IO.Compression.FileSystem
+                    Add-Type -AssemblyName System.Text.Encoding
+                    LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
+                    LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
+                    LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+                    $assembliesAdded = $true
                 }
-                else {
-                    if (!$assembliesAdded) {
-                        Add-Type -AssemblyName System.IO.Compression.FileSystem
-                        Add-Type -AssemblyName System.Text.Encoding
-                        Add-Type -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
-                        Add-Type -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
-                        Add-Type -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-                        $assembliesAdded = $true
-                    }
-                    $packageStream = [System.IO.File]::OpenRead($path)
-                    $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
-                    $manifest = $package.ReadNavAppManifest()
-                    $appInfo = @{
-                        "appId"                 = $manifest.AppId
-                        "publisher"             = $manifest.AppPublisher
-                        "name"                  = $manifest.AppName
-                        "version"               = "$($manifest.AppVersion)"
-                        "dependencies"          = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
-                        "application"           = "$($manifest.Application)"
-                        "platform"              = "$($manifest.Platform)"
-                        "propagateDependencies" = $manifest.PropagateDependencies
-                    }
-                    if ($cacheAppInfo) {
-                        $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
-                    }
+                $packageStream = [System.IO.File]::OpenRead($path)
+                $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                $manifest = $package.ReadNavAppManifest()
+                $appInfo = @{
+                    "appId"                 = $manifest.AppId
+                    "publisher"             = $manifest.AppPublisher
+                    "name"                  = $manifest.AppName
+                    "version"               = "$($manifest.AppVersion)"
+                    "dependencies"          = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                    "application"           = "$($manifest.Application)"
+                    "platform"              = "$($manifest.Platform)"
+                    "propagateDependencies" = $manifest.PropagateDependencies
                 }
-                @{
-                    "Id"                    = $appInfo.appId
-                    "AppId"                 = $appInfo.appId
-                    "Publisher"             = $appInfo.publisher
-                    "Name"                  = $appInfo.name
-                    "Version"               = [System.Version]$appInfo.version
-                    "Dependencies"          = @($appInfo.dependencies)
-                    "Path"                  = $path
-                    "Application"           = $appInfo.application
-                    "Platform"              = $appInfo.platform
-                    "PropagateDependencies" = $appInfo.propagateDependencies
+                Write-Host " (succeeded)"
+                if ($cacheAppInfo) {
+                    $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                 }
+            }
+            @{
+                "Id"                    = $appInfo.appId
+                "AppId"                 = $appInfo.appId
+                "Publisher"             = $appInfo.publisher
+                "Name"                  = $appInfo.name
+                "Version"               = [System.Version]$appInfo.version
+                "Dependencies"          = @($appInfo.dependencies)
+                "Path"                  = $path
+                "Application"           = $appInfo.application
+                "Platform"              = $appInfo.platform
+                "PropagateDependencies" = $appInfo.propagateDependencies
             }
         }
-        catch [System.Reflection.ReflectionTypeLoadException] {
-            if ($_.Exception.LoaderExceptions) {
-                $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
-                    Write-Host "LoaderException: $($_.Message)"
-                }
-            }
-            throw
-        }
-        finally {
-            if ($package) {
-                $package.Dispose()
-            }
-            if ($packageStream) {
-                $packageStream.Dispose()
+    }
+    catch [System.Reflection.ReflectionTypeLoadException] {
+        Write-Host " (failed)"
+        if ($_.Exception.LoaderExceptions) {
+            $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
+                Write-Host "LoaderException: $($_.Message)"
             }
         }
-    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
-    $job | Wait-Job | Receive-Job
-    $job | Remove-Job
+        throw
+    }
+    finally {
+        if ($package) {
+            $package.Dispose()
+        }
+        if ($packageStream) {
+            $packageStream.Dispose()
+        }
+    }
 }
 
 function GetLatestAlLanguageExtensionUrl {
