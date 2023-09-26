@@ -1079,6 +1079,14 @@ function DownloadFileLow {
     }
 }
 
+function LoadDLL {
+    Param(
+        [string] $path
+    )
+    $bytes = [System.IO.File]::ReadAllBytes($path)
+    [System.Reflection.Assembly]::Load($bytes) | Out-Null
+}
+
 function GetAppInfo {
     Param(
         [string[]] $appFiles,
@@ -1086,6 +1094,7 @@ function GetAppInfo {
         [switch] $cacheAppInfo
     )
 
+    Write-Host "GetAppInfo"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1101,7 +1110,7 @@ function GetAppInfo {
         $alcDllPath = $binPath
     }
 
-    $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
+#    $job = Start-Job -ScriptBlock { Param( [string[]] $appFiles, [string] $alcDllPath, [bool] $cacheAppInfo )
         $ErrorActionPreference = "STOP"
         $assembliesAdded = $false
         $packageStream = $null
@@ -1109,6 +1118,7 @@ function GetAppInfo {
         try {
             $appFiles | ForEach-Object {
                 $path = $_
+                Write-Host $path
                 $appInfoPath = "$_.json"
                 if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
                     $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
@@ -1117,9 +1127,9 @@ function GetAppInfo {
                     if (!$assembliesAdded) {
                         Add-Type -AssemblyName System.IO.Compression.FileSystem
                         Add-Type -AssemblyName System.Text.Encoding
-                        Add-Type -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
-                        Add-Type -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
-                        Add-Type -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+                        LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
+                        LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
+                        LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
                         $assembliesAdded = $true
                     }
                     $packageStream = [System.IO.File]::OpenRead($path)
@@ -1169,9 +1179,9 @@ function GetAppInfo {
                 $packageStream.Dispose()
             }
         }
-    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
-    $job | Wait-Job | Receive-Job
-    $job | Remove-Job
+#    } -argumentList $appFiles, $alcDllPath, $cacheAppInfo.IsPresent
+#    $job | Wait-Job | Receive-Job
+#    $job | Remove-Job
 }
 
 function GetLatestAlLanguageExtensionUrl {
