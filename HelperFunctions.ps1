@@ -1098,7 +1098,7 @@ function GetAppInfo {
     $cacheUpdated = $false
     if ($cacheAppInfoPath) {
         if (Test-Path $cacheAppInfoPath) {
-            $appInfoCache = Get-Content -Path $appInfoPath -Encoding utf8 | ConvertFrom-Json
+            $appInfoCache = Get-Content -Path $cacheAppInfoPath -Encoding utf8 | ConvertFrom-Json
         }
         else {
             $appInfoCache = @{}
@@ -1125,10 +1125,8 @@ function GetAppInfo {
     $packageStream = $null
     $package = $null
     try {
-        $appFiles | ForEach-Object {
-            $path = $_
+        foreach($path in $appFiles) {
             Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
-            $appInfoPath = "$_.json"
             if ($appInfoCache -and $appInfoCache.PSObject.Properties -eq $path) {
                 $appInfo = $appInfoCache[$path]
                 Write-Host " (cached)"
