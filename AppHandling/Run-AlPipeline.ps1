@@ -970,6 +970,7 @@ Measure-Command {
 
             $Parameters += @{
                 "accept_eula" = $true
+                "accept_insiderEula" = $accept_insiderEula
                 "containerName" = $containerName
                 "artifactUrl" = $artifactUrl
                 "useGenericImage" = $useGenericImage
