@@ -24,6 +24,8 @@
   API version. Default is 2.3.
  .Parameter doNotWait
   Include this switch if you don't want to wait for completion of the environment
+ .Parameter doNotGetCompanyInfo
+  Include this switch if you want to skip getting company information via the Automation API.
  .Example
   $authContext = New-BcAuthContext -includeDeviceLogin
   New-BcEnvironment -bcAuthContext $authContext -countryCode 'us' -environment 'usSandbox'
@@ -43,7 +45,8 @@ function New-BcEnvironment {
         [string] $applicationVersion = "",
         [string] $applicationInsightsKey = "",
         [string] $apiVersion = "v2.18",
-        [switch] $doNotWait
+        [switch] $doNotWait,
+        [switch] $doNotGetCompanyInfo
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -89,20 +92,22 @@ function New-BcEnvironment {
                 throw "Could not create environment with error: $($Operation.errorMessage)"
             }
 
-            $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
-            try {
-                $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
+            if (!$doNotGetCompanyInfo.IsPresent) {
+                $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
+                try {
+                    $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
+                }
+                catch {
+                    start-sleep -seconds 10
+                    $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
+                }
+                Write-Host "Companies in environment:"
+                $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
+                $company = $companies.value | Select-Object -First 1
+                $users = Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
+                Write-Host "Users in $($company.name):"
+                $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
             }
-            catch {
-                start-sleep -seconds 10
-                $companies = Invoke-RestMethod -Headers $headers -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
-            }
-            Write-Host "Companies in environment:"
-            $companies.value | ForEach-Object { Write-Host "- $($_.name)" }
-            $company = $companies.value | Select-Object -First 1
-            $users = Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($($company.Id))/users" -UseBasicParsing -Headers $headers
-            Write-Host "Users in $($company.name):"
-            $users.value | ForEach-Object { Write-Host "- $($_.DisplayName)" }
         }
     }
     catch {

@@ -127,6 +127,13 @@ try {
                 Write-Host "Installing vcredist_x64"
                 start-process -Wait -FilePath c:\run\install\vcredist_x64.exe -ArgumentList /q, /norestart
             }
+
+            if (!(Test-Path "C:\Windows\System32\vcruntime140_1.dll")) {
+                Write-Host "Downloading vcredist_x64 (version 140)"
+                (New-Object System.Net.WebClient).DownloadFile('https://aka.ms/vs/17/release/vc_redist.x64.exe','c:\run\install\vcredist_x64-140.exe')
+                Write-Host "Installing vcredist_x64 (version 140)"
+                start-process -Wait -FilePath c:\run\install\vcredist_x64-140.exe -ArgumentList /q, /norestart
+            }
     
             if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe") {
                 $signToolExe = (get-item "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe").FullName
