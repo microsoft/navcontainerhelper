@@ -263,6 +263,7 @@ Param(
     [string] $baseFolder = "",
     [string] $sharedFolder = "",
     [string] $licenseFile,
+    [switch] $accept_insiderEula,
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
     [switch] $enableTaskScheduler,
