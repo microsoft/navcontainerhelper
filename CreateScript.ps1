@@ -530,7 +530,6 @@ $Step.Version {
         -options ([ordered]@{
             "LatestSandbox" = "Latest Business Central Sandbox"
             "LatestOnPrem" = "Latest Business Central OnPrem"
-            "Public Preview" = "Public Preview of Business Central Sandbox is typically available one month before we ship next major"
             "Next Major" = "Insider Business Central Sandbox for Next Major release (you automatically accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by using this option)"
             "Next Minor" = "Insider Business Central Sandbox for Next Minor release (you automatically accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by using this option)"
             "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"
@@ -557,12 +556,6 @@ $Step.Version2 {
     if ($predef -like "latest*") {
         $type = $predef.Substring(6)
         $version = ''
-    }
-    elseif ($predef -like "Public Preview") {
-        $type = "Sandbox"
-        $version = ''
-        $storageAccount = "bcpublicpreview"
-        $select = 'latest'
     }
     elseif ($predef -like "Next*") {
         $type = "Sandbox"

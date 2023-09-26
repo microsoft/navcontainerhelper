@@ -544,7 +544,7 @@ try {
                 }
                 else {
                     TestSasToken -url $artifactUrl
-                    Write-Host -ForegroundColor Yellow "After September 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
+                    Write-Host -ForegroundColor Yellow "After October 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
                 }
             }
         }

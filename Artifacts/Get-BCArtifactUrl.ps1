@@ -24,9 +24,9 @@
   The storageAccount that is being used where artifacts are stored (default is bcartifacts, usually should not be changed).
  .Parameter sasToken
   The token that for accessing protected Azure Blob Storage. Make sure to set the right storageAccount!
-  Note that Business Central Insider artifacts doesn't require a sasToken after September 1st 2023, you can use the switch -accept_insiderEula to accept the EULA instead.
+  Note that Business Central Insider artifacts doesn't require a sasToken after October 1st 2023, you can use the switch -accept_insiderEula to accept the EULA instead.
  .Parameter accept_insiderEula
-  Accept the EULA for Business Central Insider artifacts. This is required for using Business Central Insider artifacts without providing a SAS token after September 1st 2023.
+  Accept the EULA for Business Central Insider artifacts. This is required for using Business Central Insider artifacts without providing a SAS token after October 1st 2023.
  .Example
   Get the latest URL for Belgium: 
   Get-BCArtifactUrl -Type OnPrem -Select Latest -country be
@@ -111,40 +111,13 @@ try {
 
         $nextminorversion = "$($currentversion.Major).$($currentversion.Minor+1)."
         $nextmajorversion = "$($currentversion.Major+1).0."
+        if ($currentVersion.Minor -ge 5) {
+            $nextminorversion = $nextmajorversion
+        }
 
-        $publicpreviews = Get-BcArtifactUrl -country $country -storageAccount bcpublicpreview -select All -doNotCheckPlatform:$doNotCheckPlatform
         $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
-
-        $publicpreview = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
-        $insider = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
-        
-        $nextmajor = $insider
-        if (!($insider)) {
-            $nextmajor = $publicpreview
-        }
-        elseif ($publicpreview) {
-            if ([version]($publicpreview.Split('/')[4]) -ge [version]($insider.Split('/')[4])) {
-                $nextmajor = $publicpreview
-            }
-        }
-
-        $insider = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
-        $publicpreview = $publicpreviews | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
-
-        $nextminor = $insider
-        if (!($insider)) {
-            if ($publicpreview) {
-                $nextminor = $publicpreview
-            }
-            else {
-                $nextminor = $nextmajor
-            }
-        }
-        elseif ($publicpreview) {
-            if ([version]($publicpreview.Split('/')[4]) -ge [version]($insider.Split('/')[4])) {
-                $nextminor = $publicpreview
-            }
-        }
+        $nextmajor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
+        $nextminor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
 
         if ($select -eq 'NextMinor') {
             $nextminor
@@ -171,7 +144,7 @@ try {
         if ($storageAccount -eq 'bcinsider.blob.core.windows.net') {
             if (!$accept_insiderEULA) {
                 if ($sasToken) {
-                    Write-Host -ForegroundColor Yellow "After September 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
+                    Write-Host -ForegroundColor Yellow "After October 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
                 }
                 else {
                     throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
