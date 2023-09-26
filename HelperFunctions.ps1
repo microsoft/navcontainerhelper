@@ -1127,7 +1127,7 @@ function GetAppInfo {
     try {
         foreach($path in $appFiles) {
             Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
-            if ($appInfoCache -and $appInfoCache.PSObject.Properties -eq $path) {
+            if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $path) {
                 $appInfo = $appInfoCache[$path]
                 Write-Host " (cached)"
             }
