@@ -1177,7 +1177,7 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo | Select-Object -ExpandProperty 'AppId')
+    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | Select-Object -ExpandProperty 'AppId')
 }
 else {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
@@ -1330,7 +1330,7 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo)
+    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json'))
     $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
 else {

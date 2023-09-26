@@ -1091,9 +1091,19 @@ function GetAppInfo {
     Param(
         [string[]] $appFiles,
         [string] $compilerFolder,
-        [switch] $cacheAppInfo
+        [string] $cacheAppInfoPath = ''
     )
 
+    $appInfoCache = $null
+    $cacheUpdated = $false
+    if ($cacheAppInfoPath) {
+        if (Test-Path $cacheAppInfoPath) {
+            $appInfoCache = Get-Content -Path $appInfoPath -Encoding utf8 | ConvertFrom-Json
+        }
+        else {
+            $appInfoCache = @{}
+        }
+    }
     Write-Host "Getting .app info"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
@@ -1119,8 +1129,8 @@ function GetAppInfo {
             $path = $_
             Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
             $appInfoPath = "$_.json"
-            if ($cacheAppInfo -and (Test-Path -Path $appInfoPath)) {
-                $appInfo = Get-Content -Path $appInfoPath | ConvertFrom-Json
+            if ($appInfoCache -and $appInfoCache.PSObject.Properties -eq $path) {
+                $appInfo = $appInfoCache[$path]
                 Write-Host " (cached)"
             }
             else {
@@ -1146,8 +1156,9 @@ function GetAppInfo {
                     "propagateDependencies" = $manifest.PropagateDependencies
                 }
                 Write-Host " (succeeded)"
-                if ($cacheAppInfo) {
-                    $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
+                if ($appInfoCache) {
+                    $appInfoCache | Add-Member -MemberType NoteProperty -Name $path -Value $appInfo
+                    $cacheUpdated = $true
                 }
             }
             @{
@@ -1162,6 +1173,9 @@ function GetAppInfo {
                 "Platform"              = $appInfo.platform
                 "PropagateDependencies" = $appInfo.propagateDependencies
             }
+        }
+        if ($cacheUpdated) {
+            $appInfoCache | ConvertTo-Json -Depth 99 | Set-Content -Path $cacheAppInfoPath -Encoding UTF8 -Force
         }
     }
     catch [System.Reflection.ReflectionTypeLoadException] {
