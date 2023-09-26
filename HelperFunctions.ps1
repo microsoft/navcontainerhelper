@@ -1094,7 +1094,7 @@ function GetAppInfo {
         [switch] $cacheAppInfo
     )
 
-    Write-Host "GetAppInfo"
+    Write-Host "Getting .app info"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1145,7 +1145,7 @@ function GetAppInfo {
                     "platform"              = "$($manifest.Platform)"
                     "propagateDependencies" = $manifest.PropagateDependencies
                 }
-                Write-Host " (success)"
+                Write-Host " (succeeded)"
                 if ($cacheAppInfo) {
                     $appInfo | ConvertTo-Json -Depth 99 | Set-Content -Path $appInfoPath -Encoding UTF8 -Force
                 }
@@ -1165,7 +1165,7 @@ function GetAppInfo {
         }
     }
     catch [System.Reflection.ReflectionTypeLoadException] {
-        Write-Host
+        Write-Host " (failed)"
         if ($_.Exception.LoaderExceptions) {
             $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
                 Write-Host "LoaderException: $($_.Message)"
