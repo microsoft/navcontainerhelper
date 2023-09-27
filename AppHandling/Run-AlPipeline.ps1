@@ -148,6 +148,8 @@
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
   Filename of the custom ruleset file
+ .Parameter enableExternalRulesets
+  Include this switch to enable external rulesets when compiling
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
@@ -335,6 +337,7 @@ Param(
     $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
+    [switch] $enableExternalRulesets,
     [string[]] $preProcessorSymbols = @(),
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
@@ -652,6 +655,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "; Write-Host $doNotRunBcptTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
+Write-Host -NoNewLine -ForegroundColor Yellow "enableExternalRulesets          "; Write-Host $enableExternalRulesets
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                     "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                          "; Write-Host $gitLab
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions                   "; Write-Host $gitHubActions
@@ -1583,6 +1587,11 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
 
+        if ($enableExternalRulesets) {
+            $CopParameters += @{
+                "EnableExternalRulesets" = $true
+            }
+        }
         if ("$rulesetFile" -ne "" -or $useDefaultAppSourceRuleSet) {
             if ($useDefaultAppSourceRuleSet) {
                 Write-Host "Creating ruleset for pipeline"
