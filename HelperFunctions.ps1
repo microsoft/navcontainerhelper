@@ -325,26 +325,36 @@ function AssumeNavContainer {
 function TestSasToken {
     Param
     (
-        [string] $sasToken
+        [string] $url
     )
 
-    if ($sasToken.Contains('?')) {
-        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | % { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | % { [Uri]::UnescapeDataString($_.Substring(3)) }
-        if ($st) {
-            if ([DateTime]::Now -lt [DateTime]$st) {
-                Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
-            }
+    $sasToken = "?$("$($url)?".Split('?')[1])"
+    if ($sasToken -eq '?') {
+        # No SAS token in URL
+        return
+    }
+
+    try {
+        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
+        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
+        $sv = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sv=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
+        $sig = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sig=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(4)) }
+        if ($sv -ne '2021-10-04' -or $sig -eq '' -or $se -eq '' -or $st -eq '') {
+            throw "Wrong format"
         }
-        if ($se) {
-            if ([DateTime]::Now -gt [DateTime]$se) {
-                Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
-            }
-            elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
-                $span = ([DateTime]$se).Subtract([DateTime]::Now)
-                Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
-            }
+        if ([DateTime]::Now -lt [DateTime]$st) {
+            Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
         }
+        if ([DateTime]::Now -gt [DateTime]$se) {
+            Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
+        }
+        elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
+            Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
+        }
+    }
+    catch {
+        $message = $_.ToString()
+        throw "The sas token provided is not valid, error message was: $message"
     }
 }
 
