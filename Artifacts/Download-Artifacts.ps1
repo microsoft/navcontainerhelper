@@ -78,7 +78,7 @@ try {
             }
             if (-not $exists) {
                 Write-Host "Downloading artifact $($appUri.AbsolutePath)"
-                TestSasToken -sasToken $artifactUrl
+                TestSasToken -url $artifactUrl
                 $retry = $false
                 do {
                     $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
@@ -203,7 +203,7 @@ try {
                 }
                 if (-not $exists) {
                     Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-                    TestSasToken -sasToken $platformUrl
+                    TestSasToken -url $platformUrl
                     $retry = $false
                     do {
                         $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"

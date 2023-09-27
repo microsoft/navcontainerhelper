@@ -438,7 +438,6 @@ $Step = @{
 
 $orgSecrets = @()
 $secrets = [ordered]@{
-    "InsiderSasToken" = ""
     "ghTokenWorkflow" = ""
     "AdminCenterApiCredentials" = ""
     "LicenseFileUrl" = ""
@@ -832,7 +831,7 @@ $Step.scheduledWorkflows {
                                                                                                     
                                                                                                     
 '@ `
-        -Description "AL-Go for GitHub includes three workflows, which typically are setup to run on a schedule.`nNote that in order to run the Test Next Minor and Test Next Major workflows, you need to have provide a secret called insiderSasToken.`n" `
+        -Description "AL-Go for GitHub includes three workflows, which typically are setup to run on a schedule.`n" `
         -options ([ordered]@{"Current" = "Test Current    : $($settings.CurrentSchedule)"; "NextMinor" = "Test Next Minor : $($settings.NextMinorSchedule)"; "NextMajor" = "Test Next Major : $($settings.NextMajorSchedule)"; "none" = "No further changes needed" }) `
         -question "Select schedule to change" `
         -previousStep `
@@ -887,7 +886,7 @@ $Step.GitHubRunner {
 
 $Step.Secrets {
 
-    $neededSecrets = "- InsiderSasToken - if you want to run builds against future versions of Business Central, this secret needs to contain the insider SAS token from |https://aka.ms/collaborate|`n- GhTokenWorkflow - must be a valid personal access token with permissions to modify workflows, created from |https://github.com/settings/tokens|`n- [environment-]AuthContext - Authentication context for authenticating to specific environments (continuous deployment, publish to production)`n- AdminCenterApiCredentials - An AuthContext for accessing the Admin Center Api (creating development environments)`n- AZURE_CREDENTIALS - is used as a GitHub secret to provide access to an Azure KeyVault with your secrets`n"
+    $neededSecrets = "- GhTokenWorkflow - must be a valid personal access token with permissions to modify workflows, created from |https://github.com/settings/tokens|`n- [environment-]AuthContext - Authentication context for authenticating to specific environments (continuous deployment, publish to production)`n- AdminCenterApiCredentials - An AuthContext for accessing the Admin Center Api (creating development environments)`n- AZURE_CREDENTIALS - is used as a GitHub secret to provide access to an Azure KeyVault with your secrets`n"
     if ($appType -eq "AppSource") {
         $neededSecrets += "- LicenseFile - needs to contain a direct download URL for your Business Central license file`n- CodeSignCertificateUrl - direct download URL for Code Signing certificate`n- CodeSignCertificatePassword - pfx password for code signing certificate."
     }
@@ -1045,20 +1044,6 @@ $Step.DefineSecrets {
         $script:wizardStep = $step.DefineSecrets
         Write-Host -ForegroundColor Yellow "`n$setSecret`n"
         switch ($setSecret) {
-        "InsiderSasToken" {
-            Write-Host "The Insider SAS Token is available for Microsoft partners on https://aka.ms/collaborate for members of the Ready! for Dynamics 365 Business Central Engagement`nPlease follow the steps on https://aka.ms/bcpublisher to get access`n`nThe package containing the Insider SAS Token is called Working with Business Central Insider Builds and is available for download here:`n`nhttps://partner.microsoft.com/en-us/dashboard/collaborate/packages/9387`n"
-            while ($true) {
-                $secrets.InsiderSasToken = Read-Host "Please paste the Insider SAS token here"
-                if (-not ($secrets.InsiderSasToken)) { break }
-                try {
-                    Get-BCArtifactUrl -storageAccount bcinsider -country us -sasToken $secrets.InsiderSasToken
-                    break
-                }
-                catch {
-                    Write-Host -ForegroundColor Red "The Insider SAS Token is invalid"
-                }
-            }
-        }
         "ghTokenWorkflow" {
             Write-Host "In order to run the Update AL-Go System files workflow, the ghTokenWorkflow secret needs to be defined.`nVisit the personal access tokens site for your account on GitHub and generate a new token with the workflow scope selected.`nNote that if you specify a PAT with an expiration date, you will have to update the token when it expires.`n`nYou can visit the Personal Access Tokens site on GitHub using this URL:`n`nhttps://github.com/settings/tokens`n"
             $secrets.ghTokenWorkflow = Read-Host "Please paste the Personal Access Token with workflow scope here"
