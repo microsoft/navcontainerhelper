@@ -20,7 +20,8 @@
  .Parameter useNewLine
   Add this switch to add a newline to progress indicating periods during wait.
   Azure DevOps doesn't update logs until a newline is added.
-
+ .Parameter hideInstalledExtensionsOutput
+  Add this parameter to hide the output that lists installed extensions on the specified environment before and after installation of new and updated PTE extensions.
 #>
 function Publish-PerTenantExtensionApps {
     [CmdletBinding(DefaultParameterSetName="AC")]
@@ -41,7 +42,8 @@ function Publish-PerTenantExtensionApps {
         $appFiles,
         [ValidateSet('Add','Force')]
         [string] $schemaSyncMode = 'Add',
-        [switch] $useNewLine
+        [switch] $useNewLine,
+        [switch] $hideInstalledExtensionsOutput
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -91,9 +93,11 @@ try {
         $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
         $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
         
-        Write-Host "Extensions before:"
-        $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
-        Write-Host
+        if (!$hideInstalledExtensionsOutput) {
+            Write-Host "Extensions before:"
+            $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
+            Write-Host
+        }
 
         $body = @{"schedule" = "Current Version"}
         $appDep = $extensions | Where-Object { $_.DisplayName -eq 'Application' }
@@ -230,9 +234,11 @@ try {
             $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
             $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
             
-            Write-Host
-            Write-Host "Extensions after:"
-            $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
+            if (!$hideInstalledExtensionsOutput) {
+                Write-Host
+                Write-Host "Extensions after:"
+                $extensions | ForEach-Object { Write-Host " - $($_.DisplayName), Version $($_.versionMajor).$($_.versionMinor).$($_.versionBuild).$($_.versionRevision), Installed=$($_.isInstalled)" }
+            }
         }
     }
     catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
