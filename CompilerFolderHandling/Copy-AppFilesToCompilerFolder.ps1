@@ -30,8 +30,8 @@ function Copy-AppFilesToCompilerFolder {
 
     Write-Host "Copy app files to compiler folder"
     $symbolsPath = Join-Path $compilerFolder 'symbols'
-    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app'))
-    $compilerFolderApps = GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppInfo
+    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
+    $compilerFolderApps = GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $symbolsPath 'AppInfoCache.json')
     if ($checkAlreadyInstalled) {
         $appFiles = @(Sort-AppFilesByDependencies -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $compilerFolderApps -WarningAction SilentlyContinue)
     }
