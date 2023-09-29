@@ -2,6 +2,7 @@
 Add parameter -accept_insiderEULA on New-BcContainer, Get-BcArtifactUrl and Run-AlPipeline to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) instead of using the insider SAS token.
 The insider SAS token is still supported until April 2024 where the last insider SAS token will expire...
 Remove the need for Insider SAS token in Create Container wizard and Create AL-Go repo wizard
+Add parameter EnableExternalRulesets to Run-AlPipeline (which will be added to the compiler when compiling)
 
 5.0.7
 Run-AlValidation also needs to install NAVSIP dependencies (issue #3190)
