@@ -1055,7 +1055,6 @@ Write-Host -ForegroundColor Yellow @'
 
 '@
 $unknownAppDependencies = @()
-$unknownPreviousAppDependencies = @()
 $unknownTestAppDependencies = @()
 $sortedAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownAppDependencies))
 $sortedTestAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownTestAppDependencies) | Where-Object { $appFolders -notcontains $_ })
@@ -1086,19 +1085,28 @@ else {
         Write-Host "- None"
     }
 }
-$missingPreviousAppDependencies = @()
 if ($previousApps) {
     Write-Host "Copying previous apps to packages folder"
     $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     try {
+        $unknownPreviousAppDependencies = @()
         $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $tempFolder
-        $sortedPreviousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName -unknownDependencies ([ref]$unknownPreviousAppDependencies)
+        $sortedPreviousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownPreviousAppDependencies)
         Write-Host "Previous apps"
-        $sortedPreviousApps | ForEach-Object { Write-Host "- $_" }
+        $sortedPreviousApps | ForEach-Object { Write-Host "- $([System.IO.Path]::GetFileName($_))" }
         Write-Host "External previous app dependencies"
         if ($unknownPreviousAppDependencies) {
-            $unknownPreviousAppDependencies | ForEach-Object { Write-Host "- $_" }
-            $missingPreviousAppDependencies = $unknownPreviousAppDependencies | ForEach-Object { $_.Split(':')[0] }
+            # Add unknown Previous App Dependencies to missingAppDependencies
+            foreach($appDependency in $unknownPreviousAppDependencies) {
+                Write-Host "- $appDependency"
+                $appId = $upad.Split(':')[0]
+                if ($appId -ne ([guid]::Empty.ToString())) {
+                    if ($missingAppDependencies -notcontains $appId) {
+                        $missingAppDependencies += @($appId)
+                        $unknownAppDependencies += @($appDependency)
+                    }
+                }
+            }
         }
         else {
             Write-Host "- None"
@@ -1107,7 +1115,6 @@ if ($previousApps) {
     finally {
         Remove-Item -Path $tempFolder -recurse -force
     }
-    $missingAppDependencies = @($missingPreviousAppDependencies + $missingAppDependencies | Select-Object -Unique)
 }
 
 if ($gitHubActions) { Write-Host "::endgroup::" }
