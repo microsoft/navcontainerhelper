@@ -141,7 +141,7 @@ function Run-AlCops {
 
         Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
         $global:_validationResult = @()
-        $apps | % {
+        $apps | ForEach-Object {
             $appFile = $_
             $appFileName = [System.IO.Path]::GetFileName($appFile)
 
@@ -151,6 +151,12 @@ function Run-AlCops {
                 if (!$skipVerification) {
                     Copy-Item -path $appFile -Destination "$tmpFolder.app"
                     $signResult = Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Param($appTmpFile)
+                        if (!(Test-Path "C:\Windows\System32\vcruntime140_1.dll")) {
+                            Write-Host "Downloading vcredist_x64 (version 140)"
+                            (New-Object System.Net.WebClient).DownloadFile('https://aka.ms/vs/17/release/vc_redist.x64.exe', 'c:\run\install\vcredist_x64-140.exe')
+                            Write-Host "Installing vcredist_x64 (version 140)"
+                            start-process -Wait -FilePath c:\run\install\vcredist_x64-140.exe -ArgumentList /q, /norestart
+                        }
                         Get-AuthenticodeSignature -FilePath $appTmpFile
                     } -argumentList (Get-BcContainerPath -containerName $containerName -path "$tmpFolder.app")
                     Remove-Item "$tmpFolder.app" -Force

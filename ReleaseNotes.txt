@@ -1,8 +1,20 @@
+6.0.0
+Add parameter -accept_insiderEULA on New-BcContainer, Get-BcArtifactUrl and Run-AlPipeline to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) instead of using the insider SAS token.
+The insider SAS token is still supported until April 2024 where the last insider SAS token will expire...
+Remove the need for Insider SAS token in Create Container wizard and Create AL-Go repo wizard
+Add parameter EnableExternalRulesets to Run-AlPipeline (which will be added to the compiler when compiling)
+Add paramater generateErrorLog to Compile-AppInNavContainer
+
+5.0.7
+Run-AlValidation also needs to install NAVSIP dependencies (issue #3190)
+Performance problems when getting application information in Compile-AppWithCompilerFolder
+
 5.0.6
 Add switch "doNotGetCompanyInfo" to "New-BcEnvironment" to enable skipping getting environment information after environment creation.
 Issue #3151 Get-AppSourceProduct returns 404 Not Found
 Add parameters exclusiveAccessTicket, path, syncMode, force and skipVersionCheck to Start-BcContainerAppDataUpgrade.
-Add paramater generateErrorLog to Compile-AppInNavContainer
+Issue #3146 Publish-BcContainerApp not working headless
+Issue #3190 Sign-Tool stopped working in 23.0.12034.12480
 
 5.0.5
 Add new option (exitedContainers) on Flush-ContainerHelperCache. Note that exited containers are NOT remove by the all flag, you need all,exitedContainers
