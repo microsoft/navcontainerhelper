@@ -1085,6 +1085,39 @@ else {
         Write-Host "- None"
     }
 }
+# Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
+if ($previousApps) {
+    Write-Host "Copying previous apps to packages folder"
+    $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+    try {
+        $unknownPreviousAppDependencies = @()
+        $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $tempFolder
+        $sortedPreviousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownPreviousAppDependencies)
+        Write-Host "Previous apps"
+        $sortedPreviousApps | ForEach-Object { Write-Host "- $([System.IO.Path]::GetFileName($_))" }
+        Write-Host "External previous app dependencies"
+        if ($unknownPreviousAppDependencies) {
+            # Add unknown Previous App Dependencies to missingAppDependencies
+            foreach($appDependency in $unknownPreviousAppDependencies) {
+                $appId = $appDependency.Split(':')[0]
+                if ($appId -ne ([guid]::Empty.ToString())) {
+                    Write-Host "- $appDependency"
+                    if ($missingAppDependencies -notcontains $appId) {
+                        $missingAppDependencies += @($appId)
+                        $unknownAppDependencies += @($appDependency)
+                    }
+                }
+            }
+        }
+        else {
+            Write-Host "- None"
+        }
+    }
+    finally {
+        Remove-Item -Path $tempFolder -recurse -force
+    }
+}
+
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($installApps) {
