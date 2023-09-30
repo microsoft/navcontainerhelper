@@ -1099,7 +1099,7 @@ if ($previousApps) {
             # Add unknown Previous App Dependencies to missingAppDependencies
             foreach($appDependency in $unknownPreviousAppDependencies) {
                 Write-Host "- $appDependency"
-                $appId = $upad.Split(':')[0]
+                $appId = $appDependency.Split(':')[0]
                 if ($appId -ne ([guid]::Empty.ToString())) {
                     if ($missingAppDependencies -notcontains $appId) {
                         $missingAppDependencies += @($appId)
