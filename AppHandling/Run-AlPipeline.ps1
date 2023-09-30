@@ -1085,6 +1085,7 @@ else {
         Write-Host "- None"
     }
 }
+# Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
 if ($previousApps) {
     Write-Host "Copying previous apps to packages folder"
     $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
