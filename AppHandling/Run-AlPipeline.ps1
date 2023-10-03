@@ -151,6 +151,8 @@
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
   Filename of the custom ruleset file
+ .Parameter enableExternalRulesets
+  Include this switch to enable external rulesets when compiling
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
@@ -339,6 +341,7 @@ Param(
     $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
+    [switch] $enableExternalRulesets,
     [string[]] $preProcessorSymbols = @(),
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
@@ -656,6 +659,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "; Write-Host $doNotRunBcptTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
+Write-Host -NoNewLine -ForegroundColor Yellow "enableExternalRulesets          "; Write-Host $enableExternalRulesets
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                     "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                          "; Write-Host $gitLab
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions                   "; Write-Host $gitHubActions
@@ -1081,6 +1085,39 @@ else {
         Write-Host "- None"
     }
 }
+# Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
+if ($previousApps) {
+    Write-Host "Copying previous apps to packages folder"
+    $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+    try {
+        $unknownPreviousAppDependencies = @()
+        $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $tempFolder
+        $sortedPreviousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownPreviousAppDependencies)
+        Write-Host "Previous apps"
+        $sortedPreviousApps | ForEach-Object { Write-Host "- $([System.IO.Path]::GetFileName($_))" }
+        Write-Host "External previous app dependencies"
+        if ($unknownPreviousAppDependencies) {
+            # Add unknown Previous App Dependencies to missingAppDependencies
+            foreach($appDependency in $unknownPreviousAppDependencies) {
+                $appId = $appDependency.Split(':')[0]
+                if ($appId -ne ([guid]::Empty.ToString())) {
+                    Write-Host "- $appDependency"
+                    if ($missingAppDependencies -notcontains $appId) {
+                        $missingAppDependencies += @($appId)
+                        $unknownAppDependencies += @($appDependency)
+                    }
+                }
+            }
+        }
+        else {
+            Write-Host "- None"
+        }
+    }
+    finally {
+        Remove-Item -Path $tempFolder -recurse -force
+    }
+}
+
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($installApps) {
@@ -1588,6 +1625,11 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
 
+        if ($enableExternalRulesets) {
+            $CopParameters += @{
+                "EnableExternalRulesets" = $true
+            }
+        }
         if ("$rulesetFile" -ne "" -or $useDefaultAppSourceRuleSet) {
             if ($useDefaultAppSourceRuleSet) {
                 Write-Host "Creating ruleset for pipeline"
