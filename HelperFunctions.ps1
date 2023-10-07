@@ -100,6 +100,9 @@ function CmdDo {
         [string] $inputStr = ""
     )
 
+Write-Host $command
+Write-Host $arguments
+
     $oldNoColor = "$env:NO_COLOR"
     $env:NO_COLOR = "Y"
     $oldEncoding = [Console]::OutputEncoding
