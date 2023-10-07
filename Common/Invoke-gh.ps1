@@ -14,24 +14,21 @@ function invoke-gh {
         [parameter(mandatory = $false, position = 1, ValueFromRemainingArguments = $true)] $remaining
     )
 
-    $arguments = "$command "
-    $remaining | ForEach-Object {
-        if ("$_".IndexOf(" ") -ge 0 -or "$_".IndexOf('"') -ge 0) {
-            Write-Host $_.length
-            if ($_.length -lt 15000) {
-                $arguments += """$($_.Replace('"','\"'))"" "
+    Process {
+        $arguments = "$command "
+        foreach($parameter in $remaining) {
+            if ("$parameter".IndexOf(" ") -ge 0 -or "$parameter".IndexOf('"') -ge 0) {
+                if ($parameter.length -gt 15000) {
+                    $parameter = "$($parameter.Substring(0,15000))`n`n**Truncated due to size limits!**"
+                }
+                $arguments += """$($parameter.Replace('"','\"'))"" "
             }
             else {
-                $arguments += """$($_.SubString(0,15000).Replace('"','\"'))`n`nTruncated due to size limits"" "
+                $arguments += "$parameter "
             }
-
-
         }
-        else {
-            $arguments += "$_ "
-        }
+        cmdDo -command gh -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
     }
-    cmdDo -command gh -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
 }
 
 Export-ModuleMember -Function Invoke-gh

@@ -14,15 +14,17 @@ function invoke-git {
         [parameter(mandatory = $false, position = 1, ValueFromRemainingArguments = $true)] $remaining
     )
 
-    $arguments = "$command "
-    $remaining | ForEach-Object {
-        if ("$_".IndexOf(" ") -ge 0 -or "$_".IndexOf('"') -ge 0) {
-            $arguments += """$($_.Replace('"','\"'))"" "
+    Process {
+        $arguments = "$command "
+        foreach($parameter in $remaining) {
+            if ("$parameter".IndexOf(" ") -ge 0 -or "$parameter".IndexOf('"') -ge 0) {
+                $arguments += """$($parameter.Replace('"','\"'))"" "
+            }
+            else {
+                $arguments += "$parameter "
+            }
         }
-        else {
-            $arguments += "$_ "
-        }
+        cmdDo -command git -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
     }
-    cmdDo -command git -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
 }
 Export-ModuleMember -Function Invoke-git
