@@ -17,7 +17,15 @@ function invoke-gh {
     $arguments = "$command "
     $remaining | ForEach-Object {
         if ("$_".IndexOf(" ") -ge 0 -or "$_".IndexOf('"') -ge 0) {
-            $arguments += """$($_.Replace('"','\"'))"" "
+            Write-Host $_.length
+            if ($_.length -lt 15000) {
+                $arguments += """$($_.Replace('"','\"'))"" "
+            }
+            else {
+                $arguments += """$($_.SubString(0,15000).Replace('"','\"'))`n`nTruncated due to size limits"" "
+            }
+
+
         }
         else {
             $arguments += "$_ "
