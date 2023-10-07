@@ -4,6 +4,8 @@ The insider SAS token is still supported until April 2024 where the last insider
 Remove the need for Insider SAS token in Create Container wizard and Create AL-Go repo wizard
 Add parameter EnableExternalRulesets to Run-AlPipeline (which will be added to the compiler when compiling)
 Issue https://github.com/microsoft/AL-Go/issues/709 Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
+Do not hide real exception in invoke-git and invoke-gh
+Truncate body part to 15000 characters in invoke-gh
 
 5.0.7
 Run-AlValidation also needs to install NAVSIP dependencies (issue #3190)
