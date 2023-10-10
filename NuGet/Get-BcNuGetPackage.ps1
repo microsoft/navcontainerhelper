@@ -49,8 +49,9 @@ Function Get-BcNuGetPackage {
         Write-Host "$count matching packages found"
         if ($count -gt 1) {
             $searchResult.data | ForEach-Object { Write-Host "- $($_.id)" }
+            throw "Ambiguous package name provided."
         }
-        $packageMetadata = $searchResult.data | Where-Object { $_.id -eq $packageName }
+        $packageMetadata = $searchResult.data | Where-Object { $_.id -like $packageName }
     }
     catch {
         throw (GetExtendedErrorMessage $_)
