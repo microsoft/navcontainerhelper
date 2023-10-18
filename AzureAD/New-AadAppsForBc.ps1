@@ -79,15 +79,19 @@ try {
             if ($jwtToken.aud -ne 'https://graph.microsoft.com') {
                 Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.microsoft.com"
             }
-            Connect-MgGraph -AccessToken $bcAuthContext.accessToken | Out-Null
+            $accessToken = $bcAuthContext.accessToken
         }
-        else {
-            if ($accessToken) {
+        if ($accessToken) {
+            try {
+                # Connect-MgGraph changed type of accesstoken parameter from plain text to securestring along the way
+                Connect-MgGraph -accessToken (ConvertTo-SecureString -String $accessToken -AsPlainText -Force) | Out-Null
+            }
+            catch [System.ArgumentException] {
                 Connect-MgGraph -accessToken $accessToken | Out-Null
             }
-            else {
-                Connect-MgGraph -Scopes 'Application.ReadWrite.All' | Out-Null
-            }
+        }
+        else {
+            Connect-MgGraph -Scopes 'Application.ReadWrite.All' | Out-Null
         }
     }
     $account = Get-MgContext
