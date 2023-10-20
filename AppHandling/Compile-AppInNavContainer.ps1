@@ -500,6 +500,7 @@ try {
                                 $alcPath = 'C:\build\vsix\extension\bin'
                                 Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
                                 Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                                Add-Type -Path (Join-Path $alcPath System.IO.Packaging.dll)
                                 Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
 
                                 $packageStream = [System.IO.File]::OpenRead($symbolsFile)
