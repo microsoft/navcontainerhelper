@@ -1116,6 +1116,8 @@ function GetAppInfo {
         }
     }
     Write-Host "Getting .app info"
+    $appFiles | Out-Host
+    $cacheAppInfoPath | Out-Host
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'

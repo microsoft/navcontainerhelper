@@ -61,7 +61,7 @@ Function Download-BcNuGetPackageToFolder {
         [string] $downloadDependencies = 'allButApplication'
     )
     Write-Host "Determining installedApps"
-    
+
     Write-Host "Looking for NuGet package $packageName version $version"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
     if ($package) {
@@ -152,7 +152,19 @@ Function Download-BcNuGetPackageToFolder {
                 }
             }
             if ($downloadIt) {
-                Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps
+                try {
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps
+                }
+                catch {
+                    # If we cannot download the dependency, try downloading using the AppID
+                    if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
+                        # If dependencyId ends in a GUID (AppID) then try downloading using the 
+                        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps
+                    }
+                    else {
+                        throw
+                    }
+                }
             }
         }
         $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
