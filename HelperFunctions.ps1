@@ -363,7 +363,8 @@ function Expand-7zipArchive {
         [Parameter(Mandatory = $true)]
         [string] $Path,
         [string] $DestinationPath,
-        [switch] $use7zipIfAvailable = $bcContainerHelperConfig.use7zipIfAvailable
+        [switch] $use7zipIfAvailable = $bcContainerHelperConfig.use7zipIfAvailable,
+        [switch] $silent
     )
 
     $7zipPath = "$env:ProgramFiles\7-Zip\7z.exe"
@@ -378,7 +379,7 @@ function Expand-7zipArchive {
     }
 
     if ($use7zip) {
-        Write-Host "using 7zip"
+        if (!$silent) { Write-Host "using 7zip" }
         Set-Alias -Name 7z -Value $7zipPath
         $command = '7z x "{0}" -o"{1}" -aoa -r' -f $Path, $DestinationPath
         $global:LASTEXITCODE = 0
@@ -388,7 +389,7 @@ function Expand-7zipArchive {
         }
     }
     else {
-        Write-Host "using Expand-Archive"
+        if (!$silent) { Write-Host "using Expand-Archive" }
         if ([System.IO.Path]::GetExtension($path) -eq '.zip') {
             Expand-Archive -Path $Path -DestinationPath "$DestinationPath" -Force
         }
@@ -1164,7 +1165,7 @@ function GetAppInfo {
                     "propagateDependencies" = $manifest.PropagateDependencies
                 }
                 Write-Host " (succeeded)"
-                if ($appInfoCache) {
+                if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $path -Value $appInfo
                     $cacheUpdated = $true
                 }
@@ -1248,3 +1249,17 @@ function DetermineVsixFile {
         return $vsixFile
     }
 }
+
+# Tests:
+#IsVersionIncludedInRange -version '1.0.0.0' -nuGetVersionRange '1.0.0.0' = true
+#IsVersionIncludedInRange -version '1.0.0.0' -nuGetVersionRange '[1.0.0.0]' = true
+#IsVersionIncludedInRange -version '1.0.0.1' -nuGetVersionRange '[1.0.0.0]' = false
+#IsVersionIncludedInRange -version '1.0.0.0' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = true
+#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = true
+#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[1.0.0.0,2.0.0.0)' = false
+#IsVersionIncludedInRange -version '2.0.0.1' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = false
+#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[2.0.0.0,)' = true
+#IsVersionIncludedInRange -version '2.0.0.1' -nuGetVersionRange '[1.0.0.0,)' = true
+#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '(2.0.0.0,)' = false
+#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[2.0.0.0,]'  # throws
+#IsVersionIncludedInRange -version '2.0.0.1' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = false

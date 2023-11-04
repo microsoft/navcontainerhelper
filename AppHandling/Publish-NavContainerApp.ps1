@@ -140,7 +140,7 @@ try {
         $force = $true
         if ($checkAlreadyInstalled) {
             if ($isCloudBcContainer) {
-                $installedApps = Invoke-ScriptInAlpacaBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
+                $installedApps = Invoke-ScriptInCloudBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
                     Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true } | ForEach-Object { Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version }
                 }
             }

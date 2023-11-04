@@ -26,18 +26,21 @@ function Restart-BcContainer {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($renewBindings) {
-        if ((docker inspect -f '{{.State.Running}}' $containerName) -eq "true") {
-            Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { 
-                Set-Content -Path "c:\run\PublicDnsName.txt" -Value ""
-            }
-        }
-        else {
-            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+    if ((docker inspect -f '{{.State.Running}}' $containerName) -eq "true") {
+        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -ScriptBlock { Param( $renewBindings )
+            if ($renewBindings) { Set-Content -Path "c:\run\PublicDnsName.txt" -Value "" }
+            Set-Content -Path "c:\run\startcount.txt" -Value "0"
+        } -argumentList $renewBindings.IsPresent
+    }
+    else {
+        $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+        if ($renewBindings) {
             Set-Content -Path $tempFile -Value ""
             docker cp $tempFile "$($containerName):c:\run\PublicDnsName.txt"
-            Remove-Item -Path $tempFile
         }
+        Set-Content -Path $tempFile -Value "0"
+        docker cp $tempFile "$($containerName):c:\run\startcount.txt"
+        Remove-Item -Path $tempFile
     }
 
     Write-Host "Removing Session $containerName"

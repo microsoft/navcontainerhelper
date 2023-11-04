@@ -1,103 +1,95 @@
 <# 
  .Synopsis
-  POC PREVIEW: Create a new Business Central NuGet Package
+  Create a new Business Central NuGet Package
  .Description
-  Create a new NuGet package containing one or more Business Central apps
- .Parameter useRuntimePackages
-  Include this switch to 
- .Parameter appfiles
- .Parameter dependencyAppFiles
- .Parameter testAppFiles
+  Create a new NuGet package containing a Business Central apps
+ .Parameter appfile
+  App file to include in the NuGet package
  .Parameter packageId
+  Id of the NuGet package (or template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file) 
+  The default is '{publlisher}.{name}.{id}'
  .Parameter packageVersion
+  Version of the NuGet package
+  The default is the version number from the app.json file
  .Parameter packageTitle
+  Title of the NuGet package
+  The default is the name from the app.json file
  .Parameter packageDescription
+  Description of the NuGet package
+  The default is the description from the app.json file
+  If no description exists in the app.json file, the default is the package title
  .Parameter packageAuthors
+  Authors of the NuGet package
+  The default is the publisher from the app.json file
  .Parameter githubRepository
- .Parameter includeNuGetDependencies
+  URL to the GitHub repository for the NuGet package
  .Parameter dependencyIdTemplate
+  Template to calculate the id of the dependencies
+  The template can contain {id}, {name} and {publisher} which will be replaced with the values from the corresponding dependency from app.json
+  The default is '{publlisher}.{name}.{id}'
  .Example
-  todo
+  $package = New-BcNuGetPackage -appfile "C:\Users\freddyk\Downloads\MyBingMaps-main-Apps-1.0.3.0\Freddy Kristiansen_BingMaps.PTE_4.4.3.0.app"
+ .Example
+  $package = New-BcNuGetPackage -appfile $appfile -packageId "AL-Go-{id}" -dependencyIdTemplate "AL-Go-{id}"
 #>
 Function New-BcNuGetPackage {
     Param(
-        [switch] $useRuntimePackages,
         [Parameter(Mandatory=$true)]
-        [string[]] $appfiles,
-        [string[]] $dependencyAppFiles = @(),
-        [string[]] $testAppFiles = @(),
-        [string] $packageId = "",
+        [alias('appFiles')]
+        [string] $appfile,
+        [Parameter(Mandatory=$false)]
+        [string] $packageId = "{publisher}.{name}.{id}",
+        [Parameter(Mandatory=$false)]
         [System.Version] $packageVersion = $null,
+        [Parameter(Mandatory=$false)]
         [string] $packageTitle = "",
+        [Parameter(Mandatory=$false)]
         [string] $packageDescription = "",
+        [Parameter(Mandatory=$false)]
         [string] $packageAuthors = "",
+        [Parameter(Mandatory=$false)]
         [string] $githubRepository = "",
-        [switch] $includeNuGetDependencies,
-        [string] $dependencyIdTemplate = '{id}'
+        [Parameter(Mandatory=$false)]
+        [string] $dependencyIdTemplate = '{publlisher}.{name}.{id}',
+        [Parameter(Mandatory=$false)]
+        [string] $applicationDependencyId = 'Microsoft.Application',
+        [Parameter(Mandatory=$false)]
+        [string] $platformDependencyId = 'Microsoft.Platform',
+        [obsolete('NuGet Dependencies are always included.')]
+        [switch] $includeNuGetDependencies
     )
 
-    if ($useRuntimePackages) {
-        throw "Runtime packages not yet supported"
+    function CopyFileToStream([string] $filename, [System.IO.Stream] $stream) {
+        $bytes = [System.IO.File]::ReadAllBytes($filename)
+        $stream.Write($bytes,0,$bytes.Length)
     }
 
-    $ok = $true
-    $appFiles | Out-Host
-    $dependencyAppFiles | Out-Host
-    $testAppFiles | Out-Host
-    $appFiles,$dependencyAppFiles,$testAppFiles | Where-Object { $_ } | ForEach-Object {
-        if (-not (Test-Path $_)) {
-            Write-Host -foregroundColor Red "Unable to locate file: $_"
-            $ok = $false
+    function AddPart([System.IO.Packaging.Package] $package, [string] $path, [string] $subFolder) {
+        $relativePath = [System.IO.Path]::GetFileName($path)
+        if ($subFolder) {
+            $relativePath = Join-Path $subFolder $relativePath
         }
+        $nuspecpart = [System.IO.Packaging.PackUriHelper]::CreatePartUri([Uri]::new($relativePath,[System.UriKind]::Relative))
+        $part = $package.CreatePart($nuspecpart, 'application/octet-stream')
+        CopyFileToStream -filename $path -stream ($part.GetStream())
+        $part.Uri.ToString().TrimStart('/')
     }
-    if (!$ok) {
-        throw "Error Creating NuGet Package"
+    
+    Write-Host "Create NuGet package"
+    Write-Host "AppFile:"
+    Write-Host $appFile
+    if (!(Test-Path $appFile)) {
+        throw "Unable to locate file: $_"
     }
-
-    if ($appfiles.Count -eq 0) {
-        throw "You need to specify at least one appfile"
-    }
-    elseif ($appfiles.Count -gt 1) {
-        if ($packageId -eq "" -or $packageVersion -eq $null -or $packageTitle -eq "" -or $packageAuthors -eq "") {
-            throw "When specifying multiple files, you need to specify packageId, packageVersion, packageTitle and packageAuthors"
-        }
-        if ($includeNuGetDependencies) {
-            throw "includeNuGetDependencies is only supported when creating a NuGet package for a single app"
-        }
-    }
-
-    $appFile = $appfiles | Select-Object -First 1
+    $appFile = (Get-Item $appfile).FullName
+    $package = $null
     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
-    Extract-AppFileToFolder -appFilename $appFile -generateAppJson -appFolder $tmpFolder
-    $appJsonFile = Join-Path $tmpFolder 'app.json'
-    $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
-    Remove-Item $tmpFolder -Recurse -Force
-
-    $testsFolderName = "Tests"
-    $dependenciesFolderName = "Dependencies"
-    $rootFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
-    New-Item -Path $rootFolder -ItemType Directory | Out-Null
     try {
-        $testsFolder = Join-Path $rootFolder $testsFolderName
-        New-Item -Path $testsFolder -ItemType Directory | Out-Null
-        $dependenciesFolder = Join-Path $rootFolder $dependenciesFolderName
-        New-Item -Path $dependenciesFolder -ItemType Directory | Out-Null
-        $appfiles | ForEach-Object {
-            Copy-Item -Path $_ -Destination $rootFolder -Force
-        }
-        $testAppfiles | ForEach-Object {
-            Copy-Item -Path $_ -Destination $testsFolder -Force
-        }
-        $dependencyAppfiles | ForEach-Object {
-            Copy-Item -Path $_ -Destination $dependenciesFolder -Force
-        }
-        if ($packageId) {
-            $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',$appJson.name).replace('{publisher}',$appJson.publisher)
-        }
-        else {
-            $packageId = $appJson.id
-        }
-        if ($packageVersion -eq $null) {
+        Extract-AppFileToFolder -appFilename $appFile -generateAppJson -appFolder $tmpFolder
+        $appJsonFile = Join-Path $tmpFolder 'app.json'
+        $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
+        $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher))
+        if ($null -eq $packageVersion) {
             $packageVersion = [System.Version]$appJson.version
         }
         if (-not $packageTitle) {
@@ -112,7 +104,15 @@ Function New-BcNuGetPackage {
         if (-not $packageAuthors) {
             $packageAuthors = $appJson.publisher
         }
-        $nuspecFileName = Join-Path $rootFolder "manifest.nuspec"
+
+        $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
+        $nupkgFile = Join-Path ([System.IO.Path]::GetTempPath()) $nuPkgFileName
+        if (Test-Path $nuPkgFile -PathType Leaf) {
+            Remove-Item $nupkgFile -Force
+        }
+        $package = [System.IO.Packaging.Package]::Open($nupkgFile, [System.IO.FileMode]::Create)
+
+        $nuspecFileName = Join-Path $tmpFolder "manifest.nuspec"
         $xmlObjectsettings = New-Object System.Xml.XmlWriterSettings
         $xmlObjectsettings.Indent = $true
         $xmlObjectsettings.IndentChars = "    "
@@ -129,42 +129,37 @@ Function New-BcNuGetPackage {
         if ($githubRepository) {
             $XmlObjectWriter.WriteStartElement("repository")
             $XmlObjectWriter.WriteAttributeString("type", "git");
-            $XmlObjectWriter.WriteAttributeString("url", $githubRepository);
+            $XmlObjectWriter.WriteAttributeString("url", $githubRepository)
             $XmlObjectWriter.WriteEndElement()
         }
-        if ($includeNuGetDependencies) {
-            $XmlObjectWriter.WriteStartElement("dependencies")
-            $appJson.dependencies | ForEach-Object {
-                $XmlObjectWriter.WriteStartElement("dependency")
-                $XmlObjectWriter.WriteAttributeString("id", $dependencyIdTemplate.replace('{id}',$_.id))
-                $XmlObjectWriter.WriteAttributeString("version", $_.Version);
-                $XmlObjectWriter.WriteEndElement()
-            }
+        $XmlObjectWriter.WriteStartElement("dependencies")
+        $appJson.dependencies | ForEach-Object {
+            $id = $dependencyIdTemplate.replace('{id}',$_.id).replace('{name}',[nuGetFeed]::Normalize($_.name)).replace('{publisher}',[nuGetFeed]::Normalize($_.publisher))
+            $XmlObjectWriter.WriteStartElement("dependency")
+            $XmlObjectWriter.WriteAttributeString("id", $id)
+            $XmlObjectWriter.WriteAttributeString("version", $_.Version)
+            $XmlObjectWriter.WriteEndElement()
+        }
+        if ($appJson.PSObject.Properties.Name -eq 'Application' -and $appJson.Application) {
+            $XmlObjectWriter.WriteStartElement("dependency")
+            $XmlObjectWriter.WriteAttributeString("id", $applicationDependencyId)
+            $XmlObjectWriter.WriteAttributeString("version", $appJson.Application)
+            $XmlObjectWriter.WriteEndElement()
+        }
+        if ($appJson.PSObject.Properties.Name -eq 'Platform' -and  $appJson.Platform) {
+            $XmlObjectWriter.WriteStartElement("dependency")
+            $XmlObjectWriter.WriteAttributeString("id", $platformDependencyId)
+            $XmlObjectWriter.WriteAttributeString("version", $appJson.Platform)
             $XmlObjectWriter.WriteEndElement()
         }
         $XmlObjectWriter.WriteEndElement()
+        $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteStartElement("files")
-        $appFiles | ForEach-Object {
-            $XmlObjectWriter.WriteStartElement("file")
-            $appFileName = [System.IO.Path]::GetFileName($_)
-            $XmlObjectWriter.WriteAttributeString("src", $appFileName );
-            $XmlObjectWriter.WriteAttributeString("target", $appFileName);
-            $XmlObjectWriter.WriteEndElement()
-        }
-        $testAppFiles | ForEach-Object {
-            $XmlObjectWriter.WriteStartElement("file")
-            $appFileName = [System.IO.Path]::GetFileName($_)
-            $XmlObjectWriter.WriteAttributeString("src", "$testsFolderName\$appFileName" );
-            $XmlObjectWriter.WriteAttributeString("target", "$testsFolderName\$appFileName" );
-            $XmlObjectWriter.WriteEndElement()
-        }
-        $dependencyAppFiles | ForEach-Object {
-            $XmlObjectWriter.WriteStartElement("file")
-            $appFileName = [System.IO.Path]::GetFileName($_)
-            $XmlObjectWriter.WriteAttributeString("src", "$dependenciesFolderName\$appFileName" );
-            $XmlObjectWriter.WriteAttributeString("target", "$dependenciesFolderName\$appFileName" );
-            $XmlObjectWriter.WriteEndElement()
-        }
+        $XmlObjectWriter.WriteStartElement("file")
+        $appFileName = AddPart -package $package -path $appFile -subfolder ''
+        $XmlObjectWriter.WriteAttributeString("src", $appFileName );
+        $XmlObjectWriter.WriteAttributeString("target", $appFileName);
+        $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndDocument()
@@ -173,15 +168,10 @@ Function New-BcNuGetPackage {
         
         Write-Host "NUSPEC file:"
         Get-Content -path $nuspecFileName -Encoding UTF8 | Out-Host
-
-        $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
-        $nupkgFile = Join-Path ([System.IO.Path]::GetTempPath()) $nuPkgFileName
-        if (Test-Path $nuPkgFile -PathType Leaf) {
-            Remove-Item $nupkgFile -Force
-        }
-        Compress-Archive -Path "$rootFolder\*" -DestinationPath "$nupkgFile.zip" -Force
-        Rename-Item -Path "$nupkgFile.zip" -NewName $nuPkgFileName
-        
+        $nuspecpart = [System.IO.Packaging.PackUriHelper]::CreatePartUri([Uri]::new("manifest.nuspec",[System.UriKind]::Relative))
+        $part = $package.CreatePart($nuspecpart, 'text/xml')
+        CopyFileToStream -filename $nuspecFileName -stream ($part.GetStream())
+        $package.Close()
         $size = (Get-Item $nupkgFile).Length
         if ($size -gt 1MB) {
             $sizeStr = "$([int]($size/1MB))Mb"
@@ -195,8 +185,15 @@ Function New-BcNuGetPackage {
         Write-Host -ForegroundColor Green "Successfully created NuGet package (Size: $sizeStr)"
         $nupkgFile
     }
+    catch {
+        if ($package) {
+            $package.Close()
+            Remove-Item $nupkgFile
+        }
+        throw
+    }
     finally {
-        Remove-Item -Path $rootFolder -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 Export-ModuleMember -Function New-BcNuGetPackage

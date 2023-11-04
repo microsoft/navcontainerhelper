@@ -1,102 +1,60 @@
 <# 
  .Synopsis
-  POC PREVIEW: Get Business Central NuGet Package from NuGet Server
+  Get Business Central NuGet Package from NuGet Server
  .Description
   Get Business Central NuGet Package from NuGet Server
+ .OUTPUTS
+  string
+  Path to the a tmp folder where the package is downloaded
+  This folder should be deleted after usage
+ .PARAMETER nuGetServerUrl
+  NuGet Server URL
+  Default: https://api.nuget.org/v3/index.json
+ .PARAMETER nuGetToken
+  NuGet Token for authenticated access to the NuGet Server
+  If not specified, the NuGet Server is accessed anonymously (and needs to support this)
+ .PARAMETER packageName
+  Package Name to search for.
+  This can be the full name or a partial name with wildcards.
+  If more than one package is found, matching the name, an error is thrown.
+ .PARAMETER version
+  Package Version, following the nuget versioning rules
+  https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
+ .PARAMETER silent
+  Suppress output
 #>
 Function Get-BcNuGetPackage {
     Param(
-        [string] $nuGetServerUrl = "https://api.nuget.org/v3/index.json",
+        [Parameter(Mandatory=$false)]
+        [string] $nuGetServerUrl = "",
+        [Parameter(Mandatory=$false)]
         [string] $nuGetToken = "",
         [Parameter(Mandatory=$true)]
         [string] $packageName,
         [Parameter(Mandatory=$false)]
-        [System.Version] $version = [System.Version]'0.0.0.0',
+        [string] $version = '0.0.0.0',
         [switch] $silent
     )
 
-    $headers = @{
-        "Content-Type" = "application/json; charset=utf-8"
-    }
-    if ($nuGetToken) {
-        $headers += @{
-            "Authorization" = "Basic $([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("user:$nuGetToken")))"
-        }
-    }
-
-    if (!$silent) {
-        Write-Host "Determining Search Url for $nuGetServerUrl"
-    }
-    try {
-        $capabilities = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri $nuGetServerUrl
-        $searchResource = $capabilities.resources | Where-Object { $_.'@type' -eq 'SearchQueryService' -or $_.'@type' -eq 'SearchQueryService/3.0.0-beta' }
-        $searchUrl = $searchResource.'@id' | Select-Object -First 1
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
-    if (-not $searchUrl) {
-        Write-Host "Supported capabilities:"
-        $capabilities.resources.'@type' | ForEach-Object { Write-Host "- $_" }
-        throw "$nuGetServerUrl doesn't support SearchQueryService."
-    }
-    if (!$silent) {
-        Write-Host "Using $searchUrl"
-    }
-    try {
-        $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri "$searchUrl/?q=$packageName"
-        $count = $searchResult.data.count
-        Write-Host "$count matching packages found"
-        if ($count -gt 1) {
-            $searchResult.data | ForEach-Object { Write-Host "- $($_.id)" }
-            throw "Ambiguous package name provided."
-        }
-        $packageMetadata = $searchResult.data | Where-Object { $_.id -like $packageName }
-    }
-    catch {
-        throw (GetExtendedErrorMessage $_)
-    }
-
-    $tmpFolder = ''
-    if (-not $packageMetadata) {
-        if (!$silent) {
-            Write-Host "The package named $packageName wasn't found on $nuGetServerUrl"
-        }
-    }
-    else {
-        if (!$silent) {
-            Write-Host "Found Package $($packageMetadata.id) on $nuGetServerUrl"
-        }
-
-        $packageVersion = $packageMetadata.versions | Where-Object { [System.Version]$_.version -ge $version } | Sort-Object { [System.Version]$_.version } | Select-Object -Last 1
-        if ($packageVersion.'@id' -notlike 'https://*' -and (($searchUrl -like 'https://pkgs.dev.azure.com/*/v3/query2/') -or ($searchUrl -like 'https://*.pkgs.visualstudio.com/_packaging/*/nuget/v3/query2/'))) {
-            # Azure DevOps doesn't store URLs to package metadata in @id
-            $contentUrl = "$($searchUrl.Substring(0,$searchUrl.Length-10).Replace('/_packaging/','/_apis/packaging/feeds/'))packages/$($packageVersion.'@id')/versions/$($packageVersion.Version)/content"
-        }
-        else {
-            try {
-                $package = Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri $packageVersion.'@id'
-                $contentUrl = $package.packageContent
-            }
-            catch {
-                throw (GetExtendedErrorMessage $_)
+    foreach($feed in ([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') }), $bcContainerHelperConfig.TrustedNuGetFeeds) {
+        if ($feed -and $feed.Url) {
+            $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns)
+            $packageId = $nuGetFeed.Search($packageName)
+            if ($packageId) {
+                if ($packageId.count -gt 1) {
+                    throw "Ambiguous package name provided ($packageName)"
+                }
+                else {
+                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId[0], $version)
+                    if (!$packageVersion) {
+                        throw "No package found matching version '$version' for package id $($packageId[0])"
+                    }
+                    return $nuGetFeed.DownloadPackage($packageId[0], $packageVersion)
+                }
             }
         }
-
-        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())    
-        if (!$silent) {
-            Write-Host "Downloading Package from $contentUrl"
-        }
-        try {
-            Invoke-RestMethod -UseBasicParsing -Method GET -Headers $headers -Uri $contentUrl -OutFile "$tmpFolder.zip"
-        }
-        catch {
-            throw (GetExtendedErrorMessage $_)
-        }
-        Expand-7zipArchive -Path "$tmpFolder.zip" -DestinationPath $tmpFolder
-        Remove-Item "$tmpFolder.zip"
-        Write-Host -ForegroundColor Green "Package successfully downloaded"
     }
-    $tmpFolder
+    Write-Host "No package found matching package name $($packageName)"
+    return ''
 }
 Export-ModuleMember -Function Get-BcNuGetPackage

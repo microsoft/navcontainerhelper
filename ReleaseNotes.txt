@@ -1,5 +1,5 @@
 6.0.1
-Rename AppInfoCache.json to cache_AppInfo.json (which by default is in .gitignore in AL-Go for GitHub)
+Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
 
 6.0.0
 Add parameter -accept_insiderEULA on New-BcContainer, Get-BcArtifactUrl and Run-AlPipeline to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) instead of using the insider SAS token.
