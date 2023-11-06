@@ -66,6 +66,12 @@ Function Download-BcNuGetPackageToFolder {
         $_ | Out-Host
     }
 
+    Write-Host "appSymbolsFolder: $appSymbolsFolder"
+    Get-ChildItem $appSymbolsFolder -Recurse -File | ForEach-Object { Write-Host "- $($_.FullName)" }
+
+    Write-Host "appSymbolsFolder: $copyInstalledAppsToFolder"
+    Get-ChildItem $copyInstalledAppsToFolder -Recurse -File | ForEach-Object { Write-Host "- $($_.FullName)" }
+
     Write-Host "Looking for NuGet package $packageName version $version"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
     if ($package) {
