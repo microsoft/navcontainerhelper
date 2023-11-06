@@ -110,6 +110,7 @@ function Get-ContainerHelperConfig {
             }
             "TrustedNuGetFeeds" = @(
                 [PSCustomObject]@{ "Url" = "https://api.nuget.org/v3/index.json"; "Token" = ""; "Patterns" = @('Microsoft.*') }
+                [PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/freddydk/apps/_packaging/BCapps3/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('*') }
             )
         }
 
