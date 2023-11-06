@@ -62,6 +62,10 @@ Function Download-BcNuGetPackageToFolder {
     )
     Write-Host "Determining installedApps"
 
+    $installedApps | ForEach-Object {
+        $_ | Out-Host
+    }
+
     Write-Host "Looking for NuGet package $packageName version $version"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
     if ($package) {
