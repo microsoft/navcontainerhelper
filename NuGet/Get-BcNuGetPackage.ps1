@@ -46,12 +46,10 @@ Function Get-BcNuGetPackage {
                 Write-Host "Initiation of NuGetFeed failed. Error was $($_.Exception.Message)"
                 continue
             }
-            Write-Host "search"
             $packageId = $nuGetFeed.Search($packageName)
             if ($packageId) {
-                write-Host "ID:"
-                $packageId | out-host
-                Write-Host "check"
+                Write-Host "PackageId:"
+                $packageId | ForEach-Object { Write-Host "  $_" }
                 if ($packageId.count -gt 1) {
                     throw "Ambiguous package name provided ($packageName)"
                 }
