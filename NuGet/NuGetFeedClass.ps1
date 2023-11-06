@@ -81,6 +81,7 @@ class NuGetFeed {
         }
         catch {
             Write-Host "No package found matching package name $($packageName)"
+            return @()
 #            throw (GetExtendedErrorMessage $_)
         }
         # Check that the found pattern matches the package name and the trusted patterns
