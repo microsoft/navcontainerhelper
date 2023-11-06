@@ -38,8 +38,14 @@ Function Get-BcNuGetPackage {
 
     foreach($feed in ([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') }), $bcContainerHelperConfig.TrustedNuGetFeeds) {
         if ($feed -and $feed.Url) {
-            Write-Host "init"
-            $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns)
+            try {
+                Write-Host "Init NuGetFeed $($feed.Url)"
+                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns)
+            }
+            catch {
+                Write-Host "Initiation of NuGetFeed failed. Error was $($_.Exception.Message)"
+                continue
+            }
             Write-Host "search"
             $packageId = $nuGetFeed.Search($packageName)
             if ($packageId) {
