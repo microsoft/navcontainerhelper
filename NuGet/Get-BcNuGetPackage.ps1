@@ -38,9 +38,14 @@ Function Get-BcNuGetPackage {
 
     foreach($feed in ([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') }), $bcContainerHelperConfig.TrustedNuGetFeeds) {
         if ($feed -and $feed.Url) {
+            Write-Host "init"
             $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns)
+            Write-Host "search"
             $packageId = $nuGetFeed.Search($packageName)
             if ($packageId) {
+                write-Host "ID:"
+                $packageId | out-host
+                Write-Host "check"
                 if ($packageId.count -gt 1) {
                     throw "Ambiguous package name provided ($packageName)"
                 }

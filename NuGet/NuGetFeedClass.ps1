@@ -80,9 +80,7 @@ class NuGetFeed {
             $global:ProgressPreference = $prev
         }
         catch {
-            Write-Host "No package found matching package name $($packageName)"
-            return @()
-#            throw (GetExtendedErrorMessage $_)
+            throw (GetExtendedErrorMessage $_)
         }
         # Check that the found pattern matches the package name and the trusted patterns
         $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) })
