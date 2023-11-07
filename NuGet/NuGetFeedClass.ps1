@@ -30,11 +30,13 @@ class NuGetFeed {
             $this.packagePublishUrl = $capabilities.resources | Where-Object { $_."@type" -eq 'PackagePublish/2.0.0' } | Select-Object -ExpandProperty '@id' | Select-Object -First 1
             $this.packageBaseAddressUrl = $capabilities.resources | Where-Object { $_."@type" -eq 'PackageBaseAddress/3.0.0' } | Select-Object -ExpandProperty '@id' | Select-Object -First 1
             if (!$this.searchQueryServiceUrl -or !$this.packagePublishUrl -or !$this.packageBaseAddressUrl) {
+                $this.Dump("Capabilities of NuGet server $($this.url) are not supported")
                 $capabilities.resources | ForEach-Object { $this.Dump("- $($_.'@type')"); $this.Dump("-> $($_.'@id')") }
             }
-            $this.Dump("$($nuGetServerUrl)::SearchQueryService=$($this.searchQueryServiceUrl)")
-            $this.Dump("$($nuGetServerUrl)::PackagePublish=$($this.packagePublishUrl)")
-            $this.Dump("$($nuGetServerUrl)::PackageBaseAddress=$($this.packageBaseAddressUrl)")
+            $this.Dump("Capabilities of NuGet server $($this.url) are:")
+            $this.Dump("- SearchQueryService=$($this.searchQueryServiceUrl)")
+            $this.Dump("- PackagePublish=$($this.packagePublishUrl)")
+            $this.Dump("- PackageBaseAddress=$($this.packageBaseAddressUrl)")
         }
         catch {
             throw (GetExtendedErrorMessage $_)

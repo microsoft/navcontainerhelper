@@ -110,7 +110,8 @@ function Get-ContainerHelperConfig {
             }
             "TrustedNuGetFeeds" = @(
                 [PSCustomObject]@{ "Url" = "https://api.nuget.org/v3/index.json"; "Token" = ""; "Patterns" = @('Microsoft.*') }
-                [PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/freddydk/apps/_packaging/BCapps3/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('*') }
+                [PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/freddydk/apps/_packaging/MSApps/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('*') }
+                [PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/freddydk/apps/_packaging/MyApps/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('FreddyKristiansen.*') }
             )
         }
 
