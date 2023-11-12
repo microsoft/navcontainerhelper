@@ -2,6 +2,7 @@
 New-AadAppsForBC doesn't work with the newer versions of Microsoft.Graph module (where the type of the accesstoken parameter has changed)
 New-AppSourceSubmission has a new parameter -doNotUpdateVersionNumber to support hotfixes in AppSource for earlier versions
 New-AppSourceSubmission obsoleted parameter -doNotCheckVersionNumber that was previously used for hotfixes, because of a change in AppSource
+Issue 3219 Run-AlValidation cannot validate against Next Major without an insider Sas token
 
 6.0.0
 Add parameter -accept_insiderEULA on New-BcContainer, Get-BcArtifactUrl and Run-AlPipeline to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) instead of using the insider SAS token.
