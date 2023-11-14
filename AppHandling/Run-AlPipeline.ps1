@@ -1224,6 +1224,9 @@ if ($useCompilerFolder) {
 elseif (!$filesOnly) {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
 }
+else {
+    $installedAppIds = @()
+}
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
@@ -1375,8 +1378,11 @@ if ($useCompilerFolder) {
     $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json'))
     $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
-else {
+elseif (!$filesOnly) {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId })
+}
+else {
+    $installedAppIds = @()
 }
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
@@ -2548,8 +2554,6 @@ Measure-Command {
     if ($useCompilerFolder -and $compilerFolder) {
         Remove-BcCompilerFolder -compilerFolder $compilerFolder
     }
-    Write-Host "filesonly $filesOnly"
-    Write-Host "$doNotPublishApps $containerEventLogFile"
     if (!$doNotPublishApps) {
         if (!$filesOnly -and $containerEventLogFile) {
             try {
