@@ -368,25 +368,21 @@ try {
                                 $install = $false
                             }
                         }
-                        
-                        if ($install) {
-        
-                            $languageArgs = @{}
-                            if ($language) {
-                                $languageArgs += @{ "Language" = $language }
-                            }
-                            Write-Host "Installing $appName on tenant $tenant"
-                            Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+
+                        $installArgs = @{}
+                        if ($language) {
+                            $installArgs += @{ "Language" = $language }
                         }
-        
+                        if ($force) {
+                            $installArgs += @{ "Force" = $true }
+                        }
+                        if ($install) {
+                            Write-Host "Installing $appName on tenant $tenant"
+                            Install-NavApp -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @installArgs
+                        }
                         if ($upgrade) {
-        
-                            $languageArgs = @{}
-                            if ($language) {
-                                $languageArgs += @{ "Language" = $language }
-                            }
                             Write-Host "Upgrading $appName on tenant $tenant"
-                            Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @languageArgs
+                            Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @installArgs
                         }
                     }
                 }

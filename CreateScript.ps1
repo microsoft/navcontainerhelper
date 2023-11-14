@@ -333,7 +333,6 @@ $Step = @{
     "Authentication"     = 3
     "ContainerName"      = 4
     "Version"            = 5
-    "SasToken"           = 6
     "Version2"           = 7
     "Country"            = 8
     "TestToolkit"        = 9
@@ -531,9 +530,8 @@ $Step.Version {
         -options ([ordered]@{
             "LatestSandbox" = "Latest Business Central Sandbox"
             "LatestOnPrem" = "Latest Business Central OnPrem"
-            "Public Preview" = "Public Preview of Business Central Sandbox is typically available one month before we ship next major"
-            "Next Major" = "Insider Business Central Sandbox for Next Major release (requires insider SAS token from http://aka.ms/collaborate)"
-            "Next Minor" = "Insider Business Central Sandbox for Next Minor release (requires insider SAS token from http://aka.ms/collaborate)"
+            "Next Major" = "Insider Business Central Sandbox for Next Major release (you automatically accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by using this option)"
+            "Next Minor" = "Insider Business Central Sandbox for Next Minor release (you automatically accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by using this option)"
             "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"
             "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"
             "NAV2018" = "Specific NAV 2018 version"
@@ -549,30 +547,6 @@ $Step.Version {
     }
 }
 
-$Step."SasToken" {
-
-    $sasToken = ""
-    if ($predef -like "Next*") {
-        $sasToken = Enter-Value `
-            -title @'
-   _____          _____   _______    _              
-  / ____|  /\    / ____| |__   __|  | |             
- | (___   /  \  | (___      | | ___ | | _____ _ __  
-  \___ \ / /\ \  \___ \     | |/ _ \| |/ / _ \ '_ \ 
-  ____) / ____ \ ____) |    | | (_) |   <  __/ | | |
- |_____/_/    \_\_____/     |_|\___/|_|\_\___|_| |_|
-
-'@ `
-            -description "Creating container with $predef are released for partners under NDA only.`n`nA SAS (Shared Access Signature) Token is required in order to download insider artifacts.`nA SAS Token can be found on http://aka.ms/collaborate in this document:`nhttps://partner.microsoft.com/en-us/dashboard/collaborate/packages/9387" `
-            -question "SAS Token" `
-            -previousStep `
-            -doNotConvertToLower
-        if ($script:wizardStep -eq $script:thisStep+1) {
-            $script:prevSteps.Push($script:thisStep)
-        }
-    }
-}
-
 $Step.Version2 {
 
     $fullVersionNo = $false
@@ -582,12 +556,6 @@ $Step.Version2 {
     if ($predef -like "latest*") {
         $type = $predef.Substring(6)
         $version = ''
-    }
-    elseif ($predef -like "Public Preview") {
-        $type = "Sandbox"
-        $version = ''
-        $storageAccount = "bcpublicpreview"
-        $select = 'latest'
     }
     elseif ($predef -like "Next*") {
         $type = "Sandbox"
@@ -710,12 +678,12 @@ $Step.Country {
     if ($versionno -eq "") {
         $searchCountry = "us"
         if ($type -eq 'sandbox') { $searchCountry = "at" }
-        $aurl = Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country $searchCountry -sasToken $sasToken -select $select
+        $aurl = Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country $searchCountry -select $select -accept_insiderEula
         $versionno = $aurl.split('/')[4]
     }
     $majorVersion = [int]($versionno.Split('.')[0])
     $countries = @()
-    Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $versionno -select All -sasToken $sasToken | ForEach-Object {
+    Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $versionno -select All -accept_insiderEula | ForEach-Object {
         $countries += $_.SubString($_.LastIndexOf('/')+1).Split('?')[0]
     }
     $description = ""
@@ -1433,8 +1401,8 @@ $step.Final {
             }
         }
         elseif ($predef -like "Next*") {
-            $script += "`$sasToken = '$sasToken'"
-            $script += "`$artifactUrl = Get-BcArtifactUrl -storageAccount '$storageAccount' -type '$type' -country '$country' -select '$select' -sasToken `$sasToken"
+            $script += "`$artifactUrl = Get-BcArtifactUrl -storageAccount '$storageAccount' -type '$type' -country '$country' -select '$select' -accept_insiderEula"
+            $parameters += "-accept_insiderEula"
         }
         else {
             if ($version) {

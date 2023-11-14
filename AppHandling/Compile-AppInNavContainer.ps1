@@ -452,7 +452,7 @@ try {
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | ForEach-Object {
                 $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
-            if ($headers -eq @{} -and !$useDefaultCredentials) {
+            if (($devServerUrl -eq "") -or ($headers -eq @{} -and !$useDefaultCredentials)) {
                 Write-Host -ForegroundColor Yellow "WARNING: Unable to download symbols for $symbolsName"
             }
             else {
@@ -504,6 +504,7 @@ try {
                                 $alcPath = 'C:\build\vsix\extension\bin'
                                 Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
                                 Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                                Add-Type -Path (Join-Path $alcPath System.IO.Packaging.dll)
                                 Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
 
                                 $packageStream = [System.IO.File]::OpenRead($symbolsFile)

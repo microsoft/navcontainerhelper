@@ -11,6 +11,8 @@
   If a folder on the host computer is specified in the sharedFolder parameter, it will be shared with the container as c:\shared
  .Parameter licenseFile
   License file to use for AL Pipeline.
+ .Parameter accept_insiderEula
+  Switch, which you need to specify if you are going to create a container with an insider build of Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=2245051)
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
  .Parameter generateErrorLog
@@ -84,6 +86,7 @@
   This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
  .Parameter artifact
   The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select/sastoken, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
+  If you specify accept_insiderEula, you do not need to specify a sasToken
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS. Default is calling Get-BestGenericImageName.
  .Parameter buildArtifactFolder
@@ -135,7 +138,7 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
-  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter enableCodeCop
   Include this switch to include Code Cop Rules during compilation.
  .Parameter enableAppSourceCop
@@ -150,6 +153,8 @@
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
   Filename of the custom ruleset file
+ .Parameter enableExternalRulesets
+  Include this switch to enable external rulesets when compiling
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
@@ -262,6 +267,7 @@ Param(
     [string] $baseFolder = "",
     [string] $sharedFolder = "",
     [string] $licenseFile,
+    [switch] $accept_insiderEula,
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
     [switch] $enableTaskScheduler,
@@ -338,6 +344,7 @@ Param(
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
     [switch] $generateErrorLog,
+    [switch] $enableExternalRulesets,
     [string[]] $preProcessorSymbols = @(),
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
@@ -572,7 +579,7 @@ else {
     if ($additionalCountries) {
         $minver = $null
         @($country)+$additionalCountries | ForEach-Object {
-            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
+            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
             Write-Host "Found $($url.Split('?')[0])"
             if ($url) {
                 $ver = [Version]$url.Split('/')[4]
@@ -589,7 +596,7 @@ else {
         }
         $version = $minver.ToString()
     }
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
@@ -656,6 +663,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
 Write-Host -NoNewLine -ForegroundColor Yellow "generateErrorLog                "; Write-Host $generateErrorLog
+Write-Host -NoNewLine -ForegroundColor Yellow "enableExternalRulesets          "; Write-Host $enableExternalRulesets
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                     "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                          "; Write-Host $gitLab
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions                   "; Write-Host $gitHubActions
@@ -970,6 +978,7 @@ Measure-Command {
 
             $Parameters += @{
                 "accept_eula" = $true
+                "accept_insiderEula" = $accept_insiderEula
                 "containerName" = $containerName
                 "artifactUrl" = $artifactUrl
                 "useGenericImage" = $useGenericImage
@@ -1080,6 +1089,39 @@ else {
         Write-Host "- None"
     }
 }
+# Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
+if ($previousApps) {
+    Write-Host "Copying previous apps to packages folder"
+    $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+    try {
+        $unknownPreviousAppDependencies = @()
+        $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $tempFolder
+        $sortedPreviousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownPreviousAppDependencies)
+        Write-Host "Previous apps"
+        $sortedPreviousApps | ForEach-Object { Write-Host "- $([System.IO.Path]::GetFileName($_))" }
+        Write-Host "External previous app dependencies"
+        if ($unknownPreviousAppDependencies) {
+            # Add unknown Previous App Dependencies to missingAppDependencies
+            foreach($appDependency in $unknownPreviousAppDependencies) {
+                $appId = $appDependency.Split(':')[0]
+                if ($appId -ne ([guid]::Empty.ToString())) {
+                    Write-Host "- $appDependency"
+                    if ($missingAppDependencies -notcontains $appId) {
+                        $missingAppDependencies += @($appId)
+                        $unknownAppDependencies += @($appDependency)
+                    }
+                }
+            }
+        }
+        else {
+            Write-Host "- None"
+        }
+    }
+    finally {
+        Remove-Item -Path $tempFolder -recurse -force
+    }
+}
+
 if ($gitHubActions) { Write-Host "::endgroup::" }
 
 if ($installApps) {
@@ -1180,11 +1222,14 @@ $Parameters = @{
     "tenant" = $tenant
 }
 if ($useCompilerFolder) {
-    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo | Select-Object -ExpandProperty 'AppId')
+    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
+    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | Select-Object -ExpandProperty 'AppId')
+}
+elseif (!$filesOnly) {
+    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
 }
 else {
-    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
+    $installedAppIds = @()
 }
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
@@ -1333,12 +1378,15 @@ $Parameters = @{
     "tenant" = $tenant
 }
 if ($useCompilerFolder) {
-    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app'))
-    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfo)
+    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
+    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json'))
     $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
-else {
+elseif (!$filesOnly) {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId })
+}
+else {
+    $installedAppIds = @()
 }
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
@@ -1587,6 +1635,11 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
 
+        if ($enableExternalRulesets) {
+            $CopParameters += @{
+                "EnableExternalRulesets" = $true
+            }
+        }
         if ("$rulesetFile" -ne "" -or $useDefaultAppSourceRuleSet) {
             if ($useDefaultAppSourceRuleSet) {
                 Write-Host "Creating ruleset for pipeline"

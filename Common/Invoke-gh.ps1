@@ -14,20 +14,20 @@ function invoke-gh {
         [parameter(mandatory = $false, position = 1, ValueFromRemainingArguments = $true)] $remaining
     )
 
-    $arguments = "$command "
-    $remaining | ForEach-Object {
-        if ("$_".IndexOf(" ") -ge 0 -or "$_".IndexOf('"') -ge 0) {
-            $arguments += """$($_.Replace('"','\"'))"" "
+    Process {
+        $arguments = "$command "
+        foreach($parameter in $remaining) {
+            if ("$parameter".IndexOf(" ") -ge 0 -or "$parameter".IndexOf('"') -ge 0) {
+                if ($parameter.length -gt 15000) {
+                    $parameter = "$($parameter.Substring(0,15000))...`n`n**Truncated due to size limits!**"
+                }
+                $arguments += """$($parameter.Replace('"','\"'))"" "
+            }
+            else {
+                $arguments += "$parameter "
+            }
         }
-        else {
-            $arguments += "$_ "
-        }
-    }
-    try {
         cmdDo -command gh -arguments $arguments -silent:$silent -returnValue:$returnValue -inputStr $inputStr
-    }
-    catch [System.Management.Automation.MethodInvocationException] {
-        throw "It looks like GitHub CLI is not installed. Please install GitHub CLI from https://cli.github.com/"
     }
 }
 
