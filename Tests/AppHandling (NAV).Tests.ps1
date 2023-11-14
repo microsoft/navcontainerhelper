@@ -40,7 +40,7 @@ Describe 'AppHandling' {
         $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -generateErrorLog -UpdateSymbols -credential $credential
         $navAppFile | Should -Exist
 
-        $errorLogFile = $navAppFile -replace ".app$", ".errorLog.json"
+        $errorLogFile = $navAppFile -replace '.app$', '.errorLog.json'
         $errorLogFile | Should -Exist
     }
     It 'Extract-AppFileToFolder (nav app)' {
