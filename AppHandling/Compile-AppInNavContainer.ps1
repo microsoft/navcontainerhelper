@@ -448,7 +448,7 @@ try {
             $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | ForEach-Object {
                 $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
-            if ($headers -eq @{} -and !$useDefaultCredentials) {
+            if (($devServerUrl -eq "") -or ($headers -eq @{} -and !$useDefaultCredentials)) {
                 Write-Host -ForegroundColor Yellow "WARNING: Unable to download symbols for $symbolsName"
             }
             else {

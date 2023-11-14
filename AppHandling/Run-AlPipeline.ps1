@@ -1221,8 +1221,11 @@ if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
     $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | Select-Object -ExpandProperty 'AppId')
 }
-else {
+elseif (!$filesOnly) {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
+}
+else {
+    $installedAppIds = @()
 }
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
@@ -1375,8 +1378,11 @@ if ($useCompilerFolder) {
     $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json'))
     $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
 }
-else {
+elseif (!$filesOnly) {
     $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId })
+}
+else {
+    $installedAppIds = @()
 }
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
