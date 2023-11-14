@@ -1217,7 +1217,7 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-if ($useCompilerFolder) {
+if ($useCompilerFolder -or $filesOnly) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
     $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | Select-Object -ExpandProperty 'AppId')
 }
