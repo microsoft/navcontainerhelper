@@ -2548,6 +2548,8 @@ Measure-Command {
     if ($useCompilerFolder -and $compilerFolder) {
         Remove-BcCompilerFolder -compilerFolder $compilerFolder
     }
+    Write-Host "filesonly $filesOnly"
+    Write-Host "$doNotPublishApps $containerEventLogFile"
     if (!$doNotPublishApps) {
         if (!$filesOnly -and $containerEventLogFile) {
             try {
