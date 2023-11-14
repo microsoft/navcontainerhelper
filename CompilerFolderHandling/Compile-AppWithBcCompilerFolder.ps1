@@ -384,7 +384,7 @@ try {
     }
 
     if ($generateErrorLog) {
-        $errorLogFilePath = $appOutputFile -replace ".app$", ".errorLog.json"
+        $errorLogFilePath = $appOutputFile -replace '.app$', '.errorLog.json'
         $alcParameters += @("/errorLog:""$errorLogFilePath""")
     }
 
