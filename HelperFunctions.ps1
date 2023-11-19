@@ -1170,6 +1170,7 @@ function GetAppInfo {
                     $cacheUpdated = $true
                 }
             }
+            $appInfo | Out-Host
             @{
                 "Id"                    = $appInfo.appId
                 "AppId"                 = $appInfo.appId
