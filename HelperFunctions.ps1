@@ -1171,6 +1171,9 @@ function GetAppInfo {
                 }
             }
             $appInfo | Out-Host
+            Write-Host $appInfo.appId
+            Write-Host $appInfo.name
+            
             @{
                 "Id"                    = $appInfo.appId
                 "AppId"                 = $appInfo.appId
@@ -1183,6 +1186,8 @@ function GetAppInfo {
                 "Platform"              = $appInfo.platform
                 "PropagateDependencies" = $appInfo.propagateDependencies
             }
+            $appInfo.dependencies | ForEach-Object { $_ | out-host }
+            Write-Host "value returned"
         }
         if ($cacheUpdated) {
             $appInfoCache | ConvertTo-Json -Depth 99 | Set-Content -Path $cacheAppInfoPath -Encoding UTF8 -Force
