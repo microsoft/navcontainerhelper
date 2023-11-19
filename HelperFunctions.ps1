@@ -1180,9 +1180,7 @@ function GetAppInfo {
             Write-Host $appInfo.application
             Write-Host $appInfo.platform
             Write-Host $appInfo.propagateDependencies
-
-
-            @{
+            $returnValue = @{
                 "Id"                    = $appInfo.appId
                 "AppId"                 = $appInfo.appId
                 "Publisher"             = $appInfo.publisher
@@ -1194,6 +1192,10 @@ function GetAppInfo {
                 "Platform"              = $appInfo.platform
                 "PropagateDependencies" = $appInfo.propagateDependencies
             }
+            $returnValue | Out-Host
+            
+            $returnValue
+
             $appInfo.dependencies | ForEach-Object { $_ | out-host }
             Write-Host "value returned"
         }
