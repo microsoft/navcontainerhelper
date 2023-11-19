@@ -25,7 +25,18 @@ Describe 'AppHandling' {
     It 'Clean-BcContainerDatabase' {
         #TODO
     }
+    It 'Compile-AppInNavContainer generates error log file' {
+        Copy-Item -Path (Join-Path $PSScriptRoot "nav-app") -Destination $navContainerPath -Recurse -Force
+        $appProjectFolder = Join-Path $navContainerPath "nav-app"
+        $appOutputFolder = Join-Path $appProjectFolder "output"
+        $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
 
+        $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -generateErrorLog -UpdateSymbols -credential $credential
+        $navAppFile | Should -Exist
+
+        $errorLogFile = $navAppFile -replace '.app$', '.errorLog.json'
+        $errorLogFile | Should -Exist
+    }
     It 'Compile-AppInBcContainer' {
         Copy-Item -Path (Join-Path $PSScriptRoot "bc-app") -Destination $bcContainerPath -Recurse -Force
         $appProjectFolder = Join-Path $bcContainerPath "bc-app"
