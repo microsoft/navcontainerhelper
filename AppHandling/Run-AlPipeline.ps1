@@ -1222,7 +1222,7 @@ if ($useCompilerFolder) {
     $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | ForEach-Object { $_.AppId } )
 }
 elseif (!$filesOnly) {
-    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId } )
+    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
 }
 else {
     $installedAppIds = @()
@@ -1556,7 +1556,7 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-$installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId } )
+$installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
