@@ -1219,7 +1219,10 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
-    GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | ForEach-Object { $_ | Out-Host }
+    GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | ForEach-Object { 
+        Write-Host $_.GetType()
+        $_ | Out-Host
+    }
     $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | Select-Object -ExpandProperty 'AppId')
 }
 elseif (!$filesOnly) {
