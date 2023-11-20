@@ -11,11 +11,6 @@ on:
         description: Commaseparated list of patterns to match against test names (default is * for all tests)
         required: false
         default: ''
-  push:
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-    branches: [ master ]
 
 permissions:
   contents: read
