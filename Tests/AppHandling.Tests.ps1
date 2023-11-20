@@ -26,15 +26,15 @@ Describe 'AppHandling' {
         #TODO
     }
     It 'Compile-AppInNavContainer generates error log file' {
-        Copy-Item -Path (Join-Path $PSScriptRoot "nav-app") -Destination $navContainerPath -Recurse -Force
-        $appProjectFolder = Join-Path $navContainerPath "nav-app"
+        Copy-Item -Path (Join-Path $PSScriptRoot "bc-app") -Destination $bcContainerPath -Recurse -Force
+        $appProjectFolder = Join-Path $bcContainerPath "bc-app"
         $appOutputFolder = Join-Path $appProjectFolder "output"
         $appSymbolsFolder = Join-Path $appProjectFolder "symbols"
 
-        $navAppFile = Compile-AppInNavContainer -containerName $navContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -generateErrorLog -UpdateSymbols -credential $credential
-        $navAppFile | Should -Exist
+        $bcAppFile = Compile-AppInBcContainer -containerName $bcContainerName -appProjectFolder $appProjectFolder -appOutputFolder $appOutputFolder -appSymbolsFolder $appSymbolsFolder -UpdateSymbols -credential $credential -generateErrorLog
+        $bcAppFile | Should -Exist
 
-        $errorLogFile = $navAppFile -replace '.app$', '.errorLog.json'
+        $errorLogFile = $bcAppFile -replace '.app$', '.errorLog.json'
         $errorLogFile | Should -Exist
     }
     It 'Compile-AppInBcContainer' {
