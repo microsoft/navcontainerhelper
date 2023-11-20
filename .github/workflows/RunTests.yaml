@@ -52,10 +52,10 @@ jobs:
           $testPatterns = $ENV:TESTPATTERNS
           if (!$testPatterns) { $testPatterns = '*' }
           $testPatternArr = $testPatterns.Split(',')
-          $tests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like $_ } } | ForEach-Object { $_.BaseName })
+          $tests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like "$($_).Tests.ps1" } } | ForEach-Object { $_.BaseName })
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
-          $linuxtests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like $_ } } | ForEach-Object { $_.BaseName })
+          $linuxtests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like "$($_).Tests.ps1" } } | ForEach-Object { $_.BaseName })
           Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
           Write-Host "linuxtests=$linuxtests"
 
