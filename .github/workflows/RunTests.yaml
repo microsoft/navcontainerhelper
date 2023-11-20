@@ -1,0 +1,158 @@
+name: Run Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: ref on which to run the end-2-end tests (default is head_sha on main)
+        required: false
+        default: ''
+      testPatterns:
+        description: Commaseparated list of patterns to match against test names (default is * for all tests)
+        required: false
+        default: ''
+  push:
+    paths-ignore:
+      - '**.md'
+      - '.github/**'
+    branches: [ master ]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  checks: write
+
+concurrency:
+  group: 'runTests-${{ github.ref }}'
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: powershell
+
+jobs:
+  AnalyzeTests:
+    runs-on: [ windows-latest ]
+    outputs:
+      tests: ${{ steps.Analyze.outputs.tests }}
+      linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          lfs: true
+    
+      - name: Analyze
+        id: Analyze
+        env:
+          testPatterns: ${{ github.event.inputs.testPatterns }}
+        run: |
+          $errorActionPreference = "stop"
+          $testPatterns = $ENV:TESTPATTERNS
+          if (!$testPatterns) { $testPatterns = '*' }
+          $testPatternArr = $testPatterns.Split(',')
+          $tests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like $_ } } | ForEach-Object { $_.BaseName })
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
+          Write-Host "tests=$tests"
+          $linuxtests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like $_ } } | ForEach-Object { $_.BaseName })
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
+          Write-Host "linuxtests=$linuxtests"
+
+  PS5:
+    runs-on: [ windows-latest ]
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  PS7:
+    runs-on: [ windows-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  Linux:
+    runs-on: [ ubuntu-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.linuxtests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.inputs.ref }}
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
