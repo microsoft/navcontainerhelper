@@ -52,7 +52,9 @@ jobs:
           $testPatterns = $ENV:TESTPATTERNS
           if (!$testPatterns) { $testPatterns = '*' }
           $testPatternArr = $testPatterns.Split(',')
-          $tests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like "$($_).Tests.ps1" } } | ForEach-Object { $_.BaseName })
+          Write-Host "Running test matching patterns:"
+          $testPatternArr | ForEach-Object { Write-Host "- $_" }
+          $tests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | Where-Object { $name = $_.Basename;  $testPatternArr | Where-Object { Write-Host "$name -like $($_).Tests.ps1"; $name -like "$($_).Tests.ps1" } } | ForEach-Object { $_.BaseName })
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
           $linuxtests = ConvertTo-Json -compress -InputObject @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | Where-Object { $name = $_.Basename; $testPatternArr | Where-Object { $name -like "$($_).Tests.ps1" } } | ForEach-Object { $_.BaseName })
@@ -62,6 +64,7 @@ jobs:
   PS5:
     runs-on: [ windows-latest ]
     needs: [ AnalyzeTests ]
+    if: needs.AnalyzeTests.outputs.tests != '[]'
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
@@ -91,14 +94,15 @@ jobs:
 
   PS7:
     runs-on: [ windows-latest ]
-    defaults:
-      run:
-        shell: pwsh
     needs: [ AnalyzeTests ]
+    if: needs.AnalyzeTests.outputs.tests != '[]'
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
       fail-fast: false
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -125,14 +129,15 @@ jobs:
 
   Linux:
     runs-on: [ ubuntu-latest ]
-    defaults:
-      run:
-        shell: pwsh
     needs: [ AnalyzeTests ]
+    if: needs.AnalyzeTests.outputs.linuxtests != '[]'
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.linuxtests)}}
       fail-fast: false
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - name: Checkout
         uses: actions/checkout@v3
