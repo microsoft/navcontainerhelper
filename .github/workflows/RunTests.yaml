@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       ref:
-        description: ref on which to run the end-2-end tests (default is head_sha on main)
+        description: ref on which to run the end-2-end tests (default is head_sha on the current branch)
         required: false
         default: ''
       testPatterns:
