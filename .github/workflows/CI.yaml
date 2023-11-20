@@ -69,7 +69,7 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -102,7 +102,7 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -135,7 +135,7 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
