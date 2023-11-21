@@ -24,6 +24,7 @@ defaults:
 
 jobs:
   AnalyzeTests:
+    if: github.repository == 'Microsoft/NavContainerHelper'
     runs-on: [ windows-latest ]
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
@@ -38,18 +39,12 @@ jobs:
         id: Analyze
         run: |
           $errorActionPreference = "stop"
-          if ($ENV:GITHUB_REPOSITORY -ne "Microsoft/NavContainerHelper") {
-            Write-Host "::Error::This workflow can only be run from the Microsoft/NavContainerHelper repository"
-            $host.SetShouldExit(1)
-          }
-          else {
-            $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
-            Write-Host "tests=$tests"
-            $linuxtests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
-            Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
-            Write-Host "linuxtests=$linuxtests"
-          }
+          $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
+          Write-Host "tests=$tests"
+          $linuxtests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
+          Write-Host "linuxtests=$linuxtests"
 
   PS5:
     runs-on: [ windows-latest ]
