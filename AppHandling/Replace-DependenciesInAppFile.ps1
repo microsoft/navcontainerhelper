@@ -161,11 +161,13 @@ try {
             }
 
             if ($replaceVersionNumber) {
+                Write-Host "Replacing Version Number with $replaceVersionNumber"
                 $manifest.Package.App.Version = $replaceVersionNumber
                 $manifestChanges = $true
             }
 
             if ($replacePackageId) {
+                Write-Host "Replacing Package ID with new GUID"
                 $packageId = [Guid]::NewGuid()
                 $manifestChanges = $true
             }
@@ -173,7 +175,6 @@ try {
             if ($manifestChanges) {
                 $partStream = $manifestPart.GetStream([System.IO.FileMode]::Create)
                 $manifest.Save($partStream)
-                Write-Host [System.Version]::new($manifest.Package.App.Version)                
                 $partStream.Flush()
                 
                 if ($symbolReferenceChanges) {
