@@ -43,7 +43,7 @@ try {
         $eventLogName
     }
     else {
-        [Diagnostics.Process]::Start($eventLogName) | Out-Null
+        Start-Process -FilePath $eventLogName | Out-Null
     }
 }
 catch {
