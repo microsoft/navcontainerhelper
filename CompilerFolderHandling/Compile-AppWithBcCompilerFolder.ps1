@@ -429,7 +429,7 @@ try {
     Push-Location -Path $alcPath
     try {
         Write-Host "$alcCmd $([string]::Join(' ', $alcParameters))"
-        $result = & $alcCmd $alcParameters | Out-String
+        $result = & $alcCmd $alcParameters
     }
     finally {
         Pop-Location
