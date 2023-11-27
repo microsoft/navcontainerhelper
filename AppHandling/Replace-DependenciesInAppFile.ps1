@@ -13,6 +13,10 @@
   An Array of hashtable, containing id, name and publisher of an app, which should be added to internals Visible to
  .Parameter showMyCode
   With this parameter you can change or check ShowMyCode in the app file. Check will throw an error if ShowMyCode is False.
+ .Parameter replacePackageId
+  Add this switch to replace the package id of the app file with a new GUID
+ .Parameter replaceVersionNumber
+  Add this parameter to replace the version number of the app file with this version number
  .Example
   Replace-DependenciesInAppFile -containerName test -Path c:\temp\myapp.app -replaceDependencies @{ "437dbf0e-84ff-417a-965d-ed2bb9650972" = @{ "id" = "88b7902e-1655-4e7b-812e-ee9f0667b01b"; "name" = "MyBaseApp"; "publisher" = "Freddy Kristiansen"; "minversion" = "1.0.0.0" }}
  .Example
@@ -28,6 +32,7 @@ Function Replace-DependenciesInAppFile {
         [ValidateSet('Ignore','True','False','Check')]
         [string] $ShowMyCode = "Ignore",
         [switch] $replacePackageId,
+        [string] $replaceVersionNumber,
         [HashTable[]] $internalsVisibleTo = $null
     )
 
@@ -39,7 +44,7 @@ try {
         $path = $Destination
     }
     
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($path, $Destination, $replaceDependencies, $ShowMyCode, $replacePackageId, $internalsVisibleTo)
+    Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($path, $Destination, $replaceDependencies, $ShowMyCode, $replacePackageId, $replaceVersionNumber, $internalsVisibleTo)
     
         add-type -path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\system.io.packaging.dll").FullName
     
@@ -155,13 +160,19 @@ try {
                 }
             }
 
+            if ($replaceVersionNumber) {
+                Write-Host "Replacing Version Number with $replaceVersionNumber"
+                $manifest.Package.App.Version = $replaceVersionNumber
+                $manifestChanges = $true
+            }
+
             if ($replacePackageId) {
+                Write-Host "Replacing Package ID with new GUID"
                 $packageId = [Guid]::NewGuid()
                 $manifestChanges = $true
             }
     
             if ($manifestChanges) {
-    
                 $partStream = $manifestPart.GetStream([System.IO.FileMode]::Create)
                 $manifest.Save($partStream)
                 $partStream.Flush()
@@ -208,7 +219,7 @@ try {
                 $fs.Close()
             }
         }
-    } -argumentList (Get-BCContainerPath -containerName $containerName -path $path -throw), (Get-BCContainerPath -containerName $containerName -path $Destination -throw), $replaceDependencies, $ShowMyCode, $replacePackageId, $internalsVisibleTo
+    } -argumentList (Get-BCContainerPath -containerName $containerName -path $path -throw), (Get-BCContainerPath -containerName $containerName -path $Destination -throw), $replaceDependencies, $ShowMyCode, $replacePackageId, $replaceVersionNumber, $internalsVisibleTo
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
