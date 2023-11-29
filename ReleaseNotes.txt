@@ -1,3 +1,5 @@
+6.0.2
+
 6.0.1
 New-AadAppsForBC doesn't work with the newer versions of Microsoft.Graph module (where the type of the accesstoken parameter has changed)
 New-AppSourceSubmission has a new parameter -doNotUpdateVersionNumber to support hotfixes in AppSource for earlier versions
