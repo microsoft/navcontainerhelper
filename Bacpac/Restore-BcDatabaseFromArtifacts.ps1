@@ -39,7 +39,7 @@ function Restore-BcDatabaseFromArtifacts {
         [string] $bakFile,
         [switch] $multitenant,
         [switch] $async,
-        [int] $sqlTimeout = 300
+        [int] $sqlTimeout = -1
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -142,8 +142,19 @@ try {
                 }
             }
 
+            $newNavDBparams = @{
+                "DatabaseInstance" = $databaseInstance
+                "DatabaseServer"   = $databaseServer
+                "DatabaseName"     = $dbName
+                "FilePath"         = $bakFile
+                "DestinationPath"  = $destinationPath
+            }
+            if ($sqlTimeout -ge 0) {
+                $newNavDBparams += @{ "timeout" = $sqlTimeout }
+            }
+
             Write-Host "Restoring database $dbName into $destinationPath"
-            New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath $destinationPath -timeout $sqlTimeout | Out-Null
+            New-NAVDatabase @newNavDBparams | Out-Null
 
             if ($multitenant) {
                 if ($sqlpsModule) {
