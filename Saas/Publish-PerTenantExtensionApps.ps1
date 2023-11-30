@@ -50,7 +50,6 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 	
     function GetAuthHeaders {
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         return @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
     }
 
@@ -75,6 +74,7 @@ try {
             throw "Authentication failed"
         }
     }
+    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
 
     $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     try {
@@ -182,7 +182,7 @@ try {
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
-                    $sleepSeconds = 5
+                    $sleepSeconds = 60*60
                     while (!$completed)
                     {
                         Start-Sleep -Seconds $sleepSeconds
