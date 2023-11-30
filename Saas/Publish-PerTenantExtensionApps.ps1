@@ -182,7 +182,7 @@ try {
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
-                    $sleepSeconds = $bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds + 60
+                    $sleepSeconds = $bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds + 900
                     while (!$completed)
                     {
                         Start-Sleep -Seconds $sleepSeconds
