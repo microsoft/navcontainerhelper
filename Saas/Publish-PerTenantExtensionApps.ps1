@@ -49,6 +49,11 @@ function Publish-PerTenantExtensionApps {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
+    function GetAuthHeaders {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        return @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
+    }
+
     $newLine = @{}
     if (!$useNewLine) {
         $newLine = @{ "NoNewLine" = $true }
@@ -70,18 +75,14 @@ try {
             throw "Authentication failed"
         }
     }
-    else {
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    }
 
     $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFiles -folder $appFolder
         $automationApiUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment/api/microsoft/automation/v2.0"
         
-        $authHeaders = @{ "Authorization" = "Bearer $($bcauthcontext.AccessToken)" }
         Write-Host "$automationApiUrl/companies"
-        $companies = Invoke-RestMethod -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
+        $companies = Invoke-RestMethod -Headers GetAuthHeaders -Method Get -Uri "$automationApiUrl/companies" -UseBasicParsing
         $company = $companies.value | Where-Object { ($companyName -eq "") -or ($_.name -eq $companyName) } | Select-Object -First 1
         if (!($company)) {
             throw "No company $companyName"
@@ -90,7 +91,7 @@ try {
         Write-Host "Company '$companyName' has id $companyId"
         
         Write-Host "$automationApiUrl/companies($companyId)/extensions"
-        $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
+        $getExtensions = Invoke-WebRequest -Headers GetAuthHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
         $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
         
         if(!$hideInstalledExtensionsOutput) {
@@ -147,20 +148,20 @@ try {
                     Write-Host @newLine "publishing and installing"
                 }
                 if (!$existingApp) {
-                    $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers $authHeaders).value
+                    $extensionUpload = (Invoke-RestMethod -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionUpload" -Headers GetAuthHeaders).value
                     Write-Host @newLine "."
                     if ($extensionUpload -and $extensionUpload.systemId) {
                         $extensionUpload = Invoke-RestMethod `
                             -Method Patch `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))" `
-                            -Headers ($authHeaders + $ifMatchHeader + $jsonHeader) `
+                            -Headers (GetAuthHeaders + $ifMatchHeader + $jsonHeader) `
                             -Body ($body | ConvertTo-Json -Compress)
                     }
                     else {
                         $ExtensionUpload = Invoke-RestMethod `
                             -Method Post `
                             -Uri "$automationApiUrl/companies($companyId)/extensionUpload" `
-                            -Headers ($authHeaders + $jsonHeader) `
+                            -Headers (GetAuthHeaders + $jsonHeader) `
                             -Body ($body | ConvertTo-Json -Compress)
                     }
                     Write-Host @newLine "."
@@ -171,13 +172,13 @@ try {
                     Invoke-RestMethod `
                         -Method Patch `
                         -Uri $extensionUpload.'extensionContent@odata.mediaEditLink' `
-                        -Headers ($authHeaders + $ifMatchHeader + $streamHeader) `
+                        -Headers (GetAuthHeaders + $ifMatchHeader + $streamHeader) `
                         -Body $fileBody | Out-Null
                     Write-Host @newLine "."    
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
-                        -Headers ($authHeaders + $ifMatchHeader) | Out-Null
+                        -Headers (GetAuthHeaders + $ifMatchHeader) | Out-Null
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
@@ -186,7 +187,7 @@ try {
                     {
                         Start-Sleep -Seconds $sleepSeconds
                         try {
-                            $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
+                            $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers GetAuthHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
                             $extensionDeploymentStatuses = (ConvertFrom-Json $extensionDeploymentStatusResponse.Content).value
 
                             $completed = $true
@@ -231,7 +232,7 @@ try {
             throw
         }
         finally {
-            $getExtensions = Invoke-WebRequest -Headers $authHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
+            $getExtensions = Invoke-WebRequest -Headers GetAuthHeaders -Method Get -Uri "$automationApiUrl/companies($companyId)/extensions" -UseBasicParsing
             $extensions = (ConvertFrom-Json $getExtensions.Content).value | Sort-Object -Property DisplayName
             
             if (!$hideInstalledExtensionsOutput) {
