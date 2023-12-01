@@ -1147,7 +1147,7 @@ function GetAppInfo {
             else {
                 if ($alToolExists) {
                     Write-Host "Using ALTool"
-                    $manifest = CmdDo -Command $alToolExe -argumentList @('GetPackageManifest', "$path") | ConvertFrom-Json
+                    $manifest = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', "$path") -returnValue | ConvertFrom-Json
                     $appInfo = @{
                         "appId"                 = $manifest.id
                         "publisher"             = $manifest.publisher
