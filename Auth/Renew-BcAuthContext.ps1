@@ -28,7 +28,6 @@ try {
 
     Test-BcAuthContext -bcAuthContext $bcAuthContext
 
-    Write-Host "BCAUTHCONTEXT expires in $($bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds) seconds"
     if ($bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds -ge $minValidityPeriodInSeconds) {
         $bcAuthContext
     }

@@ -50,6 +50,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 	
     function GetAuthHeaders {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         return @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
     }
 
@@ -74,7 +75,6 @@ try {
             throw "Authentication failed"
         }
     }
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
 
     $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     try {
@@ -182,7 +182,7 @@ try {
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
-                    $sleepSeconds = $bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds + 900
+                    $sleepSeconds = 30
                     while (!$completed)
                     {
                         Start-Sleep -Seconds $sleepSeconds
@@ -213,7 +213,6 @@ try {
                                 throw "Unable to publish app. Please open the Extension Deployment Status Details page in Business Central to see the detailed error message."
                             }
                             $sleepSeconds += $sleepSeconds
-                            $sleepseconds = 1
                             $completed = $false
                         }
                     }
