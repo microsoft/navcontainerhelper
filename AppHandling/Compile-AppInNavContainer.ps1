@@ -505,7 +505,6 @@ try {
                                 $alToolExe = Join-Path $alcPath 'win32\altool.exe'
                                 $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
                                 if ($alToolExists) {
-                                    Write-Host "Using ALTool"
                                     $manifest = & "$alToolExe" GetPackageManifest "$symbolsFile" | ConvertFrom-Json
                                     if ($manifest.PSObject.Properties.Name -eq 'application' -and $manifest.application) {
                                         @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
@@ -517,7 +516,6 @@ try {
                                     }
                                 }
                                 else {
-                                    Write-Host "Using CodeAnalysis"
                                     Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
                                     Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
                                     Add-Type -Path (Join-Path $alcPath System.IO.Packaging.dll)
