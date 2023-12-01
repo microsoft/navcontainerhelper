@@ -1146,8 +1146,7 @@ function GetAppInfo {
             }
             else {
                 if ($alToolExists) {
-                    Write-Host "Using ALTool"
-                    $manifest = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', "$path") -returnValue | ConvertFrom-Json
+                    $manifest = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$path""") -returnValue | ConvertFrom-Json
                     $appInfo = @{
                         "appId"                 = $manifest.id
                         "publisher"             = $manifest.publisher
@@ -1160,7 +1159,6 @@ function GetAppInfo {
                     }
                 }
                 else {
-                    Write-Host "Using CodeAnalysis DLL"
                     if (!$assembliesAdded) {
                         Add-Type -AssemblyName System.IO.Compression.FileSystem
                         Add-Type -AssemblyName System.Text.Encoding
