@@ -124,10 +124,8 @@ try {
         throw "CompilerFolder doesn't exist"
     }
 
-    $vsixPath = Join-Path $compilerFolder 'compiler'
     $dllsPath = Join-Path $compilerFolder 'dlls'
     $symbolsPath = Join-Path $compilerFolder 'symbols'
-    $binPath = Join-Path $vsixPath 'extension/bin'
 
     $appJsonFile = Join-Path $appProjectFolder 'app.json'
     $appJsonObject = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
