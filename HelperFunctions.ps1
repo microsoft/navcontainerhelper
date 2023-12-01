@@ -1127,7 +1127,7 @@ function GetAppInfo {
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
     }
-    $alToolExists = Test-Path -Path $alToolExe -ItemType Leaf
+    $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
     $alcDllPath = $alcPath
     if (!$isLinux -and !$isPsCore) {
         $alcDllPath = $binPath

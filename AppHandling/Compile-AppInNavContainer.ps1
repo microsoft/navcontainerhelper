@@ -503,7 +503,7 @@ try {
                                 # Import types needed to invoke the compiler
                                 $alcPath = 'C:\build\vsix\extension\bin'
                                 $alToolExe = Join-Path $alcPath 'win32\altool.exe'
-                                $alToolExists = Test-Path -Path $alToolExe -ItemType Leaf
+                                $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
                                 if ($alToolExists) {
                                     Write-Host "Using ALTool"
                                     $manifest = CmdDo -Command $alToolExe -argumentList @('GetPackageManifest', "$symbolsFile") | ConvertFrom-Json
