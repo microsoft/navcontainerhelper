@@ -213,6 +213,7 @@ try {
                                 throw "Unable to publish app. Please open the Extension Deployment Status Details page in Business Central to see the detailed error message."
                             }
                             $sleepSeconds += $sleepSeconds
+                            $sleepseconds = 1
                             $completed = $false
                         }
                     }
