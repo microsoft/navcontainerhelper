@@ -206,8 +206,12 @@ try {
             {
                 $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
                 if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
-                    # Remove BOM
+                    # Remove UTF8 BOM
                     $response = $response.Substring(3)
+                }
+                if (([int]$Response[0]) -eq 65279) {
+                    # Remove Unicode BOM (PowerShell 7.4)
+                    $response = $response.Substring(1)
                 }
                 $enumerationResults = ([xml]$Response).EnumerationResults
 
