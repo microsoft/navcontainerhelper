@@ -2,6 +2,7 @@
 When using Publish-PerTenantExtensionApps with a set of apps, which takes a very long time to publish, the AccessToken might expire and lead to failure. AccessToken is now refreshed when needed.
 Issue #3254 vsix no longer includes dotnet framework 4.8 compatible dlls for version 24
 Avoid using CDN when downloading from bcinsider as this frequently changes and subsequently fails
+Issue #3259 get-bcartifactUrl PS7.4 Error querying artifacts
 
 6.0.1
 New-AadAppsForBC doesn't work with the newer versions of Microsoft.Graph module (where the type of the accesstoken parameter has changed)
