@@ -502,28 +502,43 @@ try {
                             try {
                                 # Import types needed to invoke the compiler
                                 $alcPath = 'C:\build\vsix\extension\bin'
-                                Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
-                                Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
-                                Add-Type -Path (Join-Path $alcPath System.IO.Packaging.dll)
-                                Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-
-                                $packageStream = [System.IO.File]::OpenRead($symbolsFile)
-                                $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
-                                $manifest = $package.ReadNavAppManifest()
-
-                                if ($manifest.application) {
-                                    @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
+                                $alToolExe = Join-Path $alcPath 'win32\altool.exe'
+                                $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
+                                if ($alToolExists) {
+                                    $manifest = & "$alToolExe" GetPackageManifest "$symbolsFile" | ConvertFrom-Json
+                                    if ($manifest.PSObject.Properties.Name -eq 'application' -and $manifest.application) {
+                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
+                                    }
+                                    if ($manifest.PSObject.Properties.Name -eq 'dependencies') {
+                                        foreach ($dependency in $manifest.dependencies) {
+                                            @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $dependency.id; "Version" = $dependency.Version }
+                                        }
+                                    }
                                 }
+                                else {
+                                    Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
+                                    Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                                    Add-Type -Path (Join-Path $alcPath System.IO.Packaging.dll)
+                                    Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
 
-                                foreach ($dependency in $manifest.dependencies) {
-                                    $appId = ''
-                                    if ($dependency.psobject.Properties.name -eq 'appid') {
-                                        $appId = $dependency.appid
+                                    $packageStream = [System.IO.File]::OpenRead($symbolsFile)
+                                    $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                                    $manifest = $package.ReadNavAppManifest()
+
+                                    if ($manifest.application) {
+                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
                                     }
-                                    elseif ($dependency.psobject.Properties.name -eq 'id') {
-                                        $appId = $dependency.id
+
+                                    foreach ($dependency in $manifest.dependencies) {
+                                        $appId = ''
+                                        if ($dependency.psobject.Properties.name -eq 'appid') {
+                                            $appId = $dependency.appid
+                                        }
+                                        elseif ($dependency.psobject.Properties.name -eq 'id') {
+                                            $appId = $dependency.id
+                                        }
+                                        @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                     }
-                                    @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
                                 }
                             }
                             catch [System.Reflection.ReflectionTypeLoadException] {

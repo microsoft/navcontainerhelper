@@ -20,6 +20,8 @@
   Include this switch if you want to split the database .bak file into an application database and a tenant template
  .Parameter async
   Include this parameter if you want to restore the database asynchronous. A file called <databasePrefix>databasescreated.txt will be created in the containerhelper folder when done
+ .Parameter sqlTimeout
+  SQL Timeout for database restore operations
 #>
 function Restore-BcDatabaseFromArtifacts {
     Param(
@@ -36,7 +38,8 @@ function Restore-BcDatabaseFromArtifacts {
         [Parameter(Mandatory=$false)]
         [string] $bakFile,
         [switch] $multitenant,
-        [switch] $async
+        [switch] $async,
+        [int] $sqlTimeout = -1
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -54,7 +57,7 @@ try {
     $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\Import-BcContainerHelper.ps1")).FullName
     Write-Host $containerHelperPath
 
-    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile )
+    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout )
         $ErrorActionPreference = "Stop"
         try {
             . "$containerHelperPath"
@@ -139,8 +142,19 @@ try {
                 }
             }
 
+            $newNavDBparams = @{
+                "DatabaseInstance" = $databaseInstance
+                "DatabaseServer"   = $databaseServer
+                "DatabaseName"     = $dbName
+                "FilePath"         = $bakFile
+                "DestinationPath"  = $destinationPath
+            }
+            if ($sqlTimeout -ge 0) {
+                $newNavDBparams += @{ "timeout" = $sqlTimeout }
+            }
+
             Write-Host "Restoring database $dbName into $destinationPath"
-            New-NAVDatabase -DatabaseServer $databaseServer -DatabaseInstance $databaseInstance -DatabaseName $dbName -FilePath $bakFile -DestinationPath $destinationPath | Out-Null
+            New-NAVDatabase @newNavDBparams | Out-Null
 
             if ($multitenant) {
                 if ($sqlpsModule) {
@@ -200,7 +214,7 @@ try {
             throw
         }
     
-    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile
+    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout
 
     if (!$async) {
         While ($job.State -eq "Running") {
