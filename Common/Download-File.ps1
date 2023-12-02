@@ -78,7 +78,8 @@ try {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts) {
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider.azureedge.net/*') {
+            # Do not use CDN when configured or bcinsider
             $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl
         }
         try {
