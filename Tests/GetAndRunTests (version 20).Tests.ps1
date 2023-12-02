@@ -1,7 +1,6 @@
 ﻿Param(
     [string] $licenseFile,
-    [string] $buildlicenseFile,
-    [string] $insiderSasToken
+    [string] $buildlicenseFile
 )
 
 BeforeAll {

@@ -1,7 +1,6 @@
 ﻿Param(
     [string] $licenseFile = ($nchLicensefileSecret.secretValue | Get-PlainText),
     [string] $buildlicenseFile = ($LicensefileSecret.secretValue | Get-PlainText),
-    [string] $insiderSasToken = ($InsiderSasTokenSecret.SecretValue | Get-PlainText),
     [string] $testScript = "AppHandling.Tests.ps1"
 )
 
@@ -14,7 +13,7 @@ try {
     Remove-Module BcContainerHelper -ErrorAction Ignore
     Import-Module $modulePath -DisableNameChecking
 
-    . (Join-Path $PSScriptRoot $testScript) -licenseFile $licenseFile -buildlicenseFile $buildlicenseFile -insiderSasToken $insiderSasToken
+    . (Join-Path $PSScriptRoot $testScript) -licenseFile $licenseFile -buildlicenseFile $buildlicenseFile
 }
 catch {
     Write-Host "::Error::$($_.Exception.Message)"
