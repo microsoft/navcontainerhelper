@@ -35,7 +35,7 @@ Function Get-BcNuGetPackage {
         [string] $version = '0.0.0.0',
         [switch] $silent,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('First','Latest','Exact','Any')]
+        [ValidateSet('Earliest','Latest','Exact','Any')]
         [string] $select = 'Latest'
     )
 
@@ -66,7 +66,7 @@ Function Get-BcNuGetPackage {
                     }
                     elseif ($bestmatch) {
                         # We already have a match, check if this is a better match
-                        if (($select -eq 'First' -and [System.Version]$packageVersion -lt $bestmatch.PackageVersion) -or ($select -eq 'Latest' -and [System.Version]$packageVersion -gt $bestmatch.PackageVersion)) {
+                        if (($select -eq 'Earliest' -and [System.Version]$packageVersion -lt $bestmatch.PackageVersion) -or ($select -eq 'Latest' -and [System.Version]$packageVersion -gt $bestmatch.PackageVersion)) {
                             $bestmatch = [PSCustomObject]@{
                                 "Feed" = $nuGetFeed
                                 "PackageId" = $packageId
