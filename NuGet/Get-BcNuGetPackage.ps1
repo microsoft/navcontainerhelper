@@ -33,9 +33,14 @@ Function Get-BcNuGetPackage {
         [string] $packageName,
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
-        [switch] $silent
+        [switch] $silent,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet('First','Latest','Exact','Any')]
+        [string] $select = 'Latest'
     )
 
+    $bestmatch = $null
+    # Search all trusted feeds for the package
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if (!($feed.Patterns | Where-Object { $packageName -like $_ })) {
             Write-Host "Not searching $($feed.Url), package name '$packageName' does not match trusted patterns: $($feed.Patterns -join ', ')"
@@ -50,24 +55,62 @@ Function Get-BcNuGetPackage {
                 Write-Host "Initiation of NuGetFeed failed. Error was $($_.Exception.Message)"
                 continue
             }
-            $packageId = $nuGetFeed.Search($packageName)
-            if ($packageId) {
-                Write-Host "PackageId:"
-                $packageId | ForEach-Object { Write-Host "  $_" }
-                if ($packageId.count -gt 1) {
-                    throw "Ambiguous package name provided ($packageName)"
-                }
-                else {
-                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId[0], $version)
+            $packageIds = $nuGetFeed.Search($packageName)
+            if ($packageIds) {
+                foreach($packageId in $packageIds) {
+                    Write-Host "PackageId: $packageId"
+                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version)
                     if (!$packageVersion) {
-                        throw "No package found matching version '$version' for package id $($packageId[0])"
+                        Write-Host "No package found matching version '$version' for package id $($packageId)"
+                        continue
                     }
-                    return $nuGetFeed.DownloadPackage($packageId[0], $packageVersion)
+                    elseif ($bestmatch) {
+                        # We already have a match, check if this is a better match
+                        if (($select -eq 'First' -and [System.Version]$packageVersion -lt $bestmatch.PackageVersion) -or ($select -eq 'Latest' -and [System.Version]$packageVersion -gt $bestmatch.PackageVersion)) {
+                            $bestmatch = [PSCustomObject]@{
+                                "Feed" = $nuGetFeed
+                                "PackageId" = $packageId
+                                "PackageVersion" = [System.Version]$packageVersion
+                            }
+                        }
+                    }
+                    elseif ($select -eq 'Exact') {
+                        # We only have a match if the version is exact
+                        if ($packageVersion -eq $version) {
+                            $bestmatch = [PSCustomObject]@{
+                                "Feed" = $nuGetFeed
+                                "PackageId" = $packageId
+                                "PackageVersion" = [System.Version]$packageVersion
+                            }
+                            break
+                        }
+                    }
+                    else {
+                        $bestmatch = [PSCustomObject]@{
+                            "Feed" = $nuGetFeed
+                            "PackageId" = $packageId
+                            "PackageVersion" = [System.Version]$packageVersion
+                        }
+                        # If we are looking for any match, we can stop here
+                        if ($select -eq 'Any') {
+                            break
+                        }
+                    }
                 }
             }
         }
+        if ($bestmatch -and ($select -eq 'Any' -or $select -eq 'Exact')) {
+            # If we have an exact match or any match, we can stop here
+            break
+        }
     }
-    Write-Host "No package found matching package name $($packageName)"
-    return ''
+    if ($bestmatch) {
+        Write-Host "Best match for package name $($packageName) Version $($version): $($bestmatch.PackageId) Version $($bestmatch.PackageVersion)"
+        return $bestmatch.Feed.DownloadPackage($bestmatch.PackageId, $bestmatch.PackageVersion)
+    }
+    else {
+        Write-Host "No package found matching package name $($packageName)"
+        return ''
+    }
 }
 Export-ModuleMember -Function Get-BcNuGetPackage

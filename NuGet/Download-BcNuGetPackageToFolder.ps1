@@ -86,7 +86,7 @@ Function Download-BcNuGetPackageToFolder {
                     $downloadIt = ($downloadDependencies -eq 'all')
                 }
             }
-            elseif ($dependencyId -match '^(.*[^\.]\.)?Application(\..*[^\.])?$') {
+            elseif ($dependencyId -match '^([^\.]+\.)?Application(\.[^\.]+)?$') {
                 # Dependency is to the application
                 $dependencyPublisher = $matches[1].TrimEnd('.')
                 if ($matches.Count -gt 2) {
