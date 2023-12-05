@@ -42,10 +42,6 @@ Function Get-BcNuGetPackage {
     $bestmatch = $null
     # Search all trusted feeds for the package
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
-#        if (!($feed.Patterns | Where-Object { $packageName -like $_ })) {
-#            Write-Host "Not searching $($feed.Url), package name '$packageName' does not match trusted patterns: $($feed.Patterns -join ', ')"
-#            continue
-#        }
         if ($feed -and $feed.Url) {
             try {
                 Write-Host "Init NuGetFeed $($feed.Url)"
