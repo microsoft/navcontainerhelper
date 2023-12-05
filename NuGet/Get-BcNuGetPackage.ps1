@@ -42,10 +42,10 @@ Function Get-BcNuGetPackage {
     $bestmatch = $null
     # Search all trusted feeds for the package
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
-        if (!($feed.Patterns | Where-Object { $packageName -like $_ })) {
-            Write-Host "Not searching $($feed.Url), package name '$packageName' does not match trusted patterns: $($feed.Patterns -join ', ')"
-            continue
-        }
+#        if (!($feed.Patterns | Where-Object { $packageName -like $_ })) {
+#            Write-Host "Not searching $($feed.Url), package name '$packageName' does not match trusted patterns: $($feed.Patterns -join ', ')"
+#            continue
+#        }
         if ($feed -and $feed.Url) {
             try {
                 Write-Host "Init NuGetFeed $($feed.Url)"
@@ -59,7 +59,7 @@ Function Get-BcNuGetPackage {
             if ($packageIds) {
                 foreach($packageId in $packageIds) {
                     Write-Host "PackageId: $packageId"
-                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version)
+                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $select)
                     if (!$packageVersion) {
                         Write-Host "No package found matching version '$version' for package id $($packageId)"
                         continue
@@ -109,7 +109,7 @@ Function Get-BcNuGetPackage {
         return $bestmatch.Feed.DownloadPackage($bestmatch.PackageId, $bestmatch.PackageVersion)
     }
     else {
-        Write-Host "No package found matching package name $($packageName)"
+        Write-Host "No package found matching package name $($packageName) Version $($version)"
         return ''
     }
 }

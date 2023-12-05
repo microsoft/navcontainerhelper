@@ -90,7 +90,7 @@ class NuGetFeed {
         return $matching | ForEach-Object { $this.Dump("- $($_.id)"); $_.id }
     }
 
-    [string[]] GetVersions([string] $packageId) {
+    [string[]] GetVersions([string] $packageId, [bool] $descending) {
         if (!$this.IsTrusted($packageId)) {
             throw "Package $packageId is not trusted on $($this.url)"
         }
@@ -105,8 +105,9 @@ class NuGetFeed {
             throw (GetExtendedErrorMessage $_)
         }
         $this.Dump("$($versions.versions.count) versions found")
-        $versionsArr = @($versions.versions | ForEach-Object { [System.Version]$_ } | Sort-Object -Descending | ForEach-Object { "$_" })
-        $this.Dump("Latest version is $($versionsArr[0])")
+        $versionsArr = @($versions.versions | ForEach-Object { [System.Version]$_ } | Sort-Object -Descending:$descending | ForEach-Object { "$_" })
+        $this.Dump("First version is $($versionsArr[0])")
+        $this.Dump("Last version is $($versionsArr[$versionsArr.Count-1])")
         return $versionsArr
     }
 
@@ -169,10 +170,10 @@ class NuGetFeed {
         return $false
     }
 
-    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange) {
-        foreach($version in $this.GetVersions($packageId)) {
-            if ([NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange)) {
-                $this.Dump("Latest version matching $nuGetVersionRange is $version")
+    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string] $select) {
+        foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'))) {
+            if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
+                $this.Dump("$select version matching $nuGetVersionRange is $version")
                 return $version
             }
         }
@@ -180,7 +181,7 @@ class NuGetFeed {
     }
 
     [string] DownloadPackage([string] $packageId) {
-        $version = $this.GetVersions($packageId)[0]
+        $version = $this.GetVersions($packageId,$true)[0]
         return $this.DownloadPackage($packageId, $version)
     }
 
