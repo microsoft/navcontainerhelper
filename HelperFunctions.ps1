@@ -1121,13 +1121,16 @@ function GetAppInfo {
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
+        $alToolExe = Join-Path $alcPath 'altool'
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
+        $alToolExe = Join-Path $alcPath 'altool.exe'
     }
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
     }
+    $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
     $alcDllPath = $alcPath
     if (!$isLinux -and !$isPsCore) {
         $alcDllPath = $binPath
@@ -1145,26 +1148,42 @@ function GetAppInfo {
                 Write-Host " (cached)"
             }
             else {
-                if (!$assembliesAdded) {
-                    Add-Type -AssemblyName System.IO.Compression.FileSystem
-                    Add-Type -AssemblyName System.Text.Encoding
-                    LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
-                    LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
-                    LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-                    $assembliesAdded = $true
+                if ($alToolExists) {
+                    $manifest = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$path""") -returnValue -silent | ConvertFrom-Json
+                    $appInfo = @{
+                        "appId"                 = $manifest.id
+                        "publisher"             = $manifest.publisher
+                        "name"                  = $manifest.name
+                        "version"               = $manifest.version
+                        "application"           = "$(if($manifest.PSObject.Properties.Name -eq 'application'){$manifest.application})"
+                        "platform"              = "$(if($manifest.PSObject.Properties.Name -eq 'platform'){$manifest.Platform})"
+                        "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
+                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
+                    }
                 }
-                $packageStream = [System.IO.File]::OpenRead($path)
-                $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
-                $manifest = $package.ReadNavAppManifest()
-                $appInfo = @{
-                    "appId"                 = $manifest.AppId
-                    "publisher"             = $manifest.AppPublisher
-                    "name"                  = $manifest.AppName
-                    "version"               = "$($manifest.AppVersion)"
-                    "dependencies"          = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
-                    "application"           = "$($manifest.Application)"
-                    "platform"              = "$($manifest.Platform)"
-                    "propagateDependencies" = $manifest.PropagateDependencies
+                else {
+                    if (!$assembliesAdded) {
+                        Add-Type -AssemblyName System.IO.Compression.FileSystem
+                        Add-Type -AssemblyName System.Text.Encoding
+                        LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
+                        LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
+    		            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
+                        LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+                        $assembliesAdded = $true
+                    }
+                    $packageStream = [System.IO.File]::OpenRead($path)
+                    $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                    $manifest = $package.ReadNavAppManifest()
+                    $appInfo = @{
+                        "appId"                 = $manifest.AppId
+                        "publisher"             = $manifest.AppPublisher
+                        "name"                  = $manifest.AppName
+                        "version"               = "$($manifest.AppVersion)"
+                        "dependencies"          = @($manifest.Dependencies | ForEach-Object { @{ "id" = $_.AppId; "name" = $_.Name; "publisher" = $_.Publisher; "version" = "$($_.Version)" } })
+                        "application"           = "$($manifest.Application)"
+                        "platform"              = "$($manifest.Platform)"
+                        "propagateDependencies" = $manifest.PropagateDependencies
+                    }
                 }
                 Write-Host " (succeeded)"
                 if ($cacheAppInfoPath) {

@@ -1,14 +1,28 @@
-6.0.1
+6.0.2
+Compile-AppInBcContainer: When checking whether symbol download is needed, the Application dependency wasn't checked for version number
+When using Publish-PerTenantExtensionApps with a set of apps, which takes a very long time to publish, the AccessToken might expire and lead to failure. AccessToken is now refreshed when needed.
+Issue #3254 vsix no longer includes dotnet framework 4.8 compatible dlls for version 24
+Avoid using CDN when downloading from bcinsider as this frequently changes and subsequently fails
+Issue #3259 get-bcartifactUrl PS7.4 Error querying artifacts
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
+NuGet changes
+
+6.0.1
+New-AadAppsForBC doesn't work with the newer versions of Microsoft.Graph module (where the type of the accesstoken parameter has changed)
+New-AppSourceSubmission has a new parameter -doNotUpdateVersionNumber to support hotfixes in AppSource for earlier versions
+New-AppSourceSubmission obsoleted parameter -doNotCheckVersionNumber that was previously used for hotfixes, because of a change in AppSource
+Issue 3219 Run-AlValidation cannot validate against Next Major without an insider Sas token
+Do not attempt to call Get-BcContainerAppInfo if we are using filesonly containers in Run-AlPipeline
+Do not attempt to download unknown symbols from filesonly containers
+Add parameter generateErrorLog to Compile-AppInNavContainer
+Issue 3229 Add parameter replaceVersionNumber to Replace-DependenciesInAppFile
 
 6.0.0
 Add parameter -accept_insiderEULA on New-BcContainer, Get-BcArtifactUrl and Run-AlPipeline to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) instead of using the insider SAS token.
 The insider SAS token is still supported until April 2024 where the last insider SAS token will expire...
 Remove the need for Insider SAS token in Create Container wizard and Create AL-Go repo wizard
 Add parameter EnableExternalRulesets to Run-AlPipeline (which will be added to the compiler when compiling)
-Issue https://github.com/microsoft/AL-Go/issues/709 Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
-Do not hide real exception in invoke-git and invoke-gh
-Truncate body part to 15000 characters in invoke-gh
+Add paramater generateErrorLog to Compile-AppInNavContainer
 
 5.0.7
 Run-AlValidation also needs to install NAVSIP dependencies (issue #3190)
@@ -40,7 +54,7 @@ Issue #3089 Regression: Cannot find path 'C:\Windows\SysWow64\NavSip.dll' becaus
 Issue #3087 Enter-BCContainer on PowerShell 7 doesn't seem to work
 Add parameters `PreCompileApp` and `PostCompileApp` to `Run-AlPipeline` to allow running custom scripts before and after compiling an app.
 Add parameter `EnableExternalRulesets` to compile functions to support new alc feature.
-Issue #3099 Compile-AppWithBcCompilerFolder: The variable '$platformversion' cannot be retrieved because it has not been set. 
+Issue #3099 Compile-AppWithBcCompilerFolder: The variable '$platformversion' cannot be retrieved because it has not been set.
 Flush-ContainerHelperCache will now also run docker image prune with a filter until=xxh (based on keepdays)
 Add 4 new parameters to Compile-AppInBcContainer and Compile-AppWithBcCompilerFolder: SourceRepositoryUrl, SourceCommit, BuildBy and BuildUrl. The value of these parameters will be stamped into the app manifest.
 Performance Tests doesn't run due to wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in the Applications\testframework\TestRunner\Internal folder
@@ -167,7 +181,7 @@ Experimantal support for running BcContainerHelper on Linux (only non-container 
 Adding additional properties to telemetry. Set MicrosoftTelemetryConnectionString to an empty string in settings to opt-out.
 
 4.0.8
-Add parameter 'features' to Run-AlPipeline which allows for setting the compiler features 
+Add parameter 'features' to Run-AlPipeline which allows for setting the compiler features
 Add SchemaSyncMode to Publish-PerTenantExtensionApps
 Use submodules inside BcContainerHelper
 New PROOF OF CONCEPT PREVIEW function New-ALGoRepo to create a new AL-Go repository based on PTE or AppSource App templates
@@ -240,7 +254,7 @@ Issue #2650 issue warning if TaskScheduler is not running when using UploadImpor
 3.0.12
 Error in retry method in Get-BcArtifactUrl (3.0.11)
 Fixed array parsing in Get-BcContainerAppInfo (only if -useNewFormat switch is included)
-Added ContainerHelper config UseNewFormatForGetBcContainerAppInfo with which you can force Get-BcContainerAppInfo to return values in new format 
+Added ContainerHelper config UseNewFormatForGetBcContainerAppInfo with which you can force Get-BcContainerAppInfo to return values in new format
 Issue #2573 improve error message when restoring database on host
 Issue #2575 Backup-BcContainerDatabases doesn't work with external SQL Server (if hosthelperfolder is different from containerhelperfolder)
 Issue #2598 NavSip.dll missing in SysWOW64 on business central 21.0 artifact
@@ -251,7 +265,7 @@ Issue #2587 Run-ALPipeline with App Name Change
 Partial fix for Issue #2595 (Issues with "Edit in Excel" for container behind traefik)
 Issue #2523 New-BcContainerBcUser returns 'The Aggregate Permission Set does not exist.' on BC20 (this bug also requires a BC fix - available in 20.4)
 New Function Get-BcScheduledUpgrade which calls the admin center api to check for BC SaaS CU updates
-New Function Reschedule-BcUpgrade which calls the admin center api to reschedule an BC SaaS environment upgrade to a given datetime 
+New Function Reschedule-BcUpgrade which calls the admin center api to reschedule an BC SaaS environment upgrade to a given datetime
 Workaround for issue #2607 BcContainerHelper Networking and static IP
 Added parameter -macAddress to New-BcContainer to enable setting the container Mac Address
 Added parameter -IP to New-BcContainer to enable setting the container IP Address
@@ -384,7 +398,7 @@ Better AAD support for containers
 Add AadTenant, AadAppIdUri and AadAppId to New-BcContainer for enhanced AAD support
 Issue #2267 Publish-BcContainerApp as Delegated Admin doesn't work
 Add standard audience as valid to support the current implementation in the AL extension when calling the dev endpoint with AAD auth
-Issue #2274 Unable to download symbols for 1st party apps in localized containers with Run-ALValidation 
+Issue #2274 Unable to download symbols for 1st party apps in localized containers with Run-ALValidation
 
 3.0.0
 Enable Telemetry. BcContainerHelper will emit usage statistics telemetry to Microsoft for all commands used.

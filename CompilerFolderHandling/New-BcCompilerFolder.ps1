@@ -216,6 +216,12 @@ try {
     }
 
     if ($isLinux) {
+        $alToolExePath = Join-Path $containerCompilerPath 'extension/bin/linux/altool'
+        if (Test-Path $alToolExePath) {
+            # Set execute permissions on altool
+            Write-Host "Setting execute permissions on altool"
+            & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExePath"
+        }
         $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
         if (Test-Path $alcExePath) {
             # Set execute permissions on alc
