@@ -38,7 +38,7 @@ function Copy-ItemToBcContainer {
                 if ([IO.Directory]::Exists($tempItem)) {
                     # item to copy is a folder
                     [IO.Directory]::CreateDirectory($containerPath) | Out-Null
-                    Get-ChildItem $tempItem | Move-Item -Destination $containerPath -Force
+                    Get-ChildItem $tempItem | Copy-Item -Destination $containerPath -Force -Recurse
                 }
                 else {
                     # item to copy is a file
