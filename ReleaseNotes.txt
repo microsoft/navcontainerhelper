@@ -1,3 +1,5 @@
+6.0.3
+
 6.0.2
 Compile-AppInBcContainer: When checking whether symbol download is needed, the Application dependency wasn't checked for version number
 When using Publish-PerTenantExtensionApps with a set of apps, which takes a very long time to publish, the AccessToken might expire and lead to failure. AccessToken is now refreshed when needed.
