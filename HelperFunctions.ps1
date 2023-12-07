@@ -1164,7 +1164,9 @@ function GetAppInfo {
                         Add-Type -AssemblyName System.Text.Encoding
                         LoadDLL -Path (Join-Path $alcDllPath Newtonsoft.Json.dll)
                         LoadDLL -Path (Join-Path $alcDllPath System.Collections.Immutable.dll)
-    		            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
+                        if (Test-Path (Join-Path $alcDllPath System.IO.Packaging.dll)) {
+        		            LoadDLL -Path (Join-Path $alcDllPath System.IO.Packaging.dll)
+                        }
                         LoadDLL -Path (Join-Path $alcDllPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
                         $assembliesAdded = $true
                     }
