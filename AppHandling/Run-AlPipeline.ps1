@@ -446,7 +446,6 @@ function GetInstalledAppIds {
         [string] $compilerFolder,
         [bool] $filesOnly,
         [hashtable] $Parameters
-
     )
     if ($useCompilerFolder) {
         $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
