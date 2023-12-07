@@ -41,6 +41,7 @@ Function Get-BcNuGetPackage {
 
     $bestmatch = $null
     # Search all trusted feeds for the package
+    Write-Host "Search for $($packageName) Version $($version)"
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
             Write-Host "::group::Search NuGetFeed $($feed.Url)"
@@ -106,7 +107,7 @@ Function Get-BcNuGetPackage {
         }
     }
     if ($bestmatch) {
-        Write-Host "Best match for package name $($packageName) Version $($version): $($bestmatch.PackageId) Version $($bestmatch.PackageVersion)"
+        Write-Host "Best match for package name $($packageName) Version $($version): $($bestmatch.PackageId) Version $($bestmatch.PackageVersion) from $($bestmatch.Feed.Url)"
         return $bestmatch.Feed.DownloadPackage($bestmatch.PackageId, $bestmatch.PackageVersion)
     }
     else {
