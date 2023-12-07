@@ -64,17 +64,6 @@ Function New-BcNuGetPackage {
         $stream.Write($bytes,0,$bytes.Length)
     }
 
-    function AddPart([System.IO.Packaging.Package] $package, [string] $path, [string] $subFolder) {
-        $relativePath = [System.IO.Path]::GetFileName($path)
-        if ($subFolder) {
-            $relativePath = Join-Path $subFolder $relativePath
-        }
-        $nuspecpart = [System.IO.Packaging.PackUriHelper]::CreatePartUri([Uri]::new($relativePath,[System.UriKind]::Relative))
-        $part = $package.CreatePart($nuspecpart, 'application/octet-stream')
-        CopyFileToStream -filename $path -stream ($part.GetStream())
-        $part.Uri.ToString().TrimStart('/')
-    }
-    
     Write-Host "Create NuGet package"
     Write-Host "AppFile:"
     Write-Host $appFile
@@ -82,9 +71,11 @@ Function New-BcNuGetPackage {
         throw "Unable to locate file: $_"
     }
     $appFile = (Get-Item $appfile).FullName
-    $package = $null
     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
+    $rootFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
+    New-Item -Path $rootFolder -ItemType Directory | Out-Null
     try {
+        Copy-Item -Path $appFile -Destination $rootFolder -Force
         Extract-AppFileToFolder -appFilename $appFile -generateAppJson -appFolder $tmpFolder
         $appJsonFile = Join-Path $tmpFolder 'app.json'
         $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
@@ -110,9 +101,7 @@ Function New-BcNuGetPackage {
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
         }
-        $package = [System.IO.Packaging.Package]::Open($nupkgFile, [System.IO.FileMode]::Create)
-
-        $nuspecFileName = Join-Path $tmpFolder "manifest.nuspec"
+        $nuspecFileName = Join-Path $rootFolder "manifest.nuspec"
         $xmlObjectsettings = New-Object System.Xml.XmlWriterSettings
         $xmlObjectsettings.Indent = $true
         $xmlObjectsettings.IndentChars = "    "
@@ -156,7 +145,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteStartElement("files")
         $XmlObjectWriter.WriteStartElement("file")
-        $appFileName = AddPart -package $package -path $appFile -subfolder ''
+        $appFileName = [System.IO.Path]::GetFileName($appfile)
         $XmlObjectWriter.WriteAttributeString("src", $appFileName );
         $XmlObjectWriter.WriteAttributeString("target", $appFileName);
         $XmlObjectWriter.WriteEndElement()
@@ -168,10 +157,14 @@ Function New-BcNuGetPackage {
         
         Write-Host "NUSPEC file:"
         Get-Content -path $nuspecFileName -Encoding UTF8 | Out-Host
-        $nuspecpart = [System.IO.Packaging.PackUriHelper]::CreatePartUri([Uri]::new("manifest.nuspec",[System.UriKind]::Relative))
-        $part = $package.CreatePart($nuspecpart, 'text/xml')
-        CopyFileToStream -filename $nuspecFileName -stream ($part.GetStream())
-        $package.Close()
+        $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
+        $nupkgFile = Join-Path ([System.IO.Path]::GetTempPath()) $nuPkgFileName
+        if (Test-Path $nuPkgFile -PathType Leaf) {
+            Remove-Item $nupkgFile -Force
+        }
+        Compress-Archive -Path "$rootFolder\*" -DestinationPath "$nupkgFile.zip" -Force
+        Rename-Item -Path "$nupkgFile.zip" -NewName $nuPkgFileName
+        
         $size = (Get-Item $nupkgFile).Length
         if ($size -gt 1MB) {
             $sizeStr = "$([int]($size/1MB))Mb"
@@ -185,15 +178,9 @@ Function New-BcNuGetPackage {
         Write-Host -ForegroundColor Green "Successfully created NuGet package (Size: $sizeStr)"
         $nupkgFile
     }
-    catch {
-        if ($package) {
-            $package.Close()
-            Remove-Item $nupkgFile
-        }
-        throw
-    }
     finally {
         Remove-Item -Path $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $rootFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 Export-ModuleMember -Function New-BcNuGetPackage
