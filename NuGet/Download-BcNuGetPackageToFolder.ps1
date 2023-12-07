@@ -64,7 +64,6 @@ Function Download-BcNuGetPackageToFolder {
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
     if ($package) {
         $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
-        $appfile = Join-Path $package '*.app' -Resolve
         Write-Host "NUSPEC:"
         $nuspec | Out-Host
         $manifest = [xml]$nuspec
