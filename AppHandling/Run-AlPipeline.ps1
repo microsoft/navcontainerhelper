@@ -1224,6 +1224,8 @@ $Parameters = @{
 }
 if ($useCompilerFolder) {
     $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
+    Write-Host "Existing App files"
+    $existingAppFiles | ForEach-Object { Write-Host "- $_" }
     $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'AppInfoCache.json') | ForEach-Object { $_.AppId } )
 }
 elseif (!$filesOnly) {
