@@ -1269,17 +1269,3 @@ function DetermineVsixFile {
         return $vsixFile
     }
 }
-
-# Tests:
-#IsVersionIncludedInRange -version '1.0.0.0' -nuGetVersionRange '1.0.0.0' = true
-#IsVersionIncludedInRange -version '1.0.0.0' -nuGetVersionRange '[1.0.0.0]' = true
-#IsVersionIncludedInRange -version '1.0.0.1' -nuGetVersionRange '[1.0.0.0]' = false
-#IsVersionIncludedInRange -version '1.0.0.0' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = true
-#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = true
-#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[1.0.0.0,2.0.0.0)' = false
-#IsVersionIncludedInRange -version '2.0.0.1' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = false
-#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[2.0.0.0,)' = true
-#IsVersionIncludedInRange -version '2.0.0.1' -nuGetVersionRange '[1.0.0.0,)' = true
-#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '(2.0.0.0,)' = false
-#IsVersionIncludedInRange -version '2.0.0.0' -nuGetVersionRange '[2.0.0.0,]'  # throws
-#IsVersionIncludedInRange -version '2.0.0.1' -nuGetVersionRange '[1.0.0.0,2.0.0.0]' = false
