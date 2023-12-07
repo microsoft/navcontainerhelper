@@ -1115,8 +1115,7 @@ function GetAppInfo {
             $appInfoCache = @{}
         }
     }
-    Write-Host "Getting .app info"
-    $cacheAppInfoPath | Out-Host
+    Write-Host "::group::Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1224,6 +1223,7 @@ function GetAppInfo {
             $packageStream.Dispose()
         }
     }
+    Write-Host "::endgroup::"
 }
 
 function GetLatestAlLanguageExtensionUrl {

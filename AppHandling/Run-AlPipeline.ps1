@@ -1234,8 +1234,9 @@ elseif (!$filesOnly) {
 else {
     $installedAppIds = @()
 }
-Write-Host "Installed AppIds"
+Write-Host "::group::Installed AppIds"
 $installedAppIds | ForEach-Object { Write-Host "- $_" }
+Write-Host "::endgroup::"
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
