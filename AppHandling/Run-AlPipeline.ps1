@@ -439,6 +439,35 @@ Function UpdateLaunchJson {
 
 }
 
+function GetInstalledAppIds {
+    Param(
+        [bool] $useCompilerFolder,
+        [string] $packagesFolder,
+        [string] $compilerFolder,
+        [bool] $filesOnly,
+        [hashtable] $Parameters
+
+    )
+    if ($useCompilerFolder) {
+        $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
+        $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
+        $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
+        $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
+        $installedAppIds += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json') | ForEach-Object { $_.AppId } )
+    
+    }
+    elseif (!$filesOnly) {
+        $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId })
+    }
+    else {
+        $installedAppIds = @()
+    }
+    Write-Host "::group::Installed AppIds"
+    $installedAppIds | ForEach-Object { Write-Host "- $_" }
+    Write-Host "::endgroup::"
+    return $installedAppIds
+}
+
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
@@ -1222,21 +1251,7 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-if ($useCompilerFolder) {
-    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
-    $installedAppIds = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json') | ForEach-Object { $_.AppId } )
-    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
-    $installedAppIds += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json') | ForEach-Object { $_.AppId } )
-}
-elseif (!$filesOnly) {
-    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
-}
-else {
-    $installedAppIds = @()
-}
-Write-Host "::group::Installed AppIds"
-$installedAppIds | ForEach-Object { Write-Host "- $_" }
-Write-Host "::endgroup::"
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
@@ -1383,17 +1398,7 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-if ($useCompilerFolder) {
-    $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
-    $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
-    $installedAppIds = @($installedApps | ForEach-Object { $_.AppId } )
-}
-elseif (!$filesOnly) {
-    $installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | ForEach-Object { $_.AppId })
-}
-else {
-    $installedAppIds = @()
-}
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
@@ -1566,7 +1571,7 @@ $Parameters = @{
     "containerName" = $containerName
     "tenant" = $tenant
 }
-$installedAppIds = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters | Select-Object -ExpandProperty 'AppId')
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
 if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
