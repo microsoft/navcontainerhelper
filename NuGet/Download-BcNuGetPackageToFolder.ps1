@@ -73,13 +73,20 @@ Function Download-BcNuGetPackageToFolder {
         [ValidateSet('all','own','allButMicrosoft','allButApplication','allButPlatform','none')]
         [string] $downloadDependencies = 'allButApplication'
     )
+
+    function dump([string]$message) {
+        if (!$silent) {
+            Write-Host $message
+        }
+    }
+
     Write-Host "Looking for NuGet package $packageName version $version ($select match)"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -silent:$silent -select $select
     if ($package) {
         $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
-        Write-Host "::group::NUSPEC"
-        $nuspec | Out-Host
-        Write-Host "::endgroup::"
+        Dump "::group::NUSPEC"
+        $nuspec | ForEach-Object { Dump $_ }
+        Dump "::endgroup::"
         $manifest = [xml]$nuspec
         $packageId = $manifest.package.metadata.id
         $packageVersion = $manifest.package.metadata.version
@@ -115,12 +122,12 @@ Function Download-BcNuGetPackageToFolder {
                     }
                     if ($dependencyCountry -and $installedCountry) {
                         if ($installedCountry -ne $dependencyCountry) {
-                            Write-Host -ForegroundColor Red "::WARNING::NuGet package $packageId (version $packageVersion) requires application $dependencyVersion for country $dependencyCountry. You might not be able to install it on country $installedCountry"
+                            Dump "::WARNING::NuGet package $packageId (version $packageVersion) requires application $dependencyVersion for country $dependencyCountry. You might not be able to install it on country $installedCountry"
                         }
                     }
                     if ($dependencyPublisher) {
                         if ($installedApp.Publisher -ne $dependencyPublisher) {
-                            Write-Host -ForegroundColor Red "::WARNING::NuGet package $packageId (version $packageVersion) requires application $dependencyVersion from publisher $dependencyPublisher. The installed application app is from publisher $($installedApp.Publisher)"
+                            Dump "::WARNING::NuGet package $packageId (version $packageVersion) requires application $dependencyVersion from publisher $dependencyPublisher. The installed application app is from publisher $($installedApp.Publisher)"
                         }
                     }
                 }
@@ -163,18 +170,13 @@ Function Download-BcNuGetPackageToFolder {
                 }
             }
             if ($downloadIt) {
-                try {
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
+                if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
+                    # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
                 }
-                catch {
-                    # If we cannot download the dependency, try downloading using the AppID
-                    if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
-                        # If dependencyId ends in a GUID (AppID) then try downloading using the 
-                        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
-                    }
-                    else {
-                        throw
-                    }
+                else {
+                    # AppId not specified, use the dependencyId as is
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
                 }
             }
         }

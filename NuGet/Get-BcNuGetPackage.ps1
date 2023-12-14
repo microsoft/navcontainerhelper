@@ -49,26 +49,32 @@ Function Get-BcNuGetPackage {
         [string] $select = 'Latest'
     )
 
+    function dump([string]$message) {
+        if (!$silent) {
+            Write-Host $message
+        }
+    }
+
     $bestmatch = $null
     # Search all trusted feeds for the package
     foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
-            Write-Host "::group::Search NuGetFeed $($feed.Url)"
+            Dump "::group::Search NuGetFeed $($feed.Url)"
             try {
                 try {
-                    $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns)
+                    $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $silent)
                 }
                 catch {
-                    Write-Host "Initiation of NuGetFeed failed. Error was $($_.Exception.Message)"
+                    Dump "Initiation of NuGetFeed failed. Error was $($_.Exception.Message)"
                     continue
                 }
                 $packageIds = $nuGetFeed.Search($packageName)
                 if ($packageIds) {
                     foreach($packageId in $packageIds) {
-                        Write-Host "PackageId: $packageId"
+                        Dump "PackageId: $packageId"
                         $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $select)
                         if (!$packageVersion) {
-                            Write-Host "No package found matching version '$version' for package id $($packageId)"
+                            Dump "No package found matching version '$version' for package id $($packageId)"
                             continue
                         }
                         elseif ($bestmatch) {
@@ -107,7 +113,7 @@ Function Get-BcNuGetPackage {
                 }
             }
             finally {
-                Write-Host "::endgroup::"
+                Dump "::endgroup::"
             }
         }
         if ($bestmatch -and ($select -eq 'Any' -or $select -eq 'Exact')) {
