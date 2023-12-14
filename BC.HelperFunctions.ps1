@@ -111,9 +111,6 @@ function Get-ContainerHelperConfig {
                 "OAuthScopes" = "api://b52e8b6a-2953-4a08-8e28-5cf45a2dffdc/.default offline_access"
             }
             "TrustedNuGetFeeds" = @(
-#                [PSCustomObject]@{ "Url" = "https://api.nuget.org/v3/index.json"; "Token" = ""; "Patterns" = @('Microsoft.*') }
-#                [PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/freddydk/apps/_packaging/MSApps/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('Microsoft.*') }
-#                [PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/freddydk/apps/_packaging/MyApps/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('FreddyKristiansen.*') }
             )
         }
 
