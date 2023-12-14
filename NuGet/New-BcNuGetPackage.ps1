@@ -1,6 +1,6 @@
 <# 
  .Synopsis
-  Create a new Business Central NuGet Package
+  PROOF OF CONCEPT PREVIEW: Create a new Business Central NuGet Package
  .Description
   Create a new NuGet package containing a Business Central apps
  .Parameter appfile

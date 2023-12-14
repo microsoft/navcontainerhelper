@@ -1,6 +1,6 @@
 #requires -Version 5.0
 
-# This class holds the connection to a NuGet feed
+# PROOF OF CONCEPT PREVIEW: This class holds the connection to a NuGet feed
 class NuGetFeed {
 
     [string] $url

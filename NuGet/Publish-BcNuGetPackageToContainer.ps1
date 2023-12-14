@@ -1,8 +1,36 @@
 <# 
  .Synopsis
-  POC PREVIEW: Publish Business Central NuGet Package to container
+  PROOF OF CONCEPT PREVIEW: Publish Business Central NuGet Package to container
  .Description
   Publish Business Central NuGet Package to container
+ .PARAMETER nuGetServerUrl
+  NuGet Server URL
+  Default: https://api.nuget.org/v3/index.json
+ .PARAMETER nuGetToken
+  NuGet Token for authenticated access to the NuGet Server
+  If not specified, the NuGet Server is accessed anonymously (and needs to support this)
+ .PARAMETER packageName
+  Package Name to search for.
+  This can be the full name or a partial name with wildcards.
+  If more than one package is found, matching the name, an error is thrown.
+ .PARAMETER version
+  Package Version, following the nuget versioning rules
+  https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
+ .PARAMETER containerName
+  Name of the container to publish to
+  If not specified, the default container name is used
+ .Parameter tenant
+  The tenant in which you want to install the app
+ .Parameter bcAuthContext
+  Authorization Context created by New-BcAuthContext. By specifying BcAuthContext and environment, the function will publish the app to the online Business Central Environment specified
+ .Parameter environment
+  Environment to use for publishing
+ .Parameter copyInstalledAppsToFolder
+  If specified, the installed apps will be copied to this folder in addition to being installed in the container
+ .Parameter skipVerification
+  Include this parameter if the app you want to publish is not signed
+ .EXAMPLE
+  Publish-BcNuGetPackageToContainer -containerName $containerName -packageName 'FreddyKristiansen.BingMapsPTE.165d73c1-39a4-4fb6-85a5-925edc1684fb' -version "2.0.0.0" -select earliest
 #>
 Function Publish-BcNuGetPackageToContainer {
     Param(
@@ -13,7 +41,11 @@ Function Publish-BcNuGetPackageToContainer {
         [Parameter(Mandatory=$true)]
         [string] $packageName,
         [Parameter(Mandatory=$false)]
-        [System.Version] $version = [System.Version]'0.0.0.0',
+        [string] $version = '0.0.0.0',
+        [switch] $silent,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet('Earliest','Latest','Exact','Any')]
+        [string] $select = 'Latest',
         [string] $containerName = "",
         [Hashtable] $bcAuthContext,
         [string] $environment,
@@ -51,7 +83,7 @@ Function Publish-BcNuGetPackageToContainer {
     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     New-Item $tmpFolder -ItemType Directory | Out-Null
     try {
-        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry
+        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -silent:$silent -select $select
         $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
         Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
     }

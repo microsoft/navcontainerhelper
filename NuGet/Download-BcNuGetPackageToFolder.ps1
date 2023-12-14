@@ -1,6 +1,6 @@
 <# 
  .Synopsis
-  Download Apps from Business Central NuGet Package to folder
+  PROOF OF CONCEPT PREVIEW: Download Apps from Business Central NuGet Package to folder
  .Description
   Download Apps from Business Central NuGet Package to folder
  .PARAMETER nuGetServerUrl
@@ -16,6 +16,14 @@
  .PARAMETER version
   Package Version, following the nuget versioning rules
   https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
+ .PARAMETER silent
+  Suppress output
+ .PARAMETER select
+  Select the package to download if more than one package is found matching the name and version
+  - Earliest: Select the earliest version
+  - Latest: Select the latest version (default)
+  - Exact: Select the exact version
+  - Any: Select the first version found
  .PARAMETER appSymbolsFolder
   Folder where the apps are copied to
  .PARAMETER copyInstalledAppsToFolder
@@ -47,6 +55,10 @@ Function Download-BcNuGetPackageToFolder {
         [string] $packageName,
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
+        [switch] $silent,
+        [Parameter(Mandatory=$false)]
+        [ValidateSet('Earliest','Latest','Exact','Any')]
+        [string] $select = 'Latest',
         [Parameter(Mandatory=$true)]
         [string] $appSymbolsFolder,
         [Parameter(Mandatory=$false)]
@@ -61,7 +73,7 @@ Function Download-BcNuGetPackageToFolder {
         [string] $downloadDependencies = 'allButApplication'
     )
     Write-Host "Looking for NuGet package $packageName version $version"
-    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version
+    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -silent:$silent -select $select
     if ($package) {
         $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
         Write-Host "::group::NUSPEC"
@@ -151,13 +163,13 @@ Function Download-BcNuGetPackageToFolder {
             }
             if ($downloadIt) {
                 try {
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
                 }
                 catch {
                     # If we cannot download the dependency, try downloading using the AppID
                     if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
                         # If dependencyId ends in a GUID (AppID) then try downloading using the 
-                        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps
+                        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
                     }
                     else {
                         throw

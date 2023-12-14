@@ -1,6 +1,6 @@
 <# 
  .Synopsis
-  Get Business Central NuGet Package from NuGet Server
+  PROOF OF CONCEPT PREVIEW: Get Business Central NuGet Package from NuGet Server
  .Description
   Get Business Central NuGet Package from NuGet Server
  .OUTPUTS
@@ -22,6 +22,16 @@
   https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
  .PARAMETER silent
   Suppress output
+ .PARAMETER select
+  Select the package to download if more than one package is found matching the name and version
+  - Earliest: Select the earliest version
+  - Latest: Select the latest version (default)
+  - Exact: Select the exact version
+  - Any: Select the first version found
+ .EXAMPLE
+  Get-BcNuGetPackage -packageName 'FreddyKristiansen.BingMapsPTE.165d73c1-39a4-4fb6-85a5-925edc1684fb'
+ .EXAMPLE
+  Get-BcNuGetPackage -nuGetServerUrl $nugetServerUrl -nuGetToken $nuGetToken -packageName '437dbf0e-84ff-417a-965d-ed2bb9650972'
 #>
 Function Get-BcNuGetPackage {
     Param(
