@@ -79,6 +79,8 @@ function Get-ContainerHelperConfig {
                 "tt" = "br"
                 "uy" = "br"
                 "zw" = "w1"
+                "im" = "gb"
+                "gg" = "gb"
             }
             "mapNetworkSettings" = [PSCustomObject]@{
             }
