@@ -72,7 +72,7 @@ Function Download-BcNuGetPackageToFolder {
         [ValidateSet('all','own','allButMicrosoft','allButApplication','allButPlatform','none')]
         [string] $downloadDependencies = 'allButApplication'
     )
-    Write-Host "Looking for NuGet package $packageName version $version"
+    Write-Host "Looking for NuGet package $packageName version $version ($select match)"
     $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -silent:$silent -select $select
     if ($package) {
         $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
