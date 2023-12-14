@@ -24,7 +24,7 @@
   - Latest: Select the latest version (default)
   - Exact: Select the exact version
   - Any: Select the first version found
- .PARAMETER appSymbolsFolder
+ .PARAMETER folder
   Folder where the apps are copied to
  .PARAMETER copyInstalledAppsToFolder
   If specified, apps are also copied to this folder
@@ -60,7 +60,8 @@ Function Download-BcNuGetPackageToFolder {
         [ValidateSet('Earliest','Latest','Exact','Any')]
         [string] $select = 'Latest',
         [Parameter(Mandatory=$true)]
-        [string] $appSymbolsFolder,
+        [alias('appSymbolsFolder')]
+        [string] $folder,
         [Parameter(Mandatory=$false)]
         [string] $copyInstalledAppsToFolder = "",
         [Parameter(Mandatory=$false)]
@@ -163,13 +164,13 @@ Function Download-BcNuGetPackageToFolder {
             }
             if ($downloadIt) {
                 try {
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
                 }
                 catch {
                     # If we cannot download the dependency, try downloading using the AppID
                     if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
                         # If dependencyId ends in a GUID (AppID) then try downloading using the 
-                        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -appSymbolsFolder $appSymbolsFolder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
+                        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
                     }
                     else {
                         throw
@@ -179,7 +180,7 @@ Function Download-BcNuGetPackageToFolder {
         }
         $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
         $appFiles | ForEach-Object {
-            Copy-Item $_ -Destination $appSymbolsFolder -Force
+            Copy-Item $_ -Destination $folder -Force
             if ($copyInstalledAppsToFolder) {
                 Copy-Item $_ -Destination $copyInstalledAppsToFolder -Force
             }
