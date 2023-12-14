@@ -43,14 +43,13 @@ Function Get-BcNuGetPackage {
         [string] $packageName,
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
-        [switch] $silent,
         [Parameter(Mandatory=$false)]
         [ValidateSet('Earliest','Latest','Exact','Any')]
         [string] $select = 'Latest'
     )
 
     function dump([string]$message) {
-        if (!$silent) {
+        if ($VerbosePreference -eq 'Continue') {
             Write-Host $message
         }
     }
@@ -61,13 +60,7 @@ Function Get-BcNuGetPackage {
         if ($feed -and $feed.Url) {
             Dump "::group::Search NuGetFeed $($feed.Url)"
             try {
-                try {
-                    $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $silent)
-                }
-                catch {
-                    Dump "Initiation of NuGetFeed failed. Error was $($_.Exception.Message)"
-                    continue
-                }
+                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, ($VerbosePreference -eq 'Continue'))
                 $packageIds = $nuGetFeed.Search($packageName)
                 if ($packageIds) {
                     foreach($packageId in $packageIds) {

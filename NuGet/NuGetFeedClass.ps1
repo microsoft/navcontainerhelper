@@ -6,17 +6,17 @@ class NuGetFeed {
     [string] $url
     [string] $token
     [string[]] $patterns
-    [bool] $silent = $false
+    [bool] $verbose = $false
 
     [string] $searchQueryServiceUrl
     [string] $packagePublishUrl
     [string] $packageBaseAddressUrl
 
-    NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [bool] $silent) {
+    NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [bool] $verbose) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
         $this.patterns = $patterns
-        $this.silent = $silent
+        $this.verbose = $verbose
 
         try {
             $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
@@ -43,8 +43,8 @@ class NuGetFeed {
         }
     }
 
-    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [bool] $silent) {
-        return [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $silent)
+    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [bool] $verbose) {
+        return [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $verbose)
     }
 
     static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns) {
@@ -52,7 +52,7 @@ class NuGetFeed {
     }
 
     [void] Dump([string] $message) {
-        if (!$this.silent) {
+        if ($this.verbose) {
             Write-Host $message
         }
     }

@@ -55,7 +55,6 @@ Function Download-BcNuGetPackageToFolder {
         [string] $packageName,
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
-        [switch] $silent,
         [Parameter(Mandatory=$false)]
         [ValidateSet('Earliest','Latest','Exact','Any')]
         [string] $select = 'Latest',
@@ -75,13 +74,13 @@ Function Download-BcNuGetPackageToFolder {
     )
 
     function dump([string]$message) {
-        if (!$silent) {
+        if ($VerbosePreference -eq 'Continue') {
             Write-Host $message
         }
     }
 
     Write-Host "Looking for NuGet package $packageName version $version ($select match)"
-    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -silent:$silent -select $select
+    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $select
     if ($package) {
         $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
         Dump "::group::NUSPEC"
@@ -172,11 +171,11 @@ Function Download-BcNuGetPackageToFolder {
             if ($downloadIt) {
                 if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
                     # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select
                 }
                 else {
                     # AppId not specified, use the dependencyId as is
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -silent:$silent -select $select
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select
                 }
             }
         }
