@@ -28,10 +28,12 @@
   - Latest: Select the latest version (default)
   - Exact: Select the exact version
   - Any: Select the first version found
+ .PARAMETER allowPrerelease
+  Include prerelease versions in the search
  .EXAMPLE
   Get-BcNuGetPackage -packageName 'FreddyKristiansen.BingMapsPTE.165d73c1-39a4-4fb6-85a5-925edc1684fb'
  .EXAMPLE
-  Get-BcNuGetPackage -nuGetServerUrl $nugetServerUrl -nuGetToken $nuGetToken -packageName '437dbf0e-84ff-417a-965d-ed2bb9650972'
+  Get-BcNuGetPackage -nuGetServerUrl $nugetServerUrl -nuGetToken $nuGetToken -packageName '437dbf0e-84ff-417a-965d-ed2bb9650972' -allowPrerelease
 #>
 Function Get-BcNuGetPackage {
     Param(
@@ -45,12 +47,16 @@ Function Get-BcNuGetPackage {
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
         [ValidateSet('Earliest','Latest','Exact','Any')]
-        [string] $select = 'Latest'
+        [string] $select = 'Latest',
+        [switch] $allowPrerelease
     )
 
     function dump([string]$message) {
-        if ($VerbosePreference -eq 'Continue') {
+        if ($message -like '::*' -and $VerbosePreference -eq 'Continue') {
             Write-Host $message
+        }
+        else {
+            Write-Verbose $message
         }
     }
 
@@ -65,18 +71,19 @@ Function Get-BcNuGetPackage {
                 if ($packageIds) {
                     foreach($packageId in $packageIds) {
                         Dump "PackageId: $packageId"
-                        $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $select)
+                        $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $select, $allowPrerelease.IsPresent)
                         if (!$packageVersion) {
                             Dump "No package found matching version '$version' for package id $($packageId)"
                             continue
                         }
                         elseif ($bestmatch) {
                             # We already have a match, check if this is a better match
-                            if (($select -eq 'Earliest' -and [System.Version]$packageVersion -lt $bestmatch.PackageVersion) -or ($select -eq 'Latest' -and [System.Version]$packageVersion -gt $bestmatch.PackageVersion)) {
+                            if (($select -eq 'Earliest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq -1)) -or 
+                                ($select -eq 'Latest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq 1))) {
                                 $bestmatch = [PSCustomObject]@{
                                     "Feed" = $nuGetFeed
                                     "PackageId" = $packageId
-                                    "PackageVersion" = [System.Version]$packageVersion
+                                    "PackageVersion" = $packageVersion
                                 }
                             }
                         }
@@ -86,7 +93,7 @@ Function Get-BcNuGetPackage {
                                 $bestmatch = [PSCustomObject]@{
                                     "Feed" = $nuGetFeed
                                     "PackageId" = $packageId
-                                    "PackageVersion" = [System.Version]$packageVersion
+                                    "PackageVersion" = $packageVersion
                                 }
                                 break
                             }
@@ -95,7 +102,7 @@ Function Get-BcNuGetPackage {
                             $bestmatch = [PSCustomObject]@{
                                 "Feed" = $nuGetFeed
                                 "PackageId" = $packageId
-                                "PackageVersion" = [System.Version]$packageVersion
+                                "PackageVersion" = $packageVersion
                             }
                             # If we are looking for any match, we can stop here
                             if ($select -eq 'Any') {

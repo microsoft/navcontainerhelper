@@ -11,6 +11,8 @@
  .Parameter packageVersion
   Version of the NuGet package
   The default is the version number from the app.json file
+ .Parameter prereleaseTag
+  If this is a prerelease, then you can specify a prerelease tag, which will be appended to the version number of the NuGet package (together with a dash)
  .Parameter packageTitle
   Title of the NuGet package
   The default is the name from the app.json file
@@ -41,6 +43,8 @@ Function New-BcNuGetPackage {
         [string] $packageId = "{publisher}.{name}.{id}",
         [Parameter(Mandatory=$false)]
         [System.Version] $packageVersion = $null,
+        [Parameter(Mandatory=$false)]
+        [string] $prereleaseTag = '',
         [Parameter(Mandatory=$false)]
         [string] $packageTitle = "",
         [Parameter(Mandatory=$false)]
@@ -96,7 +100,13 @@ Function New-BcNuGetPackage {
             $packageAuthors = $appJson.publisher
         }
 
-        $nuPkgFileName = "$($packageId)-$($packageVersion).nupkg"
+        if ($prereleaseTag) {
+            $packageVersionStr = "$($packageVersion)-$prereleaseTag"
+        }
+        else {
+            $packageVersionStr = "$packageVersion"
+        }
+        $nuPkgFileName = "$($packageId)-$($packageVersionStr).nupkg"
         $nupkgFile = Join-Path ([System.IO.Path]::GetTempPath()) $nuPkgFileName
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
@@ -111,7 +121,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("package", "http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd")
         $XmlObjectWriter.WriteStartElement("metadata")
         $XmlObjectWriter.WriteElementString("id", $packageId)
-        $XmlObjectWriter.WriteElementString("version", $packageVersion.ToString())
+        $XmlObjectWriter.WriteElementString("version", $packageVersionStr)
         $XmlObjectWriter.WriteElementString("title", $packageTitle)
         $XmlObjectWriter.WriteElementString("description", $packageDescription)
         $XmlObjectWriter.WriteElementString("authors", $packageAuthors)

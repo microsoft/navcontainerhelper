@@ -52,8 +52,11 @@ class NuGetFeed {
     }
 
     [void] Dump([string] $message) {
-        if ($this.verbose) {
+        if ($message -like '::*' -and $this.verbose) {
             Write-Host $message
+        }
+        else {
+            Write-Verbose $message
         }
     }
 
@@ -90,7 +93,7 @@ class NuGetFeed {
         return $matching | ForEach-Object { $this.Dump("- $($_.id)"); $_.id }
     }
 
-    [string[]] GetVersions([string] $packageId, [bool] $descending) {
+    [string[]] GetVersions([string] $packageId, [bool] $descending, [bool] $allowPrerelease) {
         if (!$this.IsTrusted($packageId)) {
             throw "Package $packageId is not trusted on $($this.url)"
         }
@@ -105,7 +108,7 @@ class NuGetFeed {
             throw (GetExtendedErrorMessage $_)
         }
         $this.Dump("$($versions.versions.count) versions found")
-        $versionsArr = @($versions.versions | ForEach-Object { [System.Version]$_ } | Sort-Object -Descending:$descending | ForEach-Object { "$_" })
+        $versionsArr = @($versions.versions | Where-Object { $allowPrerelease -or !$_.Contains('-') } | Sort-Object { ($_ -replace '-.+$') -as [System.Version]  }, { "$($_)z" } -Descending:$descending | ForEach-Object { "$_" })
         $this.Dump("First version is $($versionsArr[0])")
         $this.Dump("Last version is $($versionsArr[$versionsArr.Count-1])")
         return $versionsArr
@@ -116,9 +119,25 @@ class NuGetFeed {
         return $name -replace '[^a-zA-Z0-9_\-]',''
     }
 
+    static [Int32] CompareVersions([string] $version1, [string] $version2) {
+        $ver1 = $version1 -replace '-.+$' -as [System.Version]
+        $ver2 = $version2 -replace '-.+$' -as [System.Version]
+        if ($ver1 -eq $ver2) {
+            # add a 'z' to the version to make sure that 5.1.0 is greater than 5.1.0-beta
+            return [string]::Compare("$($version1)z", "$($version2)z")
+        }
+        elseif ($ver1 -gt $ver2) {
+            return 1
+        }
+        else {
+            return -1
+        }
+    }
+
     # Test if version is included in NuGet version range
     # https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
-    static [bool] IsVersionIncludedInRange([System.Version] $version, [string] $nuGetVersionRange) {
+    static [bool] IsVersionIncludedInRange([string] $versionStr, [string] $nuGetVersionRange) {
+        $version = $versionStr -replace '-.+$' -as [System.Version]
         if ($nuGetVersionRange -match '^\s*([\[(]?)([\d\.]*)(,?)([\d\.]*)([\])]?)\s*$') {
             $inclFrom = $matches[1] -ne '('
             $range = $matches[3] -eq ','
@@ -170,8 +189,8 @@ class NuGetFeed {
         return $false
     }
 
-    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string] $select) {
-        foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'))) {
+    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string] $select, [bool] $allowPrerelease) {
+        foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)) {
             if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
                 $this.Dump("$select version matching $nuGetVersionRange is $version")
                 return $version
@@ -181,8 +200,28 @@ class NuGetFeed {
     }
 
     [string] DownloadPackage([string] $packageId) {
-        $version = $this.GetVersions($packageId,$true)[0]
+        $version = $this.GetVersions($packageId,$true,$false)[0]
         return $this.DownloadPackage($packageId, $version)
+    }
+
+    [xml] DownloadNuSpec([string] $packageId, [string] $version) {
+        if (!$this.IsTrusted($packageId)) {
+            throw "Package $packageId is not trusted on $($this.url)"
+        }
+        $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
+        try {
+            $this.Dump("Download nuspec using $queryUrl")
+            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+            $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
+            Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
+            $nuspec = Get-Content -Path $tmpfile -Encoding UTF8 -Raw
+            Remove-Item -Path $tmpFile -Force
+            $global:ProgressPreference = $prev
+        }
+        catch {
+            throw (GetExtendedErrorMessage $_)
+        }
+        return [xml]$nuspec
     }
 
     [string] DownloadPackage([string] $packageId, [string] $version) {

@@ -44,6 +44,8 @@
     - allButApplication: Download all dependencies except the Application and Platform packages (Microsoft.Application and Microsoft.Platform)
     - allButPlatform: Download all dependencies except the Platform package (Microsoft.Platform)
     - none: Do not download any dependencies
+ .PARAMETER allowPrerelease
+  Include prerelease versions in the search
 #>
 Function Download-BcNuGetPackageToFolder {
     Param(
@@ -70,17 +72,21 @@ Function Download-BcNuGetPackageToFolder {
         [Parameter(Mandatory=$false)]
         [PSCustomObject[]] $installedApps = @(),
         [ValidateSet('all','own','allButMicrosoft','allButApplication','allButPlatform','none')]
-        [string] $downloadDependencies = 'allButApplication'
+        [string] $downloadDependencies = 'allButApplication',
+        [switch] $allowPrerelease
     )
 
     function dump([string]$message) {
-        if ($VerbosePreference -eq 'Continue') {
+        if ($message -like '::*' -and $VerbosePreference -eq 'Continue') {
             Write-Host $message
+        }
+        else {
+            Write-Verbose $message
         }
     }
 
     Write-Host "Looking for NuGet package $packageName version $version ($select match)"
-    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $select
+    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:($allowPrerelease.IsPresent)
     if ($package) {
         $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
         Dump "::group::NUSPEC"
