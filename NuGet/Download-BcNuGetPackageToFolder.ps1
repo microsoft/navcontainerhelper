@@ -180,7 +180,7 @@ Function Download-BcNuGetPackageToFolder {
                     }
                     else {
                         # If we are looking for the latest version, then we can try to find another version
-                        Write-Host "::WARNING::$dependenciesErr"
+                        Write-Host "WARNING: $dependenciesErr"
                         break
                     }
                 }
