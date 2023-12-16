@@ -46,88 +46,21 @@ Function Get-BcNuGetPackage {
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
+        [string[]] $excludeVersions = @(),
+        [Parameter(Mandatory=$false)]
         [ValidateSet('Earliest','Latest','Exact','Any')]
         [string] $select = 'Latest',
         [switch] $allowPrerelease
     )
 
-    function dump([string]$message) {
-        if ($message -like '::*' -and $VerbosePreference -eq 'Continue') {
-            Write-Host $message
-        }
-        else {
-            Write-Verbose $message
-        }
-    }
-
-    $bestmatch = $null
-    # Search all trusted feeds for the package
-    foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
-        if ($feed -and $feed.Url) {
-            Dump "::group::Search NuGetFeed $($feed.Url)"
-            try {
-                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, ($VerbosePreference -eq 'Continue'))
-                $packageIds = $nuGetFeed.Search($packageName)
-                if ($packageIds) {
-                    foreach($packageId in $packageIds) {
-                        Dump "PackageId: $packageId"
-                        $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $select, $allowPrerelease.IsPresent)
-                        if (!$packageVersion) {
-                            Dump "No package found matching version '$version' for package id $($packageId)"
-                            continue
-                        }
-                        elseif ($bestmatch) {
-                            # We already have a match, check if this is a better match
-                            if (($select -eq 'Earliest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq -1)) -or 
-                                ($select -eq 'Latest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq 1))) {
-                                $bestmatch = [PSCustomObject]@{
-                                    "Feed" = $nuGetFeed
-                                    "PackageId" = $packageId
-                                    "PackageVersion" = $packageVersion
-                                }
-                            }
-                        }
-                        elseif ($select -eq 'Exact') {
-                            # We only have a match if the version is exact
-                            if ($packageVersion -eq $version) {
-                                $bestmatch = [PSCustomObject]@{
-                                    "Feed" = $nuGetFeed
-                                    "PackageId" = $packageId
-                                    "PackageVersion" = $packageVersion
-                                }
-                                break
-                            }
-                        }
-                        else {
-                            $bestmatch = [PSCustomObject]@{
-                                "Feed" = $nuGetFeed
-                                "PackageId" = $packageId
-                                "PackageVersion" = $packageVersion
-                            }
-                            # If we are looking for any match, we can stop here
-                            if ($select -eq 'Any') {
-                                break
-                            }
-                        }
-                    }
-                }
-            }
-            finally {
-                Dump "::endgroup::"
-            }
-        }
-        if ($bestmatch -and ($select -eq 'Any' -or $select -eq 'Exact')) {
-            # If we have an exact match or any match, we can stop here
-            break
-        }
-    }
-    if ($bestmatch) {
-        Write-Host "Best match for package name $($packageName) Version $($version): $($bestmatch.PackageId) Version $($bestmatch.PackageVersion) from $($bestmatch.Feed.Url)"
-        return $bestmatch.Feed.DownloadPackage($bestmatch.PackageId, $bestmatch.PackageVersion)
-    }
-    else {
+    $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:($allowPrerelease.IsPresent)
+    if (-not $feed) {
         Write-Host "No package found matching package name $($packageName) Version $($version)"
         return ''
+    }
+    else {
+        Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
+        return $feed.DownloadPackage($packageId, $packageVersion)
     }
 }
 Export-ModuleMember -Function Get-BcNuGetPackage

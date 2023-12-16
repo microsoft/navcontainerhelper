@@ -1,5 +1,7 @@
 #requires -Version 5.0
 
+[NuGetFeed[]] $NuGetFeedCache = @()
+
 # PROOF OF CONCEPT PREVIEW: This class holds the connection to a NuGet feed
 class NuGetFeed {
 
@@ -44,11 +46,16 @@ class NuGetFeed {
     }
 
     static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [bool] $verbose) {
-        return [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $verbose)
+        $nuGetFeed = $script:NuGetFeedCache | Where-Object { $_.url -eq $nuGetServerUrl -and $_.token -eq $nuGetToken -and $_.patterns -eq $patterns -and $_.verbose -eq $verbose }
+        if (!$nuGetFeed) {
+            $nuGetFeed = [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $verbose)
+            $script:NuGetFeedCache += $nuGetFeed
+        }
+        return $nuGetFeed
     }
 
     static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns) {
-        return [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $false)
+        return [NuGetFeed]::Create($nuGetServerUrl, $nuGetToken, $patterns, $false)
     }
 
     [void] Dump([string] $message) {
@@ -124,6 +131,8 @@ class NuGetFeed {
         $ver2 = $version2 -replace '-.+$' -as [System.Version]
         if ($ver1 -eq $ver2) {
             # add a 'z' to the version to make sure that 5.1.0 is greater than 5.1.0-beta
+            # Tags are sorted alphabetically (alpha, beta, rc, etc.), even though this shouldn't matter
+            # New prerelease versions will always have a new version number
             return [string]::Compare("$($version1)z", "$($version2)z")
         }
         elseif ($ver1 -gt $ver2) {
@@ -189,8 +198,11 @@ class NuGetFeed {
         return $false
     }
 
-    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string] $select, [bool] $allowPrerelease) {
+    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string[]] $excludeVersions, [string] $select, [bool] $allowPrerelease) {
         foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)) {
+            if ($excludeVersions -contains $version) {
+                continue
+            }
             if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
                 $this.Dump("$select version matching $nuGetVersionRange is $version")
                 return $version

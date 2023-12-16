@@ -16,6 +16,13 @@
  .PARAMETER version
   Package Version, following the nuget versioning rules
   https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
+ .PARAMETER select
+  Select the package to download if more than one package is found matching the name and version
+  - Earliest: Select the earliest version
+  - Latest: Select the latest version (default)
+  - LatestMatching: Select the latest version matching the already installed dependencies
+  - Exact: Select the exact version
+  - Any: Select the first version found
  .PARAMETER containerName
   Name of the container to publish to
   If not specified, the default container name is used
@@ -43,7 +50,7 @@ Function Publish-BcNuGetPackageToContainer {
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Earliest','Latest','Exact','Any')]
+        [ValidateSet('Earliest','Latest','LatestMatching','Exact','Any')]
         [string] $select = 'Latest',
         [string] $containerName = "",
         [Hashtable] $bcAuthContext,
@@ -84,7 +91,12 @@ Function Publish-BcNuGetPackageToContainer {
     try {
         Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select
         $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
-        Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
+        if ($appFiles) {
+            Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
+        }
+        else {
+            throw "No apps to publish"
+        }
     }
     finally {
         Remove-Item -Path $tmpFolder -Recurse -Force

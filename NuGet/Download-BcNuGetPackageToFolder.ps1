@@ -16,12 +16,11 @@
  .PARAMETER version
   Package Version, following the nuget versioning rules
   https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
- .PARAMETER silent
-  Suppress output
  .PARAMETER select
   Select the package to download if more than one package is found matching the name and version
   - Earliest: Select the earliest version
   - Latest: Select the latest version (default)
+  - LatestMatching: Select the latest version matching the already installed dependencies
   - Exact: Select the exact version
   - Any: Select the first version found
  .PARAMETER folder
@@ -58,7 +57,7 @@ Function Download-BcNuGetPackageToFolder {
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Earliest','Latest','Exact','Any')]
+        [ValidateSet('Earliest','Latest','LatestMatching','Exact','Any')]
         [string] $select = 'Latest',
         [Parameter(Mandatory=$true)]
         [alias('appSymbolsFolder')]
@@ -85,114 +84,129 @@ Function Download-BcNuGetPackageToFolder {
         }
     }
 
+    $findSelect = $select
+    if ($select -eq 'LatestMatching') {
+        $findSelect = 'Latest'
+    }
+    $excludeVersions = @()
     Write-Host "Looking for NuGet package $packageName version $version ($select match)"
-    $package = Get-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:($allowPrerelease.IsPresent)
-    if ($package) {
-        $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
-        Dump "::group::NUSPEC"
-        $nuspec | ForEach-Object { Dump $_ }
-        Dump "::endgroup::"
-        $manifest = [xml]$nuspec
-        $packageId = $manifest.package.metadata.id
-        $packageVersion = $manifest.package.metadata.version
-        $manifest.package.metadata.dependencies.GetEnumerator() | ForEach-Object {
-            $dependencyVersion = $_.Version
-            $dependencyId = $_.Id
-            $downloadIt = $false
-            if ($dependencyId -eq 'Microsoft.Platform') {
-                # Dependency is to the platform
-                if ($installedPlatform) {
-                    if (!([NuGetFeed]::IsVersionIncludedInRange($installedPlatform, $dependencyVersion))) {
-                        # The version installed ins't compatible with the NuGet package found
-                        throw "NuGet package $packageId (version $packageVersion) requires platform $dependencyVersion. You cannot install it on version $installedPlatform"
-                    }
-                }
-                else {
-                    $downloadIt = ($downloadDependencies -eq 'all')
-                }
-            }
-            elseif ($dependencyId -match '^([^\.]+\.)?Application(\.[^\.]+)?$') {
-                # Dependency is to the application
-                $dependencyPublisher = $matches[1].TrimEnd('.')
-                if ($matches.Count -gt 2) {
-                    $dependencyCountry = $matches[2].TrimStart('.')
-                }
-                else {
-                    $dependencyCountry = ''
-                }
-                $installedApp = $installedApps | Where-Object { $_ -and $_.Name -eq 'Application' }
-                if ($installedApp) {
-                    if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
-                        throw "NuGet package $packageId (version $packageVersion) requires application $dependencyVersion. You cannot install it on version $($installedApp.Version)"
-                    }
-                    if ($dependencyCountry -and $installedCountry) {
-                        if ($installedCountry -ne $dependencyCountry) {
-                            Dump "::WARNING::NuGet package $packageId (version $packageVersion) requires application $dependencyVersion for country $dependencyCountry. You might not be able to install it on country $installedCountry"
-                        }
-                    }
-                    if ($dependencyPublisher) {
-                        if ($installedApp.Publisher -ne $dependencyPublisher) {
-                            Dump "::WARNING::NuGet package $packageId (version $packageVersion) requires application $dependencyVersion from publisher $dependencyPublisher. The installed application app is from publisher $($installedApp.Publisher)"
-                        }
-                    }
-                }
-                else {
-                    $downloadIt = ($downloadDependencies -eq 'all' -or $downloadDependencies -eq 'allButPlatform')
-                }
-            }
-            else {
-                $installedApp = $installedApps | Where-Object { $_ -and $dependencyId -like "*$($_.id)*" }
-                if ($installedApp) {
-                    # Dependency is already installed, check version number
-                    if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
-                        # The version installed ins't compatible with the NuGet package found
-                        throw "Dependency $dependencyId is already installed with version $($installedApp.Version), which is not compatible with the version $dependencyVersion required by the NuGet package $packageId (version $packageVersion))"
-                    }
-                }
-                elseif ($downloadDependencies -eq 'all' -or $downloadDependencies -eq 'none' -or $downloadDependencies -eq 'allButPlatform' -or $downloadDependencies -eq 'allButMicrosoft' -or $downloadDependencies -eq 'allButApplication') {
-                    $downloadIt = ($downloadDependencies -ne 'none')
-                }
-                else {
-                    # downloadDependencies is own or allButMicrosoft
-                    # check publisher and name
-                    if ($dependencyId -match '^(.*[^\.])\.(.*[^\.])\.("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
-                        # Matches publisher.name.appId format
-                        $dependencyPublisher = $matches[1]
-                        $dependencyName = $matches[2]
-                        $dependencyAppId = $matches[3]
-                        if ($downloadDependencies -eq 'allButMicrosoft') {
-                            $downloadIt = ($dependencyPublisher -ne 'Microsoft')
-                        }
-                        else {
-                            $downloadIt = ($dependencyPublisher -eq $manifest.package.authors)
+    while ($true) {
+        $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findSelect -allowPrerelease:($allowPrerelease.IsPresent)
+        if (-not $feed) {
+            Write-Host "No package found matching package name $($packageName) Version $($version)"
+            break
+        }
+        else {
+            Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
+            $package = $feed.DownloadPackage($packageId, $packageVersion)
+            $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
+            Dump "::group::NUSPEC"
+            $nuspec | ForEach-Object { Dump $_ }
+            Dump "::endgroup::"
+            $manifest = [xml]$nuspec
+            $dependenciesErr = ''
+            foreach($dependency in $manifest.package.metadata.dependencies.GetEnumerator()) {
+                $dependencyVersion = $dependency.Version
+                $dependencyId = $dependency.Id
+                $downloadIt = $false
+                if ($dependencyId -eq 'Microsoft.Platform') {
+                    # Dependency is to the platform
+                    if ($installedPlatform) {
+                        if (!([NuGetFeed]::IsVersionIncludedInRange($installedPlatform, $dependencyVersion))) {
+                            # The NuGet package found isn't compatible with the installed platform
+                            $dependenciesErr = "NuGet package $packageId (version $packageVersion) requires platform $dependencyVersion. You cannot install it on version $installedPlatform"
                         }
                     }
                     else {
-                        # Could not match publisher.name.appId format
-                        # All microsoft references should resolve - download it if we want allButMicrosoft
-                        $downloadIt = ($downloadDependencies -eq 'allButMicrosoft')
+                        $downloadIt = ($downloadDependencies -eq 'all')
                     }
                 }
-            }
-            if ($downloadIt) {
-                if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
-                    # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $matches[1] -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select
+                elseif ($dependencyId -match '^([^\.]+\.)?Application(\.[^\.]+)?$') {
+                    # Dependency is to the application
+                    $dependencyPublisher = $matches[1].TrimEnd('.')
+                    if ($matches.Count -gt 2) {
+                        $dependencyCountry = $matches[2].TrimStart('.')
+                    }
+                    else {
+                        $dependencyCountry = ''
+                    }
+                    $installedApp = $installedApps | Where-Object { $_ -and $_.Name -eq 'Application' }
+                    if ($installedApp) {
+                        if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
+                            $dependenciesErr = "NuGet package $packageId (version $packageVersion) requires application $dependencyVersion. You cannot install it on version $($installedApp.Version)"
+                        }
+                    }
+                    else {
+                        $downloadIt = ($downloadDependencies -eq 'all' -or $downloadDependencies -eq 'allButPlatform')
+                    }
                 }
                 else {
-                    # AppId not specified, use the dependencyId as is
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select
+                    $installedApp = $installedApps | Where-Object { $_ -and $dependencyId -like "*$($_.id)*" }
+                    if ($installedApp) {
+                        # Dependency is already installed, check version number
+                        if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
+                            # The version installed ins't compatible with the NuGet package found
+                            $dependenciesErr = "Dependency $dependencyId is already installed with version $($installedApp.Version), which is not compatible with the version $dependencyVersion required by the NuGet package $packageId (version $packageVersion))"
+                        }
+                    }
+                    elseif ($downloadDependencies -eq 'all' -or $downloadDependencies -eq 'none' -or $downloadDependencies -eq 'allButPlatform' -or $downloadDependencies -eq 'allButMicrosoft' -or $downloadDependencies -eq 'allButApplication') {
+                        $downloadIt = ($downloadDependencies -ne 'none')
+                    }
+                    else {
+                        # downloadDependencies is own or allButMicrosoft
+                        # check publisher and name
+                        if ($dependencyId -match '^(.*[^\.])\.(.*[^\.])\.("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
+                            # Matches publisher.name.appId format
+                            $dependencyPublisher = $matches[1]
+                            $dependencyName = $matches[2]
+                            $dependencyAppId = $matches[3]
+                            if ($downloadDependencies -eq 'allButMicrosoft') {
+                                $downloadIt = ($dependencyPublisher -ne 'Microsoft')
+                            }
+                            else {
+                                $downloadIt = ($dependencyPublisher -eq $manifest.package.authors)
+                            }
+                        }
+                        else {
+                            # Could not match publisher.name.appId format
+                            # All microsoft references should resolve - download it if we want allButMicrosoft
+                            $downloadIt = ($downloadDependencies -eq 'allButMicrosoft')
+                        }
+                    }
+                }
+                if ($dependenciesErr) {
+                    if ($select -ne 'LatestMatching') {
+                        throw $dependenciesErr
+                    }
+                    else {
+                        # If we are looking for the latest version, then we can try to find another version
+                        Write-Host "::WARNING::$dependenciesErr"
+                        break
+                    }
+                }
+                if ($downloadIt) {
+                    if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
+                        # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
+                        $dependencyId = $matches[1]
+                    }
+                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select
                 }
             }
-        }
-        $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
-        $appFiles | ForEach-Object {
-            Copy-Item $_ -Destination $folder -Force
-            if ($copyInstalledAppsToFolder) {
-                Copy-Item $_ -Destination $copyInstalledAppsToFolder -Force
+            if ($dependenciesErr) {
+                # If we are looking for the latest version, then we can try to find another version
+                $excludeVersions += $packageVersion
+                continue
             }
+            $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
+            $appFiles | ForEach-Object {
+                Copy-Item $_ -Destination $folder -Force
+                if ($copyInstalledAppsToFolder) {
+                    Copy-Item $_ -Destination $copyInstalledAppsToFolder -Force
+                }
+            }
+            Remove-Item -Path $package -Recurse -Force
+            break
         }
-        Remove-Item -Path $package -Recurse -Force
     }
 }
 Set-Alias -Name Copy-BcNuGetPackageToFolder -Value Download-BcNuGetPackageToFolder
