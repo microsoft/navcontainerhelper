@@ -7,7 +7,7 @@
   App file to include in the NuGet package
  .Parameter packageId
   Id of the NuGet package (or template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file) 
-  The default is '{publlisher}.{name}.{id}'
+  The default is '{publisher}.{name}.{id}'
  .Parameter packageVersion
   Version of the NuGet package
   The default is the version number from the app.json file
@@ -28,7 +28,7 @@
  .Parameter dependencyIdTemplate
   Template to calculate the id of the dependencies
   The template can contain {id}, {name} and {publisher} which will be replaced with the values from the corresponding dependency from app.json
-  The default is '{publlisher}.{name}.{id}'
+  The default is '{publisher}.{name}.{id}'
  .Example
   $package = New-BcNuGetPackage -appfile "C:\Users\freddyk\Downloads\MyBingMaps-main-Apps-1.0.3.0\Freddy Kristiansen_BingMaps.PTE_4.4.3.0.app"
  .Example
@@ -54,7 +54,7 @@ Function New-BcNuGetPackage {
         [Parameter(Mandatory=$false)]
         [string] $githubRepository = "",
         [Parameter(Mandatory=$false)]
-        [string] $dependencyIdTemplate = '{publlisher}.{name}.{id}',
+        [string] $dependencyIdTemplate = '{publisher}.{name}.{id}',
         [Parameter(Mandatory=$false)]
         [string] $applicationDependencyId = 'Microsoft.Application',
         [Parameter(Mandatory=$false)]
