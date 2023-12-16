@@ -141,7 +141,7 @@ Function Download-BcNuGetPackageToFolder {
                     }
                 }
                 else {
-                    $installedApp = $installedApps | Where-Object { $_ -and $dependencyId -like "*$($_.id)*" }
+                    $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }
                     if ($installedApp) {
                         # Dependency is already installed, check version number
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
@@ -185,7 +185,7 @@ Function Download-BcNuGetPackageToFolder {
                     }
                 }
                 if ($downloadIt) {
-                    if ($dependencyId -match '^.*("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
+                    if ($dependencyId -match '^.*([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
                         # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
                         $dependencyId = $matches[1]
                     }
