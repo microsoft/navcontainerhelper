@@ -39,6 +39,14 @@ class NuGetFeed {
             $this.Dump("- SearchQueryService=$($this.searchQueryServiceUrl)")
             $this.Dump("- PackagePublish=$($this.packagePublishUrl)")
             $this.Dump("- PackageBaseAddress=$($this.packageBaseAddressUrl)")
+            if ($this.searchQueryServiceUrl) {
+                if ($this.searchQueryServiceUrl -like 'https://nuget.pkg.github.com/*') {
+                    $this.searchQueryServiceUrl += '?q=id:'
+                }
+                else {
+                    $this.searchQueryServiceUrl += '?q='
+                }
+            }
         }
         catch {
             throw (GetExtendedErrorMessage $_)
@@ -84,7 +92,7 @@ class NuGetFeed {
     }
 
     [string[]] Search([string] $packageName) {
-        $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName"
+        $queryUrl = "$($this.searchQueryServiceUrl)$packageName"
         try {
             $this.Dump("Search package using $queryUrl")
             $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
