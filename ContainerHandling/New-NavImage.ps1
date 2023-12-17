@@ -476,11 +476,17 @@ try {
                     $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
                     Write-Host "Patching prompt.ps1 due to issue #2891"
                     $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
-                    $myScripts += @( "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" )
+                    $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/0cb3c095-c4f4-4d55-929b-3b4888a7b5f1/4156664d6bfcb46b63916a8cd43f8305/dotnet-hosting-6.0.13-win.exe" )
                     Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
                     $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.13-win.exe" -ArgumentList /quiet'
                 }
-            
+
+                if ($genericTag -le [Version]"1.0.2.14" -and [Version]$appManifest.Version -ge [Version]"24.0.0.0") {
+                    $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/2a7ae819-fbc4-4611-a1ba-f3b072d4ea25/32f3b931550f7b315d9827d564202eeb/dotnet-hosting-8.0.0-win.exe" )
+                    Write-Host "Base image is generic image 1.0.2.14 or below, installing dotnet 8.0.0"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-8.0.0-win.exe" -ArgumentList /quiet'
+                }
+
                 $myScripts | ForEach-Object {
                     if ($_ -is [string]) {
                         if ($_.StartsWith("https://", "OrdinalIgnoreCase") -or $_.StartsWith("http://", "OrdinalIgnoreCase")) {
