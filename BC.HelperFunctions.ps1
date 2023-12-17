@@ -79,6 +79,8 @@ function Get-ContainerHelperConfig {
                 "tt" = "br"
                 "uy" = "br"
                 "zw" = "w1"
+                "im" = "gb"
+                "gg" = "gb"
             }
             "mapNetworkSettings" = [PSCustomObject]@{
             }
@@ -108,6 +110,8 @@ function Get-ContainerHelperConfig {
                 "OAuthHostName" = "b52e8b6a-2953-4a08-8e28-5cf45a2dffdc"
                 "OAuthScopes" = "api://b52e8b6a-2953-4a08-8e28-5cf45a2dffdc/.default offline_access"
             }
+            "TrustedNuGetFeeds" = @(
+            )
         }
 
         if ($isInsider) {

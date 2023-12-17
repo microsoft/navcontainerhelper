@@ -1,3 +1,10 @@
+6.0.4
+Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
+Refactor NuGet feed functionality to use NuGetFeed class
+Add trusted NuGet feeds to settings to allow searching for NuGet packages in all trusted feeds
+Support searching for Earliest, Latest, Exact or Any NuGet package (default is Latest)
+Reset startcount when using Restart-BcContainer
+
 6.0.3
 Just-In-Time install dotnet 8.0.0 for Business Central version 24 or above (needed by alc.exe)
 
