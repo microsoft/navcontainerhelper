@@ -1733,9 +1733,22 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
             ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
         }
         Write-Host "Patching container to install dotnet 6.0.13"
-        Download-File -source "https://bcartifacts.blob.core.windows.net/prerequisites/dotnet-hosting-6.0.13-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win.exe")
+        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/0cb3c095-c4f4-4d55-929b-3b4888a7b5f1/4156664d6bfcb46b63916a8cd43f8305/dotnet-hosting-6.0.13-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win.exe")
         ('
 if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Generic image is 1.0.2.13 or below, installing dotnet 6.0.13"; start-process -Wait -FilePath "c:\run\my\dotnet-win.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win.exe" -Force }
+') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($version.Major -ge 24 -and $genericTag -le [System.Version]"1.0.2.14") {
+        if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
+            ('# Invoke default behavior
+              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+            ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
+        }
+        Write-Host "Patching container to install dotnet 8.0.0"
+        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/2a7ae819-fbc4-4611-a1ba-f3b072d4ea25/32f3b931550f7b315d9827d564202eeb/dotnet-hosting-8.0.0-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win8.exe")
+        ('
+if (Test-Path "c:\run\my\dotnet-win8.exe") { Write-Host "Generic image is 1.0.2.14 or below, installing dotnet 8.0.0"; start-process -Wait -FilePath "c:\run\my\dotnet-win8.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win8.exe" -Force }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
