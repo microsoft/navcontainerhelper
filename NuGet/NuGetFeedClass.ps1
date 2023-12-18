@@ -22,7 +22,8 @@ class NuGetFeed {
         $this.fingerprints = $fingerprints
         $this.verbose = $verbose
 
-        if ($nuGetServerUrl -like 'https://api.nuget.org/*' -and ($patterns.Contains('*') -and (!$fingerprints -or $fingerprints.Contains('*')))) {
+        # When trusting nuget.org, you should only trust packages signed by an author or packages matching a specific pattern (like using a registered prefix or a full name)
+        if ($nuGetServerUrl -like 'https://api.nuget.org/*' -and $patterns.Contains('*') -and (!$fingerprints -or $fingerprints.Contains('*'))) {
             throw "Trusting all packages on nuget.org is not supported"
         }
 
