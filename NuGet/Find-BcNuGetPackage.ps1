@@ -51,32 +51,23 @@ Function Find-BcNuGetPackage {
         [switch] $allowPrerelease
     )
 
-    function dump([string]$message) {
-        if ($message -like '::*' -and $VerbosePreference -eq 'Continue') {
-            Write-Host $message
-        }
-        else {
-            Write-Verbose $message
-        }
-    }
-
     $bestmatch = $null
     # Search all trusted feeds for the package
     foreach($feed in (@(@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
-            Dump "::group::Search NuGetFeed $($feed.Url)"
+            Write-Host "::group::Search NuGetFeed $($feed.Url)"
             try {
                 if (!$feed.ContainsKey('Token')) { $feed.Token = '' }
                 if (!$feed.ContainsKey('Patterns')) { $feed.Patterns = @('*') }
                 if (!$feed.ContainsKey('Fingerprints')) { $feed.Fingerprints = @() }
-                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints, ($VerbosePreference -eq 'Continue'))
+                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints)
                 $packageIds = $nuGetFeed.Search($packageName)
                 if ($packageIds) {
                     foreach($packageId in $packageIds) {
-                        Dump "PackageId: $packageId"
+                        Write-Host "PackageId: $packageId"
                         $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
                         if (!$packageVersion) {
-                            Dump "No package found matching version '$version' for package id $($packageId)"
+                            Write-Host "No package found matching version '$version' for package id $($packageId)"
                             continue
                         }
                         elseif ($bestmatch) {
@@ -116,7 +107,7 @@ Function Find-BcNuGetPackage {
                 }
             }
             finally {
-                Dump "::endgroup::"
+                Write-Host "::endgroup::"
             }
         }
         if ($bestmatch -and ($select -eq 'Any' -or $select -eq 'Exact')) {
