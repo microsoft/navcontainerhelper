@@ -62,11 +62,14 @@ Function Find-BcNuGetPackage {
 
     $bestmatch = $null
     # Search all trusted feeds for the package
-    foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*') })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
+    foreach($feed in (@(@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
             Dump "::group::Search NuGetFeed $($feed.Url)"
             try {
-                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, ($VerbosePreference -eq 'Continue'))
+                if (!$feed.ContainsKey('Token')) { $feed.Token = '' }
+                if (!$feed.ContainsKey('Patterns')) { $feed.Patterns = @('*') }
+                if (!$feed.ContainsKey('Fingerprints')) { $feed.Fingerprints = @() }
+                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints, ($VerbosePreference -eq 'Continue'))
                 $packageIds = $nuGetFeed.Search($packageName)
                 if ($packageIds) {
                     foreach($packageId in $packageIds) {
