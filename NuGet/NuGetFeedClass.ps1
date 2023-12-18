@@ -9,18 +9,16 @@ class NuGetFeed {
     [string] $token
     [string[]] $patterns
     [string[]] $fingerprints
-    [bool] $verbose = $false
 
     [string] $searchQueryServiceUrl
     [string] $packagePublishUrl
     [string] $packageBaseAddressUrl
 
-    NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints, [bool] $verbose) {
+    NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
         $this.patterns = $patterns
         $this.fingerprints = $fingerprints
-        $this.verbose = $verbose
 
         # When trusting nuget.org, you should only trust packages signed by an author or packages matching a specific pattern (like using a registered prefix or a full name)
         if ($nuGetServerUrl -like 'https://api.nuget.org/*' -and $patterns.Contains('*') -and (!$fingerprints -or $fingerprints.Contains('*'))) {
@@ -39,39 +37,30 @@ class NuGetFeed {
             $this.packagePublishUrl = $capabilities.resources | Where-Object { $_."@type" -eq 'PackagePublish/2.0.0' } | Select-Object -ExpandProperty '@id' | Select-Object -First 1
             $this.packageBaseAddressUrl = $capabilities.resources | Where-Object { $_."@type" -eq 'PackageBaseAddress/3.0.0' } | Select-Object -ExpandProperty '@id' | Select-Object -First 1
             if (!$this.searchQueryServiceUrl -or !$this.packagePublishUrl -or !$this.packageBaseAddressUrl) {
-                $this.Dump("Capabilities of NuGet server $($this.url) are not supported")
-                $capabilities.resources | ForEach-Object { $this.Dump("- $($_.'@type')"); $this.Dump("-> $($_.'@id')") }
+                Write-Host "Capabilities of NuGet server $($this.url) are not supported"
+                $capabilities.resources | ForEach-Object { Write-Host "- $($_.'@type')"; Write-Host "-> $($_.'@id')" }
             }
-            $this.Dump("Capabilities of NuGet server $($this.url) are:")
-            $this.Dump("- SearchQueryService=$($this.searchQueryServiceUrl)")
-            $this.Dump("- PackagePublish=$($this.packagePublishUrl)")
-            $this.Dump("- PackageBaseAddress=$($this.packageBaseAddressUrl)")
+            Write-Verbose "Capabilities of NuGet server $($this.url) are:"
+            Write-Verbose "- SearchQueryService=$($this.searchQueryServiceUrl)"
+            Write-Verbose "- PackagePublish=$($this.packagePublishUrl)"
+            Write-Verbose "- PackageBaseAddress=$($this.packageBaseAddressUrl)"
         }
         catch {
             throw (GetExtendedErrorMessage $_)
         }
     }
 
-    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints, [bool] $verbose) {
-        $nuGetFeed = $script:NuGetFeedCache | Where-Object { $_.url -eq $nuGetServerUrl -and $_.token -eq $nuGetToken -and (-not (Compare-Object $_.patterns $patterns)) -and (-not (Compare-Object $_.fingerprints $fingerprints)) -and $_.verbose -eq $verbose }
+    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
+        $nuGetFeed = $script:NuGetFeedCache | Where-Object { $_.url -eq $nuGetServerUrl -and $_.token -eq $nuGetToken -and (-not (Compare-Object $_.patterns $patterns)) -and (-not (Compare-Object $_.fingerprints $fingerprints)) }
         if (!$nuGetFeed) {
-            $nuGetFeed = [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $fingerprints, $verbose)
+            $nuGetFeed = [NuGetFeed]::new($nuGetServerUrl, $nuGetToken, $patterns, $fingerprints)
             $script:NuGetFeedCache += $nuGetFeed
         }
         return $nuGetFeed
     }
 
-    static [NuGetFeed] Create([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
-        return [NuGetFeed]::Create($nuGetServerUrl, $nuGetToken, $patterns, $fingerprints, $false)
-    }
-
     [void] Dump([string] $message) {
-        if ($message -like '::*' -and $this.verbose) {
-            Write-Host $message
-        }
-        else {
-            Write-Verbose $message
-        }
+        Write-Host $message
     }
 
     [hashtable] GetHeaders() {
@@ -91,20 +80,49 @@ class NuGetFeed {
     }
 
     [string[]] Search([string] $packageName) {
-        $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName"
-        try {
-            $this.Dump("Search package using $queryUrl")
-            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-            $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
-            $global:ProgressPreference = $prev
+        if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
+            # GitHub support for SearchQueryService is unstable and is not usable
+            # use GitHub API instead
+            # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
+            $organization = $matches[1]
+            $headers = @{
+                "Accept" = "application/vnd.github+json"
+                "X-GitHub-Api-Version" = "2022-11-28"
+            }
+            if ($this.token) {
+                $headers += @{
+                    "Authorization" = "Bearer $($this.token)"
+                }
+            }
+            $queryUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page="
+            $page = 1
+            Write-Host "Search package using $queryUrl$page"
+            $matching = @()
+            while ($true) {
+                $result = Invoke-RestMethod -Method GET -Headers $headers -Uri "$queryUrl$page"
+                if ($result.Count -eq 0) {
+                    break
+                }
+                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) }) | ForEach-Object { $_.name }
+                $page++
+            }
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
+        else {
+            $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName"
+            try {
+                Write-Host "Search package using $queryUrl"
+                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
+                $global:ProgressPreference = $prev
+            }
+            catch {
+                throw (GetExtendedErrorMessage $_)
+            }
+            # Check that the found pattern matches the package name and the trusted patterns
+            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) }) | ForEach-Object { $_.id }
         }
-        # Check that the found pattern matches the package name and the trusted patterns
-        $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) })
-        $this.Dump("$($matching.count) matching packages found")
-        return $matching | ForEach-Object { $this.Dump("- $($_.id)"); $_.id }
+        Write-Host "$($matching.count) matching packages found"
+        return $matching | ForEach-Object { Write-Host "- $_"; $_ }
     }
 
     [string[]] GetVersions([string] $packageId, [bool] $descending, [bool] $allowPrerelease) {
@@ -113,7 +131,7 @@ class NuGetFeed {
         }
         $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/index.json"
         try {
-            $this.Dump("Get versions using $queryUrl")
+            Write-Host "Get versions using $queryUrl"
             $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
             $versions = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
             $global:ProgressPreference = $prev
@@ -121,10 +139,10 @@ class NuGetFeed {
         catch {
             throw (GetExtendedErrorMessage $_)
         }
-        $this.Dump("$($versions.versions.count) versions found")
+        Write-Host "$($versions.versions.count) versions found"
         $versionsArr = @($versions.versions | Where-Object { $allowPrerelease -or !$_.Contains('-') } | Sort-Object { ($_ -replace '-.+$') -as [System.Version]  }, { "$($_)z" } -Descending:$descending | ForEach-Object { "$_" })
-        $this.Dump("First version is $($versionsArr[0])")
-        $this.Dump("Last version is $($versionsArr[$versionsArr.Count-1])")
+        Write-Host "First version is $($versionsArr[0])"
+        Write-Host "Last version is $($versionsArr[$versionsArr.Count-1])"
         return $versionsArr
     }
 
@@ -211,7 +229,7 @@ class NuGetFeed {
                 continue
             }
             if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
-                $this.Dump("$select version matching $nuGetVersionRange is $version")
+                Write-Host "$select version matching $nuGetVersionRange is $version"
                 return $version
             }
         }
@@ -229,7 +247,7 @@ class NuGetFeed {
         }
         $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).nuspec"
         try {
-            $this.Dump("Download nuspec using $queryUrl")
+            Write-Host "Download nuspec using $queryUrl"
             $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
             $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).nuspec"
             Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $tmpFile
@@ -250,25 +268,25 @@ class NuGetFeed {
         $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).$($version.ToLowerInvariant()).nupkg"
         $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())    
         try {
-            $this.Dump("Download package using $queryUrl")
+            Write-Host "Download package using $queryUrl"
             $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
             $filename = "$tmpFolder.zip"
             Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $filename
             if ($this.fingerprints) {
                 $arguments = @("nuget", "verify", $filename)
                 if ($this.fingerprints.Count -eq 1 -and $this.fingerprints[0] -eq '*') {
-                    $this.Dump("Verifying package using any certificate")
+                    Write-Host "Verifying package using any certificate"
                 }
                 else {
-                    $this.Dump("Verifying package using $($this.fingerprints -join ', ')")
+                    Write-Host "Verifying package using $($this.fingerprints -join ', ')"
                     $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
                 }
-                cmddo -command 'dotnet' -arguments $arguments -silent:(!$this.verbose)
+                cmddo -command 'dotnet' -arguments $arguments -silent
             }
             Expand-Archive -Path $filename -DestinationPath $tmpFolder -Force
             $global:ProgressPreference = $prev
             Remove-Item $filename -Force
-            $this.Dump("Package successfully downloaded")
+            Write-Host "Package successfully downloaded"
         }
         catch {
             throw (GetExtendedErrorMessage $_)

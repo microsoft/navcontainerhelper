@@ -75,15 +75,6 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $allowPrerelease
     )
 
-    function dump([string]$message) {
-        if ($message -like '::*' -and $VerbosePreference -eq 'Continue') {
-            Write-Host $message
-        }
-        else {
-            Write-Verbose $message
-        }
-    }
-
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
         $findSelect = 'Latest'
@@ -100,9 +91,8 @@ Function Download-BcNuGetPackageToFolder {
             Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
             $package = $feed.DownloadPackage($packageId, $packageVersion)
             $nuspec = Get-Content (Join-Path $package '*.nuspec' -Resolve) -Encoding UTF8
-            Dump "::group::NUSPEC"
-            $nuspec | ForEach-Object { Dump $_ }
-            Dump "::endgroup::"
+            Write-Verbose "NUSPEC:"
+            $nuspec | ForEach-Object { Write-Verbose $_ }
             $manifest = [xml]$nuspec
             $dependenciesErr = ''
             foreach($dependency in $manifest.package.metadata.dependencies.GetEnumerator()) {
