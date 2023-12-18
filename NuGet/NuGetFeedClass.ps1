@@ -230,7 +230,7 @@ class NuGetFeed {
                 continue
             }
             if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
-                Write-HGost "$select version matching $nuGetVersionRange is $version"
+                Write-Host "$select version matching $nuGetVersionRange is $version"
                 return $version
             }
         }
