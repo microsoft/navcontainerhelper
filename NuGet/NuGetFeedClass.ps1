@@ -91,21 +91,51 @@ class NuGetFeed {
     }
 
     [string[]] Search([string] $packageName) {
-        $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName"
-        try {
-            $this.Dump("Search package using $queryUrl")
-            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-            $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
-            $global:ProgressPreference = $prev
+        if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/index.json$') {
+            # GitHub support for SearchQueryService has many errors and is not usable
+            # use GitHub API instead
+            # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
+            $organization = $matches[1]
+            $headers = @{
+                "Accept" = "application/vnd.github+json"
+                "X-GitHub-Api-Version" = "2022-11-28"
+            }
+            if ($this.token) {
+                $headers += @{
+                    "Authorization" = "Bearer $($this.token)"
+                }
+            }
+            $this.Dump("Search package using GitHub API")
+            $matching = @()
+            $page = 1
+            while ($true) {
+                $searchUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page=$page"
+                $this.Dump($searchUrl)
+                $result = Invoke-RestMethod -Method GET -Headers $headers -Uri $searchUrl
+                if ($result.Count -eq 0) {
+                    break
+                }
+                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) }) | ForEach-Object { $_.name }
+                $page++
+            }
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
+        else {
+            $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName"
+            try {
+                $this.Dump("Search package using $queryUrl")
+                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
+                $global:ProgressPreference = $prev
+            }
+            catch {
+                throw (GetExtendedErrorMessage $_)
+            }
+            # Check that the found pattern matches the package name and the trusted patterns
+            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) }) | ForEach-Object { $_.id }
         }
-        # Check that the found pattern matches the package name and the trusted patterns
-        $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) })
         $this.Dump("$($matching.count) matching packages found")
-        return $matching | ForEach-Object { $this.Dump("- $($_.id)"); $_.id }
-    }
+        return $matching | ForEach-Object { $this.Dump("- $_"); $_ }
+}
 
     [string[]] GetVersions([string] $packageId, [bool] $descending, [bool] $allowPrerelease) {
         if (!$this.IsTrusted($packageId)) {
