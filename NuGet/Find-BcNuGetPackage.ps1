@@ -55,59 +55,54 @@ Function Find-BcNuGetPackage {
     # Search all trusted feeds for the package
     foreach($feed in (@(@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
-            Write-Host "::group::Search NuGetFeed $($feed.Url)"
-            try {
-                if (!$feed.ContainsKey('Token')) { $feed.Token = '' }
-                if (!$feed.ContainsKey('Patterns')) { $feed.Patterns = @('*') }
-                if (!$feed.ContainsKey('Fingerprints')) { $feed.Fingerprints = @() }
-                $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints)
-                $packageIds = $nuGetFeed.Search($packageName)
-                if ($packageIds) {
-                    foreach($packageId in $packageIds) {
-                        Write-Host "PackageId: $packageId"
-                        $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
-                        if (!$packageVersion) {
-                            Write-Host "No package found matching version '$version' for package id $($packageId)"
-                            continue
-                        }
-                        elseif ($bestmatch) {
-                            # We already have a match, check if this is a better match
-                            if (($select -eq 'Earliest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq -1)) -or 
-                                ($select -eq 'Latest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq 1))) {
-                                $bestmatch = [PSCustomObject]@{
-                                    "Feed" = $nuGetFeed
-                                    "PackageId" = $packageId
-                                    "PackageVersion" = $packageVersion
-                                }
-                            }
-                        }
-                        elseif ($select -eq 'Exact') {
-                            # We only have a match if the version is exact
-                            if ($packageVersion -eq $version) {
-                                $bestmatch = [PSCustomObject]@{
-                                    "Feed" = $nuGetFeed
-                                    "PackageId" = $packageId
-                                    "PackageVersion" = $packageVersion
-                                }
-                                break
-                            }
-                        }
-                        else {
+            Write-Host "Search NuGetFeed $($feed.Url)"
+            if (!$feed.ContainsKey('Token')) { $feed.Token = '' }
+            if (!$feed.ContainsKey('Patterns')) { $feed.Patterns = @('*') }
+            if (!$feed.ContainsKey('Fingerprints')) { $feed.Fingerprints = @() }
+            $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints)
+            $packageIds = $nuGetFeed.Search($packageName)
+            if ($packageIds) {
+                foreach($packageId in $packageIds) {
+                    Write-Host "PackageId: $packageId"
+                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
+                    if (!$packageVersion) {
+                        Write-Host "No package found matching version '$version' for package id $($packageId)"
+                        continue
+                    }
+                    elseif ($bestmatch) {
+                        # We already have a match, check if this is a better match
+                        if (($select -eq 'Earliest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq -1)) -or 
+                            ($select -eq 'Latest' -and ([NuGetFeed]::CompareVersions($packageVersion, $bestmatch.PackageVersion) -eq 1))) {
                             $bestmatch = [PSCustomObject]@{
                                 "Feed" = $nuGetFeed
                                 "PackageId" = $packageId
                                 "PackageVersion" = $packageVersion
                             }
-                            # If we are looking for any match, we can stop here
-                            if ($select -eq 'Any') {
-                                break
+                        }
+                    }
+                    elseif ($select -eq 'Exact') {
+                        # We only have a match if the version is exact
+                        if ($packageVersion -eq $version) {
+                            $bestmatch = [PSCustomObject]@{
+                                "Feed" = $nuGetFeed
+                                "PackageId" = $packageId
+                                "PackageVersion" = $packageVersion
                             }
+                            break
+                        }
+                    }
+                    else {
+                        $bestmatch = [PSCustomObject]@{
+                            "Feed" = $nuGetFeed
+                            "PackageId" = $packageId
+                            "PackageVersion" = $packageVersion
+                        }
+                        # If we are looking for any match, we can stop here
+                        if ($select -eq 'Any') {
+                            break
                         }
                     }
                 }
-            }
-            finally {
-                Write-Host "::endgroup::"
             }
         }
         if ($bestmatch -and ($select -eq 'Any' -or $select -eq 'Exact')) {
