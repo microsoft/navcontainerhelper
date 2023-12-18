@@ -81,7 +81,7 @@ class NuGetFeed {
 
     [string[]] Search([string] $packageName) {
         if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
-            # GitHub support for SearchQueryService has many errors and is not usable
+            # GitHub support for SearchQueryService is unstable and is not usable
             # use GitHub API instead
             # GitHub API unfortunately doesn't support filtering, so we need to filter ourselves
             $organization = $matches[1]
@@ -94,13 +94,12 @@ class NuGetFeed {
                     "Authorization" = "Bearer $($this.token)"
                 }
             }
-            Write-Host "Search package using GitHub API"
-            $matching = @()
+            $queryUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page="
             $page = 1
+            Write-Host "Search package using $queryUrl$page"
+            $matching = @()
             while ($true) {
-                $searchUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page=$page"
-                Write-Host $searchUrl
-                $result = Invoke-RestMethod -Method GET -Headers $headers -Uri $searchUrl
+                $result = Invoke-RestMethod -Method GET -Headers $headers -Uri "$queryUrl$page"
                 if ($result.Count -eq 0) {
                     break
                 }
