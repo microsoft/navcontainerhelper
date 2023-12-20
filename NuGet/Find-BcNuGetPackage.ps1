@@ -53,12 +53,12 @@ Function Find-BcNuGetPackage {
 
     $bestmatch = $null
     # Search all trusted feeds for the package
-    foreach($feed in (@(@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
+    foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
             Write-Host "Search NuGetFeed $($feed.Url)"
-            if (!$feed.ContainsKey('Token')) { $feed.Token = '' }
-            if (!$feed.ContainsKey('Patterns')) { $feed.Patterns = @('*') }
-            if (!$feed.ContainsKey('Fingerprints')) { $feed.Fingerprints = @() }
+            if (!($feed.PSObject.Properties.Name -eq 'Token')) { $feed | Add-Member -MemberType NoteProperty -Name 'Token' -Value '' }
+            if (!($feed.PSObject.Properties.Name -eq 'Patterns')) { $feed | Add-Member -MemberType NoteProperty -Name 'Patterns' -Value @('*') }
+            if (!($feed.PSObject.Properties.Name -eq 'Fingerprints')) { $feed | Add-Member -MemberType NoteProperty -Name 'Fingerprints' -Value @() }
             $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints)
             $packageIds = $nuGetFeed.Search($packageName)
             if ($packageIds) {
