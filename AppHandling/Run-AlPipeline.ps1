@@ -1320,6 +1320,12 @@ Measure-Command {
             "environment" = $environment
         }
     }
+    if ($useDevEndpoint) {
+        $Parameters += @{
+            "devEndpoint" = $useDevEndpoint
+            "credential" = $credential
+        }
+    }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 if ($gitHubActions) { Write-Host "::endgroup::" }
