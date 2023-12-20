@@ -1319,8 +1319,7 @@ Measure-Command {
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
         }
-    }
-    if ($useDevEndpoint) {
+    } elseif($useDevEndpoint) {
         $Parameters += @{
             "useDevEndpoint" = $useDevEndpoint
             "credential" = $credential
@@ -1498,6 +1497,11 @@ Measure-Command {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+            }
+        } elseif($useDevEndpoint) {
+            $Parameters += @{
+                "useDevEndpoint" = $useDevEndpoint
+                "credential" = $credential
             }
         }
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
