@@ -1,6 +1,16 @@
 ﻿Param(
-    [switch] $skipContainerHelperCheck
+    [switch] $skipContainerHelperCheck = $true
 )
+
+# Single/Multi project
+
+# Upload apps
+# Starting version number
+
+
+
+
+
 
 $ErrorActionPreference = "stop"
 
@@ -428,7 +438,6 @@ $Step = @{
 
 $orgSecrets = @()
 $secrets = [ordered]@{
-    "InsiderSasToken" = ""
     "ghTokenWorkflow" = ""
     "AdminCenterApiCredentials" = ""
     "LicenseFileUrl" = ""
@@ -508,7 +517,7 @@ $Step.Intro {
 
     $doit = Enter-Value `
             -title " " -doNotClearHost `
-            -description "AL-Go for GitHub is plug-and-play DevOps. Easy to setup, easy to use.`nHaving said that, there are many ways to configure AL-Go for GitHub, this wizard takes you through many of the options and help you define the right settings.`n`nFirst thing you need to do, is to determine the structure of your repositories.`nThe recommendation is that apps, which are shipped together share the same repository with their test apps.`nIf you have ""common"" apps, which are used by multiple projects, we recommend that these are placed in a ""common"" repository.`nYou should start by setting up the repository for your ""common"" apps and after that, setup the repository with a dependency to the first repository." `
+            -description "AL-Go for GitHub is plug-and-play DevOps. Easy to setup, easy to use.`n`nHaving said that, there are many ways to configure AL-Go for GitHub, this wizard takes you through many of the options and help you define the right settings.`n`nFirst thing you need to do, is to determine the structure of your repositories.`nThe recommendation is that apps, which are shipped together share the same repository with their test apps.`nIf you have ""common"" apps, which are used by multiple projects, we recommend that these are placed in a ""common"" repository.`nYou should start by setting up the repository for your ""common"" apps and after that, setup the repository with a dependency to the first repository." `
             -options @("Y","N") `
             -question "Please select Y to start the AL-Go for GitHub setup wizard"
     
@@ -534,7 +543,7 @@ $Step.Org {
               __/ |                                         
              |___/                                          
 '@ `
-        -Description "Every GitHub user has a personal account and can be a member of any number of organizations. You can place your repository in a personal account or an organizational account.`nMicrosoft recommends placing your repository in an organizational account in order to be able to share GitHub agents, secrets and other things between the repositories`n`nVisit |https://github.com/settings/organizations| to see which organizations you are part of`n`nUnder which organization do you want to place your repositories?" `
+        -Description "Every GitHub user has a personal account and can be a member of any number of organizations. You can place your repository in a personal account or an organizational account. Microsoft recommends placing your repository in an organizational account in order to be able to share GitHub agents, secrets and other things between the repositories`n`nVisit |https://github.com/settings/organizations| to see which organizations you are part of`n`nUnder which organization do you want to place your repositories?" `
         -question "Please specify the name of your GitHub organization" `
         -previousStep `
         -default $settings.Org `
@@ -747,8 +756,8 @@ $Step.VersioningMethod {
                                              __/ |                                    
                                             |___/                                     
 '@ `
-        -Description "The format of version numbers are major.minor.build.release.`nWhen building apps in AL-Go for GitHub, the Major.Minor part of the version number are read from app.json and the build.release part are calculated.`n- GitHub RUN_NUMBER is an auto-incrementing number for each workflow. The RunNumberOffset setting can be used to offset the starting value.`n- GitHub RUN_ID is an auto-incrementing number for all workflows.`n- GitHub RUN_ATTEMPT increases for every re-run of jobs.`n`nSelect the method used for calculating build and release part of your app:" `
-        -options ([ordered]@{"0" = "Use GitHub RUN_NUMBER.RUN_ATTEMPT (recommended)"; "1" = "Use GitHub RUN_ID.RUN_ATTEMPT"; "2" = "Use UTC datetime yyyyMMdd.hhmmss"}) `
+        -Description "The format of version numbers are major.minor.build.release.`nWhen building apps in AL-Go for GitHub, the Major.Minor part of the version number are read from app.json and the build.release part are calculated.`n- GitHub RUN_NUMBER is an auto-incrementing number for each workflow. The RunNumberOffset setting can be used to offset the starting value.`n- GitHub RUN_ATTEMPT increases for every re-run of jobs.`n`nSelect the method used for calculating build and release part of your app:" `
+        -options ([ordered]@{"0" = "Use GitHub RUN_NUMBER.RUN_ATTEMPT (recommended)"; "2" = "Use UTC datetime yyyyMMdd.hhmmss"}) `
         -question "Versioning method" `
         -previousStep `
         -default $settings.versioningMethod
@@ -822,7 +831,7 @@ $Step.scheduledWorkflows {
                                                                                                     
                                                                                                     
 '@ `
-        -Description "AL-Go for GitHub includes three workflows, which typically are setup to run on a schedule.`nNote that in order to run the Test Next Minor and Test Next Major workflows, you need to have provide a secret called insiderSasToken.`n" `
+        -Description "AL-Go for GitHub includes three workflows, which typically are setup to run on a schedule.`n" `
         -options ([ordered]@{"Current" = "Test Current    : $($settings.CurrentSchedule)"; "NextMinor" = "Test Next Minor : $($settings.NextMinorSchedule)"; "NextMajor" = "Test Next Major : $($settings.NextMajorSchedule)"; "none" = "No further changes needed" }) `
         -question "Select schedule to change" `
         -previousStep `
@@ -877,7 +886,7 @@ $Step.GitHubRunner {
 
 $Step.Secrets {
 
-    $neededSecrets = "- InsiderSasToken - if you want to run builds against future versions of Business Central, this secret needs to contain the insider SAS token from |https://aka.ms/collaborate|`n- GhTokenWorkflow - must be a valid personal access token with permissions to modify workflows, created from |https://github.com/settings/tokens|`n- [environment-]AuthContext - Authentication context for authenticating to specific environments (continuous deployment, publish to production)`n- AdminCenterApiCredentials - An AuthContext for accessing the Admin Center Api (creating development environments)`n- AZURE_CREDENTIALS - is used as a GitHub secret to provide access to an Azure KeyVault with your secrets`n"
+    $neededSecrets = "- GhTokenWorkflow - must be a valid personal access token with permissions to modify workflows, created from |https://github.com/settings/tokens|`n- [environment-]AuthContext - Authentication context for authenticating to specific environments (continuous deployment, publish to production)`n- AdminCenterApiCredentials - An AuthContext for accessing the Admin Center Api (creating development environments)`n- AZURE_CREDENTIALS - is used as a GitHub secret to provide access to an Azure KeyVault with your secrets`n"
     if ($appType -eq "AppSource") {
         $neededSecrets += "- LicenseFile - needs to contain a direct download URL for your Business Central license file`n- CodeSignCertificateUrl - direct download URL for Code Signing certificate`n- CodeSignCertificatePassword - pfx password for code signing certificate."
     }
@@ -1035,20 +1044,6 @@ $Step.DefineSecrets {
         $script:wizardStep = $step.DefineSecrets
         Write-Host -ForegroundColor Yellow "`n$setSecret`n"
         switch ($setSecret) {
-        "InsiderSasToken" {
-            Write-Host "The Insider SAS Token is available for Microsoft partners on https://aka.ms/collaborate for members of the Ready! for Dynamics 365 Business Central Engagement`nPlease follow the steps on https://aka.ms/bcpublisher to get access`n`nThe package containing the Insider SAS Token is called Working with Business Central Insider Builds and is available for download here:`n`nhttps://partner.microsoft.com/en-us/dashboard/collaborate/packages/9387`n"
-            while ($true) {
-                $secrets.InsiderSasToken = Read-Host "Please paste the Insider SAS token here"
-                if (-not ($secrets.InsiderSasToken)) { break }
-                try {
-                    Get-BCArtifactUrl -storageAccount bcinsider -country us -sasToken $secrets.InsiderSasToken
-                    break
-                }
-                catch {
-                    Write-Host -ForegroundColor Red "The Insider SAS Token is invalid"
-                }
-            }
-        }
         "ghTokenWorkflow" {
             Write-Host "In order to run the Update AL-Go System files workflow, the ghTokenWorkflow secret needs to be defined.`nVisit the personal access tokens site for your account on GitHub and generate a new token with the workflow scope selected.`nNote that if you specify a PAT with an expiration date, you will have to update the token when it expires.`n`nYou can visit the Personal Access Tokens site on GitHub using this URL:`n`nhttps://github.com/settings/tokens`n"
             $secrets.ghTokenWorkflow = Read-Host "Please paste the Personal Access Token with workflow scope here"

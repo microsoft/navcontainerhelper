@@ -33,7 +33,7 @@ try {
     Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
     Import-Module ACME-PS
 
-    $stateDir = Join-Path $hostHelperFolder "acmeState"
+    $stateDir = Join-Path $bcContainerHelperConfig.hostHelperFolder "acmeState"
     if (Test-Path $certificatePfxFilename) {
         Write-Host "Removing existing certificate"
         Remove-Item -Path $certificatePfxFilename -Force

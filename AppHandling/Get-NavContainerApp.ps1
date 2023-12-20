@@ -28,7 +28,7 @@ function Get-BcContainerApp {
         [Parameter(Mandatory=$false)]
         [string] $Tenant = "default",
         [Parameter(Mandatory=$false)]
-        [string] $appFile = (Join-Path $extensionsFolder "$containerName\$appName.app"),
+        [string] $appFile = (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$appName.app"),
         [Parameter(Mandatory=$false)]
         [PSCredential] $credential = $null
     )
@@ -64,26 +64,12 @@ try {
     }
 
     $sslVerificationDisabled = ($protocol -eq "https://")
-    if ($sslVerificationDisabled) {
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-        {
-            Add-Type -TypeDefinition "
-                using System.Net.Security;
-                using System.Security.Cryptography.X509Certificates;
-                public static class SslVerification
-                {
-                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                }"
-        }
-        Write-Host "Disabling SSL Verification"
-        [SslVerification]::Disable()
-    }
-    
-    $webClient = [TimeoutWebClient]::new(300000)
+    $timeout = 300000
+    $useDefaultCredentials = $false
+    $headers = @{}
+
     if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-        $webClient.UseDefaultCredentials = $true
+        $useDefaultCredentials = $true
     }
     else {
         if (!($credential)) {
@@ -94,23 +80,18 @@ try {
         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
         $base64 = [System.Convert]::ToBase64String($bytes)
         $basicAuthValue = "Basic $base64"
-        $webClient.Headers.Add("Authorization", $basicAuthValue)
+        $headers."Authorization" = $basicAuthValue
     }
 
     Write-Host "Downloading app: $appName"
     $url = "$devServerUrl/dev/packages?publisher=$([uri]::EscapeDataString($publisher))&appName=$([uri]::EscapeDataString($appName))&versionText=$($appVersion)&tenant=$tenant"
     Write-Host "Url : $Url"
     try {
-        $webClient.DownloadFile($url, $appFile)
+        DownloadFileLow -sourceUrl $url -destinationFile $appFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers -skipCertificateCheck:$sslVerificationDisabled
     }
     catch [System.Net.WebException] {
         Write-Host "ERROR $($_.Exception.Message)"
         throw (GetExtendedErrorMessage $_)
-    }
-
-    if ($sslverificationdisabled) {
-        Write-Host "Re-enabling SSL Verification"
-        [SslVerification]::Enable()
     }
 
     $appFile

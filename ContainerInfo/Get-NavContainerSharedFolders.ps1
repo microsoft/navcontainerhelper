@@ -26,14 +26,16 @@ try {
     $sharedFolders = @{}
     if ($inspect.HostConfig.Binds) {
         $inspect.HostConfig.Binds | ForEach-Object {
-            $idx = $_.IndexOf(':', $_.IndexOf(':') + 1)
+            $idx = $_.IndexOf(':', 2)
             $src = $_.Substring(0, $idx).TrimEnd('\')
             $dst = $_.SubString($idx+1)
-            $idx = $dst.IndexOf(':', $_.IndexOf(':') + 1)
+            $idx = $dst.IndexOf(':', 2)
             if ($idx -gt 0) {
                 $dst = $dst.SubString(0,$idx)
             }
-            $sharedFolders += @{ $src = $dst }
+            if (-not ($sharedFolders[$src])) {
+                $sharedFolders += @{ $src = $dst }
+            }
         }
     }
     

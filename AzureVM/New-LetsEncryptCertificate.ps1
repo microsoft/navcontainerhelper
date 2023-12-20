@@ -37,7 +37,7 @@ function New-LetsEncryptCertificate {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $stateDir = Join-Path $hostHelperFolder "acmeState"
+    $stateDir = Join-Path $bcContainerHelperConfig.hostHelperFolder "acmeState"
     Write-Host "Importing ACME-PS module (need 1.1.0-beta or higher)"
     Import-Module ACME-PS
 

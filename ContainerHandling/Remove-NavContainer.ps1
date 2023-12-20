@@ -43,7 +43,7 @@ try {
         if ($dotidx -eq -1) { $dotidx = $hostname.Length }
         $tenantHostname = $hostname.insert($dotidx,"-*")
 
-        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
         $allVolumes = @(docker volume ls --format "{{.Mountpoint}}|{{.Name}}")
         $myVolumeName = "$containerName-my"
         $myVolume = $allVolumes | Where-Object { $_ -like "*|$myVolumeName" }

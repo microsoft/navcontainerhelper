@@ -1,5 +1,3 @@
-#Requires -PSEdition Desktop 
-
 param(
     [switch] $Silent,
     [switch] $ExportTelemetryFunctions,
@@ -7,184 +5,28 @@ param(
     [switch] $useVolumes
 )
 
-Set-StrictMode -Version 2.0
+. (Join-Path $PSScriptRoot "InitializeModule.ps1") `
+    -Silent:$Silent `
+    -bcContainerHelperConfigFile $bcContainerHelperConfigFile `
+    -moduleName $MyInvocation.MyCommand.Name `
 
-$verbosePreference = "SilentlyContinue"
-$warningPreference = 'Continue'
-$errorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot "HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "SaaSHelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "BC.HelperFunctions.ps1")
 
-if ([intptr]::Size -eq 4) {
-    throw "ContainerHelper cannot run in Windows PowerShell (x86), need 64bit mode"
+if ($isMacOS) {
+    throw "BcContainerHelper isn't supported on MacOS"
+}
+elseif ($isLinux) {
+    Write-Host "Running on Linux"
+}
+elseif ($isPsCore) {
+    Write-Host "Running on PowerShell 7"
 }
 
-$currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-$isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-$isInsideContainer = ((whoami) -eq "user manager\containeradministrator")
-
-try {
-    $myUsername = $currentPrincipal.Identity.Name
-} catch {
-    $myUsername = (whoami)
+if ($useVolumes -or $isInsideContainer) {
+    $bcContainerHelperConfig.UseVolumes = $true
 }
-
-$BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
-if (!$silent) {
-    Write-Host "BcContainerHelper version $BcContainerHelperVersion"
-}
-$isInsider = $BcContainerHelperVersion -like "*-dev" -or $BcContainerHelperVersion -like "*-preview*"
-
-function Get-ContainerHelperConfig {
-    if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
-        Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
-            "bcartifactsCacheFolder" = ""
-            "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
-            "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
-            "usePsSession" = $isAdministrator # -and ("$ENV:GITHUB_ACTIONS" -ne "true") -and ("$ENV:TF_BUILD" -ne "true")
-            "addTryCatchToScriptBlock" = $true
-            "killPsSessionProcess" = $false
-            "useVolumes" = $useVolumes -or $isInsideContainer
-            "useVolumeForMyFolder" = $false
-            "use7zipIfAvailable" = $true
-            "defaultNewContainerParameters" = @{ }
-            "hostHelperFolder" = ""
-            "containerHelperFolder" = "C:\ProgramData\BcContainerHelper"
-            "defaultContainerName" = "bcserver"
-            "digestAlgorithm" = "SHA256"
-            "timeStampServer" = "http://timestamp.digicert.com"
-            "sandboxContainersAreMultitenantByDefault" = $true
-            "useSharedEncryptionKeys" = $true
-            "DOCKER_SCAN_SUGGEST" = $false
-            "psSessionTimeout" = 0
-            "baseUrl" = "https://businesscentral.dynamics.com"
-            "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
-            "mapCountryCode" = [PSCustomObject]@{
-                "ae" = "w1"
-                "ar" = "w1"
-                "bd" = "w1"
-                "dz" = "w1"
-                "cl" = "w1"
-                "pr" = "w1"
-                "eg" = "w1"
-                "fo" = "dk"
-                "gl" = "dk"
-                "id" = "w1"
-                "ke" = "w1"
-                "lb" = "w1"
-                "lk" = "w1"
-                "lu" = "w1"
-                "ma" = "w1"
-                "mm" = "w1"
-                "mt" = "w1"
-                "my" = "w1"
-                "ng" = "w1"
-                "qa" = "w1"
-                "sa" = "w1"
-                "sg" = "w1"
-                "tn" = "w1"
-                "ua" = "w1"
-                "za" = "w1"
-                "ao" = "w1"
-                "bh" = "w1"
-                "ba" = "w1"
-                "bw" = "w1"
-                "cr" = "br"
-                "cy" = "w1"
-                "do" = "br"
-                "ec" = "br"
-                "sv" = "br"
-                "gt" = "br"
-                "hn" = "br"
-                "jm" = "w1"
-                "mv" = "w1"
-                "mu" = "w1"
-                "ni" = "br"
-                "pa" = "br"
-                "py" = "br"
-                "tt" = "br"
-                "uy" = "br"
-                "zw" = "w1"
-            }
-            "mapNetworkSettings" = [PSCustomObject]@{
-            }
-            "AddHostDnsServersToNatContainers" = $false
-            "TraefikUseDnsNameAsHostName" = $false
-            "TreatWarningsAsErrors" = @()
-            "PartnerTelemetryConnectionString" = ""
-            "MicrosoftTelemetryConnectionString" = "InstrumentationKey=5b44407e-9750-4a07-abe9-30c3b853821b;IngestionEndpoint=https://southcentralus-0.in.applicationinsights.azure.com/"
-            "SendExtendedTelemetryToMicrosoft" = $false
-            "TraefikImage" = "tobiasfenster/traefik-for-windows:v1.7.34"
-            "ObjectIdForInternalUse" = 88123
-            "WinRmCredentials" = $null
-            "WarningPreference" = "SilentlyContinue"
-            "UseNewFormatForGetBcContainerAppInfo" = $false
-            "NoOfSecondsToSleepAfterPublishBcContainerApp" = 1
-            "RenewClientContextBetweenTests" = $false
-        }
-
-        if ($isInsider) {
-            $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{0}-dev'
-            $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
-        }
-
-        if ($bcContainerHelperConfigFile -notcontains "C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json") {
-            $bcContainerHelperConfigFile = @("C:\ProgramData\BcContainerHelper\BcContainerHelper.config.json")+$bcContainerHelperConfigFile
-        }
-        $bcContainerHelperConfigFile | ForEach-Object {
-            $configFile = $_
-            if (Test-Path $configFile) {
-                try {
-                    $savedConfig = Get-Content $configFile | ConvertFrom-Json
-                    if ("$savedConfig") {
-                        $keys = $bcContainerHelperConfig.Keys | % { $_ }
-                        $keys | ForEach-Object {
-                            if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-                                if (!$silent) {
-                                    Write-Host "Setting $_ = $($savedConfig."$_")"
-                                }
-                                $bcContainerHelperConfig."$_" = $savedConfig."$_"
-                            }
-                        }
-                    }
-                }
-                catch {
-                    throw "Error reading configuration file $configFile, cannot import module."
-                }
-            }
-        }
-
-        if ($isInsideContainer) {
-            $bcContainerHelperConfig.usePsSession = $true
-            try {
-                $myinspect = docker inspect $(hostname) | ConvertFrom-Json
-                $bcContainerHelperConfig.WinRmCredentials = New-Object PSCredential -ArgumentList 'WinRmUser', (ConvertTo-SecureString -string "P@ss$($myinspect.Id.SubString(48))" -AsPlainText -Force)
-            }
-            catch {}
-        }
-
-        if ($bcContainerHelperConfig.UseVolumes) {
-            if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
-                $bcContainerHelperConfig.bcartifactsCacheFolder = "bcartifacts.cache"
-            }
-            if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
-                $bcContainerHelperConfig.hostHelperFolder = "hostHelperFolder"
-            }
-            $bcContainerHelperConfig.useVolumeForMyFolder = $false
-        }
-        else {
-            if ($bcContainerHelperConfig.bcartifactsCacheFolder -eq "") {
-                $bcContainerHelperConfig.bcartifactsCacheFolder = "c:\bcartifacts.cache"
-            }
-            if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
-                $bcContainerHelperConfig.hostHelperFolder = "C:\ProgramData\BcContainerHelper"
-            }
-        }
-
-        Export-ModuleMember -Variable bcContainerHelperConfig
-    }
-    return $bcContainerHelperConfig
-}
-
-Get-ContainerHelperConfig | Out-Null
 
 $hypervState = ""
 function Get-HypervState {
@@ -200,35 +42,6 @@ function Get-HypervState {
     return $script:hypervState
 }
 
-$Source = @"
-	using System.Net;
- 
-	public class TimeoutWebClient : WebClient
-	{
-        int theTimeout;
-
-        public TimeoutWebClient(int timeout)
-        {
-            theTimeout = timeout;
-        }
-
-		protected override WebRequest GetWebRequest(System.Uri address)
-		{
-			WebRequest request = base.GetWebRequest(address);
-			if (request != null)
-			{
-				request.Timeout = theTimeout;
-			}
-			return request;
-		}
- 	}
-"@;
- 
-try {
-    Add-Type -TypeDefinition $Source -Language CSharp -WarningAction SilentlyContinue | Out-Null
-}
-catch {}
-
 function VolumeOrPath {
     Param(
         [string] $path
@@ -237,7 +50,7 @@ function VolumeOrPath {
     if (!($path.Contains(':') -or $path.Contains('\') -or $path.Contains('/'))) {
         $volumes = @(docker volume ls --format "{{.Name}}")
         if ($volumes -notcontains $path) {
-            docker volume create $path            
+            docker volume create $path
         }
         $inspect = (docker volume inspect $path) | ConvertFrom-Json
         return $inspect.MountPoint
@@ -247,66 +60,41 @@ function VolumeOrPath {
     }
 }
 
-$bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
-$hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
-$extensionsFolder = Join-Path $hostHelperFolder "Extensions"
-$containerHelperFolder = $bcContainerHelperConfig.ContainerHelperFolder
+$bcContainerHelperConfig.bcartifactsCacheFolder = VolumeOrPath $bcContainerHelperConfig.bcartifactsCacheFolder
+$bcContainerHelperConfig.hostHelperFolder = VolumeOrPath $bcContainerHelperConfig.HostHelperFolder
+$usedContainerHelperConfigFile = $bcContainerHelperConfigFile
 
 $ENV:DOCKER_SCAN_SUGGEST = "$($bcContainerHelperConfig.DOCKER_SCAN_SUGGEST)".ToLowerInvariant()
 
 $sessions = @{}
 
+$extensionsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions"
 if (!(Test-Path -Path $extensionsFolder -PathType Container)) {
-    if (!(Test-Path -Path $hostHelperFolder -PathType Container)) {
-        New-Item -Path $hostHelperFolder -ItemType Container -Force | Out-Null
+    if (!(Test-Path -Path $bcContainerHelperConfig.hostHelperFolder -PathType Container)) {
+        New-Item -Path $bcContainerHelperConfig.hostHelperFolder -ItemType Container -Force | Out-Null
     }
     New-Item -Path $extensionsFolder -ItemType Container -Force | Out-Null
 
-    if (!$isAdministrator) {
-        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+    if ($isWindows -and !$isAdministrator) {
+        $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername, 'FullControl', 3, 'InheritOnly', 'Allow')
+        $acl = Get-Acl -Path $bcContainerHelperConfig.hostHelperFolder
         $acl.AddAccessRule($rule)
-        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl)
+        Set-Acl -Path $bcContainerHelperConfig.hostHelperFolder -AclObject $acl | Out-Null
     }
 }
 
-$telemetry = @{
-    "Assembly" = $null
-    "PartnerClient" = $null
-    "MicrosoftClient" = $null
-    "CorrelationId" = ""
-    "TopId" = ""
-    "Debug" = $false
-}
-try {
-    if (($bcContainerHelperConfig.MicrosoftTelemetryConnectionString) -and !$Silent) {
-        Write-Host -ForegroundColor Green 'BcContainerHelper emits usage statistics telemetry to Microsoft'
-    }
-    $dllPath = "C:\ProgramData\BcContainerHelper\Microsoft.ApplicationInsights.2.15.0.44797.dll"
-    if (-not (Test-Path $dllPath)) {
-        Copy-Item (Join-Path $PSScriptRoot "Microsoft.ApplicationInsights.dll") -Destination $dllPath
-    }
-    $telemetry.Assembly = [System.Reflection.Assembly]::LoadFrom($dllPath)
-} catch {
-    if (!$Silent) {
-        Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
+if ($isWindows) {
+    . (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
+    if (!$silent) {
+        Check-BcContainerHelperPermissions -Silent
     }
 }
 
-. (Join-Path $PSScriptRoot "HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
-if ($ExportTelemetryFunctions) {
-    Export-ModuleMember -Function RegisterTelemetryScope
-    Export-ModuleMember -Function InitTelemetryScope
-    Export-ModuleMember -Function AddTelemetryProperty
-    Export-ModuleMember -Function TrackTrace
-    Export-ModuleMember -Function TrackException
-}
-
-. (Join-Path $PSScriptRoot "Check-BcContainerHelperPermissions.ps1")
-if (!$silent) {
-    Check-BcContainerHelperPermissions -Silent
-}
+. (Join-Path $PSScriptRoot 'BC.ArtifactsHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.AppSourceHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.ALGoHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.SaasHelper.ps1')
+. (Join-Path $PSScriptRoot 'BC.NuGetHelper.ps1')
 
 # Container Info functions
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerNavVersion.ps1")
@@ -322,25 +110,24 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerSharedFolders.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerPath.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerName.ps1")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerDebugInfo")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerDebugInfo.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Test-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerId.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerEventLog.ps1")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels")
-. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags")
-
-# Api Functions
-. (Join-Path $PSScriptRoot "Api\Get-NavContainerApiCompanyId.ps1")
-. (Join-Path $PSScriptRoot "Api\Invoke-NavContainerApi.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerServerConfiguration.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageLabels.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerImageTags.ps1")
+. (Join-Path $PSScriptRoot "ContainerInfo\Get-NavContainerLicenseInformation.ps1")
+# CompilerFolder Handling Functions
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\New-BcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Remove-BcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Compile-AppWithBcCompilerFolder.ps1")
+. (Join-Path $PSScriptRoot "CompilerFolderHandling\Copy-AppFilesToCompilerFolder.ps1")
 
 # Container Handling Functions
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-NavContainerSession.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Remove-NavContainerSession.ps1")
-. (Join-Path $PSScriptRoot "ContainerHandling\Enter-NavContainer.ps1")
-. (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
-. (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainerWizard.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainer.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\New-NavImage.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Restart-NavContainer.ps1")
@@ -355,34 +142,52 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-BestNavContainerImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-BestGenericImageName.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Invoke-ScriptInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "ContainerHandling\Setup-TraefikContainerForNavContainers.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Flush-ContainerHelperCache.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-LatestAlLanguageExtensionUrl.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Get-AlLanguageExtensionFromArtifacts.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\traefik\Add-DomainToTraefikConfig.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\traefik\Create-CustomTraefikImage.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Set-BcContainerServerConfiguration.ps1")
 . (Join-Path $PSScriptRoot "ContainerHandling\Restart-BcContainerServiceTier.ps1")
-
-# Object Handling functions
-. (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Create-MyOriginalFolder.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Create-MyDeltaFolder.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Convert-Txt2Al.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Export-ModifiedObjectsAsDeltas.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Convert-ModifiedObjectsToAl.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Import-ObjectsToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Import-DeltasToNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Import-TestToolkitToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "ObjectHandling\Compile-ObjectsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "ObjectHandling\Invoke-NavContainerCodeunit.ps1")
 
-# AL-Go for GitHub functions
-. (Join-Path $PSScriptRoot "AL-Go\New-ALGoAuthContext.ps1")
-. (Join-Path $PSScriptRoot "AL-Go\New-ALGoAppSourceContext.ps1")
-. (Join-Path $PSScriptRoot "AL-Go\New-ALGoStorageContext.ps1")
-. (Join-Path $PSScriptRoot "AL-Go\New-ALGoNuGetContext.ps1")
-#. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepo.ps1")
-#. (Join-Path $PSScriptRoot "AL-Go\New-ALGoRepoWizard.ps1")
+# Tenant Handling functions
+. (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
+. (Join-Path $PSScriptRoot "TenantHandling\Remove-NavContainerTenant.ps1")
+. (Join-Path $PSScriptRoot "TenantHandling\Get-NavContainerTenants.ps1")
+
+# Bacpac Handling functions
+. (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
+. (Join-Path $PSScriptRoot "Bacpac\Backup-NavContainerDatabases.ps1")
+. (Join-Path $PSScriptRoot "Bacpac\Restore-DatabasesInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Bacpac\Restore-BcDatabaseFromArtifacts.ps1")
+. (Join-Path $PSScriptRoot "Bacpac\Remove-BcDatabase.ps1")
+
+# User Handling functions
+. (Join-Path $PSScriptRoot "UserHandling\Get-NavContainerNavUser.ps1")
+. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")
+. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerWindowsUser.ps1")
+. (Join-Path $PSScriptRoot "UserHandling\Setup-NavContainerTestUsers.ps1")
+
+# Misc functions
+. (Join-Path $PSScriptRoot "Misc\Write-NavContainerHelperWelcomeText.ps1")
+. (Join-Path $PSScriptRoot "Misc\Get-LocaleFromCountry.ps1")
+. (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
+. (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Copy-ItemFromBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Copy-ItemToBcContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Add-FontsToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Set-BcContainerFeatureKeys.ps1")
+. (Join-Path $PSScriptRoot "Misc\Import-PfxCertificateToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "Misc\Import-CertificateToNavContainer.ps1")
+
+# Company Handling functions
+. (Join-Path $PSScriptRoot "CompanyHandling\Copy-CompanyInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "CompanyHandling\Get-CompanyInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "CompanyHandling\New-CompanyInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "CompanyHandling\Remove-CompanyInNavContainer.ps1")
 
 # App Handling functions
 . (Join-Path $PSScriptRoot "AppHandling\Publish-NavContainerApp.ps1")
@@ -418,96 +223,45 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "AppHandling\Run-AlCops.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-DependencyGraph.ps1")
 
-# Tenant Handling functions
-. (Join-Path $PSScriptRoot "TenantHandling\New-NavContainerTenant.ps1")
-. (Join-Path $PSScriptRoot "TenantHandling\Remove-NavContainerTenant.ps1")
-. (Join-Path $PSScriptRoot "TenantHandling\Get-NavContainerTenants.ps1")
+# Api Functions
+. (Join-Path $PSScriptRoot "Api\Get-NavContainerApiCompanyId.ps1")
+. (Join-Path $PSScriptRoot "Api\Invoke-NavContainerApi.ps1")
 
-# Bacpac Handling functions
-. (Join-Path $PSScriptRoot "Bacpac\Export-NavContainerDatabasesAsBacpac.ps1")
-. (Join-Path $PSScriptRoot "Bacpac\Backup-NavContainerDatabases.ps1")
-. (Join-Path $PSScriptRoot "Bacpac\Restore-DatabasesInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Bacpac\Restore-BcDatabaseFromArtifacts.ps1")
-. (Join-Path $PSScriptRoot "Bacpac\Remove-BcDatabase.ps1")
+# Configuration Package Handling
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\Get-PackageInfoFromRapidStartFile.ps1")
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\Import-ConfigPackageInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\Remove-ConfigPackageInNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ConfigPackageHandling\UploadImportAndApply-ConfigPackageInBcContainer.ps1")
 
-# User Handling functions
-. (Join-Path $PSScriptRoot "UserHandling\Get-NavContainerNavUser.ps1")
-. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerNavUser.ps1")
-. (Join-Path $PSScriptRoot "UserHandling\New-NavContainerWindowsUser.ps1")
-. (Join-Path $PSScriptRoot "UserHandling\Setup-NavContainerTestUsers.ps1")
+# Container Handling functions
+. (Join-Path $PSScriptRoot "ContainerHandling\Enter-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\Open-NavContainer.ps1")
+. (Join-Path $PSScriptRoot "ContainerHandling\New-NavContainerWizard.ps1")
+
+# Traefik Handling functions
+. (Join-Path $PSScriptRoot "ContainerHandling\Setup-TraefikContainerForNavContainers.ps1")
+
+# Object Handling functions
+. (Join-Path $PSScriptRoot "ObjectHandling\Export-NavContainerObjects.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Create-MyOriginalFolder.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Create-MyDeltaFolder.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Convert-Txt2Al.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Export-ModifiedObjectsAsDeltas.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Convert-ModifiedObjectsToAl.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Import-ObjectsToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Import-DeltasToNavContainer.ps1")
+. (Join-Path $PSScriptRoot "ObjectHandling\Compile-ObjectsInNavContainer.ps1")
 
 # Azure AD specific functions
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadAppsForNav.ps1")
 . (Join-Path $PSScriptRoot "AzureAD\Create-AadUsersInNavContainer.ps1")
-
-# AppSource specific functions
-. (Join-Path $PSScriptRoot "AppSource\Invoke-IngestionAPI.ps1")
-. (Join-Path $PSScriptRoot "AppSource\Get-AppSourceProduct.ps1")
-. (Join-Path $PSScriptRoot "AppSource\Get-AppSourceSubmission.ps1")
-. (Join-Path $PSScriptRoot "AppSource\New-AppSourceSubmission.ps1")
-. (Join-Path $PSScriptRoot "AppSource\Promote-AppSourceSubmission.ps1")
-. (Join-Path $PSScriptRoot "AppSource\Cancel-AppSourceSubmission.ps1")
-
-# Nuget specific functions
-. (Join-Path $PSScriptRoot "NuGet\New-BcNuGetPackage.ps1")
-. (Join-Path $PSScriptRoot "NuGet\Get-BcNuGetPackage.ps1")
-. (Join-Path $PSScriptRoot "NuGet\Push-BcNuGetPackage.ps1")
-. (Join-Path $PSScriptRoot "NuGet\Publish-BcNuGetPackageToContainer.ps1")
-
-# BC SaaS specific functions
-. (Join-Path $PSScriptRoot "BcSaaS\New-BcAuthContext.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Renew-BcAuthContext.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Get-BcEnvironments.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Get-BcPublishedApps.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Get-BcInstalledExtensions.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Install-BcAppFromAppSource")
-. (Join-Path $PSScriptRoot "BcSaaS\Publish-PerTenantExtensionApps.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\New-BcEnvironment.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Remove-BcEnvironment.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Set-BcEnvironmentApplicationInsightsKey.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Get-BcDatabaseExportHistory.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\New-BcDatabaseExport.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Get-BcScheduledUpgrade.ps1")
-. (Join-Path $PSScriptRoot "BcSaaS\Reschedule-BcUpgrade.ps1")
+. (Join-Path $PSScriptRoot "AzureAD\New-AadAppsForBc.ps1")
+. (Join-Path $PSScriptRoot "AzureAD\Remove-AadAppsForBc.ps1")
 
 # Azure VM specific functions
 . (Join-Path $PSScriptRoot "AzureVM\Replace-NavServerContainer.ps1")
 . (Join-Path $PSScriptRoot "AzureVM\New-LetsEncryptCertificate.ps1")
 . (Join-Path $PSScriptRoot "AzureVM\Renew-LetsEncryptCertificate.ps1")
-
-# Misc functions
-. (Join-Path $PSScriptRoot "Misc\New-DesktopShortcut.ps1")
-. (Join-Path $PSScriptRoot "Misc\Remove-DesktopShortcut.ps1")
-. (Join-Path $PSScriptRoot "Misc\Write-NavContainerHelperWelcomeText.ps1")
-. (Join-Path $PSScriptRoot "Misc\Download-File.ps1")
-. (Join-Path $PSScriptRoot "Misc\Download-Artifacts.ps1")
-. (Join-Path $PSScriptRoot "Misc\Get-BcArtifactUrl.ps1")
-. (Join-Path $PSScriptRoot "Misc\Get-NavArtifactUrl.ps1")
-. (Join-Path $PSScriptRoot "Misc\Get-LocaleFromCountry.ps1")
-. (Join-Path $PSScriptRoot "Misc\Get-NavVersionFromVersionInfo.ps1")
-. (Join-Path $PSScriptRoot "Misc\Copy-FileFromNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Misc\Copy-FileToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Misc\Add-FontsToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Misc\Set-BcContainerFeatureKeys.ps1")
-. (Join-Path $PSScriptRoot "Misc\Import-PfxCertificateToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Misc\Import-CertificateToNavContainer.ps1")
-. (Join-Path $PSScriptRoot "Misc\Get-PlainText.ps1")
-. (Join-Path $PSScriptRoot "Misc\ConvertTo-HashTable.ps1")
-. (Join-Path $PSScriptRoot "Misc\ConvertTo-OrderedDictionary.ps1")
-. (Join-Path $PSScriptRoot "Misc\ConvertTo-GitHubGoCredentials.ps1")
-. (Join-Path $PSScriptRoot "Misc\Invoke-gh.ps1")
-. (Join-Path $PSScriptRoot "Misc\Invoke-git.ps1")
-
-# Company Handling functions
-. (Join-Path $PSScriptRoot "CompanyHandling\Copy-CompanyInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "CompanyHandling\Get-CompanyInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "CompanyHandling\New-CompanyInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "CompanyHandling\Remove-CompanyInNavContainer.ps1")
-
-# Configuration Package Handling
-. (Join-Path $PSScriptRoot "ConfigPackageHandling\Import-ConfigPackageInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "ConfigPackageHandling\Remove-ConfigPackageInNavContainer.ps1")
-. (Join-Path $PSScriptRoot "ConfigPackageHandling\UploadImportAndApply-ConfigPackageInBcContainer.ps1")
 
 # Symbol Handling
 . (Join-Path $PSScriptRoot "SymbolHandling\Generate-SymbolsInNavContainer.ps1")
@@ -518,3 +272,21 @@ if (!$silent) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
+
+# Alpaca Container Handling
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Remove-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Stop-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Start-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Get-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Wait-AlpacaBcContainerReady.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\New-AlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Invoke-ScriptInAlpacaBcContainer.ps1")
+. (Join-Path $PSScriptRoot "AlpacaBcContainer\Get-AlpacaBcContainerEventlog.ps1")
+
+# Cloud Container Handling
+. (Join-Path $PSScriptRoot "CloudBcContainer\HelperFunctions.ps1")
+. (Join-Path $PSScriptRoot "CloudBcContainer\Copy-FileToCloudBcContainer.ps1")
+. (Join-Path $PSScriptRoot "CloudBcContainer\Copy-FileFromCloudBcContainer.ps1")
+. (Join-Path $PSScriptRoot "CloudBcContainer\Get-CloudBcContainerServerConfiguration.ps1")
+. (Join-Path $PSScriptRoot "CloudBcContainer\Get-CloudBcContainerEventLog.ps1")

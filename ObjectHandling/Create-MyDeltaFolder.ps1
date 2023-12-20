@@ -82,9 +82,9 @@ try {
             $Name = $_.Name
             if ($Name.ToLowerInvariant().EndsWith(".delta")) {
                 $BaseName = $_.BaseName
-                $OrgName = Join-Path $myOriginalFolder "${BaseName}.TXT"
+                $OrgName = Join-Path $myOriginalFolder "$($BaseName).TXT"
                 if (!(Test-Path -Path $OrgName)) {
-                    Copy-Item -Path $_.FullName -Destination (Join-Path $myDeltaFolder "${BaseName}.TXT")
+                    Copy-Item -Path $_.FullName -Destination (Join-Path $myDeltaFolder "$($BaseName).TXT")
                     Remove-Item -Path $_.FullName
                 }
             }

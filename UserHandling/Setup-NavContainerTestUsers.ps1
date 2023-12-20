@@ -48,7 +48,7 @@
  .Example
   Setup-BcContainerTestUsers -password $securePassword
  .Example
-  Setup-BcContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
+  Setup-BcContainerTestUsers -containerName test -tenant default -password $Credential.Password -credential $Credential
 #>
 function Setup-BcContainerTestUsers {
     Param (
@@ -75,7 +75,7 @@ try {
 
     if ($version.Major -ge 13) {
 
-        $appfile = Join-Path (Get-TempDir) "CreateTestUsers.app"
+        $appfile = Join-Path ([System.IO.Path]::GetTempPath()) "CreateTestUsers.app"
         if (([System.Version]$version).Major -ge 15) {
             Import-TestToolkitToBcContainer -containerName $containerName -tenant $tenant -includeTestFrameworkOnly -replaceDependencies $replaceDependencies -doNotUseRuntimePackages
             $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName -tenant $tenant | Where-Object { $_.Name -eq "System Application Test Library" }
@@ -97,7 +97,10 @@ try {
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
-                if (([System.Version]$version).Major -ge 16) {
+                if (([System.Version]$version).Major -ge 22) {
+                    $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/22.0/Microsoft_CreateTestUsers_22.0.22.0.app"
+                }
+                elseif (([System.Version]$version).Major -ge 16) {
                     $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/16.0.7.0/createtestusers-testapps.zip"
                 }
                 else {

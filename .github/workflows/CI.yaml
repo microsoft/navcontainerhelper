@@ -7,10 +7,6 @@ on:
       - '**.md'
       - '.github/**'
     branches: [ master ]
-  workflow_run:
-    workflows: [ 'Pull Request Handler' ]
-    types:
-      - requested
 
 permissions:
   contents: read
@@ -19,120 +15,40 @@ permissions:
   checks: write
 
 concurrency:
-  group: 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
+  group: 'runTests-${{ github.ref }}'
   cancel-in-progress: true
 
 defaults:
   run:
-    shell: PowerShell
+    shell: powershell
 
 jobs:
-  Initialization:
-    runs-on: windows-latest
-    outputs:
-      checkRunId: ${{ steps.CreateCheckRun.outputs.checkRunId }}
-      concurrencyId: ${{ steps.CalculateConcurrencyId.outputs.concurrencyId }}
-    steps:
-      - name: Create CI Workflow Check Run
-        id: CreateCheckRun
-        if: github.event_name == 'workflow_run'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var details_url = context.serverUrl.concat('/',context.repo.owner,'/',context.repo.repo,'/actions/runs/',context.runId)
-            var response = await github.rest.checks.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              name: 'CI Workflow',
-              head_sha: '${{ github.event.workflow_run.head_sha }}',
-              status: 'queued',
-              details_url: details_url,
-              output: {
-                title: 'CI Workflow',
-                summary: '[Workflow Details]('.concat(details_url,')')
-              }
-            });
-            core.setOutput('checkRunId', response.data.id);
-
-      - name: Investigate Pull Request
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.head_repository.full_name != github.repository
-        env:
-          event: ${{ toJson( github.event ) }}
-        run: |
-          $errorActionPreference = 'STOP'
-          Write-Host 'runTests-${{ github.ref }}-${{ github.event.workflow_run.head_repository.full_name }}/${{ github.event.workflow_run.head_branch }}'
-          $event = $ENV:EVENT | ConvertFrom-Json
-          $headers = @{             
-              "Authorization" = 'token ${{ secrets.GITHUB_TOKEN }}'
-              "Accept" = "application/vnd.github.baptiste-preview+json"
-          }
-          if ($event.workflow_run.pull_requests.Count -gt 1) {
-            throw "Multiple PRs in the same workflow_run isn't supported by CI/CD workflow yet"
-          }
-          $event.workflow_run.pull_requests | ForEach-Object {
-            $url = "$($ENV:GITHUB_API_URL)/repos/$($ENV:GITHUB_REPOSITORY)/compare/$($_.base.SHA)...$($_.head.SHA)"
-            $response = Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri $url | ConvertFrom-Json
-            Write-Host "Files Changed:"
-            $response.files | ForEach-Object {
-              $filename = $_.filename
-              $status = $_.status
-              Write-Host "- $filename $status"
-              if ($filename -like ".github\workflows\*.yaml" -or $filename -like ".github\workflows\*.yml") {
-                throw "Changes to .yaml files are not allowed form a fork"
-              }
-            }
-          }
-
-      - name: Calculate Concurrency ID
-        id: CalculateConcurrencyId
-        run: |
-          $errorActionPreference = 'STOP'
-          if ("$ENV:GITHUB_EVENT_NAME" -eq 'workflow_run') {
-            $concurrencyId = '${{ github.event.workflow_run.head_branch }}'
-          }
-          else {
-            $concurrencyId = $ENV:GITHUB_REF
-          }
-          Add-Content -Path $env:GITHUB_OUTPUT -Value "concurrencyId=$concurrencyId"
-          Write-Host "concurrencyId=$concurrencyId"
-
   AnalyzeTests:
+    if: github.repository == 'Microsoft/NavContainerHelper'
     runs-on: [ windows-latest ]
-    needs: [ Initialization ]
-    concurrency:
-      group: runTests-${{ needs.Initialization.outputs.concurrencyId }}
-      cancel-in-progress: true
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
+      linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
-      - name: Update CI Workflow Check Run
-        if: github.event_name == 'workflow_run'
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var response = await github.rest.checks.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              status: 'in_progress'
-            });
-
       - name: Checkout
         uses: actions/checkout@v3
-
+        with:
+          lfs: true
+    
       - name: Analyze
         id: Analyze
         run: |
-          Write-Host 'runTests-${{ needs.Initialization.outputs.concurrencyId }}'
+          $errorActionPreference = "stop"
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
           Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
           Write-Host "tests=$tests"
+          $linuxtests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
+          Write-Host "linuxtests=$linuxtests"
 
-  RunTests:
+  PS5:
     runs-on: [ windows-latest ]
-    needs: [ Initialization, AnalyzeTests ]
+    needs: [ AnalyzeTests ]
     strategy:
       matrix:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
@@ -140,13 +56,81 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-
+        with:
+          lfs: true
+    
       - name: Run Tests
         run: |
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  PS7:
+    runs-on: [ windows-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  Linux:
+    runs-on: [ ubuntu-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.linuxtests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -160,7 +144,7 @@ jobs:
 
   Deploy:
     runs-on: [ windows-latest ]
-    needs: [ RunTests ]
+    needs: [ PS5, PS7, Linux ]
     if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout
@@ -169,7 +153,7 @@ jobs:
       - name: Deploy
         run: |
           try {
-            $path = Join-Path $ENV:TEMP "BcContainerHelper"
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
             New-Item -path $path -itemType Directory | Out-Null
             Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
 
@@ -216,7 +200,7 @@ jobs:
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes
 
-            $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
+            $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
             Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
 
             Remove-Module BcContainerHelper
@@ -244,20 +228,3 @@ jobs:
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
-
-  UpdatePRcheck:
-    if: always() && github.event_name == 'workflow_run'
-    runs-on: [ windows-latest ]
-    needs: [ Initialization, RunTests ]
-    steps:
-      - name: Update CI Workflow Check Run
-        uses: actions/github-script@v6
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            var response = await github.rest.checks.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              check_run_id: ${{ needs.Initialization.outputs.checkRunId }},
-              conclusion: '${{ needs.RunTests.result }}'
-            });

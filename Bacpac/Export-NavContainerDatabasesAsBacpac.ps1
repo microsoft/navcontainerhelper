@@ -58,7 +58,7 @@ try {
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
     if ("$bacpacFolder" -eq "") {
         $bacpacFolder = $containerFolder
     }

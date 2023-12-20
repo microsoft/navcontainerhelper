@@ -107,7 +107,7 @@ try {
     
     $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
-        $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
+        $url = "$($protocol)$($ip):$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
     }
     else {
         $url = $customconfig.PublicODataBaseUrl.Replace("/OData","/api")
@@ -172,7 +172,7 @@ try {
     if (!$silent) {
         Write-Host "Invoke $Method on $url"
     }
-    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters
+    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters @allowUnencryptedAuthenticationParam
 
     if ($sslverificationdisabled) {
         [SslVerification]::Enable()

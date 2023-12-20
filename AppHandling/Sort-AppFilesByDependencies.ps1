@@ -21,7 +21,8 @@ function Sort-AppFilesByDependencies {
         [string[]] $includeOnlyAppIds = @(),
         $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
-        [ref] $unknownDependencies
+        [ref] $unknownDependencies,
+        [switch] $excludeRuntimePackages
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -33,7 +34,7 @@ try {
 
     $sharedFolder = ""
     if ($containerName) {
-        $sharedFolder = Join-Path $extensionsFolder "$containerName\$([Guid]::NewGuid().ToString())"
+        $sharedFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([Guid]::NewGuid().ToString())"
         New-Item $sharedFolder -ItemType Directory | Out-Null
     }
     try {
@@ -42,23 +43,9 @@ try {
         $files = @{}
         $appFiles | ForEach-Object {
             $appFile = $_
-            if ($containerName) {
-                $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
-                Copy-Item -Path $appFile -Destination $destFile
-                $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)
-                    Get-NavAppInfo -Path $appFile | ConvertTo-Json -Depth 99
-                } -argumentList (Get-BcContainerPath -containerName $containerName -path $destFile) | ConvertFrom-Json
-                #Remove-Item -Path $destFile
-                $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
-                if ($appJson.Dependencies) {
-                    $appJson.Dependencies | % { if ($_) { 
-                        $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
-                        $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue $_.MinVersion.ToString()
-                    } }
-                }
-            }
-            else {
-                $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $includeIt = $true
+            if ($excludeRuntimePackages -or !(Test-BcContainer -containerName $containerName)) {
+                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                 try {
                     Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
                     $appJsonFile = Join-Path $tmpFolder "app.json"
@@ -66,7 +53,12 @@ try {
                 }
                 catch {
                     if ($_.exception.message -eq "You cannot extract a runtime package") {
-                        throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
+                        if ($excludeRuntimePackages) {
+                            $includeIt = $false
+                        }
+                        else {
+                            throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
+                        }
                     }
                     else {
                         throw "Unable to extract and analyze appFile $appFile"
@@ -76,10 +68,28 @@ try {
                     Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
                 }
             }
-            $key = "$($appJson.Id):$($appJson.Version)"
-            if (-not $files.ContainsKey($key)) {
-                $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
-                $apps += @($appJson)
+            else {
+                $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
+                Copy-Item -Path $appFile -Destination $destFile
+                $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)
+                    Get-NavAppInfo -Path $appFile | ConvertTo-Json -Depth 99
+                } -argumentList (Get-BcContainerPath -containerName $containerName -path $destFile) | ConvertFrom-Json
+                Remove-Item -Path $destFile
+                $appJson.Version = "$($appJson.Version.Major).$($appJson.Version.Minor).$($appJson.Version.Build).$($appJson.Version.Revision)"
+                $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
+                if ($appJson.Dependencies) {
+                    $appJson.Dependencies | ForEach-Object { if ($_) { 
+                        $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
+                        $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue "$($_.MinVersion.Major).$($_.MinVersion.Minor).$($_.MinVersion.Build).$($_.MinVersion.Revision)"
+                    } }
+                }
+            }
+            if ($includeIt) {
+                $key = "$($appJson.Id):$($appJson.Version)"
+                if (-not $files.ContainsKey($key)) {
+                    $files += @{ "$($appJson.Id):$($appJson.Version)" = $appFile }
+                    $apps += @($appJson)
+                }
             }
         }
         
@@ -141,8 +151,8 @@ try {
             }
         }
 
-        $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
-        $apps | ForEach-Object { AddAnApp -AnApp $_ }
+        $apps | Where-Object { $_ } | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
+        $apps | Where-Object { $_ } | ForEach-Object { AddAnApp -AnApp $_ }
     
         if ($excludeInstalledApps) {
             $script:sortedApps = $script:sortedApps | ForEach-Object {

@@ -1,9 +1,9 @@
-﻿<# 
+<#
  .Synopsis
   Use NAV/BC Container to Compile App
  .Description
  .Parameter containerName
-  Name of the container which you want to use to compile the app
+  Name of the container in which you want to use to compile the app
  .Parameter tenant
   tenant to use if container is multitenant
  .Parameter credential
@@ -16,6 +16,8 @@
   Folder in which the symbols of dependent apps will be placed. This folder (or any of its parents) needs to be shared with the container. Default is $appProjectFolder\symbols.
  .Parameter appName
   File name of the app. Default is to compose the file name from publisher_appname_version from app.json.
+ .Parameter basePath
+  Base Path of the files in the ALC output, to convert file paths to relative paths. This folder (or any of its parents) needs to be shared with the container.
  .Parameter UpdateSymbols
   Add this switch to indicate that you want to force the download of symbols for all dependent apps.
  .Parameter UpdateDependencies
@@ -40,12 +42,17 @@
   Add this switch to Enable UICop to run
  .Parameter RulesetFile
   Specify a ruleset file for the compiler
+ .Parameter enableExternalRulesets
+  Add this switch to Enable External Rulesets
  .Parameter CustomCodeCops
   Add custom AL code Cops when compiling apps.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning
  .Parameter nowarn
   Specify a nowarn parameter for the compiler
+ .Parameter generateErrorLog
+  Switch parameter on whether to generate an alerts log file. Default is false.
+  The file will be placed in the same folder as the app file, and will have the same name as the app file, but with the extension .errorLog.json.
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
@@ -58,6 +65,14 @@
   Environment to use for the compilation.
  .Parameter assemblyProbingPaths
   Specify a comma separated list of paths to include in the search for dotnet assemblies for the compiler
+ .Parameter SourceRepositoryUrl
+  Repository holding the source code for the app. Will be stamped into the app manifest.
+ .Parameter SourceCommit
+  The commit identifier for the source code for the app. Will be stamped into the app manifest.
+ .Parameter BuildBy
+  Information about which product built the app. Will be stamped into the app manifest.
+ .Parameter BuildUrl
+  The URL for the build job, which built the app. Will be stamped into the app manifest.
  .Parameter OutputTo
   Compiler output is sent to this scriptblock for output. Default value for the scriptblock is: { Param($line) Write-Host $line }
  .Example
@@ -82,6 +97,7 @@ function Compile-AppInBcContainer {
         [string] $appSymbolsFolder = (Join-Path $appProjectFolder ".alpackages"),
         [Parameter(Mandatory=$false)]
         [string] $appName = "",
+        [string] $basePath = "",
         [switch] $UpdateSymbols,
         [switch] $UpdateDependencies,
         [switch] $CopySymbolsFromContainer,
@@ -98,20 +114,26 @@ function Compile-AppInBcContainer {
         [string] $FailOn = 'none',
         [Parameter(Mandatory=$false)]
         [string] $rulesetFile,
+        [switch] $enableExternalRulesets,
         [string[]] $CustomCodeCops = @(),
         [Parameter(Mandatory=$false)]
         [string] $nowarn,
+        [switch] $generateErrorLog,
         [string[]] $preProcessorSymbols = @(),
         [switch] $GenerateCrossReferences,
         [switch] $ReportSuppressedDiagnostics,
         [Parameter(Mandatory=$false)]
         [string] $assemblyProbingPaths,
         [Parameter(Mandatory=$false)]
-        [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile')]
-        [string[]] $features,
+        [ValidateSet('ExcludeGeneratedTranslations','GenerateCaptions','GenerateLockedTranslations','NoImplicitWith','TranslationFile','LcgTranslationFile')]
+        [string[]] $features = @(),
         [Hashtable] $bcAuthContext,
         [string] $environment,
         [string[]] $treatWarningsAsErrors = $bcContainerHelperConfig.TreatWarningsAsErrors,
+        [string] $sourceRepositoryUrl = '',
+        [string] $sourceCommit = '',
+        [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
+        [string] $buildUrl = '',
         [scriptblock] $outputTo = { Param($line) Write-Host $line }
     )
 
@@ -125,15 +147,16 @@ try {
         $platform = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
     }
     [System.Version]$platformversion = $platform
-    
+
     $containerProjectFolder = Get-BcContainerPath -containerName $containerName -path $appProjectFolder
     if ("$containerProjectFolder" -eq "") {
         throw "The appProjectFolder ($appProjectFolder) is not shared with the container."
     }
 
+    $containerFolder = Get-BcContainerPath -containerName $containerName -path (Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName")
     if (!$PSBoundParameters.ContainsKey("assemblyProbingPaths")) {
         if ($platformversion.Major -ge 13) {
-            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder)
+            $assemblyProbingPaths = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerFolder, $appProjectFolder, $platformVersion)
                 $assemblyProbingPaths = ""
                 $netpackagesPath = Join-Path $appProjectFolder ".netpackages"
                 if (Test-Path $netpackagesPath) {
@@ -146,15 +169,37 @@ try {
                 }
 
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
-                $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"",""c:\Windows\Microsoft.NET\Assembly"""
-                $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
-                if (Test-Path $mockAssembliesPath -PathType Container) {
-                    $assemblyProbingPaths += ",""$mockAssembliesPath"""
+                if ($platformversion.Major -ge 22) {
+                    $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages\Service"
+                    if (!(Test-Path $dotnetAssembliesFolder)) {
+                        New-Item $dotnetAssembliesFolder -ItemType Directory -Force | Out-Null
+
+                        Write-Host "Copying DLLs from $serviceTierFolder to assemblyProbingPath"
+                        Copy-Item -Path $serviceTierFolder -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+
+                        $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                        Copy-Item -Path $mockAssembliesPath -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+
+                        Write-Host "Removing dotnet Framework Assemblies"
+                        $dotnetServiceFolder = Join-Path $dotnetAssembliesFolder "Service"
+                        Remove-Item -Path (Join-Path $dotnetserviceFolder 'Management') -Recurse -Force -ErrorAction SilentlyContinue
+                        Remove-Item -Path (Join-Path $dotnetserviceFolder 'SideServices') -Recurse -Force -ErrorAction SilentlyContinue
+                        Remove-Item -Path (Join-Path $dotnetserviceFolder 'WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
+                    }
+
+                    $assemblyProbingPaths += """$dotnetAssembliesFolder"""
+                    $assemblyProbingPaths = """C:\Program Files\dotnet\shared"",$assemblyProbingPaths"
                 }
-
-
+                else {
+                    $assemblyProbingPaths += """$serviceTierFolder"",""C:\Program Files (x86)\Open XML SDK\V2.5\lib"""
+                    $assemblyProbingPaths += ',"c:\Windows\Microsoft.NET\Assembly"'
+                    $mockAssembliesPath = "C:\Test Assemblies\Mock Assemblies"
+                    if (Test-Path $mockAssembliesPath -PathType Container) {
+                        $assemblyProbingPaths += ",""$mockAssembliesPath"""
+                    }
+                }
                 $assemblyProbingPaths
-            } -ArgumentList $containerProjectFolder
+            } -ArgumentList $containerFolder, $containerProjectFolder, $platformversion
         }
     }
 
@@ -175,7 +220,7 @@ try {
             throw "The rulesetFile ($rulesetFile) is not shared with the container."
         }
     }
-    
+
     $CustomCodeCopFiles = @()
     if ($CustomCodeCops.Count -gt 0) {
         $CustomCodeCops | ForEach-Object {
@@ -197,6 +242,16 @@ try {
     if ("$appName" -eq "") {
         $appName = "$($appJsonObject.Publisher)_$($appJsonObject.Name)_$($appJsonObject.Version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
     }
+    if ([bool]($appJsonObject.PSobject.Properties.name -eq "id")) {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "id" -value $appJsonObject.id
+    }
+    elseif ([bool]($appJsonObject.PSobject.Properties.name -eq "appid")) {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "id" -value $appJsonObject.appid
+    }
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "publisher" -value $appJsonObject.Publisher
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "name" -value $appJsonObject.Name
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "version" -value $appJsonObject.Version
+    AddTelemetryProperty -telemetryScope $telemetryScope -key "appname" -value $appName
 
     Write-Host "Using Symbols Folder: $appSymbolsFolder"
     if (!(Test-Path -Path $appSymbolsFolder -PathType Container)) {
@@ -204,7 +259,7 @@ try {
     }
 
     if ($CopySymbolsFromContainer) {
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder) 
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder)
             if (Test-Path "C:\Extensions\*.app") {
                 $paths = @(
                     "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
@@ -251,7 +306,7 @@ try {
     # unpack compiler
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock {
         if (!(Test-Path "c:\build" -PathType Container)) {
-            $tempZip = Join-Path $env:temp "alc.zip"
+            $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
             Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
             Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
         }
@@ -261,36 +316,36 @@ try {
 
     $dependencies = @()
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application)
-    {
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "version" = $appJsonObject.application }
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "application")) -and $appJsonObject.application) {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "application" -value $appJsonObject.application
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $appJsonObject.application }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform)
-    {
-        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "version" = $appJsonObject.platform }
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "platform")) -and $appJsonObject.platform) {
+        AddTelemetryProperty -telemetryScope $telemetryScope -key "platform" -value $appJsonObject.platform
+        $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $appJsonObject.platform }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test)
-    {
-        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "version" = $appJsonObject.test }
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "test")) -and $appJsonObject.test) {
+        $dependencies +=  @{"publisher" = "Microsoft"; "name" = "Test"; "appId" = ''; "version" = $appJsonObject.test }
         if (([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and ($customConfig.EnableSymbolLoadingAtServerStartup -eq "true")) {
             throw "app.json should NOT have a test dependency when running hybrid development (EnableSymbolLoading)"
         }
     }
 
-    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies)
-    {
+    if (([bool]($appJsonObject.PSobject.Properties.name -eq "dependencies")) -and $appJsonObject.dependencies) {
         $appJsonObject.dependencies | ForEach-Object {
-            $dependencies += @{ "publisher" = $_.publisher; "name" = $_.name; "version" = $_.version }
+            $dep = $_
+            try { $appId = $dep.id } catch { $appId = $dep.appId }
+            $dependencies += @{ "publisher" = $dep.publisher; "name" = $dep.name; "appId" = $appId; "version" = $dep.version }
         }
     }
 
+    $existingApps = @()
     if (!$updateSymbols) {
         $existingApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
                 $appInfo = Get-NavAppInfo -Path $_.FullName
-                #Write-Host "FileName=$($_.FullName), Id=$($appInfo.AppId), Publisher=$($appInfo.Publisher), Name=$($appInfo.Name), Version=$($appInfo.Version)"
                 $appInfo
             }
         } -ArgumentList $containerSymbolsFolder
@@ -321,6 +376,9 @@ try {
 
     $sslVerificationDisabled = $false
     $serverInstance = $customConfig.ServerInstance
+    $headers = @{}
+    $useDefaultCredentials = $false
+    $timeout = 100
     if ($bcAuthContext -and $environment) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.Name -eq $environment -and $_.Type -eq "Sandbox" }
@@ -330,13 +388,11 @@ try {
         $publishedApps = Get-BcPublishedApps -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.state -eq "installed" }
         $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
-        $webclient = [System.Net.WebClient]::new()
-        $webClient.Headers.Add("Authorization", $bearerAuthValue)
+        $headers."Authorization" = $bearerAuthValue
     }
     elseif ($serverInstance -eq "") {
         Write-Host -ForegroundColor Yellow "INFO: You have to specify AuthContext and Environment if you are compiling in a filesOnly container in order to download dependencies"
         $devServerUrl = ""
-        $webClient = $null
     }
     else {
         if ($customConfig.DeveloperServicesSSLEnabled -eq "true") {
@@ -345,7 +401,7 @@ try {
         else {
             $protocol = "http://"
         }
-    
+
         $ip = Get-BcContainerIpAddress -containerName $containerName
         if ($ip) {
             $devServerUrl = "$($protocol)$($ip):$($customConfig.DeveloperServicesPort)/$ServerInstance"
@@ -353,70 +409,71 @@ try {
         else {
             $devServerUrl = "$($protocol)$($containerName):$($customConfig.DeveloperServicesPort)/$ServerInstance"
         }
-    
+
+        $timeout = 300000
         $sslVerificationDisabled = ($protocol -eq "https://")
-        if ($sslVerificationDisabled) {
-            if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-            {
-                Add-Type -TypeDefinition "
-                    using System.Net.Security;
-                    using System.Security.Cryptography.X509Certificates;
-                    public static class SslVerification
-                    {
-                        private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                    }"
-            }
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
-        }
-    
-        $webClient = [TimeoutWebClient]::new(300000)
         if ($customConfig.ClientServicesCredentialType -eq "Windows") {
-            $webClient.UseDefaultCredentials = $true
+            $useDefaultCredentials = $true
         }
         else {
             if (!($credential)) {
                 throw "You need to specify credentials when you are not using Windows Authentication"
             }
-            
+
             $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
             $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
             $base64 = [System.Convert]::ToBase64String($bytes)
             $basicAuthValue = "Basic $base64"
-            $webClient.Headers.Add("Authorization", $basicAuthValue)
+            $headers."Authorization" = $basicAuthValue
         }
     }
 
     $depidx = 0
     while ($depidx -lt $dependencies.Count) {
         $dependency = $dependencies[$depidx]
-        if ($updateSymbols -or !($existingApps | Where-Object {($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version)))})) {
+        Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
+        $existingApp = $existingApps | Where-Object {
+            if ($platformversion -ge [System.Version]"19.0.0.0") {
+                ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+            }
+            else {
+                (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
+            }
+        }
+        if ($existingApp) {
+            Write-Host "Dependency App exists"
+        }
+        if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
             $name = $dependency.name
+            $appId = $dependency.appId
             $version = $dependency.version
             $symbolsName = "$($publisher)_$($name)_$($version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | % {
+            $publishedApps | Where-Object { $_.publisher -eq $publisher -and $_.name -eq $name } | ForEach-Object {
                 $symbolsName = "$($publisher)_$($name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
             }
-            if ($webClient -eq $null) {
+            if (($devServerUrl -eq "") -or ($headers -eq @{} -and !$useDefaultCredentials)) {
                 Write-Host -ForegroundColor Yellow "WARNING: Unable to download symbols for $symbolsName"
             }
             else {
                 $symbolsFile = Join-Path $appSymbolsFolder $symbolsName
                 Write-Host "Downloading symbols: $symbolsName"
-    
+
                 $publisher = [uri]::EscapeDataString($publisher)
                 $name = [uri]::EscapeDataString($name)
-                $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
+                if ($appId -and $platformversion -ge [System.Version]"20.0.0.0") {
+                    $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($version)&tenant=$tenant"
+                }
+                else {
+                    $url = "$devServerUrl/dev/packages?publisher=$($publisher)&appName=$($name)&versionText=$($version)&tenant=$tenant"
+                }
                 Write-Host "Url : $Url"
                 try {
-                    $webClient.DownloadFile($url, $symbolsFile)
+                    DownloadFileLow -sourceUrl $url -destinationFile $symbolsFile -timeout $timeout -useDefaultCredentials:$useDefaultCredentials -Headers $headers -skipCertificateCheck:$sslVerificationDisabled
                 }
-                catch [System.Net.WebException] {
+                catch {
                     $throw = $true
-                    if ($customConfig.ClientServicesCredentialType -eq "Windows") {
+                    if ($customConfig.ServerInstance -ne '' -and $customConfig.ClientServicesCredentialType -eq "Windows") {
                         try {
                             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($url, $symbolsFile)
                                 $webClient = [System.Net.WebClient]::new()
@@ -437,33 +494,58 @@ try {
                     $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                         # Wait for file to be accessible in container
                         While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
-    
+
                         if ($platformversion.Major -ge 15) {
                             Add-Type -AssemblyName System.IO.Compression.FileSystem
                             Add-Type -AssemblyName System.Text.Encoding
-            
+
                             try {
                                 # Import types needed to invoke the compiler
                                 $alcPath = 'C:\build\vsix\extension\bin'
-                                Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
-                                Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
-                                Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
-
-                                $packageStream = [System.IO.File]::OpenRead($symbolsFile)
-                                $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
-                                $manifest = $package.ReadNavAppManifest()
-                                
-                                if ($manifest.application) {
-                                    @{ "publisher" = "Microsoft"; "name" = "Application"; "version" = $manifest.Application }
+                                $alToolExe = Join-Path $alcPath 'win32\altool.exe'
+                                $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
+                                if ($alToolExists) {
+                                    $manifest = & "$alToolExe" GetPackageManifest "$symbolsFile" | ConvertFrom-Json
+                                    if ($manifest.PSObject.Properties.Name -eq 'application' -and $manifest.application) {
+                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
+                                    }
+                                    if ($manifest.PSObject.Properties.Name -eq 'dependencies') {
+                                        foreach ($dependency in $manifest.dependencies) {
+                                            @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $dependency.id; "Version" = $dependency.Version }
+                                        }
+                                    }
                                 }
-            
-                                foreach ($dependency in $manifest.dependencies) {
-                                    @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "Version" = $dependency.Version }
+                                else {
+                                    Add-Type -Path (Join-Path $alcPath Newtonsoft.Json.dll)
+                                    Add-Type -Path (Join-Path $alcPath System.Collections.Immutable.dll)
+                                    if (Test-Path (Join-Path $alcPath System.IO.Packaging.dll)) {
+                                        Add-Type -Path (Join-Path $alcPath System.IO.Packaging.dll)
+                                    }
+                                    Add-Type -Path (Join-Path $alcPath Microsoft.Dynamics.Nav.CodeAnalysis.dll)
+
+                                    $packageStream = [System.IO.File]::OpenRead($symbolsFile)
+                                    $package = [Microsoft.Dynamics.Nav.CodeAnalysis.Packaging.NavAppPackageReader]::Create($PackageStream, $true)
+                                    $manifest = $package.ReadNavAppManifest()
+
+                                    if ($manifest.application) {
+                                        @{ "publisher" = "Microsoft"; "name" = "Application"; "appId" = ''; "version" = $manifest.Application }
+                                    }
+
+                                    foreach ($dependency in $manifest.dependencies) {
+                                        $appId = ''
+                                        if ($dependency.psobject.Properties.name -eq 'appid') {
+                                            $appId = $dependency.appid
+                                        }
+                                        elseif ($dependency.psobject.Properties.name -eq 'id') {
+                                            $appId = $dependency.id
+                                        }
+                                        @{ "publisher" = $dependency.Publisher; "name" = $dependency.name; "appId" = $appId; "Version" = $dependency.Version }
+                                    }
                                 }
                             }
                             catch [System.Reflection.ReflectionTypeLoadException] {
                                 if ($_.Exception.LoaderExceptions) {
-                                    $_.Exception.LoaderExceptions | % {
+                                    $_.Exception.LoaderExceptions | ForEach-Object {
                                         Write-Host "LoaderException: $($_.Message)"
                                     }
                                 }
@@ -480,11 +562,11 @@ try {
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
 
-                    $addDependencies | % {
+                    $addDependencies | ForEach-Object {
                         $addDependency = $_
                         $found = $false
-                        $dependencies | % {
-                            if ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name) {
+                        $dependencies | ForEach-Object {
+                            if ((($_.appId) -and ($_.appId -eq $addDependency.appId)) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
                                 $found = $true
                             }
                         }
@@ -498,13 +580,13 @@ try {
         }
         $depidx++
     }
- 
-    if ($sslverificationdisabled) {
-        Write-Host "Re-enabling SSL Verification"
-        [SslVerification]::Enable()
+
+    $errorLogFilePath = ""
+    if($generateErrorLog) {
+        $errorLogFilePath = (Join-Path $containerOutputFolder $($appName -replace '.app$','.errorLog.json'))
     }
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies )
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appProjectFolder, $appSymbolsFolder, $appOutputFile, $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCops, $rulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $errorLogFilePath, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $generateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl )
 
         if ($updateDependencies) {
             $appJsonFile = Join-Path $appProjectFolder 'app.json'
@@ -593,8 +675,16 @@ try {
             $alcParameters += @("/ruleset:$rulesetfile")
         }
 
+        if ($enableExternalRulesets) {
+            $alcParameters += @("/enableexternalrulesets")
+        }
+
         if ($nowarn) {
             $alcParameters += @("/nowarn:$nowarn")
+        }
+
+        if ($errorLogFilePath) {
+            $alcParameters += @("/errorLog:""$errorLogFilePath""")
         }
 
         if ($GenerateCrossReferences -and $platformversion.Major -ge 18) {
@@ -610,12 +700,27 @@ try {
             }
         }
 
+        if ($alcVersion -ge [System.Version]"12.0.12.41479") {
+            if ($sourceRepositoryUrl) {
+                $alcParameters += @("/SourceRepositoryUrl:""$sourceRepositoryUrl""")
+            }
+            if ($sourceCommit) {
+                $alcParameters += @("/SourceCommit:""$sourceCommit""")
+            }
+            if ($buildBy) {
+                $alcParameters += @("/BuildBy:""$buildBy""")
+            }
+            if ($buildUrl) {
+                $alcParameters += @("/BuildUrl:""$buildUrl""")
+            }
+        }
+
         if ($assemblyProbingPaths) {
             $alcParameters += @("/assemblyprobingpaths:$assemblyProbingPaths")
         }
 
         if ($features) {
-            $alcParameters +=@("/features:$([string]::Join(',', $features))")
+            $alcParameters +=@("/features:$($features -join ',')")
         }
 
         $preprocessorSymbols | where-Object { $_ } | ForEach-Object { $alcParameters += @("/D:$_") }
@@ -623,12 +728,12 @@ try {
         Write-Host ".\alc.exe $([string]::Join(' ', $alcParameters))"
 
         & .\alc.exe $alcParameters
-        
+
         if ($lastexitcode -ne 0 -and $lastexitcode -ne -1073740791) {
             "App generation failed with exit code $lastexitcode"
         }
-    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $assemblyProbingPaths, $nowarn, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies
-    
+    } -ArgumentList $containerProjectFolder, $containerSymbolsFolder, (Join-Path $containerOutputFolder $appName), $EnableCodeCop, $EnableAppSourceCop, $EnablePerTenantExtensionCop, $EnableUICop, $CustomCodeCopFiles, $containerRulesetFile, $enableExternalRulesets, $assemblyProbingPaths, $nowarn, $errorLogFilePath, $GenerateCrossReferences, $ReportSuppressedDiagnostics, $GenerateReportLayoutParam, $features, $preProcessorSymbols, $platformversion, $updateDependencies, $sourceRepositoryUrl, $sourceCommit, $buildBy, $buildUrl
+
     if ($treatWarningsAsErrors) {
         $regexp = ($treatWarningsAsErrors | ForEach-Object { if ($_ -eq '*') { ".*" } else { $_ } }) -join '|'
         $result = $result | ForEach-Object { $_ -replace "^(.*)warning ($regexp):(.*)`$", '$1error $2:$3' }
@@ -636,24 +741,37 @@ try {
 
     $devOpsResult = ""
     if ($result) {
+        $Parameters = @{
+            "FailOn"           = $FailOn
+            "AlcOutput"        = $result
+            "DoNotWriteToHost" = $true
+        }
         if ($gitHubActions) {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost -gitHubActions -basePath (Get-BcContainerPath -containerName $containerName -path $ENV:GITHUB_WORKSPACE)
+            $Parameters += @{
+                "gitHubActions" = $true
+            }
+            if (-not $basePath) {
+                $basePath = $ENV:GITHUB_WORKSPACE
+            }
         }
-        else {
-            $devOpsResult = Convert-ALCOutputToAzureDevOps -FailOn $FailOn -AlcOutput $result -DoNotWriteToHost
+        if ($basePath) {
+            $Parameters += @{
+                "basePath" = (Get-BcContainerPath -containerName $containerName -path $basePath)
+            }
         }
+        $devOpsResult = Convert-ALCOutputToAzureDevOps @Parameters
     }
     if ($AzureDevOps -or $gitHubActions) {
         $devOpsResult | ForEach-Object { $outputTo.Invoke($_) }
     }
     else {
-        $result | % { $outputTo.Invoke($_) }
+        $result | ForEach-Object { $outputTo.Invoke($_) }
         if ($devOpsResult -like "*task.complete result=Failed*") {
             throw "App generation failed"
         }
     }
 
-    $result | Where-Object { $_ -like "App generation failed*" } | % { throw $_ }
+    $result | Where-Object { $_ -like "App generation failed*" } | ForEach-Object { throw $_ }
 
     $timespend = [Math]::Round([DateTime]::Now.Subtract($startTime).Totalseconds)
     $appFile = Join-Path $appOutputFolder $appName
@@ -663,11 +781,11 @@ try {
         if ($CopyAppToSymbolsFolder) {
             Copy-Item -Path $appFile -Destination $appSymbolsFolder -ErrorAction SilentlyContinue
             if (Test-Path -Path (Join-Path -Path $appSymbolsFolder -ChildPath $appName)) {
-                Write-Host "${appName} copied to ${appSymbolsFolder}"
+                Write-Host "$($appName) copied to $($appSymbolsFolder)"
                 Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder, $appName)
                     $appFile = Join-Path -Path $appSymbolsFolder -ChildPath $appName
                     while (-not (Test-Path -Path $appFile)) { Start-Sleep -Seconds 1 }
-                } -ArgumentList $containerSymbolsFolder,"$($appName)"                
+                } -ArgumentList $containerSymbolsFolder,"$($appName)"
             }
         }
     }

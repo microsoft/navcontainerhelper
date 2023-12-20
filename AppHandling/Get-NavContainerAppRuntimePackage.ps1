@@ -33,7 +33,7 @@ function Get-BcContainerAppRuntimePackage {
         [Parameter(Mandatory=$false)]
         [Boolean] $IncludeSourceInPackageFile,
         [Parameter(Mandatory=$false)]
-        [string] $appFile = (Join-Path $extensionsFolder ("$containerName\$appName.app" -replace '[~#%&*{}|:<>?/|"]', '_'))
+        [string] $appFile = (Join-Path $bcContainerHelperConfig.hostHelperFolder ("Extensions\$containerName\$appName.app" -replace '[~#%&*{}|:<>?/|"]', '_'))
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -44,8 +44,8 @@ try {
         throw "The app filename ($appFile)needs to be in a folder, which is shared with the container $containerName"
     }
 
-    $showMyCodeExists = ($PSBoundParameters.ContainsKey(‘showMyCode’))
-    $IncludeSourceInPackageFileExists = ($PSBoundParameters.ContainsKey(‘IncludeSourceInPackageFile’))
+    $showMyCodeExists = ($PSBoundParameters.ContainsKey('showMyCode'))
+    $IncludeSourceInPackageFileExists = ($PSBoundParameters.ContainsKey('IncludeSourceInPackageFile'))
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appName, $publisher, $appVersion, $tenant, $appFile, $showMyCodeExists, $showMyCode, $IncludeSourceInPackageFileExists, $IncludeSourceInPackageFile)
 

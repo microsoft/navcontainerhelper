@@ -21,6 +21,8 @@
   Include this switch if you do not want the method to display URLs etc.
  .Parameter doNotCheckVersionNumber
   Include this switch avoid checking whether the new version number is greater than the existing version number in Partner Center
+ .Parameter doNotUpdateVersionNumber
+  Include this switch when you do not want to change the version number of the product in Partner Center (can be used for hotfixes) 
  .Example
   New-AppSourceSubmission -authContext $authContext -productId $product.Id -appFile $appFile
  .Example
@@ -40,7 +42,9 @@ function New-AppSourceSubmission {
         [switch] $doNotWait,
         [switch] $force,
         [switch] $silent,
-        [switch] $doNotCheckVersionNumber
+        [Obsolete("doNotCheckVersionNumber is obsolete, please use doNotUpdateVersionNumber instead")]
+        [switch] $doNotCheckVersionNumber,
+        [switch] $doNotUpdateVersionNumber
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -96,7 +100,7 @@ try {
     $appVersionNumber = ""
     if ($appFile) {
         try {
-            $tempFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+            $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             Extract-AppFileToFolder -appFilename $appFile -appFolder $tempFolder -generateAppJson
             $appJsonFile = Join-Path $tempFolder 'app.json'
             $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
@@ -115,7 +119,7 @@ try {
             $libraryAppFile = $libraryAppFiles[0]
         }
         else {
-            $tempFolder = Join-Path $env:TEMP ([GUID]::NewGuid().ToString())
+            $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
             New-Item -Path $tempFolder -ItemType Directory | Out-Null
             $libraryAppFile = Join-Path $tempFolder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).libraries.zip"
             Compress-Archive -Path $libraryAppFiles -DestinationPath $libraryAppFile -CompressionLevel Fastest
@@ -197,7 +201,7 @@ try {
             }
         )
     }
-    if ($appVersionNumber) {
+    if ($appVersionNumber -and !$doNotUpdateVersionNumber) {
         $branchesProperty = @(Invoke-IngestionApiGetCollection -authContext $authContext -path "/products/$productId/branches/getByModule(module=Property)" -silent:($silent.IsPresent) | Where-Object { 
             $thisVariantID = ''
             if ($_.PSObject.Properties.name -eq "variantID") { $thisVariantID = $_.variantID }

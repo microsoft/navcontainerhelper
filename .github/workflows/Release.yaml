@@ -14,6 +14,7 @@ defaults:
 
 jobs:
   Deploy:
+    if: github.repository == 'Microsoft/NavContainerHelper'
     runs-on: [ windows-latest ]
     steps:
       - name: Checkout
@@ -21,8 +22,9 @@ jobs:
 
       - name: Deploy
         run: |
+          $errorActionPreference = "stop"
           try {
-            $path = Join-Path $ENV:TEMP "BcContainerHelper"
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
             New-Item -path $path -itemType Directory | Out-Null
             Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
 
@@ -56,7 +58,7 @@ jobs:
 
             Write-Host "Release Notes:"
             Write-Host $VersionReleaseNotes
-
+            
             Write-Host "Update Module Manifest"
             Update-ModuleManifest -Path (Join-Path $path "BcContainerHelper.psd1") `
                                   -RootModule "BcContainerHelper.psm1" `
@@ -67,28 +69,27 @@ jobs:
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes
 
-
-            $certFileName = Join-Path $ENV:TEMP "$([GUID]::NewGuid().ToString()).pfx"
+            $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
             Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
-
+            
             Remove-Module BcContainerHelper
-          
+            
             Write-Host $path
-           
+            
             Write-Host "Signing scripts"
             $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
             $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
                            @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
             Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
-
+            
             Write-Host "Upload to storage (preview)"
             $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
             New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
-
+            
             Compress-Archive -path $path -DestinationPath "$($path).zip"
             Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
             Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
-
+            
             Write-Host "Publishing Module"
             Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
           }

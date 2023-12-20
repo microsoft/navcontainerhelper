@@ -79,7 +79,7 @@ try {
             Write-Host "$($spaces)$($_.Name)"
         }
         # Create temp folders
-        $tempAppFolder = Join-Path ((Get-Item -Path $env:temp).FullName) ([Guid]::NewGuid().ToString())
+        $tempAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         $tempAppDependenciesFolder = Join-Path $tempAppFolder 'dependencies'
         try {
             New-Item -path $tempAppFolder -ItemType Directory -Force | Out-Null

@@ -25,7 +25,7 @@ function Invoke-ScriptInBcContainer {
         [bool] $useSession = $bcContainerHelperConfig.usePsSession
     )
 
-    $file = Join-Path $hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+    $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
     if (!$useSession) {
         if ($isInsideContainer) {
@@ -199,7 +199,13 @@ $startTime = [DateTime]::Now
                         }
                     }
                     else {
-                        "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                        $script = $ast.Extent.text.Trim()
+                        if ($script.StartsWith('{')) {
+                            "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                        }
+                        else {
+                            "`$result = Invoke-Command -ScriptBlock { try { $($ast.Extent.text) } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                        }
                     }
                 }
                 else {
@@ -262,6 +268,8 @@ if ($exception) {
 #Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
 
                 $ErrorActionPreference = "Stop"
+#                $file | Out-Host
+#                Get-Content -path $file | Out-Host
                 docker exec $containerName powershell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
@@ -269,8 +277,7 @@ if ($exception) {
                     throw "Error executing script in Container"
                 }
                 if (Test-Path -Path $hostOutputFile -PathType Leaf) {
-
-#Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
+#                   Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
                     $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
                     $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
                     if ($exception) {

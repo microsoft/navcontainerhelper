@@ -14,7 +14,7 @@
  .Parameter pfxPassword
   Password of the certificate pfx file
  .Parameter timeStampServer
-  Specifies the URL of the time stamp server. Default is $bcContainerHelperConfig.timeStampServer, which defaults to http://timestamp.verisign.com/scripts/timestamp.dll
+  Specifies the URL of the time stamp server. Default is $bcContainerHelperConfig.timeStampServer, which defaults to http://timestamp.digicert.com
  .Example
   Sign-BcContainerApp -appFile c:\programdata\bccontainerhelper\myapp.app -pfxFile http://my.secure.url/mycert.pfx -pfxPassword $securePassword
  .Example
@@ -44,8 +44,7 @@ try {
         throw "The app ($appFile)needs to be in a folder, which is shared with the container $containerName"
     }
 
-    $ExtensionsFolder = Join-Path $hosthelperfolder "Extensions"
-    $sharedPfxFile = Join-Path $ExtensionsFolder "$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
+    $sharedPfxFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
     $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
         Write-Host "Downloading certificate file to container"
@@ -65,8 +64,54 @@ try {
     try {
         TestPfxCertificate -pfxFile $sharedPfxFile -pfxPassword $pfxPassword -certkind "Codesign"
 
-        Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
-    
+        Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -ScriptBlock { Param($appFile, $pfxFile, $pfxPassword, $timeStampServer, $digestAlgorithm, $importCertificate)
+
+            function GetExtendedErrorMessage {
+                Param(
+                    $errorRecord
+                )
+            
+                $exception = $errorRecord.Exception
+                $message = $exception.Message
+            
+                try {
+                    $errorDetails = $errorRecord.ErrorDetails | ConvertFrom-Json
+                    $message += " $($errorDetails.error)`r`n$($errorDetails.error_description)"
+                }
+                catch {}
+                try {
+                    if ($exception -is [System.Management.Automation.MethodInvocationException]) {
+                        $exception = $exception.InnerException
+                    }
+                    $webException = [System.Net.WebException]$exception
+                    $webResponse = $webException.Response
+                    try {
+                        if ($webResponse.StatusDescription) {
+                            $message += "`r`n$($webResponse.StatusDescription)"
+                        }
+                    } catch {}
+                    $reqstream = $webResponse.GetResponseStream()
+                    $sr = new-object System.IO.StreamReader $reqstream
+                    $result = $sr.ReadToEnd()
+                    try {
+                        $json = $result | ConvertFrom-Json
+                        $message += "`r`n$($json.Message)"
+                    }
+                    catch {
+                        $message += "`r`n$result"
+                    }
+                    try {
+                        $correlationX = $webResponse.GetResponseHeader('ms-correlation-x')
+                        if ($correlationX) {
+                            $message += " (ms-correlation-x = $correlationX)"
+                        }
+                    }
+                    catch {}
+                }
+                catch{}
+                $message
+            }
+
             if ($importCertificate) {
                 Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\root" | Out-Null
                 Import-PfxCertificate -FilePath $pfxFile -Password $pfxPassword -CertStoreLocation "cert:\localMachine\my" | Out-Null
@@ -82,14 +127,21 @@ try {
                 Write-Host "Installing vcredist_x64"
                 start-process -Wait -FilePath c:\run\install\vcredist_x64.exe -ArgumentList /q, /norestart
             }
+
+            if (!(Test-Path "C:\Windows\System32\vcruntime140_1.dll")) {
+                Write-Host "Downloading vcredist_x64 (version 140)"
+                (New-Object System.Net.WebClient).DownloadFile('https://aka.ms/vs/17/release/vc_redist.x64.exe','c:\run\install\vcredist_x64-140.exe')
+                Write-Host "Installing vcredist_x64 (version 140)"
+                start-process -Wait -FilePath c:\run\install\vcredist_x64-140.exe -ArgumentList /q, /norestart
+            }
     
             if (Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe") {
                 $signToolExe = (get-item "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe").FullName
             } else {
                 Write-Host "Downloading Signing Tools"
                 $winSdkSetupExe = "c:\run\install\winsdksetup.exe"
-                $winSdkSetupUrl = "https://go.microsoft.com/fwlink/p/?LinkID=2023014"
-                (New-Object System.Net.WebClient).DownloadFile($winSdkSetupUrl, $winSdkSetupExe)
+                $winSdkSetupUrl = "https://bcartifacts.azureedge.net/prerequisites/winsdksetup.exe"
+                (New-Object System.Net.WebClient).DownloadFile($winSdkSetupUrl,$winSdkSetupExe)
                 Write-Host "Installing Signing Tools"
                 Start-Process $winSdkSetupExe -ArgumentList "/features OptionId.SigningTools /q" -Wait
                 if (!(Test-Path "C:\Program Files (x86)\Windows Kits\10\bin\*\x64\SignTool.exe")) {

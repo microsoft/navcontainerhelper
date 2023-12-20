@@ -46,7 +46,7 @@ try {
         if ($pfxCertificatePath -like "http://*" -or $pfxCertificatePath -like "https://*") {
             $pfxUrl = $pfxCertificatePath
             $pfxCertificatePath = Join-Path "c:\run" "$([Guid]::NewGuid().ToString()).pfx"
-            (New-Object System.Net.WebClient).DownloadFile($pfxUrl, $pfxCertificatePath)
+            DownloadFileLow -sourceUrl $pfxUrl -destinationFile $pfxCertificatePath
             $copied = $true
         }
 

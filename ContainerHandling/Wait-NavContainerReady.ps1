@@ -42,7 +42,7 @@ function Wait-BcContainerReady {
                 throw "Initialization of container $containerName failed"
             }
 
-            if ($bcContainerHelperConfig.usePsSession -and $cnt -eq ($timeout-30)) {
+            if ($isAdministrator -and $bcContainerHelperConfig.usePsSession -and $cnt -eq ($timeout-30)) {
                 try {
                     if (!$sessions.ContainsKey($containerName)) {
                         $containerId = Get-BcContainerId -containerName $containerName
@@ -62,12 +62,12 @@ function Wait-BcContainerReady {
             }
 
         } while (!($log.Contains("Ready for connections!")))
+        Write-Host
         if ($bcContainerHelperConfig.usePsSession) {
             try {
                 Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
             } catch {}
         }
-        Write-Host
 
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             $boo = $true

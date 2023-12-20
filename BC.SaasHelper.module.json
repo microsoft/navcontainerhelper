@@ -1,0 +1,21 @@
+{
+    "GUID": "e7f1ba7d-b7f1-4c7d-ad19-d24491fbbd19",
+    "Author": "Freddy Kristiansen",
+    "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
+    "Description": "PowerShell module with Business Central online helper functions for Business Central Development",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "SaaSHelperFunctions.ps1",
+        "BC.SaasHelper.ps1",
+        "Saas\\*"
+    ]
+}
