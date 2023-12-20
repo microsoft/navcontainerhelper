@@ -1322,7 +1322,7 @@ Measure-Command {
     }
     if ($useDevEndpoint) {
         $Parameters += @{
-            "devEndpoint" = $useDevEndpoint
+            "useDevEndpoint" = $useDevEndpoint
             "credential" = $credential
         }
     }
