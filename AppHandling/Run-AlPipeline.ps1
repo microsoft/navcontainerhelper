@@ -1319,11 +1319,15 @@ Measure-Command {
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
         }
-    } 
+    } elseif($credential) {
+        $Parameters += @{
+            "credential" = $credential
+        }
+    }
+
     if ($useDevEndpoint) {
         $Parameters += @{
             "useDevEndpoint" = $useDevEndpoint
-            "credential" = $credential
         }
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
@@ -1499,11 +1503,15 @@ Measure-Command {
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
             }
+        } elseif($credential) {
+            $Parameters += @{
+                "credential" = $credential
+            }
         }
+    
         if ($useDevEndpoint) {
             $Parameters += @{
                 "useDevEndpoint" = $useDevEndpoint
-                "credential" = $credential
             }
         }
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
