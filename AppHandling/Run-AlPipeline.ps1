@@ -1319,7 +1319,8 @@ Measure-Command {
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
         }
-    } elseif($useDevEndpoint) {
+    } 
+    if ($useDevEndpoint) {
         $Parameters += @{
             "useDevEndpoint" = $useDevEndpoint
             "credential" = $credential
@@ -1498,7 +1499,8 @@ Measure-Command {
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
             }
-        } elseif($useDevEndpoint) {
+        }
+        if ($useDevEndpoint) {
             $Parameters += @{
                 "useDevEndpoint" = $useDevEndpoint
                 "credential" = $credential
