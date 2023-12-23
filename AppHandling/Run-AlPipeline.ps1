@@ -1312,11 +1312,16 @@ Measure-Command {
         "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
         "includePerformanceToolkit" = $installPerformanceToolkit
         "doNotUseRuntimePackages" = $true
+        "useDevEndpoint" = $useDevEndpoint
     }
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+        }
+    } elseif($useDevEndpoint) {
+        $Parameters += @{
+            "credential" = $credential
         }
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
@@ -1486,11 +1491,16 @@ Measure-Command {
             "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
             "includePerformanceToolkit" = $installPerformanceToolkit
             "doNotUseRuntimePackages" = $true
+            "useDevEndpoint" = $useDevEndpoint
         }
         if ($bcAuthContext) {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+            }
+        } elseif ($useDevEndpoint) {
+            $Parameters += @{
+                "credential" = $credential
             }
         }
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
