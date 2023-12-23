@@ -461,7 +461,7 @@ function GetInstalledAppIds {
         $installedApps = @()
     }
     Write-Host "::group::Installed Apps"
-    $installedApps | ForEach-Object { Write-Host "- $($_.AppId):($_.AppName)" }
+    $installedApps | ForEach-Object { Write-Host "- $($_.AppId):$($_.Name)" }
     Write-Host "::endgroup::"
     return $installedApps.AppId
 }
