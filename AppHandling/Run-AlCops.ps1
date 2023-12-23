@@ -131,7 +131,12 @@ function Run-AlCops {
                     Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
                     Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
                 }
-                Add-Type -Path "C:\build\vsix\extension\bin\Microsoft.Dynamics.Nav.CodeAnalysis.dll" | Out-Null
+                $binPath = 'C:\build\vsix\extension\bin'
+                $alcPath = Join-Path $binPath 'win32'
+                if (-not (Test-Path $alcPath)) {
+                    $alcPath = $binPath
+                }
+                Add-Type -Path (Join-Path $alcPath 'Microsoft.Dynamics.Nav.CodeAnalysis.dll') | Out-Null
                 [Microsoft.Dynamics.Nav.CodeAnalysis.ReleaseVersion]::LatestSupportedRuntimeVersions[$bcversion]
             } -argumentList "$($artifactVersion.Major).$($artifactVersion.Minor)"
         }
