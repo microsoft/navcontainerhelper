@@ -103,7 +103,7 @@ class NuGetFeed {
                 if ($result.Count -eq 0) {
                     break
                 }
-                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) }) | ForEach-Object { $_.name }
+                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | ForEach-Object { $_.name })
                 $page++
             }
         }
@@ -119,7 +119,7 @@ class NuGetFeed {
                 throw (GetExtendedErrorMessage $_)
             }
             # Check that the found pattern matches the package name and the trusted patterns
-            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) }) | ForEach-Object { $_.id }
+            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) } | ForEach-Object { $_.id })
         }
         Write-Host "$($matching.count) matching packages found"
         return $matching | ForEach-Object { Write-Host "- $_"; $_ }
@@ -185,7 +185,8 @@ class NuGetFeed {
             else {
                 $fromver = [System.Version]::new(0,0,0,0)
                 if ($inclFrom) {
-                    throw "Invalid NuGet version range $nuGetVersionRange"
+                    Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                    return $false
                 }
             }
             if ($matches[4]) {
@@ -194,14 +195,16 @@ class NuGetFeed {
             elseif ($range) {
                 $tover = [System.Version]::new([int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue)
                 if ($inclTo) {
-                    throw "Invalid NuGet version range $nuGetVersionRange"
+                    Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                    return $false
                 }
             }
             else {
                 $tover = $fromver
             }
             if (!$range -and (!$inclFrom -or !$inclTo)) {
-                throw "Invalid NuGet version range $nuGetVersionRange"
+                Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                return $false
             }
             if ($inclFrom) {
                 if ($inclTo) {

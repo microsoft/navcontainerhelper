@@ -7,6 +7,8 @@
   Url from which the file will get downloaded
  .Parameter destinationFile
   Destinatin for the downloaded file
+ .Parameter description
+  Description for the download process
  .Parameter Headers
   Specify a custom header for the request
  .Parameter dontOverwrite
@@ -22,6 +24,7 @@ function Download-File {
         [string] $sourceUrl,
         [Parameter(Mandatory=$true)]
         [string] $destinationFile,
+        [string] $description = '',
         [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [switch] $dontOverwrite,
         [int]    $timeout = 100
@@ -73,7 +76,12 @@ try {
         New-Item -Path $path -ItemType Directory -Force | Out-Null
     }
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-    Write-Host "Downloading $destinationFile"
+    if ($description) {
+        Write-Host "Downloading $description to $destinationFile"
+    }
+    else {
+        Write-Host "Downloading $destinationFile"
+    }
     if ($sourceUrl -like "https://*.sharepoint.com/*download=1*") {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }

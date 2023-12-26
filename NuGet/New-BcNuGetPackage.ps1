@@ -58,7 +58,12 @@ Function New-BcNuGetPackage {
         [Parameter(Mandatory=$false)]
         [string] $applicationDependencyId = 'Microsoft.Application',
         [Parameter(Mandatory=$false)]
+        [string] $applicationDependency = '',
+        [Parameter(Mandatory=$false)]
         [string] $platformDependencyId = 'Microsoft.Platform',
+        [Parameter(Mandatory=$false)]
+        [string] $runtimeDependencyId = '{publisher}.{name}.runtime-{version}',
+        [switch] $isIndirectPackage,
         [obsolete('NuGet Dependencies are always included.')]
         [switch] $includeNuGetDependencies
     )
@@ -75,15 +80,14 @@ Function New-BcNuGetPackage {
         throw "Unable to locate file: $_"
     }
     $appFile = (Get-Item $appfile).FullName
-    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     $rootFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     New-Item -Path $rootFolder -ItemType Directory | Out-Null
     try {
-        Copy-Item -Path $appFile -Destination $rootFolder -Force
-        Extract-AppFileToFolder -appFilename $appFile -generateAppJson -appFolder $tmpFolder
-        $appJsonFile = Join-Path $tmpFolder 'app.json'
-        $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
-        $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher))
+        if (!$isIndirectPackage.IsPresent) {
+            Copy-Item -Path $appFile -Destination $rootFolder -Force
+        }
+        $appJson = GetAppJsonFromAppFile -appFile $appFile
+        $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher)).replace('{version}',$appJson.version.replace('.','-'))
         if ($null -eq $packageVersion) {
             $packageVersion = [System.Version]$appJson.version
         }
@@ -98,6 +102,11 @@ Function New-BcNuGetPackage {
         }
         if (-not $packageAuthors) {
             $packageAuthors = $appJson.publisher
+        }
+        if (-not $applicationDependency) {
+            if ($appJson.PSObject.Properties.Name -eq 'Application' -and $appJson.Application) {
+                $applicationDependency = $appJson.Application
+            }
         }
 
         if ($prereleaseTag) {
@@ -132,17 +141,19 @@ Function New-BcNuGetPackage {
             $XmlObjectWriter.WriteEndElement()
         }
         $XmlObjectWriter.WriteStartElement("dependencies")
-        $appJson.dependencies | ForEach-Object {
-            $id = $dependencyIdTemplate.replace('{id}',$_.id).replace('{name}',[nuGetFeed]::Normalize($_.name)).replace('{publisher}',[nuGetFeed]::Normalize($_.publisher))
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $XmlObjectWriter.WriteAttributeString("id", $id)
-            $XmlObjectWriter.WriteAttributeString("version", $_.Version)
-            $XmlObjectWriter.WriteEndElement()
+        if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
+            $appJson.dependencies | ForEach-Object {
+                $id = $dependencyIdTemplate.replace('{id}',$_.id).replace('{name}',[nuGetFeed]::Normalize($_.name)).replace('{publisher}',[nuGetFeed]::Normalize($_.publisher))
+                $XmlObjectWriter.WriteStartElement("dependency")
+                $XmlObjectWriter.WriteAttributeString("id", $id)
+                $XmlObjectWriter.WriteAttributeString("version", $_.Version)
+                $XmlObjectWriter.WriteEndElement()
+            }
         }
-        if ($appJson.PSObject.Properties.Name -eq 'Application' -and $appJson.Application) {
+        if ($applicationDependency) {
             $XmlObjectWriter.WriteStartElement("dependency")
             $XmlObjectWriter.WriteAttributeString("id", $applicationDependencyId)
-            $XmlObjectWriter.WriteAttributeString("version", $appJson.Application)
+            $XmlObjectWriter.WriteAttributeString("version", $applicationDependency)
             $XmlObjectWriter.WriteEndElement()
         }
         if ($appJson.PSObject.Properties.Name -eq 'Platform' -and  $appJson.Platform) {
@@ -151,15 +162,24 @@ Function New-BcNuGetPackage {
             $XmlObjectWriter.WriteAttributeString("version", $appJson.Platform)
             $XmlObjectWriter.WriteEndElement()
         }
+        if ($isIndirectPackage.IsPresent) {
+            $XmlObjectWriter.WriteStartElement("dependency")
+            $id = $runtimeDependencyId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher)).replace('{version}',$appJson.version.replace('.','-'))
+            $XmlObjectWriter.WriteAttributeString("id", $id)
+            $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
+            $XmlObjectWriter.WriteEndElement()
+        }
         $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndElement()
-        $XmlObjectWriter.WriteStartElement("files")
-        $XmlObjectWriter.WriteStartElement("file")
-        $appFileName = [System.IO.Path]::GetFileName($appfile)
-        $XmlObjectWriter.WriteAttributeString("src", $appFileName );
-        $XmlObjectWriter.WriteAttributeString("target", $appFileName);
-        $XmlObjectWriter.WriteEndElement()
-        $XmlObjectWriter.WriteEndElement()
+        if (!$isIndirectPackage.IsPresent) {
+            $XmlObjectWriter.WriteStartElement("files")
+            $XmlObjectWriter.WriteStartElement("file")
+            $appFileName = [System.IO.Path]::GetFileName($appfile)
+            $XmlObjectWriter.WriteAttributeString("src", $appFileName );
+            $XmlObjectWriter.WriteAttributeString("target", $appFileName);
+            $XmlObjectWriter.WriteEndElement()
+            $XmlObjectWriter.WriteEndElement()
+        }
         $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndDocument()
         $XmlObjectWriter.Flush()
@@ -189,7 +209,6 @@ Function New-BcNuGetPackage {
         $nupkgFile
     }
     finally {
-        Remove-Item -Path $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path $rootFolder -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
