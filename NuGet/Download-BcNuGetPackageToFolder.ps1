@@ -169,7 +169,7 @@ Function Download-BcNuGetPackageToFolder {
                         throw $dependenciesErr
                     }
                     else {
-                        # If we are looking for the latest version, then we can try to find another version
+                        # If we are looking for the latest matching version, then we can try to find another version
                         Write-Host "WARNING: $dependenciesErr"
                         break
                     }
@@ -183,8 +183,9 @@ Function Download-BcNuGetPackageToFolder {
                 }
             }
             if ($dependenciesErr) {
-                # If we are looking for the latest version, then we can try to find another version
+                # If we are looking for the latest matching version, then we can try to find another version
                 $excludeVersions += $packageVersion
+                Remove-Item -Path $package -Recurse -Force
                 continue
             }
             $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName

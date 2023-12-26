@@ -534,7 +534,7 @@ function CopyAppFilesToFolder {
     if (!(Test-Path $folder)) {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
-    $appFiles | Where-Object { $_ } | % {
+    $appFiles | Where-Object { $_ } | ForEach-Object {
         $appFile = $_
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
@@ -567,7 +567,7 @@ function CopyAppFilesToFolder {
                             $copied = $true
                         }
                         Expand-Archive $appfile -DestinationPath $tmpFolder -Force
-                        Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | % {
+                        Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | ForEach-Object {
                             CopyAppFilesToFolder -appFile $_.FullName -folder $folder
                         }
                     }
@@ -1228,7 +1228,7 @@ function GetAppInfo {
     Write-Host "::endgroup::"
 }
 
-function GetLatestAlLanguageExtensionUrl {
+function GetLatestAlLanguageExtensionVersionAndUrl {
     Param(
         [switch] $allowPrerelease
     )
@@ -1238,19 +1238,18 @@ function GetLatestAlLanguageExtensionUrl {
                       -Body '{"filters":[{"criteria":[{"filterType":8,"value":"Microsoft.VisualStudio.Code"},{"filterType":12,"value":"4096"},{"filterType":7,"value":"ms-dynamics-smb.al"}],"pageNumber":1,"pageSize":50,"sortBy":0,"sortOrder":0}],"assetTypes":[],"flags":0x192}' `
                       -ContentType application/json | ConvertFrom-Json
     
-    $vsixUrl =  $listing.results | Select-Object -First 1 -ExpandProperty extensions `
+    $result =  $listing.results | Select-Object -First 1 -ExpandProperty extensions `
                          | Select-Object -ExpandProperty versions `
                          | Where-Object { ($allowPrerelease.IsPresent -or !(($_.properties.Key -eq 'Microsoft.VisualStudio.Code.PreRelease') -and ($_.properties | where-object { $_.Key -eq 'Microsoft.VisualStudio.Code.PreRelease' }).value -eq "true")) } `
-                         | Select-Object -First 1 -ExpandProperty files `
-                         | Where-Object { $_.assetType -eq "Microsoft.VisualStudio.Services.VSIXPackage"} `
-                         | Select-Object -ExpandProperty source
-     
-    if ($vsixUrl) {
-        $vsixUrl
+                         | Select-Object -First 1
+
+    if ($result) {
+        $vsixUrl = $result.files | Where-Object { $_.assetType -eq "Microsoft.VisualStudio.Services.VSIXPackage"} | Select-Object -ExpandProperty source
+        if ($vsixUrl) {
+            return $result.version, $vsixUrl
+        }
     }
-    else {
-        throw "Unable to locate latest AL Language Extension from the VS Code Marketplace"
-    }
+    throw "Unable to locate latest AL Language Extension from the VS Code Marketplace"
 }
 
 function DetermineVsixFile {
@@ -1261,13 +1260,84 @@ function DetermineVsixFile {
     if ($vsixFile -eq 'default') {
         return ''
     }
-    elseif ($vsixFile -eq 'latest') {
-        return (GetLatestAlLanguageExtensionUrl)
-    }
-    elseif ($vsixFile -eq 'preview') {
-        return (GetLatestAlLanguageExtensionUrl -allowPrerelease)
+    elseif ($vsixFile -eq 'latest' -or $vsixFile -eq 'preview') {
+        $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:($vsixFile -eq 'preview')
+        return $url
     }
     else {
         return $vsixFile
     }
+}
+
+# Cached Path for latest and preview versions of AL Language Extension
+$AlLanguageExtenssionPath = @('','')
+
+function DownloadLatestAlLanguageExtension {
+    Param(
+        [switch] $allowPrerelease
+    )
+
+    $mutexName = "DownloadAlLanguageExtension"
+    $mutex = New-Object System.Threading.Mutex($false, $mutexName)
+    try {
+        try {
+            if (!$mutex.WaitOne(1000)) {
+                Write-Host "Waiting for other process downloading AL Language Extension"
+                $mutex.WaitOne() | Out-Null
+                Write-Host "Other process completed downloading"
+            }
+        }
+        catch [System.Threading.AbandonedMutexException] {
+           Write-Host "Other process terminated abnormally"
+        }
+
+        # Check if we already have the latest version downloaded and located in this session
+        if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
+            $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
+            if (Test-Path $path -PathType Container) {
+                return $path
+            }
+            else {
+                $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
+            }
+        }
+
+        $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
+        $path = Join-Path $bcContainerHelperConfig.hostHelperFolder "alLanguageExtension/$version"
+        if (!(Test-Path $path -PathType Container)) {
+            $AlLanguageExtensionsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "alLanguageExtension"
+            if (!(Test-Path $AlLanguageExtensionsFolder -PathType Container)) {
+                New-Item -Path $AlLanguageExtensionsFolder -ItemType Directory | Out-Null
+            }
+            $description = "AL Language Extension"
+            if ($allowPrerelease) {
+                $description += " (Prerelease)"
+            }
+            $zipFile = "$path.zip"
+            Download-File -sourceUrl $url -destinationFile $zipFile -Description $description
+            Expand-7zipArchive -Path $zipFile -DestinationPath $path
+            Remove-Item -Path $zipFile -Force
+        }
+        $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = $path
+        return $path
+    }
+    finally {
+        $mutex.ReleaseMutex()
+    }
+}
+
+function GetAppJsonFromAppFile {
+    Param(
+        [string] $appFile
+    )
+    # ALTOOL is at the moment only available in prerelease        
+    $path = DownloadLatestAlLanguageExtension -allowPrerelease
+    if ($isWindows) {
+        $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
+    }
+    else {
+        $alToolExe = Join-Path $path 'extension/bin/linux/altool'
+    }
+    $appJson = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$appFile""") -returnValue -silent | ConvertFrom-Json
+    return $appJson
 }
