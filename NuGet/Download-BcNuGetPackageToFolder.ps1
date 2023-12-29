@@ -30,7 +30,7 @@
  .PARAMETER installedPlatform
   Version of the installed platform
  .PARAMETER installedCountry
-  Country of the installed application
+  Country of the installed application. installedCountry is used to determine if the NuGet package is compatible with the installed application localization
  .PARAMETER installedApps
   List of installed apps
   Format is an array of PSCustomObjects with properties Name, Publisher, id and Version
@@ -75,14 +75,6 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $allowPrerelease
     )
 
-    # installedCountry is used to determine if the NuGet package is compatible with the installed application localization
-    # NuGet packages of Microsoft apps and of Runtime packages might exist in different versions for different countries
-    # The runtime package might contain C# invoke calls with different methodis for different countries
-    # if the installedCountry doesn't have a special version, then the w1 version is used (= empty string)
-    $nonW1Countries = @('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us')
-    if ($installedCountry -and ($nonW1Countries -notcontains $installedCountry)) {
-        $installedCountry = ''
-    }
     $returnValue = $false
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
@@ -107,6 +99,7 @@ Function Download-BcNuGetPackageToFolder {
             foreach($dependency in $manifest.package.metadata.dependencies.GetEnumerator()) {
                 $dependencyVersion = $dependency.Version
                 $dependencyId = $dependency.Id
+                $dependencyCountry = ''
                 $downloadIt = $false
                 if ($dependencyId -eq 'Microsoft.Platform') {
                     $dependencyPublisher = 'Microsoft'
@@ -127,9 +120,6 @@ Function Download-BcNuGetPackageToFolder {
                     if ($matches.Count -gt 2) {
                         $dependencyCountry = $matches[2].TrimStart('.')
                     }
-                    else {
-                        $dependencyCountry = ''
-                    }
                     if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
                         # The NuGet package found isn't compatible with the installed application
                         Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
@@ -147,8 +137,11 @@ Function Download-BcNuGetPackageToFolder {
                 else {
                     $dependencyPublisher = ''
                     if ($dependencyId -match '^([^\.]+)\.([^\.]+)\.([^\.]+\.)?([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
-                        # Matches publisher.name.[country.].appId format
+                        # Matches publisher.name.[country.].appId format (country section is only for microsoft apps)
                         $dependencyPublisher = $matches[1]
+                        if ($dependencyPublisher -eq 'microsoft' -and $matches.Count -gt 3) {
+                            $dependencyCountry = $matches[3].TrimEnd('.')
+                        }
                     }
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }
                     if ($installedApp) {
@@ -184,14 +177,14 @@ Function Download-BcNuGetPackageToFolder {
                     if ($dependencyId -match '^.*([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
                         # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
                         $dependencyId = $matches[1]
-                        if ($installedCountry -and $dependencyPublisher -eq 'Microsoft') {
-                            # Looking for a Microsoft package - check if it exists for the installed country
+                        if ($dependencyCountry) {
+                            # Dependency is to a specific country version - must find the country version of the dependency
+                            $dependencyId = "$dependencyCountry.$dependencyId"
+                        }
+                        elseif ($installedCountry -and $dependencyPublisher -eq 'Microsoft') {
+                            # Looking for a Microsoft package - check if it exists for the installed country (revert to appId if not)
                             $checkPackageName = "$installedCountry.$dependencyId"
                         }    
-                    }
-                    elseif ($dependencyId -match '^([^\.]+)\.([^\.]+)\.(runtime-.+)$') {
-                        # If dependencyId is in the format publisher.name.runtime-<something> then check if a localization version of the runtime package exists for the installed country
-                        $checkPackageName = "$($matches[1]).$($matches[2]).$installedCountry.$($matches[3])"
                     }
                     elseif (($dependencyId -match '^Microsoft.Application(\.[^\.]+)?$') -and ($matches.Count -eq 1)) {
                         # If dependency is to the Application without a specific country, then check if a localization version of the application exists for the installed country
@@ -218,7 +211,16 @@ Function Download-BcNuGetPackageToFolder {
                 Remove-Item -Path $package -Recurse -Force
                 continue
             }
-            $appFiles = Get-Item -Path (Join-Path $package '*.app')
+            if (Test-Path (Join-Path $package $installedCountry) -PathType Container) {
+                # NuGet packages of Runtime packages might exist in different versions for different countries
+                # The runtime package might contain C# invoke calls with different methodis for different countries
+                # if the installedCountry doesn't have a special version, then the w1 version is used (= empty string)
+                # If the package contains a country specific folder, then use that
+                $appFiles = Get-Item -Path (Join-Path $package "$installedCountry/*.app")
+            }
+            else {
+                $appFiles = Get-Item -Path (Join-Path $package "*.app")
+            }
             foreach($appFile in $appFiles) {
                 $returnValue = $true
                 Copy-Item $appFile.FullName -Destination $folder -Force
