@@ -122,11 +122,8 @@ try {
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
                 Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
-                $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
-                Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null
-                $appJsonFile = Join-Path $tempFolder "app.json"
-                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                Remove-Item -Path $tempFolder -Force -Recurse
+                $appJson = GetAppJsonFromAppFile -appFile $_
+                
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {

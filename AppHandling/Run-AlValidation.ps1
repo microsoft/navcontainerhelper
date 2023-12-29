@@ -176,37 +176,6 @@ Write-Host -ForegroundColor Yellow @'
     $artifactUrl
 }
 
-function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
-    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-    try {
-        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
-        $appJsonFile = Join-Path $tmpFolder "app.json"
-        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-    }
-    catch {
-        Write-Host -ForegroundColor Red "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package, ignoring application dependency check"
-        return $minVersion
-    }
-    finally {
-        if (Test-Path $tmpFolder) {
-            Remove-Item $tmpFolder -Recurse -Force
-        }
-    }
-    if ($appJson.PSObject.Properties.Name -eq "Application") {
-        $version = $appJson.application
-    }
-    else {
-        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | ForEach-Object { $_.Version }
-        if (!$version) {
-            $version = $minVersion
-        }
-    }
-    if ([System.Version]$version -lt [System.Version]$minVersion) {
-        $version = $minVersion
-    }
-    $version
-}
-
 function GetFilePath( [string] $path ) {
     if ($path -like "http://*" -or $path -like "https://*") {
         return $path

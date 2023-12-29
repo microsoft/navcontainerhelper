@@ -67,7 +67,7 @@ Function Download-BcNuGetPackageToFolder {
         [Parameter(Mandatory=$false)]
         [System.Version] $installedPlatform,
         [Parameter(Mandatory=$false)]
-        [string] $installedCountry,
+        [string] $installedCountry = '',
         [Parameter(Mandatory=$false)]
         [PSCustomObject[]] $installedApps = @(),
         [ValidateSet('all','own','allButMicrosoft','allButApplication','allButPlatform','none')]
@@ -75,6 +75,15 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $allowPrerelease
     )
 
+    # installedCountry is used to determine if the NuGet package is compatible with the installed application localization
+    # NuGet packages of Microsoft apps and of Runtime packages might exist in different versions for different countries
+    # The runtime package might contain C# invoke calls with different methodis for different countries
+    # if the installedCountry doesn't have a special version, then the w1 version is used (= empty string)
+    $nonW1Countries = @('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us')
+    if ($installedCountry -and ($nonW1Countries -notcontains $installedCountry)) {
+        $installedCountry = ''
+    }
+    $returnValue = $false
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
         $findSelect = 'Latest'
@@ -100,6 +109,7 @@ Function Download-BcNuGetPackageToFolder {
                 $dependencyId = $dependency.Id
                 $downloadIt = $false
                 if ($dependencyId -eq 'Microsoft.Platform') {
+                    $dependencyPublisher = 'Microsoft'
                     # Dependency is to the platform
                     if ($installedPlatform) {
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedPlatform, $dependencyVersion))) {
@@ -120,6 +130,10 @@ Function Download-BcNuGetPackageToFolder {
                     else {
                         $dependencyCountry = ''
                     }
+                    if ($installedCountry -and $dependencyCountry -and ($installedCountry -ne $dependencyCountry)) {
+                        # The NuGet package found isn't compatible with the installed application
+                        Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
+                    }                   
                     $installedApp = $installedApps | Where-Object { $_ -and $_.Name -eq 'Application' }
                     if ($installedApp) {
                         if (!([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $dependencyVersion))) {
@@ -131,6 +145,11 @@ Function Download-BcNuGetPackageToFolder {
                     }
                 }
                 else {
+                    $dependencyPublisher = ''
+                    if ($dependencyId -match '^([^\.]+)\.([^\.]+)\.([^\.]+\.)?([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
+                        # Matches publisher.name.[country.].appId format
+                        $dependencyPublisher = $matches[1]
+                    }
                     $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $dependencyId -like "*$($_.id)*" }
                     if ($installedApp) {
                         # Dependency is already installed, check version number
@@ -139,29 +158,15 @@ Function Download-BcNuGetPackageToFolder {
                             $dependenciesErr = "Dependency $dependencyId is already installed with version $($installedApp.Version), which is not compatible with the version $dependencyVersion required by the NuGet package $packageId (version $packageVersion))"
                         }
                     }
-                    elseif ($downloadDependencies -eq 'all' -or $downloadDependencies -eq 'none' -or $downloadDependencies -eq 'allButPlatform' -or $downloadDependencies -eq 'allButMicrosoft' -or $downloadDependencies -eq 'allButApplication') {
-                        $downloadIt = ($downloadDependencies -ne 'none')
+                    elseif ($downloadDependencies -eq 'own') {
+                        $downloadIt = ($dependencyPublisher -eq $manifest.package.authors)
+                    }
+                    elseif ($downloadDependencies -eq 'allButMicrosoft') {
+                        # Download if publisher isn't Microsoft (including if publisher is empty)
+                        $downloadIt = ($dependencyPublisher -ne 'Microsoft')
                     }
                     else {
-                        # downloadDependencies is own or allButMicrosoft
-                        # check publisher and name
-                        if ($dependencyId -match '^(.*[^\.])\.(.*[^\.])\.("[0-9A-F]{8}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{4}\-[0-9A-F]{12}")$') {
-                            # Matches publisher.name.appId format
-                            $dependencyPublisher = $matches[1]
-                            $dependencyName = $matches[2]
-                            $dependencyAppId = $matches[3]
-                            if ($downloadDependencies -eq 'allButMicrosoft') {
-                                $downloadIt = ($dependencyPublisher -ne 'Microsoft')
-                            }
-                            else {
-                                $downloadIt = ($dependencyPublisher -eq $manifest.package.authors)
-                            }
-                        }
-                        else {
-                            # Could not match publisher.name.appId format
-                            # All microsoft references should resolve - download it if we want allButMicrosoft
-                            $downloadIt = ($downloadDependencies -eq 'allButMicrosoft')
-                        }
+                        $downloadIt = ($downloadDependencies -ne 'none')
                     }
                 }
                 if ($dependenciesErr) {
@@ -175,11 +180,36 @@ Function Download-BcNuGetPackageToFolder {
                     }
                 }
                 if ($downloadIt) {
+                    $checkPackageName = ''
                     if ($dependencyId -match '^.*([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
                         # If dependencyId ends in a GUID (AppID) then use the AppId for downloading dependencies
                         $dependencyId = $matches[1]
+                        if ($installedCountry -and $dependencyPublisher -eq 'Microsoft') {
+                            # Looking for a Microsoft package - check if it exists for the installed country
+                            $checkPackageName = "$installedCountry.$dependencyId"
+                        }    
                     }
-                    Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select
+                    elseif ($dependencyId -match '^([^\.]+)\.([^\.]+)\.(runtime-.+)$') {
+                        # If dependencyId is in the format publisher.name.runtime-<something> then check if a localization version of the runtime package exists for the installed country
+                        $checkPackageName = "$($matches[1]).$($matches[2]).$installedCountry.$($matches[3])"
+                    }
+                    elseif (($dependencyId -match '^Microsoft.Application(\.[^\.]+)?$') -and ($matches.Count -eq 1)) {
+                        # If dependency is to the Application without a specific country, then check if a localization version of the application exists for the installed country
+                        $checkPackageName = "Microsoft.Application.$installedCountry"
+                    }
+                    if ($checkPackageName) {
+                        Write-Host -ForegroundColor Yellow $checkPackageName
+                        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $checkPackageName -version $dependencyVersion -folder $package -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+                            $returnValue = $true
+                            $downloadIt = $false
+                        }
+                    }
+                    if ($downloadIt) {
+                        Write-Host -ForegroundColor Yellow $dependencyId
+                        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+                            $returnValue = $true
+                        }
+                    }
                 }
             }
             if ($dependenciesErr) {
@@ -188,17 +218,19 @@ Function Download-BcNuGetPackageToFolder {
                 Remove-Item -Path $package -Recurse -Force
                 continue
             }
-            $appFiles = (Get-Item -Path (Join-Path $package '*.app')).FullName
-            $appFiles | ForEach-Object {
-                Copy-Item $_ -Destination $folder -Force
+            $appFiles = Get-Item -Path (Join-Path $package '*.app')
+            foreach($appFile in $appFiles) {
+                $returnValue = $true
+                Copy-Item $appFile.FullName -Destination $folder -Force
                 if ($copyInstalledAppsToFolder) {
-                    Copy-Item $_ -Destination $copyInstalledAppsToFolder -Force
+                    Copy-Item $appFile.FullName -Destination $copyInstalledAppsToFolder -Force
                 }
             }
             Remove-Item -Path $package -Recurse -Force
             break
         }
     }
+    return $returnValue
 }
 Set-Alias -Name Copy-BcNuGetPackageToFolder -Value Download-BcNuGetPackageToFolder
 Export-ModuleMember -Function Download-BcNuGetPackageToFolder -Alias Copy-BcNuGetPackageToFolder

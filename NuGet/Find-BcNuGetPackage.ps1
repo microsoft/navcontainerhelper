@@ -82,7 +82,7 @@ Function Find-BcNuGetPackage {
                     }
                     elseif ($select -eq 'Exact') {
                         # We only have a match if the version is exact
-                        if ($packageVersion -eq $version) {
+                        if ([NuGetFeed]::NormalizeVersionStr($packageVersion) -eq [NuGetFeed]::NormalizeVersionStr($version)) {
                             $bestmatch = [PSCustomObject]@{
                                 "Feed" = $nuGetFeed
                                 "PackageId" = $packageId
