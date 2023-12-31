@@ -240,12 +240,21 @@ class NuGetFeed {
     }
 
     [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string[]] $excludeVersions, [string] $select, [bool] $allowPrerelease) {
-        foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)) {
+        $versions = $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)
+        if ($excludeVersions) {
+            Write-Host "Exclude versions: $($excludeVersions -join ', ')"
+        }
+        foreach($version in $versions ) {
             if ($excludeVersions -contains $version) {
                 continue
             }
             if (($select -eq 'Exact' -and [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange) -eq [NuGetFeed]::NormalizeVersionStr($version)) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
-                Write-Host "$select version matching $nuGetVersionRange is $version"
+                if ($nuGetVersionRange -eq '0.0.0.0') {
+                    Write-Host "$select version is $version"
+                }
+                else {
+                    Write-Host "$select version matching '$nuGetVersionRange' is $version"
+                }
                 return $version
             }
         }

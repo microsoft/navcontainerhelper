@@ -5,6 +5,8 @@
   Create a new NuGet package containing a Business Central apps
  .Parameter appfile
   App file to include in the NuGet package
+ .Parameter countrySpecificAppFiles
+  Hashtable with country specific app files (runtime packages) to include in the NuGet package
  .Parameter packageId
   Id of the NuGet package (or template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file) 
   The default is '{publisher}.{name}.{id}'
@@ -29,6 +31,8 @@
   Template to calculate the id of the dependencies
   The template can contain {id}, {name} and {publisher} which will be replaced with the values from the corresponding dependency from app.json
   The default is '{publisher}.{name}.{id}'
+ .Parameter destinationFolder
+  Folder to create the NuGet package in. Defeault it to create a temporary folder and delete it after the NuGet package has been created
  .Example
   $package = New-BcNuGetPackage -appfile "C:\Users\freddyk\Downloads\MyBingMaps-main-Apps-1.0.3.0\Freddy Kristiansen_BingMaps.PTE_4.4.3.0.app"
  .Example
@@ -39,6 +43,8 @@ Function New-BcNuGetPackage {
         [Parameter(Mandatory=$true)]
         [alias('appFiles')]
         [string] $appfile,
+        [Parameter(Mandatory=$false)]
+        [hashtable] $countrySpecificAppFiles = @{},
         [Parameter(Mandatory=$false)]
         [string] $packageId = "{publisher}.{name}.{id}",
         [Parameter(Mandatory=$false)]
@@ -64,6 +70,8 @@ Function New-BcNuGetPackage {
         [Parameter(Mandatory=$false)]
         [string] $runtimeDependencyId = '{publisher}.{name}.runtime-{version}',
         [switch] $isIndirectPackage,
+        [Parameter(Mandatory=$false)]
+        [string] $destinationFolder = '',
         [obsolete('NuGet Dependencies are always included.')]
         [switch] $includeNuGetDependencies
     )
@@ -80,11 +88,34 @@ Function New-BcNuGetPackage {
         throw "Unable to locate file: $_"
     }
     $appFile = (Get-Item $appfile).FullName
-    $rootFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
-    New-Item -Path $rootFolder -ItemType Directory | Out-Null
+    if ($destinationFolder) {
+        $rootFolder = $destinationFolder
+    }
+    else {
+        $rootFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
+    }
+    if (Test-Path $rootFolder) {
+        if (Get-ChildItem -Path $rootFolder) {
+            throw "Destination folder is not empty"
+        }
+    }
+    else {
+        New-Item -Path $rootFolder -ItemType Directory | Out-Null
+    }
     try {
         if (!$isIndirectPackage.IsPresent) {
             Copy-Item -Path $appFile -Destination $rootFolder -Force
+            if ($countrySpecificAppFiles) {
+                foreach($country in $countrySpecificAppFiles.Keys) {
+                    $countrySpecificAppFile = $countrySpecificAppFiles[$country]
+                    if (!(Test-Path $countrySpecificAppFile)) {
+                        throw "Unable to locate file: $_"
+                    }
+                    $countryFolder = Join-Path $rootFolder $country 
+                    New-Item -Path $countryFolder -ItemType Directory | Out-Null
+                    Copy-Item -Path $countrySpecificAppFile -Destination $countryFolder -Force
+                }
+            }
         }
         $appJson = GetAppJsonFromAppFile -appFile $appFile
         $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher)).replace('{version}',$appJson.version.replace('.','-'))
@@ -178,6 +209,16 @@ Function New-BcNuGetPackage {
             $XmlObjectWriter.WriteAttributeString("src", $appFileName );
             $XmlObjectWriter.WriteAttributeString("target", $appFileName);
             $XmlObjectWriter.WriteEndElement()
+            if ($countrySpecificAppFiles) {
+                foreach($country in $countrySpecificAppFiles.Keys) {
+                    $countrySpecificAppFile = $countrySpecificAppFiles[$country]
+                    $XmlObjectWriter.WriteStartElement("file")
+                    $appFileName = Join-Path $country ([System.IO.Path]::GetFileName($countrySpecificAppFiles[$country]))
+                    $XmlObjectWriter.WriteAttributeString("src", $appFileName );
+                    $XmlObjectWriter.WriteAttributeString("target", $appFileName);
+                    $XmlObjectWriter.WriteEndElement()
+                }
+            }
             $XmlObjectWriter.WriteEndElement()
         }
         $XmlObjectWriter.WriteEndElement()
@@ -209,7 +250,9 @@ Function New-BcNuGetPackage {
         $nupkgFile
     }
     finally {
-        Remove-Item -Path $rootFolder -Recurse -Force -ErrorAction SilentlyContinue
+        if ($destinationFolder -ne $rootFolder) {
+            Remove-Item -Path $rootFolder -Recurse -Force -ErrorAction SilentlyContinue
+        }
     }
 }
 Export-ModuleMember -Function New-BcNuGetPackage

@@ -192,14 +192,14 @@ Function Download-BcNuGetPackageToFolder {
                     }
                     if ($checkPackageName) {
                         Write-Host -ForegroundColor Yellow $checkPackageName
-                        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $checkPackageName -version $dependencyVersion -folder $package -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+                        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $checkPackageName -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease) {
                             $returnValue = $true
                             $downloadIt = $false
                         }
                     }
                     if ($downloadIt) {
                         Write-Host -ForegroundColor Yellow $dependencyId
-                        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+                        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease) {
                             $returnValue = $true
                         }
                     }
@@ -216,6 +216,7 @@ Function Download-BcNuGetPackageToFolder {
                 # The runtime package might contain C# invoke calls with different methodis for different countries
                 # if the installedCountry doesn't have a special version, then the w1 version is used (= empty string)
                 # If the package contains a country specific folder, then use that
+                Write-Host "Using country specific folder $installedCountry"
                 $appFiles = Get-Item -Path (Join-Path $package "$installedCountry/*.app")
             }
             else {
