@@ -1332,12 +1332,36 @@ function GetAppJsonFromAppFile {
     )
     # ALTOOL is at the moment only available in prerelease        
     $path = DownloadLatestAlLanguageExtension -allowPrerelease
-    if ($isWindows) {
-        $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
+    if ($isLinux) {
+        $alToolExe = Join-Path $path 'extension/bin/linux/altool'
     }
     else {
-        $alToolExe = Join-Path $path 'extension/bin/linux/altool'
+        $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
     }
     $appJson = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$appFile""") -returnValue -silent | ConvertFrom-Json
     return $appJson
+}
+
+function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
+    try {
+        $appJson = GetAppJsonFromAppFile -appFile $appFile
+    }
+    catch {
+        Write-Host -ForegroundColor Red "Unable to read app $([System.IO.Path]::GetFileName($appFile)), ignoring application dependency check"
+        return $minVersion
+    }
+    $version = $minVersion
+    if ($appJson.PSObject.Properties.Name -eq "Application") {
+        $version = $appJson.application
+    }
+    elseif ($appJson.PSObject.Properties.Name -eq "dependencies") {
+        $baseAppDependency = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" }
+        if ($baseAppDependency) {
+            $version = $baseAppDependency.Version
+        }
+    }
+    if ([System.Version]$version -lt [System.Version]$minVersion) {
+        $version = $minVersion
+    }
+    return $version
 }

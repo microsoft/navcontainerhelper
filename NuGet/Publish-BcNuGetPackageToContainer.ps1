@@ -89,9 +89,8 @@ Function Publish-BcNuGetPackageToContainer {
     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     New-Item $tmpFolder -ItemType Directory | Out-Null
     try {
-        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select
-        $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
-        if ($appFiles) {
+        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+            $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
             Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
         }
         else {
