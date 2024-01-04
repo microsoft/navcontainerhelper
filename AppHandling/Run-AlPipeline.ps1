@@ -1955,7 +1955,7 @@ Write-Host -ForegroundColor Yellow @'
             $errorLogFile = Join-Path $appOutputFolder '*.errorLog.json' -Resolve -ErrorAction Ignore
             if($errorLogFile) {
                 Write-Host "Copying error logs to $destFolder"
-                Copy-Item $errorLogFiles $destFolder -Force
+                Copy-Item $errorLogFile $destFolder -Force
             }
         }
     }
