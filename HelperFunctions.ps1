@@ -1120,6 +1120,8 @@ function GetAppInfo {
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
         $alToolExe = Join-Path $alcPath 'altool'
+        Write-Host "Setting execute permissions on altool"
+        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
@@ -1339,6 +1341,8 @@ function GetAppJsonFromAppFile {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
     }
     $appJson = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$appFile""") -returnValue -silent | ConvertFrom-Json
+    if (!($appJson.PSObject.Properties.Name -eq "description")) { Add-Member -InputObject $appJson -MemberType NoteProperty -Name "description" -Value "" }
+    if (!($appJson.PSObject.Properties.Name -eq "dependencies")) { Add-Member -InputObject $appJson -MemberType NoteProperty -Name "dependencies" -Value @() }
     return $appJson
 }
 

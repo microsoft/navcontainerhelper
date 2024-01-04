@@ -25,64 +25,40 @@ function Sort-AppFilesByDependencies {
         [switch] $excludeRuntimePackages
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
-    if (!$appFiles) {
-        return @()
-    }
-
-    $sharedFolder = ""
-    if ($containerName) {
-        $sharedFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([Guid]::NewGuid().ToString())"
-        New-Item $sharedFolder -ItemType Directory | Out-Null
-    }
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+
+        if (!$appFiles) {
+            return @()
+        }
+
         # Read all app.json objects, populate $apps
         $apps = $()
         $files = @{}
         $appFiles | ForEach-Object {
             $appFile = $_
             $includeIt = $true
-            if ($excludeRuntimePackages -or !(Test-BcContainer -containerName $containerName)) {
-                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-                try {
-                    Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
-                    $appJsonFile = Join-Path $tmpFolder "app.json"
-                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                }
-                catch {
-                    if ($_.exception.message -eq "You cannot extract a runtime package") {
-                        if ($excludeRuntimePackages) {
-                            $includeIt = $false
-                        }
-                        else {
-                            throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
-                        }
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            try {
+                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
+                $appJsonFile = Join-Path $tmpFolder "app.json"
+                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+            }
+            catch {
+                if ($_.exception.message -eq "You cannot extract a runtime package") {
+                    if ($excludeRuntimePackages) {
+                        $includeIt = $false
                     }
                     else {
-                        throw "Unable to extract and analyze appFile $appFile"
+                        $appJson = GetAppJsonFromAppFile -appFile $appFile
                     }
                 }
-                finally {
-                    Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+                else {
+                    throw "Unable to extract and analyze appFile $appFile"
                 }
             }
-            else {
-                $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
-                Copy-Item -Path $appFile -Destination $destFile
-                $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)
-                    Get-NavAppInfo -Path $appFile | ConvertTo-Json -Depth 99
-                } -argumentList (Get-BcContainerPath -containerName $containerName -path $destFile) | ConvertFrom-Json
-                Remove-Item -Path $destFile
-                $appJson.Version = "$($appJson.Version.Major).$($appJson.Version.Minor).$($appJson.Version.Build).$($appJson.Version.Revision)"
-                $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
-                if ($appJson.Dependencies) {
-                    $appJson.Dependencies | ForEach-Object { if ($_) { 
-                        $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
-                        $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue "$($_.MinVersion.Major).$($_.MinVersion.Minor).$($_.MinVersion.Build).$($_.MinVersion.Revision)"
-                    } }
-                }
+            finally {
+                Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
             }
             if ($includeIt) {
                 $key = "$($appJson.Id):$($appJson.Version)"
@@ -191,18 +167,12 @@ try {
     		} })
         }
     }
-    finally {
-        if ($sharedFolder) {
-            Remove-Item $sharedFolder -Recurse -Force
-        }
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
+    }
 }
 Export-ModuleMember -Function Sort-AppFilesByDependencies
