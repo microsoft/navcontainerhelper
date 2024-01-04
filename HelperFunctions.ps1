@@ -1336,6 +1336,8 @@ function GetAppJsonFromAppFile {
     $path = DownloadLatestAlLanguageExtension -allowPrerelease
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
+        Write-Host "Setting execute permissions on altool"
+        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     else {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
