@@ -50,7 +50,7 @@ function Sort-AppFilesByDependencies {
                         $includeIt = $false
                     }
                     else {
-                        $appJson = GetAppJsonFromAppFile -appFile $appFile
+                        $appJson = Get-AppJsonFromAppFile -appFile $appFile
                     }
                 }
                 else {

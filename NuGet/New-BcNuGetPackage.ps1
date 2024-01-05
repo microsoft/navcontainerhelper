@@ -117,7 +117,7 @@ Function New-BcNuGetPackage {
                 }
             }
         }
-        $appJson = GetAppJsonFromAppFile -appFile $appFile
+        $appJson = Get-AppJsonFromAppFile -appFile $appFile
         $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher)).replace('{version}',$appJson.version.replace('.','-'))
         if ($null -eq $packageVersion) {
             $packageVersion = [System.Version]$appJson.version
