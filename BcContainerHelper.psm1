@@ -207,6 +207,7 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-AppJsonFromAppFile.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Copy-AppFilesToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Replace-DependenciesInAppFile.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-BCPTTestsInBcContainer.ps1")
