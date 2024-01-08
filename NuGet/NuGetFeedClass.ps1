@@ -67,7 +67,8 @@ class NuGetFeed {
         $headers = @{
             "Content-Type" = "application/json; charset=utf-8"
         }
-        if ($this.token) {
+        # nuget.org only support anonymous access
+        if ($this.token -and $this.url -notlike 'https://api.nuget.org/*') {
             $headers += @{
                 "Authorization" = "Basic $([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("user:$($this.token)")))"
             }
