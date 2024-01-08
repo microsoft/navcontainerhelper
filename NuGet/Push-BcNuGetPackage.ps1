@@ -23,7 +23,7 @@ Function Push-BcNuGetPackage {
         [string] $bcNuGetPackage
     )
 
-    $nuGetFeed = [NuGetFeed]::Create($nuGetServerUrl, $nuGetToken, @(), ($VerbosePreference -eq 'Continue'))
+    $nuGetFeed = [NuGetFeed]::Create($nuGetServerUrl, $nuGetToken, @(), @())
     $nuGetFeed.PushPackage($bcNuGetPackage)
 }
 Export-ModuleMember -Function Push-BcNuGetPackage
