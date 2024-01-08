@@ -1120,6 +1120,8 @@ function GetAppInfo {
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
         $alToolExe = Join-Path $alcPath 'altool'
+        Write-Host "Setting execute permissions on altool"
+        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
@@ -1326,25 +1328,26 @@ function DownloadLatestAlLanguageExtension {
     }
 }
 
-function GetAppJsonFromAppFile {
+function RunAlTool {
     Param(
-        [string] $appFile
+        [string[]] $arguments
     )
     # ALTOOL is at the moment only available in prerelease        
     $path = DownloadLatestAlLanguageExtension -allowPrerelease
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
+        Write-Host "Setting execute permissions on altool"
+        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     else {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
     }
-    $appJson = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$appFile""") -returnValue -silent | ConvertFrom-Json
-    return $appJson
+    return CmdDo -Command $alToolExe -arguments $arguments -returnValue -silent | ConvertFrom-Json    
 }
 
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
     try {
-        $appJson = GetAppJsonFromAppFile -appFile $appFile
+        $appJson = Get-AppJsonFromAppFile -appFile $appFile
     }
     catch {
         Write-Host -ForegroundColor Red "Unable to read app $([System.IO.Path]::GetFileName($appFile)), ignoring application dependency check"

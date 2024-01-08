@@ -122,7 +122,7 @@ try {
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
                 Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
-                $appJson = GetAppJsonFromAppFile -appFile $_
+                $appJson = Get-AppJsonFromAppFile -appFile $_
                 
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {

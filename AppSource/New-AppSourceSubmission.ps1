@@ -99,7 +99,7 @@ try {
     
     $appVersionNumber = ""
     if ($appFile) {
-        $appJson = GetAppJsonFromAppFile -appFile $appFile
+        $appJson = Get-AppJsonFromAppFile -appFile $appFile
         $appVersionNumber = [System.Version]$appJson.version
     }
 

@@ -154,8 +154,8 @@ class NuGetFeed {
     static [string] NormalizeVersionStr([string] $versionStr) {
         $idx = $versionStr.IndexOf('-')
         $version = [System.version]($versionStr.Split('-')[0])
+        if ($version.Build -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, 0, 0) }
         if ($version.Revision -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, $version.Build, 0) }
-        if ($version.Build -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, 0, $version.Revision) }
         if ($idx -gt 0) {
             return "$version$($versionStr.Substring($idx))"
         }
