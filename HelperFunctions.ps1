@@ -1328,6 +1328,23 @@ function DownloadLatestAlLanguageExtension {
     }
 }
 
+function RunAlTool {
+    Param(
+        [string[]] $arguments
+    )
+    # ALTOOL is at the moment only available in prerelease        
+    $path = DownloadLatestAlLanguageExtension -allowPrerelease
+    if ($isLinux) {
+        $alToolExe = Join-Path $path 'extension/bin/linux/altool'
+        Write-Host "Setting execute permissions on altool"
+        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+    }
+    else {
+        $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
+    }
+    return CmdDo -Command $alToolExe -arguments $arguments -returnValue -silent | ConvertFrom-Json    
+}
+
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
     try {
         $appJson = Get-AppJsonFromAppFile -appFile $appFile
