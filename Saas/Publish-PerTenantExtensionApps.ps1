@@ -88,6 +88,9 @@ try {
             throw "No company $companyName"
         }
         $companyId = $company.id
+        if ($companyName -eq "") {
+            $companyName = $company.name
+        }
         Write-Host "Company '$companyName' has id $companyId"
         
         Write-Host "$automationApiUrl/companies($companyId)/extensions"
