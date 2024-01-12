@@ -1343,8 +1343,9 @@ function RunAlTool {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
     }
     Write-Host "run altool"
+    $arguments.Count | Out-Host
     $arguments | out-host
-    CmdDo -Command $alToolExe -arguments $arguments -returnValue
+    CmdDo -Command $alToolExe -arguments $arguments -returnValue -silent
     Write-Host "done"
 }
 
