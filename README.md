@@ -24,7 +24,7 @@ Computer restarts.
 
 Follow the process here: https://docs.docker.com/desktop/install/windows-install
 
-**NOTE** Docker Desktop might require a license, please consult the licensing rules before installing
+**NOTE:** Docker Desktop might require a license, please consult the licensing rules before installing
 
 ### 2.b. Install Docker Engine using PowerShell
 **NOTE:** You need either Docker Desktop or Docker Engine to run Docker on your computer - not both.
