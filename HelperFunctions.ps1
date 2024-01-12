@@ -1342,7 +1342,10 @@ function RunAlTool {
     else {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
     }
-    return CmdDo -Command $alToolExe -arguments $arguments -returnValue -silent | ConvertFrom-Json    
+    Write-Host "run altool"
+    $arguments | out-host
+    CmdDo -Command $alToolExe -arguments $arguments -returnValue
+    Write-Host "done"
 }
 
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
