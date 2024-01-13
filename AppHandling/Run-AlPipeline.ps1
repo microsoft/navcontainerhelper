@@ -148,6 +148,8 @@
   Include this switch to include UI Cop during compilation.
  .Parameter enablePerTenantExtensionCop
   Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+. Parameter enableCodeAnalyzersOnTestApps
+  Include this switch to include CodeCops and other analyzers during compilation of test apps.
  .Parameter customCodeCops
   Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
@@ -341,6 +343,7 @@ Param(
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    [switch] $enableCodeAnalyzersOnTestApps,
     $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
@@ -452,7 +455,6 @@ function GetInstalledAppIds {
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
-    
     }
     elseif (!$filesOnly) {
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
@@ -681,6 +683,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop              "; Write-Host $enableAppSourceCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                     "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop     "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeAnalyzersOnTestApps   "; Write-Host $enableCodeAnalyzersOnTestApps
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade             "; Write-Host $doNotPerformUpgrade
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPublishApps                "; Write-Host $doNotPublishApps
 Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps            "; Write-Host $uninstallRemovedApps
@@ -1639,7 +1642,7 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    if ($app) {
+    if ($app -or $enableCodeAnalyzersOnTestApps) {
         $CopParameters += @{
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
