@@ -16,11 +16,6 @@ function Create-SymbolsFileFromAppFile {
         [Parameter(Mandatory=$true)]
         [string] $symbolsFile
     )
-    Write-Host "-------------"
-    Write-Host $appFile
-    Write-Host $symbolsFile
-
     RunAlTool -arguments @('CreateSymbolPackage', """$appFile""", """$symbolsFile""")
-    
 }
 Export-ModuleMember -Function Create-SymbolsFileFromAppFile
