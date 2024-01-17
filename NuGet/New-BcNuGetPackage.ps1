@@ -94,7 +94,7 @@ Function New-BcNuGetPackage {
             }
             $packageId = $packageIdTemplate.replace('{id}',$id).replace('{name}',$name).replace('{publisher}',$publisher).replace('{version}',$version)
         }
-        reurn $packageId
+        return $packageId
     }
 
     Write-Host "Create NuGet package"
