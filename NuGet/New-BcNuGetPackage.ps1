@@ -86,8 +86,8 @@ Function New-BcNuGetPackage {
         $publisher = [nuGetFeed]::Normalize($publisher)
         $packageId = $packageIdTemplate.replace('{id}',$id).replace('{name}',$name).replace('{publisher}',$publisher).replace('{version}',$version)
         if ($packageId.Length -ge 100) {
-            if ($name.Length -gt ($packageId.Length - 100)) {
-                $name = $name.Substring(0,$packageId.Length - 100)
+            if ($name.Length -gt ($packageId.Length - 99)) {
+                $name = $name.Substring(0, $name.Length - ($packageId.Length - 99))
             }
             else {
                 throw "Package id is too long: $packageId, unable to shorten it"
