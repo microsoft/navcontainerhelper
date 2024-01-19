@@ -1,3 +1,5 @@
+6.0.5
+
 6.0.4
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
 Refactor NuGet feed functionality to use NuGetFeed class
