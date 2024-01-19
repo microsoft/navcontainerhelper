@@ -33,80 +33,6 @@ function Download-Artifacts {
         [int]    $timeout = 300
     )
 
-    function DownloadPackage {
-        Param(
-            [string] $artifactUrl,
-            [string] $destinationPath,
-            [int]    $timeout = 300
-        )
-
-        $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($destinationPath)) ([System.IO.Path]::GetRandomFileName())
-        $zipFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-        if ($bcContainerHelperConfig.UseUniversalPackagesForArtifacts -and ($artifactUrl -match '^https:\/\/([^.]+)\..*\.net\/([^\/]+)\/([^\/]+)\/([a-zA-Z0-9]+).*$')) {
-            $upArr = $bcContainerHelperConfig.useUniversalPackagesForArtifacts.Split('/')
-            New-Item -Path $tmpFolder -ItemType Directory | Out-Null
-            $artifactVersion = [System.Version]"$($Matches[3])"
-            $organization = "https://dev.azure.com/$($upArr[0])/"
-            $project = $upArr[1]
-            $feed = $Matches[1]
-            $packageName = "$($Matches[2]).$($Matches[4]).$($artifactVersion.Major)"
-            $packageVersion = "$($artifactVersion.Minor).$($artifactVersion.Build).$($artifactVersion.Revision)"
-            Write-Host "Using az artifacts universal download --organization $organization --project=$project --scope project --feed $feed --name $packageName --version $packageVersion"
-            az artifacts universal download --organization $organization --project=$project --scope project --feed $feed --name $packageName --version $packageVersion --path $tmpFolder
-        }
-        else {
-            $retry = $false
-            do {
-                Download-File -sourceUrl $artifactUrl -destinationFile $zipFile -timeout $timeout
-                Write-Host "Unpacking artifact to tmp folder " -NoNewline
-                try {
-                    Expand-7zipArchive -Path $zipFile -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
-                    $retry = $false
-                }
-                catch {
-                    Remove-Item -path $zipFile -force
-                    if (Test-Path $tmpFolder) {
-                        Remove-Item $tmpFolder -Recurse -Force
-                    }
-                    if ($retry) {
-                        throw "Error trying to unpack artifact, downloaded package is corrupt"
-                    }
-                    else {
-                        if ($artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
-                            Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
-                            $artifactUrl = "https://$($Matches[1]).blob.core.windows.net/$($Matches[2])"
-                            $retry = $true
-                        }
-                    }
-                }
-            } while ($retry)
-        }
-        $result = $false
-        try {
-            while (!(Test-Path $destinationPath)) {
-                try {
-                    Rename-Item -Path $tmpFolder -NewName ([System.IO.Path]::GetFileName($destinationPath)) -Force
-                    $result = $true
-                }
-                catch {
-                    Write-Host "Could not rename '$tmpFolder' retrying in 5 seconds."
-                    Start-Sleep -Seconds 5
-                    Write-Host "Retrying..."
-                }
-            }
-        }
-        finally {
-            if (Test-Path $zipFile) {
-                Remove-Item -path $zipFile -force
-            }
-            if (Test-Path $tmpFolder) {
-                Remove-Item $tmpFolder -Recurse -Force
-            }
-        }
-        return $result
-    }
-
-
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("artifactUrl","includePlatform")
 try {
 
@@ -153,7 +79,54 @@ try {
             if (-not $exists) {
                 Write-Host "Downloading artifact $($appUri.AbsolutePath)"
                 TestSasToken -url $artifactUrl
-                DownloadPackage -artifactUrl $artifactUrl -destinationPath $appArtifactPath -timeout $timeout | Out-Null
+                $retry = $false
+                do {
+                    $appZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+                    Download-File -sourceUrl $artifactUrl -destinationFile $appZip -timeout $timeout
+                    Write-Host "Unpacking artifact to tmp folder " -NoNewline
+                    $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($appArtifactPath)) ([System.IO.Path]::GetRandomFileName())
+                    try {
+                        Expand-7zipArchive -Path $appZip -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
+                        $retry = $false
+                    }
+                    catch {
+                        Remove-Item -path $appZip -force
+                        if (Test-Path $tmpFolder) {
+                            Remove-Item $tmpFolder -Recurse -Force
+                        }
+                        if ($retry) {
+                            throw "Error trying to unpack artifacts, downloaded package is corrupt"
+                        }
+                        else {
+                            if ($artifactUrl -like "https://bcartifacts.azureedge.net/*" -or $artifactUrl -like "https://bcinsider.azureedge.net/*" -or $artifactUrl -like "https://bcprivate.azureedge.net/*" -or $artifactUrl -like "https://bcpublicpreview.azureedge.net/*") {
+                                Write-Host "Error unpacking artifact downloaded from CDN, retrying download from direct download URL"
+                                $idx = $artifactUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+                                $artifactUrl = $artifactUrl.Substring(0,$idx) + '.blob.core.windows.net' + $artifactUrl.Substring($idx + 14)
+                                $retry = $true
+                            }
+                        }
+                    }
+                } while($retry)
+                try {
+                    while (!(Test-Path "$appArtifactPath")) {
+                        try {
+                            Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($appArtifactPath)) -Force
+                        }
+                        catch {
+                            Write-Host "Could not rename '$tmpFolder' retrying in 5 seconds."
+                            Start-Sleep -Seconds 5
+                            Write-Host "Retrying..."
+                        }
+                    }
+                }
+                finally {
+                    if (Test-Path $appZip) {
+                        Remove-Item -path $appZip -force
+                    }
+                    if (Test-Path $tmpFolder) {
+                        Remove-Item $tmpFolder -Recurse -Force
+                    }
+                }
             }
             try { [System.IO.File]::WriteAllText((Join-Path $appArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
 
@@ -231,52 +204,102 @@ try {
                 if (-not $exists) {
                     Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
                     TestSasToken -url $platformUrl
-                    $downloadprereqs = DownLoadPackage -ArtifactUrl $platformUrl -DestinationPath $platformArtifactPath -timeout $timeout
+                    $retry = $false
+                    do {
+                        $platformZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
+                        Download-File -sourceUrl $platformUrl -destinationFile $platformZip -timeout $timeout
+                        Write-Host "Unpacking platform artifact to tmp folder " -NoNewline
+                        $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($platformArtifactPath)) ([System.IO.Path]::GetRandomFileName())
+                        try {
+                            Expand-7zipArchive -Path $platformZip -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
+                            $retry = $false
+                        }
+                        catch {
+                            Remove-Item -path $platformZip -force
+                            if (Test-Path $tmpFolder) {
+                                Remove-Item $tmpFolder -Recurse -Force
+                            }
+                            if ($retry) {
+                                throw "Error trying to unpack platform artifacts, downloaded package is corrupt"
+                            }
+                            else {
+                                if ($platformUrl -like "https://bcartifacts.azureedge.net/*" -or $platformUrl -like "https://bcinsider.azureedge.net/*" -or $platformUrl -like "https://bcprivate.azureedge.net/*" -or $platformUrl -like "https://bcpublicpreview.azureedge.net/*") {
+                                    Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
+                                    $idx = $platformUrl.IndexOf('.azureedge.net/',[System.StringComparison]::InvariantCultureIgnoreCase)
+                                    $platformUrl = $platformUrl.Substring(0,$idx) + '.blob.core.windows.net' + $platformUrl.Substring($idx + 14)
+                                    $retry = $true
+                                }
+                            }
+                        }
+                    } while ($retry)
+
                     $downloadprereqs = $false
-                    if ($downloadprereqs) {
-                        $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
-                        if (Test-Path $prerequisiteComponentsFile) {
-                            $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
-                            Write-Host "Downloading Prerequisite Components"
-                            $prerequisiteComponents.PSObject.Properties | % {
-                                $skip = ($_.Name -eq "Prerequisite Components\Open XML SDK 2.5 for Microsoft Office\OpenXMLSDKv25.msi") -and (([System.Version]$appManifest.Version).Major -ge 21)
-                                $path = Join-Path $platformArtifactPath $_.Name
-                                if ((-not $skip) -and (-not (Test-Path $path))) {
-                                    $dirName = [System.IO.Path]::GetDirectoryName($path)
-                                    if (-not (Test-Path $dirName)) {
-                                        New-Item -Path $dirName -ItemType Directory | Out-Null
+                    try {
+                        while (!(Test-Path "$platformArtifactPath")) {
+                            try {
+                                Rename-Item -Path "$tmpFolder" -NewName ([System.IO.Path]::GetFileName($platformArtifactPath)) -Force
+                                $downloadprereqs = $true
+                            }
+                            catch {
+                                Write-Host "Could not rename '$tmpFolder' retrying in 5 seconds."
+                                Start-Sleep -Seconds 5
+                                Write-Host "Retrying..."
+                            }
+
+                            if ($downloadprereqs) {
+                                $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
+                                if (Test-Path $prerequisiteComponentsFile) {
+                                    $prerequisiteComponents = Get-Content $prerequisiteComponentsFile | ConvertFrom-Json
+                                    Write-Host "Downloading Prerequisite Components"
+                                    $prerequisiteComponents.PSObject.Properties | % {
+                                        $skip = ($_.Name -eq "Prerequisite Components\Open XML SDK 2.5 for Microsoft Office\OpenXMLSDKv25.msi") -and (([System.Version]$appManifest.Version).Major -ge 21)
+                                        $path = Join-Path $platformArtifactPath $_.Name
+                                        if ((-not $skip) -and (-not (Test-Path $path))) {
+                                            $dirName = [System.IO.Path]::GetDirectoryName($path)
+                                            $filename = [System.IO.Path]::GetFileName($path)
+                                            if (-not (Test-Path $dirName)) {
+                                                New-Item -Path $dirName -ItemType Directory | Out-Null
+                                            }
+                                            $url = $_.Value
+                                            Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
+                                        }
                                     }
-                                    $url = $_.Value
-                                    Download-File -sourceUrl $url -destinationFile $path -timeout $timeout
+                                    $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
+                                    if (!(Test-Path $dotnetCoreFolder)) {
+                                        New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
+                                        Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
+                                    }
                                 }
-                            }
-                            $dotnetCoreFolder = Join-Path $platformArtifactPath "Prerequisite Components\DotNetCore"
-                            if (!(Test-Path $dotnetCoreFolder)) {
-                                New-Item $dotnetCoreFolder -ItemType Directory | Out-Null
-                                Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
+                                # Patch potential wrong version of NewtonSoft.json.DLL
+                                $newtonSoftDllPath = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\210\Service\Newtonsoft.json.dll'
+                                if (Test-Path $newtonSoftDllPath) {
+                                    'Applications\testframework\TestRunner\Internal\Newtonsoft.json.dll','Test Assemblies\Newtonsoft.json.dll' | ForEach-Object {
+                                        $dstFile = Join-Path $platformArtifactPath $_
+                                        $file = Get-item -Path $dstFile -ErrorAction SilentlyContinue
+                                        if ($file -and $file.Length -eq 686000) {
+                                            Write-Host "INFO: Patching wrong version of NewtonSoft.json.DLL in $dstFile"
+                                            Copy-Item -Path $newtonSoftDllPath -Destination $dstFile -Force 
+                                        }
+                                    }
+                                }
+                                $ad1DLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                                $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
+                                if ((Test-Path $ad1DLL) -and (Test-Path $ad2DLL)) {
+                                    if ((Get-Item $ad1DLL).Length -ne (Get-Item $ad2DLL).Length) {
+                                        Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $ad1DLL"
+                                    }
+                                    Copy-Item -Path $ad2DLL -Destination $ad1DLL -Force
+                                } 
                             }
                         }
-                        # Patch potential wrong version of NewtonSoft.json.DLL
-                        $newtonSoftDllPath = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\210\Service\Newtonsoft.json.dll'
-                        if (Test-Path $newtonSoftDllPath) {
-                            'Applications\testframework\TestRunner\Internal\Newtonsoft.json.dll','Test Assemblies\Newtonsoft.json.dll' | ForEach-Object {
-                                $dstFile = Join-Path $platformArtifactPath $_
-                                $file = Get-item -Path $dstFile -ErrorAction SilentlyContinue
-                                if ($file -and $file.Length -eq 686000) {
-                                    Write-Host "INFO: Patching wrong version of NewtonSoft.json.DLL in $dstFile"
-                                    Copy-Item -Path $newtonSoftDllPath -Destination $dstFile -Force 
-                                }
-                            }
-                        }
-                        $ad1DLL = Join-Path $platformArtifactPath 'Applications\testframework\TestRunner\Internal\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
-                        $ad2DLL = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.IdentityModel.Clients.ActiveDirectory.dll'
-                        if ((Test-Path $ad1DLL) -and (Test-Path $ad2DLL)) {
-                            if ((Get-Item $ad1DLL).Length -ne (Get-Item $ad2DLL).Length) {
-                                Write-Host "INFO: Patching wrong version of Microsoft.IdentityModel.Clients.ActiveDirectory.dll in $ad1DLL"
-                            }
-                            Copy-Item -Path $ad2DLL -Destination $ad1DLL -Force
-                        } 
                     }
+                    finally {
+                        Remove-Item -path $platformZip -force
+                        if (Test-Path $tmpFolder) {
+                            Remove-Item $tmpFolder -Recurse -Force
+                        }
+                    }
+        
                 }
                 try { [System.IO.File]::WriteAllText((Join-Path $platformArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
                 $platformArtifactPath
