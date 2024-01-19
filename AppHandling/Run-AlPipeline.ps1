@@ -194,6 +194,8 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
+  .Parameter CompileAppWithBcCompilerFolder
+  Override function parameter for Compile-AppWithBcCompilerFolder
  .Parameter PreCompileApp
   Custom script to run before compiling an app.
   The script should accept the type of the app and a reference to the compilation parameters.
@@ -367,6 +369,7 @@ Param(
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
+    [scriptblock] $CompileAppWithBcCompilerFolder,
     [scriptblock] $PreCompileApp,
     [scriptblock] $PostCompileApp,
     [scriptblock] $GetBcContainerAppInfo,
@@ -812,6 +815,12 @@ if ($CompileAppInBcContainer) {
 }
 else {
     $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
+}
+if ($CompileAppWithBcCompilerFolder) {
+    Write-Host -ForegroundColor Yellow "CompileAppWithBcCompilerFolder override"; Write-Host $CompileAppWithBcCompilerFolder.ToString()
+}
+else {
+    $CompileAppWithBcCompilerFolder = { Param([Hashtable]$parameters) Compile-AppWithBcCompilerFolder @parameters }
 }
 
 if ($PreCompileApp) {
@@ -1921,7 +1930,7 @@ Write-Host -ForegroundColor Yellow @'
     try {
         Write-Host "`nCompiling $($compilationParams.appProjectFolder)"
         if ($useCompilerFolder) {
-            $appFile = Compile-AppWithBcCompilerFolder @compilationParams
+            $appFile = Invoke-Command -ScriptBlock $CompileAppWithBcCompilerFolder -ArgumentList $compilationParams
         }
         else {
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
@@ -1936,7 +1945,7 @@ Write-Host -ForegroundColor Yellow @'
             $compilationParamsCopy.Keys | Where-Object {$_ -in $CopParameters.Keys} | ForEach-Object { $compilationParams.Remove($_) }
 
             if ($useCompilerFolder) {
-                $appFile = Compile-AppWithBcCompilerFolder @compilationParams
+                $appFile = Invoke-Command -ScriptBlock $CompileAppWithBcCompilerFolder -ArgumentList $compilationParams
             }
             else {
                 $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams

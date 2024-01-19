@@ -12,7 +12,7 @@ function Get-AppJsonFromAppFile {
         [Parameter(Mandatory=$true)]
         [string] $appFile
     )
-    $appJson = RunAlTool -arguments @('GetPackageManifest', """$appFile""")
+    $appJson = RunAlTool -arguments @('GetPackageManifest', """$appFile""") | ConvertFrom-Json
     if (!($appJson.PSObject.Properties.Name -eq "description")) { Add-Member -InputObject $appJson -MemberType NoteProperty -Name "description" -Value "" }
     if (!($appJson.PSObject.Properties.Name -eq "dependencies")) { Add-Member -InputObject $appJson -MemberType NoteProperty -Name "dependencies" -Value @() }
     return $appJson
