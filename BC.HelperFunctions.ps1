@@ -99,7 +99,6 @@ function Get-ContainerHelperConfig {
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
             "DoNotUseCdnForArtifacts" = $false
-            "UseUniversalPackagesForArtifacts" = ''
             "MinimumDotNetRuntimeVersion" = [System.Version]"6.0.16"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
             "AlpacaSettings" = [PSCustomObject]@{
