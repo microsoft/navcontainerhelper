@@ -5,7 +5,6 @@
   Publish Business Central NuGet Package to container
  .PARAMETER nuGetServerUrl
   NuGet Server URL
-  Default: https://api.nuget.org/v3/index.json
  .PARAMETER nuGetToken
   NuGet Token for authenticated access to the NuGet Server
   If not specified, the NuGet Server is accessed anonymously (and needs to support this)
@@ -42,7 +41,7 @@
 Function Publish-BcNuGetPackageToContainer {
     Param(
         [Parameter(Mandatory=$false)]
-        [string] $nuGetServerUrl = "https://api.nuget.org/v3/index.json",
+        [string] $nuGetServerUrl = "",
         [Parameter(Mandatory=$false)]
         [string] $nuGetToken = "",
         [Parameter(Mandatory=$true)]

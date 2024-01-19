@@ -81,6 +81,22 @@ Function New-BcNuGetPackage {
         $stream.Write($bytes,0,$bytes.Length)
     }
 
+    function CalcPackageId([string] $packageIdTemplate, [string] $publisher, [string] $name, [string] $id, [string] $version) {
+        $name = [nuGetFeed]::Normalize($name)
+        $publisher = [nuGetFeed]::Normalize($publisher)
+        $packageId = $packageIdTemplate.replace('{id}',$id).replace('{name}',$name).replace('{publisher}',$publisher).replace('{version}',$version)
+        if ($packageId.Length -ge 100) {
+            if ($name.Length -gt ($packageId.Length - 99)) {
+                $name = $name.Substring(0, $name.Length - ($packageId.Length - 99))
+            }
+            else {
+                throw "Package id is too long: $packageId, unable to shorten it"
+            }
+            $packageId = $packageIdTemplate.replace('{id}',$id).replace('{name}',$name).replace('{publisher}',$publisher).replace('{version}',$version)
+        }
+        return $packageId
+    }
+
     Write-Host "Create NuGet package"
     Write-Host "AppFile:"
     Write-Host $appFile
@@ -118,7 +134,7 @@ Function New-BcNuGetPackage {
             }
         }
         $appJson = Get-AppJsonFromAppFile -appFile $appFile
-        $packageId = $packageId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher)).replace('{version}',$appJson.version.replace('.','-'))
+        $packageId = CalcPackageId -packageIdTemplate $packageId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
         if ($null -eq $packageVersion) {
             $packageVersion = [System.Version]$appJson.version
         }
@@ -174,7 +190,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("dependencies")
         if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
             $appJson.dependencies | ForEach-Object {
-                $id = $dependencyIdTemplate.replace('{id}',$_.id).replace('{name}',[nuGetFeed]::Normalize($_.name)).replace('{publisher}',[nuGetFeed]::Normalize($_.publisher))
+                $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $_.id -version $_.version.replace('.','-')
                 $XmlObjectWriter.WriteStartElement("dependency")
                 $XmlObjectWriter.WriteAttributeString("id", $id)
                 $XmlObjectWriter.WriteAttributeString("version", $_.Version)
@@ -195,7 +211,7 @@ Function New-BcNuGetPackage {
         }
         if ($isIndirectPackage.IsPresent) {
             $XmlObjectWriter.WriteStartElement("dependency")
-            $id = $runtimeDependencyId.replace('{id}',$appJson.id).replace('{name}',[nuGetFeed]::Normalize($appJson.name)).replace('{publisher}',[nuGetFeed]::Normalize($appJson.publisher)).replace('{version}',$appJson.version.replace('.','-'))
+            $id = CalcPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
             $XmlObjectWriter.WriteAttributeString("id", $id)
             $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
             $XmlObjectWriter.WriteEndElement()
