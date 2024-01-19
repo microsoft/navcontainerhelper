@@ -99,17 +99,8 @@ try {
     
     $appVersionNumber = ""
     if ($appFile) {
-        try {
-            $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-            Extract-AppFileToFolder -appFilename $appFile -appFolder $tempFolder -generateAppJson
-            $appJsonFile = Join-Path $tempFolder 'app.json'
-            $appJson = Get-Content $appJsonFile -Encoding UTF8 | ConvertFrom-Json
-            Remove-Item $tempFolder -Recurse -Force
-            $appVersionNumber = [System.Version]$appJson.version
-        }
-        catch {
-            throw "Unable to extract app file and determine version number"
-        }
+        $appJson = Get-AppJsonFromAppFile -appFile $appFile
+        $appVersionNumber = [System.Version]$appJson.version
     }
 
     $tempFolder = ""

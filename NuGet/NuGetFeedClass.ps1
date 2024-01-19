@@ -67,7 +67,8 @@ class NuGetFeed {
         $headers = @{
             "Content-Type" = "application/json; charset=utf-8"
         }
-        if ($this.token) {
+        # nuget.org only support anonymous access
+        if ($this.token -and $this.url -notlike 'https://api.nuget.org/*') {
             $headers += @{
                 "Authorization" = "Basic $([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("user:$($this.token)")))"
             }
@@ -103,7 +104,7 @@ class NuGetFeed {
                 if ($result.Count -eq 0) {
                     break
                 }
-                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) }) | ForEach-Object { $_.name }
+                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | ForEach-Object { $_.name })
                 $page++
             }
         }
@@ -119,7 +120,7 @@ class NuGetFeed {
                 throw (GetExtendedErrorMessage $_)
             }
             # Check that the found pattern matches the package name and the trusted patterns
-            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) }) | ForEach-Object { $_.id }
+            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) } | ForEach-Object { $_.id })
         }
         Write-Host "$($matching.count) matching packages found"
         return $matching | ForEach-Object { Write-Host "- $_"; $_ }
@@ -149,6 +150,19 @@ class NuGetFeed {
     # Normalize name or publisher name to be used in nuget id
     static [string] Normalize([string] $name) {
         return $name -replace '[^a-zA-Z0-9_\-]',''
+    }
+
+    static [string] NormalizeVersionStr([string] $versionStr) {
+        $idx = $versionStr.IndexOf('-')
+        $version = [System.version]($versionStr.Split('-')[0])
+        if ($version.Build -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, 0, 0) }
+        if ($version.Revision -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, $version.Build, 0) }
+        if ($idx -gt 0) {
+            return "$version$($versionStr.Substring($idx))"
+        }
+        else {
+            return "$version"
+        }
     }
 
     static [Int32] CompareVersions([string] $version1, [string] $version2) {
@@ -185,7 +199,8 @@ class NuGetFeed {
             else {
                 $fromver = [System.Version]::new(0,0,0,0)
                 if ($inclFrom) {
-                    throw "Invalid NuGet version range $nuGetVersionRange"
+                    Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                    return $false
                 }
             }
             if ($matches[4]) {
@@ -194,14 +209,16 @@ class NuGetFeed {
             elseif ($range) {
                 $tover = [System.Version]::new([int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue)
                 if ($inclTo) {
-                    throw "Invalid NuGet version range $nuGetVersionRange"
+                    Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                    return $false
                 }
             }
             else {
                 $tover = $fromver
             }
             if (!$range -and (!$inclFrom -or !$inclTo)) {
-                throw "Invalid NuGet version range $nuGetVersionRange"
+                Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                return $false
             }
             if ($inclFrom) {
                 if ($inclTo) {
@@ -224,12 +241,21 @@ class NuGetFeed {
     }
 
     [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string[]] $excludeVersions, [string] $select, [bool] $allowPrerelease) {
-        foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)) {
+        $versions = $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)
+        if ($excludeVersions) {
+            Write-Host "Exclude versions: $($excludeVersions -join ', ')"
+        }
+        foreach($version in $versions ) {
             if ($excludeVersions -contains $version) {
                 continue
             }
-            if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
-                Write-Host "$select version matching $nuGetVersionRange is $version"
+            if (($select -eq 'Exact' -and [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange) -eq [NuGetFeed]::NormalizeVersionStr($version)) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
+                if ($nuGetVersionRange -eq '0.0.0.0') {
+                    Write-Host "$select version is $version"
+                }
+                else {
+                    Write-Host "$select version matching '$nuGetVersionRange' is $version"
+                }
                 return $version
             }
         }

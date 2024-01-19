@@ -8,6 +8,10 @@ Support searching for Earliest, Latest, Exact or Any NuGet package (default is L
 Reset startcount when using Restart-BcContainer
 Issue 3277 Run-ALCops uses wrong CodeAnalysis dll path
 Add support for useDevEndpoint in Run-AlPipeline when importing test toolkit
+New function Get-AppJsonFromAppFile to extract the app.json file from an app (also from a runtime package)
+New function Copy-AppFilesToFolder to copy or download and unpack all apps from an array of .zip or .app files and place them in a folder
+New function Create-SymbolsFileFromAppFile to create a symbols only app file from an app file
+New switch on Run-AlPipeline, enableCodeAnalyzersOnTestApps, to enable CodeCops and other code analyzers on test apps
 
 6.0.3
 Just-In-Time install dotnet 8.0.0 for Business Central version 24 or above (needed by alc.exe)

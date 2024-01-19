@@ -5,7 +5,6 @@
   Publish Business Central NuGet Package to container
  .PARAMETER nuGetServerUrl
   NuGet Server URL
-  Default: https://api.nuget.org/v3/index.json
  .PARAMETER nuGetToken
   NuGet Token for authenticated access to the NuGet Server
   If not specified, the NuGet Server is accessed anonymously (and needs to support this)
@@ -42,7 +41,7 @@
 Function Publish-BcNuGetPackageToContainer {
     Param(
         [Parameter(Mandatory=$false)]
-        [string] $nuGetServerUrl = "https://api.nuget.org/v3/index.json",
+        [string] $nuGetServerUrl = "",
         [Parameter(Mandatory=$false)]
         [string] $nuGetToken = "",
         [Parameter(Mandatory=$true)]
@@ -89,9 +88,8 @@ Function Publish-BcNuGetPackageToContainer {
     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
     New-Item $tmpFolder -ItemType Directory | Out-Null
     try {
-        Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select
-        $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
-        if ($appFiles) {
+        if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select) {
+            $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
             Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
         }
         else {

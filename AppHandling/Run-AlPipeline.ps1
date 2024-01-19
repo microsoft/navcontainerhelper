@@ -148,6 +148,8 @@
   Include this switch to include UI Cop during compilation.
  .Parameter enablePerTenantExtensionCop
   Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+. Parameter enableCodeAnalyzersOnTestApps
+  Include this switch to include CodeCops and other analyzers during compilation of test apps.
  .Parameter customCodeCops
   Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
@@ -192,6 +194,8 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
+  .Parameter CompileAppWithBcCompilerFolder
+  Override function parameter for Compile-AppWithBcCompilerFolder
  .Parameter PreCompileApp
   Custom script to run before compiling an app.
   The script should accept the type of the app and a reference to the compilation parameters.
@@ -341,6 +345,7 @@ Param(
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    [switch] $enableCodeAnalyzersOnTestApps,
     $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
@@ -364,6 +369,7 @@ Param(
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
+    [scriptblock] $CompileAppWithBcCompilerFolder,
     [scriptblock] $PreCompileApp,
     [scriptblock] $PostCompileApp,
     [scriptblock] $GetBcContainerAppInfo,
@@ -452,7 +458,6 @@ function GetInstalledAppIds {
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
-    
     }
     elseif (!$filesOnly) {
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
@@ -681,6 +686,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop              "; Write-Host $enableAppSourceCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                     "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop     "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeAnalyzersOnTestApps   "; Write-Host $enableCodeAnalyzersOnTestApps
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade             "; Write-Host $doNotPerformUpgrade
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPublishApps                "; Write-Host $doNotPublishApps
 Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps            "; Write-Host $uninstallRemovedApps
@@ -809,6 +815,12 @@ if ($CompileAppInBcContainer) {
 }
 else {
     $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
+}
+if ($CompileAppWithBcCompilerFolder) {
+    Write-Host -ForegroundColor Yellow "CompileAppWithBcCompilerFolder override"; Write-Host $CompileAppWithBcCompilerFolder.ToString()
+}
+else {
+    $CompileAppWithBcCompilerFolder = { Param([Hashtable]$parameters) Compile-AppWithBcCompilerFolder @parameters }
 }
 
 if ($PreCompileApp) {
@@ -1639,7 +1651,7 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    if ($app) {
+    if ($app -or $enableCodeAnalyzersOnTestApps) {
         $CopParameters += @{
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
@@ -1918,7 +1930,7 @@ Write-Host -ForegroundColor Yellow @'
     try {
         Write-Host "`nCompiling $($compilationParams.appProjectFolder)"
         if ($useCompilerFolder) {
-            $appFile = Compile-AppWithBcCompilerFolder @compilationParams
+            $appFile = Invoke-Command -ScriptBlock $CompileAppWithBcCompilerFolder -ArgumentList $compilationParams
         }
         else {
             $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
@@ -1933,7 +1945,7 @@ Write-Host -ForegroundColor Yellow @'
             $compilationParamsCopy.Keys | Where-Object {$_ -in $CopParameters.Keys} | ForEach-Object { $compilationParams.Remove($_) }
 
             if ($useCompilerFolder) {
-                $appFile = Compile-AppWithBcCompilerFolder @compilationParams
+                $appFile = Invoke-Command -ScriptBlock $CompileAppWithBcCompilerFolder -ArgumentList $compilationParams
             }
             else {
                 $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
@@ -1955,7 +1967,7 @@ Write-Host -ForegroundColor Yellow @'
             $errorLogFile = Join-Path $appOutputFolder '*.errorLog.json' -Resolve -ErrorAction Ignore
             if($errorLogFile) {
                 Write-Host "Copying error logs to $destFolder"
-                Copy-Item $errorLogFiles $destFolder -Force
+                Copy-Item $errorLogFile $destFolder -Force
             }
         }
     }
