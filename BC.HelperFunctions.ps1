@@ -138,7 +138,7 @@ function Get-ContainerHelperConfig {
                                 else {
                                     if ((ConvertTo-Json -InputObject $bcContainerHelperConfig."$_" -Compress) -eq (ConvertTo-Json -InputObject $savedConfig."$_" -Compress)) {
                                         if (!$silent) {
-                                            Write-Host -ForegroundColor Yellow "Ignoring unchanged config setting $_"
+                                            Write-Host "Ignoring unchanged config setting $_"
                                         }
                                     }
                                     else {
