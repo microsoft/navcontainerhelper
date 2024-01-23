@@ -42,12 +42,17 @@ function Download-Artifacts {
 
         $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($destinationPath)) ([System.IO.Path]::GetRandomFileName())
         $zipFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-        if ($bcContainerHelperConfig.UseUniversalPackagesForArtifacts -and ($artifactUrl -match '^https:\/\/([^.]+)\..*\.net\/([^\/]+)\/([^\/]+)\/([a-zA-Z0-9]+).*$')) {
-            $upArr = $bcContainerHelperConfig.useUniversalPackagesForArtifacts.Split('/')
+        if ($bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject -and ($artifactUrl -like 'https://bcartifacts.*' -or $artifactUrl -like 'https://bcinsider.*')) {
+            # artifactUrl should be either:
+            # https://storageaccount.azureedge.net/type/version/country
+            # or
+            # https://storageaccount.blob.core.windows.net/type/version/country
+            if (-not ($artifactUrl -match '^https:\/\/([^.]+)\..*\.net\/([^\/]+)\/([^\/]+)\/([a-zA-Z0-9]+)$')) {
+                throw "Invalid artifact url '$artifactUrl'"
+            }
+            $organization, $project = $bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject.Split('/')
             New-Item -Path $tmpFolder -ItemType Directory | Out-Null
             $artifactVersion = [System.Version]"$($Matches[3])"
-            $organization = "https://dev.azure.com/$($upArr[0])/"
-            $project = $upArr[1]
             $feed = $Matches[1]
             $packageName = "$($Matches[2]).$($Matches[4]).$($artifactVersion.Major)"
             $packageVersion = "$($artifactVersion.Minor).$($artifactVersion.Build).$($artifactVersion.Revision)"

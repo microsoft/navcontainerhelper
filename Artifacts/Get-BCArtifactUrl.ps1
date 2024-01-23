@@ -196,9 +196,8 @@ try {
             $upVersionFilter = $version.Substring($version.Length).TrimStart('.')
         }
 
-        if ($bcContainerHelperConfig.useUniversalPackagesForArtifacts) {
-            $upArr = $bcContainerHelperConfig.useUniversalPackagesForArtifacts.Split('/')
-            $feedApiUrl = "https://feeds.dev.azure.com/$($upArr[0])/$($upArr[1])/_apis/packaging/feeds/$($storageAccount.Split('.')[0])"
+        if ($bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject) {
+            $feedApiUrl = "https://feeds.dev.azure.com/$($bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject)/_apis/packaging/feeds/$($storageAccount.Split('.')[0])"
             $query = "&packageNameQuery=$type"
             if ($country) {
                 $query += ".$country"
@@ -206,13 +205,16 @@ try {
                     $query += ".$upMajorFilter"
                 }
             }
+            # Universal packages only supports semantic version numbers (3 digits)
+            # Since Business Central artifact version numbers uses 4 digits, we name the packages: "type.country.major" and the version number is then "minor.build.revision"
             $result = invoke-restmethod -UseBasicParsing -Uri "$feedApiUrl/packages?api-version=7.0$query&includeAllVersions=$(($select -ne 'latest').ToString().ToLowerInvariant())"
             $Artifacts = @($result.value | ForEach-Object {
-                $nameArr = $_.name.Split('.')
-                $major = $nameArr[2]
+                # package name is type.country.major
+                $null, $country, $major = $_.name.Split('.')
                 if (!$upMajorFilter -or $upMajorFilter -eq $major) {
                     $_.versions | Where-Object { (!$upVersionFilter) -or ($_.version.StartsWith($upVersionFilter)) } | ForEach-Object {
-                        return "$major.$($_.version)/$($nameArr[1])"
+                        # version number is minor.build.revision
+                        return "$major.$($_.version)/$country"
                     }
                 }
             })
@@ -294,7 +296,7 @@ try {
         }
 
         if (!([string]::IsNullOrEmpty($country))) {
-            if (-not $bcContainerHelperConfig.useUniversalPackagesForArtifacts) {
+            if (-not $bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject) {
                 # avoid confusion between base and se
                 $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
                 if (!$countryArtifacts) {
