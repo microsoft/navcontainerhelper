@@ -304,7 +304,7 @@ try {
         $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
     }
     elseif ($platformversion.Major -ge 22) {
-        if ($dotNetRuntimeVersionInstalled -ge $bcContainerHelperConfig.MinimumDotNetRuntimeVersion) {
+        if ($dotNetRuntimeVersionInstalled -ge [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr) {
             $probingPaths = @((Join-Path $dllsPath "OpenXML"), "C:\Program Files\dotnet\shared\Microsoft.NETCore.App\$dotNetRuntimeVersionInstalled", "C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\$dotNetRuntimeVersionInstalled") + $probingPaths
         }
         else {
