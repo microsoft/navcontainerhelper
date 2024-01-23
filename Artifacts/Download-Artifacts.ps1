@@ -88,14 +88,19 @@ function Download-Artifacts {
         }
         $result = $false
         try {
+            $attempts = 0
             while (!(Test-Path $destinationPath)) {
                 try {
                     Rename-Item -Path $tmpFolder -NewName ([System.IO.Path]::GetFileName($destinationPath)) -Force
                     $result = $true
                 }
                 catch {
-                    Write-Host "Could not rename '$tmpFolder' retrying in 5 seconds."
-                    Start-Sleep -Seconds 5
+                    if ($attempts++ -eq 5) {
+                        throw
+                    }
+                    $waittime = 5*$attempts
+                    Write-Host "Could not rename '$tmpFolder' retrying in $waittime seconds."
+                    Start-Sleep -Seconds $waittime
                     Write-Host "Retrying..."
                 }
             }
