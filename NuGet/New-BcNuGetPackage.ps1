@@ -190,7 +190,7 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("dependencies")
         if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
             $appJson.dependencies | ForEach-Object {
-                if ($_.id) {
+                if ($_.PSObject.Properties.name -eq 'id') {
                     $dependencyId = $_.id
                 } else {
                     $dependencyId = $_.appId
