@@ -13,7 +13,7 @@
  .PARAMETER name
   App name (will be normalized)
  .PARAMETER id
-  App Id (must be a GUID)
+  App Id (must be a GUID if present)
  .PARAMETER tag
   Tag to add to the package id
  .PARAMETER version
@@ -29,22 +29,23 @@ function Get-BcNuGetPackageId {
         [string] $publisher,
         [Parameter(Mandatory=$true)]
         [string] $name,
-        [Parameter(Mandatory=$true)]
-        [string] $id,
+        [Parameter(Mandatory=$false)]
+        [string] $id = '',
         [Parameter(Mandatory=$false)]
         [string] $tag = '',
         [Parameter(Mandatory=$false)]
         [string] $version = ''
     )
 
-    try { $id = ([GUID]::Parse($id)).Guid } catch { throw "App id must be a valid GUID: $id" }
+    if ($id) {
+        try { $id = ([GUID]::Parse($id)).Guid } catch { throw "App id must be a valid GUID: $id" }
+    }
     $nname = [nuGetFeed]::Normalize($name)
     $npublisher = [nuGetFeed]::Normalize($publisher)
     if ($nname -eq '') { throw "App name is invalid: '$name'" }
-
     if ($npublisher -eq '') { throw "App publisher is invalid: '$publisher'" }
 
-    $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('..','.').replace('{version}',$version)
+    $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('{version}',$version).replace('..','.').TrimEnd('.')
     # Max. Length of NuGet Package Id is 100 - we shorten the name part of the id if it is too long
     $packageId = $packageIdTemplate.replace('{name}',$nname)
     if ($packageId.Length -ge 100) {
