@@ -41,7 +41,8 @@ function Get-BcNuGetPackageId {
     $nname = [nuGetFeed]::Normalize($name)
     $npublisher = [nuGetFeed]::Normalize($publisher)
     if ($nname -eq '') { throw "Package name is invalid: '$name'" }
-    if ($npublisher -eq '') { throw "Package publisher is invalid: '$publisher'" }
+    if ($npublisher -eq '') { throw "App publisher is invalid: '$publisher'" }
+
     $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('..','.').replace('{version}',$version)
     $packageId = $packageIdTemplate.replace('{name}',$nname)
     if ($packageId.Length -ge 100) {
