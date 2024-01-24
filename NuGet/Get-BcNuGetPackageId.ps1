@@ -40,7 +40,8 @@ function Get-BcNuGetPackageId {
     try { $id = ([GUID]::Parse($id)).Guid } catch { throw "Package id must be a valid GUID: $id" }
     $nname = [nuGetFeed]::Normalize($name)
     $npublisher = [nuGetFeed]::Normalize($publisher)
-    if ($nname -eq '') { throw "Package name is invalid: '$name'" }
+    if ($nname -eq '') { throw "App name is invalid: '$name'" }
+
     if ($npublisher -eq '') { throw "App publisher is invalid: '$publisher'" }
 
     $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('..','.').replace('{version}',$version)
