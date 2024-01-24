@@ -8,7 +8,7 @@
  .Parameter countrySpecificAppFiles
   Hashtable with country specific app files (runtime packages) to include in the NuGet package
  .Parameter packageId
-  Id of the NuGet package (or template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file) 
+  Template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file
   The default is '{publisher}.{name}.{id}'
  .Parameter packageVersion
   Version of the NuGet package
