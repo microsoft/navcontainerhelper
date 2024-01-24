@@ -190,10 +190,15 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("dependencies")
         if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
             $appJson.dependencies | ForEach-Object {
-                $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $_.id -version $_.version.replace('.','-')
+                if ($_.id) {
+                    $dependencyId = $_.id
+                } else {
+                    $dependencyId = $_.appId
+                }
+                $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
                 $XmlObjectWriter.WriteStartElement("dependency")
-                $XmlObjectWriter.WriteAttributeString("id", $id)
-                $XmlObjectWriter.WriteAttributeString("version", $_.Version)
+                $XmlObjectWriter.WriteAttributeString("id", $dependencyId)
+                $XmlObjectWriter.WriteAttributeString("version", $_.version)
                 $XmlObjectWriter.WriteEndElement()
             }
         }
