@@ -8,7 +8,7 @@
  .Parameter countrySpecificAppFiles
   Hashtable with country specific app files (runtime packages) to include in the NuGet package
  .Parameter packageId
-  Id of the NuGet package (or template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file) 
+  Template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file
   The default is '{publisher}.{name}.{id}'
  .Parameter packageVersion
   Version of the NuGet package
@@ -190,10 +190,15 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("dependencies")
         if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
             $appJson.dependencies | ForEach-Object {
-                $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $_.id -version $_.version.replace('.','-')
+                if ($_.PSObject.Properties.name -eq 'id') {
+                    $dependencyId = $_.id
+                } else {
+                    $dependencyId = $_.appId
+                }
+                $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
                 $XmlObjectWriter.WriteStartElement("dependency")
                 $XmlObjectWriter.WriteAttributeString("id", $id)
-                $XmlObjectWriter.WriteAttributeString("version", $_.Version)
+                $XmlObjectWriter.WriteAttributeString("version", $_.version)
                 $XmlObjectWriter.WriteEndElement()
             }
         }
