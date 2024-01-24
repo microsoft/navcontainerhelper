@@ -197,7 +197,7 @@ Function New-BcNuGetPackage {
                 }
                 $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
                 $XmlObjectWriter.WriteStartElement("dependency")
-                $XmlObjectWriter.WriteAttributeString("id", $dependencyId)
+                $XmlObjectWriter.WriteAttributeString("id", $id)
                 $XmlObjectWriter.WriteAttributeString("version", $_.version)
                 $XmlObjectWriter.WriteEndElement()
             }
