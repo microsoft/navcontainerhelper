@@ -33,7 +33,7 @@ jobs:
       tests: ${{ steps.Analyze.outputs.tests }}
       linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -65,7 +65,7 @@ jobs:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -100,7 +100,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -135,7 +135,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
