@@ -19,7 +19,7 @@ permissions:
   checks: write
 
 concurrency:
-  group: 'runTests-${{ github.ref }}'
+  group: 'runTests-${{ github.event.inputs.ref }}'
   cancel-in-progress: true
 
 defaults:
