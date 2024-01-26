@@ -1,4 +1,6 @@
 6.0.5
+Add new function Get-BcNuGetPackageId to get a NuGet Package Id based on publisher, name, id and version
+Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib'
 Give better error message if GitHub CLI, GIT or dotnet is not installed
 Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4) 
 Issue 3313 Strange error in Copy-BcEnvironment
