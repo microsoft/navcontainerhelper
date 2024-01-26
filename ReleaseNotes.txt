@@ -1,4 +1,5 @@
 6.0.5
+Issue 3313 Strange error in Copy-BcEnvironment
 
 6.0.4
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
