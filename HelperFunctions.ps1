@@ -97,7 +97,8 @@ function CmdDo {
         [string] $arguments = "",
         [switch] $silent,
         [switch] $returnValue,
-        [string] $inputStr = ""
+        [string] $inputStr = "",
+        [string] $messageIfCmdNotFound = ""
     )
 
     $oldNoColor = "$env:NO_COLOR"
@@ -105,7 +106,6 @@ function CmdDo {
     $oldEncoding = [Console]::OutputEncoding
     try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
     try {
-        $result = $true
         $pinfo = New-Object System.Diagnostics.ProcessStartInfo
         $pinfo.FileName = $command
         $pinfo.RedirectStandardError = $true
@@ -149,6 +149,19 @@ function CmdDo {
         else {
             $message += "`n`nExitCode: " + $p.ExitCode + "`nCommandline: $command $arguments"
             throw $message
+        }
+    }
+    catch [System.ComponentModel.Win32Exception] {
+        if ($_.Exception.NativeErrorCode -eq 2) {
+            if ($messageIfCmdNotFound) {
+                throw $messageIfCmdNotFound
+            }
+            else {
+                throw "Command $command not found, you might need to install that command."
+            }
+        }
+        else {
+            throw
         }
     }
     finally {

@@ -8,7 +8,7 @@
  .Parameter countrySpecificAppFiles
   Hashtable with country specific app files (runtime packages) to include in the NuGet package
  .Parameter packageId
-  Id of the NuGet package (or template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file) 
+  Template to generate the id, replacing {id}, {name} and {publisher} with the values from the app.json file
   The default is '{publisher}.{name}.{id}'
  .Parameter packageVersion
   Version of the NuGet package
@@ -81,22 +81,6 @@ Function New-BcNuGetPackage {
         $stream.Write($bytes,0,$bytes.Length)
     }
 
-    function CalcPackageId([string] $packageIdTemplate, [string] $publisher, [string] $name, [string] $id, [string] $version) {
-        $name = [nuGetFeed]::Normalize($name)
-        $publisher = [nuGetFeed]::Normalize($publisher)
-        $packageId = $packageIdTemplate.replace('{id}',$id).replace('{name}',$name).replace('{publisher}',$publisher).replace('{version}',$version)
-        if ($packageId.Length -ge 100) {
-            if ($name.Length -gt ($packageId.Length - 99)) {
-                $name = $name.Substring(0, $name.Length - ($packageId.Length - 99))
-            }
-            else {
-                throw "Package id is too long: $packageId, unable to shorten it"
-            }
-            $packageId = $packageIdTemplate.replace('{id}',$id).replace('{name}',$name).replace('{publisher}',$publisher).replace('{version}',$version)
-        }
-        return $packageId
-    }
-
     Write-Host "Create NuGet package"
     Write-Host "AppFile:"
     Write-Host $appFile
@@ -134,7 +118,7 @@ Function New-BcNuGetPackage {
             }
         }
         $appJson = Get-AppJsonFromAppFile -appFile $appFile
-        $packageId = CalcPackageId -packageIdTemplate $packageId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
+        $packageId = Get-BcNuGetPackageId -packageIdTemplate $packageId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
         if ($null -eq $packageVersion) {
             $packageVersion = [System.Version]$appJson.version
         }
@@ -190,10 +174,15 @@ Function New-BcNuGetPackage {
         $XmlObjectWriter.WriteStartElement("dependencies")
         if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
             $appJson.dependencies | ForEach-Object {
-                $id = CalcPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $_.id -version $_.version.replace('.','-')
+                if ($_.PSObject.Properties.name -eq 'id') {
+                    $dependencyId = $_.id
+                } else {
+                    $dependencyId = $_.appId
+                }
+                $id = Get-BcNuGetPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
                 $XmlObjectWriter.WriteStartElement("dependency")
                 $XmlObjectWriter.WriteAttributeString("id", $id)
-                $XmlObjectWriter.WriteAttributeString("version", $_.Version)
+                $XmlObjectWriter.WriteAttributeString("version", $_.version)
                 $XmlObjectWriter.WriteEndElement()
             }
         }
@@ -211,7 +200,7 @@ Function New-BcNuGetPackage {
         }
         if ($isIndirectPackage.IsPresent) {
             $XmlObjectWriter.WriteStartElement("dependency")
-            $id = CalcPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
+            $id = Get-BcNuGetPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
             $XmlObjectWriter.WriteAttributeString("id", $id)
             $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
             $XmlObjectWriter.WriteEndElement()

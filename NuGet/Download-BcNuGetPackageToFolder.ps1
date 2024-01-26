@@ -211,7 +211,7 @@ Function Download-BcNuGetPackageToFolder {
                 Remove-Item -Path $package -Recurse -Force
                 continue
             }
-            if (Test-Path (Join-Path $package $installedCountry) -PathType Container) {
+            if ($installedCountry -and (Test-Path (Join-Path $package $installedCountry) -PathType Container)) {
                 # NuGet packages of Runtime packages might exist in different versions for different countries
                 # The runtime package might contain C# invoke calls with different methodis for different countries
                 # if the installedCountry doesn't have a special version, then the w1 version is used (= empty string)
