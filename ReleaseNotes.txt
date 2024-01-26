@@ -1,5 +1,5 @@
 6.0.5
-Give better error message if GitHub CLI is not installed
+Give better error message if GitHub CLI, GIT or dotnet is not installed
 Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4) 
 
 6.0.4
