@@ -31,7 +31,7 @@ function Rename-BcEnvironment {
         [string] $environment,
         [Parameter(Mandatory = $true)]
         [string] $newEnvironmentName,
-        [string] $apiVersion = "v2.15",
+        [string] $apiversion = "v2.19",
         [switch] $force,
         [switch] $doNotWait
     )
