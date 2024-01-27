@@ -56,8 +56,8 @@ function Download-Artifacts {
             $feed = $Matches[1]
             $packageName = "$($Matches[2]).$($Matches[4]).$($artifactVersion.Major)"
             $packageVersion = "$($artifactVersion.Minor).$($artifactVersion.Build).$($artifactVersion.Revision)"
-            Write-Host "Using az artifacts universal download --organization $organization --project=$project --scope project --feed $feed --name $packageName --version $packageVersion"
-            az artifacts universal download --organization $organization --project=$project --scope project --feed $feed --name $packageName --version $packageVersion --path $tmpFolder
+            Write-Host "Using az artifacts universal download --organization https://dev.azure.com/$organization --project $project --scope project --feed $feed --name $packageName --version $packageVersion"
+            az artifacts universal download --organization "https://dev.azure.com/$organization" --project $project --scope project --feed $feed --name $packageName --version $packageVersion --path $tmpFolder
         }
         else {
             $retry = $false
