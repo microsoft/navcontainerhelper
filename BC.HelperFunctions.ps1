@@ -151,9 +151,6 @@ function Get-ContainerHelperConfig {
                                 }
                             }
                         }
-                        $savedConfig.PSObject.Properties.Name | Where-Object { $keys -notcontains $_ } | ForEach-Object {
-                            Write-Host -ForegroundColor Yellow "Ignoring unknown config setting $_"
-                        }
                     }
                 }
                 catch {
