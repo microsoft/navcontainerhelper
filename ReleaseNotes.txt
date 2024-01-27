@@ -1,3 +1,11 @@
+6.0.5
+Proof of concept support for hosting artifacts as Universal Packages
+Add new function Get-BcNuGetPackageId to get a NuGet Package Id based on publisher, name, id and version
+Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib'
+Give better error message if GitHub CLI, GIT or dotnet is not installed
+Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4) 
+Issue 3313 Strange error in Copy-BcEnvironment
+
 6.0.4
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
 Refactor NuGet feed functionality to use NuGetFeed class

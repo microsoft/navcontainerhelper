@@ -20,7 +20,8 @@ function Get-ContainerHelperConfig {
             "useVolumes" = $false
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
-            "defaultNewContainerParameters" = @{ }
+            "defaultNewContainerParameters" = [PSCustomObject]@{
+            }
             "hostHelperFolder" = ""
             "containerHelperFolder" = $programDataFolder
             "defaultContainerName" = "bcserver"
@@ -99,7 +100,8 @@ function Get-ContainerHelperConfig {
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
             "DoNotUseCdnForArtifacts" = $false
-            "MinimumDotNetRuntimeVersion" = [System.Version]"6.0.16"
+            "ArtifactsFeedOrganizationAndProject" = ""
+            "MinimumDotNetRuntimeVersionStr" = "6.0.16"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
             "AlpacaSettings" = [PSCustomObject]@{
                 "BaseUrl" = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
@@ -128,14 +130,29 @@ function Get-ContainerHelperConfig {
                 try {
                     $savedConfig = Get-Content $configFile | ConvertFrom-Json
                     if ("$savedConfig") {
-                        $keys = $bcContainerHelperConfig.Keys | % { $_ }
+                        $keys = $bcContainerHelperConfig.Keys | ForEach-Object { $_ }
                         $keys | ForEach-Object {
                             if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-                                if (!$silent) {
-                                    Write-Host "Setting $_ = $($savedConfig."$_")"
+                                if ($bcContainerHelperConfig."$_" -and $savedConfig."$_" -and $bcContainerHelperConfig."$_".GetType() -ne $savedConfig."$_".GetType()) {
+                                    Write-Host -ForegroundColor Red "Ignoring config setting $_ as the type in the config file is different than in the default configuration"
                                 }
-                                $bcContainerHelperConfig."$_" = $savedConfig."$_"
+                                else {
+                                    if ((ConvertTo-Json -InputObject $bcContainerHelperConfig."$_" -Compress) -eq (ConvertTo-Json -InputObject $savedConfig."$_" -Compress)) {
+                                        if (!$silent) {
+                                            Write-Host "Ignoring unchanged config setting $_"
+                                        }
+                                    }
+                                    else {
+                                        if (!$silent) {
+                                            Write-Host "Setting $_ = $($savedConfig."$_")"
+                                        }
+                                        $bcContainerHelperConfig."$_" = $savedConfig."$_"
+                                    }
+                                }
                             }
+                        }
+                        $savedConfig.PSObject.Properties.Name | Where-Object { $keys -notcontains $_ } | ForEach-Object {
+                            Write-Host -ForegroundColor Yellow "Ignoring unknown config setting $_"
                         }
                     }
                 }

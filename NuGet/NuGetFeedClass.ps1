@@ -307,7 +307,7 @@ class NuGetFeed {
                     Write-Host "Verifying package using $($this.fingerprints -join ', ')"
                     $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
                 }
-                cmddo -command 'dotnet' -arguments $arguments -silent
+                cmddo -command 'dotnet' -arguments $arguments -silent -messageIfCmdNotFound "dotnet not found. Please install it from https://dotnet.microsoft.com/download"
             }
             Expand-Archive -Path $filename -DestinationPath $tmpFolder -Force
             $global:ProgressPreference = $prev
