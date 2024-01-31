@@ -75,6 +75,7 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $allowPrerelease
     )
 
+try {
     $returnValue = $false
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
@@ -240,6 +241,11 @@ Function Download-BcNuGetPackageToFolder {
         }
     }
     return $returnValue
+}
+catch {
+    Write-Host -ForegroundColor Red "Error Message: $($_.Exception.Message.Replace("`r",'').Replace("`n",' '))`r`nStackTrace: $($_.ScriptStackTrace)"
+    throw
+}
 }
 Set-Alias -Name Copy-BcNuGetPackageToFolder -Value Download-BcNuGetPackageToFolder
 Export-ModuleMember -Function Download-BcNuGetPackageToFolder -Alias Copy-BcNuGetPackageToFolder
