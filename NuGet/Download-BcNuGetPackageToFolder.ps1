@@ -96,7 +96,13 @@ Function Download-BcNuGetPackageToFolder {
             $nuspec | ForEach-Object { Write-Verbose $_ }
             $manifest = [xml]$nuspec
             $dependenciesErr = ''
-            foreach($dependency in $manifest.package.metadata.dependencies.GetEnumerator()) {
+            if ($manifest.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
+                $dependencies = $manifest.package.metadata.Dependencies.GetEnumerator()
+            }
+            else {
+                $dependencies = @()
+            }
+            foreach($dependency in $dependencies) {
                 $dependencyVersion = $dependency.Version
                 $dependencyId = $dependency.Id
                 $dependencyCountry = ''
