@@ -75,6 +75,7 @@ Function Download-BcNuGetPackageToFolder {
         [switch] $allowPrerelease
     )
 
+try {
     $returnValue = $false
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
@@ -96,7 +97,13 @@ Function Download-BcNuGetPackageToFolder {
             $nuspec | ForEach-Object { Write-Verbose $_ }
             $manifest = [xml]$nuspec
             $dependenciesErr = ''
-            foreach($dependency in $manifest.package.metadata.dependencies.GetEnumerator()) {
+            if ($manifest.package.metadata.PSObject.Properties.Name -eq 'Dependencies') {
+                $dependencies = $manifest.package.metadata.Dependencies.GetEnumerator()
+            }
+            else {
+                $dependencies = @()
+            }
+            foreach($dependency in $dependencies) {
                 $dependencyVersion = $dependency.Version
                 $dependencyId = $dependency.Id
                 $dependencyCountry = ''
@@ -234,6 +241,11 @@ Function Download-BcNuGetPackageToFolder {
         }
     }
     return $returnValue
+}
+catch {
+    Write-Host -ForegroundColor Red "Error Message: $($_.Exception.Message.Replace("`r",'').Replace("`n",' '))`r`nStackTrace: $($_.ScriptStackTrace)"
+    throw
+}
 }
 Set-Alias -Name Copy-BcNuGetPackageToFolder -Value Download-BcNuGetPackageToFolder
 Export-ModuleMember -Function Download-BcNuGetPackageToFolder -Alias Copy-BcNuGetPackageToFolder
