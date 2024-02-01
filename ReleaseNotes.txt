@@ -7,6 +7,7 @@ Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'Sys
 Issue 3313 Strange error in Copy-BcEnvironment
 Issue 3318 Download-BcNuGetPackageToFolder fails when no dependencies defined
 Add Stacktrace output to high level functions Download-BcNuGetPackageToFolder and Get-BcNuGetPackage
+Fix for AL-Go issue 913 (https://github.com/microsoft/AL-Go/issues/913)
 
 6.0.4
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
