@@ -128,8 +128,8 @@ try {
         $version = [System.Version]($navversion.split('-')[0])
         $force = ($version.Major -ge 14)
         if ($checkAlreadyInstalled) {
-                # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
-                $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | Where-Object { (-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global') } | ForEach-Object {
+            # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
+            $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | Where-Object { (-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global') } | ForEach-Object {
                 @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }

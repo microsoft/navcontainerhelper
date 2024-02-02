@@ -9,6 +9,7 @@ Issue 3318 Download-BcNuGetPackageToFolder fails when no dependencies defined
 Add Stacktrace output to high level functions Download-BcNuGetPackageToFolder and Get-BcNuGetPackage
 Fix for AL-Go issue 913 (https://github.com/microsoft/AL-Go/issues/913)
 Issue 3322 Default country for nextminor and nextmajor should be w1, not whatever country was the last one generated
+Encoding problems when using Invoke-ScriptInBcContainer with PowerShell 7.4.1
 
 6.0.4
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
