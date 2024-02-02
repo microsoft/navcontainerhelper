@@ -118,6 +118,9 @@ function Invoke-ScriptInBcContainer {
         $hostOutputFile = "$file.output"
         $containerOutputFile = "$containerFile.output"
         try {
+            $oldEncoding = [Console]::OutputEncoding
+            try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+            if ($isPsCore) { $encoding = 'UTF8BOM' } else { $encoding = 'UTF8' }
             if ($argumentList) {
                 $encryptionKey = $null
                 $xml = [xml]([System.Management.Automation.PSSerializer]::Serialize($argumentList))
@@ -127,23 +130,23 @@ function Invoke-ScriptInBcContainer {
                 if ($nodes.Count -gt 0) {
                     $encryptionKey = New-Object Byte[] 16
                     [Security.Cryptography.RNGCryptoServiceProvider]::Create().GetBytes($encryptionKey)
-                    '$encryptionkey = [System.Management.Automation.PSSerializer]::Deserialize('''+([xml]([System.Management.Automation.PSSerializer]::Serialize($encryptionKey))).OuterXml+''')' | Add-Content $file
+                    '$encryptionkey = [System.Management.Automation.PSSerializer]::Deserialize('''+([xml]([System.Management.Automation.PSSerializer]::Serialize($encryptionKey))).OuterXml+''')' | Add-Content -Encoding $encoding -Path $file
                 }
                 foreach($node in $nodes) {
                     $node.InnerText = ConvertFrom-SecureString -SecureString ($node.InnerText | ConvertTo-SecureString) -Key $encryptionkey
                 }
                 
                 $xmlbytes =[System.Text.Encoding]::UTF8.GetBytes($xml.OuterXml)
-                '$xmlbytes = [Convert]::FromBase64String('''+[Convert]::ToBase64String($xmlbytes)+''')' | Add-Content $file
-                '$xml = [xml]([System.Text.Encoding]::UTF8.GetString($xmlbytes))' | Add-Content $file
+                '$xmlbytes = [Convert]::FromBase64String('''+[Convert]::ToBase64String($xmlbytes)+''')' | Add-Content -Encoding $encoding -Path $file
+                '$xml = [xml]([System.Text.Encoding]::UTF8.GetString($xmlbytes))' | Add-Content -Encoding $encoding -Path $file
 
                 if ($encryptionKey) {
-                    '$nsmgr = New-Object System.Xml.XmlNamespaceManager -ArgumentList $xml.NameTable' | Add-Content $file
-                    '$nsmgr.AddNamespace("ns", "http://schemas.microsoft.com/powershell/2004/04")' | Add-Content $file
-                    '$nodes = $xml.SelectNodes("//ns:SS", $nsmgr)' | Add-Content $file
-                    'foreach($node in $nodes) { $node.InnerText = ConvertFrom-SecureString -SecureString ($node.InnerText | ConvertTo-SecureString -Key $encryptionKey) }' | Add-Content $file
+                    '$nsmgr = New-Object System.Xml.XmlNamespaceManager -ArgumentList $xml.NameTable' | Add-Content -Encoding $encoding -Path $file
+                    '$nsmgr.AddNamespace("ns", "http://schemas.microsoft.com/powershell/2004/04")' | Add-Content -Encoding $encoding -Path $file
+                    '$nodes = $xml.SelectNodes("//ns:SS", $nsmgr)' | Add-Content -Encoding $encoding -Path $file
+                    'foreach($node in $nodes) { $node.InnerText = ConvertFrom-SecureString -SecureString ($node.InnerText | ConvertTo-SecureString -Key $encryptionKey) }' | Add-Content -Encoding $encoding -Path $file
                 }
-                '$argumentList = [System.Management.Automation.PSSerializer]::Deserialize($xml.OuterXml)' | Add-Content $file
+                '$argumentList = [System.Management.Automation.PSSerializer]::Deserialize($xml.OuterXml)' | Add-Content -Encoding $encoding -Path $file
             }
 
 '$runPath = "c:\Run"
@@ -175,13 +178,13 @@ if ($roleTailoredClientFolder) {
 Set-Location $runPath
 $ErrorActionPreference = "Stop"
 $startTime = [DateTime]::Now
-' | Add-Content $file
+' | Add-Content -Encoding $encoding -Path $file
 
 "`$WarningPreference = '$($bcContainerHelperConfig.WarningPreference)'
-" | Add-Content $file
+" | Add-Content -Encoding $encoding -Path $file
 
 "`$containerName = '$containerName'
-" | Add-Content $file
+" | Add-Content -Encoding $encoding -Path $file
 
             if ($bcContainerHelperConfig.addTryCatchToScriptBlock) {
                 $ast = $scriptblock.Ast
@@ -192,19 +195,19 @@ $startTime = [DateTime]::Now
                     if ($ast.ParamBlock) {
                         $script = $ast.Extent.text.Replace($ast.ParamBlock.Extent.Text,'').Trim()
                         if ($script.StartsWith('{')) {
-                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try $script catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content -Encoding $encoding -Path $file
                         }
                         else {
-                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content $file
+                            "`$result = Invoke-Command -ScriptBlock { $($ast.ParamBlock.Extent.Text) try { $script } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } } -ArgumentList `$argumentList" | Add-Content -Encoding $encoding -Path $file
                         }
                     }
                     else {
                         $script = $ast.Extent.text.Trim()
                         if ($script.StartsWith('{')) {
-                            "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                            "`$result = Invoke-Command -ScriptBlock { try $($ast.Extent.text) catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content -Encoding $encoding -Path $file
                         }
                         else {
-                            "`$result = Invoke-Command -ScriptBlock { try { $($ast.Extent.text) } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content $file
+                            "`$result = Invoke-Command -ScriptBlock { try { $($ast.Extent.text) } catch { ""::EXCEPTION::`$(`$_.Exception.Message)"" } }" | Add-Content -Encoding $encoding -Path $file
                         }
                     }
                 }
@@ -261,15 +264,15 @@ if ($exception) {
 
     $result = @("::EXCEPTION::$errorMessage") + @($result | Where-Object { $_ -notlike "::EXCEPTION::*" })
 }
-'@ | Add-Content $file
+'@ | Add-Content -Encoding $encoding -Path $file
 
-'if ($result -ne $null) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$containerOutputFile+'" }' | Add-Content $file
+'if ($result -ne $null) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content -Encoding utf8 "'+$containerOutputFile+'" }' | Add-Content -Encoding $encoding -Path $file
 
 #Write-Host -ForegroundColor cyan (Get-Content $file -Raw -Encoding UTF8)
 
                 $ErrorActionPreference = "Stop"
-#                $file | Out-Host
-#                Get-Content -path $file | Out-Host
+                #$file | Out-Host
+                #Get-Content -encoding utf8 -path $file | Out-Host
                 docker exec $containerName powershell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
@@ -278,7 +281,7 @@ if ($exception) {
                 }
                 if (Test-Path -Path $hostOutputFile -PathType Leaf) {
 #                   Write-Host -ForegroundColor Cyan "'$(Get-content $hostOutputFile -Raw -Encoding UTF8)'"
-                    $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
+                    $result = [System.Management.Automation.PSSerializer]::Deserialize((Get-content -encoding utf8 $hostOutputFile))
                     $exception = $result | Where-Object { $_ -like "::EXCEPTION::*" }
                     if ($exception) {
                         $errorMessage = $exception.SubString(13)
@@ -288,8 +291,8 @@ if ($exception) {
                 }
             }
             else {
-                '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content $file
-                'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content "'+$containerOutputFile+'" }' | Add-Content $file
+                '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content -Encoding $encoding -Path $file
+                'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content -Encoding utf8 "'+$containerOutputFile+'" }' | Add-Content -Encoding $encoding -Path $file
                 $ErrorActionPreference = "Stop"
                 docker exec $containerName powershell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
@@ -298,10 +301,11 @@ if ($exception) {
                     throw "Error executing script in Container"
                 }
                 if (Test-Path -Path $hostOutputFile -PathType Leaf) {
-                    [System.Management.Automation.PSSerializer]::Deserialize((Get-content $hostOutputFile))
+                    [System.Management.Automation.PSSerializer]::Deserialize((Get-content -encoding utf8 $hostOutputFile))
                 }
             }
         } finally {
+            try { [Console]::OutputEncoding = $oldEncoding } catch {}
             Remove-Item $file -Force -ErrorAction SilentlyContinue
             Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
         }

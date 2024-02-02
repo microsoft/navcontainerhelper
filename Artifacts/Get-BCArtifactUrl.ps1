@@ -115,6 +115,7 @@ try {
             $nextminorversion = $nextmajorversion
         }
 
+        if (-not $country) { $country = 'w1' }
         $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
         $nextmajor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
         $nextminor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
