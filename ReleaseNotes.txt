@@ -1,3 +1,5 @@
+6.0.6
+
 6.0.5
 Proof of concept support for hosting artifacts as Universal Packages
 Add new function Get-BcNuGetPackageId to get a NuGet Package Id based on publisher, name, id and version
