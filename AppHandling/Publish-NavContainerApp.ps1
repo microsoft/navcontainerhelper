@@ -392,9 +392,9 @@ try {
                 }
                 if ($isCloudBcContainer) {
                     $containerPath = Join-Path 'C:\DL' ([System.IO.Path]::GetFileName($appfile))
-                    Copy-FileToCloudBcContainer -authContext $authContext -containerId $environment -localPath $appFile -containerPath $containerPath
+                    Copy-FileToCloudBcContainer -authContext $bcAuthContext -containerId $environment -localPath $appFile -containerPath $containerPath
                     Invoke-ScriptInCloudBcContainer `
-                        -authContext $authContext `
+                        -authContext $bcAuthContext `
                         -containerId $environment `
                         -ScriptBlock $scriptblock `
                         -ArgumentList $containerPath, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
