@@ -46,6 +46,7 @@ try {
     }
     
     [System.Reflection.Assembly]::LoadWithPartialName('System.IO.Packaging')
+    [System.Reflection.Assembly]::LoadWithPartialName('WindowsBase')
     
     $memoryStream = $null
     $fs = $null
