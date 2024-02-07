@@ -45,8 +45,12 @@ try {
         $path = $Destination
     }
     
-    [System.Reflection.Assembly]::LoadWithPartialName('System.IO.Packaging')
-    [System.Reflection.Assembly]::LoadWithPartialName('WindowsBase')
+    if ($isPsCore) {
+        [System.Reflection.Assembly]::LoadWithPartialName('System.IO.Packaging') | Out-Null
+    }
+    else {
+        [System.Reflection.Assembly]::LoadWithPartialName('WindowsBase') | Out-Null
+    }
     
     $memoryStream = $null
     $fs = $null
