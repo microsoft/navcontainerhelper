@@ -149,7 +149,10 @@ try {
             else {
                 # Get Installed apps (if UseDevEndpoint is specified, only get global apps or PTEs)
                 # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
-                $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
+                $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
+                Write-Host "InstalledApps:"
+                $installedApps | ForEach-Object { Write-Host "- $($_.id) $($_.displayName) $($_.VersionMajor).$($_.VersionMinor).$($_.VersionBuild).$($_.VersionRevision) '$($_.PublishedAs)' $($_.IsInstalled) $($_.publisher)" }
+                $installedApps = $installedApps | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
                     @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
                 }
             }
@@ -163,7 +166,7 @@ try {
 
             if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
                 Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
+                Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
             }
 
             if ($copyInstalledAppsToFolder) {
@@ -392,9 +395,9 @@ try {
                 }
                 if ($isCloudBcContainer) {
                     $containerPath = Join-Path 'C:\DL' ([System.IO.Path]::GetFileName($appfile))
-                    Copy-FileToCloudBcContainer -authContext $authContext -containerId $environment -localPath $appFile -containerPath $containerPath
+                    Copy-FileToCloudBcContainer -authContext $bcAuthContext -containerId $environment -localPath $appFile -containerPath $containerPath
                     Invoke-ScriptInCloudBcContainer `
-                        -authContext $authContext `
+                        -authContext $bcAuthContext `
                         -containerId $environment `
                         -ScriptBlock $scriptblock `
                         -ArgumentList $containerPath, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists

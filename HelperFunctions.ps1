@@ -444,13 +444,15 @@ function GetTestToolkitApps {
 
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
+                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
                     @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                 }
     
                 if (!$includeTestLibrariesOnly) {
-    
                     # Add Tests
+                    $apps += "Microsoft_System Application Test.app", "Microsoft_Business Foundation Tests.app" | ForEach-Object {
+                        @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+                    }
                     $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
                 }
             }
