@@ -40,11 +40,6 @@ Function Replace-DependenciesInAppFile {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($path -ne $Destination) {
-        Copy-Item -Path $path -Destination $Destination -Force
-        $path = $Destination
-    }
-    
     if ($isPsCore) {
         [System.Reflection.Assembly]::LoadWithPartialName('System.IO.Packaging') | Out-Null
     }
@@ -73,7 +68,7 @@ try {
         {
             throw "Unsupported package format"
         }
-    
+
         $memoryStream = [System.IO.MemoryStream]::new()
         $fs.Seek($metadataSize, [System.IO.SeekOrigin]::Begin) | Out-Null
         $fs.CopyTo($memoryStream)
