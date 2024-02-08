@@ -1,6 +1,8 @@
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
 Include Microsoft_System Application Test.app and Microsoft_Business Foundation Tests.app when importing tests
+Bug when running Publish-BcContainerApp against a cloud container ($authContext not defined)
+Remove the need for a Container when using Replace-DependenciesInAppFile (containername parameter is now obsolete)
 
 6.0.5
 Proof of concept support for hosting artifacts as Universal Packages

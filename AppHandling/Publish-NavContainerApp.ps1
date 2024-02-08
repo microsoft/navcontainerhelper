@@ -150,13 +150,11 @@ try {
                 # Get Installed apps (if UseDevEndpoint is specified, only get global apps or PTEs)
                 # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
                 $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
-                Write-Host "InstalledApps1 $($useDevEndPoint.IsPresent):"
+                Write-Host "InstalledApps:"
                 $installedApps | ForEach-Object { Write-Host "- $($_.id) $($_.displayName) $($_.VersionMajor).$($_.VersionMinor).$($_.VersionBuild).$($_.VersionRevision) '$($_.PublishedAs)' $($_.IsInstalled) $($_.publisher)" }
                 $installedApps = $installedApps | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
                     @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
                 }
-                Write-Host "InstalledApps2 $($useDevEndPoint.IsPresent):"
-                $installedApps | ForEach-Object { Write-Host "- $($_.id) $($_.name) $($_.version) $($_.publisher)" }
             }
         }
     }
