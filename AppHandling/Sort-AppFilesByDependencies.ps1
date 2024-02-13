@@ -22,7 +22,9 @@ function Sort-AppFilesByDependencies {
         $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies,
-        [switch] $excludeRuntimePackages
+        [switch] $excludeRuntimePackages,
+        [switch] $includeSystemDependencies,
+        [switch] $includeDependencyVersion
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -109,6 +111,24 @@ function Sort-AppFilesByDependencies {
                         $anApp.Dependencies | ForEach-Object { AddDependency -Dependency $_ }
                     }
                 }
+                if ($includeSystemDependencies.IsPresent) {
+                    if ($anApp.psobject.Members | Where-Object name -eq "application") {
+                        AddDependency -dependency ([PSCustomObject]@{
+                            "publisher" = "Microsoft"
+                            "name" = "Application"
+                            "version" = $anApp.Application
+                            "id" = 'Microsoft.Application'
+                        })
+                    }
+                    if ($anApp.psobject.Members | Where-Object name -eq "platform") {
+                        AddDependency -dependency ([PSCustomObject]@{
+                            "publisher" = "Microsoft"
+                            "name" = "Platform"
+                            "version" = $anApp.Platform
+                            "id" = 'Microsoft.Platform'
+                        })
+                    }
+                }
             }
         }
         
@@ -163,7 +183,7 @@ function Sort-AppFilesByDependencies {
         }
         if ($unknownDependencies) {
             $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
-    			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
+    			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):$(if($includeDependencyVersion.IsPresent){"$($_.Version):"})" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
     		} })
         }
     }
