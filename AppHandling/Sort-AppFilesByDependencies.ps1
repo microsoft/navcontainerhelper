@@ -9,6 +9,12 @@
   Array of AppIds. If specified, then include Only Apps in the specified AppFile array or archive which is contained in this Array and their dependencies
  .Parameter unknownDependencies
   If specified, this reference parameter will contain unresolved dependencies after sorting
+ .Parameter excludeRuntimePackages
+  If specified, runtime packages will be ignored
+ .Parameter includeSystemDependencies
+  If specified, dependencies on Microsoft.Application and Microsoft.Platform will be included
+ .Parameter includeDependencyVersion
+  If specified, the version of the dependencies will be included in the output
  .Example
   $files = Sort-AppFilesByDependencies -appFiles @($app1, $app2)
 #>
