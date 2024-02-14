@@ -104,6 +104,23 @@ try {
             return Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease
         }
     }
+    if ($packageName -match '^Microsoft\.Platform(\.symbols)?$') {
+        if ($installedPlatform) {
+            $existingPlatform = $installedPlatform
+        }
+        else {
+            $existingPlatform = $installedApps+$returnValue | Where-Object { $_ -and $_.Name -eq 'Platform' } | Select-Object -ExpandProperty Version
+        }
+        if ($existingPlatform -and ([NuGetFeed]::IsVersionIncludedInRange($existingPlatform, $version))) { return @() }
+    }
+    elseif ($packageName -match '^([^\.]+\.)?Application(\.[^\.]+)?(\.symbols)?$') {
+        $installedApp = $installedApps | Where-Object { $_ -and $_.Name -eq 'Application' }
+        if ($installedApp -and ([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $version))) { return @() }
+    }
+    elseif ($packageName -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
+        $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $packageName -like "*$($_.id)*" }
+        if ($installedApp -and ([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $version))) { return @() }
+    }
     Write-Host "Looking for NuGet package $packageName version $version ($select match)"
     while ($true) {
         $returnValue = @()
