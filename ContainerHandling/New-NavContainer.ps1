@@ -1440,7 +1440,7 @@ try {
             $restoreBakFolder = $true
             if (!$multitenant) {
                 $bakFile = Join-Path $bakFolder "database.bak"
-                $parameters += "--env bakfile=$bakFile"
+                $parameters += "--env bakfile=""$bakFile"""
             }
         }
     }
@@ -1467,7 +1467,7 @@ try {
         if ($bakFile.StartsWith($bcContainerHelperConfig.hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
             $bakFile = "$($bcContainerHelperConfig.containerHelperFolder)$($bakFile.Substring($bcContainerHelperConfig.hostHelperFolder.Length))"
         }
-        $parameters += "--env bakfile=$bakFile"
+        $parameters += "--env bakfile=""$bakFile"""
     }
 
     $vsixFile = DetermineVsixFile -vsixFile $vsixFile
