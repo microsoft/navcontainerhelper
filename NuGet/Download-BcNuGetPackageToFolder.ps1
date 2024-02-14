@@ -110,7 +110,7 @@ try {
             $existingPlatform = $installedPlatform
         }
         else {
-            $existingPlatform = $installedApps+$returnValue | Where-Object { $_ -and $_.Name -eq 'Platform' } | Select-Object -ExpandProperty Version
+            $existingPlatform = $installedApps | Where-Object { $_ -and $_.Name -eq 'Platform' } | Select-Object -ExpandProperty Version
         }
         if ($existingPlatform -and ([NuGetFeed]::IsVersionIncludedInRange($existingPlatform, $version))) {
             Write-Host "Microsoft.Platform version $existingPlatform is already available"
