@@ -9,6 +9,12 @@
   Array of AppIds. If specified, then include Only Apps in the specified AppFile array or archive which is contained in this Array and their dependencies
  .Parameter unknownDependencies
   If specified, this reference parameter will contain unresolved dependencies after sorting
+ .Parameter excludeRuntimePackages
+  If specified, runtime packages will be ignored
+ .Parameter includeSystemDependencies
+  If specified, dependencies on Microsoft.Application and Microsoft.Platform will be included
+ .Parameter includeDependencyVersion
+  If specified, the version of the dependencies will be included in the output
  .Example
   $files = Sort-AppFilesByDependencies -appFiles @($app1, $app2)
 #>
@@ -22,7 +28,9 @@ function Sort-AppFilesByDependencies {
         $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies,
-        [switch] $excludeRuntimePackages
+        [switch] $excludeRuntimePackages,
+        [switch] $includeSystemDependencies,
+        [switch] $includeDependencyVersion
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -109,6 +117,24 @@ function Sort-AppFilesByDependencies {
                         $anApp.Dependencies | ForEach-Object { AddDependency -Dependency $_ }
                     }
                 }
+                if ($includeSystemDependencies.IsPresent) {
+                    if ($anApp.psobject.Members | Where-Object name -eq "application") {
+                        AddDependency -dependency ([PSCustomObject]@{
+                            "publisher" = "Microsoft"
+                            "name" = "Application"
+                            "version" = $anApp.Application
+                            "id" = 'Microsoft.Application'
+                        })
+                    }
+                    if ($anApp.psobject.Members | Where-Object name -eq "platform") {
+                        AddDependency -dependency ([PSCustomObject]@{
+                            "publisher" = "Microsoft"
+                            "name" = "Platform"
+                            "version" = $anApp.Platform
+                            "id" = 'Microsoft.Platform'
+                        })
+                    }
+                }
             }
         }
         
@@ -163,7 +189,7 @@ function Sort-AppFilesByDependencies {
         }
         if ($unknownDependencies) {
             $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
-    			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
+    			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):$(if($includeDependencyVersion.IsPresent){"$($_.Version):"})" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
     		} })
         }
     }

@@ -112,6 +112,8 @@ function Get-ContainerHelperConfig {
                 "OAuthHostName" = "b52e8b6a-2953-4a08-8e28-5cf45a2dffdc"
                 "OAuthScopes" = "api://b52e8b6a-2953-4a08-8e28-5cf45a2dffdc/.default offline_access"
             }
+            "MSSymbolsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSSymbols/nuget/v3/index.json'
+            "MSAppsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json'
             "TrustedNuGetFeeds" = @(
             )
         }
