@@ -104,6 +104,7 @@ try {
             return Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -folder $folder -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps $installedApps -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease
         }
     }
+    Write-Host "Looking for NuGet package $packageName version $version ($select match)"
     if ($packageName -match '^Microsoft\.Platform(\.symbols)?$') {
         if ($installedPlatform) {
             $existingPlatform = $installedPlatform
@@ -111,17 +112,25 @@ try {
         else {
             $existingPlatform = $installedApps+$returnValue | Where-Object { $_ -and $_.Name -eq 'Platform' } | Select-Object -ExpandProperty Version
         }
-        if ($existingPlatform -and ([NuGetFeed]::IsVersionIncludedInRange($existingPlatform, $version))) { return @() }
+        if ($existingPlatform -and ([NuGetFeed]::IsVersionIncludedInRange($existingPlatform, $version))) {
+            Write-Host "Microsoft.Platform version $existingPlatform is already available"
+            return @()
+        }
     }
     elseif ($packageName -match '^([^\.]+\.)?Application(\.[^\.]+)?(\.symbols)?$') {
         $installedApp = $installedApps | Where-Object { $_ -and $_.Name -eq 'Application' }
-        if ($installedApp -and ([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $version))) { return @() }
+        if ($installedApp -and ([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $version))) {
+            Write-Host "Application version $($installedApp.Version) is already available"
+            return @()
+        }
     }
     elseif ($packageName -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})?$') {
         $installedApp = $installedApps | Where-Object { $_ -and $_.id -and $packageName -like "*$($_.id)*" }
-        if ($installedApp -and ([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $version))) { return @() }
+        if ($installedApp -and ([NuGetFeed]::IsVersionIncludedInRange($installedApp.Version, $version))) {
+            Write-Host "$($installedApp.Name) from $($installedApp.publisher) version $($installedApp.Version) is already available (AppId=$($installedApp.id))"
+            return @()
+        }
     }
-    Write-Host "Looking for NuGet package $packageName version $version ($select match)"
     while ($true) {
         $returnValue = @()
         $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $findSelect -allowPrerelease:($allowPrerelease.IsPresent)
