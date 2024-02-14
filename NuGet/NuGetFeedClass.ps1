@@ -104,7 +104,7 @@ class NuGetFeed {
                 if ($result.Count -eq 0) {
                     break
                 }
-                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.id.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
+                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
                 $page++
             }
         }
