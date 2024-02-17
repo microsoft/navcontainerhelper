@@ -7,6 +7,7 @@ Two new parameters on Sort-AppFilesByDependencies (includeSystemDependencies and
 Add Public Microsoft NuGet Feeds as settings constants
 Fix issues in Download-BcNuGetPackageToFolder, where extensive amounts of NuGet searches was performed to locate packages
 Download-BcNuGetPackageToFolder now returns an array of apps downloaded instead of True/False
+JIT install PowerShell 7 in container when using BC version 24 or above (if not already installed in container)
 
 6.0.5
 Proof of concept support for hosting artifacts as Universal Packages

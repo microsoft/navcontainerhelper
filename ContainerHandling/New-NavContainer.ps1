@@ -1745,10 +1745,12 @@ if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Installing dotnet 6.0.13
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
             ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
         }
-        Write-Host "Patching container to install dotnet 8.0.0"
+        Write-Host "Patching container to install dotnet 8.0.0 and PowerShell 7.4.1"
         Download-File -source "https://download.visualstudio.microsoft.com/download/pr/2a7ae819-fbc4-4611-a1ba-f3b072d4ea25/32f3b931550f7b315d9827d564202eeb/dotnet-hosting-8.0.0-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win8.exe")
+        Download-File -source "https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/PowerShell-7.4.1-win-x64.msi" -destinationFile (Join-Path $myFolder "powershell-7.4.1-win-x64.msi")
         ('
 if (Test-Path "c:\run\my\dotnet-win8.exe") { Write-Host "Installing dotnet 8.0.0"; start-process -Wait -FilePath "c:\run\my\dotnet-win8.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win8.exe" -Force }
+if (Test-Path "c:\run\my\powershell-7.4.1-win-x64.msi") { Write-Host "Installing PowerShell 7.4.1"; start-process -Wait -FilePath "c:\run\my\powershell-7.4.1-win-x64.msi" -ArgumentList /quiet; Remove-Item "c:\run\my\powershell-7.4.1-win-x64.msi" -Force }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
