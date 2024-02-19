@@ -166,11 +166,11 @@ try {
         -Info @{ "LogoUrl" = $iconPath } `
         -RequiredResourceAccess $resourceAccessList
 
-    $admspwd = Add-MgApplicationPassword -ApplicationId $SsoAdApp.Id -PasswordCredential @{ "DisplayName" = "Password" }
+    $admspwd = Add-MgApplicationPassword -ApplicationId $ssoAdApp.Id -PasswordCredential @{ "DisplayName" = "Password" }
     $AdProperties["SsoAdAppKeyValue"] = $admspwd.SecretText
 
-    $SsoAdAppId = $ssoAdApp.AppId.ToString()
-    $AdProperties["SsoAdAppId"] = $SsoAdAppId
+    $ssoAdAppId = $ssoAdApp.AppId.ToString()
+    $AdProperties["SsoAdAppId"] = $ssoAdAppId
 
     # Get oauth2 permission id for sso app
     $oauth2permissionid = [GUID]::NewGuid().ToString()
@@ -190,7 +190,7 @@ try {
     if ($IncludeApiAccess) {
         $appRoleId = [Guid]::NewGuid().ToString()
         Update-MgApplication `
-            -ApplicationId $ssoAdApp.id `
+            -ApplicationId $ssoAdApp.Id `
             -AppRoles @{
                  "Id" = $appRoleId
                  "DisplayName" = "API.ReadWrite.All"
@@ -216,7 +216,7 @@ try {
         # Create AD Application
         Write-Host "Creating AAD App for API Access"
         $bcSSOAppRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
-        $bcSSOAppRRA.ResourceAppId = "$SsoAdAppId"                                 # BC SSO App
+        $bcSSOAppRRA.ResourceAppId = "$ssoAdAppId"                                 # BC SSO App
         $bcSSOAppRRA.ResourceAccess = @(
             @{ "Id" = "$oauth2permissionid";                  "Type" = "Scope" }   # OAuth2
             @{ "Id" = "$appRoleId";                           "Type" = "Role" }    # API.ReadWrite.All
@@ -270,7 +270,7 @@ try {
         # Create AD Application
         Write-Host "Creating AAD App for Excel Add-in"
         $bcSSOAppRRA = New-Object -TypeName Microsoft.Graph.PowerShell.Models.MicrosoftGraphRequiredResourceAccess
-        $bcSSOAppRRA.ResourceAppId = "$SsoAdAppId"                            # BC SSO App
+        $bcSSOAppRRA.ResourceAppId = "$ssoAdAppId"                            # BC SSO App
         $bcSSOAppRRA.ResourceAccess = @(
             @{ "Id" = "$oauth2permissionid";                  "Type" = "Scope" }   # OAuth2
         )
