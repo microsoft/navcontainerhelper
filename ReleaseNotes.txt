@@ -1,3 +1,5 @@
+6.0.7
+
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
 Include Microsoft_System Application Test.app and Microsoft_Business Foundation Tests.app when importing tests
