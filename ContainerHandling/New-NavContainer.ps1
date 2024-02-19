@@ -1732,10 +1732,10 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
             ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
         }
-        Write-Host "Patching container to install dotnet 6.0.13"
-        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/0cb3c095-c4f4-4d55-929b-3b4888a7b5f1/4156664d6bfcb46b63916a8cd43f8305/dotnet-hosting-6.0.13-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win.exe")
+        Write-Host "Patching container to install dotnet 6.0.27"
+        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/04389c24-12a9-4e0e-8498-31989f30bb22/141aef28265938153eefad0f2398a73b/dotnet-hosting-6.0.27-win.exe" -destinationFile (Join-Path $myFolder "dotnet6-win.exe")
         ('
-if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Installing dotnet 6.0.13"; start-process -Wait -FilePath "c:\run\my\dotnet-win.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win.exe" -Force }
+if (Test-Path "c:\run\my\dotnet6-win.exe") { Write-Host "Installing dotnet 6.0.27"; start-process -Wait -FilePath "c:\run\my\dotnet6-win.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet6-win.exe" -Force }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
@@ -2330,10 +2330,10 @@ if (-not `$restartingInstance) {
     if ($Version.Major -ge 22) {
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             Write-Host "Cleanup old dotnet core assemblies"
-            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.0.4' -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.1.1' -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\5.0.4' -Recurse -Force -ErrorAction SilentlyContinue
-            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\5.0.4' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.1.*' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\5.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\5.0.*' -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
 
