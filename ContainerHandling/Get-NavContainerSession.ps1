@@ -43,7 +43,7 @@ function Get-BcContainerSession {
             elseif ($isAdministrator) {
                 try {
                     $containerId = Get-BcContainerId -containerName $containerName
-                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue
                 }
                 catch {}
             }
