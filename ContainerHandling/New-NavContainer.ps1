@@ -1745,12 +1745,25 @@ if (Test-Path "c:\run\my\dotnet-win.exe") { Write-Host "Installing dotnet 6.0.13
               . (Join-Path $runPath $MyInvocation.MyCommand.Name)
             ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
         }
-        Write-Host "Patching container to install dotnet 8.0.0 and PowerShell 7.4.1"
-        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/2a7ae819-fbc4-4611-a1ba-f3b072d4ea25/32f3b931550f7b315d9827d564202eeb/dotnet-hosting-8.0.0-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win8.exe")
+        Write-Host "Patching container to install dotnet 8.0.2 and PowerShell 7.4.1"
+        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/98ff0a08-a283-428f-8e54-19841d97154c/8c7d5f9600eadf264f04c82c813b7aab/dotnet-hosting-8.0.2-win.exe" -destinationFile (Join-Path $myFolder "dotnet-win8.exe")
         Download-File -source "https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/PowerShell-7.4.1-win-x64.msi" -destinationFile (Join-Path $myFolder "powershell-7.4.1-win-x64.msi")
         ('
 if (Test-Path "c:\run\my\dotnet-win8.exe") { Write-Host "Installing dotnet 8.0.0"; start-process -Wait -FilePath "c:\run\my\dotnet-win8.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win8.exe" -Force }
 if (Test-Path "c:\run\my\powershell-7.4.1-win-x64.msi") { Write-Host "Installing PowerShell 7.4.1"; start-process -Wait -FilePath "c:\run\my\powershell-7.4.1-win-x64.msi" -ArgumentList /quiet; Remove-Item "c:\run\my\powershell-7.4.1-win-x64.msi" -Force }
+') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {
+        if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
+            ('# Invoke default behavior
+              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+            ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
+        }
+        Write-Host "Patching container to install ASP.NET Core 1.1"
+        Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
+        ('
+if (Test-Path "c:\run\my\dotnetcore.exe") { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnetcore.exe" -Force }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
