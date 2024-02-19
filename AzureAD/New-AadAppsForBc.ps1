@@ -190,7 +190,7 @@ try {
     if ($IncludeApiAccess) {
         $appRoleId = [Guid]::NewGuid().ToString()
         Update-MgApplication `
-            -ApplicationId $ssoAdApp.id `
+            -ApplicationId $ssoAdApp.Id `
             -AppRoles @{
                  "Id" = $appRoleId
                  "DisplayName" = "API.ReadWrite.All"
