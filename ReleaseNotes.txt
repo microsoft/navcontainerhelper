@@ -1,8 +1,16 @@
+6.0.7
+
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
 Include Microsoft_System Application Test.app and Microsoft_Business Foundation Tests.app when importing tests
 Bug when running Publish-BcContainerApp against a cloud container ($authContext not defined)
 Remove the need for a Container when using Replace-DependenciesInAppFile (containername parameter is now obsolete)
+Two new parameters on Sort-AppFilesByDependencies (includeSystemDependencies and includeDependencyVersion)
+Add Public Microsoft NuGet Feeds as settings constants
+Fix issues in Download-BcNuGetPackageToFolder, where extensive amounts of NuGet searches was performed to locate packages
+Download-BcNuGetPackageToFolder now returns an array of apps downloaded instead of True/False
+JIT install PowerShell 7 in container when using BC version 24 or above (if not already installed in container)
+JIT install ASP.NET Core 1.1 when using BC 15 - 18 on Generic 1.0.2.15 or above
 
 6.0.5
 Proof of concept support for hosting artifacts as Universal Packages

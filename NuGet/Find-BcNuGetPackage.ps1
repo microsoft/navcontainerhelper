@@ -60,11 +60,12 @@ Function Find-BcNuGetPackage {
             if (!($feed.PSObject.Properties.Name -eq 'Patterns')) { $feed | Add-Member -MemberType NoteProperty -Name 'Patterns' -Value @('*') }
             if (!($feed.PSObject.Properties.Name -eq 'Fingerprints')) { $feed | Add-Member -MemberType NoteProperty -Name 'Fingerprints' -Value @() }
             $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints)
-            $packageIds = $nuGetFeed.Search($packageName)
-            if ($packageIds) {
-                foreach($packageId in $packageIds) {
+            $packages = $nuGetFeed.Search($packageName)
+            if ($packages) {
+                foreach($package in $packages) {
+                    $packageId = $package.Id
                     Write-Host "PackageId: $packageId"
-                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
+                    $packageVersion = $nuGetFeed.FindPackageVersion($package, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
                     if (!$packageVersion) {
                         Write-Host "No package found matching version '$version' for package id $($packageId)"
                         continue
