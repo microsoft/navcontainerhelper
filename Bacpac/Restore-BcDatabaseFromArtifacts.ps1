@@ -66,7 +66,7 @@ try {
             
             $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.dll")
             if (!($ManagementModule)) {
-                $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.Dynamics.Nav.Management.dll")
+                $ManagementModule = Get-Item -Path (Join-Path $artifactPath[1] "ServiceTier\program files\Microsoft Dynamics NAV\*\Service\Management\Microsoft.Dynamics.Nav.Management.psm1")
                 if (!($ManagementModule)) {
                     throw "Unable to locate management module in artifacts"
                 }
