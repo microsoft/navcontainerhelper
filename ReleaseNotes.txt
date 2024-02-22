@@ -1,5 +1,6 @@
 6.0.7
 Issue 3347 Download-BcNuGetPackageToFolder to support package description for app name if title is not specified
+Support dependency version templates on NuGet packages
 
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
