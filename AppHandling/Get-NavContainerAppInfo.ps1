@@ -78,7 +78,7 @@ try {
         $script:installedApps = @()
 
         function AddAnApp { Param($anApp)
-            Write-Host "AddAnApp $($anapp.Name) $($anapp.Version)"
+            #Write-Host "AddAnApp $($anapp.Name) $($anapp.Version)"
             $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.Version -eq $anApp.Version }
             if (-not ($alreadyAdded)) {
                 #Write-Host "add dependencies"
@@ -89,7 +89,7 @@ try {
         }
 
         function AddDependency { Param($dependency)
-            Write-Host " -- Add Dependency $($dependency.Name) $($dependency.Version)"
+            #Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
             $dependentApp = $apps | Where-Object { "$($_.AppId)" -eq "$($dependency.AppId)"  }
             if ($dependentApp) {
                 @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
@@ -97,7 +97,7 @@ try {
         }
 
         function AddDependencies { Param($anApp)
-            # Write-Host "Add Dependencies for $($anApp.Name)"
+            #Write-Host "Add Dependencies for $($anApp.Name)"
             if (($anApp) -and ($anApp.Dependencies)) {
                 $anApp.Dependencies | % { AddDependency -Dependency $_ }
             }
