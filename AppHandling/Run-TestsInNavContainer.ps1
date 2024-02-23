@@ -404,7 +404,7 @@ try {
                     }
                     elseif ($clientServicesCredentialType -eq "Windows") {
                         $windowsUserName = whoami
-                        $allUsers = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore
+                        $allUsers = @(Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant -ErrorAction Ignore)
                         if ($allUsers.count -gt 0) {
                             $NavServerUser = $allUsers | Where-Object { $_.UserName -eq $windowsusername }
                             if (!($NavServerUser)) {
