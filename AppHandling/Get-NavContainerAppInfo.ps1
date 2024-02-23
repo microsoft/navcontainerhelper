@@ -90,7 +90,7 @@ try {
 
         function AddDependency { Param($dependency)
             #Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
-            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId  }
+            $dependentApp = $apps | Where-Object { "$($_.AppId)" -eq "$($dependency.AppId)"  }
             if ($dependentApp) {
                 @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
             }
