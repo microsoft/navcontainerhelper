@@ -1,4 +1,4 @@
-<#
+4<#
  .Synopsis
   Use NAV/BC Container to Compile App
  .Description
@@ -436,7 +436,7 @@ try {
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
             if ($platformversion -ge [System.Version]"19.0.0.0") {
-                ((($dependency.appId -ne '' -and $_.AppId.value.ToString() -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+                ((($dependency.appId -ne '' -and $_.AppId.ToString() -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
             }
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
