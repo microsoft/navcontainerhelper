@@ -145,6 +145,7 @@ try {
                     Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true -and ((-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global')) } | ForEach-Object { 
                         Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId.value -publisher $_.publisher -name $_.name -version $_.Version } | ForEach-Object {
                             @{ "id" = $_.appId.value.ToString(); "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+                        }
                 }
             }
             else {
