@@ -555,10 +555,13 @@ function CopyAppFilesToFolder {
         $appFile = $_
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
-            $appFile = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            $appFile = Join-Path $appFileFolder ([Uri]::UnescapeDataString([System.IO.Path]::GetFileName($appUrl.Split('?')[0])))
             Download-File -sourceUrl $appUrl -destinationFile $appFile
             CopyAppFilesToFolder -appFile $appFile -folder $folder
-            Remove-Item -Path $appFile -Force
+            if (Test-Path $appFileFolder) {
+                Remove-Item -Path $appFileFolder -Force -Recurse
+            }
         }
         elseif (Test-Path $appFile -PathType Container) {
             get-childitem $appFile -Filter '*.app' -Recurse | ForEach-Object {
