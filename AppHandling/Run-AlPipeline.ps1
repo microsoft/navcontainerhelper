@@ -1829,7 +1829,7 @@ Write-Host -ForegroundColor Yellow @'
                             param($appFile)
                             Get-NavAppInfo -Path $appFile
                         } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
-                        $appId = $appInfo.AppId
+                        $appId = $appInfo.AppId.ToString()
                     }
                     else {
                         $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
