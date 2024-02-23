@@ -436,7 +436,7 @@ try {
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
             if ($platformversion -ge [System.Version]"19.0.0.0") {
-                ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+                ((($dependency.appId -ne '' -and $_.AppId.value.ToString() -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
             }
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
@@ -606,7 +606,7 @@ try {
                     $dependency = $_
                     $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
                     Write-Host "Dependency: Id=$dependencyAppId, Publisher=$($dependency.Publisher), Name=$($dependency.Name), Version=$($dependency.Version)"
-                    $existingApps | Where-Object { $_.AppId -eq [System.Guid]$dependencyAppId -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
+                    $existingApps | Where-Object { "$($_.AppId)" -eq $dependencyAppId -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
                         $dependency.Version = "$($_.Version)"
                         Write-Host "- Set dependency version to $($_.Version)"
                         $changes = $true

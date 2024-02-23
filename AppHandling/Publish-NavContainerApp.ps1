@@ -130,7 +130,7 @@ try {
         if ($checkAlreadyInstalled) {
             # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
             $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | Where-Object { (-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global') } | ForEach-Object {
-                @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+                @{ "id" = $_.appId.value.ToString(); "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }
     }
@@ -143,7 +143,8 @@ try {
                 # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
                 $installedApps = Invoke-ScriptInCloudBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
                     Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true -and ((-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global')) } | ForEach-Object { 
-                        Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version }
+                        Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId.value -publisher $_.publisher -name $_.name -version $_.Version } | ForEach-Object {
+                            @{ "id" = $_.appId.value.ToString(); "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
                 }
             }
             else {
