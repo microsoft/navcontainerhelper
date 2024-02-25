@@ -466,9 +466,11 @@ function GetInstalledAppIds {
         $installedApps = @()
     }
     Write-Host "::group::Installed Apps"
-    $installedApps | ForEach-Object { Write-Host "- $($_.AppId):$($_.Name)" }
+    $installedApps | ForEach-Object {
+        Write-Host "- $($_.AppId):$($_.Name)"
+        "$($_.AppId)"
+    }
     Write-Host "::endgroup::"
-    return $installedApps.AppId
 }
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -2190,7 +2192,7 @@ $apps | ForEach-Object {
     $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
     $installedApp = $false
-    if ($installedApps | Where-Object { $_.AppId -eq $appJson.Id }) {
+    if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
         $installedApp = $true
     }
 
