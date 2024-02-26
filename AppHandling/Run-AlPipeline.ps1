@@ -668,7 +668,7 @@ if ($credential) {
 }
 else {
     $password = GetRandomPassword
-    Write-Host "admin/$password"
+    Write-Host "Username: admin, Password: ***"
     $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
 Write-Host -NoNewLine -ForegroundColor Yellow "CompanyName                     "; Write-Host $companyName
