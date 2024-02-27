@@ -411,7 +411,7 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
     $path
 }
 
-Function UpdateLaunchJson {
+function UpdateLaunchJson {
     Param(
         [string] $launchJsonFile,
         [System.Collections.Specialized.OrderedDictionary] $launchSettings
@@ -483,6 +483,11 @@ if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
 }
 if ($sharedFolder -and !(Test-Path $sharedFolder -PathType Container)) {
     throw "If sharedFolder is specified, it must be an existing folder"
+}
+
+if($keepContainer -and !$credential) {
+    # If keepContainer is specified, credentials must also be specified, as otherwise the container will be created with a random password and there will be no way to access it.
+    throw "If keepContainer is specified, you must also specify credentials"
 }
 
 if ($memoryLimit -eq "") {

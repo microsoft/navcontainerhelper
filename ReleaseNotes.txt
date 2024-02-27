@@ -4,6 +4,7 @@ Support dependency version templates on NuGet packages
 Issue 3349 NuGet package files section name is wrong when using azure blob storage direct download url
 Issue 3358 Run-TestsInBcContainer using Windows Authentication doesn't work if exactly one user exists in the tenant
 Fix error in Get-BcContainerAppInfo in NextMajor
+Disallow invoking Run-ALPipeline with `keepContainer` without specifying credentials to use
 
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
@@ -22,7 +23,7 @@ Proof of concept support for hosting artifacts as Universal Packages
 Add new function Get-BcNuGetPackageId to get a NuGet Package Id based on publisher, name, id and version
 Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib'
 Give better error message if GitHub CLI, GIT or dotnet is not installed
-Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4) 
+Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4)
 Issue 3313 Strange error in Copy-BcEnvironment
 Issue 3318 Download-BcNuGetPackageToFolder fails when no dependencies defined
 Add Stacktrace output to high level functions Download-BcNuGetPackageToFolder and Get-BcNuGetPackage
