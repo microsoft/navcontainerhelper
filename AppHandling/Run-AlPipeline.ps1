@@ -490,6 +490,12 @@ if($keepContainer -and !$credential) {
     throw "If keepContainer is specified, you must also specify credentials"
 }
 
+if(!$credential) {
+    # Create a random password to use, as the container will not be kept after the pipeline finishes.
+    $password = GetRandomPassword
+    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
+}
+
 if ($memoryLimit -eq "") {
     $memoryLimit = "8G"
 }
@@ -667,15 +673,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "useCompilerFolder               "
 Write-Host -NoNewLine -ForegroundColor Yellow "artifactCachePath               "; Write-Host $artifactCachePath
 Write-Host -NoNewLine -ForegroundColor Yellow "useDevEndpoint                  "; Write-Host $useDevEndpoint
 Write-Host -NoNewLine -ForegroundColor Yellow "Auth                            "; Write-Host $auth
-Write-Host -NoNewLine -ForegroundColor Yellow "Credential                      ";
-if ($credential) {
-    Write-Host "Specified"
-}
-else {
-    $password = GetRandomPassword
-    Write-Host "Username: admin, Password: ***"
-    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
-}
 Write-Host -NoNewLine -ForegroundColor Yellow "CompanyName                     "; Write-Host $companyName
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                     "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "FailOn                          "; Write-Host $failOn
