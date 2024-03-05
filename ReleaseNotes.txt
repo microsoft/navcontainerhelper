@@ -7,6 +7,7 @@ Fix error in Get-BcContainerAppInfo in NextMajor
 Check-BcContainerHelperPermissions didn't work on PS7
 Issue #3379 Adding -installCertificateOnHost to New-BcContainer didn't work when running PS7 (silently failed)
 Issue #3376 Regression - Download-Artifacts stopped downloading pre-requisites
+Issue 3371 Unable to get companyname from Windows Users when running tests
 Disallow invoking Run-ALPipeline with `keepContainer` without specifying credentials to use
 
 6.0.6
