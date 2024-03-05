@@ -426,7 +426,10 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 22621) {
+    if ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 22000) { 
@@ -1332,7 +1335,7 @@ try {
         Write-Host -ForegroundColor Yellow "WARNING: Using process isolation on Windows Desktop OS with generic image version prior to 1.0.2.4 or NAV/BC versions prior to 15.0, might require you to use HyperV isolation or disable Windows Defender while creating the container"
     }
 
-    if ($isolation -eq "process" -and !$isServerHost -and $os.BuildNumber -eq 22621 -and $useSSL) {
+    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631) -and $useSSL) {
         Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
     }
 
