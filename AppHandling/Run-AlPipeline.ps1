@@ -411,7 +411,7 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
     $path
 }
 
-Function UpdateLaunchJson {
+function UpdateLaunchJson {
     Param(
         [string] $launchJsonFile,
         [System.Collections.Specialized.OrderedDictionary] $launchSettings
@@ -483,6 +483,17 @@ if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
 }
 if ($sharedFolder -and !(Test-Path $sharedFolder -PathType Container)) {
     throw "If sharedFolder is specified, it must be an existing folder"
+}
+
+if($keepContainer -and !$credential) {
+    # If keepContainer is specified, credentials must also be specified, as otherwise the container will be created with a random password and there will be no way to access it.
+    throw "If keepContainer is specified, you must also specify credentials"
+}
+
+if(!$credential) {
+    # Create a random password to use, as the container will not be kept after the pipeline finishes.
+    $password = GetRandomPassword
+    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
 
 if ($memoryLimit -eq "") {
@@ -662,15 +673,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "useCompilerFolder               "
 Write-Host -NoNewLine -ForegroundColor Yellow "artifactCachePath               "; Write-Host $artifactCachePath
 Write-Host -NoNewLine -ForegroundColor Yellow "useDevEndpoint                  "; Write-Host $useDevEndpoint
 Write-Host -NoNewLine -ForegroundColor Yellow "Auth                            "; Write-Host $auth
-Write-Host -NoNewLine -ForegroundColor Yellow "Credential                      ";
-if ($credential) {
-    Write-Host "Specified"
-}
-else {
-    $password = GetRandomPassword
-    Write-Host "Username: admin, Password: ***"
-    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
-}
 Write-Host -NoNewLine -ForegroundColor Yellow "CompanyName                     "; Write-Host $companyName
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                     "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "FailOn                          "; Write-Host $failOn
