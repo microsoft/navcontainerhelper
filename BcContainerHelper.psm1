@@ -18,10 +18,10 @@ if ($isMacOS) {
     throw "BcContainerHelper isn't supported on MacOS"
 }
 elseif ($isLinux) {
-    Write-Host "Running on Linux"
+    Write-Host "Running on Linux, PowerShell $($PSVersionTable.PSVersion)"
 }
 elseif ($isPsCore) {
-    Write-Host "Running on PowerShell 7"
+    Write-Host "Running on Windows, PowerShell $($PSVersionTable.PSVersion)"
 }
 
 if ($useVolumes -or $isInsideContainer) {
