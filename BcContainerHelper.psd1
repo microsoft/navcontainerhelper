@@ -266,10 +266,10 @@ PrivateData = @{
         # Tags = @()
 
         # A URL to the license for this module.
-        LicenseUri = 'https://github.com/microsoft/navcontainerhelper/blob/master/LICENSE'
+        # LicenseUri = ''
 
         # A URL to the main website for this project.
-        ProjectUri = 'https://github.com/microsoft/navcontainerhelper'
+        # ProjectUri = ''
 
         # A URL to an icon representing this module.
         # IconUri = ''
