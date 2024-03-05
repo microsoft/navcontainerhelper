@@ -30,7 +30,7 @@ function Invoke-ScriptInBcContainer {
     $containerFile = ""
     $shell = 'powershell'
     if ($usePwsh) {
-        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerName $containerName
+        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
         if ($platformVersion -ge [System.Version]"24.0.0.0") {
             $useSession = $false
             $shell = 'pwsh'
