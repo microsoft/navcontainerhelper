@@ -65,7 +65,8 @@ try {
             # Give SYSTEM permission to use the PFX file's private key
             $keyName = $importedPfxCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName
             $keyPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$keyName"
-            $acl = (Get-Item $keyPath).GetAccessControl('Access')
+            Import-Module Microsoft.PowerShell.Security -Force
+            $acl = [System.IO.FileSystemAclExtensions]::GetAccessControl([System.IO.DirectoryInfo]::new($keyPath), 'Access')
             $permission = 'NT AUTHORITY\SYSTEM',"Full","Allow"
             $accessRule = new-object System.Security.AccessControl.FileSystemAccessRule $permission
             $acl.AddAccessRule($accessRule)
