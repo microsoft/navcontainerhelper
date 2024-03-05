@@ -7,6 +7,7 @@ Fix error in Get-BcContainerAppInfo in NextMajor
 Check-BcContainerHelperPermissions didn't work on PS7
 Issue #3379 Adding -installCertificateOnHost to New-BcContainer didn't work when running PS7 (silently failed)
 Issue #3376 Regression - Download-Artifacts stopped downloading pre-requisites
+Issue 3371 Unable to get companyname from Windows Users when running tests
 
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
