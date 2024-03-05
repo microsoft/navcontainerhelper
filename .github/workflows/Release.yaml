@@ -67,7 +67,9 @@ jobs:
                                   -FunctionsToExport $functionsToExport `
                                   -AliasesToExport $aliasesToExport `
                                   -CompanyName "Microsoft" `
-                                  -ReleaseNotes $versionReleaseNotes
+                                  -ReleaseNotes $versionReleaseNotes `
+                                  -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/master/LICENSE' `
+                                  -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
 
             $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
             Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
