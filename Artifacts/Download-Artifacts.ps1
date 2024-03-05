@@ -242,7 +242,6 @@ try {
                     Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
                     TestSasToken -url $platformUrl
                     $downloadprereqs = DownLoadPackage -ArtifactUrl $platformUrl -DestinationPath $platformArtifactPath -timeout $timeout
-                    $downloadprereqs = $false
                     if ($downloadprereqs) {
                         $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
                         if (Test-Path $prerequisiteComponentsFile) {
