@@ -4,6 +4,7 @@ Support dependency version templates on NuGet packages
 Issue 3349 NuGet package files section name is wrong when using azure blob storage direct download url
 Issue 3358 Run-TestsInBcContainer using Windows Authentication doesn't work if exactly one user exists in the tenant
 Fix error in Get-BcContainerAppInfo in NextMajor
+Issue 3371 Unable to get companyname from Windows Users when running tests
 
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
