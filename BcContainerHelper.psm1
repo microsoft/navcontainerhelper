@@ -31,12 +31,22 @@ if ($useVolumes -or $isInsideContainer) {
 $hypervState = ""
 function Get-HypervState {
     if ($isAdministrator -and $hypervState -eq "") {
-        $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
-        if ($feature) {
-            $script:hypervState = $feature.State
+        try {
+            $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
+            if ($feature) {
+                $script:hypervState = $feature.State
+            }
+            else {
+                $script:hypervState = "Disabled"
+            }
         }
-        else {
-            $script:hypervState = "Disabled"
+        catch {
+            if ($_.Exception.Message -match "Class not registered") {
+                Write-Host "Cannot check Hyper-V status."
+            }
+            else {
+                throw $_
+            }    
         }
     }
     return $script:hypervState
