@@ -22,12 +22,24 @@ function Invoke-ScriptInBcContainer {
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]
         [Object[]] $argumentList,
-        [bool] $useSession = $bcContainerHelperConfig.usePsSession
+        [bool] $useSession = $bcContainerHelperConfig.usePsSession,
+        [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
     $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
     $containerFile = ""
-    if (!$useSession) {
+    $shell = 'powershell'
+    if ($usePwsh) {
+        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+        if ($platformVersion -ge [System.Version]"24.0.0.0") {
+            $useSession = $false
+            $shell = 'pwsh'
+        }
+        else {
+            $usePwsh = $false
+        }
+    }
+    if (-not $usePwsh) {
         if ($isInsideContainer) {
             $useSession = $true
         }
@@ -273,7 +285,7 @@ if ($exception) {
                 $ErrorActionPreference = "Stop"
                 #$file | Out-Host
                 #Get-Content -encoding utf8 -path $file | Out-Host
-                docker exec $containerName powershell $containerFile | Out-Host
+                docker exec $containerName $shell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
                     Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
@@ -294,7 +306,7 @@ if ($exception) {
                 '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content -Encoding $encoding -Path $file
                 'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content -Encoding utf8 "'+$containerOutputFile+'" }' | Add-Content -Encoding $encoding -Path $file
                 $ErrorActionPreference = "Stop"
-                docker exec $containerName powershell $containerFile | Out-Host
+                docker exec $containerName $shell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
                     Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
