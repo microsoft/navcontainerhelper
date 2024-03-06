@@ -1758,7 +1758,7 @@ if (Test-Path "c:\run\my\powershell-7.4.1-win-x64.msi") { Write-Host "Installing
     }
 
     if ($version.Major -ge 24 -and $genericTag -eq [System.Version]"1.0.2.15") {
-        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/usepwsh/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/98c0702dbd607580880a3c9248cd76591868447d/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
     }
 
     if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {

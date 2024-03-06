@@ -6,6 +6,8 @@
   The PowerShell prompt will have the PowerShell modules pre-loaded, meaning that you can use most PowerShell CmdLets.
  .Parameter containerName
   Name of the container for which you want to open a session
+ .Parameter usePwsh
+  If true, the powershell session opened will use pwsh instead of powershell (when BC version is 24 or later)
  .Example
   Open-BcContainer -containerName bcserver
 #>

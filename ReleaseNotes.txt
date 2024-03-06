@@ -11,6 +11,9 @@ Issue 3371 Unable to get companyname from Windows Users when running tests
 Disallow invoking Run-ALPipeline with `keepContainer` without specifying credentials to use
 Issue 3369 Patch images version 1.0.2.15 with an updated installer
 Add awareness of Windows 11 23H2
+Patch images version 1.0.2.15 with an updated prompt.ps1, which loads PowerShell 7 modules when running pwsh
+Add new setting usePwshForBC24, which is default true to instruct Invoke-ScriptInBcContainer to use pwsh (PS7) instead of powershell (PS5) when invoking scripts in BC 24+ containers
+Add parameter usePwsh to Open-BcContainer and Invoke-ScriptInBcContainer, defaulted to the value of the usePwshForBC24 setting
 
 6.0.6
 Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)

@@ -10,6 +10,10 @@
   A pre-compiled PowerShell scriptblock to invoke
  .Parameter argumentList
   Arguments to transfer to the scriptblock in form of an object[]
+ .Parameter useSession
+  If true, the scriptblock will be invoked in a PowerShell session in the container. If false, the scriptblock will be invoked using docker exec
+ .Parameter usePwsh
+  If true, the scriptblock will be invoked using pwsh instead of powershell (when BC version is 24 or later)
  .Example
   Invoke-ScriptInBcContainer -containerName dev -scriptblock { $env:UserName }
  .Example
