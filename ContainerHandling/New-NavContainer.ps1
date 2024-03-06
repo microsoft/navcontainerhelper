@@ -426,7 +426,10 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 22621) {
+    if ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 22000) { 
@@ -1332,7 +1335,7 @@ try {
         Write-Host -ForegroundColor Yellow "WARNING: Using process isolation on Windows Desktop OS with generic image version prior to 1.0.2.4 or NAV/BC versions prior to 15.0, might require you to use HyperV isolation or disable Windows Defender while creating the container"
     }
 
-    if ($isolation -eq "process" -and !$isServerHost -and $os.BuildNumber -eq 22621 -and $useSSL) {
+    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631) -and $useSSL) {
         Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
     }
 
@@ -1752,6 +1755,10 @@ if (Test-Path "c:\run\my\dotnet6-win.exe") { Write-Host "Installing dotnet 6.0.2
 if (Test-Path "c:\run\my\dotnet-win8.exe") { Write-Host "Installing dotnet 8.0.0"; start-process -Wait -FilePath "c:\run\my\dotnet-win8.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet-win8.exe" -Force }
 if (Test-Path "c:\run\my\powershell-7.4.1-win-x64.msi") { Write-Host "Installing PowerShell 7.4.1"; start-process -Wait -FilePath "c:\run\my\powershell-7.4.1-win-x64.msi" -ArgumentList /quiet; Remove-Item "c:\run\my\powershell-7.4.1-win-x64.msi" -Force }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($version.Major -ge 24 -and $genericTag -eq [System.Version]"1.0.2.15") {
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/98c0702dbd607580880a3c9248cd76591868447d/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
     }
 
     if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {

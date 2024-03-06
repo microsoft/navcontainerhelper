@@ -138,7 +138,10 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 22621) {
+    if ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 22000) { 
@@ -327,7 +330,7 @@ try {
             $startTime = [DateTime]::Now
             
             if ($populateBuildFolder) {
-                $genericTag = [Version]"1.0.2.14"
+                $genericTag = [Version]"1.0.2.15"
             }
             else {
                 if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
@@ -492,6 +495,11 @@ try {
                     $myScripts += @( "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" )
                     Write-Host "Base image is generic image 1.0.2.15 or higher, installing ASP.NET Core 1.1"
                     $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -ArgumentList /quiet'
+                }
+
+                if ($genericTag -eq [Version]"1.0.2.15" -and [Version]$appManifest.Version -ge [Version]"24.0.0.0") {
+                    $myScripts += @( 'https://raw.githubusercontent.com/microsoft/nav-docker/4b8870e6c023c399d309e389bf32fde44fcb1871/generic/Run/240/navinstall.ps1' )
+                    Write-Host "Patching installer from generic image 1.0.2.15"
                 }
 
                 $myScripts | ForEach-Object {
