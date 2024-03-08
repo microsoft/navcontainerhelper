@@ -699,7 +699,7 @@ function Run-Tests {
                         $property.SetAttribute("value", $extensionId)
                         $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
-                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId.Value)" -eq $extensionId } | ForEach-Object { $_.Name })"
+                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
                         if ($appname) {
                             $property = $JUnitDoc.CreateElement("property")
                             $property.SetAttribute("name","appName")
