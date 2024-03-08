@@ -42,6 +42,8 @@ function Publish-PerTenantExtensionApps {
         $appFiles,
         [ValidateSet('Add','Force')]
         [string] $schemaSyncMode = 'Add',
+        [ValidateSet('Current','Next minor','Next major')]
+        [string] $schedule,
         [switch] $useNewLine,
         [switch] $hideInstalledExtensionsOutput
     )
@@ -119,6 +121,13 @@ try {
                 throw 'SchemaSyncMode Force is not supported before version 21.2'
             }
         }
+
+        switch ($schedule) {
+            'Current' { $body."schedule" = 'Current version' }
+            'Next minor' { $body."schedule" = 'Next minor version' }
+            'Next major' { $body."schedule" = 'Next major version' }
+        }
+
         $ifMatchHeader = @{ "If-Match" = '*'}
         $jsonHeader = @{ "Content-Type" = 'application/json'}
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
