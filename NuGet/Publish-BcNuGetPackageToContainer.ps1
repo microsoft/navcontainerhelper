@@ -81,7 +81,7 @@ Function Publish-BcNuGetPackageToContainer {
         }
     }
     else {
-        $installedApps = @(Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.Name; "Id" = $_.AppId.value.ToString(); "Version" = $_.Version } } )
+        $installedApps = @(Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.Name; "Id" = "$($_.AppId)"; "Version" = $_.Version } } )
         $installedPlatform = [System.Version](Get-BcContainerPlatformVersion -containerOrImageName $containerName)
         $installedCountry = (Get-BcContainerCountry -containerOrImageName $containerName).ToLowerInvariant()
     }
