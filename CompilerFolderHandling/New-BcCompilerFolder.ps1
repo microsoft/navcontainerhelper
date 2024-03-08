@@ -186,7 +186,7 @@ try {
     if ($vsixFile) {
         # If a vsix file was specified unpack directly to compilerfolder
         Write-Host "Using $vsixFile"
-        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
+        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
         Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
         if ($isWindows -and $newtonSoftDllPath) {
