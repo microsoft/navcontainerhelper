@@ -1,3 +1,5 @@
+6.0.8
+
 6.0.7
 Issue 3347 Download-BcNuGetPackageToFolder to support package description for app name if title is not specified
 Support dependency version templates on NuGet packages
