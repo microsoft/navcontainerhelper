@@ -20,7 +20,7 @@ if ($isMacOS) {
 elseif ($isLinux) {
     Write-Host "Running on Linux, PowerShell $($PSVersionTable.PSVersion)"
 }
-elseif ($isPsCore) {
+else {
     Write-Host "Running on Windows, PowerShell $($PSVersionTable.PSVersion)"
 }
 
