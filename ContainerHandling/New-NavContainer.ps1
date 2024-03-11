@@ -785,7 +785,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.13") {
+                if ($genericTagVersion -lt [Version]"1.0.2.15") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -1274,19 +1274,6 @@ try {
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ($version.Major -lt 15 -and ($genericTag -eq [Version]"1.0.1.7")) {
-        Write-Host "Patching start.ps1 due to issue #2130"
-        $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/start.ps1" )
-    }
-    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13" -and $auth -eq "AAD") {
-        Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
-        $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
-    }
-    if ($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13") {
-        Write-Host "Patching prompt.ps1 due to issue #2891"
-        $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
-    }
-
     if ($hostOsVersion -eq $containerOsVersion) {
         if ($isolation -eq "") {
             $isolation = "process"
@@ -1330,10 +1317,6 @@ try {
         }
     }
     Write-Host "Using $isolation isolation"
-
-    if ($isolation -eq "process" -and !$isServerHost -and ($version.Major -lt 15 -or $genericTag -lt [Version]"1.0.2.4")) {
-        Write-Host -ForegroundColor Yellow "WARNING: Using process isolation on Windows Desktop OS with generic image version prior to 1.0.2.4 or NAV/BC versions prior to 15.0, might require you to use HyperV isolation or disable Windows Defender while creating the container"
-    }
 
     if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631) -and $useSSL) {
         Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
@@ -1728,45 +1711,23 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
           . (Join-Path $runPath $MyInvocation.MyCommand.Name)
         ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
-
-    if (($version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.13") -or ($filesOnly -and $version.Major -ge 22 -and $genericTag -le [System.Version]"1.0.2.14")) {
-        if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
-            ('# Invoke default behavior
-              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-            ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
-        }
-        Write-Host "Patching container to install dotnet 6"
-        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/04389c24-12a9-4e0e-8498-31989f30bb22/141aef28265938153eefad0f2398a73b/dotnet-hosting-6.0.27-win.exe" -destinationFile (Join-Path $myFolder "dotnet6-win.exe")
-        ('
-if (Test-Path "c:\run\my\dotnet6-win.exe") { Write-Host "Installing dotnet 6"; start-process -Wait -FilePath "c:\run\my\dotnet6-win.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet6-win.exe" -Force }
-') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
-    }
-
-    if ($version.Major -ge 24 -and $genericTag -le [System.Version]"1.0.2.14") {
-        if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
-            ('# Invoke default behavior
-              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-            ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
-        }
-        Write-Host "Patching container to install dotnet 8 and PowerShell 7.4.1"
-        Download-File -source "https://download.visualstudio.microsoft.com/download/pr/98ff0a08-a283-428f-8e54-19841d97154c/8c7d5f9600eadf264f04c82c813b7aab/dotnet-hosting-8.0.2-win.exe" -destinationFile (Join-Path $myFolder "dotnet8-win.exe")
-        Download-File -source "https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/PowerShell-7.4.1-win-x64.msi" -destinationFile (Join-Path $myFolder "powershell-7.4.1-win-x64.msi")
-        ('
-if (Test-Path "c:\run\my\dotnet8-win.exe") { Write-Host "Installing dotnet 8"; start-process -Wait -FilePath "c:\run\my\dotnet8-win.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnet8-win.exe" -Force }
-if (Test-Path "c:\run\my\powershell-7.4.1-win-x64.msi") { Write-Host "Installing PowerShell 7.4.1"; start-process -Wait -FilePath "c:\run\my\powershell-7.4.1-win-x64.msi" -ArgumentList /quiet; Remove-Item "c:\run\my\powershell-7.4.1-win-x64.msi" -Force }
-') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
+        ('# Invoke default behavior
+          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+        ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
     if ($version.Major -ge 24 -and $genericTag -eq [System.Version]"1.0.2.15") {
         Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/98c0702dbd607580880a3c9248cd76591868447d/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
     }
 
+    if ($version.Major -ge 24) {
+        ('
+if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null }
+') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
     if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {
-        if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
-            ('# Invoke default behavior
-              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-            ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
-        }
         Write-Host "Patching container to install ASP.NET Core 1.1"
         Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
         ('
