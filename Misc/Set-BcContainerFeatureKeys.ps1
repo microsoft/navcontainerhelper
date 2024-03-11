@@ -26,7 +26,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($featureKeys.Keys.Count -ne 0) {    
-        Invoke-ScriptInBCContainer -containerName $containerName -usePwsh $false -ScriptBlock { Param([string] $tenant, [hashtable] $featureKeys) 
+        Invoke-ScriptInBCContainer -containerName $containerName -ScriptBlock { Param([string] $tenant, [hashtable] $featureKeys) 
             $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
             [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
             $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value

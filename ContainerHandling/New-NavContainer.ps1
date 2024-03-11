@@ -1721,6 +1721,12 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/98c0702dbd607580880a3c9248cd76591868447d/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
     }
 
+    if ($version.Major -ge 24) {
+        ('
+if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null }
+') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
     if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {
         Write-Host "Patching container to install ASP.NET Core 1.1"
         Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
@@ -1983,7 +1989,7 @@ if (-not `$restartingInstance) {
 
         if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
             Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
-            Invoke-ScriptInBCContainer -containerName $containerName -usePwsh $false -scriptblock { Param($SqlServerMemoryLimit)
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
                 Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
                 Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
                 Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
@@ -2381,7 +2387,7 @@ if (-not `$restartingInstance) {
             if ($multitenant) {
                 Write-Host "Switching to multitenant"
                 
-                Invoke-ScriptInBCContainer -containerName $containerName -usePwsh $false -scriptblock {
+                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
                 
                     $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
                     [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
