@@ -64,7 +64,7 @@ try {
     }
     $containerBacpacFolder = Get-BcContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
+    Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
         function InstallPrerequisite {
             Param (
