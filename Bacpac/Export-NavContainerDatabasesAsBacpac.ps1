@@ -66,6 +66,85 @@ try {
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
+        function CmdDo {
+            Param(
+                [string] $command = "",
+                [string] $arguments = "",
+                [switch] $silent,
+                [switch] $returnValue,
+                [string] $inputStr = "",
+                [string] $messageIfCmdNotFound = ""
+            )
+        
+            $oldNoColor = "$env:NO_COLOR"
+            $env:NO_COLOR = "Y"
+            $oldEncoding = [Console]::OutputEncoding
+            try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+            try {
+                $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+                $pinfo.FileName = $command
+                $pinfo.RedirectStandardError = $true
+                $pinfo.RedirectStandardOutput = $true
+                if ($inputStr) {
+                    $pinfo.RedirectStandardInput = $true
+                }
+                $pinfo.WorkingDirectory = Get-Location
+                $pinfo.UseShellExecute = $false
+                $pinfo.Arguments = $arguments
+                $pinfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Minimized
+        
+                $p = New-Object System.Diagnostics.Process
+                $p.StartInfo = $pinfo
+                $p.Start() | Out-Null
+                if ($inputStr) {
+                    $p.StandardInput.WriteLine($inputStr)
+                    $p.StandardInput.Close()
+                }
+                $outtask = $p.StandardOutput.ReadToEndAsync()
+                $errtask = $p.StandardError.ReadToEndAsync()
+                $p.WaitForExit();
+        
+                $message = $outtask.Result
+                $err = $errtask.Result
+        
+                if ("$err" -ne "") {
+                    $message += "$err"
+                }
+                
+                $message = $message.Trim()
+        
+                if ($p.ExitCode -eq 0) {
+                    if (!$silent) {
+                        Write-Host $message
+                    }
+                    if ($returnValue) {
+                        $message.Replace("`r", "").Split("`n")
+                    }
+                }
+                else {
+                    $message += "`n`nExitCode: " + $p.ExitCode + "`nCommandline: $command $arguments"
+                    throw $message
+                }
+            }
+            catch [System.ComponentModel.Win32Exception] {
+                if ($_.Exception.NativeErrorCode -eq 2) {
+                    if ($messageIfCmdNotFound) {
+                        throw $messageIfCmdNotFound
+                    }
+                    else {
+                        throw "Command $command not found, you might need to install that command."
+                    }
+                }
+                else {
+                    throw
+                }
+            }
+            finally {
+                try { [Console]::OutputEncoding = $oldEncoding } catch {}
+                $env:NO_COLOR = $oldNoColor
+            }
+        }
+
         function InstallPrerequisite {
             Param (
                 [Parameter(Mandatory=$true)]
@@ -315,6 +394,7 @@ try {
             )
 
             Write-Host "Exporting as BacPac..."
+            
             $arguments = @(
                 ('/Action:Export'),
                 ('/TargetFile:"'+$targetFile+'"'), 
@@ -339,8 +419,8 @@ try {
                 $arguments += $additionalArguments
             }
 
-            & $sqlPackageExe $arguments
-
+            CmdDo -command $sqlpackageExe -arguments ($arguments -join ' ')
+           
             if ($includeDacPac) {
                 Write-Host "Extracting as DacPac..."
                 $arguments = @(
@@ -369,7 +449,7 @@ try {
                     $arguments += $additionalArguments
                 }
 
-                & $sqlPackageExe $arguments
+                CmdDo -command $sqlpackageExe -arguments ($arguments -join ' ')
             }
         }
 
@@ -406,7 +486,8 @@ try {
             $tenant | ForEach-Object {
                 $sourceDatabase = $_
                 if ("$_" -ne "tenant") {
-                    $tenantInfo = Get-NavTenant -ServerInstance $ServerInstance -tenant $_ -ForceRefresh
+                    Sync-NavTenant -ServerInstance $ServerInstance -Tenant $_ -Force
+                    $tenantInfo = Get-NavTenant -ServerInstance $ServerInstance -Tenant $_
                     $sourceDatabase = $tenantInfo.DatabaseName
                     if ($tenantInfo.State -ne "Operational") {
                         throw "Tenant $_ is not operational, you might need to synchronize the tenant or run data upgrade"
