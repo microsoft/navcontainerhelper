@@ -1721,6 +1721,11 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/98c0702dbd607580880a3c9248cd76591868447d/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
     }
 
+    if ($version.Major -ge 24 -and $genericTag -lt [System.Version]"1.0.2.17") {
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/240/navinstall.ps1" -destinationFile (Join-Path $myFolder "navinstall.ps1")
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/navstart.ps1" -destinationFile (Join-Path $myFolder "navstart.ps1")
+    }
+
     if ($version.Major -ge 24) {
         ('
 if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null }
