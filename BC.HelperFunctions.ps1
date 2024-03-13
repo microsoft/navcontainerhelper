@@ -11,8 +11,8 @@ function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
             "bcartifactsCacheFolder" = ""
-            "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
-            "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
+            "genericImageName" = 'mcr.microsoft.com/businesscentral:{1}'
+            "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{1}-filesonly'
             "usePsSession" = $true
             "usePwshForBc24" = $true
             "tryWinRmSession" = !$isAdministrator
@@ -120,8 +120,8 @@ function Get-ContainerHelperConfig {
         }
 
         if ($isInsider) {
-            $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{0}-dev'
-            $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
+            $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{1}-dev'
+            $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{1}-filesonly-dev'
         }
 
         if ($bcContainerHelperConfigFile -notcontains (Join-Path $programDataFolder "BcContainerHelper.config.json")) {
