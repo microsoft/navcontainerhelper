@@ -1,3 +1,5 @@
+6.0.10
+
 6.0.9
 Issue 3404 New-BcContainerBcUser fails with 'Invoke-SqlCmd' error when running BC24
 Remove support for pre 1.0.2.15 generic images
