@@ -32,12 +32,24 @@ try {
         if ($build -eq -1) { $build = [int32]::MaxValue }
         $hostOsVersion = [System.Version]::new($hostOsVersion.Major, $hostOsVersion.Minor, $build, $revision)
     }
-
-    if ($filesOnly) {
-        $genericImageNameSetting = $bcContainerHelperConfig.genericImageNameFilesOnly
+    if ("$hostOsVersion" -lt [System.Version]"10.0.17763.0") {
+        # Everything before Windows Server 2019 uses ltsc2016
+        $ltscVersion = 'ltsc2016'
+    }
+    elseif ("$hostOsVersion" -lt [System.Version]"10.0.20348.0") {
+        # Everything before Windows Server 2022 uses ltsc2019
+        $ltscVersion = 'ltsc2019'
     }
     else {
-        $genericImageNameSetting = $bcContainerHelperConfig.genericImageName
+        # Default is ltsc2022
+        $ltscVersion = 'ltsc2022'
+    }
+
+    if ($filesOnly) {
+        $genericImageNameSetting = $bcContainerHelperConfig.genericImageNameFilesOnly.Replace('{1}', $ltscVersion)
+    }
+    else {
+        $genericImageNameSetting = $bcContainerHelperConfig.genericImageName.Replace('{1}', $ltscVersion)
     }
     $repo = $genericImageNameSetting.Split(':')[0]
     $tag = $genericImageNameSetting.Split(':')[1].Replace('{0}','*')

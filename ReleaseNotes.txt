@@ -4,6 +4,7 @@ Remove support for pre 1.0.2.15 generic images
 Issue 3406 Regression - Set-BcContainerKeyVaultAadAppAndCertificate only worked when running pwsh in container
 Issue 3407 Export-NavContainerDatabasesAsBacpac fails using PS7x (and with tenants on BC24 altogether)
 Issue 3409 Invoke-RestMethod -SkipCertificateCheck for PowerShell 7
+By default use mcr.microsoft.com/businesscentral:ltscXXXX instead of mcr.microsoft.com/businesscentral:10.0.osbuild.osrevision as generic image
 
 6.0.8
 Fix error where Publish-BcNuGetPackageToContainer doesn't work with BC 24
