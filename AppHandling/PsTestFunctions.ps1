@@ -473,6 +473,19 @@ function Run-ConnectionTest {
     Write-Host "Extension Management successfully closed"
 }
 
+function GetDT {
+    Param(
+        $val
+    )
+
+    if ($val -is [DateTime]) {
+        $val
+    }
+    else {
+        [DateTime]::Parse($val)
+    }
+}
+
 function Run-Tests {
     Param(
         [ClientContext] $clientContext,
@@ -661,8 +674,8 @@ function Run-Tests {
                 $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
                 $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
-                $XUnitAssembly.SetAttribute("run-date", [DateTime]::Parse($result.startTime).ToString("yyyy-MM-dd"))
-                $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH':'mm':'ss"))
+                $XUnitAssembly.SetAttribute("run-date", (GetDT -val $result.startTime).ToString("yyyy-MM-dd"))
+                $XUnitAssembly.SetAttribute("run-time", (GetDT -val $result.startTime).ToString("HH':'mm':'ss"))
                 $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
                 $XUnitCollection = $XUnitDoc.CreateElement("collection")
                 $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
@@ -715,7 +728,7 @@ function Run-Tests {
                         $property.SetAttribute("value", "{ ""Version"": ""$($VersionInfo.ProductVersion)"" }")
                         $JunitTestSuiteProperties.AppendChild($property) | Out-Null
     
-                        Get-NavAppInfo -ServerInstance $serverInstance | % {
+                        Get-NavAppInfo -ServerInstance $serverInstance | ForEach-Object {
                             $property = $JUnitDoc.CreateElement("property")
                             $property.SetAttribute("name", "app.info")
                             $property.SetAttribute("value", "{ ""Name"": ""$($_.Name)"", ""Publisher"": ""$($_.Publisher)"", ""Version"": ""$($_.Version)"" }")
@@ -724,13 +737,12 @@ function Run-Tests {
                         $dumpAppsToTestOutput = $false
                     }
                 }
-
             }
         
             $totalduration = [Timespan]::Zero
             if ($result.PSobject.Properties.name -eq "testResults") {
-                $result.testResults | % {
-                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                $result.testResults | ForEach-Object {
+                    $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
                     $totalduration += $testduration
                 }
@@ -752,8 +764,8 @@ function Run-Tests {
             $skipped = 0
         
             if ($result.PSobject.Properties.name -eq "testResults") {
-                $result.testResults | % {
-                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                $result.testResults | ForEach-Object {
+                    $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
         
                     if ($XUnitResultFileName) {

@@ -54,7 +54,12 @@ try {
                 $containerName = $_.Split(':')[1]
                 $inspect = docker inspect $containerID | ConvertFrom-Json
                 try {
-                    $finishedAt = [DateTime]::Parse($inspect.state.FinishedAt)
+                    if ($inspect.state.FinishedAt -is [datetime]) {
+                        $finishedAt = $inspect.state.FinishedAt
+                    }
+                    else {
+                        $finishedAt = [DateTime]::Parse($inspect.state.FinishedAt)
+                    }
                     $exitedDaysAgo = [DateTime]::Now.Subtract($finishedAt).Days
                     if ($exitedDaysAgo -ge $keepDays) {
                         if (($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -ne 0 -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")) {
