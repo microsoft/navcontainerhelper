@@ -1,5 +1,6 @@
 6.0.11
 Issue 3420 New-BcImage uses hyperv even if it is disabled
+Issue 3411 Run-AlPipeline: Exception calling "Parse" with "1" argument(s): "String '' was not recognized as a valid DateTime.
 
 6.0.10
 Issue 3415 Use process isolation
