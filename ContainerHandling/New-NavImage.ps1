@@ -411,12 +411,8 @@ try {
                 }
                 elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
                     if ($isolation -eq "") {
-                        if ($containerOsVersion -le $hostOsVersion) {
-                            $isolation = "process"
-                        }
-                        else {
-                            $isolation = "hyperv"
-                        }
+                        Write-Host -ForegroundColor Yellow "WARNING: Container and host OS build is 20348 or above, defaulting to process isolation. If you encounter issues, you could try to install HyperV."
+                        $isolation = "process"
                     }
                 }
                 elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
