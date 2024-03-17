@@ -543,6 +543,7 @@ function CopyAppFilesToFolder {
         [string] $folder
     )
 
+    Write-Host "COPY"
     if ($appFiles -is [String]) {
         if (!(Test-Path $appFiles)) {
             $appFiles = @($appFiles.Split(',').Trim() | Where-Object { $_ })
@@ -553,7 +554,7 @@ function CopyAppFilesToFolder {
     }
     $appFiles | Where-Object { $_ } | ForEach-Object {
         $appFile = "$_"
-        Write-Host "Coopy $_"
+        Write-Host "Copy $_"
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())

@@ -15,6 +15,8 @@ function Copy-AppFilesToFolder {
         [string] $folder
     )
 
+    Write-Host "Call Copy"
+
     CopyAppFilesToFolder -appFiles $appFiles -folder $folder
 }
 Export-ModuleMember -Function Copy-AppFilesToFolder
