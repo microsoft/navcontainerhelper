@@ -16,11 +16,6 @@ function Copy-AppFilesToFolder {
         [Parameter(Mandatory=$true)]
         [string] $folder
     )
-
-    Write-Host "Call Copy"
-    $appFiles | ForEach-Object {
-        Write-Host "Copy $_"
-    }
     CopyAppFilesToFolder -appFiles $appFiles -folder $folder
 }
 Export-ModuleMember -Function Copy-AppFilesToFolder

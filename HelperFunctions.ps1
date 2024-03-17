@@ -543,7 +543,6 @@ function CopyAppFilesToFolder {
         [string] $folder
     )
 
-    Write-Host "COPY"
     if ($appFiles -is [String]) {
         if (!(Test-Path $appFiles)) {
             $appFiles = @($appFiles.Split(',').Trim() | Where-Object { $_ })
@@ -552,12 +551,8 @@ function CopyAppFilesToFolder {
     if (!(Test-Path $folder)) {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
-    $appFiles | ForEach-Object {
-        Write-Host "Copy $_"
-    }
     $appFiles | Where-Object { $_ } | ForEach-Object {
         $appFile = "$_"
-        Write-Host "Copy $_"       
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
@@ -569,14 +564,11 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Container) {
-            Write-Host "Container"
             Get-ChildItem $appFile -Recurse | ForEach-Object {
-                Write-Host "Copying $($_.FullName) to $folder"
                 CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
-            Write-Host "Leaf"
             $appFile = (Get-Item $appFile).FullName
             if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
                 $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
