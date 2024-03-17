@@ -553,6 +553,7 @@ function CopyAppFilesToFolder {
     }
     $appFiles | Where-Object { $_ } | ForEach-Object {
         $appFile = "$_"
+        Write-Host "Coopy $_"
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
@@ -564,42 +565,40 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Container) {
+            Write-Host "Container"
             Get-ChildItem $appFile -Recurse | ForEach-Object {
                 Write-Host "Copying $($_.FullName) to $folder"
                 CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
-            Get-ChildItem $appFile | ForEach-Object {
-                $appFile = $_.FullName
-                if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
-                    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-                    $copied = $false
-                    try {
-                        if ($appFile -notlike "*.zip") {
-                            $orgAppFile = $appFile
-                            $appFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
-                            Copy-Item $orgAppFile $appFile
-                            $copied = $true
-                        }
-                        Expand-Archive $appfile -DestinationPath $tmpFolder -Force
-                        Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | ForEach-Object {
-                            CopyAppFilesToFolder -appFile $_.FullName -folder $folder
-                        }
+            Write-Host "Leaf"
+            $appFile = (Get-Item $appFile).FullName
+            if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+                $copied = $false
+                try {
+                    if ($appFile -notlike "*.zip") {
+                        $orgAppFile = $appFile
+                        $appFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([System.IO.Path]::GetFileName($orgAppFile)).zip"
+                        Copy-Item $orgAppFile $appFile
+                        $copied = $true
                     }
-                    finally {
-                        Remove-Item -Path $tmpFolder -Recurse -Force
-                        if ($copied) { Remove-Item -Path $appFile -Force }
-                    }
+                    Expand-Archive $appfile -DestinationPath $tmpFolder -Force
+                    CopyAppFilesToFolder -appFiles $tmpFolder -folder $folder
                 }
-                else {
-                    $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
-                    if (Test-Path $destFile) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                    }
-                    Copy-Item -Path $appFile -Destination $destFile -Force
-                    $destFile
+                finally {
+                    Remove-Item -Path $tmpFolder -Recurse -Force
+                    if ($copied) { Remove-Item -Path $appFile -Force }
                 }
+            }
+            else {
+                $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
+                if (Test-Path $destFile) {
+                    Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                }
+                Copy-Item -Path $appFile -Destination $destFile -Force
+                $destFile
             }
         }
         else {
