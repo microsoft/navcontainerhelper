@@ -552,7 +552,7 @@ function CopyAppFilesToFolder {
     if (!(Test-Path $folder)) {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
-    $appFiles | Where-Object { $_ } | ForEach-Object {
+    $appFiles | ForEach-Object {
         $appFile = "$_"
         Write-Host "Copy $_"
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
