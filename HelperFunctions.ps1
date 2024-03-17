@@ -565,6 +565,7 @@ function CopyAppFilesToFolder {
         }
         elseif (Test-Path $appFile -PathType Container) {
             Get-ChildItem $appFile -Recurse | ForEach-Object {
+                Write-Host "Copying $($_.FullName) to $folder"
                 CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
