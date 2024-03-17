@@ -553,8 +553,11 @@ function CopyAppFilesToFolder {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
     $appFiles | ForEach-Object {
-        $appFile = "$_"
         Write-Host "Copy $_"
+    }
+    $appFiles | Where-Object { $_ } | ForEach-Object {
+        $appFile = "$_"
+        Write-Host "Copy $_"       
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
