@@ -1135,7 +1135,11 @@ function GetAppInfo {
             $appInfoCache = @{}
         }
     }
-    Write-Host "::group::Getting .app info $cacheAppInfoPath"
+    switch ($true) {
+        $env:BUILD_BUILDID { Write-Host "##[group]Getting .app info $cacheAppInfoPath"; break } #Azure Pipelines
+        $env:CI { Write-Host "::group::Getting .app info $cacheAppInfoPath"; break } #Github Actions
+        Default { Write-Host "Getting .app info $cacheAppInfoPath"}
+    }
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1247,7 +1251,10 @@ function GetAppInfo {
             $packageStream.Dispose()
         }
     }
-    Write-Host "::endgroup::"
+    switch ($true) {
+        $env:BUILD_BUILDID { Write-Host "##[endgroup]"; break } #Azure Pipelines
+        $env:CI { Write-Host "::endgroup::"; break } #Github Actions
+    }
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
