@@ -252,6 +252,12 @@ try {
             }
         }
     }
+
+    $symbolsPath = Join-Path $compilerFolder 'symbols'
+    Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
+    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
+    GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $symbolsPath 'cache_AppInfo.json') | Out-Null
+
     $compilerFolder
 }
 catch {
