@@ -200,7 +200,7 @@ try {
     }
     else {
 
-        $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [timespan] $interactionTimeout, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl)
+        $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [timespan] $interactionTimeout, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl)
     
             $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
             if (!(Test-Path $newtonSoftDllPath)) {

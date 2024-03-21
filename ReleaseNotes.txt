@@ -1,4 +1,8 @@
 6.0.12
+Issue 3432 New-BcContainerWizard stopped working after generic images with ltsc2016, ltsc2019 and ltsc2022 was introduced
+Make parameters in Copy-AppFilesToFolder mandatory
+Support .zip files in folders in Copy-AppFilesToFolder
+Issue 3431 Run-TestsInBcContainer, Get-TestsFromBcContainer and Run-ConnectionTest doesn't work if container is using SSL
 
 6.0.11
 Issue 3420 New-BcImage uses hyperv even if it is disabled
