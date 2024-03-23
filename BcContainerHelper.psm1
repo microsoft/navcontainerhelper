@@ -16,6 +16,7 @@ param(
 
 if ($isMacOS) {
     Write-Host "Running on macOS, PowerShell $($PSVersionTable.PSVersion)"
+    Write-Host -ForegroundColor Red "BcContainerHelper is not supported on macOS, only limited features available"
 }
 elseif ($isLinux) {
     Write-Host "Running on Linux, PowerShell $($PSVersionTable.PSVersion)"
