@@ -2,7 +2,7 @@ if ($isWindows) {
     $programDataFolder = 'C:\ProgramData\BcContainerHelper'
     $artifactsCacheFolder = "c:\bcartifacts.cache"
 }
-if ($IsMacOS) {
+if ($isMacOS) {
     $programDataFolder = "/Users/$myUsername/.bccontainerhelper"
     $artifactsCacheFolder = "/Users/$myUsername/.bcartifacts.cache"
 }
@@ -232,7 +232,6 @@ try {
     if (!$Silent) {
         Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
     }
-    Write-Host -ForegroundColor Red $_
 }
 
 . (Join-Path $PSScriptRoot "TelemetryHelper.ps1")
