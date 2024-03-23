@@ -15,7 +15,7 @@ param(
 . (Join-Path $PSScriptRoot "BC.HelperFunctions.ps1")
 
 if ($isMacOS) {
-    throw "BcContainerHelper isn't supported on MacOS"
+    Write-Host "Running on macOS, PowerShell $($PSVersionTable.PSVersion)"
 }
 elseif ($isLinux) {
     Write-Host "Running on Linux, PowerShell $($PSVersionTable.PSVersion)"
