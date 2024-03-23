@@ -2,7 +2,7 @@ if ($isWindows) {
     $programDataFolder = 'C:\ProgramData\BcContainerHelper'
     $artifactsCacheFolder = "c:\bcartifacts.cache"
 }
-if ($isMacOS) {
+elseif ($isMacOS) {
     $programDataFolder = "/Users/$myUsername/.bccontainerhelper"
     $artifactsCacheFolder = "/Users/$myUsername/.bcartifacts.cache"
 }
