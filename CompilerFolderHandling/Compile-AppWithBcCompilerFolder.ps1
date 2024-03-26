@@ -300,7 +300,7 @@ try {
     if (Test-Path $sharedFolder) {
         $probingPaths = @((Join-Path $dllsPath "OpenXML"), $sharedFolder) + $probingPaths
     }
-    elseif ($isLinux) {
+    elseif ($isLinux -or $isMacOS) {
         $probingPaths = @((Join-Path $dllsPath "OpenXML")) + $probingPaths
     }
     elseif ($platformversion.Major -ge 22) {
@@ -324,27 +324,31 @@ try {
     Write-Host "Compiling..."
     $alcParameters = @()
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
-    $alcPath = Join-Path $binPath 'win32'
-    $alcExe = 'alc.exe'
-    $alcCmd = ".\$alcExe"
+
+    $compilerPlatform = 'win32'
+    switch ($true) {
+        ($isLinux) { $compilerPlatform = 'linux' }
+        ($isMacOS) { $compilerPlatform = 'darwin' }
+    }
+    $alcPath = Join-Path $binPath $compilerPlatform
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
     }
 
-    if ($isLinux) {
-        $linuxPath = Join-Path $binPath 'linux'
-        if (Test-Path $linuxPath) {
-            $alcPath = $linuxPath
-            $alcExe = 'alc'
-            $alcCmd = "./$alcExe"
-        }
-        else {
+    $alcExe = 'alc.exe'
+    $alcCmd = ".\$alcExe"
+    if ($isLinux -or $isMacOS) {
+        if ($alcPath -eq $binPath) {
             $alcCmd = "dotnet"
             $alcExe = 'alc.dll'
             $alcParameters += @((Join-Path $alcPath $alcExe))
-            Write-Host "No Linux version of alc found. Using dotnet to run alc.dll."
+            Write-Host "No $($compilerPlatform) version of alc found. Using dotnet to run alc.dll."
+        } else {
+            $alcExe = 'alc'
+            $alcCmd = "./$alcExe"
         }
-    }
+    }   
+        
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
     [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion
 
