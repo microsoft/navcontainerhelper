@@ -11,10 +11,11 @@
 #>
 function Copy-AppFilesToFolder {
     Param(
+        [Parameter(Mandatory=$true)]
         $appFiles,
+        [Parameter(Mandatory=$true)]
         [string] $folder
     )
-
     CopyAppFilesToFolder -appFiles $appFiles -folder $folder
 }
 Export-ModuleMember -Function Copy-AppFilesToFolder

@@ -552,7 +552,7 @@ function CopyAppFilesToFolder {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
     $appFiles | Where-Object { $_ } | ForEach-Object {
-        $appFile = $_
+        $appFile = "$_"
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
@@ -564,13 +564,8 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Container) {
-            get-childitem $appFile -Filter '*.app' -Recurse | ForEach-Object {
-                $destFile = Join-Path $folder $_.Name
-                if (Test-Path $destFile) {
-                    Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                }
-                Copy-Item -Path $_.FullName -Destination $destFile -Force
-                $destFile
+            Get-ChildItem $appFile -Recurse | ForEach-Object {
+                CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
@@ -587,9 +582,7 @@ function CopyAppFilesToFolder {
                             $copied = $true
                         }
                         Expand-Archive $appfile -DestinationPath $tmpFolder -Force
-                        Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | ForEach-Object {
-                            CopyAppFilesToFolder -appFile $_.FullName -folder $folder
-                        }
+                        CopyAppFilesToFolder -appFiles $tmpFolder -folder $folder
                     }
                     finally {
                         Remove-Item -Path $tmpFolder -Recurse -Force
