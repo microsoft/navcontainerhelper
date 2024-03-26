@@ -1733,7 +1733,7 @@ if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { try { Write-
         Write-Host "Patching container to install ASP.NET Core 1.1"
         Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
         ('
-if (Test-Path "c:\run\my\dotnetcore.exe") { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnetcore.exe" -Force }
+if (Test-Path "c:\run\my\dotnetcore.exe") { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
