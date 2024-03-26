@@ -4,6 +4,7 @@ Make parameters in Copy-AppFilesToFolder mandatory
 Support .zip files in folders in Copy-AppFilesToFolder
 Issue 3431 Run-TestsInBcContainer, Get-TestsFromBcContainer and Run-ConnectionTest doesn't work if container is using SSL
 Issue 3427 New-BCContainer in version 6.0.11 failed to run completely
+Issue 3444 Container Creation fails at "Installing ASP.NET Core 1.1"
 
 6.0.11
 Issue 3420 New-BcImage uses hyperv even if it is disabled
