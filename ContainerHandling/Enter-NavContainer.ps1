@@ -23,7 +23,7 @@ function Enter-BcContainer {
             Enter-PSSession -Session $session
             if ($session.ComputerType -eq 'Container') {
                 Invoke-Command -Session $session -ScriptBlock {
-                    function prompt {"[$env:COMPUTERNAME]: PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+                    function prompt {"[$env:COMPUTERNAME]: PS5 $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
                 }
             }
         } else {

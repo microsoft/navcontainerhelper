@@ -497,6 +497,7 @@ try {
         Write-Host "BcContainerHelper is running inside a Container"
     }
     Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
+    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.UsePwshForBc24)"
     Write-Host "Host is $($os.Caption) - $hostOsVersion"
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
@@ -1724,7 +1725,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
     if ($version.Major -ge 24) {
         ('
-if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null }
+if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { try { Write-Host "Installing SqlServer module"; Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null } catch { Write-Host "Failed to install SqlServer module" } }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
@@ -1732,7 +1733,7 @@ if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { Install-pack
         Write-Host "Patching container to install ASP.NET Core 1.1"
         Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
         ('
-if (Test-Path "c:\run\my\dotnetcore.exe") { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnetcore.exe" -Force }
+if (Test-Path "c:\run\my\dotnetcore.exe") { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 

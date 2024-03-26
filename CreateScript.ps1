@@ -320,7 +320,12 @@ if (($pswindow.BufferSize) -and ($pswindow.WindowSize) -and ($pswindow.WindowSiz
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $randompw = Get-RandomPassword
-$bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
+$os = (Get-CimInstance Win32_OperatingSystem)
+if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
+    throw "Unknown Host Operating System"
+}
+$UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
+$hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
 $ErrorActionPreference = "STOP"
 
 $script:wizardStep = 0
@@ -1184,51 +1189,8 @@ $Step.SSL {
 
 $Step.Isolation {
     if ($hosting -eq "Local") {
-
-        $os = (Get-CimInstance Win32_OperatingSystem)
-        if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
-            throw "Unknown Host Operating System"
-        }
-    
-        $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
-        $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
-    
-        try {
-            $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
-            if ($hostOsVersion.Build -ge 20348 -and $bestContainerOsVersion.Build -ge 20348) {
-                if ($bestContainerOsVersion -le $hostOsVersion) {
-                    $defaultIsolation = "process"
-                }
-                else {
-                    $defaultIsolation = "Hyper-V"
-                }
-            }
-            elseif ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
-                $defaultIsolation = "Process"
-            }
-            else {
-                $defaultIsolation = "Hyper-V"
-            }
-        }
-        catch {
-            $bestContainerOsVersion = [System.Version]"0.0.0.0"
-            $bestContainerOS = "Unable to determine the image which matches your OS best"
-            $defaultIsolation = "Hyper-V"
-        }
-    
-        $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf an image with a matching OS is found, Process isolation will be favoured, else Hyper-V will be selected.`n`nYour host OS is Windows $($hostOSVersion.ToString())`n$bestContainerOS`n"
-
-        if ($isAdministrator) {
-            $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
-            if ($hyperv) {
-                $description += "Hyper-V is enabled"
-            }
-            else {
-                $description += "Hyper-V is NOT enabled (you will not be able to use Hyper-V isolation on this host)"
-                $defaultIsolation = "Process"
-            }
-        }
-        $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use (on this host, this will be $defaultIsolation isolation)"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
+        $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf your host OS is updated and a matching container OS is found, Process isolation will be favoured, else Hyper-V will be selected."
+        $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
     
         $isolation = Select-Value `
             -title @'
@@ -1270,27 +1232,24 @@ $Step.Memory {
         if ($newBaseApp) {
             $description += "- $($newBaseApp)G for base app development`n"
         }
-        if ($isolation -eq "process" -or ($isolation -eq "default" -and $defaultIsolation -eq "Process")) {
-            $description += "`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host.`nMemory no longer needed by the processes in the container are given back to the host`nYou can set a limit to the amount of memory, the container is allowed to use."
-            $defaultDescription = "blank means no limit"
+        $description += "`n`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host. Memory no longer needed by the processes in the container are given back to the host. You can set a limit to the amount of memory, the container is allowed to use. "
+        $description += "(blank means no limit)"
+
+        $description += "`n`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container. "
+        if ($hostOsVersion.Build -ge 17763) {
+            $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed. Memory no longer needed will be freed from physical memory again. "
+            try {
+                $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
+                if ($CompSysResults.AutomaticManagedPagefile) {
+                    $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file. "
+                }
+            }
+            catch {}
         }
         else {
-            $description += "`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container.`n"
-            if ($hostOsVersion.Build -ge 17763) {
-                $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed.`nMemory no longer needed will be freed from physical memory again.`n"
-                try {
-                    $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
-                    if ($CompSysResults.AutomaticManagedPagefile) {
-                        $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file.`n"
-                    }
-                }
-                catch {}
-            }
-            else {
-                $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool.`n"
-            }
-            $defaultDescription = "blank will use ContainerHelper default which is 4G"
+            $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool. "
         }
+        $description += "(blank will use ContainerHelper default which is 4G)"
     
         $memoryLimit = Enter-Value `
             -title @'
@@ -1304,7 +1263,7 @@ $Step.Memory {
                                    |___/                            
 '@ `
             -description $description `
-            -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
+            -question "Specify the amount of memory the container is allowed to use?" `
             -default 'blank' `
             -previousStep
         if ($script:wizardStep -eq $script:thisStep+1) {
@@ -1315,7 +1274,7 @@ $Step.Memory {
             $memoryLimit = ""
         }
         else {
-            $memoryLimit = "$($memoryLimit.Trim().ToLowerInvariant().TrimEnd('gb').TrimEnd('g'))G"
+            $memoryLimit = "$($memoryLimit.ToLowerInvariant().Trim(' gb'))G"
         }
     }
 }
