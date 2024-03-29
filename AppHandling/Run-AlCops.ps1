@@ -122,28 +122,10 @@ function Run-AlCops {
         }
 
         $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
-        try {
-            $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
-            # unpack compiler
-            $latestSupportedRuntimeVersion = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string] $bcversion)
-                if (!(Test-Path "c:\build" -PathType Container)) {
-                    $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
-                    Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
-                    Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
-                }
-                $dllPath = 'C:\build\vsix\extension\bin\Microsoft.Dynamics.Nav.CodeAnalysis.dll'
-                if (-not (Test-Path $dllPath)) {
-                    $dllPath = 'C:\build\vsix\extension\bin\win32\Microsoft.Dynamics.Nav.CodeAnalysis.dll'
-                }
-                Add-Type -Path $dllPath | Out-Null
-                [Microsoft.Dynamics.Nav.CodeAnalysis.ReleaseVersion]::LatestSupportedRuntimeVersions[$bcversion]
-            } -argumentList "$($artifactVersion.Major).$($artifactVersion.Minor)"
-        }
-        catch {
-            $latestSupportedRuntimeVersion = ""
-        }
-
+        $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
+        $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
         Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
+
         $global:_validationResult = @()
         $apps | ForEach-Object {
             $appFile = $_
