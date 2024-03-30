@@ -1,5 +1,6 @@
 6.0.13
 Issue 3452 Error when running Run-AlValidation : Unable to load one or more of the requested types. Retrieve the LoaderExceptions property for more information.
+Issue 3454 DockerDo : Cannot bind argument to parameter 'imageName' because it is an empty string.
 
 6.0.12
 Issue 3432 New-BcContainerWizard stopped working after generic images with ltsc2016, ltsc2019 and ltsc2022 was introduced
