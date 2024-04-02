@@ -1803,7 +1803,7 @@ Write-Host -ForegroundColor Yellow @'
                 }
                 else {
                     Write-Host "+ Copying $($_.FullName) to $destName"
-                    Copy-Item -Path $_.FullName -Destination $appPackagesFolder -Force
+                    Copy-Item -Path $_.FullName -Destination $destName -Force
                 }
             }
         }
