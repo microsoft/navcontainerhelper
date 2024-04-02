@@ -1795,7 +1795,7 @@ Write-Host -ForegroundColor Yellow @'
     if ($generateDependencyArtifact) {
         $depFolder = Join-Path $buildArtifactFolder "Dependencies"
         Get-ChildItem -Path $depFolder -File | Remove-Item -Force| ForEach-Object {
-            Write-Host "Copying $_"
+            Write-Host "+++++++++++++++++++++++++++++++++++++++ Copying $_"
             Copy-Item -Path $_.FullName -Destination $appPackagesFolder -Force
         }
     }
