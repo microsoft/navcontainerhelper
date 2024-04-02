@@ -1794,9 +1794,16 @@ Write-Host -ForegroundColor Yellow @'
 
     if ($generateDependencyArtifact) {
         $depFolder = Join-Path $buildArtifactFolder "Dependencies"
+        Write-Host "Copying $depFolder to $appPackagesFolder"
         Get-ChildItem -Path $depFolder -File | Remove-Item -Force| ForEach-Object {
-            Write-Host "+++++++++++++++++++++++++++++++++++++++ Copying $_"
-            Copy-Item -Path $_.FullName -Destination $appPackagesFolder -Force
+            $destName = Join-Path $appPackagesFolder $_.Name
+            if (Test-Path $destName) {
+                Write-Host "--------------------------------------- $destName already exists"
+            }
+            else {
+                Write-Host "+++++++++++++++++++++++++++++++++++++++ Copying $($_.FullName) to $destName"
+                Copy-Item -Path $_.FullName -Destination $appPackagesFolder -Force
+            }
         }
     }
 ½
