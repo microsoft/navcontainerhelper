@@ -1173,6 +1173,7 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
+                    Write-Host " (succeeded using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1199,8 +1200,9 @@ function GetAppInfo {
                         "platform"              = "$($manifest.Platform)"
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
+                    $packageStream.Close()
+                    Write-Host " (succeeded using codeanalysis)"
                 }
-                Write-Host " (succeeded)"
                 if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $path -Value $appInfo
                     $cacheUpdated = $true
