@@ -1796,7 +1796,7 @@ Write-Host -ForegroundColor Yellow @'
         $depFolder = Join-Path $buildArtifactFolder "Dependencies"
         Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
         if (Test-Path $depFolder) {
-            Get-ChildItem -Path $depFolder -File | Remove-Item -Force| ForEach-Object {
+            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
                 $destName = Join-Path $appPackagesFolder $_.Name
                 if (Test-Path $destName) {
                     Write-Host "- $destName already exists"
