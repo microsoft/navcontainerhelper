@@ -1792,22 +1792,22 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    if ($generateDependencyArtifact) {
-        $depFolder = Join-Path $buildArtifactFolder "Dependencies"
-        Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
-        if (Test-Path $depFolder) {
-            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
-                $destName = Join-Path $appPackagesFolder $_.Name
-                if (Test-Path $destName) {
-                    Write-Host "- $destName already exists"
-                }
-                else {
-                    Write-Host "+ Copying $($_.FullName) to $destName"
-                    Copy-Item -Path $_.FullName -Destination $destName -Force
-                }
-            }
-        }
-    }
+#    if ($generateDependencyArtifact) {
+#        $depFolder = Join-Path $buildArtifactFolder "Dependencies"
+#        Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
+#        if (Test-Path $depFolder) {
+#            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
+#                $destName = Join-Path $appPackagesFolder $_.Name
+#                if (Test-Path $destName) {
+#                    Write-Host "- $destName already exists"
+#                }
+#                else {
+#                    Write-Host "+ Copying $($_.FullName) to $destName"
+#                    Copy-Item -Path $_.FullName -Destination $destName -Force
+#                }
+#            }
+#        }
+#    }
 
     $Parameters += @{
         "appProjectFolder" = $folder
