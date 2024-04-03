@@ -1792,7 +1792,7 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
-    if ($generateDependencyArtifact) {
+    if ($generateDependencyArtifact -and !$filesOnly -and !$useCompilerFolder) {
         $depFolder = Join-Path $buildArtifactFolder "Dependencies"
         Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
         if (Test-Path $depFolder) {
