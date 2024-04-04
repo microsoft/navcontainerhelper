@@ -57,7 +57,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
     $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
     $version = [System.Version]($navversion.split('-')[0])
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, [string]$AppName, [string]$AppPublisher, $assignPremiumPlan, [PSCredential]$databaseCredential, [string]$fullName, [System.Version]$version)
+    Invoke-ScriptInBcContainer -containerName $containerName -usePwsh:$false -ScriptBlock { param([PSCredential]$Credential, [string]$Tenant, [string]$WindowsAccount, [string]$AuthenticationEMail, [bool]$ChangePasswordAtNextLogOn, [string]$PermissionSetId, [string]$AppName, [string]$AppPublisher, $assignPremiumPlan, [PSCredential]$databaseCredential, [string]$fullName, [System.Version]$version)
                     
         $TenantParam = @{}
         if ($Tenant) {
