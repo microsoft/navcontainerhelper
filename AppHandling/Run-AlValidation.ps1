@@ -35,8 +35,7 @@
  .Parameter doNotIgnoreInfos
   Include this switch if you don't want to ignore Infos (if you want to include Infos)
  .Parameter sasToken
-  OBSOLETE - sasToken is no longer needed
-  Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
+  OBSOLETE - sasToken is no longer supported
  .Parameter countries
   Array or comma separated list of country codes to validate against
  .Parameter affixes
@@ -96,7 +95,7 @@ Param(
     [switch] $failOnError,
     [switch] $includeWarnings,
     [switch] $doNotIgnoreInfos,
-    [Obsolete("sasToken is no longer needed")]
+    [Obsolete("sasToken is no longer supported")]
     [string] $sasToken = "",
     [Parameter(Mandatory=$true)]
     $countries,
@@ -260,7 +259,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "validateVersion                 "
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCurrent                 "; Write-Host $validateCurrent
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMinor               "; Write-Host $validateNextMinor
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMajor               "; Write-Host $validateNextMajor
-Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                        "; if ($sasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "countries                       "; Write-Host ([string]::Join(',',$countries))
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCountries               "; Write-Host ([string]::Join(',',$validateCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "affixes                         "; Write-Host ([string]::Join(',',$affixes))
@@ -380,10 +378,10 @@ elseif ($_ -eq 1 -and $validateVersion) {
     $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
 }
 elseif ($_ -eq 2 -and $validateNextMinor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor
 }
 elseif ($_ -eq 3 -and $validateNextMajor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor
 }
 
 if ($artifactUrl) {

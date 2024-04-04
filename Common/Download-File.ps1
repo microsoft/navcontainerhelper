@@ -30,19 +30,6 @@ function Download-File {
         [int]    $timeout = 100
     )
 
-function ReplaceCDN {
-    Param(
-        [string] $sourceUrl
-    )
-
-    $cdnStr = '.azureedge.net'
-    if ($sourceUrl -like "https://bcartifacts$cdnStr/*" -or $sourceUrl -like "https://bcinsider$cdnStr/*" -or $sourceUrl -like "https://bcprivate$cdnStr/*" -or $sourceUrl -like "https://bcpublicpreview$cdnStr/*") {
-        $idx = $sourceUrl.IndexOf("$cdnStr/",[System.StringComparison]::InvariantCultureIgnoreCase)
-        $sourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + $cdnStr.Length)
-    }
-    $sourceUrl
-}
-
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
@@ -86,17 +73,17 @@ try {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider.azureedge.net/*') {
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider.*.net/*') {
             # Do not use CDN when configured or bcinsider
-            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
         }
         try {
-            DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+            DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
         }
         catch {
             try {
                 $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
-                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
                 if ($sourceUrl -eq $newSourceUrl) {
                     Write-Host "Error downloading..., retrying in $waittime seconds..."
                 }

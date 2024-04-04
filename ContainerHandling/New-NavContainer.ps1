@@ -540,16 +540,9 @@ try {
         # When using artifacts, you always use best container os - no need to replatform
         $useBestContainerOS = $false
 
-        if ($artifactUrl -like 'https://bcinsider.blob.core.windows.net/*' -or $artifactUrl -like 'https://bcinsider.azureedge.net/*') {
+        if ($artifactUrl -like 'https://bcinsider*') {
             if (!$accept_insiderEULA) {
-                $sasToken = "?$("$($artifactUrl)?".Split('?')[1])"
-                if ($sasToken -eq '?') {
-                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
-                }
-                else {
-                    TestSasToken -url $artifactUrl
-                    Write-Host -ForegroundColor Yellow "After October 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
-                }
+                throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula"
             }
         }
 
@@ -564,10 +557,10 @@ try {
             Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
             $country = $appManifest.Country.ToLowerInvariant()
             if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
-                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+                $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/$country/3048953.bclicense"
             }
             else {
-                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+                $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/w1/3048953.bclicense"
             }
         }
 
