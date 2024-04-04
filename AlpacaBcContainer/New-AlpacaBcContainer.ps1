@@ -118,7 +118,7 @@ function New-AlpacaBcContainer {
     $additionalFolders = @( "c:\run=$runFolderUrl" ) + $additionalFolders
 
     if ($bcArtifact -like "https://*") {
-        $storageAccount = ("$bcArtifact////".Split('/')[2]).Split('.')[0]
+        $storageAccount = (ReplaceCDN -sourceUrl "$bcArtifact////".Split('/')[2] -useBlobUrl).Split('.')[0]
         $artifactType = ("$bcArtifact////".Split('/')[3])
         $version = ("$bcArtifact////".Split('/')[4])
         $country = ("$bcArtifact////".Split('?')[0].Split('/')[5])

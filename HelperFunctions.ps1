@@ -335,42 +335,6 @@ function AssumeNavContainer {
     }
 }
 
-function TestSasToken {
-    Param
-    (
-        [string] $url
-    )
-
-    $sasToken = "?$("$($url)?".Split('?')[1])"
-    if ($sasToken -eq '?') {
-        # No SAS token in URL
-        return
-    }
-
-    try {
-        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $sv = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sv=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $sig = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sig=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(4)) }
-        if ($sv -ne '2021-10-04' -or $sig -eq '' -or $se -eq '' -or $st -eq '') {
-            throw "Wrong format"
-        }
-        if ([DateTime]::Now -lt [DateTime]$st) {
-            Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
-        }
-        if ([DateTime]::Now -gt [DateTime]$se) {
-            Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
-        }
-        elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
-            Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
-        }
-    }
-    catch {
-        $message = $_.ToString()
-        throw "The sas token provided is not valid, error message was: $message"
-    }
-}
-
 function Expand-7zipArchive {
     Param (
         [Parameter(Mandatory = $true)]
@@ -1382,4 +1346,37 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $version = $minVersion
     }
     return $version
+}
+
+function ReplaceCDN {
+    Param(
+        [string] $sourceUrl,
+        [switch] $useBlobUrl
+    )
+
+    $bcCDNs = @(
+        @{ "oldCDN" = "bcartifacts.azureedge.net";         "newCDN" = "bcartifacts-exdbf9fwegejdqak.b02.azurefd.net";         "blobUrl" = "bcartifacts.blob.core.windows.net" },
+        @{ "oldCDN" = "bcinsider.azureedge.net";           "newCDN" = "bcinsider-fvh2ekdjecfjd6gk.b02.azurefd.net";           "blobUrl" = "bcinsider.blob.core.windows.net" },
+        @{ "oldCDN" = "bcpublicpreview.azureedge.net";     "newCDN" = "bcpublicpreview-f2ajahg0e2cudpgh.b02.azurefd.net";     "blobUrl" = "bcpublicpreview.blob.core.windows.net" },
+        @{ "oldCDN" = "businesscentralapps.azureedge.net"; "newCDN" = "businesscentralapps-hkdrdkaeangzfydv.b02.azurefd.net"; "blobUrl" = "businesscentralapps.blob.core.windows.net" },
+        @{ "oldCDN" = "bcprivate.azureedge.net";           "newCDN" = "bcprivate-fmdwbsb3ekbkc0bt.b02.azurefd.net";           "blobUrl" = "bcprivate.blob.core.windows.net" }
+    )
+
+    foreach($cdn in $bcCDNs) {
+        $found = $false
+        $cdn.blobUrl, $cdn.newCDN, $cdn.oldCDN | ForEach-Object {
+            if ($sourceUrl.ToLowerInvariant().StartsWith("https://$_/")) {
+                $sourceUrl = "https://$(if($useBlobUrl){$cdn.blobUrl}else{$cdn.newCDN})/$($sourceUrl.Substring($_.Length+9))"
+                $found = $true
+            }
+            if ($sourceUrl -eq $_) {
+                $sourceUrl = "$(if($useBlobUrl){$cdn.blobUrl}else{$cdn.newCDN})"
+                $found = $true
+            }
+        }
+        if ($found) {
+            break
+        }
+    }
+    $sourceUrl
 }
