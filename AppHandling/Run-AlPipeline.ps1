@@ -628,7 +628,7 @@ else {
                 $ver = [Version]$url.Split('/')[4]
                 if ($minver -eq $null -or $ver -lt $minver) {
                     $minver = $ver
-                    $minsto = $url.Split('/')[2].Split('.')[0]
+                    $minsto = (ReplaceCDN -sourceUrl $url.Split('/')[2] -useBlobUrl).Split('.')[0]
                     $minsel = "Latest"
                 }
             }
