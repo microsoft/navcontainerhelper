@@ -73,7 +73,7 @@ try {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider.*.net/*') {
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
             # Do not use CDN when configured or bcinsider
             $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
         }

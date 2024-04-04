@@ -178,10 +178,10 @@ try {
                     $artifactUrl = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
                     if ($artifactUrl) {
                         $artifactUrl = $artifactUrl.Split('?')[0]
-                        "artifactUrl=https://bcartifacts.*.net/",
-                        "artifactUrl=https://bcinsider.*.net/",
-                        "artifactUrl=https://bcprivate.*.net/",
-                        "artifactUrl=https://bcpublicpreview.*.net/" | ForEach-Object {
+                        "artifactUrl=https://bcartifacts*.net/",
+                        "artifactUrl=https://bcinsider*.net/",
+                        "artifactUrl=https://bcprivate*.net/",
+                        "artifactUrl=https://bcpublicpreview*.net/" | ForEach-Object {
                             if ($artifactUrl -like "$($_)*") {
                                 $cacheFolder = Join-Path $artifactsCacheFolder $artifactUrl.SubString($_.Length)
                                 if (-not (Test-Path $cacheFolder)) {
