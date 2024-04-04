@@ -2,6 +2,7 @@
 Issue 3452 Error when running Run-AlValidation : Unable to load one or more of the requested types. Retrieve the LoaderExceptions property for more information.
 Issue 3454 DockerDo : Cannot bind argument to parameter 'imageName' because it is an empty string.
 Issue 3354 Regression : Compile Folder removal of symbols folder fails: The process cannot access the file
+Issue 3460 Do not install SqlServer PowerShell module
 
 6.0.12
 Issue 3432 New-BcContainerWizard stopped working after generic images with ltsc2016, ltsc2019 and ltsc2022 was introduced

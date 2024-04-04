@@ -1657,8 +1657,8 @@ if (!(Test-Path "c:\navpfiles\*")) {
     if ($assignPremiumPlan -and !$restoreBakFolder -and !$skipDatabase) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
-              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-            ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
+. "c:\run\SetupNavUsers.ps1"
+') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
         if ($version.Major -ge 15) {
@@ -1698,13 +1698,13 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
         ('# Invoke default behavior
-          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-        ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+. "c:\run\SetupVariables.ps1"
+') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
     if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
         ('# Invoke default behavior
-          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-        ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
+. "c:\run\HelperFunctions.ps1"
+') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
     if ($version.Major -ge 24 -and $genericTag -eq [System.Version]"1.0.2.15") {
@@ -1714,12 +1714,6 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
     if ($version.Major -ge 24 -and $genericTag -lt [System.Version]"1.0.2.17") {
         Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/240/navinstall.ps1" -destinationFile (Join-Path $myFolder "navinstall.ps1")
         Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/navstart.ps1" -destinationFile (Join-Path $myFolder "navstart.ps1")
-    }
-
-    if ($version.Major -ge 24) {
-        ('
-if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { try { Write-Host "Installing SqlServer module"; Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null } catch { Write-Host "Failed to install SqlServer module" } }
-') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
     if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {
