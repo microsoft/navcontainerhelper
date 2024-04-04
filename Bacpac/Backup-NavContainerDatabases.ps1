@@ -68,7 +68,12 @@ try {
             $params = @{}
             if ($compress) { $params += @{ "CompressionOption" = "On" } }
             if ($databaseCredential) { $params += @{ "credential" = $databaseCredential } }
-            Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile @params
+
+            #Changed because there could be timeouts importing a bakfile             
+            #Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile @params
+            $serverConn = new-object ("Microsoft.SqlServer.Management.Smo.Server") $serverInstance
+            $serverConn.ConnectionContext.StatementTimeout = 0
+            Backup-SqlDatabase -InputObject $serverConn -Database $database -BackupFile $bakFile -ConnnectionTimeOut 0 @params 
         }
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
