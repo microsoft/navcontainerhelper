@@ -70,7 +70,7 @@ try {
         $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
     }
 
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($bakFolder, $bakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout)
+    Invoke-ScriptInBCContainer -containerName $containerName -usePwsh:$false -scriptblock { Param($bakFolder, $bakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout)
 
         function Restore {
             Param (
