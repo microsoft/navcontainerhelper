@@ -363,7 +363,7 @@ try {
         # locate application version number in database if using SQLEXPRESS
         try {
             if (($customConfig.DatabaseServer -eq "localhost") -and ($customConfig.DatabaseInstance -eq "SQLEXPRESS")) {
-                $appVersion = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($databaseName)
+                $appVersion = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh:$false -scriptblock { Param($databaseName)
                     (invoke-sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -ErrorAction Stop -Query "SELECT [applicationversion] FROM [$databaseName].[dbo].[`$ndo`$dbproperty]").applicationVersion
                 } -argumentList $customConfig.DatabaseName
                 $publishedApps += @{ "Name" = "Application"; "Publisher" = "Microsoft"; "Version" = $appversion }

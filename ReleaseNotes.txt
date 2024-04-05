@@ -1,3 +1,10 @@
+6.0.15
+Issue 3467 Can't create a backup of a container with the Backup-BCContainerDatabases commandlet
+Use PowerShell 5 in places where invoke-sqlcmd or other functions from the SqlServer PowerShell module are used
+
+6.0.14
+Issue 3465 Regression: Flush-ContainerHelperCache calculates wrong CacheFolder
+
 6.0.13
 Issue 3452 Error when running Run-AlValidation : Unable to load one or more of the requested types. Retrieve the LoaderExceptions property for more information.
 Issue 3454 DockerDo : Cannot bind argument to parameter 'imageName' because it is an empty string.
