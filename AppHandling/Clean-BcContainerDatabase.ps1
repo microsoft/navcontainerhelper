@@ -96,7 +96,7 @@ try {
             $copyTables += @("Entitlement", "Entitlement Set", "Membership Entitlement")
         }
 
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables, $multitenant)
+        Invoke-ScriptInBCContainer -containerName $containerName -usePwsh:$false -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables, $multitenant)
         
             Write-Host "Stopping ServiceTier in order to replace database"
             Set-NavServerInstance -ServerInstance $ServerInstance -stop
@@ -196,7 +196,7 @@ try {
         if ($customconfig.Multitenant -eq "True") {
             
             Write-Host "Switching to multitenancy"
-            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($databaseName, $databaseServer, $databaseInstance)
+            Invoke-ScriptInBCContainer -containerName $containerName -usePwsh:$false -scriptblock { Param($databaseName, $databaseServer, $databaseInstance)
                 $databaseServerInstance = $databaseServer
                 if ($databaseInstance) {
                     $databaseServerInstance += "\$databaseInstance"

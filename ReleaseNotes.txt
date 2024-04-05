@@ -1,3 +1,7 @@
+6.0.15
+Issue 3467 Can't create a backup of a container with the Backup-BCContainerDatabases commandlet
+Use PowerShell 5 in places where invoke-sqlcmd or other functions from the SqlServer PowerShell module are used
+
 6.0.14
 Issue 3465 Regression: Flush-ContainerHelperCache calculates wrong CacheFolder
 
