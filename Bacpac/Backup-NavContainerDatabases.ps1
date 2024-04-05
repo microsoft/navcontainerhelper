@@ -49,7 +49,7 @@ try {
     }
     $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
+    Invoke-ScriptInBcContainer -containerName $containerName -usePwsh:$false -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
        
         function Backup {
             Param (
