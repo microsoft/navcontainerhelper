@@ -1,5 +1,6 @@
 6.0.16
-Issue 3477: Regression: Error: App filenames must be unique
+Issue 3477 Regression: Error: App filenames must be unique
+Issue 3478 New-bccontainer fails on BC24 using option -UseNewDatabase
 
 6.0.15
 Issue 3467 Can't create a backup of a container with the Backup-BCContainerDatabases commandlet
