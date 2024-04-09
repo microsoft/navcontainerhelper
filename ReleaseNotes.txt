@@ -1,3 +1,6 @@
+6.0.16
+Issue 3477: Regression: Error: App filenames must be unique
+
 6.0.15
 Issue 3467 Can't create a backup of a container with the Backup-BCContainerDatabases commandlet
 Use PowerShell 5 in places where invoke-sqlcmd or other functions from the SqlServer PowerShell module are used
