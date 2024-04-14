@@ -395,7 +395,7 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
                 New-Item -Path $useFolder -ItemType Directory | Out-Null
             }
             $path = Join-Path $useFolder (Split-Path -Leaf $path)
-            Download-File -url $url -destinationFile $path
+            Download-File -sourceUrl $url -destinationFile $path
         }
         else {
             if (-not [System.IO.Path]::IsPathRooted($path)) {
