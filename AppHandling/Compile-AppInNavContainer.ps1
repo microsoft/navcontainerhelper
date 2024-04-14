@@ -224,11 +224,15 @@ try {
     $CustomCodeCopFiles = @()
     if ($CustomCodeCops.Count -gt 0) {
         $CustomCodeCops | ForEach-Object {
-            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
-            if ("$customCopPath" -eq "") {
-                throw "The custom code cop ($_) is not shared with the container."
+            if ($_ -like 'https://*') {
+                $customCopPath = $_
             }
-
+            else {
+                $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+                if ("$customCopPath" -eq "") {
+                    throw "The custom code cop ($_) is not shared with the container."
+                }
+            }
             $CustomCodeCopFiles += $customCopPath
         }
     }
@@ -670,7 +674,14 @@ try {
         }
 
         if ($CustomCodeCops.Count -gt 0) {
-            $CustomCodeCops | ForEach-Object { $alcParameters += @("/analyzer:$_") }
+            $CustomCodeCops | ForEach-Object {
+                $analyzerFileName = $_
+                if ($_ -like 'https://*') {
+                    $analyzerFileName = Join-Path $binPath (Split-Path $_ -Leaf)
+                    Download-File -SourceUrl $_ -destinationFile $analyzerFileName
+                }
+                $alcParameters += @("/analyzer:$analyzerFileName")
+            }
         }
 
         if ($rulesetFile) {
