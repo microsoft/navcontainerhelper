@@ -369,7 +369,7 @@ try {
         $CustomCodeCops | ForEach-Object {
             $analyzerFileName = $_
             if ($_ -like 'https://*') {
-                $analyzerFileName = Join-Path $binPath (Split-Path $_ -Leaf)
+                $analyzerFileName = Join-Path $binPath "Analyzers/$(Split-Path $_ -Leaf)"
                 Download-File -SourceUrl $_ -destinationFile $analyzerFileName
             }
             $alcParameters += @("/analyzer:$analyzerFileName")
