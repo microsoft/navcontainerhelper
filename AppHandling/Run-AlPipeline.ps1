@@ -387,9 +387,8 @@ Param(
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name, [switch] $allowUrl) {
-    Write-Host "$Name : $path"
     if ($path) {
-        if ($path -eq 'https://*' -and $allowUrl) {
+        if ($path -like 'https://*' -and $allowUrl) {
             $url = $path
             $useFolder = Join-Path $baseFolder ".$name"
             if (!(Test-Path $useFolder)) {
