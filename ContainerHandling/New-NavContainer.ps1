@@ -1632,14 +1632,17 @@ if (!$restartingInstance) {
 
     try {
         [xml]$conf = winrm get winrm/config/client -format:pretty
-        $trustedHosts = $conf.Client.TrustedHosts.Split(',')
+        $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
+        if (-not $trustedHosts) {
+            $trustedHosts = @()
+        }
         $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
         if (!($isTrusted)) {
             if (!$isAdministrator) {
                 Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
             }
             else {
-                Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ',')))"
+                Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
                 $trustedHosts += $containerName
                 winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
             }
