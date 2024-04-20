@@ -15,8 +15,9 @@ function Get-ContainerHelperConfig {
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{1}-filesonly'
             "usePsSession" = $true
             "usePwshForBc24" = $true
-            "useSslForWinRm" = $true
+            "useSslForWinRmSession" = $false
             "tryWinRmSession" = $isPsCore -or !$isAdministrator
+            "alwaysUseWinRmSession" = $false
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
             "useVolumes" = $false
