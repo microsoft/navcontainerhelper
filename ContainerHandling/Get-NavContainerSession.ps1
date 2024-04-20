@@ -17,6 +17,7 @@ function Get-BcContainerSession {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [switch] $tryWinRmSession = $bccontainerHelperConfig.tryWinRmSession,
+        [switch] $usePwsh = $bccontainerHelperConfig.usePwshForBc24,
         [switch] $silent,
         [switch] $reinit
     )
@@ -37,13 +38,21 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
+            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ($platformVersion -lt [System.Version]"24.0.0.0") {
+                $usePwsh = $false
+            }
+            $configurationName = 'Microsoft.PowerShell'
+            if ($usePwsh) {
+                $configurationName = 'PowerShell.7'
+            }
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
             elseif ($isAdministrator) {
                 try {
                     $containerId = Get-BcContainerId -containerName $containerName
-                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue
+                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
                 }
                 catch {}
             }
@@ -51,20 +60,59 @@ function Get-BcContainerSession {
                 if (!$tryWinRmSession) {
                     throw "Unable to create a session for container $containerName (tryWinRmSession is false)"
                 }
+                $useSSL = $bcContainerHelperConfig.useSslForWinRm
                 $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
-                Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential)
+                Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential, [bool] $useSSL, [string] $containerName)
+                    [xml]$conf = winrm get winrm/config/service -format:pretty
+                    if ($useSSL) {
+                        [xml]$listeners = winrm enumerate winrm/config/listener -format:pretty
+                        if (!($listeners.Results.Listener.port -eq 5986)) {
+                            Write-Host "Setup self-signed certificate for container $containerName"
+                            $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $containerName -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
+                            winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$containerName""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
+                        }
+                    }
+                    else {
+                        if ($conf.Service.AllowUnencrypted -eq 'false') {
+                            Write-Host "Allow unencrypted communication to container $containerName"
+                            winrm set winrm/config/service '@{AllowUnencrypted="true"}' | Out-Null
+                        }
+                    }
                     $winrmuser = get-localuser -name $credential.UserName -ErrorAction SilentlyContinue
                     if (!$winrmuser) {
-                        $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
-                        winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}') | Out-Null
-                        winrm set winrm/config/service/Auth '@{Basic="true"}' | Out-Null
-                        Write-Host "`nCreating Container user $($credential.UserName)"
+                        if ($conf.Service.Auth.Basic -eq 'false') {
+                            Write-Host "Enable Basic authentication for container $containerName"
+                            winrm set winrm/config/service/Auth '@{Basic="true"}' | Out-Null
+                        }
+                        Write-Host "Creating Container user $($credential.UserName)"
                         New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
                         Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
                     }
-                } -argumentList $credential
-                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -useSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+                } -argumentList $credential, $useSSL, $containerName
+                if ($useSSL) {
+                    $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
+                    $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
+                }
+                else {
+                    [xml]$conf = winrm get winrm/config/client -format:pretty
+                    $trustedHosts = $conf.Client.TrustedHosts.Split(',')
+                    $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
+                    if (!($isTrusted)) {
+                        if (!$isAdministrator) {
+                            throw "$containerName os not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
+                        }
+                        Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ',')))"
+                        $trustedHosts += $containerName
+                        winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
+                    }
+                    if ($conf.Client.AllowUnencrypted -eq 'false') {
+                        Write-Host "Allow unencrypted communication"
+                        winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
+                    }
+                    $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US'
+                    $Session = New-PSSession -ConnectionUri "http://$($containerName):5985" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
+                }
             }
             $newsession = $true
         }

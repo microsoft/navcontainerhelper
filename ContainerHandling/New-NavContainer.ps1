@@ -1597,7 +1597,15 @@ if (!$restartingInstance) {
     Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-
+    }
+    else {
+        ('
+if (!$restartingInstance) {
+    Enable-PSRemoting | Out-Null
+    Get-PSSessionConfiguration | Out-null
+    pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"

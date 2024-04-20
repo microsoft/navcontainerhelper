@@ -62,6 +62,18 @@ try {
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
+        if ($isAdministrator) {
+            try {
+                [xml]$conf = winrm get winrm/config/client -format:pretty
+                $trustedHosts = $conf.Client.TrustedHosts.Split(',')
+                if ($trustedHosts -contains $containerName) {
+                    Write-Host "Removing $containerName from trusted hosts ($($trustedHosts -join ','))"
+                    winrm set winrm/config/client "@{TrustedHosts=""$(@($trustedHosts | Where-Object { $_ -ne $containerName }) -join ',')""}" | Out-Null
+                }
+            }
+            catch {}
+        }
+
         if ($myVolume) {
             Write-Host "Removing volume $myVolumeName"
             docker volume remove $myVolumeName
