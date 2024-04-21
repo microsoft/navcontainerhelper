@@ -64,33 +64,6 @@ function Get-BcContainerSession {
                 $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
                 $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
-#                Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential, [bool] $useSSL, [string] $containerName)
-#                    [xml]$conf = winrm get winrm/config/service -format:pretty
-#                    if ($useSSL) {
-#                        [xml]$listeners = winrm enumerate winrm/config/listener -format:pretty
-#                        if (!($listeners.Results.Listener.port -eq 5986)) {
-#                            Write-Host "Setup self-signed certificate for container $containerName"
-#                            $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $containerName -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
-#                            winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$containerName""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
-#                        }
-#                    }
-#                    else {
-#                        if ($conf.Service.AllowUnencrypted -eq 'false') {
-#                            Write-Host "Allow unencrypted communication to container $containerName"
-#                            winrm set winrm/config/service '@{AllowUnencrypted="true"}' | Out-Null
-#                        }
-#                    }
-#                    $winrmuser = get-localuser -name $credential.UserName -ErrorAction SilentlyContinue
-#                    if (!$winrmuser) {
-#                        if ($conf.Service.Auth.Basic -eq 'false') {
-#                            Write-Host "Enable Basic authentication for container $containerName"
-#                            winrm set winrm/config/service/Auth '@{Basic="true"}' | Out-Null
-#                        }
-#                        Write-Host "Creating Container user $($credential.UserName)"
-#                        New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
-#                        Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
-#                    }
-#                } -argumentList $credential, $useSSL, $containerName
                 if ($useSSL) {
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
                     $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
