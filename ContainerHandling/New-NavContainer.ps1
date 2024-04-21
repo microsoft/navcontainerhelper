@@ -1630,35 +1630,37 @@ if (!$restartingInstance) {
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
 
-    try {
-        [xml]$conf = winrm get winrm/config/client -format:pretty
-        $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
-        if (-not $trustedHosts) {
-            $trustedHosts = @()
+    if (-not $bccontainerHelperConfig.useSslForWinRmSession) {
+        try {
+            [xml]$conf = winrm get winrm/config/client -format:pretty
+            $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
+            if (-not $trustedHosts) {
+                $trustedHosts = @()
+            }
+            $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
+            if (!($isTrusted)) {
+                if (!$isAdministrator) {
+                    Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
+                }
+                else {
+                    Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
+                    $trustedHosts += $containerName
+                    winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
+                }
+            }
+            if ($conf.Client.AllowUnencrypted -eq 'false') {
+                if (!$isAdministrator) {
+                    Write-Host "Unencrypted communication is not allowed. You need to get an administrator to allow unencrypted communication"
+                }
+                else {
+                    Write-Host "Allow unencrypted communication"
+                    winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
+                }
+            }
         }
-        $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
-        if (!($isTrusted)) {
-            if (!$isAdministrator) {
-                Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
-            }
-            else {
-                Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
-                $trustedHosts += $containerName
-                winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
-            }
+        catch {
+            Write-Host "Unexpected error when checking winrm configuration, you might not be able to connect to the container using winrm unencrypted"
         }
-        if ($conf.Client.AllowUnencrypted -eq 'false') {
-            if (!$isAdministrator) {
-                Write-Host "Unencrypted communication is not allowed. You need to get an administrator to allow unencrypted communication"
-            }
-            else {
-                Write-Host "Allow unencrypted communication"
-                winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
-            }
-        }
-    }
-    catch {
-        Write-Host "Unexpected error when checking winrm configuration, you might not be able to connect to the container using winrm"
     }
     }
 
