@@ -1602,6 +1602,7 @@ if (!$restartingInstance) {
         $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
         ('
 if (!$restartingInstance) {
+    Write-Host "Enable PSRemoting and setup user for winrm"
     Enable-PSRemoting | Out-Null
     Get-PSSessionConfiguration | Out-null
     pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
@@ -1615,6 +1616,7 @@ if (!$restartingInstance) {
         $additionalParameters += @("--expose 5986")
         ('
 if (!$restartingInstance) {
+    Write-Host "Creating self-signed certificate for winrm"
     $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $env:computername -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
     winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$env:computername""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
 }
