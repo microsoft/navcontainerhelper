@@ -59,7 +59,8 @@ function Get-BcContainerSession {
             }
             if (!$session) {
                 if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
-                    throw "Unable to create  session for container $containerName (alwaysUseWinRmSession and tryWinRmSession are both false)"
+                    throw "Unable to create session for container $containerName (alwaysUseWinRmSession and tryWinRmSession are both false)"
+
                 }
                 $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
                 $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
