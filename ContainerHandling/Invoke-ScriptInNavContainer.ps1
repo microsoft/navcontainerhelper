@@ -31,39 +31,20 @@ function Invoke-ScriptInBcContainer {
     )
 
     $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
-    $containerFile = ""
-    $shell = 'powershell'
-    if ($usePwsh) {
-        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
-        if ($platformVersion -ge [System.Version]"24.0.0.0") {
-            $useSession = $false
-            $shell = 'pwsh'
-        }
-        else {
-            $usePwsh = $false
-        }
-    }
-    if (-not $usePwsh) {
-        if ($isInsideContainer) {
-            $useSession = $true
-        }
-        else {
-            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-            if ("$containerFile" -eq "") {
-                $useSession = $true
-            }
-        }
+    $containerFile = $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+    if ($isInsideContainer -or "$containerFile" -eq "") {
+        $useSession = $true
     }
 
     if ($useSession) {
         try {
-            $session = Get-BcContainerSession -containerName $containerName -silent
+            $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
         }
         catch {
             if ($isInsideContainer) {
                 Write-Host "Error trying to establish session, retrying in 5 seconds"
                 Start-Sleep -Seconds 5
-                $session = Get-BcContainerSession -containerName $containerName -silent
+                $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
             }
             else {
                 $useSession = $false
@@ -129,7 +110,14 @@ function Invoke-ScriptInBcContainer {
         }
     } else {
         if ("$containerFile" -eq "") {
-            $containerFile = Get-BcContainerPath -containerName $containerName -path $file -throw
+            throw "$($bcContainerHelperConfig.hostHelperFolder) is not shared with the container, cannot invoke scripts in container without using a session"
+        }
+        $shell = 'powershell'
+        if ($usePwsh) {
+            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ($platformVersion -ge [System.Version]"24.0.0.0") {
+                $shell = 'pwsh'
+            }
         }
         $hostOutputFile = "$file.output"
         $containerOutputFile = "$containerFile.output"

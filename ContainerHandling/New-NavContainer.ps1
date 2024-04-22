@@ -1597,8 +1597,75 @@ if (!$restartingInstance) {
     Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-
     }
+    else {
+        $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
+        ('
+if (!$restartingInstance) {
+    Write-Host "Enable PSRemoting and setup user for winrm"
+    Enable-PSRemoting | Out-Null
+    Get-PSSessionConfiguration | Out-null
+    pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
+    $credential = New-Object PSCredential -ArgumentList "winrm", (ConvertTo-SecureString -string "'+$UUID+'" -AsPlainText -force)
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
+    Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
+    winrm set winrm/config/service/Auth ''@{Basic="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    if ($bccontainerHelperConfig.useSslForWinRmSession) {
+        $additionalParameters += @("--expose 5986")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Creating self-signed certificate for winrm"
+    $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $env:computername -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$env:computername""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+    else {
+        $additionalParameters += @("--expose 5985")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Allow unencrypted communication to container"
+    winrm set winrm/config/service ''@{AllowUnencrypted="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+
+    if (-not $bccontainerHelperConfig.useSslForWinRmSession) {
+        try {
+            [xml]$conf = winrm get winrm/config/client -format:pretty
+            $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
+            if (-not $trustedHosts) {
+                $trustedHosts = @()
+            }
+            $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
+            if (!($isTrusted)) {
+                if (!$isAdministrator) {
+                    Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
+                }
+                else {
+                    Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
+                    $trustedHosts += $containerName
+                    winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
+                }
+            }
+            if ($conf.Client.AllowUnencrypted -eq 'false') {
+                if (!$isAdministrator) {
+                    Write-Host "Unencrypted communication is not allowed. You need to get an administrator to allow unencrypted communication"
+                }
+                else {
+                    Write-Host "Allow unencrypted communication"
+                    winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
+                }
+            }
+        }
+        catch {
+            Write-Host "Unexpected error when checking winrm configuration, you might not be able to connect to the container using winrm unencrypted"
+        }
+    }
+    }
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
