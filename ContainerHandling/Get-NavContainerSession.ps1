@@ -17,6 +17,8 @@ function Get-BcContainerSession {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [switch] $tryWinRmSession = $bccontainerHelperConfig.tryWinRmSession,
+        [switch] $alwaysUseWinRmSession = $bccontainerHelperConfig.alwaysUseWinRmSession,
+        [switch] $usePwsh = $bccontainerHelperConfig.usePwshForBc24,
         [switch] $silent,
         [switch] $reinit
     )
@@ -37,34 +39,40 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
+            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ($platformVersion -lt [System.Version]"24.0.0.0") {
+                $usePwsh = $false
+            }
+            $configurationName = 'Microsoft.PowerShell'
+            if ($usePwsh) {
+                $configurationName = 'PowerShell.7'
+            }
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
-            elseif ($isAdministrator) {
+            elseif ($isAdministrator -and !$bcContainerHelperConfig.alwaysUseWinRmSession) {
                 try {
                     $containerId = Get-BcContainerId -containerName $containerName
-                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue
+                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
                 }
                 catch {}
             }
             if (!$session) {
-                if (!$tryWinRmSession) {
-                    throw "Unable to create a session for container $containerName (tryWinRmSession is false)"
+                if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
+                    throw "Unable to create session for container $containerName (alwaysUseWinRmSession and tryWinRmSession are both false)"
+
                 }
+                $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
                 $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
-                Invoke-ScriptInBcContainer -containerName $containerName -useSession:$false -scriptblock { Param([PSCredential] $credential)
-                    $winrmuser = get-localuser -name $credential.UserName -ErrorAction SilentlyContinue
-                    if (!$winrmuser) {
-                        $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
-                        winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}') | Out-Null
-                        winrm set winrm/config/service/Auth '@{Basic="true"}' | Out-Null
-                        Write-Host "`nCreating Container user $($credential.UserName)"
-                        New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
-                        Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
-                    }
-                } -argumentList $credential
-                $session = New-PSSession -Credential $credential -ComputerName $containerName -Authentication Basic -useSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
+                if ($useSSL) {
+                    $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
+                    $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
+                }
+                else {
+                    $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US'
+                    $Session = New-PSSession -ConnectionUri "http://$($containerName):5985" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
+                }
             }
             $newsession = $true
         }
