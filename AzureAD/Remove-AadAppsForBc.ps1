@@ -39,6 +39,13 @@ try {
         Install-Package Microsoft.Graph -Force -WarningAction Ignore | Out-Null
     }
 
+    # Check the AccessToken since Microsoft Graph V2 requires a SecureString
+    $graphAccesTokenParameter = (Get-Command Connect-MgGraph).Parameters['AccessToken']
+  
+    if ($graphAccesTokenParameter.ParameterType -eq [securestring]){
+        $useSecureStringForAccessToken = $true
+    }
+
     # Connect to Microsoft.Graph
     if (!$useCurrentMicrosoftGraphConnection) {
         if ($bcAuthContext) {
@@ -47,15 +54,18 @@ try {
             if ($jwtToken.aud -ne 'https://graph.microsoft.com') {
                 Write-Host -ForegroundColor Yellow "The accesstoken was provided for $($jwtToken.aud), should have been for https://graph.microsoft.com"
             }
-            Connect-MgGraph -AccessToken $bcAuthContext.accessToken
+            $accessToken = $bcAuthContext.accessToken
         }
-        else {
-            if ($accessToken) {
-                Connect-MgGraph -accessToken $accessToken
+        if ($accessToken) {
+            if ($useSecureStringForAccessToken){
+                Connect-MgGraph -AccessToken (ConvertTo-SecureString -String $accessToken -AsPlainText -Force) | Out-Null
             }
             else {
-                Connect-MgGraph
+                Connect-MgGraph -AccessToken $accessToken | Out-Null
             }
+        }
+        else {
+            Connect-MgGraph -Scopes 'Application.ReadWrite.All' | Out-Null
         }
     }
     $account = Get-MgContext
@@ -91,6 +101,10 @@ try {
     Write-Host "Remove AAD App for EMail Service"
     $EMailIdentifierUri = $appIdUri.Replace('://','://email.')
     Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $EMailIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
+    
+    # Remove "old" Other Services AD Application
+    $OtherServicesIdentifierUri = $appIdUri.Replace('://','://other.')
+    Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $OtherServicesIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
 
 }
 catch {
