@@ -1259,6 +1259,17 @@ function DownloadLatestAlLanguageExtension {
         [switch] $allowPrerelease
     )
 
+    # Check if we already have the latest version downloaded and located in this session
+    if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
+        $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
+        if (Test-Path $path -PathType Container) {
+            return $path
+        }
+        else {
+            $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
+        }
+    }
+    
     $mutexName = "DownloadAlLanguageExtension"
     $mutex = New-Object System.Threading.Mutex($false, $mutexName)
     try {
@@ -1271,17 +1282,6 @@ function DownloadLatestAlLanguageExtension {
         }
         catch [System.Threading.AbandonedMutexException] {
            Write-Host "Other process terminated abnormally"
-        }
-
-        # Check if we already have the latest version downloaded and located in this session
-        if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
-            $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
-            if (Test-Path $path -PathType Container) {
-                return $path
-            }
-            else {
-                $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
-            }
         }
 
         $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
@@ -1312,8 +1312,7 @@ function RunAlTool {
     Param(
         [string[]] $arguments
     )
-    # ALTOOL is at the moment only available in prerelease        
-    $path = DownloadLatestAlLanguageExtension -allowPrerelease
+    $path = DownloadLatestAlLanguageExtension
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
         Write-Host "Setting execute permissions on altool"
