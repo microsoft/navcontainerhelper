@@ -82,12 +82,13 @@ try {
             $accessToken = $bcAuthContext.accessToken
         }
         if ($accessToken) {
-            try {
-                # Connect-MgGraph changed type of accesstoken parameter from plain text to securestring along the way
-                Connect-MgGraph -accessToken (ConvertTo-SecureString -String $accessToken -AsPlainText -Force) | Out-Null
+            # Check the AccessToken since Microsoft Graph V2 requires a SecureString
+            $graphAccesTokenParameter = (Get-Command Connect-MgGraph).Parameters['AccessToken']
+            if ($graphAccesTokenParameter.ParameterType -eq [securestring]) {
+                Connect-MgGraph -AccessToken (ConvertTo-SecureString -String $accessToken -AsPlainText -Force) | Out-Null
             }
-            catch [System.ArgumentException] {
-                Connect-MgGraph -accessToken $accessToken | Out-Null
+            else {
+                Connect-MgGraph -AccessToken $accessToken | Out-Null
             }
         }
         else {
