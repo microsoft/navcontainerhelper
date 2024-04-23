@@ -779,7 +779,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.15") {
+                if ($genericTagVersion -lt [Version]"1.0.2.20") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -2045,7 +2045,7 @@ if (-not `$restartingInstance) {
 
         if ($SqlServerMemoryLimit -and $customConfig.databaseServer -eq "localhost" -and $customConfig.databaseInstance -eq "SQLEXPRESS") {
             Write-Host "Set SQL Server memory limit to $SqlServerMemoryLimit MB"
-            Invoke-ScriptInBCContainer -containerName $containerName -usePwsh:$false -scriptblock { Param($SqlServerMemoryLimit)
+            Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($SqlServerMemoryLimit)
                 Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 1 RECONFIGURE WITH OVERRIDE;"
                 Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'max server memory', $SqlServerMemoryLimit RECONFIGURE WITH OVERRIDE;"
                 Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Query "USE master EXEC sp_configure 'show advanced options', 0 RECONFIGURE WITH OVERRIDE;"
@@ -2443,7 +2443,7 @@ if (-not `$restartingInstance) {
             if ($multitenant) {
                 Write-Host "Switching to multitenant"
                 
-                Invoke-ScriptInBCContainer -containerName $containerName -usePwsh:$false -scriptblock {
+                Invoke-ScriptInBCContainer -containerName $containerName -scriptblock {
                 
                     $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
                     [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)

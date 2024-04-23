@@ -46,7 +46,7 @@ try {
         throw "You cannot add a tenant called tenant"
     }
 
-    Invoke-ScriptInBcContainer -containerName $containerName -usePwsh:$false -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsKey)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerName, $tenantId, [PSCredential]$sqlCredential, $sourceDatabase, $destinationDatabase, $alternateId, $doNotCopyDatabase, $allowAppDatabaseWrite, $applicationInsightsKey)
 
         $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
         [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
