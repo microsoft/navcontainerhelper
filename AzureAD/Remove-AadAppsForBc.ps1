@@ -104,6 +104,10 @@ try {
     Write-Host "Remove AAD App for EMail Service"
     $EMailIdentifierUri = $appIdUri.Replace('://','://email.')
     Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $EMailIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
+    
+    # Remove "old" Other Services AD Application
+    $OtherServicesIdentifierUri = $appIdUri.Replace('://','://other.')
+    Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $OtherServicesIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
 
 }
 catch {
