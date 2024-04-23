@@ -44,9 +44,6 @@ try {
   
     if ($graphAccesTokenParameter.ParameterType -eq [securestring]){
         $useSecureStringForAccessToken = $true
-        if ($accessToken) {
-            $accessToken = ConvertTo-SecureString -String $accessToken -AsPlainText -Force
-        }
     }
 
     # Connect to Microsoft.Graph
