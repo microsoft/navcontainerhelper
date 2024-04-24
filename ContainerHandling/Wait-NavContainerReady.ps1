@@ -42,16 +42,6 @@ function Wait-BcContainerReady {
                 throw "Initialization of container $containerName failed"
             }
 
-            if ($isAdministrator -and $bcContainerHelperConfig.usePsSession -and $cnt -eq ($timeout-30)) {
-                try {
-                    if (!$sessions.ContainsKey($containerName)) {
-                        $containerId = Get-BcContainerId -containerName $containerName
-                        $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
-                        $sessions.Add($containerName, $session)
-                    }
-                } catch {}
-            }
-
             if ($cnt % 5 -eq 0) {
                 $inspect = docker inspect $containerName | ConvertFrom-Json
                 if ($inspect.State.Status -eq "exited") {
@@ -63,11 +53,6 @@ function Wait-BcContainerReady {
 
         } while (!($log.Contains("Ready for connections!")))
         Write-Host
-        if ($bcContainerHelperConfig.usePsSession) {
-            try {
-                Get-BcContainerSession -containerName $containerName -reinit -silent | Out-Null
-            } catch {}
-        }
 
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
             $boo = $true
@@ -76,7 +61,6 @@ function Wait-BcContainerReady {
                 Start-Sleep -Seconds 1
             }
         }
-    
     }
 }
 Set-Alias -Name Wait-NavContainerReady -Value Wait-BcContainerReady

@@ -39,13 +39,6 @@ try {
         Install-Package Microsoft.Graph -Force -WarningAction Ignore | Out-Null
     }
 
-    # Check the AccessToken since Microsoft Graph V2 requires a SecureString
-    $graphAccesTokenParameter = (Get-Command Connect-MgGraph).Parameters['AccessToken']
-  
-    if ($graphAccesTokenParameter.ParameterType -eq [securestring]){
-        $useSecureStringForAccessToken = $true
-    }
-
     # Connect to Microsoft.Graph
     if (!$useCurrentMicrosoftGraphConnection) {
         if ($bcAuthContext) {
@@ -57,7 +50,9 @@ try {
             $accessToken = $bcAuthContext.accessToken
         }
         if ($accessToken) {
-            if ($useSecureStringForAccessToken){
+            # Check the AccessToken since Microsoft Graph V2 requires a SecureString
+            $graphAccesTokenParameter = (Get-Command Connect-MgGraph).Parameters['AccessToken']
+            if ($graphAccesTokenParameter.ParameterType -eq [securestring]) {
                 Connect-MgGraph -AccessToken (ConvertTo-SecureString -String $accessToken -AsPlainText -Force) | Out-Null
             }
             else {
