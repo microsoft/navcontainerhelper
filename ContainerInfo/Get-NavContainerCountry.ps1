@@ -17,23 +17,11 @@ function Get-BcContainerCountry {
         [string] $containerOrImageName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
         throw "Container $containerOrImageName is not a NAV/BC container"
     }
     return "$($inspect.Config.Labels.country)"
-
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerCountry -Value Get-BcContainerCountry
 Export-ModuleMember -Function Get-BcContainerCountry -Alias Get-NavContainerCountry
