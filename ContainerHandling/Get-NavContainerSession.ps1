@@ -29,8 +29,18 @@ function Get-BcContainerSession {
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
             try {
-                Invoke-Command -Session $session -ScriptBlock { $true } | Out-Null
-                if (!$reinit) { return $session }
+                $platformVersion = Invoke-Command -Session $session -ScriptBlock { [System.Version](get-item 'C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe').Versioninfo.FileVersion }
+                if ($platformVersion -ge 24 -and ($usePwsh -xor $session.ConfigurationName -eq 'PowerShell.7')) {
+                    # Cannot use existing session
+                    Remove-PSSession -Session $session
+                    $sessions.Remove($containerName)
+                    $session = $null
+                }
+                else {
+                    if (!$reinit) {
+                        return $session
+                    }
+                }
             }
             catch {
                 Remove-PSSession -Session $session
@@ -40,7 +50,7 @@ function Get-BcContainerSession {
         }
         if (!$session) {
             [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
-            if ($platformVersion -lt [System.Version]"24.0.0.0") {
+            if ($platformVersion.Major -lt 24) {
                 $usePwsh = $false
             }
             $configurationName = 'Microsoft.PowerShell'

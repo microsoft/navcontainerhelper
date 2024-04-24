@@ -30,10 +30,12 @@ function Invoke-ScriptInBcContainer {
         [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
-    $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
-    $containerFile = $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-    if ($isInsideContainer -or "$containerFile" -eq "") {
-        $useSession = $true
+    if (!$useSession) {
+        $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+        $containerFile = $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        if ($isInsideContainer -or "$containerFile" -eq "") {
+            $useSession = $true
+        }
     }
 
     if ($useSession) {
