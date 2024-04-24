@@ -30,9 +30,10 @@ function Invoke-ScriptInBcContainer {
         [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
+    $file = ''
     if (!$useSession) {
         $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
-        $containerFile = $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
         if ($isInsideContainer -or "$containerFile" -eq "") {
             $useSession = $true
         }
@@ -111,6 +112,10 @@ function Invoke-ScriptInBcContainer {
             throw $errorMessage
         }
     } else {
+        if ($file -eq '') {
+            $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        }
         if ("$containerFile" -eq "") {
             throw "$($bcContainerHelperConfig.hostHelperFolder) is not shared with the container, cannot invoke scripts in container without using a session"
         }
