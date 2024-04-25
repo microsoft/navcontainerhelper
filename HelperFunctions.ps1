@@ -535,7 +535,16 @@ function CopyAppFilesToFolder {
         elseif (Test-Path $appFile -PathType Leaf) {
             Get-ChildItem $appFile | ForEach-Object {
                 $appFile = $_.FullName
-                if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                if ($appFile -like "*.app") {
+                    $destFileName = [System.IO.Path]::GetFileName($appFile)
+                    $destFile = Join-Path $folder $destFileName
+                    if (Test-Path $destFile) {
+                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    }
+                    Copy-Item -Path $appFile -Destination $destFile -Force
+                    $destFile
+                }
+                elseif ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
                     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                     $copied = $false
                     try {
@@ -552,15 +561,6 @@ function CopyAppFilesToFolder {
                         Remove-Item -Path $tmpFolder -Recurse -Force
                         if ($copied) { Remove-Item -Path $appFile -Force }
                     }
-                }
-                elseif ($appFile -like "*.app") {
-                    $destFileName = [System.IO.Path]::GetFileName($appFile)
-                    $destFile = Join-Path $folder $destFileName
-                    if (Test-Path $destFile) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                    }
-                    Copy-Item -Path $appFile -Destination $destFile -Force
-                    $destFile
                 }
             }
         }
