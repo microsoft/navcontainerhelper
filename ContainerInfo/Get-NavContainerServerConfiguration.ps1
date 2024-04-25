@@ -14,15 +14,15 @@ Function Get-BcContainerServerConfiguration {
     )
 
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{ Param($ContainerName)
-        $config = Get-NAVServerConfiguration -serverinstance BC -AsXml
-        $Object = [ordered]@{ "ContainerName" = $ContainerName }
+        $config = Get-NavServerInstance | Get-NAVServerConfiguration -AsXml
+        $object = [ordered]@{ "ContainerName" = $ContainerName }
         if ($config) {
             $Config.configuration.appSettings.add | ForEach-Object{
-                $Object += @{ "$($_.Key)" = $_.Value }
+                $object += @{ "$($_.Key)" = $_.Value }
             }
         }
         else {
-            $Object += @{ "ServerInstance" = "" }
+            $object += @{ "ServerInstance" = "" }
         }
         $object | ConvertTo-Json -Depth 99 -compress
     } -argumentList $containerName | ConvertFrom-Json
