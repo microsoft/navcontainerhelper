@@ -191,7 +191,7 @@ function Get-ContainerHelperConfig {
             }
         }
 
-        if ($bcContainerHelperConfig.useWinRmSession -ne 'never') {
+        if ($isWindows -and ($bcContainerHelperConfig.useWinRmSession -ne 'never')) {
             # useWinRmSession should be never if the service isn't running
             $service = get-service WinRm -erroraction SilentlyContinue
             if ($service -and $service.Status -ne "Running") {
