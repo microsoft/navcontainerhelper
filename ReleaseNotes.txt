@@ -1,5 +1,8 @@
 6.0.17
-
+Issue 3518 If WinRm is not running on the host, a container couldn't be created
+Issue 3519 New-BcContainer fails due to password complexity on some computers
+Issue 3522 The 'Expand-Archive' command was found in the module 'Microsoft.PowerShell.Archive',...
+Issue 3523 Copy-FileToBcContainer fails for BcContainerHelper 6.0.16 (added resilience)
 
 6.0.16
 Issue 3477 Regression: Error: App filenames must be unique
