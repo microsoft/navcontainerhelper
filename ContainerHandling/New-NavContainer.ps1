@@ -496,9 +496,11 @@ try {
     if ($isInsideContainer) {
         Write-Host "BcContainerHelper is running inside a Container"
     }
-    Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
-    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.UsePwshForBc24)"
     Write-Host "Host is $($os.Caption) - $hostOsVersion"
+    Write-Host "UsePsSession is $($bcContainerHelperConfig.usePsSession)"
+    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.usePwshForBc24)"
+    Write-Host "UseWinRmSession is $($bcContainerHelperConfig.useWinRmSession)"
+    Write-Host "UseSslForWinRmSession is $($bcContainerHelperConfig.useSslForWinRmSession)"
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerProcess)) {
@@ -1598,15 +1600,16 @@ if (!$restartingInstance) {
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
     }
-    else {
-        $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
+    elseif ($bcContainerHelperConfig.useWinRmSession -ne 'never') {
+        # UseWinRmSession is allow or always - add winrm configuration to container
+        $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
         ('
 if (!$restartingInstance) {
     Write-Host "Enable PSRemoting and setup user for winrm"
     Enable-PSRemoting | Out-Null
     Get-PSSessionConfiguration | Out-null
     pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
-    $credential = New-Object PSCredential -ArgumentList "winrm", (ConvertTo-SecureString -string "'+$UUID+'" -AsPlainText -force)
+    $credential = New-Object PSCredential -ArgumentList "winrm", (ConvertTo-SecureString -string "'+$winRmPassword+'" -AsPlainText -force)
     New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
     Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
     winrm set winrm/config/service/Auth ''@{Basic="true"}'' | Out-Null
