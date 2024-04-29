@@ -60,7 +60,7 @@ function Get-BcContainerSession {
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
-            elseif ($isAdministrator -and !$bcContainerHelperConfig.alwaysUseWinRmSession) {
+            elseif ($isAdministrator -and $bcContainerHelperConfig.useWinRmSession -ne 'always') {
                 try {
                     $containerId = Get-BcContainerId -containerName $containerName
                     $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
