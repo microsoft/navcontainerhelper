@@ -62,7 +62,8 @@ try {
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
-        if ($isAdministrator) {
+        if ($isAdministrator -and ($bcContainerHelperConfig.useWinRmSession -ne 'never') -and (-not $bccontainerHelperConfig.useSslForWinRmSession)) {
+            # If not using SSL for WinRm, we need to remove the container from the trusted hosts
             try {
                 [xml]$conf = winrm get winrm/config/client -format:pretty
                 $trustedHosts = $conf.Client.TrustedHosts.Split(',')

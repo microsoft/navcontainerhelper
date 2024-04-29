@@ -16,8 +16,7 @@ function Get-ContainerHelperConfig {
             "usePsSession" = $true
             "usePwshForBc24" = $true
             "useSslForWinRmSession" = $true
-            "tryWinRmSession" = $isPsCore -or !$isAdministrator
-            "alwaysUseWinRmSession" = $false
+            "useWinRmSession" = "allow"   # allow, always, never
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
             "useVolumes" = $false
@@ -189,6 +188,17 @@ function Get-ContainerHelperConfig {
             }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = $programDataFolder
+            }
+        }
+
+        if ($bcContainerHelperConfig.useWinRmSession -ne 'never') {
+            # useWinRmSession should be never if the service isn't running
+            $service = get-service WinRm -erroraction SilentlyContinue
+            if ($service -and $service.Status -ne "Running") {
+                if (!$Silent) {
+                    Write-Host "WinRM service is not running, will not try to use WinRM sessions"
+                }
+                $bcContainerHelperConfig.useWinRmSession = 'never'
             }
         }
 

@@ -16,8 +16,8 @@ function Get-BcContainerSession {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
-        [switch] $tryWinRmSession = $bccontainerHelperConfig.tryWinRmSession,
-        [switch] $alwaysUseWinRmSession = $bccontainerHelperConfig.alwaysUseWinRmSession,
+        [switch] $tryWinRmSession = ($bccontainerHelperConfig.useWinRmSession -ne 'never'),
+        [switch] $alwaysUseWinRmSession = ($bccontainerHelperConfig.useWinRmSession -eq 'always'),
         [switch] $usePwsh = $bccontainerHelperConfig.usePwshForBc24,
         [switch] $silent,
         [switch] $reinit
@@ -69,12 +69,12 @@ function Get-BcContainerSession {
             }
             if (!$session) {
                 if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
-                    throw "Unable to create session for container $containerName (alwaysUseWinRmSession and tryWinRmSession are both false)"
+                    throw "Unable to create session for container $containerName (cannot use WinRm)"
 
                 }
                 $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
-                $UUID = (Get-CimInstance win32_ComputerSystemProduct).UUID
-                $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $UUID -AsPlainText -force)
+                $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
+                $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $winRmPassword -AsPlainText -force)
                 if ($useSSL) {
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
                     $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
