@@ -1794,6 +1794,18 @@ if (!(dotnet --list-runtimes | Where-Object { $_ -like "Microsoft.NetCore.App 1.
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
+    if ($genericTag -lt [System.Version]"1.0.2.21") {
+        @'
+# Patch Microsoft.PowerShell.Archive to use en-US UI Culture (see https://github.com/PowerShell/Microsoft.PowerShell.Archive/pull/46)
+$psarchiveModule = 'C:\Windows\System32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psm1'
+if (Test-Path $psarchiveModule) {
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule((whoami),'Modify', 'Allow')
+    $acl = Get-Acl -Path $psarchiveModule; $acl.AddAccessRule($rule); Set-Acl -Path $psarchiveModule -AclObject $acl
+    Set-Content -encoding utf8 -path $psarchiveModule -value (Get-Content -encoding utf8 -raw -path $psarchiveModule).Replace("`r`nImport-LocalizedData  LocalizedData -filename ArchiveResources`r`n","`r`nImport-LocalizedData LocalizedData -filename ArchiveResources -UICulture 'en-US'`r`n")
+}
+'@ | Add-Content -Path "$myfolder\SetupVariables.ps1"
+    }
+
     if ($updateHosts) {
         Copy-Item -Path (Join-Path $PSScriptRoot "updatehosts.ps1") -Destination (Join-Path $myfolder "updatehosts.ps1") -Force
         $parameters += "--volume ""c:\windows\system32\drivers\etc:C:\driversetc"""

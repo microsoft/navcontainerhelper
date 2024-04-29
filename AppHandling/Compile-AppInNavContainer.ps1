@@ -499,7 +499,7 @@ try {
                 if (Test-Path -Path $symbolsFile) {
                     $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                         # Wait for file to be accessible in container
-                        While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
+                        While (-not (Test-Path $symbolsFile)) { Start-Sleep -Milliseconds 100 }
 
                         if ($platformversion.Major -ge 15) {
                             Add-Type -AssemblyName System.IO.Compression.FileSystem
