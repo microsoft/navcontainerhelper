@@ -73,6 +73,7 @@ function Download-File {
         if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
             # Do not use CDN when configured or bcinsider
             $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
+            $timeout += $timeout
         }
         try {
             DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
