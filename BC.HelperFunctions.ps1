@@ -19,6 +19,7 @@ function Get-ContainerHelperConfig {
             "useWinRmSession" = "allow"   # allow, always, never
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
+            "usePrereleaseAlTool" = $true
             "useVolumes" = $false
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true

@@ -1228,9 +1228,10 @@ function DownloadLatestAlLanguageExtension {
 
 function RunAlTool {
     Param(
-        [string[]] $arguments
+        [string[]] $arguments,
+        [switch] $usePrereleaseAlTool = ($bccontainerHelperConfig.usePrereleaseAlTool)
     )
-    $path = DownloadLatestAlLanguageExtension
+    $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
         Write-Host "Setting execute permissions on altool"
