@@ -23,7 +23,7 @@ try {
         $id = ""
         $a = "-a"
         if ($doNotIncludeStoppedContainers) {
-            $a = ""
+            $a = $null
         }
 
         $id = docker ps $a --no-trunc --format "{{.ID}}/{{.Names}}" | Where-Object { $containerName -eq $_.split('/')[1] } | ForEach-Object { $_.split('/')[0] }

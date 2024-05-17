@@ -1,35 +1,4 @@
-﻿$useTimeOutWebClient = $false
-if ($PSVersionTable.PSVersion -lt "6.0.0" -or $useTimeOutWebClient) {
-    $timeoutWebClientCode = @"
-	using System.Net;
- 
-	public class TimeoutWebClient : WebClient
-	{
-        int theTimeout;
-
-        public TimeoutWebClient(int timeout)
-        {
-            theTimeout = timeout;
-        }
-
-		protected override WebRequest GetWebRequest(System.Uri address)
-		{
-			WebRequest request = base.GetWebRequest(address);
-			if (request != null)
-			{
-				request.Timeout = theTimeout;
-			}
-			return request;
-		}
- 	}
-"@;
-if (-not ([System.Management.Automation.PSTypeName]"TimeoutWebClient").Type) {
-    Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
-    $useTimeOutWebClient = $true
-}
-}
-
-$sslCallbackCode = @"
+﻿$sslCallbackCode = @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -335,42 +304,6 @@ function AssumeNavContainer {
     }
 }
 
-function TestSasToken {
-    Param
-    (
-        [string] $url
-    )
-
-    $sasToken = "?$("$($url)?".Split('?')[1])"
-    if ($sasToken -eq '?') {
-        # No SAS token in URL
-        return
-    }
-
-    try {
-        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $sv = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sv=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $sig = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sig=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(4)) }
-        if ($sv -ne '2021-10-04' -or $sig -eq '' -or $se -eq '' -or $st -eq '') {
-            throw "Wrong format"
-        }
-        if ([DateTime]::Now -lt [DateTime]$st) {
-            Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
-        }
-        if ([DateTime]::Now -gt [DateTime]$se) {
-            Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
-        }
-        elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
-            Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
-        }
-    }
-    catch {
-        $message = $_.ToString()
-        throw "The sas token provided is not valid, error message was: $message"
-    }
-}
-
 function Expand-7zipArchive {
     Param (
         [Parameter(Mandatory = $true)]
@@ -552,7 +485,7 @@ function CopyAppFilesToFolder {
         New-Item -Path $folder -ItemType Directory | Out-Null
     }
     $appFiles | Where-Object { $_ } | ForEach-Object {
-        $appFile = $_
+        $appFile = "$_"
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
@@ -564,19 +497,23 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Container) {
-            get-childitem $appFile -Filter '*.app' -Recurse | ForEach-Object {
-                $destFile = Join-Path $folder $_.Name
-                if (Test-Path $destFile) {
-                    Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                }
-                Copy-Item -Path $_.FullName -Destination $destFile -Force
-                $destFile
+            Get-ChildItem $appFile -Recurse -File | ForEach-Object {
+                CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
             Get-ChildItem $appFile | ForEach-Object {
                 $appFile = $_.FullName
-                if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                if ($appFile -like "*.app") {
+                    $destFileName = [System.IO.Path]::GetFileName($appFile)
+                    $destFile = Join-Path $folder $destFileName
+                    if (Test-Path $destFile) {
+                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    }
+                    Copy-Item -Path $appFile -Destination $destFile -Force
+                    $destFile
+                }
+                elseif ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
                     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                     $copied = $false
                     try {
@@ -587,22 +524,12 @@ function CopyAppFilesToFolder {
                             $copied = $true
                         }
                         Expand-Archive $appfile -DestinationPath $tmpFolder -Force
-                        Get-ChildItem -Path $tmpFolder -Recurse | Where-Object { $_.Name -like "*.app" -or $_.Name -like "*.zip" } | ForEach-Object {
-                            CopyAppFilesToFolder -appFile $_.FullName -folder $folder
-                        }
+                        CopyAppFilesToFolder -appFiles $tmpFolder -folder $folder
                     }
                     finally {
                         Remove-Item -Path $tmpFolder -Recurse -Force
                         if ($copied) { Remove-Item -Path $appFile -Force }
                     }
-                }
-                else {
-                    $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
-                    if (Test-Path $destFile) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                    }
-                    Copy-Item -Path $appFile -Destination $destFile -Force
-                    $destFile
                 }
             }
         }
@@ -1009,27 +936,6 @@ function GetHash {
     (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
 }
 
-function Wait-Task {
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [System.Threading.Tasks.Task[]]$Task
-    )
-
-    Begin {
-        $Tasks = @()
-    }
-
-    Process {
-        $Tasks += $Task
-    }
-
-    End {
-        While (-not [System.Threading.Tasks.Task]::WaitAll($Tasks, 200)) {}
-        $Tasks.ForEach( { $_.GetAwaiter().GetResult() })
-    }
-}
-Set-Alias -Name await -Value Wait-Task -Force
-
 function DownloadFileLow {
     Param(
         [string] $sourceUrl,
@@ -1041,71 +947,41 @@ function DownloadFileLow {
         [int] $timeout = 100
     )
 
-    if ($useTimeOutWebClient) {
-        Write-Host "Downloading using WebClient"
-        if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
-        }
-        $webClient = New-Object TimeoutWebClient -ArgumentList (1000 * $timeout)
-        $headers.Keys | ForEach-Object {
-            $webClient.Headers.Add($_, $headers."$_")
-        }
-        $webClient.UseDefaultCredentials = $useDefaultCredentials
-        if (Test-Path $destinationFile -PathType Leaf) {
-            if ($dontOverwrite) { 
-                return
-            }
-            Remove-Item -Path $destinationFile -Force
-        }
-        try {
-            $webClient.DownloadFile($sourceUrl, $destinationFile)
-        }
-        finally {
-            $webClient.Dispose()
-            if ($skipCertificateCheck) {
-                Write-Host "Restoring SSL Verification"
-                [SslVerification]::Enable()
-            }
-        }
+    $handler = New-Object System.Net.Http.HttpClientHandler
+    if ($skipCertificateCheck) {
+        Write-Host "Disabling SSL Verification on HttpClient"
+        [SslVerification]::DisableSsl($handler)
+    }
+    if ($useDefaultCredentials) {
+        $handler.UseDefaultCredentials = $true
+    }
+    $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+    $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+    $headers.Keys | ForEach-Object {
+        $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+    }
+    $stream = $null
+    $fileStream = $null
+    if ($dontOverwrite) {
+        $fileMode = [System.IO.FileMode]::CreateNew
     }
     else {
-        Write-Host "Downloading using HttpClient"
-        
-        $handler = New-Object System.Net.Http.HttpClientHandler
-        if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification on HttpClient"
-            [SslVerification]::DisableSsl($handler)
+        $fileMode = [System.IO.FileMode]::Create
+    }
+    try {
+        $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+        $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+        if (-not $stream.CopyToAsync($fileStream).Wait($timeout * 1000)) {
+            throw "Timeout downloading file"
         }
-        if ($useDefaultCredentials) {
-            $handler.UseDefaultCredentials = $true
-        }
-        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
-        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
-        $headers.Keys | ForEach-Object {
-            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
-        }
-        $stream = $null
-        $fileStream = $null
-        if ($dontOverwrite) {
-            $fileMode = [System.IO.FileMode]::CreateNew
-        }
-        else {
-            $fileMode = [System.IO.FileMode]::Create
-        }
-        try {
-            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
-            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+    }
+    finally {
+        if ($fileStream) {
             $fileStream.Close()
+            $fileStream.Dispose()
         }
-        finally {
-            if ($fileStream) {
-                $fileStream.Dispose()
-            }
-            if ($stream) {
-                $stream.Dispose()
-            }
+        if ($stream) {
+            $stream.Dispose()
         }
     }
 }
@@ -1180,6 +1056,7 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
+                    Write-Host " (succeeded using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1206,8 +1083,9 @@ function GetAppInfo {
                         "platform"              = "$($manifest.Platform)"
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
+                    $packageStream.Close()
+                    Write-Host " (succeeded using codeanalysis)"
                 }
-                Write-Host " (succeeded)"
                 if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $path -Value $appInfo
                     $cacheUpdated = $true
@@ -1299,6 +1177,17 @@ function DownloadLatestAlLanguageExtension {
         [switch] $allowPrerelease
     )
 
+    # Check if we already have the latest version downloaded and located in this session
+    if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
+        $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
+        if (Test-Path $path -PathType Container) {
+            return $path
+        }
+        else {
+            $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
+        }
+    }
+    
     $mutexName = "DownloadAlLanguageExtension"
     $mutex = New-Object System.Threading.Mutex($false, $mutexName)
     try {
@@ -1311,17 +1200,6 @@ function DownloadLatestAlLanguageExtension {
         }
         catch [System.Threading.AbandonedMutexException] {
            Write-Host "Other process terminated abnormally"
-        }
-
-        # Check if we already have the latest version downloaded and located in this session
-        if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
-            $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
-            if (Test-Path $path -PathType Container) {
-                return $path
-            }
-            else {
-                $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
-            }
         }
 
         $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
@@ -1350,10 +1228,10 @@ function DownloadLatestAlLanguageExtension {
 
 function RunAlTool {
     Param(
-        [string[]] $arguments
+        [string[]] $arguments,
+        [switch] $usePrereleaseAlTool = ($bccontainerHelperConfig.usePrereleaseAlTool)
     )
-    # ALTOOL is at the moment only available in prerelease        
-    $path = DownloadLatestAlLanguageExtension -allowPrerelease
+    $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
         Write-Host "Setting execute permissions on altool"
@@ -1387,4 +1265,37 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $version = $minVersion
     }
     return $version
+}
+
+function ReplaceCDN {
+    Param(
+        [string] $sourceUrl,
+        [switch] $useBlobUrl
+    )
+
+    $bcCDNs = @(
+        @{ "oldCDN" = "bcartifacts.azureedge.net";         "newCDN" = "bcartifacts-exdbf9fwegejdqak.b02.azurefd.net";         "blobUrl" = "bcartifacts.blob.core.windows.net" },
+        @{ "oldCDN" = "bcinsider.azureedge.net";           "newCDN" = "bcinsider-fvh2ekdjecfjd6gk.b02.azurefd.net";           "blobUrl" = "bcinsider.blob.core.windows.net" },
+        @{ "oldCDN" = "bcpublicpreview.azureedge.net";     "newCDN" = "bcpublicpreview-f2ajahg0e2cudpgh.b02.azurefd.net";     "blobUrl" = "bcpublicpreview.blob.core.windows.net" },
+        @{ "oldCDN" = "businesscentralapps.azureedge.net"; "newCDN" = "businesscentralapps-hkdrdkaeangzfydv.b02.azurefd.net"; "blobUrl" = "businesscentralapps.blob.core.windows.net" },
+        @{ "oldCDN" = "bcprivate.azureedge.net";           "newCDN" = "bcprivate-fmdwbsb3ekbkc0bt.b02.azurefd.net";           "blobUrl" = "bcprivate.blob.core.windows.net" }
+    )
+
+    foreach($cdn in $bcCDNs) {
+        $found = $false
+        $cdn.blobUrl, $cdn.newCDN, $cdn.oldCDN | ForEach-Object {
+            if ($sourceUrl.ToLowerInvariant().StartsWith("https://$_/")) {
+                $sourceUrl = "https://$(if($useBlobUrl){$cdn.blobUrl}else{$cdn.newCDN})/$($sourceUrl.Substring($_.Length+9))"
+                $found = $true
+            }
+            if ($sourceUrl -eq $_) {
+                $sourceUrl = "$(if($useBlobUrl){$cdn.blobUrl}else{$cdn.newCDN})"
+                $found = $true
+            }
+        }
+        if ($found) {
+            break
+        }
+    }
+    $sourceUrl
 }

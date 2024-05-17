@@ -30,40 +30,24 @@ function Invoke-ScriptInBcContainer {
         [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
-    $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
-    $containerFile = ""
-    $shell = 'powershell'
-    if ($usePwsh) {
-        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
-        if ($platformVersion -ge [System.Version]"24.0.0.0") {
-            $useSession = $false
-            $shell = 'pwsh'
-        }
-        else {
-            $usePwsh = $false
-        }
-    }
-    if (-not $usePwsh) {
-        if ($isInsideContainer) {
+    $file = ''
+    if (!$useSession) {
+        $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        if ($isInsideContainer -or "$containerFile" -eq "") {
             $useSession = $true
-        }
-        else {
-            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-            if ("$containerFile" -eq "") {
-                $useSession = $true
-            }
         }
     }
 
     if ($useSession) {
         try {
-            $session = Get-BcContainerSession -containerName $containerName -silent
+            $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
         }
         catch {
             if ($isInsideContainer) {
                 Write-Host "Error trying to establish session, retrying in 5 seconds"
                 Start-Sleep -Seconds 5
-                $session = Get-BcContainerSession -containerName $containerName -silent
+                $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
             }
             else {
                 $useSession = $false
@@ -89,6 +73,7 @@ function Invoke-ScriptInBcContainer {
                $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName, $startTime)
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     Write-Host "`nContainer Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+                    Get-PSDrive C | ForEach-Object { Write-Host "Disk C: Free $([Math]::Round($_.Free / 1GB))Gb from $([Math]::Round(($_.Free+$_.Used) / 1GB))Gb" }
                     $any = $false
                     Write-Host "`nServices in container $($containerName):"
                     Get-Service |
@@ -128,8 +113,19 @@ function Invoke-ScriptInBcContainer {
             throw $errorMessage
         }
     } else {
+        if ($file -eq '') {
+            $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        }
         if ("$containerFile" -eq "") {
-            $containerFile = Get-BcContainerPath -containerName $containerName -path $file -throw
+            throw "$($bcContainerHelperConfig.hostHelperFolder) is not shared with the container, cannot invoke scripts in container without using a session"
+        }
+        $shell = 'powershell'
+        if ($usePwsh) {
+            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ($platformVersion -ge [System.Version]"24.0.0.0") {
+                $shell = 'pwsh'
+            }
         }
         $hostOutputFile = "$file.output"
         $containerOutputFile = "$containerFile.output"
@@ -240,6 +236,7 @@ if ($exception) {
        $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
             $cimInstance = Get-CIMInstance Win32_OperatingSystem
             Write-Host "Container Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+            Get-PSDrive C | ForEach-Object { Write-Host "Disk C: Free $([Math]::Round($_.Free / 1GB))Gb from $([Math]::Round(($_.Free+$_.Used) / 1GB))Gb" }
             $any = $false
             Write-Host "`nServices in container $($containerName):"
             Get-Service |
