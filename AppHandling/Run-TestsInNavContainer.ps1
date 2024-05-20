@@ -106,7 +106,7 @@ function Run-TestsInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
         [Parameter(Mandatory=$false)]
-        [string] $testCodeunitRange = "*",
+        [string] $testCodeunitRange = "",
         [Parameter(Mandatory=$false)]
         [string] $testFunction = "*",
         [string] $extensionId = "",

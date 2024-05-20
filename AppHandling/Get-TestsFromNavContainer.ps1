@@ -64,7 +64,7 @@ function Get-TestsFromBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
         [Parameter(Mandatory=$false)]
-        [string] $testCodeunitRange,
+        [string] $testCodeunitRange = "",
         [string] $extensionId = "",
         [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
