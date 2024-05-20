@@ -101,6 +101,28 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-TestCodeunitRange
+(
+    [string] $testCodeunitRange,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+) {
+    Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    if (!$testCodeunitRange) { return }
+    if ($testCodeunitRange -eq "*") { $testCodeunitRange = "0.." }
+
+    if ($debugMode) {
+        Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    }
+    $testCodeunitRangeControl = $ClientContext.GetControlByName($Form, "TestCodeunitRangeFilter")
+    if ($null -eq $testCodeunitRangeControl) { 
+        if ($debugMode) { Write-Host "Test codeunit range control not found on test page" }
+        return 
+    }
+    $ClientContext.SaveValue($testCodeunitRangeControl, $testCodeunitRange)
+}
+
 function Set-TestRunnerCodeunitId
 (
     [string] $testRunnerCodeunitId,
@@ -304,6 +326,7 @@ function Get-Tests {
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $extensionId = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
@@ -345,6 +368,7 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
@@ -492,6 +516,7 @@ function Run-Tests {
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
@@ -558,6 +583,7 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
