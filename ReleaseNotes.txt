@@ -2,6 +2,7 @@
 Use altool from prerelease AL Language extension
 Display disk free inside container on error
 Create AppInfo cache on creating a new compiler folder
+Add support for using `TestCodeunitRangeFilter` field in `Run-TestsInBcContainer` and `Get-TestsFromBcContainer`
 
 6.0.17
 Issue 3518 If WinRm is not running on the host, a container couldn't be created
