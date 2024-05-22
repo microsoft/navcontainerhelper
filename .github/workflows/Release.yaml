@@ -100,7 +100,7 @@ jobs:
             Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
             
             Write-Host "Upload to storage (preview)"
-            $storageContext = New-AzStorageContext -StorageAccountName 'businesscentralapps' -UseConnectedAccount
+            $storageContext = New-AzStorageContext -StorageAccountName 'bccontainerhelper' -UseConnectedAccount
             New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
           
             Compress-Archive -path $path -DestinationPath "$($path).zip"
