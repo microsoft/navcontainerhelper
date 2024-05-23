@@ -1135,11 +1135,7 @@ function GetAppInfo {
             $appInfoCache = @{}
         }
     }
-    switch ($true) {
-        $env:BUILD_BUILDID { Write-Host "##[group]Getting .app info $cacheAppInfoPath"; break } #Azure Pipelines
-        $env:CI { Write-Host "::group::Getting .app info $cacheAppInfoPath"; break } #Github Actions
-        Default { Write-Host "Getting .app info $cacheAppInfoPath"}
-    }
+    Write-GroupStart -Message "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1251,10 +1247,7 @@ function GetAppInfo {
             $packageStream.Dispose()
         }
     }
-    switch ($true) {
-        $env:BUILD_BUILDID { Write-Host "##[endgroup]"; break } #Azure Pipelines
-        $env:CI { Write-Host "::endgroup::"; break } #Github Actions
-    }
+    Write-GroupEnd
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
@@ -1394,4 +1387,19 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $version = $minVersion
     }
     return $version
+}
+
+function Write-GroupStart([string] $Message) {
+    switch ($true) {
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::group::$Message"; break }
+        Default { Write-Host $Message}
+    }
+}
+
+function Write-GroupEnd {
+     switch ($true) {
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
+    }
 }

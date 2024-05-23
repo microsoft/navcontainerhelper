@@ -117,6 +117,8 @@ function Get-ContainerHelperConfig {
             "MSAppsNuGetFeedUrl" = 'https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json'
             "TrustedNuGetFeeds" = @(
             )
+            "IsGitHubActions" = [Boolean]$env:CI
+            "IsAzureDevOps" = [Boolean]$env:BUILD_BUILDID
         }
 
         if ($isInsider) {
