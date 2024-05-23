@@ -321,9 +321,9 @@ Param(
     [switch] $installPerformanceToolkit,
     [switch] $CopySymbolsFromContainer,
     [switch] $UpdateDependencies,
-    [switch] $azureDevOps,
+    [switch] $azureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
     [switch] $gitLab,
-    [switch] $gitHubActions,
+    [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
     [ValidateSet('none','error','warning')]
     [string] $failOn = "none",
     [switch] $treatTestFailuresAsWarnings,

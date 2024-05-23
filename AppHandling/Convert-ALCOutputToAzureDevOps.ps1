@@ -28,7 +28,7 @@ Function Convert-AlcOutputToDevOps {
         [Parameter(Position=1)]
         [ValidateSet('none','error','warning')]
         [string] $FailOn,
-        [switch] $gitHubActions,
+        [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $doNotWriteToHost,
         [string] $basePath = ''
     )
