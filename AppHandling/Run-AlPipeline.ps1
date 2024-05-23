@@ -322,7 +322,7 @@ Param(
     [switch] $CopySymbolsFromContainer,
     [switch] $UpdateDependencies,
     [switch] $azureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
-    [switch] $gitLab,
+    [switch] $gitLab = $bcContainerHelperConfig.IsGitLab,
     [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
     [ValidateSet('none','error','warning')]
     [string] $failOn = "none",
