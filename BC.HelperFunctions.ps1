@@ -121,7 +121,7 @@ function Get-ContainerHelperConfig {
             "TrustedNuGetFeeds" = @(
             )
             "IsGitHubActions" = [Boolean]$env:CI
-            "IsAzureDevOps" = [Boolean]$env:BUILD_BUILDID
+            "IsAzureDevOps" = [Boolean]$env:TF_BUILD
         }
 
         if ($isInsider) {
