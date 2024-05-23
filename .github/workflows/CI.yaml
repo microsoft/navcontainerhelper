@@ -230,7 +230,7 @@ jobs:
                                   -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
 
             $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
-            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
+            [System.IO.File]::WriteAllBytes($certFileName, ([Convert]::FromBase64String('${{ secrets.CodeSignCertificatePfx }}')))
 
             Remove-Module BcContainerHelper
           
