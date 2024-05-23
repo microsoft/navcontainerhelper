@@ -15,9 +15,11 @@ function Get-ContainerHelperConfig {
             "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{1}-filesonly'
             "usePsSession" = $true
             "usePwshForBc24" = $true
-            "tryWinRmSession" = !$isAdministrator
+            "useSslForWinRmSession" = $true
+            "useWinRmSession" = "allow"   # allow, always, never
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
+            "usePrereleaseAlTool" = $true
             "useVolumes" = $false
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
@@ -33,6 +35,8 @@ function Get-ContainerHelperConfig {
             "useSharedEncryptionKeys" = $true
             "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
+            "artifactDownloadTimeout" = 300
+            "defaultDownloadTimeout" = 100
             "baseUrl" = "https://businesscentral.dynamics.com"
             "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
             "mapCountryCode" = [PSCustomObject]@{
@@ -101,7 +105,6 @@ function Get-ContainerHelperConfig {
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
             "DoNotUseCdnForArtifacts" = $false
-            "ArtifactsFeedOrganizationAndProject" = ""
             "MinimumDotNetRuntimeVersionStr" = "6.0.16"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
             "AlpacaSettings" = [PSCustomObject]@{
@@ -188,6 +191,17 @@ function Get-ContainerHelperConfig {
             }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = $programDataFolder
+            }
+        }
+
+        if ($isWindows -and ($bcContainerHelperConfig.useWinRmSession -ne 'never')) {
+            # useWinRmSession should be never if the service isn't running
+            $service = get-service WinRm -erroraction SilentlyContinue
+            if ($service -and $service.Status -ne "Running") {
+                if (!$Silent) {
+                    Write-Host "WinRM service is not running, will not try to use WinRM sessions"
+                }
+                $bcContainerHelperConfig.useWinRmSession = 'never'
             }
         }
 

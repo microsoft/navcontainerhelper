@@ -35,6 +35,7 @@ try {
     try {
         Copy-Item -Path $localPath -Destination $tempFile
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($tempFile, $containerPath)
+            While (-not (Test-Path $tempFile)) { Start-Sleep -Milliseconds 100 }
             if (Test-Path $containerPath -PathType Container) {
                 throw "ContainerPath ($containerPath) already exists as a folder. Cannot copy file, ContainerPath needs to specify a filename."
             }

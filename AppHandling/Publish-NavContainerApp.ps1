@@ -310,6 +310,7 @@ try {
             }
             else {
                 [ScriptBlock] $scriptblock = { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
+                    $prevPreference = $ProgressPreference; $ProgressPreference = "SilentlyContinue"
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
                         $publishArgs += @{ "Scope" = $scope }
@@ -394,6 +395,7 @@ try {
                             Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @installArgs
                         }
                     }
+                    $ProgressPreference = $prevPreference
                 }
                 if ($isCloudBcContainer) {
                     $containerPath = Join-Path 'C:\DL' ([System.IO.Path]::GetFileName($appfile))

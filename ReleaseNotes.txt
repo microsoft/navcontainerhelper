@@ -1,4 +1,40 @@
+6.0.18
+Use altool from prerelease AL Language extension
+Display disk free inside container on error
+Create AppInfo cache on creating a new compiler folder
+Add support for using `TestCodeunitRangeFilter` field in `Run-TestsInBcContainer` and `Get-TestsFromBcContainer`
+
+6.0.17
+Issue 3518 If WinRm is not running on the host, a container couldn't be created
+Issue 3519 New-BcContainer fails due to password complexity on some computers
+Issue 3522 The 'Expand-Archive' command was found in the module 'Microsoft.PowerShell.Archive',...
+Issue 3523 Copy-FileToBcContainer fails for BcContainerHelper 6.0.16 (added resilience)
+
+6.0.16
+Issue 3477 Regression: Error: App filenames must be unique
+Issue 3478 New-bccontainer fails on BC24 using option -UseNewDatabase
+Allow CustomCodeCops to be a URL for just-in-time download instead of a file shared with the container
+
+6.0.15
+Issue 3467 Can't create a backup of a container with the Backup-BCContainerDatabases commandlet
+Use PowerShell 5 in places where invoke-sqlcmd or other functions from the SqlServer PowerShell module are used
+
+6.0.14
+Issue 3465 Regression: Flush-ContainerHelperCache calculates wrong CacheFolder
+
+6.0.13
+Issue 3452 Error when running Run-AlValidation : Unable to load one or more of the requested types. Retrieve the LoaderExceptions property for more information.
+Issue 3454 DockerDo : Cannot bind argument to parameter 'imageName' because it is an empty string.
+Issue 3354 Regression : Compile Folder removal of symbols folder fails: The process cannot access the file
+Issue 3460 Do not install SqlServer PowerShell module
+
 6.0.12
+Issue 3432 New-BcContainerWizard stopped working after generic images with ltsc2016, ltsc2019 and ltsc2022 was introduced
+Make parameters in Copy-AppFilesToFolder mandatory
+Support .zip files in folders in Copy-AppFilesToFolder
+Issue 3431 Run-TestsInBcContainer, Get-TestsFromBcContainer and Run-ConnectionTest doesn't work if container is using SSL
+Issue 3427 New-BCContainer in version 6.0.11 failed to run completely
+Issue 3444 Container Creation fails at "Installing ASP.NET Core 1.1"
 
 6.0.11
 Issue 3420 New-BcImage uses hyperv even if it is disabled

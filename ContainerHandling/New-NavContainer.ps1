@@ -496,8 +496,11 @@ try {
     if ($isInsideContainer) {
         Write-Host "BcContainerHelper is running inside a Container"
     }
-    Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
     Write-Host "Host is $($os.Caption) - $hostOsVersion"
+    Write-Host "UsePsSession is $($bcContainerHelperConfig.usePsSession)"
+    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.usePwshForBc24)"
+    Write-Host "UseWinRmSession is $($bcContainerHelperConfig.useWinRmSession)"
+    Write-Host "UseSslForWinRmSession is $($bcContainerHelperConfig.useSslForWinRmSession)"
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerProcess)) {
@@ -539,16 +542,9 @@ try {
         # When using artifacts, you always use best container os - no need to replatform
         $useBestContainerOS = $false
 
-        if ($artifactUrl -like 'https://bcinsider.blob.core.windows.net/*' -or $artifactUrl -like 'https://bcinsider.azureedge.net/*') {
+        if ($artifactUrl -like 'https://bcinsider*') {
             if (!$accept_insiderEULA) {
-                $sasToken = "?$("$($artifactUrl)?".Split('?')[1])"
-                if ($sasToken -eq '?') {
-                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
-                }
-                else {
-                    TestSasToken -url $artifactUrl
-                    Write-Host -ForegroundColor Yellow "After October 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
-                }
+                throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula"
             }
         }
 
@@ -563,10 +559,10 @@ try {
             Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
             $country = $appManifest.Country.ToLowerInvariant()
             if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
-                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+                $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/$country/3048953.bclicense"
             }
             else {
-                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+                $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/w1/3048953.bclicense"
             }
         }
 
@@ -785,7 +781,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.15") {
+                if ($genericTagVersion -lt [Version]"1.0.2.20") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -1603,8 +1599,76 @@ if (!$restartingInstance) {
     Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-
     }
+    elseif ($bcContainerHelperConfig.useWinRmSession -ne 'never') {
+        # UseWinRmSession is allow or always - add winrm configuration to container
+        $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
+        ('
+if (!$restartingInstance) {
+    Write-Host "Enable PSRemoting and setup user for winrm"
+    Enable-PSRemoting | Out-Null
+    Get-PSSessionConfiguration | Out-null
+    pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
+    $credential = New-Object PSCredential -ArgumentList "winrm", (ConvertTo-SecureString -string "'+$winRmPassword+'" -AsPlainText -force)
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
+    Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
+    winrm set winrm/config/service/Auth ''@{Basic="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    if ($bccontainerHelperConfig.useSslForWinRmSession) {
+        $additionalParameters += @("--expose 5986")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Creating self-signed certificate for winrm"
+    $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $env:computername -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$env:computername""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+    else {
+        $additionalParameters += @("--expose 5985")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Allow unencrypted communication to container"
+    winrm set winrm/config/service ''@{AllowUnencrypted="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+
+    if (-not $bccontainerHelperConfig.useSslForWinRmSession) {
+        try {
+            [xml]$conf = winrm get winrm/config/client -format:pretty
+            $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
+            if (-not $trustedHosts) {
+                $trustedHosts = @()
+            }
+            $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
+            if (!($isTrusted)) {
+                if (!$isAdministrator) {
+                    Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
+                }
+                else {
+                    Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
+                    $trustedHosts += $containerName
+                    winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
+                }
+            }
+            if ($conf.Client.AllowUnencrypted -eq 'false') {
+                if (!$isAdministrator) {
+                    Write-Host "Unencrypted communication is not allowed. You need to get an administrator to allow unencrypted communication"
+                }
+                else {
+                    Write-Host "Allow unencrypted communication"
+                    winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
+                }
+            }
+        }
+        catch {
+            Write-Host "Unexpected error when checking winrm configuration, you might not be able to connect to the container using winrm unencrypted"
+        }
+    }
+    }
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -1663,8 +1727,8 @@ if (!(Test-Path "c:\navpfiles\*")) {
     if ($assignPremiumPlan -and !$restoreBakFolder -and !$skipDatabase) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
-              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-            ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
+. "c:\run\SetupNavUsers.ps1"
+') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
         if ($version.Major -ge 15) {
@@ -1704,13 +1768,13 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
         ('# Invoke default behavior
-          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-        ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+. "c:\run\SetupVariables.ps1"
+') | Set-Content -Path "$myfolder\SetupVariables.ps1"
     }
     if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
         ('# Invoke default behavior
-          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-        ') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
+. "c:\run\HelperFunctions.ps1"
+') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
     }
 
     if ($version.Major -ge 24 -and $genericTag -eq [System.Version]"1.0.2.15") {
@@ -1722,18 +1786,24 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/navstart.ps1" -destinationFile (Join-Path $myFolder "navstart.ps1")
     }
 
-    if ($version.Major -ge 24) {
-        ('
-if (!(Get-Command "invoke-sqlcmd" -ErrorAction SilentlyContinue)) { Install-package SqlServer -Force -RequiredVersion 21.1.18256 | Out-Null }
-') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
-    }
-
     if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {
         Write-Host "Patching container to install ASP.NET Core 1.1"
         Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
         ('
-if (Test-Path "c:\run\my\dotnetcore.exe") { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet; Remove-Item "c:\run\my\dotnetcore.exe" -Force }
+if (!(dotnet --list-runtimes | Where-Object { $_ -like "Microsoft.NetCore.App 1.1.*" })) { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($genericTag -lt [System.Version]"1.0.2.21") {
+        @'
+# Patch Microsoft.PowerShell.Archive to use en-US UI Culture (see https://github.com/PowerShell/Microsoft.PowerShell.Archive/pull/46)
+$psarchiveModule = 'C:\Windows\System32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psm1'
+if (Test-Path $psarchiveModule) {
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule((whoami),'Modify', 'Allow')
+    $acl = Get-Acl -Path $psarchiveModule; $acl.AddAccessRule($rule); Set-Acl -Path $psarchiveModule -AclObject $acl
+    Set-Content -encoding utf8 -path $psarchiveModule -value (Get-Content -encoding utf8 -raw -path $psarchiveModule).Replace("`r`nImport-LocalizedData  LocalizedData -filename ArchiveResources`r`n","`r`nImport-LocalizedData LocalizedData -filename ArchiveResources -UICulture 'en-US'`r`n")
+}
+'@ | Add-Content -Path "$myfolder\SetupVariables.ps1"
     }
 
     if ($updateHosts) {

@@ -17,9 +17,6 @@ function Get-BcContainerImageLabels {
         [PSCredential] $registryCredential
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $webclient = New-Object System.Net.WebClient
 
@@ -72,15 +69,6 @@ try {
     }
     catch {
     }
-
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerImageLabels -Value Get-BcContainerImageLabels
 Export-ModuleMember -Function Get-BcContainerImageLabels -Alias Get-NavContainerImageLabels

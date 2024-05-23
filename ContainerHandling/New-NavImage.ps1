@@ -205,10 +205,10 @@ try {
         Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
         $country = $appManifest.Country.ToLowerInvariant()
         if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
-            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+            $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/$country/3048953.bclicense"
         }
         else {
-            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+            $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/w1/3048953.bclicense"
         }
     }
 
@@ -273,7 +273,7 @@ try {
                     $labels = Get-BcContainerImageLabels -imageName $baseImage -registryCredential $registryCredential
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                    if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
+                    if ((ReplaceCDN -sourceUrl $imageArtifactUrl -useBlobUrl) -ne (ReplaceCDN -sourceUrl $artifactUrl.Split('?')[0] -useBlobUrl)) {
                         Write-Host "Image $imageName was built with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
                         $forceRebuild = $true
                     }
