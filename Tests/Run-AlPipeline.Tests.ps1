@@ -29,7 +29,7 @@ Describe 'Run-AlPipeline' {
             -installApps @("https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/24.0.0/bcsamples-bingmaps.pte-main-Apps-24.0.169.0.zip") `
             -appFolders "app,base" `
             -testFolders @("test") `
-            -previousApps @("https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/19.0.0/bcsamples-bingmaps.pte-main-Apps-19.0.168.0.zip") `
+            -previousApps @((Join-Path $PSScriptRoot 'helloworld-previousapps.zip')) `
             -additionalCountries "dk,de" `
             -appBuild ([int32]::MaxValue) `
             -appRevision 0 `
