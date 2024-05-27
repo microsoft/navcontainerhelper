@@ -4,7 +4,7 @@ Display disk free inside container on error
 Create AppInfo cache on creating a new compiler folder
 Add support for using `TestCodeunitRangeFilter` field in `Run-TestsInBcContainer` and `Get-TestsFromBcContainer`
 Issue 3206 Auto-Consent the Permissions requested after using New-AadAppsForBc
-Issue 3455 Copy-AlSourceFiles.ps1 does not copy RDLC and DOCS Files with the new report layout definition
+Issue 3544 Copy-AlSourceFiles.ps1 does not copy RDLC and DOCS Files with the new report layout definition
 Issue 3550 Run-AlValidation is checking wrong runtime version
 Issue 3555 Increase default timeout
 
