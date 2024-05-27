@@ -260,9 +260,9 @@
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld for Per Tenant Extension example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.pte for Per Tenant Extension example
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld.AppSource for AppSource example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.appsource for AppSource example
 
 #>
 function Run-AlPipeline {

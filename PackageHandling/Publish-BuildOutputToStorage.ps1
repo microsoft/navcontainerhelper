@@ -3,7 +3,7 @@
   Function for publishing build output from Run-AlPipeline to storage account
  .Description
   Function for publishing build output to storage account
-  The function will publish artifacts in the format of https://businesscentralapps.blob.core.windows.net/bingmaps/16.0.10208.0/apps.zip
+  The function will publish artifacts in the format of https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/19.0.0/bcsamples-bingmaps.pte-main-Apps-19.0.168.0.zip
   Please consult the CI/CD Workshop document at http://aka.ms/cicdhol to learn more about this function
  .Parameter StorageConnectionString
   A connectionstring with access to the storage account in which you want to publish artifacts (SecureString or String)

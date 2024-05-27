@@ -29,6 +29,8 @@
   Indicates whether the well known PowerShell AppID (1950a258-227b-4e31-a9cf-717495945fc2) should be pre-authorized for access
  .Parameter useCurrentMicrosoftGraphConnection
   Specify this switch to use the current Microsoft Graph Connection instead of invoking Connect-MgGraph (which will pop up a UI)
+ .Parameter autoConsent
+  Specify that this will automatically grant Admin permissions to the created application registration. (Cloud Application Administrator role required)
  .Example
   New-AadAppsForBC -accessToken $accessToken -appIdUri https://mycontainer.mydomain/bc/
  .Example
@@ -53,7 +55,8 @@ function New-AadAppsForBc {
         [switch] $SingleTenant,
         [switch] $preAuthorizePowerShell,
         [switch] $useCurrentMicrosoftGraphConnection,
-        [Hashtable] $bcAuthContext
+        [Hashtable] $bcAuthContext,
+        [switch] $autoConsent
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -187,6 +190,38 @@ try {
         "IsEnabled" = $true
     }
     Update-MgApplication -ApplicationId $ssoAdApp.Id -Api @{Oauth2PermissionScopes = $oauth2PermissionScopes}
+
+    if ($autoConsent.IsPresent) {
+        try {
+            $SsoAdAppId = $AdProperties["SsoAdAppId"]
+            $sp = @( $null, $null )
+            $idx = 0
+            $ssoAdAppId | ForEach-Object {
+                $appId = $_
+                $app = Get-MgApplication -All | Where-Object { $_.AppId -eq $appId }
+                if (!$app) {
+                    Write-Host -NoNewline "Waiting for AD App synchronization."
+                    do {
+                        Start-Sleep -Seconds 2
+                        $app = Get-MgApplication -All | Where-Object { $_.AppId -eq $appId }
+                    } while (!$app)
+                }
+                $sp[$idx] = Get-MgServicePrincipal -All | Where-Object { $_.AppId -eq $appId }
+                if (!$sp[$idx]) {
+                    $sp[$idx] = New-MgServicePrincipal -AppId $appId -Tags @("WindowsAzureActiveDirectoryIntegratedApp")
+                }
+                $idx++
+            }
+            $client = Get-MgServicePrincipal -Filter "appId eq '$appId'"
+            $resource = Get-MgServicePrincipal -Filter "servicePrincipalNames / any(n: n eq 'https://graph.microsoft.com/')"
+            New-MgOAuth2PermissionGrant -ClientId $client.Id -ConsentType "AllPrincipals" -ResourceId $resource.Id
+            Write-Host "Installing Microsoft.Graph PowerShell package"
+        }
+        catch {
+            Write-Error "An error occurred while attempting to automatically consent to the created application: $_"
+            Write-Warning "Note: Cloud Application Administrator role required."
+        }
+    }
 
     if ($IncludeApiAccess) {
         $appRoleId = [Guid]::NewGuid().ToString()
