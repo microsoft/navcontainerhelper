@@ -86,8 +86,7 @@
  .Parameter outputFolder
   This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
  .Parameter artifact
-  The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select/sastoken, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
-  If you specify accept_insiderEula, you do not need to specify a sasToken
+  The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS. Default is calling Get-BestGenericImageName.
  .Parameter buildArtifactFolder
@@ -261,9 +260,9 @@
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld for Per Tenant Extension example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.pte for Per Tenant Extension example
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld.AppSource for AppSource example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.appsource for AppSource example
 
 #>
 function Run-AlPipeline {
@@ -388,7 +387,7 @@ Param(
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
-    if ($path) {
+    if ($path -and $path -notlike 'https://*') {
         if (-not [System.IO.Path]::IsPathRooted($path)) {
             if (Test-Path -path (Join-Path $baseFolder $path)) {
                 $path = Join-Path $baseFolder $path -Resolve
@@ -411,7 +410,7 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
     $path
 }
 
-Function UpdateLaunchJson {
+function UpdateLaunchJson {
     Param(
         [string] $launchJsonFile,
         [System.Collections.Specialized.OrderedDictionary] $launchSettings
@@ -466,9 +465,11 @@ function GetInstalledAppIds {
         $installedApps = @()
     }
     Write-Host "::group::Installed Apps"
-    $installedApps | ForEach-Object { Write-Host "- $($_.AppId):$($_.Name)" }
+    $installedApps | ForEach-Object {
+        Write-Host "- $($_.AppId):$($_.Name)"
+        "$($_.AppId)"
+    }
     Write-Host "::endgroup::"
-    return $installedApps.AppId
 }
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -481,6 +482,17 @@ if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
 }
 if ($sharedFolder -and !(Test-Path $sharedFolder -PathType Container)) {
     throw "If sharedFolder is specified, it must be an existing folder"
+}
+
+if($keepContainer -and !$credential) {
+    # If keepContainer is specified, credentials must also be specified, as otherwise the container will be created with a random password and there will be no way to access it.
+    throw "If keepContainer is specified, you must also specify credentials"
+}
+
+if(!$credential) {
+    # Create a random password to use, as the container will not be kept after the pipeline finishes.
+    $password = GetRandomPassword
+    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
 
 if ($memoryLimit -eq "") {
@@ -501,7 +513,7 @@ if ($customCodeCops                 -is [String]) { $customCodeCops = @($customC
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
-$customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { Test-Path $_ } )
+$customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { $_ -like 'https://*' -or (Test-Path $_) } )
 $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
 $containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
@@ -603,24 +615,21 @@ else {
     $version = $segments[2]
     $country = $segments[3]; if ($country -eq "") { $country = "us" }
     $select = $segments[4]; if ($select -eq "") { $select = "latest" }
-    $sasToken = $segments[5]
 
     Write-Host "Determining artifacts to use"
     $minsto = $storageAccount
     $minsel = $select
-    $mintok = $sasToken
     if ($additionalCountries) {
         $minver = $null
         @($country)+$additionalCountries | ForEach-Object {
-            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
+            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
             Write-Host "Found $($url.Split('?')[0])"
             if ($url) {
                 $ver = [Version]$url.Split('/')[4]
                 if ($minver -eq $null -or $ver -lt $minver) {
                     $minver = $ver
-                    $minsto = $url.Split('/')[2].Split('.')[0]
+                    $minsto = (ReplaceCDN -sourceUrl $url.Split('/')[2] -useBlobUrl).Split('.')[0]
                     $minsel = "Latest"
-                    $mintok = $url.Split('?')[1]; if ($mintok) { $mintok = "?$mintok" }
                 }
             }
         }
@@ -629,7 +638,7 @@ else {
         }
         $version = $minver.ToString()
     }
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
@@ -651,7 +660,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "Container name                  "; Write-Host $containerName
 Write-Host -NoNewLine -ForegroundColor Yellow "Image name                      "; Write-Host $imageName
 Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                     "; Write-Host $artifactUrl.Split('?')[0]
-Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                        "; if ($artifactUrl.Contains('?')) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext                   "; if ($bcauthcontext) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "Environment                     "; Write-Host $environment
 Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer                  "; Write-Host $reUseContainer
@@ -660,15 +668,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "useCompilerFolder               "
 Write-Host -NoNewLine -ForegroundColor Yellow "artifactCachePath               "; Write-Host $artifactCachePath
 Write-Host -NoNewLine -ForegroundColor Yellow "useDevEndpoint                  "; Write-Host $useDevEndpoint
 Write-Host -NoNewLine -ForegroundColor Yellow "Auth                            "; Write-Host $auth
-Write-Host -NoNewLine -ForegroundColor Yellow "Credential                      ";
-if ($credential) {
-    Write-Host "Specified"
-}
-else {
-    $password = GetRandomPassword
-    Write-Host "admin/$password"
-    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
-}
 Write-Host -NoNewLine -ForegroundColor Yellow "CompanyName                     "; Write-Host $companyName
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                     "; Write-Host $memoryLimit
 Write-Host -NoNewLine -ForegroundColor Yellow "FailOn                          "; Write-Host $failOn
@@ -1687,7 +1686,7 @@ Write-Host -ForegroundColor Yellow @'
                     })
                 }
                 $appSourceRulesetFile = Join-Path $folder "appsource.default.ruleset.json"
-                Download-File -sourceUrl "https://bcartifacts.azureedge.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
+                Download-File -sourceUrl "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
                 $ruleset.includedRuleSets += @(@{
                     "action" = "Default"
                     "path" = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
@@ -1788,6 +1787,23 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    if ($generateDependencyArtifact -and !$filesOnly -and !$useCompilerFolder) {
+        $depFolder = Join-Path $buildArtifactFolder "Dependencies"
+        Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
+        if (Test-Path $depFolder) {
+            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
+                $destName = Join-Path $appPackagesFolder $_.Name
+                if (Test-Path $destName) {
+                    Write-Host "- $destName already exists"
+                }
+                else {
+                    Write-Host "+ Copying $($_.FullName) to $destName"
+                    Copy-Item -Path $_.FullName -Destination $destName -Force
+                }
+            }
+        }
+    }
+
     $Parameters += @{
         "appProjectFolder" = $folder
         "appOutputFolder" = $appOutputFolder
@@ -1829,7 +1845,7 @@ Write-Host -ForegroundColor Yellow @'
                             param($appFile)
                             Get-NavAppInfo -Path $appFile
                         } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
-                        $appId = $appInfo.AppId
+                        $appId = $appInfo.AppId.ToString()
                     }
                     else {
                         $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
@@ -2190,7 +2206,7 @@ $apps | ForEach-Object {
     $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
     $installedApp = $false
-    if ($installedApps | Where-Object { $_.AppId -eq $appJson.Id }) {
+    if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
         $installedApp = $true
     }
 

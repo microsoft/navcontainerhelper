@@ -128,9 +128,9 @@ try {
         $version = [System.Version]($navversion.split('-')[0])
         $force = ($version.Major -ge 14)
         if ($checkAlreadyInstalled) {
-                # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
-                $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | Where-Object { (-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global') } | ForEach-Object {
-                @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+            # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
+            $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | Where-Object { (-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global') } | ForEach-Object {
+                @{ "id" = "$($_.appId)"; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }
     }
@@ -142,14 +142,19 @@ try {
             if ($isCloudBcContainer) {
                 # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
                 $installedApps = Invoke-ScriptInCloudBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
-                    Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true -and ((-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global')) } | ForEach-Object { 
-                        Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version }
+                    Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true -and ((-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global')) } | ForEach-Object {
+                        Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version } | ForEach-Object {
+                            @{ "id" = "$($_.appId)"; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+                        }
                 }
             }
             else {
                 # Get Installed apps (if UseDevEndpoint is specified, only get global apps or PTEs)
                 # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
-                $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
+                $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
+                Write-Host "InstalledApps:"
+                $installedApps | ForEach-Object { Write-Host "- $($_.id) $($_.displayName) $($_.VersionMajor).$($_.VersionMinor).$($_.VersionBuild).$($_.VersionRevision) '$($_.PublishedAs)' $($_.IsInstalled) $($_.publisher)" }
+                $installedApps = $installedApps | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
                     @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
                 }
             }
@@ -163,7 +168,7 @@ try {
 
             if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
                 Write-Host "Checking dependencies in $appFile"
-                Replace-DependenciesInAppFile -containerName $containerName -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
+                Replace-DependenciesInAppFile -Path $appFile -replaceDependencies $replaceDependencies -internalsVisibleTo $internalsVisibleTo -ShowMyCode $ShowMyCode -replacePackageId:$replacePackageId
             }
 
             if ($copyInstalledAppsToFolder) {
@@ -305,6 +310,7 @@ try {
             }
             else {
                 [ScriptBlock] $scriptblock = { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
+                    $prevPreference = $ProgressPreference; $ProgressPreference = "SilentlyContinue"
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
                         $publishArgs += @{ "Scope" = $scope }
@@ -389,12 +395,13 @@ try {
                             Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @installArgs
                         }
                     }
+                    $ProgressPreference = $prevPreference
                 }
                 if ($isCloudBcContainer) {
                     $containerPath = Join-Path 'C:\DL' ([System.IO.Path]::GetFileName($appfile))
-                    Copy-FileToCloudBcContainer -authContext $authContext -containerId $environment -localPath $appFile -containerPath $containerPath
+                    Copy-FileToCloudBcContainer -authContext $bcAuthContext -containerId $environment -localPath $appFile -containerPath $containerPath
                     Invoke-ScriptInCloudBcContainer `
-                        -authContext $authContext `
+                        -authContext $bcAuthContext `
                         -containerId $environment `
                         -ScriptBlock $scriptblock `
                         -ArgumentList $containerPath, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists

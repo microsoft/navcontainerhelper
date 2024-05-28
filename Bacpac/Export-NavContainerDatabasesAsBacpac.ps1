@@ -17,6 +17,8 @@
   Include this parameter to avoid checking entitlements. Entitlements are needed if the .bacpac file is to be used for cloud deployments.
  .Parameter includeDacPac
   Use this parameter to export databases as dacpac
+ .Parameter dacPacOnly
+  Use this parameter to export databases as dacpac only (skip Bacpac)
  .Parameter commandTimeout
   Timeout in seconds for the export command for every database. Default is 1 hour (3600).
  .Parameter diagnostics
@@ -43,6 +45,7 @@ function Export-BcContainerDatabasesAsBacpac {
         [string[]] $tenant = @("default"),
         [int] $commandTimeout = 3600,
         [switch] $includeDacPac,
+        [switch] $dacPacOnly,
         [switch] $diagnostics,
         [switch] $doNotCheckEntitlements,
         [string[]] $additionalArguments = @()
@@ -64,8 +67,87 @@ try {
     }
     $containerBacpacFolder = Get-BcContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $dacPacOnly, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
+        function CmdDo {
+            Param(
+                [string] $command = "",
+                [string] $arguments = "",
+                [switch] $silent,
+                [switch] $returnValue,
+                [string] $inputStr = "",
+                [string] $messageIfCmdNotFound = ""
+            )
+        
+            $oldNoColor = "$env:NO_COLOR"
+            $env:NO_COLOR = "Y"
+            $oldEncoding = [Console]::OutputEncoding
+            try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch {}
+            try {
+                $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+                $pinfo.FileName = $command
+                $pinfo.RedirectStandardError = $true
+                $pinfo.RedirectStandardOutput = $true
+                if ($inputStr) {
+                    $pinfo.RedirectStandardInput = $true
+                }
+                $pinfo.WorkingDirectory = Get-Location
+                $pinfo.UseShellExecute = $false
+                $pinfo.Arguments = $arguments
+                $pinfo.WindowStyle = [System.Diagnostics.ProcessWindowStyle]::Minimized
+        
+                $p = New-Object System.Diagnostics.Process
+                $p.StartInfo = $pinfo
+                $p.Start() | Out-Null
+                if ($inputStr) {
+                    $p.StandardInput.WriteLine($inputStr)
+                    $p.StandardInput.Close()
+                }
+                $outtask = $p.StandardOutput.ReadToEndAsync()
+                $errtask = $p.StandardError.ReadToEndAsync()
+                $p.WaitForExit();
+        
+                $message = $outtask.Result
+                $err = $errtask.Result
+        
+                if ("$err" -ne "") {
+                    $message += "$err"
+                }
+                
+                $message = $message.Trim()
+        
+                if ($p.ExitCode -eq 0) {
+                    if (!$silent) {
+                        Write-Host $message
+                    }
+                    if ($returnValue) {
+                        $message.Replace("`r", "").Split("`n")
+                    }
+                }
+                else {
+                    $message += "`n`nExitCode: " + $p.ExitCode + "`nCommandline: $command $arguments"
+                    throw $message
+                }
+            }
+            catch [System.ComponentModel.Win32Exception] {
+                if ($_.Exception.NativeErrorCode -eq 2) {
+                    if ($messageIfCmdNotFound) {
+                        throw $messageIfCmdNotFound
+                    }
+                    else {
+                        throw "Command $command not found, you might need to install that command."
+                    }
+                }
+                else {
+                    throw
+                }
+            }
+            finally {
+                try { [Console]::OutputEncoding = $oldEncoding } catch {}
+                $env:NO_COLOR = $oldNoColor
+            }
+        }
+
         function InstallPrerequisite {
             Param (
                 [Parameter(Mandatory=$true)]
@@ -309,39 +391,43 @@ try {
                 [Parameter(Mandatory=$false)]
                 [int] $commandTimeout = 3600,
                 [switch] $includeDacPac,
+                [switch] $dacPacOnly,
                 [switch] $diagnostics,
                 [Parameter(Mandatory=$false)]
                 [string[]] $additionalArguments = @()
             )
 
-            Write-Host "Exporting as BacPac..."
-            $arguments = @(
-                ('/Action:Export'),
-                ('/TargetFile:"'+$targetFile+'"'), 
-                ('/SourceDatabaseName:"'+$databaseName+'"'),
-                ('/SourceServerName:"'+$databaseServer+'"'),
-                ('/OverwriteFiles:True')
-                ("/p:CommandTimeout=$commandTimeout")
-            )
-
-            if ($diagnostics) {
-                $arguments += @('/Diagnostics:True')
-            }
-
-            if ($sqlCredential) {
-                $arguments += @(
-                    ('/SourceUser:"'+$sqlCredential.UserName+'"'),
-                    ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+            if (!$dacPacOnly) {
+                Write-Host "Exporting as BacPac..."
+            
+                $arguments = @(
+                    ('/Action:Export'),
+                    ('/TargetFile:"'+$targetFile+'"'), 
+                    ('/SourceDatabaseName:"'+$databaseName+'"'),
+                    ('/SourceServerName:"'+$databaseServer+'"'),
+                    ('/OverwriteFiles:True')
+                    ("/p:CommandTimeout=$commandTimeout")
                 )
+    
+                if ($diagnostics) {
+                    $arguments += @('/Diagnostics:True')
+                }
+    
+                if ($sqlCredential) {
+                    $arguments += @(
+                        ('/SourceUser:"'+$sqlCredential.UserName+'"'),
+                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                    )
+                }
+    
+                if ($additionalArguments) {
+                    $arguments += $additionalArguments
+                }
+    
+                CmdDo -command $sqlpackageExe -arguments ($arguments -join ' ')
             }
-
-            if ($additionalArguments) {
-                $arguments += $additionalArguments
-            }
-
-            & $sqlPackageExe $arguments
-
-            if ($includeDacPac) {
+           
+            if ($includeDacPac -or $dacPacOnly) {
                 Write-Host "Extracting as DacPac..."
                 $arguments = @(
                     ('/Action:Extract'),
@@ -369,7 +455,7 @@ try {
                     $arguments += $additionalArguments
                 }
 
-                & $sqlPackageExe $arguments
+                CmdDo -command $sqlpackageExe -arguments ($arguments -join ' ')
             }
         }
 
@@ -401,12 +487,13 @@ try {
             Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -dacPacOnly:$dacPacOnly -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
             $tenant | ForEach-Object {
                 $sourceDatabase = $_
                 if ("$_" -ne "tenant") {
-                    $tenantInfo = Get-NavTenant -ServerInstance $ServerInstance -tenant $_ -ForceRefresh
+                    Sync-NavTenant -ServerInstance $ServerInstance -Tenant $_ -Force
+                    $tenantInfo = Get-NavTenant -ServerInstance $ServerInstance -Tenant $_
                     $sourceDatabase = $tenantInfo.DatabaseName
                     if ($tenantInfo.State -ne "Operational") {
                         throw "Tenant $_ is not operational, you might need to synchronize the tenant or run data upgrade"
@@ -418,7 +505,7 @@ try {
                 Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
+                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -dacPacOnly:$dacPacOnly -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
@@ -431,9 +518,9 @@ try {
             Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -dacPacOnly:$dacPacOnly -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
-    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements
+    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $includeDacPac, $dacPacOnly, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

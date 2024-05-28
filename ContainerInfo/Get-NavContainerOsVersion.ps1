@@ -17,18 +17,8 @@ function Get-BcContainerOsVersion {
         [string] $containerOrImageName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
     $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
     return "$($inspect.Config.Labels.osversion)"
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerOsVersion -Value Get-BcContainerOsVersion
 Export-ModuleMember -Function Get-BcContainerOsVersion -Alias Get-NavContainerOsVersion

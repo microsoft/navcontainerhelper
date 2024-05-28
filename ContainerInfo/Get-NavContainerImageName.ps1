@@ -16,18 +16,8 @@ function Get-BcContainerImageName {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
     $inspect = docker inspect $containerName | ConvertFrom-Json
     return "$($inspect.Config.Image)"
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerImageName -Value Get-BcContainerImageName
 Export-ModuleMember -Function Get-BcContainerImageName -Alias Get-NavContainerImageName

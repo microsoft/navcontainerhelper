@@ -186,7 +186,7 @@ try {
     if ($vsixFile) {
         # If a vsix file was specified unpack directly to compilerfolder
         Write-Host "Using $vsixFile"
-        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
+        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
         Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
         if ($isWindows -and $newtonSoftDllPath) {
@@ -252,6 +252,12 @@ try {
             }
         }
     }
+
+    $symbolsPath = Join-Path $compilerFolder 'symbols'
+    Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
+    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
+    GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $symbolsPath 'cache_AppInfo.json') | Out-Null
+
     $compilerFolder
 }
 catch {

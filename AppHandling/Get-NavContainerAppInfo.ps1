@@ -90,7 +90,7 @@ try {
 
         function AddDependency { Param($dependency)
             #Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
-            $dependentApp = $apps | Where-Object { $_.AppId -eq $dependency.AppId  }
+            $dependentApp = $apps | Where-Object { "$($_.AppId)" -eq "$($dependency.AppId)"  }
             if ($dependentApp) {
                 @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
             }
@@ -108,7 +108,7 @@ try {
         }
         else {
             $inArgs += @{ "ServerInstance" = $ServerInstance }
-            $apps = Get-NAVAppInfo @inArgs | Where-Object { (!$installedOnly) -or ($_.IsInstalled -eq $true) } | ForEach-Object { Get-NAVAppInfo -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
+            $apps = Get-NAVAppInfo @inArgs | Where-Object { (!$installedOnly) -or ($_.IsInstalled -eq $true) } | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version @inArgs }
         }
 
         if ($sort -ne "None") {
