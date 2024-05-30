@@ -1183,6 +1183,7 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
+    $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
@@ -1205,9 +1206,14 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        elseif ($useCompilerFolder -or $filesOnly -and (-not $bcAuthContext)) {
+        elseif (!testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
-                Write-Host "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                if ($generateDependencyArtifact) {
+                    Write-Host -NoNewline " and dependencies folder"
+                    Copy-Item -Path $_ -Destination $dependenciesFolder -Force
+                }
+                Write-Host
             }
         }
         else {
@@ -1225,15 +1231,14 @@ Measure-Command {
             "sync" = $true
             "install" = $true
         }
-        $copyparams = @{}
         if ($installOnlyReferencedApps) {
-            $copyparams += @{
+            $parameters += @{
                 "includeOnlyAppIds" = $missingAppDependencies
             }
         }
         if ($generateDependencyArtifact -and !($testCountry)) {
-            $copyparams += @{
-                "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+            $parameters += @{
+                "CopyInstalledAppsToFolder" = $dependenciesFolder
             }
         }
         if ($bcAuthContext) {
@@ -1243,10 +1248,10 @@ Measure-Command {
             }
         }
         if (!$doNotPublishApps) {
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters+$copyparams
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
         if (!$testCountry -and $compilerFolder) {
-            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile @copyparams
+            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
         }
 
         Remove-Item -Path $tmpAppFolder -Recurse -Force
