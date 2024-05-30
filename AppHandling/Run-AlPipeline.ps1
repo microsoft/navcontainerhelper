@@ -1225,13 +1225,14 @@ Measure-Command {
             "sync" = $true
             "install" = $true
         }
+        $copyparams = @{}
         if ($installOnlyReferencedApps) {
-            $parameters += @{
+            $copyparams += @{
                 "includeOnlyAppIds" = $missingAppDependencies
             }
         }
         if ($generateDependencyArtifact -and !($testCountry)) {
-            $parameters += @{
+            $copyparams += @{
                 "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
             }
         }
@@ -1242,10 +1243,10 @@ Measure-Command {
             }
         }
         if (!$doNotPublishApps) {
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters+$copyparams
         }
         if (!$testCountry -and $compilerFolder) {
-            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile @copyparams
         }
 
         Remove-Item -Path $tmpAppFolder -Recurse -Force
