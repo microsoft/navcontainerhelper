@@ -1207,7 +1207,9 @@ Measure-Command {
             }
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
+            Write-Host $dependenciesFolder
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
+                Write-Host $_
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
                     Write-Host -NoNewline " and dependencies folder"
