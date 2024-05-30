@@ -156,7 +156,7 @@ function Run-AlCops {
                     }
                 }
 
-                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -excludeRuntimeProperty -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
+                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
                 $appJson = [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "app.json")) | ConvertFrom-Json
 
                 $ruleset = $null

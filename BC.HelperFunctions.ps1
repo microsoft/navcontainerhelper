@@ -35,8 +35,8 @@ function Get-ContainerHelperConfig {
             "useSharedEncryptionKeys" = $true
             "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
-            "artifactDownloadTimeout" = 300
-            "defaultDownloadTimeout" = 100
+            "artifactDownloadTimeout" = 600
+            "defaultDownloadTimeout" = 120
             "baseUrl" = "https://businesscentral.dynamics.com"
             "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
             "mapCountryCode" = [PSCustomObject]@{
@@ -139,20 +139,24 @@ function Get-ContainerHelperConfig {
                         $keys = $bcContainerHelperConfig.Keys | ForEach-Object { $_ }
                         $keys | ForEach-Object {
                             if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-                                if ($bcContainerHelperConfig."$_" -and $savedConfig."$_" -and $bcContainerHelperConfig."$_".GetType() -ne $savedConfig."$_".GetType()) {
+                                $savedConfigValue = $savedConfig."$_"
+                                if ($isPsCore -and ($savedConfigValue -is [Int64])) {
+                                    $savedConfigValue = [Int32]$savedConfigValue
+                                }
+                                if ($bcContainerHelperConfig."$_" -and $savedConfigValue -and $bcContainerHelperConfig."$_".GetType() -ne $savedConfigValue.GetType()) {
                                     Write-Host -ForegroundColor Red "Ignoring config setting $_ as the type in the config file is different than in the default configuration"
                                 }
                                 else {
-                                    if ((ConvertTo-Json -InputObject $bcContainerHelperConfig."$_" -Compress) -eq (ConvertTo-Json -InputObject $savedConfig."$_" -Compress)) {
+                                    if ((ConvertTo-Json -InputObject $bcContainerHelperConfig."$_" -Compress) -eq (ConvertTo-Json -InputObject $savedConfigValue -Compress)) {
                                         if (!$silent) {
                                             Write-Host "Ignoring unchanged config setting $_"
                                         }
                                     }
                                     else {
                                         if (!$silent) {
-                                            Write-Host "Setting $_ = $($savedConfig."$_")"
+                                            Write-Host "Setting $_ = $savedConfigValue"
                                         }
-                                        $bcContainerHelperConfig."$_" = $savedConfig."$_"
+                                        $bcContainerHelperConfig."$_" = $savedConfigValue
                                     }
                                 }
                             }
