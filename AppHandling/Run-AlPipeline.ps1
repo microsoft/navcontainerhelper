@@ -1213,6 +1213,9 @@ Measure-Command {
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
                     Write-Host -NoNewline " and dependencies folder"
+                    if (!(Test-Path $dependenciesFolder)) {
+                        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
+                    }
                     Copy-Item -Path $_ -Destination $dependenciesFolder -Force
                 }
                 Write-Host
