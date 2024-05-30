@@ -1,3 +1,7 @@
+6.0.19
+Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
+Issue #3559 ALCops can't find "Business Foundation" app and doesn't start because of it
+
 6.0.18
 Use altool from prerelease AL Language extension
 Display disk free inside container on error
