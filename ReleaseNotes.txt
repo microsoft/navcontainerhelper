@@ -1,6 +1,8 @@
 6.0.19
 Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
 Issue #3559 ALCops can't find "Business Foundation" app and doesn't start because of it
+Support for federated credentials in Azure
+Issue 1093 from AL-Go repo, generateDependencyArtifact doesn't work when useCompilerFolder is true
 
 6.0.18
 Use altool from prerelease AL Language extension
