@@ -1183,7 +1183,9 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
-    $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+    if ($generateDependencyArtifact) {
+        $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+    }
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
