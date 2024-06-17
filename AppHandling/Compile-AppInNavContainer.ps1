@@ -224,11 +224,15 @@ try {
     $CustomCodeCopFiles = @()
     if ($CustomCodeCops.Count -gt 0) {
         $CustomCodeCops | ForEach-Object {
-            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
-            if ("$customCopPath" -eq "") {
-                throw "The custom code cop ($_) is not shared with the container."
+            if ($_ -like 'https://*') {
+                $customCopPath = $_
             }
-
+            else {
+                $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+                if ("$customCopPath" -eq "") {
+                    throw "The custom code cop ($_) is not shared with the container."
+                }
+            }
             $CustomCodeCopFiles += $customCopPath
         }
     }
@@ -272,6 +276,7 @@ try {
                     "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app"
                     "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
                     "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
+                    "C:\Applications.*\Microsoft_Business Foundation_*.app,C:\Applications\BusinessFoundation\source\Microsoft_Business Foundation.app"
                 )
             }
             $paths | ForEach-Object {
@@ -495,7 +500,7 @@ try {
                 if (Test-Path -Path $symbolsFile) {
                     $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                         # Wait for file to be accessible in container
-                        While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
+                        While (-not (Test-Path $symbolsFile)) { Start-Sleep -Milliseconds 100 }
 
                         if ($platformversion.Major -ge 15) {
                             Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -670,7 +675,14 @@ try {
         }
 
         if ($CustomCodeCops.Count -gt 0) {
-            $CustomCodeCops | ForEach-Object { $alcParameters += @("/analyzer:$_") }
+            $CustomCodeCops | ForEach-Object {
+                $analyzerFileName = $_
+                if ($_ -like 'https://*') {
+                    $analyzerFileName = Join-Path $binPath "Analyzers/$(Split-Path $_ -Leaf)"
+                    Download-File -SourceUrl $_ -destinationFile $analyzerFileName
+                }
+                $alcParameters += @("/analyzer:$analyzerFileName")
+            }
         }
 
         if ($rulesetFile) {

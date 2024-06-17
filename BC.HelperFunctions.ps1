@@ -11,13 +11,15 @@ function Get-ContainerHelperConfig {
     if (!((Get-Variable -scope Script bcContainerHelperConfig -ErrorAction SilentlyContinue) -and $bcContainerHelperConfig)) {
         Set-Variable -scope Script -Name bcContainerHelperConfig -Value @{
             "bcartifactsCacheFolder" = ""
-            "genericImageName" = 'mcr.microsoft.com/businesscentral:{0}'
-            "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{0}-filesonly'
+            "genericImageName" = 'mcr.microsoft.com/businesscentral:{1}'
+            "genericImageNameFilesOnly" = 'mcr.microsoft.com/businesscentral:{1}-filesonly'
             "usePsSession" = $true
             "usePwshForBc24" = $true
-            "tryWinRmSession" = !$isAdministrator
+            "useSslForWinRmSession" = $true
+            "useWinRmSession" = "allow"   # allow, always, never
             "addTryCatchToScriptBlock" = $true
             "killPsSessionProcess" = $false
+            "usePrereleaseAlTool" = $true
             "useVolumes" = $false
             "useVolumeForMyFolder" = $false
             "use7zipIfAvailable" = $true
@@ -33,6 +35,8 @@ function Get-ContainerHelperConfig {
             "useSharedEncryptionKeys" = $true
             "DOCKER_SCAN_SUGGEST" = $false
             "psSessionTimeout" = 0
+            "artifactDownloadTimeout" = 600
+            "defaultDownloadTimeout" = 120
             "baseUrl" = "https://businesscentral.dynamics.com"
             "apiBaseUrl" = "https://api.businesscentral.dynamics.com"
             "mapCountryCode" = [PSCustomObject]@{
@@ -101,7 +105,6 @@ function Get-ContainerHelperConfig {
             "RenewClientContextBetweenTests" = $false
             "DebugMode" = $false
             "DoNotUseCdnForArtifacts" = $false
-            "ArtifactsFeedOrganizationAndProject" = ""
             "MinimumDotNetRuntimeVersionStr" = "6.0.16"
             "MinimumDotNetRuntimeVersionUrl" = 'https://download.visualstudio.microsoft.com/download/pr/ca13c6f1-3107-4cf8-991c-f70edc1c1139/a9f90579d827514af05c3463bed63c22/dotnet-sdk-6.0.408-win-x64.zip'
             "AlpacaSettings" = [PSCustomObject]@{
@@ -120,8 +123,8 @@ function Get-ContainerHelperConfig {
         }
 
         if ($isInsider) {
-            $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{0}-dev'
-            $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{0}-filesonly-dev'
+            $bcContainerHelperConfig.genericImageName = 'mcr.microsoft.com/businesscentral:{1}-dev'
+            $bcContainerHelperConfig.genericImageNameFilesOnly = 'mcr.microsoft.com/businesscentral:{1}-filesonly-dev'
         }
 
         if ($bcContainerHelperConfigFile -notcontains (Join-Path $programDataFolder "BcContainerHelper.config.json")) {
@@ -136,20 +139,24 @@ function Get-ContainerHelperConfig {
                         $keys = $bcContainerHelperConfig.Keys | ForEach-Object { $_ }
                         $keys | ForEach-Object {
                             if ($savedConfig.PSObject.Properties.Name -eq "$_") {
-                                if ($bcContainerHelperConfig."$_" -and $savedConfig."$_" -and $bcContainerHelperConfig."$_".GetType() -ne $savedConfig."$_".GetType()) {
+                                $savedConfigValue = $savedConfig."$_"
+                                if ($isPsCore -and ($savedConfigValue -is [Int64])) {
+                                    $savedConfigValue = [Int32]$savedConfigValue
+                                }
+                                if ($bcContainerHelperConfig."$_" -and $savedConfigValue -and $bcContainerHelperConfig."$_".GetType() -ne $savedConfigValue.GetType()) {
                                     Write-Host -ForegroundColor Red "Ignoring config setting $_ as the type in the config file is different than in the default configuration"
                                 }
                                 else {
-                                    if ((ConvertTo-Json -InputObject $bcContainerHelperConfig."$_" -Compress) -eq (ConvertTo-Json -InputObject $savedConfig."$_" -Compress)) {
+                                    if ((ConvertTo-Json -InputObject $bcContainerHelperConfig."$_" -Compress) -eq (ConvertTo-Json -InputObject $savedConfigValue -Compress)) {
                                         if (!$silent) {
                                             Write-Host "Ignoring unchanged config setting $_"
                                         }
                                     }
                                     else {
                                         if (!$silent) {
-                                            Write-Host "Setting $_ = $($savedConfig."$_")"
+                                            Write-Host "Setting $_ = $savedConfigValue"
                                         }
-                                        $bcContainerHelperConfig."$_" = $savedConfig."$_"
+                                        $bcContainerHelperConfig."$_" = $savedConfigValue
                                     }
                                 }
                             }
@@ -186,6 +193,17 @@ function Get-ContainerHelperConfig {
             }
             if ($bcContainerHelperConfig.hostHelperFolder -eq "") {
                 $bcContainerHelperConfig.hostHelperFolder = $programDataFolder
+            }
+        }
+
+        if ($isWindows -and ($bcContainerHelperConfig.useWinRmSession -ne 'never')) {
+            # useWinRmSession should be never if the service isn't running
+            $service = get-service WinRm -erroraction SilentlyContinue
+            if ($service -and $service.Status -ne "Running") {
+                if (!$Silent) {
+                    Write-Host "WinRM service is not running, will not try to use WinRM sessions"
+                }
+                $bcContainerHelperConfig.useWinRmSession = 'never'
             }
         }
 
