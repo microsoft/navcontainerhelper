@@ -260,9 +260,9 @@
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld for Per Tenant Extension example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.pte for Per Tenant Extension example
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld.AppSource for AppSource example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.appsource for AppSource example
 
 #>
 function Run-AlPipeline {
@@ -1183,6 +1183,9 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
+    if ($generateDependencyArtifact) {
+        $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+    }
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
@@ -1205,9 +1208,17 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        elseif ($useCompilerFolder -or $filesOnly -and (-not $bcAuthContext)) {
+        elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
-                Write-Host "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                if ($generateDependencyArtifact) {
+                    Write-Host -NoNewline " and dependencies folder"
+                    if (!(Test-Path $dependenciesFolder)) {
+                        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
+                    }
+                    Copy-Item -Path $_ -Destination $dependenciesFolder -Force
+                }
+                Write-Host
             }
         }
         else {
@@ -1232,7 +1243,7 @@ Measure-Command {
         }
         if ($generateDependencyArtifact -and !($testCountry)) {
             $parameters += @{
-                "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+                "CopyInstalledAppsToFolder" = $dependenciesFolder
             }
         }
         if ($bcAuthContext) {

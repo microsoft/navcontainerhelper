@@ -1,8 +1,18 @@
+6.0.19
+Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
+Issue #3559 ALCops can't find "Business Foundation" app and doesn't start because of it
+Support for federated credentials in Azure
+Issue 1093 from AL-Go repo, generateDependencyArtifact doesn't work when useCompilerFolder is true
+
 6.0.18
 Use altool from prerelease AL Language extension
 Display disk free inside container on error
 Create AppInfo cache on creating a new compiler folder
 Add support for using `TestCodeunitRangeFilter` field in `Run-TestsInBcContainer` and `Get-TestsFromBcContainer`
+Issue 3206 Auto-Consent the Permissions requested after using New-AadAppsForBc
+Issue 3544 Copy-AlSourceFiles.ps1 does not copy RDLC and DOCS Files with the new report layout definition
+Issue 3550 Run-AlValidation is checking wrong runtime version
+Issue 3555 Increase default timeout
 
 6.0.17
 Issue 3518 If WinRm is not running on the host, a container couldn't be created
