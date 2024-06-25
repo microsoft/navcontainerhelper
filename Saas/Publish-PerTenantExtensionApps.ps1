@@ -42,8 +42,8 @@ function Publish-PerTenantExtensionApps {
         $appFiles,
         [ValidateSet('Add','Force')]
         [string] $schemaSyncMode = 'Add',
-        [ValidateSet(' ','Current version','Next minor version','Next major version')]
-        [string] $schedule = ' ',
+        [ValidateSet('','Current version','Next minor version','Next major version')]
+        [string] $schedule = '',
         [switch] $useNewLine,
         [switch] $hideInstalledExtensionsOutput
     )
@@ -122,7 +122,7 @@ try {
             }
         }
 
-        if($schedule -ne ' ')
+        if(-not $schedule)
         {
             $body."schedule" = $schedule
         }
