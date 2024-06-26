@@ -122,7 +122,7 @@ try {
             }
         }
 
-        if(-not $schedule)
+        if($schedule)
         {
             $body."schedule" = $schedule
         }
