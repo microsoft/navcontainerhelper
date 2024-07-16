@@ -162,9 +162,11 @@ try {
     }
 
     try {
+        $includeOnlyAppIds | Out-Host
         $appFiles = @(Sort-AppFilesByDependencies -containerName $containerName -appFiles $appFiles -includeOnlyAppIds $includeOnlyAppIds -excludeInstalledApps $installedApps -excludeRuntimePackages:$excludeRuntimePackages -WarningAction SilentlyContinue)
         $appFiles | Where-Object { $_ } | ForEach-Object {
             $appFile = $_
+            Write-Host $appFile
 
             if ($ShowMyCode -ne "Ignore" -or $replaceDependencies -or $replacePackageId -or $internalsVisibleTo) {
                 Write-Host "Checking dependencies in $appFile"
