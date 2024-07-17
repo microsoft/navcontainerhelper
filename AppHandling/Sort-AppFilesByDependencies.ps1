@@ -178,8 +178,14 @@ function Sort-AppFilesByDependencies {
         if ($includeOnlyAppIds) {
             $script:sortedApps | ForEach-Object { $_ | Add-Member -NotePropertyName 'Included' -NotePropertyValue $false }
             $includeOnlyAppIds | ForEach-Object { MarkSortedApps -AppId $_ }
-            $script:sortedApps | Where-Object { $_.Included } | ForEach-Object {
-                $files["$($_.id):$($_.version)"]
+            $script:sortedApps | ForEach-Object {
+                if ($_.Included) {
+                    $files["$($_.id):$($_.version)"]
+                }
+                else {
+                    $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
+                    Write-Host "$appName (AppId=$($_.id)) is skipped as it is not referenced"
+                }
             }
         }
         else {
