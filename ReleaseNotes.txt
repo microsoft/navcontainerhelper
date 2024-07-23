@@ -1,4 +1,7 @@
 6.0.20
+Add trustServerCertificate is the parameter exists in various functions that might be running on the host
+Issue #3594 Run-AlCops says unknown platform version
+Add information about apps excluded due to not being referenced during Publish-BcContainerApp
 
 6.0.19
 Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
