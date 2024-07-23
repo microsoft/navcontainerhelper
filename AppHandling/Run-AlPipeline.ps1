@@ -1227,7 +1227,6 @@ Measure-Command {
     }
 
     if ($tmpAppFiles) {
-        $tmpAppFiles | Out-Host
         $Parameters = @{
             "containerName" = $containerName
             "tenant" = $tenant
