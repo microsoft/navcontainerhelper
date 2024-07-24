@@ -1019,6 +1019,12 @@ function GetAppInfo {
         Write-Host "Setting execute permissions on altool"
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
+    elseif ($isMacOS) {
+        $alcPath = Join-Path $binPath 'darwin'
+        $alToolExe = Join-Path $alcPath 'altool'
+        Write-Host "Setting execute permissions on altool"
+        & chmod +x $alToolExe
+    }
     else {
         $alcPath = Join-Path $binPath 'win32'
         $alToolExe = Join-Path $alcPath 'altool.exe'
@@ -1028,7 +1034,7 @@ function GetAppInfo {
     }
     $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
     $alcDllPath = $alcPath
-    if (!$isLinux -and !$isPsCore) {
+    if (!($isLinux -or $isMacOS) -and !$isPsCore) {
         $alcDllPath = $binPath
     }
 
@@ -1236,6 +1242,11 @@ function RunAlTool {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
         Write-Host "Setting execute permissions on altool"
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+    } 
+    elseif ($isMacOS) {
+        $alToolExe = Join-Path $path 'extension/bin/darwin/altool'
+        Write-Host "Setting execute permissions on altool"
+        & chmod +x $alToolExe
     }
     else {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
