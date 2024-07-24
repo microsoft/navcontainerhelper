@@ -321,9 +321,9 @@ Param(
     [switch] $installPerformanceToolkit,
     [switch] $CopySymbolsFromContainer,
     [switch] $UpdateDependencies,
-    [switch] $azureDevOps,
-    [switch] $gitLab,
-    [switch] $gitHubActions,
+    [switch] $azureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
+    [switch] $gitLab = $bcContainerHelperConfig.IsGitLab,
+    [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
     [ValidateSet('none','error','warning')]
     [string] $failOn = "none",
     [switch] $treatTestFailuresAsWarnings,
@@ -464,12 +464,12 @@ function GetInstalledAppIds {
     else {
         $installedApps = @()
     }
-    Write-Host "::group::Installed Apps"
+    Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
         Write-Host "- $($_.AppId):$($_.Name)"
         "$($_.AppId)"
     }
-    Write-Host "::endgroup::"
+    Write-GroupEnd
 }
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -646,7 +646,7 @@ else {
 
 $escapeFromCops = $escapeFromCops -and ($enableCodeCop -or $enableAppSourceCop -or $enableUICop -or $enablePerTenantExtensionCop)
 
-if ($gitHubActions) { Write-Host "::group::Parameters" }
+Write-GroupStart -Message "Parameters"
 Write-Host -ForegroundColor Yellow @'
   _____                               _
  |  __ \                             | |
@@ -902,14 +902,14 @@ else {
 if ($InstallMissingDependencies) {
     Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
 $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
 if ( $artifactUrl -and !$reUseContainer -and !$doNotPublishApps -and !$filesOnly) {
-if ($gitHubActions) { Write-Host "::group::Pulling generic image" }
+Write-GroupStart -Message "Pulling generic image"
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
 
@@ -935,7 +935,7 @@ Write-Host "Pulling $useGenericImage"
 
 Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 $err = $null
@@ -948,7 +948,7 @@ try {
 $testCountry = $_.Trim()
 $testToolkitInstalled = $false
 
-if ($gitHubActions) { Write-Host "::group::Creating container" }
+Write-GroupStart -Message "Creating container"
 Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                               _        _
@@ -1082,9 +1082,9 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
-if ($gitHubActions) { Write-Host "::group::Resolving dependencies" }
+Write-GroupStart -Message "Resolving dependencies"
 Write-Host -ForegroundColor Yellow @'
 
  _____                _       _                   _                           _                 _
@@ -1161,10 +1161,10 @@ if ($previousApps) {
     }
 }
 
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
 if ($installApps) {
-if ($gitHubActions) { Write-Host "::group::Installing apps" }
+Write-GroupStart -Message "Installing apps"
 Write-Host -ForegroundColor Yellow @'
 
   _____           _        _ _ _
@@ -1263,7 +1263,7 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if ($InstallMissingDependencies) {
@@ -1274,7 +1274,7 @@ $Parameters = @{
 $installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
-if ($gitHubActions) { Write-Host "::group::Installing app dependencies" }
+Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _                                       _                           _                 _
  |_   _|         | |      | | (_)                                     | |                         | |               (_)
@@ -1309,12 +1309,12 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling app dependencies took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
-if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
+Write-GroupStart -Message "Importing test toolkit"
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _
  |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |
@@ -1348,10 +1348,10 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
 if ($installTestApps) {
-if ($gitHubActions) { Write-Host "::group::Installing test apps" }
+Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _
  |_   _|         | |      | | (_)             | |          | |
@@ -1413,7 +1413,7 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
@@ -1426,7 +1426,7 @@ $Parameters = @{
 $installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
-if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
+Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _                             _                           _                 _
  |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
@@ -1456,13 +1456,13 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
 if (-not $testCountry) {
 if ($appFolders -or $testFolders -or $bcptTestFolders) {
-if ($gitHubActions) { Write-Host "::group::Compiling apps" }
+Write-GroupStart -Message "Compiling apps"
 Write-Host -ForegroundColor Yellow @'
 
    _____                      _ _ _
@@ -1492,8 +1492,8 @@ $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object
     $app = $appFolders.Contains($folder)
     if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
-if ($gitHubActions) { Write-Host "::endgroup::" }
-if ($gitHubActions) { Write-Host "::group::Importing test toolkit" }
+Write-GroupEnd
+Write-GroupStart -Message "Importing test toolkit"
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _
  |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |
@@ -1530,8 +1530,8 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 
 if ($installTestApps) {
-if ($gitHubActions) { Write-Host "::endgroup::" }
-if ($gitHubActions) { Write-Host "::group::Installing test apps" }
+Write-GroupEnd
+Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _
  |_   _|         | |      | | (_)             | |          | |
@@ -1594,7 +1594,7 @@ Measure-Command {
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
 if ($InstallMissingDependencies) {
 $Parameters = @{
@@ -1604,7 +1604,7 @@ $Parameters = @{
 $installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
-if ($gitHubActions) { Write-Host "::group::Installing test app dependencies" }
+Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _                             _                           _                 _
  |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
@@ -1634,11 +1634,11 @@ Measure-Command {
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
-if ($gitHubActions) { Write-Host "::group::Compiling test apps" }
+Write-GroupStart -Message "Compiling test apps"
 Write-Host -ForegroundColor Yellow @'
    _____                      _ _ _               _           _
   / ____|                    (_) (_)             | |         | |
@@ -2097,10 +2097,10 @@ Write-Host -ForegroundColor Yellow @'
     }
 }
 } | ForEach-Object { if ($appFolders -or $testFolders -or $bcptTestFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
 if ($signApps -and !$useDevEndpoint -and !$useCompilerFolder) {
-if ($gitHubActions) { Write-Host "::group::Signing apps" }
+Write-GroupStart -Message "Signing apps"
 Write-Host -ForegroundColor Yellow @'
   _____ _             _
  / ____(_)           (_)
@@ -2126,7 +2126,7 @@ $apps | ForEach-Object {
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nSigning apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
@@ -2134,7 +2134,7 @@ $previousAppsInstalled = @()
 if (!$useDevEndpoint) {
 
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
-if ($gitHubActions) { Write-Host "::group::Installing previous apps" }
+Write-GroupStart -Message "Installing previous apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _                                    _
  |_   _|         | |      | | (_)                                  (_)
@@ -2179,11 +2179,11 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
-if ($gitHubActions) { Write-Host "::group::Publishing apps" }
+Write-GroupStart -Message "Publishing apps"
 Write-Host -ForegroundColor Yellow @'
   _____       _     _ _     _     _
  |  __ \     | |   | (_)   | |   (_)
@@ -2290,13 +2290,13 @@ $testApps+$bcptTestApps | ForEach-Object {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
 if (!($doNotRunTests -and $doNotRunBcptTests)) {
 if ($ImportTestDataInBcContainer) {
-if ($gitHubActions) { Write-Host "::group::Importing test data" }
+Write-GroupStart -Message "Importing test data"
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _         _       _
  |_   _|                          | | (_)             | |          | |       | |     | |
@@ -2335,13 +2335,13 @@ if (!$enableTaskScheduler) {
         }
     }
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
 if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
-if ($gitHubActions) { Write-Host "::group::Running tests" }
+Write-GroupStart -Message "Running tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               _            _
  |  __ \                 (_)             | |          | |
@@ -2474,11 +2474,11 @@ if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
     Write-Host "Copying test results to output"
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if (!$doNotRunBcptTests -and $bcptTestSuites) {
-if ($gitHubActions) { Write-Host "::group::Running BCPT tests" }
+Write-GroupStart -Message "Running BCPT tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               ____   _____ _____ _______   _            _
  |  __ \                 (_)             |  _ \ / ____|  __ \__   __| | |          | |
@@ -2518,7 +2518,7 @@ if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
     Write-Host "Copying bcpt test results to output"
     Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if (($gitLab -or $gitHubActions) -and !$allPassed) {
@@ -2530,7 +2530,7 @@ if (($gitLab -or $gitHubActions) -and !$allPassed) {
 }
 
 if ($buildArtifactFolder) {
-if ($gitHubActions) { Write-Host "::group::Copy to build artifacts" }
+Write-GroupStart -Message "Copy to build artifacts"
 Write-Host -ForegroundColor Yellow @'
   _____                     _          _           _ _     _              _   _  __           _
  / ____|                   | |        | |         (_) |   | |            | | (_)/ _|         | |
@@ -2605,7 +2605,7 @@ Write-Host "Files in build artifacts folder:"
 Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 } catch {
@@ -2616,7 +2616,7 @@ finally {
 }
 
 if (!$keepContainer) {
-if ($gitHubActions) { Write-Host "::group::Removing container" }
+Write-GroupStart -Message "Removing container"
 if (!($err)) {
 Write-Host -ForegroundColor Yellow @'
   _____                           _                               _        _
@@ -2654,7 +2654,7 @@ Measure-Command {
         Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
     }
 } | ForEach-Object { if (!($err)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if ($warningsToShow) {
