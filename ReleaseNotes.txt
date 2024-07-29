@@ -4,6 +4,7 @@ Issue #3594 Run-AlCops says unknown platform version
 Add information about apps excluded due to not being referenced during Publish-BcContainerApp
 
 6.0.19
+Add Schedule parameter to Publish-PerTenantExtensionApps
 Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
 Issue #3559 ALCops can't find "Business Foundation" app and doesn't start because of it
 Support for federated credentials in Azure
