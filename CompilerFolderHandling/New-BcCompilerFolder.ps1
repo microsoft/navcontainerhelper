@@ -128,7 +128,12 @@ try {
         Remove-Item -Path (Join-Path $dllsPath 'Service\SideServices') -Recurse -Force -ErrorAction SilentlyContinue
         New-Item -Path (Join-Path $dllsPath 'OpenXML') -ItemType Directory | Out-Null
         Copy-Item -Path (Join-Path $dllsPath 'Service\DocumentFormat.OpenXml.dll') -Destination (Join-Path $dllsPath 'OpenXML') -Force -ErrorAction SilentlyContinue
-        $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
+        $testAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies" -Resolve
+        $testAssembliesDestination = Join-Path $dllsPath "Test Assemblies"
+        New-Item -Path $testAssembliesDestination -ItemType Directory | Out-Null
+        Copy-Item -Path (Join-Path $testAssembliesFolder 'Newtonsoft.Json.dll') -Destination $testAssembliesDestination -Force
+        Copy-Item -Path (Join-Path $testAssembliesFolder 'Microsoft.Dynamics.Framework.UI.Client.dll') -Destination $testAssembliesDestination -Force
+        $mockAssembliesFolder = Join-Path $testAssembliesFolder "Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
