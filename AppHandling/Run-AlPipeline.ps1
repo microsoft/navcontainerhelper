@@ -183,6 +183,10 @@
   Information about which product built the app. Will be stamped into the app manifest.
  .Parameter BuildUrl
   The URL for the build job, which built the app. Will be stamped into the app manifest.
+ .Parameter PipelineInitialize
+  Override for Pipeline Initialize
+ .Parameter PipelineFinalize
+  Override for Pipeline Finalize 
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -193,7 +197,7 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
-  .Parameter CompileAppWithBcCompilerFolder
+ .Parameter CompileAppWithBcCompilerFolder
   Override function parameter for Compile-AppWithBcCompilerFolder
  .Parameter PreCompileApp
   Custom script to run before compiling an app.
@@ -255,8 +259,6 @@
   Override function parameter for Get-BestGenericImageName
  .Parameter GetBcContainerEventLog
   Override function parameter for Get-BcContainerEventLog
- .Parameter GetBcPublishedApps
-  Override function parameter for Get-BcPublishedApps
  .Parameter InstallMissingDependencies
   Override function parameter for Installing missing dependencies
  .Example
@@ -365,6 +367,7 @@ Param(
     [string] $sourceCommit = '',
     [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
     [string] $buildUrl = '',
+    [scriptblock] $PipelineInitialize,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
@@ -385,8 +388,8 @@ Param(
     [scriptblock] $RemoveBcContainer,
     [scriptblock] $GetBestGenericImageName,
     [scriptblock] $GetBcContainerEventLog,
-    [scriptblock] $GetBcPublishedApps,
-    [scriptblock] $InstallMissingDependencies
+    [scriptblock] $InstallMissingDependencies,
+    [scriptblock] $PipelineFinalize
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
@@ -478,6 +481,10 @@ function GetInstalledAppIds {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+if ($PipelineInitialize) {
+    Invoke-Command -ScriptBlock $PipelineInitialize
+}
+
 $warningsToShow = @()
 
 if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
@@ -544,12 +551,6 @@ if ($bcptTestFolders) {
     }
 }
 
-if ($GetBcPublishedApps) {
-    Write-Host -ForegroundColor Yellow "GetBcPublishedApps override"; Write-Host $GetBcPublishedApps.ToString()
-}
-else {
-    $GetBcPublishedApps = { Param([Hashtable]$parameters) Get-BcPublishedApps @parameters }
-}
 $artifactUrl = ""
 $filesOnly = $false
 if ($bcAuthContext) {
@@ -569,13 +570,13 @@ if ($bcAuthContext) {
         if (!($bcEnvironment)) {
             throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
         }
+        $parameters = @{
+            bcAuthContext = $bcAuthContext
+            environment = $environment
+        }
+        $bcBaseApp = Get-BcPublishedApps @Parameters | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
+        $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     }
-    $parameters = @{
-        bcAuthContext = $bcAuthContext
-        environment = $environment
-    }
-    $bcBaseApp = Invoke-Command -ScriptBlock $GetBcPublishedApps -ArgumentList $Parameters | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
-    $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     $filesOnly = $true
 }
 
@@ -2704,6 +2705,10 @@ if ($err) {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
+
+if ($PipelineFinalize) {
+    Invoke-Command -ScriptBlock $PipelineFinalize
+}
 
 }
 catch {
