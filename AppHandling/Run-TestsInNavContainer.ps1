@@ -347,6 +347,8 @@ try {
                 if ($accessToken) {
                     Write-Host "ACCESSTOKEN"
                     $clientServicesCredentialType = "AAD"
+                    Write-Host $credential.UserName
+                    Write-Host "$accessToken".Substring(5)
                     $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
         
