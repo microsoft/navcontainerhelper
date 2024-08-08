@@ -262,6 +262,7 @@ try {
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.AccessToken
         Write-Host $accessToken.GetType().FullName
+        Write-Host $accessToken
         Write-Host $bcAuthContext.upn
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
