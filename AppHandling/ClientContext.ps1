@@ -19,7 +19,11 @@ class ClientContext {
     $currentInteraction = $null
 
     ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
+        Write-Host $serviceUrl
         Write-Host $accessToken
+        Write-Host $interactionTimeout
+        Write-Host $culture
+        Write-Host $timezone
         $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture, $timezone)
     }
 

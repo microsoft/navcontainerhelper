@@ -47,6 +47,8 @@ function New-ClientContext {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
         $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        Write-Host $accessToken.GetType()
+        Write-Host $accessToken.Length
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
