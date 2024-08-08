@@ -2654,7 +2654,11 @@ finally {
     $progressPreference = $prevProgressPreference
 }
 
-if (!$keepContainer) {
+if ($useCompilerFolder -and $compilerFolder) {
+    Remove-BcCompilerFolder -compilerFolder $compilerFolder
+}
+
+if ($createContainer -and !$keepContainer) {
 if ($gitHubActions) { Write-Host "::group::Removing container" }
 if (!($err)) {
 Write-Host -ForegroundColor Yellow @'
@@ -2670,9 +2674,6 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($useCompilerFolder -and $compilerFolder) {
-        Remove-BcCompilerFolder -compilerFolder $compilerFolder
-    }
     if (!$doNotPublishApps) {
         if (!$filesOnly -and $containerEventLogFile) {
             try {

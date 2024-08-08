@@ -1039,6 +1039,7 @@ function GetAppInfo {
         [string] $cacheAppInfoPath = ''
     )
 
+    Push-Location
     $appInfoCache = $null
     $cacheUpdated = $false
     if ($cacheAppInfoPath) {
@@ -1048,6 +1049,7 @@ function GetAppInfo {
         else {
             $appInfoCache = @{}
         }
+        Set-Location (Split-Path $cacheAppInfoPath -parent)
     }
     Write-Host "::group::Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
@@ -1077,8 +1079,9 @@ function GetAppInfo {
     try {
         foreach($path in $appFiles) {
             Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
-            if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $path) {
-                $appInfo = $appInfoCache."$path"
+            $relativePath = Resolve-Path -Path $path -Relative
+            if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
+                $appInfo = $appInfoCache."$relativePath"
                 Write-Host " (cached)"
             }
             else {
@@ -1125,7 +1128,7 @@ function GetAppInfo {
                     Write-Host " (succeeded using codeanalysis)"
                 }
                 if ($cacheAppInfoPath) {
-                    $appInfoCache | Add-Member -MemberType NoteProperty -Name $path -Value $appInfo
+                    $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
                     $cacheUpdated = $true
                 }
             }
@@ -1162,6 +1165,7 @@ function GetAppInfo {
         if ($packageStream) {
             $packageStream.Dispose()
         }
+        Pop-Location
     }
     Write-Host "::endgroup::"
 }

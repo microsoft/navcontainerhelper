@@ -258,11 +258,13 @@ try {
         }
     }
 
-    $symbolsPath = Join-Path $compilerFolder 'symbols'
-    Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
+    Write-Host "Enumerating Apps in $symbolsPath"
     $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
     GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $symbolsPath 'cache_AppInfo.json') | Out-Null
-
+    if ($cacheFolder) {
+        Write-Host "Copying symbols cache"
+        Copy-Item -Path (Join-Path $symbolsPath 'cache_AppInfo.json') -Destination (Join-Path $compilerFolder 'symbols') -Force
+    }
     $compilerFolder
 }
 catch {

@@ -169,6 +169,14 @@ try {
     if ($bcAuthContext -and $environment) {
         if ($environment -like 'https://*') {
             $useUrl = $environment
+            if ($bcAuthContext.ContainsKey('Username') -and $bcAuthContext.ContainsKey('Password')) {
+                $credential = New-Object pscredential $bcAuthContext.Username, $bcAuthContext.Password
+                $clientServicesCredentialType = "NavUserPassword"
+            }
+            if ($bcAuthContext.ContainsKey('ClientServicesCredentialType')) {
+                $clientServicesCredentialType = $bcAuthContext.ClientServicesCredentialType
+            }
+            $testPage = 130455
         }
         else {
             $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
@@ -247,7 +255,7 @@ try {
         } -argumentList $interactionTimeout.ToString()
     }
 
-    if ($bcAuthContext) {
+    if ($bcAuthContext -and ($environment -notlike 'https://*')) {
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.accessToken
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
