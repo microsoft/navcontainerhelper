@@ -570,6 +570,9 @@ function Run-Tests {
         Write-Host "Run-Tests, open page $testpage"
     }
 
+    Write-Host "Open page 21"
+    $form = $clientContext.OpenForm(21)
+    Write-Host "Open Page $testPage"
     $form = $clientContext.OpenForm($testPage)
     if (!($form)) {
         throw "Cannot open page $testPage. You might need to import the test toolkit to the container and/or remove the folder $PSScriptRoot and retry. You might also have URL or Company name wrong."

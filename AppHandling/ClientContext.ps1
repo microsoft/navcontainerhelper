@@ -263,15 +263,24 @@ class ClientContext {
             }
         }
         try {
+            Write-Host "a"
             $this.InvokeInteraction($interaction)
+            Write-Host "b"
             if (!($Global:PsTestRunnerCaughtForm)) {
+                Write-Host "c"
                 $this.CloseAllWarningForms()
+                Write-Host "d"
             }
+            Write-Host "e"
         } finally {
+            Write-Host "f"
             Unregister-Event -SourceIdentifier $formToShowEvent.Name
         }
+        Write-Host "g"
         $form = $Global:PsTestRunnerCaughtForm
+        Write-Host "h"
         Remove-Variable PsTestRunnerCaughtForm -Scope Global
+        Write-Host "i"
         return $form
     }
     
