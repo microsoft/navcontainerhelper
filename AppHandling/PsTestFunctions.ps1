@@ -726,6 +726,13 @@ function Run-Tests {
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
 
+                if ($extensionid) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","extensionid")
+                    $property.SetAttribute("value", $extensionId)
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
+
                 if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.start")
@@ -733,11 +740,6 @@ function Run-Tests {
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
                     if ($extensionid) {
-                        $property = $JUnitDoc.CreateElement("property")
-                        $property.SetAttribute("name","extensionid")
-                        $property.SetAttribute("value", $extensionId)
-                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-
                         $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
                         if ($appname) {
                             $property = $JUnitDoc.CreateElement("property")
