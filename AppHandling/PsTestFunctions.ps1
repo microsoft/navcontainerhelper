@@ -23,7 +23,7 @@ function New-ClientContext {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $auth='NavUserPassword',
         [Parameter(Mandatory=$false)]
-        [pscredential] $credential,
+        [System.Management.Automation.PSCredential] $credential,
         [timespan] $interactionTimeout = [timespan]::FromMinutes(10),
         [string] $culture = "en-US",
         [string] $timezone = "",
@@ -248,7 +248,7 @@ function CollectCoverageResults {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $AutorizationType = $script:DefaultAuthorizationType,
         [Parameter(Mandatory=$false)]
-        [pscredential] $Credential,
+        [System.Management.Automation.PSCredential] $Credential,
         [Parameter(Mandatory=$true)]
         [string] $ServiceUrl,
         [string] $CodeCoverageFilePrefix
@@ -292,7 +292,7 @@ function SaveCodeCoverageMap {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $AutorizationType = $script:DefaultAuthorizationType,
         [Parameter(Mandatory=$false)]
-        [pscredential] $Credential,
+        [System.Management.Automation.PSCredential] $Credential,
         [Parameter(Mandatory=$true)]
         [string] $ServiceUrl
     )

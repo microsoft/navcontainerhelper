@@ -95,9 +95,9 @@ function Run-TestsInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $profile = "",
         [Parameter(Mandatory=$false)]
-        [PSCredential] $credential = $null,
+        [System.Management.Automation.PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
-        [PSCredential] $sqlCredential = $credential,
+        [System.Management.Automation.PSCredential] $sqlCredential = $credential,
         [Parameter(Mandatory=$false)]
         [string] $accessToken = "",
         [Parameter(Mandatory=$false)]
@@ -172,7 +172,7 @@ try {
         if ($environment -like 'https://*') {
             $useUrl = $environment
             if ($bcAuthContext.ContainsKey('Username') -and $bcAuthContext.ContainsKey('Password')) {
-                $credential = New-Object pscredential $bcAuthContext.Username, $bcAuthContext.Password
+                $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $bcAuthContext.Username, $bcAuthContext.Password
                 $clientServicesCredentialType = "NavUserPassword"
             }
             if ($bcAuthContext.ContainsKey('ClientServicesCredentialType')) {
@@ -265,7 +265,7 @@ try {
         Write-Host $accessToken
         Write-Host $accessToken.Length
         Write-Host $bcAuthContext.upn
-        $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+        $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
@@ -353,7 +353,7 @@ try {
                     Write-Host $credential.UserName
                     Write-Host $accessToken
                     Write-Host $accessToken.Length
-                    $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+                    $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
         
                 if ($companyName) {
@@ -435,7 +435,7 @@ try {
                     }
                 }
 
-                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [System.Management.Automation.PSCredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
     
                     $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
                     if (!(Test-Path $newtonSoftDllPath)) {
@@ -461,7 +461,7 @@ try {
             
                     if ($accessToken) {
                         $clientServicesCredentialType = "AAD"
-                        $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+                        $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                     }
                     elseif ($clientServicesCredentialType -eq "Windows") {
                         $windowsUserName = whoami
