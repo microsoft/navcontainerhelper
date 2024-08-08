@@ -263,6 +263,7 @@ try {
         $accessToken = $bcAuthContext.AccessToken
         Write-Host $accessToken.GetType().FullName
         Write-Host $accessToken
+        Write-Host $accessToken.Length
         Write-Host $bcAuthContext.upn
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
@@ -350,7 +351,8 @@ try {
                     Write-Host "ACCESSTOKEN"
                     $clientServicesCredentialType = "AAD"
                     Write-Host $credential.UserName
-                    $accessToken = $accessToken.Trim()
+                    Write-Host $accessToken
+                    Write-Host $accessToken.Length
                     $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
         
