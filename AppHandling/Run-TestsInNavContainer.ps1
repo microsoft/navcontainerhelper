@@ -391,8 +391,8 @@ try {
                               -ReRun:$ReRun `
                               -AzureDevOps $AzureDevOps `
                               -GitHubActions $GitHubActions `
-                              -detailed:$detailed `
-                              -debugMode:$debugMode `
+                              -detailed:$true `
+                              -debugMode:$true `
                               -testPage $testPage `
                               -connectFromHost:$connectFromHost
                 }
