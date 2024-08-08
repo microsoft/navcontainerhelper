@@ -46,7 +46,9 @@ function New-ClientContext {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
-        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)
+        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+        [Runtime.InteropServices.Marshal]::FreeBSTR($bstr)
         Write-Host $accessToken.GetType()
         Write-Host $accessToken.Length
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
