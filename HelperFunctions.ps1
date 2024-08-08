@@ -1056,7 +1056,6 @@ function GetAppInfo {
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
         $alToolExe = Join-Path $alcPath 'altool'
-        Write-Host "Setting execute permissions on altool"
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     else {
@@ -1276,7 +1275,6 @@ function RunAlTool {
     $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
-        Write-Host "Setting execute permissions on altool"
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     else {

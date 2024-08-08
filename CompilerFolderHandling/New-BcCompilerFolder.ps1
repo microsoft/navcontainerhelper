@@ -230,7 +230,6 @@ try {
         $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
         if (Test-Path $alcExePath) {
             # Set execute permissions on alc
-            Write-Host "Setting execute permissions on alc"
             & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
         }
         else {
