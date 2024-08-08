@@ -78,6 +78,7 @@ class ClientContext {
             if ([ClientContext]::OpenClientContext) {
                 if ([ClientContext]::OpenClientContext.debugMode) {
                     try {
+                        Write-Host "Enumerate forms:"
                         [ClientContext]::OpenClientContext.GetAllForms() | ForEach-Object {
                             $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($_)
                             if ($formInfo) {
@@ -263,7 +264,7 @@ class ClientContext {
                 $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($form)
                 if ($formInfo) {
                     Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
-#                    $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+                    $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
                 }
             }
         }
@@ -284,7 +285,7 @@ class ClientContext {
         Write-Host "g"
         $form = [ClientContext]::PsTestRunnerCaughtForm
         Write-Host "h"
-        Remove-Variable PsTestRunnerCaughtForm -Scope Global
+        [ClientContext]::PsTestRunnerCaughtForm = $null
         Write-Host "i"
         return $form
     }
