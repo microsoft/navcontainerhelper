@@ -195,9 +195,12 @@ class ClientContext {
                 }
             }
         })
-    
+
+        Write-Host "Open Session"
         $this.clientSession.OpenSessionAsync($clientSessionParameters)
+        Write-Host "Await Ready"
         $this.Awaitstate([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Ready)
+        Write-Host "Ready"
     }
     #
     
