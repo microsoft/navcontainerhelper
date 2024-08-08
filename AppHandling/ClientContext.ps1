@@ -11,7 +11,7 @@ class ClientContext {
     $culture = ""
     $timezone = ""
     $caughtForm = $null
-    $debugMode = $false
+    $debugMode = $true
     $addressUri = $null
     $interactionStart = $null
     $currentInteraction = $null
