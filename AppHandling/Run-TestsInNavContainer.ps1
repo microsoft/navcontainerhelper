@@ -261,6 +261,7 @@ try {
         Write-Host "RENEW AUTHCONTEXT"
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.AccessToken
+        Write-Host $accessToken.GetType().FullName
         Write-Host $bcAuthContext.upn
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
@@ -348,7 +349,7 @@ try {
                     Write-Host "ACCESSTOKEN"
                     $clientServicesCredentialType = "AAD"
                     Write-Host $credential.UserName
-                    Write-Host "$accessToken".Substring(5)
+                    $accessToken = $accessToken.Trim()
                     $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
         
