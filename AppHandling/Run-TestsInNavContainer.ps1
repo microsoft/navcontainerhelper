@@ -144,6 +144,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($containerName) {
+        Write-Host "CONTAINERNAME"
         $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
         $version = [System.Version]($navversion.split('-')[0])
@@ -151,6 +152,7 @@ try {
 
     }
     elseif ($compilerFolder) {
+        Write-Host "COMPILERFOLDER"
         $customConfig = $null
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
@@ -256,8 +258,10 @@ try {
     }
 
     if ($bcAuthContext -and ($environment -notlike 'https://*')) {
+        Write-Host "RENEW AUTHCONTEXT"
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
-        $accessToken = $bcAuthContext.accessToken
+        $accessToken = $bcAuthContext.AccessToken
+        Write-Host $bcAuthContext.upn
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
@@ -341,6 +345,7 @@ try {
                 $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
     
                 if ($accessToken) {
+                    Write-Host "ACCESSTOKEN"
                     $clientServicesCredentialType = "AAD"
                     $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
