@@ -891,7 +891,7 @@ Function CreatePsTestToolFolder {
 
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
-    $newtonSoftDllPath = Join-Path $PsTestToolFolder "NewtonSoft.json.dll"
+    $newtonSoftDllPath = Join-Path $PsTestToolFolder "Newtonsoft.Json.dll"
     $clientDllPath = Join-Path $PsTestToolFolder "Microsoft.Dynamics.Framework.UI.Client.dll"
 
     if (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
@@ -902,9 +902,9 @@ Function CreatePsTestToolFolder {
 
     Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
         if (!(Test-Path $myNewtonSoftDllPath)) {
-            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
             if (!(Test-Path $newtonSoftDllPath)) {
-                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll"
             }
             $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
             Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
