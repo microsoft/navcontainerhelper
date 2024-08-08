@@ -6,6 +6,8 @@ Param(
 
 class ClientContext {
 
+    static [ClientContext] $OpenClientContext = $null
+    static [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalControl] $PsTestRunnerCaughtForm = $null
     $events = @()
     $clientSession = $null
     $culture = ""
@@ -62,7 +64,10 @@ class ClientContext {
     }
 
     OpenSession() {
-        $Global:OpenClientContext = $this
+        Write-Host "SET OPENCLIENTCONTEXT"
+        [ClientContext]::OpenClientContext = $this
+        Write-Host $this.debugMode
+        Write-Host [ClientContext]::OpenClientContext.debugMode
         $clientSessionParameters = New-Object Microsoft.Dynamics.Framework.UI.Client.ClientSessionParameters
         $clientSessionParameters.CultureId = $this.culture
         $clientSessionParameters.UICultureId = $this.culture
@@ -70,11 +75,11 @@ class ClientContext {
         $clientSessionParameters.AdditionalSettings.Add("IncludeControlIdentifier", $true)
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName MessageToShow -Action {
             Write-Host -ForegroundColor Yellow "Message : $($EventArgs.Message)"
-            if ($Global:OpenClientContext) {
-                if ($Global:OpenClientContext.debugMode) {
+            if ([ClientContext]::OpenClientContext) {
+                if ([ClientContext]::OpenClientContext.debugMode) {
                     try {
-                        $Global:OpenClientContext.GetAllForms() | ForEach-Object {
-                            $formInfo = $Global:OpenClientContext.GetFormInfo($_)
+                        [ClientContext]::OpenClientContext.GetAllForms() | ForEach-Object {
+                            $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($_)
                             if ($formInfo) {
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
@@ -91,16 +96,16 @@ class ClientContext {
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName CommunicationError -Action {
             Write-Host -ForegroundColor Red "CommunicationError : $($EventArgs.Exception.Message)"
             Get-PSCallStack | Write-Host -ForegroundColor Red
-            if ($Global:OpenClientContext) {
-                Write-Host -ForegroundColor Red "Current Interaction: $($Global:OpenClientContext.currentInteraction.ToString())"
-                Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $Global:OpenClientContext.interactionStart).Seconds) seconds"
-                if ($Global:OpenClientContext.debugMode) {
+            if ([ClientContext]::OpenClientContext) {
+                Write-Host -ForegroundColor Red "Current Interaction: $([ClientContext]::OpenClientContext.currentInteraction.ToString())"
+                Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - [ClientContext]::OpenClientContext.interactionStart).Seconds) seconds"
+                if ([ClientContext]::OpenClientContext.debugMode) {
                     if ($null -ne $EventArgs.Exception.InnerException) {
                         Write-Host -ForegroundColor Red "CommunicationError InnerException : $($EventArgs.Exception.InnerException)"    
                     }
                     try {
-                        $Global:OpenClientContext.GetAllForms() | ForEach-Object {
-                            $formInfo = $Global:OpenClientContext.GetFormInfo($_)
+                        [ClientContext]::OpenClientContext.GetAllForms() | ForEach-Object {
+                            $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($_)
                             if ($formInfo) {
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
@@ -117,16 +122,16 @@ class ClientContext {
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName UnhandledException -Action {
             Write-Host -ForegroundColor Red "UnhandledException : $($EventArgs.Exception.Message)"
             Get-PSCallStack | Write-Host -ForegroundColor Red
-            if ($Global:OpenClientContext) {
-                Write-Host -ForegroundColor Red "Current Interaction: $($Global:OpenClientContext.currentInteraction.ToString())"
-                Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - $Global:OpenClientContext.interactionStart).Seconds) seconds"
-                if ($Global:OpenClientContext.debugMode) {
+            if ([ClientContext]::OpenClientContext) {
+                Write-Host -ForegroundColor Red "Current Interaction: $([ClientContext]::OpenClientContext.currentInteraction.ToString())"
+                Write-Host -ForegroundColor Red "Time spend: $(([DateTime]::Now - [ClientContext]::OpenClientContext.interactionStart).Seconds) seconds"
+                if ([ClientContext]::OpenClientContext.debugMode) {
                     if ($null -ne $EventArgs.Exception.InnerException) {
                         Write-Host -ForegroundColor Red "UnhandledException InnerException : $($EventArgs.Exception.InnerException)"    
                     }
                     try {
-                        $Global:OpenClientContext.GetAllForms() | ForEach-Object {
-                            $formInfo = $Global:OpenClientContext.GetFormInfo($_)
+                        [ClientContext]::OpenClientContext.GetAllForms() | ForEach-Object {
+                            $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($_)
                             if ($formInfo) {
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
@@ -152,10 +157,10 @@ class ClientContext {
         })
         $this.events += @(Register-ObjectEvent -InputObject $this.clientSession -EventName DialogToShow -Action {
             $form = $EventArgs.DialogToShow
-            if ($Global:OpenClientContext) {
-                if ($Global:OpenClientContext.debugMode) {
+            if ([ClientContext]::OpenClientContext) {
+                if ([ClientContext]::OpenClientContext.debugMode) {
                     Write-Host -ForegroundColor Yellow "Show dialog $($form.ControlIdentifier)"
-                    $formInfo = $Global:OpenClientContext.GetFormInfo($form)
+                    $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($form)
                     if ($formInfo) {
                         Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
                         #$formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
@@ -164,33 +169,33 @@ class ClientContext {
                 if ( $form.ControlIdentifier -eq "00000000-0000-0000-0800-0000836bd2d2" ) {
                     $errorControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
                     Write-Host -ForegroundColor Red "ERROR DIALOG: $($errorControl.StringValue)"
-                    $Global:OpenClientContext.CloseForm($form)
+                    [ClientContext]::OpenClientContext.CloseForm($form)
                     throw "$($errorControl.StringValue)"
                 }
                 elseif ( $form.ControlIdentifier -eq "00000000-0000-0000-0300-0000836bd2d2" ) {
                     $warningControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
                     Write-Host -ForegroundColor Yellow "WARNING DIALOG: $($warningControl.StringValue)"
-                    $Global:OpenClientContext.CloseForm($form)
+                    [ClientContext]::OpenClientContext.CloseForm($form)
                 }
                 elseif ( $form.ControlIdentifier -eq "{000009ce-0000-0001-0c00-0000836bd2d2}" -or
                          $form.ControlIdentifier -eq "{000009cd-0000-0001-0c00-0000836bd2d2}" ) {
-                    $Global:PsTestRunnerCaughtForm = $form
+                            [ClientContext]::PsTestRunnerCaughtForm = $form
                 }
                 elseif ( $form.ControlIdentifier -eq '8da61efd-0002-0003-0507-0b0d1113171d') {
                     $infoControl = $form.ContainedControls | Where-Object { $_ -is [Microsoft.Dynamics.Framework.UI.Client.ClientStaticStringControl] } | Select-Object -First 1                
                     Write-Host "INFO DIALOG: $($infoControl.StringValue)"
-                    $Global:OpenClientContext.CloseForm($form)
+                    [ClientContext]::OpenClientContext.CloseForm($form)
                 }
                 else {
                     Write-Host -NoNewline "DIALOG: $($form.Name) $($form.Caption) - "
-                    $OkAction = $Global:OpenClientContext.GetActionByName($form, 'OK')
+                    $OkAction = [ClientContext]::OpenClientContext.GetActionByName($form, 'OK')
                     if ($OkAction) {
                         Write-Host "Invoke OK"
-                        $Global:OpenClientContext.InvokeAction($OkAction)
+                        [ClientContext]::OpenClientContext.InvokeAction($OkAction)
                     }
                     else {
                         Write-Host "close Dialog"
-                        $Global:OpenClientContext.CloseForm($form)
+                        [ClientContext]::OpenClientContext.CloseForm($form)
                     }
                 }
             }
@@ -205,7 +210,7 @@ class ClientContext {
     #
     
     Dispose() {
-        $Global:OpenClientContext = $null
+        [ClientContext]::OpenClientContext = $null
 
         $this.events | ForEach-Object { Unregister-Event $_.Name }
         $this.events = @()
@@ -249,13 +254,13 @@ class ClientContext {
     }
     
     [Microsoft.Dynamics.Framework.UI.Client.ClientLogicalForm] InvokeInteractionAndCatchForm([Microsoft.Dynamics.Framework.UI.Client.ClientInteraction] $interaction) {
-        $Global:PsTestRunnerCaughtForm = $null
+        [ClientContext]::PsTestRunnerCaughtForm = $null
         $formToShowEvent = Register-ObjectEvent -InputObject $this.clientSession -EventName FormToShow -Action { 
             $form = $EventArgs.FormToShow
-            $Global:PsTestRunnerCaughtForm = $form
-            if ($Global:OpenClientContext.debugMode) {
+            [ClientContext]::PsTestRunnerCaughtForm = $form
+            if ([ClientContext]::OpenClientContext.debugMode) {
                 Write-Host -ForegroundColor Yellow "Show form $($form.ControlIdentifier)"
-                $formInfo = $Global:OpenClientContext.GetFormInfo($form)
+                $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($form)
                 if ($formInfo) {
                     Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
 #                    $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
@@ -266,7 +271,7 @@ class ClientContext {
             Write-Host "a"
             $this.InvokeInteraction($interaction)
             Write-Host "b"
-            if (!($Global:PsTestRunnerCaughtForm)) {
+            if (!([ClientContext]::PsTestRunnerCaughtForm)) {
                 Write-Host "c"
                 $this.CloseAllWarningForms()
                 Write-Host "d"
@@ -277,7 +282,7 @@ class ClientContext {
             Unregister-Event -SourceIdentifier $formToShowEvent.Name
         }
         Write-Host "g"
-        $form = $Global:PsTestRunnerCaughtForm
+        $form = [ClientContext]::PsTestRunnerCaughtForm
         Write-Host "h"
         Remove-Variable PsTestRunnerCaughtForm -Scope Global
         Write-Host "i"
