@@ -30,7 +30,7 @@ function Download-Artifacts {
         [switch] $force,
         [switch] $forceRedirection,
         [string] $basePath = "",
-        [int]    $timeout = 300
+        [int]    $timeout = $bccontainerHelperConfig.artifactDownloadTimeout
     )
 
     function DownloadPackage {

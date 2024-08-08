@@ -27,11 +27,8 @@ function Download-File {
         [string] $description = '',
         [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [switch] $dontOverwrite,
-        [int]    $timeout = 100
+        [int]    $timeout = $bccontainerHelperConfig.defaultDownloadTimeout
     )
-
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
 
     $replaceUrls = @{
         "https://go.microsoft.com/fwlink/?LinkID=844461" = "https://bcartifacts.azureedge.net/prerequisites/DotNetCore.1.0.4_1.1.1-WindowsHosting.exe"
@@ -76,6 +73,7 @@ try {
         if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
             # Do not use CDN when configured or bcinsider
             $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
+            $timeout += $timeout
         }
         try {
             DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
@@ -89,6 +87,7 @@ try {
                 }
                 else {
                     Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
+                    $timeout += $timeout
                 }
                 Start-Sleep -Seconds $waittime
                 DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
@@ -98,13 +97,5 @@ try {
             }
         }
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Export-ModuleMember -Function Download-File

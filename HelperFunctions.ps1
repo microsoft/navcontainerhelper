@@ -1,35 +1,4 @@
-﻿$useTimeOutWebClient = $false
-if ($PSVersionTable.PSVersion -lt "6.0.0" -or $useTimeOutWebClient) {
-    $timeoutWebClientCode = @"
-	using System.Net;
- 
-	public class TimeoutWebClient : WebClient
-	{
-        int theTimeout;
-
-        public TimeoutWebClient(int timeout)
-        {
-            theTimeout = timeout;
-        }
-
-		protected override WebRequest GetWebRequest(System.Uri address)
-		{
-			WebRequest request = base.GetWebRequest(address);
-			if (request != null)
-			{
-				request.Timeout = theTimeout;
-			}
-			return request;
-		}
- 	}
-"@;
-if (-not ([System.Management.Automation.PSTypeName]"TimeoutWebClient").Type) {
-    Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
-    $useTimeOutWebClient = $true
-}
-}
-
-$sslCallbackCode = @"
+﻿$sslCallbackCode = @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -528,14 +497,23 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Container) {
-            Get-ChildItem $appFile -Recurse | ForEach-Object {
+            Get-ChildItem $appFile -Recurse -File | ForEach-Object {
                 CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
             Get-ChildItem $appFile | ForEach-Object {
                 $appFile = $_.FullName
-                if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                if ($appFile -like "*.app") {
+                    $destFileName = [System.IO.Path]::GetFileName($appFile)
+                    $destFile = Join-Path $folder $destFileName
+                    if (Test-Path $destFile) {
+                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    }
+                    Copy-Item -Path $appFile -Destination $destFile -Force
+                    $destFile
+                }
+                elseif ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
                     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                     $copied = $false
                     try {
@@ -552,14 +530,6 @@ function CopyAppFilesToFolder {
                         Remove-Item -Path $tmpFolder -Recurse -Force
                         if ($copied) { Remove-Item -Path $appFile -Force }
                     }
-                }
-                else {
-                    $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
-                    if (Test-Path $destFile) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                    }
-                    Copy-Item -Path $appFile -Destination $destFile -Force
-                    $destFile
                 }
             }
         }
@@ -966,27 +936,6 @@ function GetHash {
     (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
 }
 
-function Wait-Task {
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [System.Threading.Tasks.Task[]]$Task
-    )
-
-    Begin {
-        $Tasks = @()
-    }
-
-    Process {
-        $Tasks += $Task
-    }
-
-    End {
-        While (-not [System.Threading.Tasks.Task]::WaitAll($Tasks, 200)) {}
-        $Tasks.ForEach( { $_.GetAwaiter().GetResult() })
-    }
-}
-Set-Alias -Name await -Value Wait-Task -Force
-
 function DownloadFileLow {
     Param(
         [string] $sourceUrl,
@@ -998,71 +947,41 @@ function DownloadFileLow {
         [int] $timeout = 100
     )
 
-    if ($useTimeOutWebClient) {
-        Write-Host "Downloading using WebClient"
-        if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
-        }
-        $webClient = New-Object TimeoutWebClient -ArgumentList (1000 * $timeout)
-        $headers.Keys | ForEach-Object {
-            $webClient.Headers.Add($_, $headers."$_")
-        }
-        $webClient.UseDefaultCredentials = $useDefaultCredentials
-        if (Test-Path $destinationFile -PathType Leaf) {
-            if ($dontOverwrite) { 
-                return
-            }
-            Remove-Item -Path $destinationFile -Force
-        }
-        try {
-            $webClient.DownloadFile($sourceUrl, $destinationFile)
-        }
-        finally {
-            $webClient.Dispose()
-            if ($skipCertificateCheck) {
-                Write-Host "Restoring SSL Verification"
-                [SslVerification]::Enable()
-            }
-        }
+    $handler = New-Object System.Net.Http.HttpClientHandler
+    if ($skipCertificateCheck) {
+        Write-Host "Disabling SSL Verification on HttpClient"
+        [SslVerification]::DisableSsl($handler)
+    }
+    if ($useDefaultCredentials) {
+        $handler.UseDefaultCredentials = $true
+    }
+    $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+    $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+    $headers.Keys | ForEach-Object {
+        $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+    }
+    $stream = $null
+    $fileStream = $null
+    if ($dontOverwrite) {
+        $fileMode = [System.IO.FileMode]::CreateNew
     }
     else {
-        Write-Host "Downloading using HttpClient"
-        
-        $handler = New-Object System.Net.Http.HttpClientHandler
-        if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification on HttpClient"
-            [SslVerification]::DisableSsl($handler)
+        $fileMode = [System.IO.FileMode]::Create
+    }
+    try {
+        $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+        $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+        if (-not $stream.CopyToAsync($fileStream).Wait($timeout * 1000)) {
+            throw "Timeout downloading file"
         }
-        if ($useDefaultCredentials) {
-            $handler.UseDefaultCredentials = $true
-        }
-        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
-        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
-        $headers.Keys | ForEach-Object {
-            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
-        }
-        $stream = $null
-        $fileStream = $null
-        if ($dontOverwrite) {
-            $fileMode = [System.IO.FileMode]::CreateNew
-        }
-        else {
-            $fileMode = [System.IO.FileMode]::Create
-        }
-        try {
-            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
-            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+    }
+    finally {
+        if ($fileStream) {
             $fileStream.Close()
+            $fileStream.Dispose()
         }
-        finally {
-            if ($fileStream) {
-                $fileStream.Dispose()
-            }
-            if ($stream) {
-                $stream.Dispose()
-            }
+        if ($stream) {
+            $stream.Dispose()
         }
     }
 }
@@ -1258,6 +1177,17 @@ function DownloadLatestAlLanguageExtension {
         [switch] $allowPrerelease
     )
 
+    # Check if we already have the latest version downloaded and located in this session
+    if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
+        $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
+        if (Test-Path $path -PathType Container) {
+            return $path
+        }
+        else {
+            $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
+        }
+    }
+    
     $mutexName = "DownloadAlLanguageExtension"
     $mutex = New-Object System.Threading.Mutex($false, $mutexName)
     try {
@@ -1270,17 +1200,6 @@ function DownloadLatestAlLanguageExtension {
         }
         catch [System.Threading.AbandonedMutexException] {
            Write-Host "Other process terminated abnormally"
-        }
-
-        # Check if we already have the latest version downloaded and located in this session
-        if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
-            $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
-            if (Test-Path $path -PathType Container) {
-                return $path
-            }
-            else {
-                $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
-            }
         }
 
         $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
@@ -1309,10 +1228,10 @@ function DownloadLatestAlLanguageExtension {
 
 function RunAlTool {
     Param(
-        [string[]] $arguments
+        [string[]] $arguments,
+        [switch] $usePrereleaseAlTool = ($bccontainerHelperConfig.usePrereleaseAlTool)
     )
-    # ALTOOL is at the moment only available in prerelease        
-    $path = DownloadLatestAlLanguageExtension -allowPrerelease
+    $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
         Write-Host "Setting execute permissions on altool"

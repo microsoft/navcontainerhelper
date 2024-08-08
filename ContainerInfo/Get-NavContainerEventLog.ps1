@@ -23,8 +23,6 @@ function Get-BcContainerEventLog {
         [switch] $doNotOpen
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
     Write-Host "Getting event log for $containername"
 
     $eventLogFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "EventLogs"
@@ -45,14 +43,6 @@ try {
     else {
         Start-Process -FilePath $eventLogName | Out-Null
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerEventLog -Value Get-BcContainerEventLog
 Export-ModuleMember -Function Get-BcContainerEventLog -Alias Get-NavContainerEventLog

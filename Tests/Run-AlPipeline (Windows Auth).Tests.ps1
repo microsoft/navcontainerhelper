@@ -26,10 +26,10 @@ Describe 'Run-AlPipeline' {
             -baseFolder $baseFolder `
             -containerName $bccontainerName `
             -credential $credential `
-            -installApps @("https://businesscentralapps.blob.core.windows.net/bingmaps-pte/latest/bingmaps-pte-apps.zip") `
+            -installApps @("https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/24.0.0/bcsamples-bingmaps.pte-main-Apps-24.0.169.0.zip") `
             -appFolders "app,base" `
             -testFolders @("test") `
-            -previousApps @("https://businesscentralapps.blob.core.windows.net/githubhelloworld/2.0.32.0/apps.zip") `
+            -previousApps @((Join-Path $PSScriptRoot 'helloworld-previousapps.zip')) `
             -appBuild ([int32]::MaxValue) `
             -appRevision 0 `
             -testResultsFile $resultsFile `

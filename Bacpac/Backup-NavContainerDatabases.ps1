@@ -49,7 +49,7 @@ try {
     }
     $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -usePwsh:$false -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
+    Invoke-ScriptInBcContainer -containerName $containerName -usesession:$false -usepwsh:$false -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
        
         function Backup {
             Param (
@@ -67,7 +67,7 @@ try {
             Write-Host "Backing up $database to $bakFile"
             $params = @{}
             if ($compress) { $params += @{ "CompressionOption" = "On" } }
-            if ($databaseCredential) { $params += @{ "credential" = $databaseCredential } }
+            if ($databaseCredential) { $databaseCredential.Password.MakeReadOnly(); $params += @{ "credential" = $databaseCredential } }
 
             #Changed because there could be timeouts importing a bakfile             
             #Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile @params

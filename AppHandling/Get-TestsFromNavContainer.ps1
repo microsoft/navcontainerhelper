@@ -20,6 +20,13 @@
   Name of test suite to get. Default is DEFAULT.
  .Parameter testCodeunit
   Name or ID of test codeunit to get. Wildcards (? and *) are supported. Default is *.
+  This parameter will not populate the test suite with the specified codeunit. This is used as a filter on the tests that are already present
+  (or otherwise loaded) in the suite.
+  This is not to be confused with -testCodeunitRange.
+ .Parameter testCodeunitRange
+  A BC-compatible filter string to use for loading test codeunits (similar to -extensionId). This is not to be confused with -testCodeunit.
+  If you set this parameter to '*', all test codeunits will be loaded.
+  This might not work on all versions of BC and only works when using the command-line-testtool.
  .Parameter testPage
   ID of the test page to use. Default for 15.x containers is 130455. Default for 14.x containers and earlier is 130409.
  .Parameter culture
@@ -56,6 +63,8 @@ function Get-TestsFromBcContainer {
         [string] $testSuite = "DEFAULT",
         [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
+        [Parameter(Mandatory=$false)]
+        [string] $testCodeunitRange = "",
         [string] $extensionId = "",
         [array]  $disabledTests = @(),
         [Parameter(Mandatory=$false)]
@@ -171,7 +180,7 @@ try {
         }
     } -argumentList "01:00:00"
 
-    $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
+    $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testCodeunit, [string] $testCodeunitRange, [string] $PsTestFunctionsPath, [string] $ClientContextPath, $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests)
     
         $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
         if (!(Test-Path $newtonSoftDllPath)) {
@@ -227,6 +236,7 @@ try {
             Get-Tests -clientContext $clientContext `
                       -TestSuite $testSuite `
                       -TestCodeunit $testCodeunit `
+                      -testCodeunitRange $testCodeunitRange `
                       -ExtensionId $extensionId `
                       -DisabledTests $disabledtests `
                       -testPage $testPage `
@@ -249,7 +259,7 @@ try {
             }
         }
 
-    } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testCodeunit, (Get-BCContainerPath -containerName $containerName -path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
+    } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testCodeunit, $testCodeunitRange, (Get-BCContainerPath -containerName $containerName -path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $testPage, $version, $culture, $timezone, $debugMode, $ignoreGroups, $usePublicWebBaseUrl, $useUrl, $extensionId, $disabledtests
 
     # When Invoke-ScriptInContainer is running as non-administrator - Write-Host (like license warnings) are send to the output
     # If the output is an array - grab the last item.

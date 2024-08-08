@@ -38,24 +38,31 @@ try {
         $op = "="
     }
 
-    $dbFiles = Invoke-SqlCmd `
-                    -ServerInstance $databaseserverinstance `
+    $sqlParams = @{
+        "ServerInstance" = $databaseserverinstance
+    }
+    $function = Get-Command 'Invoke-SqlCmd' -ErrorAction SilentlyContinue
+    if ($null -eq $function) {
+        throw "Invoke-SqlCmd not found, please install the SqlServer module"
+    }
+    if ($function.Parameters.ContainsKey('TrustServerCertificate')) {
+        $sqlParams += @{ "TrustServerCertificate" = $true }
+    }
+
+    $dbFiles = Invoke-SqlCmd @sqlParams `
                     -Query "SELECT f.physical_name FROM sys.sysdatabases db INNER JOIN sys.master_files f ON f.database_id = db.dbid WHERE db.name $op '$DatabaseName'" | ForEach-Object { $_.physical_name }
 
-    $databases = Invoke-SqlCmd `
-        -ServerInstance $databaseserverinstance `
+    $databases = Invoke-SqlCmd @sqlParams `
         -Query "SELECT * FROM sys.sysdatabases WHERE name  $op '$DatabaseName'" | ForEach-Object { $_.name }
 
     $databases | ForEach-Object {
 
         Write-Host "Setting database $_ offline"
-        Invoke-SqlCmd `
-            -ServerInstance $DatabaseServerInstance `
+        Invoke-SqlCmd @sqlParams `
             -Query "ALTER DATABASE [$_] SET OFFLINE WITH ROLLBACK IMMEDIATE"
 
         Write-Host "Removing database $_"
-        Invoke-SqlCmd `
-            -ServerInstance $DatabaseServerInstance `
+        Invoke-SqlCmd @sqlParams `
             -Query "DROP DATABASE [$_]"
     }
 
