@@ -67,7 +67,7 @@ class ClientContext {
         Write-Host "SET OPENCLIENTCONTEXT"
         [ClientContext]::OpenClientContext = $this
         Write-Host $this.debugMode
-        Write-Host [ClientContext]::OpenClientContext.debugMode
+        Write-Host ([ClientContext]::OpenClientContext.debugMode)
         $clientSessionParameters = New-Object Microsoft.Dynamics.Framework.UI.Client.ClientSessionParameters
         $clientSessionParameters.CultureId = $this.culture
         $clientSessionParameters.UICultureId = $this.culture
