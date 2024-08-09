@@ -144,7 +144,7 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($containerName) {
-        Write-Host "CONTAINERNAME"
+        Write-Host "Using Container"
         $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
         $version = [System.Version]($navversion.split('-')[0])
@@ -152,7 +152,7 @@ try {
 
     }
     elseif ($compilerFolder) {
-        Write-Host "COMPILERFOLDER"
+        Write-Host "Using CompilerFolder"
         $customConfig = $null
         $symbolsFolder = Join-Path $compilerFolder "symbols"
         $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
@@ -195,6 +195,7 @@ try {
         $useUrl = $useUrl.Split('?')[0]
         $dict = [System.Web.HttpUtility]::ParseQueryString($uri.Query)
         if ($dict['tenant']) { $tenant = $dict['tenant'] }
+        if ($dict['testpage']) { $testpage = [int]$dict['testpage'] }
     }
     else {
         $clientServicesCredentialType = $customConfig.ClientServicesCredentialType
