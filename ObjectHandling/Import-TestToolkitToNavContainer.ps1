@@ -92,6 +92,7 @@ try {
 
     if ($bcAuthContext -and $environment) {
         $appFiles = GetTestToolkitApps -containerName $containerName -compilerFolder $compilerFolder -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+        $installedApps = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.state -eq "installed" }
         $appFiles | ForEach-Object {
             if ($compilerFolder) {
                 $appInfo = Get-AppJsonFromAppFile -appFile $_
@@ -110,7 +111,13 @@ try {
             if ($appVersion.Major -eq 18 -and $appVersion.Minor -eq 0) {
                 $targetVersion = "18.0.23013.23913"
             }
-            Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appId -appVersion $targetVersion -acceptIsvEula -installOrUpdateNeededDependencies
+            $installedApp = $installedApps | Where-Object { $_.id -eq $appId -and ($targetVersion -and ([Version]($_.version) -ge [Version]$targetVersion)) }
+            if ($installedApp) {
+                Write-Host "Skipping app '$($installedApp.name)' as it is already installed"
+            }
+            else {
+                Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appId -appVersion $targetVersion -acceptIsvEula -installOrUpdateNeededDependencies
+            }
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully published"
     }
