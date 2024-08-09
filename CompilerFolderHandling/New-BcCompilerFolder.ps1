@@ -128,7 +128,12 @@ try {
         Remove-Item -Path (Join-Path $dllsPath 'Service\SideServices') -Recurse -Force -ErrorAction SilentlyContinue
         New-Item -Path (Join-Path $dllsPath 'OpenXML') -ItemType Directory | Out-Null
         Copy-Item -Path (Join-Path $dllsPath 'Service\DocumentFormat.OpenXml.dll') -Destination (Join-Path $dllsPath 'OpenXML') -Force -ErrorAction SilentlyContinue
-        $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
+        $testAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies" -Resolve
+        $testAssembliesDestination = Join-Path $dllsPath "Test Assemblies"
+        New-Item -Path $testAssembliesDestination -ItemType Directory | Out-Null
+        Copy-Item -Path (Join-Path $testAssembliesFolder 'Newtonsoft.Json.dll') -Destination $testAssembliesDestination -Force
+        Copy-Item -Path (Join-Path $testAssembliesFolder 'Microsoft.Dynamics.Framework.UI.Client.dll') -Destination $testAssembliesDestination -Force
+        $mockAssembliesFolder = Join-Path $testAssembliesFolder "Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
@@ -225,7 +230,6 @@ try {
         $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
         if (Test-Path $alcExePath) {
             # Set execute permissions on alc
-            Write-Host "Setting execute permissions on alc"
             & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
         }
         else {
@@ -253,11 +257,13 @@ try {
         }
     }
 
-    $symbolsPath = Join-Path $compilerFolder 'symbols'
-    Write-Host "Enumerating Apps in CompilerFolder $symbolsPath"
+    Write-Host "Enumerating Apps in $symbolsPath"
     $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
     GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $symbolsPath 'cache_AppInfo.json') | Out-Null
-
+    if ($cacheFolder) {
+        Write-Host "Copying symbols cache"
+        Copy-Item -Path (Join-Path $symbolsPath 'cache_AppInfo.json') -Destination (Join-Path $compilerFolder 'symbols') -Force
+    }
     $compilerFolder
 }
 catch {
