@@ -258,13 +258,8 @@ try {
     }
 
     if ($bcAuthContext -and ($environment -notlike 'https://*')) {
-        Write-Host "RENEW AUTHCONTEXT"
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.AccessToken
-        Write-Host $accessToken.GetType().FullName
-        Write-Host $accessToken
-        Write-Host $accessToken.Length
-        Write-Host $bcAuthContext.upn
         $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
