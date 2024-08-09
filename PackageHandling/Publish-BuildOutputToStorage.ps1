@@ -42,7 +42,7 @@ function Publish-BuildOutputToStorage {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($StorageConnectionString -is [SecureString]) { $StorageConnectionString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StorageConnectionString)) }
+    if ($StorageConnectionString -is [SecureString]) { $StorageConnectionString = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StorageConnectionString)) }
     if ($StorageConnectionString -isnot [string]) { throw "StorageConnectionString needs to be a SecureString or a String" }
     $projectName = $projectName.ToLowerInvariant()
     $appVersion = $appVersion.ToLowerInvariant()
