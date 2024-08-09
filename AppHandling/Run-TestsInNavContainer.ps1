@@ -348,11 +348,7 @@ try {
                 $serviceUrl = "$publicWebBaseUrl/cs?tenant=$tenant"
     
                 if ($accessToken) {
-                    Write-Host "ACCESSTOKEN"
                     $clientServicesCredentialType = "AAD"
-                    Write-Host $credential.UserName
-                    Write-Host $accessToken
-                    Write-Host $accessToken.Length
                     $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
         
@@ -402,8 +398,8 @@ try {
                               -ReRun:$ReRun `
                               -AzureDevOps $AzureDevOps `
                               -GitHubActions $GitHubActions `
-                              -detailed:$true `
-                              -debugMode:$true `
+                              -detailed:$detailed `
+                              -debugMode:$debugMode `
                               -testPage $testPage `
                               -connectFromHost:$connectFromHost
                 }
