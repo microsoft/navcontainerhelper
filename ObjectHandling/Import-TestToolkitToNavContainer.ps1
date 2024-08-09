@@ -111,7 +111,7 @@ try {
             if ($appVersion.Major -eq 18 -and $appVersion.Minor -eq 0) {
                 $targetVersion = "18.0.23013.23913"
             }
-            $installedApp = $installedApps | Where-Object { $_.id -eq $appId -and ($targetVersion -and ([Version]($_.version) -ge [Version]$targetVersion)) }
+            $installedApp = $installedApps | Where-Object { $_.id -eq $appId -and (($targetVersion -eq "") -or ([Version]($_.version) -ge [Version]$targetVersion)) }
             if ($installedApp) {
                 Write-Host "Skipping app '$($installedApp.name)' as it is already installed"
             }
