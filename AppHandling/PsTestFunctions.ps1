@@ -31,31 +31,25 @@ function New-ClientContext {
     )
 
     if ($auth -eq "Windows") {
-        Write-Host "Windows"
         $clientContext = [ClientContext]::new($serviceUrl, $interactionTimeout, $culture, $timezone)
     }
     elseif ($auth -eq "NavUserPassword") {
-        Write-Host "NavUserPassword"
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials if using NavUserPassword authentication"
         }
         $clientContext = [ClientContext]::new($serviceUrl, $credential, $interactionTimeout, $culture, $timezone)
     }
     elseif ($auth -eq "AAD") {
-        Write-Host "AAD"
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
         $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
-        Write-Host $accessToken.GetType()
-        Write-Host $accessToken.Length
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
         throw "Unsupported authentication setting"
     }
     if ($clientContext) {
-        Write-Host "set DebugMode"
         $clientContext.debugMode = $debugMode
     }
     return $clientContext

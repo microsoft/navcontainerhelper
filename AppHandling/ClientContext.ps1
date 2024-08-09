@@ -1,5 +1,4 @@
-﻿#requires -Version 5.0
-Param(
+﻿Param(
     [Parameter(Mandatory=$true)]
     [string] $clientDllPath
 )
@@ -19,11 +18,6 @@ class ClientContext {
     $currentInteraction = $null
 
     ClientContext([string] $serviceUrl, [string] $accessToken, [timespan] $interactionTimeout, [string] $culture, [string] $timezone) {
-        Write-Host $serviceUrl
-        Write-Host $accessToken
-        Write-Host $interactionTimeout
-        Write-Host $culture
-        Write-Host $timezone
         $this.Initialize($serviceUrl, ([Microsoft.Dynamics.Framework.UI.Client.AuthenticationScheme]::AzureActiveDirectory), (New-Object Microsoft.Dynamics.Framework.UI.Client.TokenCredential -ArgumentList $accessToken), $interactionTimeout, $culture, $timezone)
     }
 
@@ -69,10 +63,7 @@ class ClientContext {
     }
 
     OpenSession() {
-        Write-Host "SET OPENCLIENTCONTEXT"
         [ClientContext]::OpenClientContext = $this
-        Write-Host $this.debugMode
-        Write-Host ([ClientContext]::OpenClientContext.debugMode)
         $clientSessionParameters = New-Object Microsoft.Dynamics.Framework.UI.Client.ClientSessionParameters
         $clientSessionParameters.CultureId = $this.culture
         $clientSessionParameters.UICultureId = $this.culture
@@ -83,13 +74,12 @@ class ClientContext {
             if ([ClientContext]::OpenClientContext) {
                 if ([ClientContext]::OpenClientContext.debugMode) {
                     try {
-                        Write-Host "Enumerate forms:"
                         [ClientContext]::OpenClientContext.GetAllForms() | ForEach-Object {
                             $formInfo = [ClientContext]::OpenClientContext.GetFormInfo($_)
                             if ($formInfo) {
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.title)"
                                 Write-Host -ForegroundColor Yellow "Title: $($formInfo.identifier)"
-                                $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
+#                                $formInfo.controls | ConvertTo-Json -Depth 99 | Out-Host
                             }
                         }
                     }
@@ -207,11 +197,8 @@ class ClientContext {
             }
         })
 
-        Write-Host "Open Session"
         $this.clientSession.OpenSessionAsync($clientSessionParameters)
-        Write-Host "Await Ready"
         $this.Awaitstate([Microsoft.Dynamics.Framework.UI.Client.ClientSessionState]::Ready)
-        Write-Host "Ready"
     }
     #
     
@@ -274,24 +261,15 @@ class ClientContext {
             }
         }
         try {
-            Write-Host "a"
             $this.InvokeInteraction($interaction)
-            Write-Host "b"
             if (!([ClientContext]::PsTestRunnerCaughtForm)) {
-                Write-Host "c"
                 $this.CloseAllWarningForms()
-                Write-Host "d"
             }
-            Write-Host "e"
         } finally {
-            Write-Host "f"
             Unregister-Event -SourceIdentifier $formToShowEvent.Name
         }
-        Write-Host "g"
         $form = [ClientContext]::PsTestRunnerCaughtForm
-        Write-Host "h"
         [ClientContext]::PsTestRunnerCaughtForm = $null
-        Write-Host "i"
         return $form
     }
     
