@@ -23,7 +23,7 @@ function New-ClientContext {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $auth='NavUserPassword',
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential] $credential,
+        [pscredential] $credential,
         [timespan] $interactionTimeout = [timespan]::FromMinutes(10),
         [string] $culture = "en-US",
         [string] $timezone = "",
@@ -40,6 +40,7 @@ function New-ClientContext {
         $clientContext = [ClientContext]::new($serviceUrl, $credential, $interactionTimeout, $culture, $timezone)
     }
     elseif ($auth -eq "AAD") {
+
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
@@ -240,7 +241,7 @@ function CollectCoverageResults {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $AutorizationType = $script:DefaultAuthorizationType,
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential] $Credential,
+        [pscredential] $Credential,
         [Parameter(Mandatory=$true)]
         [string] $ServiceUrl,
         [string] $CodeCoverageFilePrefix
@@ -284,7 +285,7 @@ function SaveCodeCoverageMap {
         [ValidateSet('Windows','NavUserPassword','AAD')]
         [string] $AutorizationType = $script:DefaultAuthorizationType,
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential] $Credential,
+        [pscredential] $Credential,
         [Parameter(Mandatory=$true)]
         [string] $ServiceUrl
     )

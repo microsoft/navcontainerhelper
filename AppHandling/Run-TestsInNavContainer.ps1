@@ -95,9 +95,9 @@ function Run-TestsInBcContainer {
         [Parameter(Mandatory=$false)]
         [string] $profile = "",
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential] $credential = $null,
+        [PSCredential] $credential = $null,
         [Parameter(Mandatory=$false)]
-        [System.Management.Automation.PSCredential] $sqlCredential = $credential,
+        [PSCredential] $sqlCredential = $credential,
         [Parameter(Mandatory=$false)]
         [string] $accessToken = "",
         [Parameter(Mandatory=$false)]
@@ -260,8 +260,8 @@ try {
 
     if ($bcAuthContext -and ($environment -notlike 'https://*')) {
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
-        $accessToken = $bcAuthContext.AccessToken
-        $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+        $accessToken = $bcAuthContext.accessToken
+        $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
@@ -345,7 +345,7 @@ try {
     
                 if ($accessToken) {
                     $clientServicesCredentialType = "AAD"
-                    $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+                    $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                 }
         
                 if ($companyName) {
@@ -453,7 +453,7 @@ try {
             
                     if ($accessToken) {
                         $clientServicesCredentialType = "AAD"
-                        $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
+                        $credential = New-Object pscredential $credential.UserName, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
                     }
                     elseif ($clientServicesCredentialType -eq "Windows") {
                         $windowsUserName = whoami

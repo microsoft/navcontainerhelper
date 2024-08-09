@@ -4,6 +4,12 @@ Issue #3594 Run-AlCops says unknown platform version
 Add information about apps excluded due to not being referenced during Publish-BcContainerApp
 Run-AlPipeline to support CompilerFolder and online environments for building and testing
 Added 2 new overrides in Run-AlPipeline: PipelineInitialize and PipelineFinalize
+Add parameter CompilerFolder to Run-TestsInBcContainer and Import-TestToolkitToBcContainer for running tests using CompilerFolder bits from the host
+Replace all occurrences of [System.Runtime.InteropServices.Marshal]::PtrToStringAuto with [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR as the Auto function doesn't always do what's expected under Linux
+Ensure correct casing of Newtonsoft.Json.dll for Linux
+Always add extensionId (when specified) to Properties section in test results xml
+If environment is specified as a Web Client URL, and BcAuthContext contains username/password in Run-AlPipeline, then tests will run against this environment. PublishBcContainerApp and ImportTestToolkitToBcContainer needs to be overridden for this to work with full pipeline.
+Including caching of appinfos in CompilerFolder cache (to save time when caching on GitHub Actions)
 
 6.0.19
 Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
