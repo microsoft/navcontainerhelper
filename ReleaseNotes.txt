@@ -10,6 +10,7 @@ Ensure correct casing of Newtonsoft.Json.dll for Linux
 Always add extensionId (when specified) to Properties section in test results xml
 If environment is specified as a Web Client URL, and BcAuthContext contains username/password in Run-AlPipeline, then tests will run against this environment. PublishBcContainerApp and ImportTestToolkitToBcContainer needs to be overridden for this to work with full pipeline.
 Including caching of appinfos in CompilerFolder cache (to save time when caching on GitHub Actions)
+Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
 
 6.0.19
 Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
