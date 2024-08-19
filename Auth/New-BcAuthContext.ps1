@@ -20,6 +20,8 @@
   If Refresh token is specified, the refresh_token flow will be included in the list of OAuth2 flows to try
  .Parameter clientSecret
   If ClientSecret is specified, the client_credentials flow will be included in the list of OAuth2 flows to try
+ .Parameter clientAssertion
+  If ClientAssertion is specified, the client_credentials flow (with ClientAssertion instead of ClientSecret) will be included in the list of OAuth2 flows to try
  .Parameter credential
   If Credential is specified, the password flow will be included in the list of OAuth2 flows to try
  .Parameter includeDeviceLogin
@@ -46,6 +48,7 @@ function New-BcAuthContext {
         [string] $refreshToken,
         [string] $scopes = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/",
         $clientSecret,
+        $clientAssertion,
         [PSCredential] $credential,
         [switch] $includeDeviceLogin,
         [Timespan] $deviceLoginTimeout = [TimeSpan]::FromMinutes(15),
@@ -58,6 +61,9 @@ try {
 
     if ($clientSecret -and ($clientSecret -isnot [SecureString])) {
         $clientSecret = ConvertTo-SecureString -String "$clientSecret" -AsPlainText -Force
+    }
+    if ($clientAssertion -and ($clientAssertion -isnot [SecureString])) {
+        $clientAssertion = ConvertTo-SecureString -String "$clientAssertion" -AsPlainText -Force
     }
 
     if ($deviceCode) {
@@ -79,7 +85,7 @@ try {
         "deviceCode"         = $deviceCode
     }
     $accessToken = $null
-    if ($clientSecret) {
+    if ($clientSecret -or $clientAssertion) {
         if ($scopes.EndsWith('/')) {
             $scopes += ".default"
         }
@@ -91,9 +97,19 @@ try {
                 "grant_type"    = "client_credentials"
                 "scope"         = $scopes
                 "client_id"     = $clientId
-                "client_secret" = ($clientSecret | Get-PlainText)
             }
             Headers = @{ "Content-Type" = "application/x-www-form-urlencoded" }
+        }
+        if ($clientSecret) {
+            $TokenRequestParams.Body += @{
+                "client_secret" = ($clientSecret | Get-PlainText)
+            }
+        }
+        else {
+            $TokenRequestParams.Body += @{
+                "client_assertion_type" = 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer'
+                "client_assertion" = ($clientAssertion | Get-PlainText)
+            }
         }
         try {
             if (!$silent) { Write-Host "Attempting authentication to $scopes using clientCredentials..." }
@@ -110,14 +126,15 @@ try {
             }
 
             $authContext += @{
-                "AccessToken"  = $accessToken
-                "UtcExpiresOn" = $expiresOn
-                "RefreshToken" = $null
-                "Credential"   = $null
-                "ClientSecret" = $clientSecret
-                "appid"        = $jwtToken.appid
-                "name"         = ""
-                "upn"          = ""
+                "AccessToken"     = $accessToken
+                "UtcExpiresOn"    = $expiresOn
+                "RefreshToken"    = $null
+                "Credential"      = $null
+                "ClientSecret"    = $clientSecret
+                "ClientAssertion" = $clientAssertion
+                "appid"           = $jwtToken.appid
+                "name"            = ""
+                "upn"             = ""
         }
             if ($tenantID -eq "Common") {
                 if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
@@ -155,14 +172,15 @@ try {
                 $jwtToken = Parse-JWTtoken -token $accessToken
                 if (!$silent) { Write-Host -ForegroundColor Green "Authenticated from $($jwtToken.ipaddr) as user $($jwtToken.name) ($($jwtToken.unique_name))" }
                 $authContext += @{
-                    "AccessToken"  = $accessToken
-                    "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                    "RefreshToken" = $null
-                    "Credential"   = $credential
-                    "ClientSecret" = $null
-                    "appid"        = ""
-                    "name"         = $jwtToken.name
-                    "upn"          = $jwtToken.unique_name
+                    "AccessToken"     = $accessToken
+                    "UtcExpiresOn"    = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
+                    "RefreshToken"    = $null
+                    "Credential"      = $credential
+                    "ClientSecret"    = $null
+                    "ClientAssertion" = $null
+                    "appid"           = ""
+                    "name"            = $jwtToken.name
+                    "upn"             = $jwtToken.unique_name
                 }
                 if ($TokenRequest.PSObject.Properties.Name -eq 'refresh_token') {
                     $authContext.RefreshToken = $TokenRequest.refresh_token
@@ -203,14 +221,15 @@ try {
                     throw "Invalid Access token"
                 }
                 $authContext += @{
-                    "AccessToken"  = $accessToken
-                    "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                    "RefreshToken" = $TokenRequest.refresh_token
-                    "Credential"   = $null
-                    "ClientSecret" = $null
-                    "appid"        = ""
-                    "name"         = $jwtToken.name
-                    "upn"          = $jwtToken.unique_name
+                    "AccessToken"     = $accessToken
+                    "UtcExpiresOn"    = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
+                    "RefreshToken"    = $TokenRequest.refresh_token
+                    "Credential"      = $null
+                    "ClientSecret"    = $null
+                    "ClientAssertion" = $null
+                    "appid"           = ""
+                    "name"            = $jwtToken.name
+                    "upn"             = $jwtToken.unique_name
                     }
                 if ($tenantID -eq "Common") {
                     if (!$silent) { Write-Host "Authenticated to common, using tenant id $($jwtToken.tid)" }
@@ -315,14 +334,15 @@ try {
                     throw "Invalid Access token"
                 }
                 $authContext += @{
-                    "AccessToken"  = $accessToken
-                    "UtcExpiresOn" = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
-                    "RefreshToken" = $null
-                    "Credential"   = $null
-                    "ClientSecret" = $null
-                    "appid"        = ""
-                    "name"         = $jwtToken.name
-                    "upn"          = $jwtToken.unique_name
+                    "AccessToken"     = $accessToken
+                    "UtcExpiresOn"    = [Datetime]::UtcNow.AddSeconds($TokenRequest.expires_in)
+                    "RefreshToken"    = $null
+                    "Credential"      = $null
+                    "ClientSecret"    = $null
+                    "ClientAssertion" = $null
+                    "appid"           = ""
+                    "name"            = $jwtToken.name
+                    "upn"             = $jwtToken.unique_name
                 }
                 if ($TokenRequest.PSObject.Properties.Name -eq 'refresh_token') {
                     $authContext.RefreshToken = $TokenRequest.refresh_token
@@ -337,16 +357,17 @@ try {
                 $accessToken = "N/A"
                 $authContext.deviceCode = $deviceCode
                 $authContext += @{
-                    "AccessToken"  = $accessToken
-                    "UtcExpiresOn" = [Datetime]::Now
-                    "RefreshToken" = ""
-                    "Credential"   = $null
-                    "ClientSecret" = $null
-                    "appid"        = ""
-                    "name"         = ""
-                    "upn"          = ""
-                    "userCode"     = $userCode
-                    "message"      = $message
+                    "AccessToken"     = $accessToken
+                    "UtcExpiresOn"    = [Datetime]::Now
+                    "RefreshToken"    = ""
+                    "Credential"      = $null
+                    "ClientSecret"    = $null
+                    "ClientAssertion" = $null
+                    "appid"           = ""
+                    "name"            = ""
+                    "upn"             = ""
+                    "userCode"        = $userCode
+                    "message"         = $message
                 }
             }
         }

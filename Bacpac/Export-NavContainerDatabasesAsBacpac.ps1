@@ -193,7 +193,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove Network Service User from $DatabaseName"
@@ -219,7 +219,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove Windows Users from $DatabaseName"
@@ -249,7 +249,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove Application Roles from $DatabaseName"
@@ -280,7 +280,7 @@ try {
             Write-Host "Checking Entitlements"
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
 
             'Membership Entitlement', 'Entitlement Set', 'Entitlement' | % {
@@ -303,7 +303,7 @@ try {
          
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove data from System Tables database $DatabaseName"
@@ -336,7 +336,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             if (!($KeepUserData)) {
@@ -416,7 +416,7 @@ try {
                 if ($sqlCredential) {
                     $arguments += @(
                         ('/SourceUser:"'+$sqlCredential.UserName+'"'),
-                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
                     )
                 }
     
@@ -447,7 +447,7 @@ try {
                 if ($sqlCredential) {
                     $arguments += @(
                         ('/SourceUser:"'+$sqlCredential.UserName+'"'),
-                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
                     )
                 }
 

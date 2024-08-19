@@ -73,6 +73,7 @@ function Invoke-ScriptInBcContainer {
                $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName, $startTime)
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     Write-Host "`nContainer Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+                    Get-PSDrive C | ForEach-Object { Write-Host "Disk C: Free $([Math]::Round($_.Free / 1GB))Gb from $([Math]::Round(($_.Free+$_.Used) / 1GB))Gb" }
                     $any = $false
                     Write-Host "`nServices in container $($containerName):"
                     Get-Service |
@@ -235,6 +236,7 @@ if ($exception) {
        $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
             $cimInstance = Get-CIMInstance Win32_OperatingSystem
             Write-Host "Container Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+            Get-PSDrive C | ForEach-Object { Write-Host "Disk C: Free $([Math]::Round($_.Free / 1GB))Gb from $([Math]::Round(($_.Free+$_.Used) / 1GB))Gb" }
             $any = $false
             Write-Host "`nServices in container $($containerName):"
             Get-Service |

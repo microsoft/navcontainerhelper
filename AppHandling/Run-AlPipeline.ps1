@@ -183,6 +183,10 @@
   Information about which product built the app. Will be stamped into the app manifest.
  .Parameter BuildUrl
   The URL for the build job, which built the app. Will be stamped into the app manifest.
+ .Parameter PipelineInitialize
+  Override for Pipeline Initialize
+ .Parameter PipelineFinalize
+  Override for Pipeline Finalize 
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -193,7 +197,7 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
-  .Parameter CompileAppWithBcCompilerFolder
+ .Parameter CompileAppWithBcCompilerFolder
   Override function parameter for Compile-AppWithBcCompilerFolder
  .Parameter PreCompileApp
   Custom script to run before compiling an app.
@@ -260,9 +264,9 @@
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld for Per Tenant Extension example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.pte for Per Tenant Extension example
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld.AppSource for AppSource example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.appsource for AppSource example
 
 #>
 function Run-AlPipeline {
@@ -363,6 +367,7 @@ Param(
     [string] $sourceCommit = '',
     [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
     [string] $buildUrl = '',
+    [scriptblock] $PipelineInitialize,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
@@ -383,7 +388,8 @@ Param(
     [scriptblock] $RemoveBcContainer,
     [scriptblock] $GetBestGenericImageName,
     [scriptblock] $GetBcContainerEventLog,
-    [scriptblock] $InstallMissingDependencies
+    [scriptblock] $InstallMissingDependencies,
+    [scriptblock] $PipelineFinalize
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
@@ -475,6 +481,10 @@ function GetInstalledAppIds {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+if ($PipelineInitialize) {
+    Invoke-Command -ScriptBlock $PipelineInitialize
+}
+
 $warningsToShow = @()
 
 if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
@@ -554,13 +564,19 @@ if ($bcAuthContext) {
         Write-Host -ForegroundColor Yellow "Uninstalling removed apps from online environments are not supported"
         $uninstallRemovedApps = $false
     }
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
-    if (!($bcEnvironment)) {
-        throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
+    if ($environment -notlike ('https://*')) {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
+        if (!($bcEnvironment)) {
+            throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
+        }
+        $parameters = @{
+            bcAuthContext = $bcAuthContext
+            environment = $environment
+        }
+        $bcBaseApp = Get-BcPublishedApps @Parameters | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
+        $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     }
-    $bcBaseApp = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
-    $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     $filesOnly = $true
 }
 
@@ -748,14 +764,16 @@ Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
 $vsixFile = DetermineVsixFile -vsixFile $vsixFile
-
 $compilerFolder = ''
+$createContainer = $true
 
 if ($useCompilerFolder) {
     # We are using CompilerFolder, no need for a filesOnly Container
     # If we are to create a container, it is for publishing and testing
     $filesOnly = $false
     $updateLaunchJson = ''
+    $createContainer = !($doNotPublishApps -or ($bcAuthContext -and $environment))
+    if (!$createContainer) { $containerName = ''}
 }
 elseif ($doNotPublishApps) {
     # We are not using CompilerFolder, but we are not publishing apps either
@@ -908,7 +926,7 @@ $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
-if ( $artifactUrl -and !$reUseContainer -and !$doNotPublishApps -and !$filesOnly) {
+if ( $artifactUrl -and !$reUseContainer -and $createContainer) {
 if ($gitHubActions) { Write-Host "::group::Pulling generic image" }
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
@@ -948,19 +966,36 @@ try {
 $testCountry = $_.Trim()
 $testToolkitInstalled = $false
 
-if ($gitHubActions) { Write-Host "::group::Creating container" }
-Write-Host -ForegroundColor Yellow @'
+if ($useCompilerFolder) {
+    if ($gitHubActions) { Write-Host "::group::Creating CompilerFolder" }
+    Write-Host -ForegroundColor Yellow @'
 
-   _____                _   _                               _        _
-  / ____|              | | (_)                             | |      (_)
- | |     _ __ ___  __ _| |_ _ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __
- | |    | '__/ _ \/ _` | __| | '_ \ / _` |  / __/ _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
- | |____| | |  __/ (_| | |_| | | | | (_| | | (__ (_) | | | | |_ (_| | | | | |  __/ |
-  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|
+   _____                _   _                _____                      _ _           ______    _     _
+  / ____|              | | (_)              / ____|                    (_) |         |  ____|  | |   | |
+ | |     _ __ ___  __ _| |_ _ _ __   __ _  | |     ___  _ __ ___  _ __  _| | ___ _ __| |__ ___ | | __| | ___ _ __
+ | |    | '__/ _ \/ _` | __| | '_ \ / _` | | |    / _ \| '_ ` _ \| '_ \| | |/ _ \ '__|  __/ _ \| |/ _` |/ _ \ '__|
+ | |____| | |  __/ (_| | |_| | | | | (_| | | |___| (_) | | | | | | |_) | | |  __/ |  | | | (_) | | (_| |  __/ |
+  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \_____\___/|_| |_| |_| .__/|_|_|\___|_|  |_|  \___/|_|\__,_|\___|_|
+                                     __/ |                       | |
+                                    |___/                        |_|
+
+'@
+}
+else {
+    if ($gitHubActions) { Write-Host "::group::Creating container" }
+    Write-Host -ForegroundColor Yellow @'
+
+   _____                _   _                _____            _        _
+  / ____|              | | (_)              / ____|          | |      (_)
+ | |     _ __ ___  __ _| |_ _ _ __   __ _  | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __
+ | |    | '__/ _ \/ _` | __| | '_ \ / _` | | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
+ | |____| | |  __/ (_| | |_| | | | | (_| | | |___| (_) | | | | || (_| | | | | |  __/ |
+  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|
                                      __/ |
                                     |___/
 
 '@
+}
 
 Measure-Command {
 
@@ -983,7 +1018,7 @@ Measure-Command {
             -containerName $containerName
         Write-Host "CompilerFolder $compilerFolder created"
     }
-    if ($filesOnly -or !$doNotPublishApps) {
+    if ($createContainer -and ($filesOnly -or !$doNotPublishApps)) {
         # If we are going to build using a filesOnly container or we are going to publish apps, we need a container
         if (Test-BcContainer -containerName $containerName) {
             if ($bcAuthContext) {
@@ -1035,7 +1070,7 @@ Measure-Command {
             }
             Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
 
-            if (-not $bcAuthContext) {
+            if ($createContainer -and -not $bcAuthContext) {
                 if ($keyVaultCertPfxFile -and $KeyVaultClientId -and $keyVaultCertPfxPassword) {
                     $Parameters = @{
                         "containerName" = $containerName
@@ -1183,6 +1218,9 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
+    if ($generateDependencyArtifact) {
+        $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+    }
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
@@ -1205,9 +1243,17 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        elseif ($useCompilerFolder -or $filesOnly -and (-not $bcAuthContext)) {
+        elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
-                Write-Host "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                if ($generateDependencyArtifact) {
+                    Write-Host -NoNewline " and dependencies folder"
+                    if (!(Test-Path $dependenciesFolder)) {
+                        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
+                    }
+                    Copy-Item -Path $_ -Destination $dependenciesFolder -Force
+                }
+                Write-Host
             }
         }
         else {
@@ -1232,7 +1278,7 @@ Measure-Command {
         }
         if ($generateDependencyArtifact -and !($testCountry)) {
             $parameters += @{
-                "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+                "CopyInstalledAppsToFolder" = $dependenciesFolder
             }
         }
         if ($bcAuthContext) {
@@ -1318,6 +1364,7 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Importing Test Toolkit for additional country $testCountry"
     $Parameters = @{
         "containerName" = $containerName
+        "compilerFolder" = $compilerFolder
         "includeTestLibrariesOnly" = $installTestLibraries
         "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
         "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
@@ -1497,6 +1544,7 @@ Measure-Command {
         $measureText = ", test apps and importing test toolkit"
         $Parameters = @{
             "containerName" = $containerName
+            "compilerFolder" = $compilerFolder
             "includeTestLibrariesOnly" = $installTestLibraries
             "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
             "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
@@ -1643,7 +1691,7 @@ Write-Host -ForegroundColor Yellow @'
     $Parameters = @{ }
     $CopParameters = @{ }
 
-    if ($bcAuthContext) {
+    if ($bcAuthContext -and !$useCompilerFolder) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
@@ -2422,6 +2470,7 @@ $testAppIds.Keys | ForEach-Object {
     }
     $Parameters = @{
         "containerName" = $containerName
+        "compilerFolder" = $compilerFolder
         "tenant" = $tenant
         "credential" = $credential
         "companyName" = $companyName
@@ -2450,6 +2499,7 @@ $testAppIds.Keys | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "ConnectFromHost" = !$createContainer
         }
     }
 
@@ -2604,7 +2654,11 @@ finally {
     $progressPreference = $prevProgressPreference
 }
 
-if (!$keepContainer) {
+if ($useCompilerFolder -and $compilerFolder) {
+    Remove-BcCompilerFolder -compilerFolder $compilerFolder
+}
+
+if ($createContainer -and !$keepContainer) {
 if ($gitHubActions) { Write-Host "::group::Removing container" }
 if (!($err)) {
 Write-Host -ForegroundColor Yellow @'
@@ -2620,9 +2674,6 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if ($useCompilerFolder -and $compilerFolder) {
-        Remove-BcCompilerFolder -compilerFolder $compilerFolder
-    }
     if (!$doNotPublishApps) {
         if (!$filesOnly -and $containerEventLogFile) {
             try {
@@ -2655,6 +2706,10 @@ if ($err) {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
+
+if ($PipelineFinalize) {
+    Invoke-Command -ScriptBlock $PipelineFinalize
+}
 
 }
 catch {

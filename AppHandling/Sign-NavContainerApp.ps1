@@ -151,7 +151,7 @@ try {
             }
 
             Write-Host "Signing $appFile"
-            $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
+            $unsecurepassword = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($pfxPassword)))
             $attempt = 1
             $maxAttempts = 5
             do {
