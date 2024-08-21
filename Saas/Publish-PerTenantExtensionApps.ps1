@@ -62,7 +62,7 @@ try {
     }
 
     if ($PsCmdlet.ParameterSetName -eq "CC") {
-        if ($clientId -is [SecureString]) { $clientID = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientID)) }
+        if ($clientId -is [SecureString]) { $clientID = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientID)) }
         if ($clientId -isnot [String]) { throw "ClientID needs to be a SecureString or a String" }
         if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
         if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
