@@ -1,4 +1,5 @@
 6.0.21
+Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
 Issue #3617 Regression File Newtonsoft.Json.dll not found when copying item for New-BcCompilerFolder
 
 6.0.20
