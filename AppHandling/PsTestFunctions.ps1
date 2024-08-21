@@ -44,7 +44,7 @@ function New-ClientContext {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
-        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
@@ -726,6 +726,13 @@ function Run-Tests {
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
 
+                if ($extensionid) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","extensionid")
+                    $property.SetAttribute("value", $extensionId)
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
+
                 if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.start")
@@ -733,11 +740,6 @@ function Run-Tests {
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
                     if ($extensionid) {
-                        $property = $JUnitDoc.CreateElement("property")
-                        $property.SetAttribute("name","extensionid")
-                        $property.SetAttribute("value", $extensionId)
-                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-
                         $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
                         if ($appname) {
                             $property = $JUnitDoc.CreateElement("property")

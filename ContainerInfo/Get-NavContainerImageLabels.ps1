@@ -36,7 +36,7 @@ function Get-BcContainerImageLabels {
     
         } elseif ($registryCredential) {
     
-            $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
+            $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
             $authorization = "Basic $credentials"
     
         } elseif ("$registry" -eq "bcinsider.azurecr.io" -or "$registry" -eq "bcprivate.azurecr.io") {

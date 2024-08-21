@@ -123,8 +123,14 @@ function Run-AlCops {
 
         $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
         $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
-        $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
-        Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
+        $latestSupportedRuntimeVersion = ''
+        try {
+            $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
+            Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
+        }
+        catch {
+            Write-Host -ForegroundColor Yellow "Cannot determine latest supported runtime version, will skip runtime version compatibility check"
+        }
 
         $global:_validationResult = @()
         $apps | ForEach-Object {
