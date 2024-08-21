@@ -33,7 +33,7 @@ function Get-BcContainerImageTags {
 
     } elseif ($registryCredential) {
 
-        $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
+        $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
         $authorization = "Basic $credentials"
         if ($pageSize -eq -1) {
             $pageSize = 1000

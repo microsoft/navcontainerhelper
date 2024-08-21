@@ -59,7 +59,9 @@ try {
         }
         elseif (!$bakFolder.Contains('\')) {
             $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-            if ((Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
+            $inspect = docker inspect $containerName | ConvertFrom-Json
+            $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
+            if ($isBcSandbox) {
                 $folderPrefix = "sandbox"
             }
             else {

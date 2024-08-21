@@ -1,7 +1,19 @@
+6.0.21
+Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
+Issue #3617 Regression File Newtonsoft.Json.dll not found when copying item for New-BcCompilerFolder
+
 6.0.20
 Add trustServerCertificate is the parameter exists in various functions that might be running on the host
 Issue #3594 Run-AlCops says unknown platform version
 Add information about apps excluded due to not being referenced during Publish-BcContainerApp
+Run-AlPipeline to support CompilerFolder and online environments for building and testing
+Added 2 new overrides in Run-AlPipeline: PipelineInitialize and PipelineFinalize
+Add parameter CompilerFolder to Run-TestsInBcContainer and Import-TestToolkitToBcContainer for running tests using CompilerFolder bits from the host
+Replace all occurrences of [System.Runtime.InteropServices.Marshal]::PtrToStringAuto with [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR as the Auto function doesn't always do what's expected under Linux
+Ensure correct casing of Newtonsoft.Json.dll for Linux
+Always add extensionId (when specified) to Properties section in test results xml
+If environment is specified as a Web Client URL, and BcAuthContext contains username/password in Run-AlPipeline, then tests will run against this environment. PublishBcContainerApp and ImportTestToolkitToBcContainer needs to be overridden for this to work with full pipeline.
+Including caching of appinfos in CompilerFolder cache (to save time when caching on GitHub Actions)
 
 6.0.19
 Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
@@ -438,7 +450,7 @@ Use a PowerShell Job to run bcpt tests to be able to remove files afterwards
 Allow Get-BcContainerAppInfo to be used without explicitely specifying -containerName $containerName, allowing just $containerName
 Add new function Set-BcContainerServerConfiguration to directly configure settings of the Business Central Server instance (without needing Invoke-ScriptInBcContainer)
 Add new function Restart-BcContainerServiceTier to restart only the service tier after configuration changes (often necessary)
-Patch wrong version of Newtonsoft.json.dll in current insider builds (until this is fixed in the platform)
+Patch wrong version of Newtonsoft.Json.dll in current insider builds (until this is fixed in the platform)
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext
