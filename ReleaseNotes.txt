@@ -1,3 +1,5 @@
+6.0.21
+
 6.0.20
 Add trustServerCertificate is the parameter exists in various functions that might be running on the host
 Issue #3594 Run-AlCops says unknown platform version
