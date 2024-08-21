@@ -1,3 +1,6 @@
+6.0.21
+Issue #3617 Regression File Newtonsoft.Json.dll not found when copying item for New-BcCompilerFolder
+
 6.0.20
 Add trustServerCertificate is the parameter exists in various functions that might be running on the host
 Issue #3594 Run-AlCops says unknown platform version
