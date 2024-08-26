@@ -1342,15 +1342,15 @@ function ReplaceCDN {
 
 function Write-GroupStart([string] $Message) {
     switch ($true) {
-        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
         $bcContainerHelperConfig.IsGitHubActions { Write-Host "::group::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
         Default { Write-Host $Message}
     }
 }
 
 function Write-GroupEnd {
      switch ($true) {
-        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
         $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
     }
 }
