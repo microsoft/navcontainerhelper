@@ -1051,7 +1051,7 @@ function GetAppInfo {
         }
         Set-Location (Split-Path $cacheAppInfoPath -parent)
     }
-    Write-Host "::group::Getting .app info $cacheAppInfoPath"
+    Write-GroupStart -Message "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1166,7 +1166,7 @@ function GetAppInfo {
         }
         Pop-Location
     }
-    Write-Host "::endgroup::"
+    Write-GroupEnd
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
@@ -1338,4 +1338,19 @@ function ReplaceCDN {
         }
     }
     $sourceUrl
+}
+
+function Write-GroupStart([string] $Message) {
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::group::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
+        Default { Write-Host $Message}
+    }
+}
+
+function Write-GroupEnd {
+     switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+    }
 }
