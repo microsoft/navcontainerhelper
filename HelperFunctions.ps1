@@ -1,35 +1,4 @@
-﻿$useTimeOutWebClient = $false
-if ($PSVersionTable.PSVersion -lt "6.0.0" -or $useTimeOutWebClient) {
-    $timeoutWebClientCode = @"
-	using System.Net;
- 
-	public class TimeoutWebClient : WebClient
-	{
-        int theTimeout;
-
-        public TimeoutWebClient(int timeout)
-        {
-            theTimeout = timeout;
-        }
-
-		protected override WebRequest GetWebRequest(System.Uri address)
-		{
-			WebRequest request = base.GetWebRequest(address);
-			if (request != null)
-			{
-				request.Timeout = theTimeout;
-			}
-			return request;
-		}
- 	}
-"@;
-if (-not ([System.Management.Automation.PSTypeName]"TimeoutWebClient").Type) {
-    Add-Type -TypeDefinition $timeoutWebClientCode -Language CSharp -WarningAction SilentlyContinue | Out-Null
-    $useTimeOutWebClient = $true
-}
-}
-
-$sslCallbackCode = @"
+﻿$sslCallbackCode = @"
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 
@@ -335,42 +304,6 @@ function AssumeNavContainer {
     }
 }
 
-function TestSasToken {
-    Param
-    (
-        [string] $url
-    )
-
-    $sasToken = "?$("$($url)?".Split('?')[1])"
-    if ($sasToken -eq '?') {
-        # No SAS token in URL
-        return
-    }
-
-    try {
-        $se = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('se=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $st = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('st=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $sv = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sv=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(3)) }
-        $sig = $sasToken.Split('?')[1].Split('&') | Where-Object { $_.StartsWith('sig=') } | ForEach-Object { [Uri]::UnescapeDataString($_.Substring(4)) }
-        if ($sv -ne '2021-10-04' -or $sig -eq '' -or $se -eq '' -or $st -eq '') {
-            throw "Wrong format"
-        }
-        if ([DateTime]::Now -lt [DateTime]$st) {
-            Write-Host "::ERROR::The sas token provided isn't valid before $(([DateTime]$st).ToString())"
-        }
-        if ([DateTime]::Now -gt [DateTime]$se) {
-            Write-Host "::ERROR::The sas token provided expired on $(([DateTime]$se).ToString())"
-        }
-        elseif ([DateTime]::Now.AddDays(14) -gt [DateTime]$se) {
-            Write-Host "::WARNING::The sas token provided will expire on $(([DateTime]$se).ToString())"
-        }
-    }
-    catch {
-        $message = $_.ToString()
-        throw "The sas token provided is not valid, error message was: $message"
-    }
-}
-
 function Expand-7zipArchive {
     Param (
         [Parameter(Mandatory = $true)]
@@ -422,59 +355,97 @@ function Expand-7zipArchive {
 function GetTestToolkitApps {
     Param(
         [string] $containerName,
+        [string] $compilerFolder,
         [switch] $includeTestLibrariesOnly,
         [switch] $includeTestFrameworkOnly,
         [switch] $includeTestRunnerOnly,
         [switch] $includePerformanceToolkit
     )
 
-    Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit)
-    
-        $version = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-
+    if ($compilerFolder) {
+        $symbolsFolder = Join-Path $compilerFolder "symbols"
         # Add Test Framework
         $apps = @()
-        if (($version -ge [Version]"19.0.0.0") -and (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock')) {
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
+        $version = [Version]$baseAppInfo.version
+        if ($version -ge [Version]"19.0.0.0") {
+            $apps += @('Microsoft_Permissions Mock')
         }
-        $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
-
+        $apps += @('Microsoft_Test Runner')
         if (!$includeTestRunnerOnly) {
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
-
+            $apps += @('Microsoft_Any', 'Microsoft_Library Assert', 'Microsoft_Library Variable Storage')
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
-                    @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
-                }
-    
+                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries')
                 if (!$includeTestLibrariesOnly) {
                     # Add Tests
                     if ($version -ge [Version]"18.0.0.0") {
-                        $apps += "Microsoft_System Application Test.app", "Microsoft_Business Foundation Tests.app" | ForEach-Object {
-                            @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
-                        }
+                        $apps += @('Microsoft_System Application Test', 'Microsoft_Business Foundation Tests', 'Microsoft_Tests-*')
                     }
-                    $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
                 }
             }
         }
-
         if ($includePerformanceToolkit) {
-            $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*Toolkit.app")
+            $apps += @('Microsoft_Performance Toolkit')
             if (!$includeTestFrameworkOnly) {
-                $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app" -exclude "*Toolkit.app")
+                $apps += @('Microsoft_Performance Toolkit *')
             }
         }
-
+        $appFiles = @()
         $apps | ForEach-Object {
-            $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app", "_*.app")
-            if (!($appFile)) {
-                $appFile = $_
-            }
-            $appFile.FullName
+            $appFiles += @(get-childitem -Path $symbolsFolder -Filter "$($_)_*.*.*.*.app" | Where-Object {($version.Major -ge 17 -or ($_.Name -notlike 'Microsoft_Tests-Marketing_*.*.*.*.app')) -and $_.Name -notlike "Microsoft_Tests-SINGLESERVER_*.*.*.*.app"} | ForEach-Object { $_.FullName })
         }
-    } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
+        $appFiles | Select-Object -Unique
+    }
+    else {
+        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit)
+    
+            $version = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+    
+            # Add Test Framework
+            $apps = @()
+            if (($version -ge [Version]"19.0.0.0") -and (Test-Path 'C:\Applications\TestFramework\TestLibraries\permissions mock')) {
+                $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\permissions mock\*.*" -recurse -filter "*.app")
+            }
+            $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestRunner\*.*" -recurse -filter "*.app")
+    
+            if (!$includeTestRunnerOnly) {
+                $apps += @(get-childitem -Path "C:\Applications\TestFramework\TestLibraries\*.*" -recurse -filter "*.app")
+    
+                if (!$includeTestFrameworkOnly) {
+                    # Add Test Libraries
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
+                        @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+                    }
+        
+                    if (!$includeTestLibrariesOnly) {
+                        # Add Tests
+                        if ($version -ge [Version]"18.0.0.0") {
+                            $apps += "Microsoft_System Application Test.app", "Microsoft_Business Foundation Tests.app" | ForEach-Object {
+                                @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
+                            }
+                        }
+                        $apps += @(get-childitem -Path "C:\Applications\*.*" -recurse -filter "Microsoft_Tests-*.app") | Where-Object { $_ -notlike "*\Microsoft_Tests-TestLibraries.app" -and ($version.Major -ge 17 -or ($_ -notlike "*\Microsoft_Tests-Marketing.app")) -and $_ -notlike "*\Microsoft_Tests-SINGLESERVER.app" }
+                    }
+                }
+            }
+    
+            if ($includePerformanceToolkit) {
+                $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*Toolkit.app")
+                if (!$includeTestFrameworkOnly) {
+                    $apps += @(get-childitem -Path "C:\Applications\TestFramework\PerformanceToolkit\*.*" -recurse -filter "*.app" -exclude "*Toolkit.app")
+                }
+            }
+    
+            $apps | ForEach-Object {
+                $appFile = Get-ChildItem -path "c:\applications.*\*.*" -recurse -filter ($_.Name).Replace(".app", "_*.app")
+                if (!($appFile)) {
+                    $appFile = $_
+                }
+                $appFile.FullName
+            }
+        } -argumentList $includeTestLibrariesOnly, $includeTestFrameworkOnly, $includeTestRunnerOnly, $includePerformanceToolkit
+    }
 }
 
 function GetExtendedErrorMessage {
@@ -564,14 +535,23 @@ function CopyAppFilesToFolder {
             }
         }
         elseif (Test-Path $appFile -PathType Container) {
-            Get-ChildItem $appFile -Recurse | ForEach-Object {
+            Get-ChildItem $appFile -Recurse -File | ForEach-Object {
                 CopyAppFilesToFolder -appFile $_.FullName -folder $folder
             }
         }
         elseif (Test-Path $appFile -PathType Leaf) {
             Get-ChildItem $appFile | ForEach-Object {
                 $appFile = $_.FullName
-                if ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
+                if ($appFile -like "*.app") {
+                    $destFileName = [System.IO.Path]::GetFileName($appFile)
+                    $destFile = Join-Path $folder $destFileName
+                    if (Test-Path $destFile) {
+                        Write-Host -ForegroundColor Yellow "::WARNING::$destFileName already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
+                    }
+                    Copy-Item -Path $appFile -Destination $destFile -Force
+                    $destFile
+                }
+                elseif ([string]::new([char[]](Get-Content $appFile @byteEncodingParam -TotalCount 2)) -eq "PK") {
                     $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
                     $copied = $false
                     try {
@@ -588,14 +568,6 @@ function CopyAppFilesToFolder {
                         Remove-Item -Path $tmpFolder -Recurse -Force
                         if ($copied) { Remove-Item -Path $appFile -Force }
                     }
-                }
-                else {
-                    $destFile = Join-Path $folder "$([System.IO.Path]::GetFileNameWithoutExtension($appFile)).app"
-                    if (Test-Path $destFile) {
-                        Write-Host -ForegroundColor Yellow "::WARNING::$([System.IO.Path]::GetFileName($destFile)) already exists, it looks like you have multiple app files with the same name. App filenames must be unique."
-                    }
-                    Copy-Item -Path $appFile -Destination $destFile -Force
-                    $destFile
                 }
             }
         }
@@ -919,7 +891,7 @@ Function CreatePsTestToolFolder {
 
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
-    $newtonSoftDllPath = Join-Path $PsTestToolFolder "NewtonSoft.json.dll"
+    $newtonSoftDllPath = Join-Path $PsTestToolFolder "Newtonsoft.Json.dll"
     $clientDllPath = Join-Path $PsTestToolFolder "Microsoft.Dynamics.Framework.UI.Client.dll"
 
     if (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
@@ -930,9 +902,9 @@ Function CreatePsTestToolFolder {
 
     Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
         if (!(Test-Path $myNewtonSoftDllPath)) {
-            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
             if (!(Test-Path $newtonSoftDllPath)) {
-                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll"
             }
             $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
             Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
@@ -1002,27 +974,6 @@ function GetHash {
     (Get-FileHash -InputStream $stream -Algorithm SHA256).Hash
 }
 
-function Wait-Task {
-    param(
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [System.Threading.Tasks.Task[]]$Task
-    )
-
-    Begin {
-        $Tasks = @()
-    }
-
-    Process {
-        $Tasks += $Task
-    }
-
-    End {
-        While (-not [System.Threading.Tasks.Task]::WaitAll($Tasks, 200)) {}
-        $Tasks.ForEach( { $_.GetAwaiter().GetResult() })
-    }
-}
-Set-Alias -Name await -Value Wait-Task -Force
-
 function DownloadFileLow {
     Param(
         [string] $sourceUrl,
@@ -1034,71 +985,41 @@ function DownloadFileLow {
         [int] $timeout = 100
     )
 
-    if ($useTimeOutWebClient) {
-        Write-Host "Downloading using WebClient"
-        if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification"
-            [SslVerification]::Disable()
-        }
-        $webClient = New-Object TimeoutWebClient -ArgumentList (1000 * $timeout)
-        $headers.Keys | ForEach-Object {
-            $webClient.Headers.Add($_, $headers."$_")
-        }
-        $webClient.UseDefaultCredentials = $useDefaultCredentials
-        if (Test-Path $destinationFile -PathType Leaf) {
-            if ($dontOverwrite) { 
-                return
-            }
-            Remove-Item -Path $destinationFile -Force
-        }
-        try {
-            $webClient.DownloadFile($sourceUrl, $destinationFile)
-        }
-        finally {
-            $webClient.Dispose()
-            if ($skipCertificateCheck) {
-                Write-Host "Restoring SSL Verification"
-                [SslVerification]::Enable()
-            }
-        }
+    $handler = New-Object System.Net.Http.HttpClientHandler
+    if ($skipCertificateCheck) {
+        Write-Host "Disabling SSL Verification on HttpClient"
+        [SslVerification]::DisableSsl($handler)
+    }
+    if ($useDefaultCredentials) {
+        $handler.UseDefaultCredentials = $true
+    }
+    $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
+    $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
+    $headers.Keys | ForEach-Object {
+        $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
+    }
+    $stream = $null
+    $fileStream = $null
+    if ($dontOverwrite) {
+        $fileMode = [System.IO.FileMode]::CreateNew
     }
     else {
-        Write-Host "Downloading using HttpClient"
-        
-        $handler = New-Object System.Net.Http.HttpClientHandler
-        if ($skipCertificateCheck) {
-            Write-Host "Disabling SSL Verification on HttpClient"
-            [SslVerification]::DisableSsl($handler)
+        $fileMode = [System.IO.FileMode]::Create
+    }
+    try {
+        $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
+        $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
+        if (-not $stream.CopyToAsync($fileStream).Wait($timeout * 1000)) {
+            throw "Timeout downloading file"
         }
-        if ($useDefaultCredentials) {
-            $handler.UseDefaultCredentials = $true
-        }
-        $httpClient = New-Object System.Net.Http.HttpClient -ArgumentList $handler
-        $httpClient.Timeout = [Timespan]::FromSeconds($timeout)
-        $headers.Keys | ForEach-Object {
-            $httpClient.DefaultRequestHeaders.Add($_, $headers."$_")
-        }
-        $stream = $null
-        $fileStream = $null
-        if ($dontOverwrite) {
-            $fileMode = [System.IO.FileMode]::CreateNew
-        }
-        else {
-            $fileMode = [System.IO.FileMode]::Create
-        }
-        try {
-            $stream = $httpClient.GetStreamAsync($sourceUrl).GetAwaiter().GetResult()
-            $fileStream = New-Object System.IO.Filestream($destinationFile, $fileMode)
-            $stream.CopyToAsync($fileStream).GetAwaiter().GetResult() | Out-Null
+    }
+    finally {
+        if ($fileStream) {
             $fileStream.Close()
+            $fileStream.Dispose()
         }
-        finally {
-            if ($fileStream) {
-                $fileStream.Dispose()
-            }
-            if ($stream) {
-                $stream.Dispose()
-            }
+        if ($stream) {
+            $stream.Dispose()
         }
     }
 }
@@ -1118,6 +1039,7 @@ function GetAppInfo {
         [string] $cacheAppInfoPath = ''
     )
 
+    Push-Location
     $appInfoCache = $null
     $cacheUpdated = $false
     if ($cacheAppInfoPath) {
@@ -1127,13 +1049,13 @@ function GetAppInfo {
         else {
             $appInfoCache = @{}
         }
+        Set-Location (Split-Path $cacheAppInfoPath -parent)
     }
-    Write-Host "::group::Getting .app info $cacheAppInfoPath"
+    Write-GroupStart -Message "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
         $alToolExe = Join-Path $alcPath 'altool'
-        Write-Host "Setting execute permissions on altool"
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
     elseif ($isMacOS) {
@@ -1162,8 +1084,9 @@ function GetAppInfo {
     try {
         foreach($path in $appFiles) {
             Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
-            if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $path) {
-                $appInfo = $appInfoCache."$path"
+            $relativePath = Resolve-Path -Path $path -Relative
+            if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
+                $appInfo = $appInfoCache."$relativePath"
                 Write-Host " (cached)"
             }
             else {
@@ -1179,6 +1102,7 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
+                    Write-Host " (succeeded using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1205,10 +1129,11 @@ function GetAppInfo {
                         "platform"              = "$($manifest.Platform)"
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
+                    $packageStream.Close()
+                    Write-Host " (succeeded using codeanalysis)"
                 }
-                Write-Host " (succeeded)"
                 if ($cacheAppInfoPath) {
-                    $appInfoCache | Add-Member -MemberType NoteProperty -Name $path -Value $appInfo
+                    $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
                     $cacheUpdated = $true
                 }
             }
@@ -1245,8 +1170,9 @@ function GetAppInfo {
         if ($packageStream) {
             $packageStream.Dispose()
         }
+        Pop-Location
     }
-    Write-Host "::endgroup::"
+    Write-GroupEnd
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
@@ -1298,6 +1224,17 @@ function DownloadLatestAlLanguageExtension {
         [switch] $allowPrerelease
     )
 
+    # Check if we already have the latest version downloaded and located in this session
+    if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
+        $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
+        if (Test-Path $path -PathType Container) {
+            return $path
+        }
+        else {
+            $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
+        }
+    }
+    
     $mutexName = "DownloadAlLanguageExtension"
     $mutex = New-Object System.Threading.Mutex($false, $mutexName)
     try {
@@ -1310,17 +1247,6 @@ function DownloadLatestAlLanguageExtension {
         }
         catch [System.Threading.AbandonedMutexException] {
            Write-Host "Other process terminated abnormally"
-        }
-
-        # Check if we already have the latest version downloaded and located in this session
-        if ($script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]) {
-            $path = $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent]
-            if (Test-Path $path -PathType Container) {
-                return $path
-            }
-            else {
-                $script:AlLanguageExtenssionPath[$allowPrerelease.IsPresent] = ''
-            }
         }
 
         $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
@@ -1349,13 +1275,12 @@ function DownloadLatestAlLanguageExtension {
 
 function RunAlTool {
     Param(
-        [string[]] $arguments
+        [string[]] $arguments,
+        [switch] $usePrereleaseAlTool = ($bccontainerHelperConfig.usePrereleaseAlTool)
     )
-    # ALTOOL is at the moment only available in prerelease        
-    $path = DownloadLatestAlLanguageExtension -allowPrerelease
+    $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
-        Write-Host "Setting execute permissions on altool"
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     } 
     elseif ($isMacOS) {
@@ -1391,4 +1316,52 @@ function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.
         $version = $minVersion
     }
     return $version
+}
+
+function ReplaceCDN {
+    Param(
+        [string] $sourceUrl,
+        [switch] $useBlobUrl
+    )
+
+    $bcCDNs = @(
+        @{ "oldCDN" = "bcartifacts.azureedge.net";         "newCDN" = "bcartifacts-exdbf9fwegejdqak.b02.azurefd.net";         "blobUrl" = "bcartifacts.blob.core.windows.net" },
+        @{ "oldCDN" = "bcinsider.azureedge.net";           "newCDN" = "bcinsider-fvh2ekdjecfjd6gk.b02.azurefd.net";           "blobUrl" = "bcinsider.blob.core.windows.net" },
+        @{ "oldCDN" = "bcpublicpreview.azureedge.net";     "newCDN" = "bcpublicpreview-f2ajahg0e2cudpgh.b02.azurefd.net";     "blobUrl" = "bcpublicpreview.blob.core.windows.net" },
+        @{ "oldCDN" = "businesscentralapps.azureedge.net"; "newCDN" = "businesscentralapps-hkdrdkaeangzfydv.b02.azurefd.net"; "blobUrl" = "businesscentralapps.blob.core.windows.net" },
+        @{ "oldCDN" = "bcprivate.azureedge.net";           "newCDN" = "bcprivate-fmdwbsb3ekbkc0bt.b02.azurefd.net";           "blobUrl" = "bcprivate.blob.core.windows.net" }
+    )
+
+    foreach($cdn in $bcCDNs) {
+        $found = $false
+        $cdn.blobUrl, $cdn.newCDN, $cdn.oldCDN | ForEach-Object {
+            if ($sourceUrl.ToLowerInvariant().StartsWith("https://$_/")) {
+                $sourceUrl = "https://$(if($useBlobUrl){$cdn.blobUrl}else{$cdn.newCDN})/$($sourceUrl.Substring($_.Length+9))"
+                $found = $true
+            }
+            if ($sourceUrl -eq $_) {
+                $sourceUrl = "$(if($useBlobUrl){$cdn.blobUrl}else{$cdn.newCDN})"
+                $found = $true
+            }
+        }
+        if ($found) {
+            break
+        }
+    }
+    $sourceUrl
+}
+
+function Write-GroupStart([string] $Message) {
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::group::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
+        Default { Write-Host $Message}
+    }
+}
+
+function Write-GroupEnd {
+     switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+    }
 }

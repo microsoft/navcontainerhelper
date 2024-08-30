@@ -44,7 +44,7 @@ function New-ClientContext {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
-        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
@@ -99,6 +99,28 @@ function Set-ExtensionId
     }
     $extensionIdControl = $ClientContext.GetControlByName($Form, "ExtensionId")
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
+}
+
+function Set-TestCodeunitRange
+(
+    [string] $testCodeunitRange,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+) {
+    Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    if (!$testCodeunitRange) { return }
+    if ($testCodeunitRange -eq "*") { $testCodeunitRange = "0.." }
+
+    if ($debugMode) {
+        Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    }
+    $testCodeunitRangeControl = $ClientContext.GetControlByName($Form, "TestCodeunitRangeFilter")
+    if ($null -eq $testCodeunitRangeControl) { 
+        if ($debugMode) { Write-Host "Test codeunit range control not found on test page" }
+        return 
+    }
+    $ClientContext.SaveValue($testCodeunitRangeControl, $testCodeunitRange)
 }
 
 function Set-TestRunnerCodeunitId
@@ -304,6 +326,7 @@ function Get-Tests {
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $extensionId = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
@@ -345,6 +368,7 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
@@ -492,6 +516,7 @@ function Run-Tests {
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
@@ -558,6 +583,7 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
@@ -700,6 +726,13 @@ function Run-Tests {
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
 
+                if ($extensionid) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","extensionid")
+                    $property.SetAttribute("value", $extensionId)
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
+
                 if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.start")
@@ -707,11 +740,6 @@ function Run-Tests {
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
                     if ($extensionid) {
-                        $property = $JUnitDoc.CreateElement("property")
-                        $property.SetAttribute("name","extensionid")
-                        $property.SetAttribute("value", $extensionId)
-                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-
                         $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
                         if ($appname) {
                             $property = $JUnitDoc.CreateElement("property")
