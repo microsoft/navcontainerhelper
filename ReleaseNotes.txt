@@ -2,6 +2,7 @@
 Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
 Issue #3617 Regression File Newtonsoft.Json.dll not found when copying item for New-BcCompilerFolder
 Remove functions for supporting Alpaca and Cloud Containers - integration between alpaca and cloud containers with AL-Go for GitHub will NOT be done through BcContainerHelper
+Issue #2623 New-BcContainer for BC25.1 or BC26 insider with includeTestToolkit AI Test Toolkit dependency missing
 
 6.0.20
 Add trustServerCertificate is the parameter exists in various functions that might be running on the host
