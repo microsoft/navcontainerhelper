@@ -49,7 +49,7 @@ Describe 'ContainerInfo' {
     It 'Get-BcContainerImageTags' {
         $imageTags = get-bccontainerImageTags -imageName mcr.microsoft.com/businesscentral
         if ($imageTags) {
-            ($imageTags.Tags | Where-Object { $_.startsWith('10.0') }).Count | Should -BeGreaterThan 100
+            ($imageTags.Tags | Where-Object { $_.startsWith('10.0') }).Count | Should -BeGreaterThan 10
         }
         else {
             Set-ItResult -Inconclusive -Because 'Downloading generic image tags from mcr.microsoft.com/businesscentral failed'

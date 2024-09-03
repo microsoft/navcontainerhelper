@@ -67,7 +67,8 @@ class NuGetFeed {
         $headers = @{
             "Content-Type" = "application/json; charset=utf-8"
         }
-        if ($this.token) {
+        # nuget.org only support anonymous access
+        if ($this.token -and $this.url -notlike 'https://api.nuget.org/*') {
             $headers += @{
                 "Authorization" = "Basic $([Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes("user:$($this.token)")))"
             }
@@ -79,7 +80,7 @@ class NuGetFeed {
         return ($packageId -and ($this.patterns | Where-Object { $packageId -like $_ }))
     }
 
-    [string[]] Search([string] $packageName) {
+    [hashtable[]] Search([string] $packageName) {
         if ($this.searchQueryServiceUrl -match '^https://nuget.pkg.github.com/(.*)/query$') {
             # GitHub support for SearchQueryService is unstable and is not usable
             # use GitHub API instead
@@ -96,21 +97,21 @@ class NuGetFeed {
             }
             $queryUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page="
             $page = 1
-            Write-Host "Search package using $queryUrl$page"
+            Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
             $matching = @()
             while ($true) {
                 $result = Invoke-RestMethod -Method GET -Headers $headers -Uri "$queryUrl$page"
                 if ($result.Count -eq 0) {
                     break
                 }
-                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) }) | ForEach-Object { $_.name }
+                $matching += @($result | Where-Object { $_.name -like "*$packageName*" -and $this.IsTrusted($_.name) } | Sort-Object { $_.name.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.name; "versions" = @() } } )
                 $page++
             }
         }
         else {
-            $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName"
+            $queryUrl = "$($this.searchQueryServiceUrl)?q=$packageName&take=50"
             try {
-                Write-Host "Search package using $queryUrl"
+                Write-Host -ForegroundColor Yellow "Search package using $queryUrl"
                 $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
                 $searchResult = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
                 $global:ProgressPreference = $prev
@@ -119,28 +120,42 @@ class NuGetFeed {
                 throw (GetExtendedErrorMessage $_)
             }
             # Check that the found pattern matches the package name and the trusted patterns
-            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) }) | ForEach-Object { $_.id }
+            $matching = @($searchResult.data | Where-Object { $_.id -like "*$($packageName)*" -and $this.IsTrusted($_.id) } | Sort-Object { $_.id.replace('.symbols','') } | ForEach-Object { @{ "id" = $_.id; "versions" = @($_.versions.version) } } )
         }
-        Write-Host "$($matching.count) matching packages found"
-        return $matching | ForEach-Object { Write-Host "- $_"; $_ }
+        $exact = $matching | Where-Object { $_.id -eq $packageName -or $_.id -eq "$packageName.symbols" }
+        if ($exact) {
+            Write-Host "Exact match found for $packageName"
+            $matching = $exact
+        }
+        else {
+            Write-Host "$($matching.count) matching packages found"
+        }
+        return $matching | ForEach-Object { Write-Host "- $($_.id)"; $_ }
     }
 
-    [string[]] GetVersions([string] $packageId, [bool] $descending, [bool] $allowPrerelease) {
-        if (!$this.IsTrusted($packageId)) {
-            throw "Package $packageId is not trusted on $($this.url)"
+    [string[]] GetVersions([hashtable] $package, [bool] $descending, [bool] $allowPrerelease) {
+        if (!$this.IsTrusted($package.id)) {
+            throw "Package $($package.id) is not trusted on $($this.url)"
         }
-        $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/index.json"
-        try {
-            Write-Host "Get versions using $queryUrl"
-            $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
-            $versions = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
-            $global:ProgressPreference = $prev
+        if ($package.versions.count -ne 0) {
+            $versionsArr = $package.versions
         }
-        catch {
-            throw (GetExtendedErrorMessage $_)
+        else {
+            $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($package.Id.ToLowerInvariant())/index.json"
+            try {
+                Write-Host -ForegroundColor Yellow "Get versions using $queryUrl"
+                $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
+                $versions = Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl
+                $global:ProgressPreference = $prev
+            }
+            catch {
+                throw (GetExtendedErrorMessage $_)
+            }
+            $versionsArr = @($versions.versions)
+    
         }
-        Write-Host "$($versions.versions.count) versions found"
-        $versionsArr = @($versions.versions | Where-Object { $allowPrerelease -or !$_.Contains('-') } | Sort-Object { ($_ -replace '-.+$') -as [System.Version]  }, { "$($_)z" } -Descending:$descending | ForEach-Object { "$_" })
+        Write-Host "$($versionsArr.count) versions found"
+        $versionsArr = @($versionsArr | Where-Object { $allowPrerelease -or !$_.Contains('-') } | Sort-Object { ($_ -replace '-.+$') -as [System.Version]  }, { "$($_)z" } -Descending:$descending | ForEach-Object { "$_" })
         Write-Host "First version is $($versionsArr[0])"
         Write-Host "Last version is $($versionsArr[$versionsArr.Count-1])"
         return $versionsArr
@@ -149,6 +164,19 @@ class NuGetFeed {
     # Normalize name or publisher name to be used in nuget id
     static [string] Normalize([string] $name) {
         return $name -replace '[^a-zA-Z0-9_\-]',''
+    }
+
+    static [string] NormalizeVersionStr([string] $versionStr) {
+        $idx = $versionStr.IndexOf('-')
+        $version = [System.version]($versionStr.Split('-')[0])
+        if ($version.Build -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, 0, 0) }
+        if ($version.Revision -eq -1) { $version = [System.Version]::new($version.Major, $version.Minor, $version.Build, 0) }
+        if ($idx -gt 0) {
+            return "$version$($versionStr.Substring($idx))"
+        }
+        else {
+            return "$version"
+        }
     }
 
     static [Int32] CompareVersions([string] $version1, [string] $version2) {
@@ -185,7 +213,8 @@ class NuGetFeed {
             else {
                 $fromver = [System.Version]::new(0,0,0,0)
                 if ($inclFrom) {
-                    throw "Invalid NuGet version range $nuGetVersionRange"
+                    Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                    return $false
                 }
             }
             if ($matches[4]) {
@@ -194,14 +223,16 @@ class NuGetFeed {
             elseif ($range) {
                 $tover = [System.Version]::new([int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue)
                 if ($inclTo) {
-                    throw "Invalid NuGet version range $nuGetVersionRange"
+                    Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                    return $false
                 }
             }
             else {
                 $tover = $fromver
             }
             if (!$range -and (!$inclFrom -or !$inclTo)) {
-                throw "Invalid NuGet version range $nuGetVersionRange"
+                Write-Host "Invalid NuGet version range $nuGetVersionRange"
+                return $false
             }
             if ($inclFrom) {
                 if ($inclTo) {
@@ -223,22 +254,26 @@ class NuGetFeed {
         return $false
     }
 
-    [string] FindPackageVersion([string] $packageId, [string] $nuGetVersionRange, [string[]] $excludeVersions, [string] $select, [bool] $allowPrerelease) {
-        foreach($version in $this.GetVersions($packageId, ($select -ne 'Earliest'), $allowPrerelease)) {
+    [string] FindPackageVersion([hashtable] $package, [string] $nuGetVersionRange, [string[]] $excludeVersions, [string] $select, [bool] $allowPrerelease) {
+        $versions = $this.GetVersions($package, ($select -ne 'Earliest'), $allowPrerelease)
+        if ($excludeVersions) {
+            Write-Host "Exclude versions: $($excludeVersions -join ', ')"
+        }
+        foreach($version in $versions ) {
             if ($excludeVersions -contains $version) {
                 continue
             }
-            if (($select -eq 'Exact' -and $nuGetVersionRange -eq $version) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
-                Write-Host "$select version matching $nuGetVersionRange is $version"
+            if (($select -eq 'Exact' -and [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange) -eq [NuGetFeed]::NormalizeVersionStr($version)) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
+                if ($nuGetVersionRange -eq '0.0.0.0') {
+                    Write-Host "$select version is $version"
+                }
+                else {
+                    Write-Host "$select version matching '$nuGetVersionRange' is $version"
+                }
                 return $version
             }
         }
         return ''
-    }
-
-    [string] DownloadPackage([string] $packageId) {
-        $version = $this.GetVersions($packageId,$true,$false)[0]
-        return $this.DownloadPackage($packageId, $version)
     }
 
     [xml] DownloadNuSpec([string] $packageId, [string] $version) {
@@ -268,7 +303,7 @@ class NuGetFeed {
         $queryUrl = "$($this.packageBaseAddressUrl.TrimEnd('/'))/$($packageId.ToLowerInvariant())/$($version.ToLowerInvariant())/$($packageId.ToLowerInvariant()).$($version.ToLowerInvariant()).nupkg"
         $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())    
         try {
-            Write-Host "Download package using $queryUrl"
+            Write-Host -ForegroundColor Green "Download package using $queryUrl"
             $prev = $global:ProgressPreference; $global:ProgressPreference = "SilentlyContinue"
             $filename = "$tmpFolder.zip"
             Invoke-RestMethod -UseBasicParsing -Method GET -Headers ($this.GetHeaders()) -Uri $queryUrl -OutFile $filename
@@ -281,7 +316,7 @@ class NuGetFeed {
                     Write-Host "Verifying package using $($this.fingerprints -join ', ')"
                     $arguments += @("--certificate-fingerprint $($this.fingerprints -join ' --certificate-fingerprint ')")
                 }
-                cmddo -command 'dotnet' -arguments $arguments -silent
+                cmddo -command 'dotnet' -arguments $arguments -silent -messageIfCmdNotFound "dotnet not found. Please install it from https://dotnet.microsoft.com/download"
             }
             Expand-Archive -Path $filename -DestinationPath $tmpFolder -Force
             $global:ProgressPreference = $prev

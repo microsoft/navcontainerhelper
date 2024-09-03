@@ -128,7 +128,12 @@ try {
         Remove-Item -Path (Join-Path $dllsPath 'Service\SideServices') -Recurse -Force -ErrorAction SilentlyContinue
         New-Item -Path (Join-Path $dllsPath 'OpenXML') -ItemType Directory | Out-Null
         Copy-Item -Path (Join-Path $dllsPath 'Service\DocumentFormat.OpenXml.dll') -Destination (Join-Path $dllsPath 'OpenXML') -Force -ErrorAction SilentlyContinue
-        $mockAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies\Mock Assemblies" -Resolve
+        $testAssembliesFolder = Join-Path $platformArtifactPath "Test Assemblies" -Resolve
+        $testAssembliesDestination = Join-Path $dllsPath "Test Assemblies"
+        New-Item -Path $testAssembliesDestination -ItemType Directory | Out-Null
+        Copy-Item -Path (Join-Path $testAssembliesFolder 'Newtonsoft.Json.dll') -Destination $testAssembliesDestination -Force -ErrorAction SilentlyContinue
+        Copy-Item -Path (Join-Path $testAssembliesFolder 'Microsoft.Dynamics.Framework.UI.Client.dll') -Destination $testAssembliesDestination -Force
+        $mockAssembliesFolder = Join-Path $testAssembliesFolder "Mock Assemblies" -Resolve
         Copy-Item -Path $mockAssembliesFolder -Filter '*.dll' -Destination $dllsPath -Recurse
         $extensionsFolder = Join-Path $appArtifactPath 'Extensions'
         if (Test-Path $extensionsFolder -PathType Container) {
@@ -165,12 +170,12 @@ try {
     }
 
     $dotNetSharedFolder = Join-Path $dllsPath 'shared'
-    if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt $bcContainerHelperConfig.MinimumDotNetRuntimeVersion)) {
+    if ($version -ge "22.0.0.0" -and (!(Test-Path $dotNetSharedFolder)) -and ($dotNetRuntimeVersionInstalled -lt [System.Version]$bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr)) {
         if ("$dotNetRuntimeVersionInstalled" -eq "0.0.0") {
             Write-Host "dotnet runtime version is not installed/cannot be used"
         }
         else {
-            Write-Host "dotnet runtime version $dotNetRuntimeVersionInstalled is installed, but minimum required version is $($bcContainerHelperConfig.MinimumDotNetRuntimeVersion)"
+            Write-Host "dotnet runtime version $dotNetRuntimeVersionInstalled is installed, but minimum required version is $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionStr)"
         }
         Write-Host "Downloading minimum required dotnet version from $($bcContainerHelperConfig.MinimumDotNetRuntimeVersionUrl)"
         $dotnetFolder = Join-Path $compilerFolder 'dotnet'
@@ -186,7 +191,7 @@ try {
     if ($vsixFile) {
         # If a vsix file was specified unpack directly to compilerfolder
         Write-Host "Using $vsixFile"
-        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
+        $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.$containerName.zip"
         Download-File -sourceUrl $vsixFile -destinationFile $tempZip
         Expand-7zipArchive -Path $tempZip -DestinationPath $containerCompilerPath
         if ($isWindows -and $newtonSoftDllPath) {
@@ -225,7 +230,6 @@ try {
         $alcExePath = Join-Path $containerCompilerPath 'extension/bin/linux/alc'
         if (Test-Path $alcExePath) {
             # Set execute permissions on alc
-            Write-Host "Setting execute permissions on alc"
             & /usr/bin/env sudo pwsh -command "& chmod +x $alcExePath"
         }
         else {
@@ -251,6 +255,14 @@ try {
                 }
             }
         }
+    }
+
+    Write-Host "Enumerating Apps in $symbolsPath"
+    $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $symbolsPath '*.app') | Select-Object -ExpandProperty FullName)
+    GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $symbolsPath 'cache_AppInfo.json') | Out-Null
+    if ($cacheFolder) {
+        Write-Host "Copying symbols cache"
+        Copy-Item -Path (Join-Path $symbolsPath 'cache_AppInfo.json') -Destination (Join-Path $compilerFolder 'symbols') -Force
     }
     $compilerFolder
 }

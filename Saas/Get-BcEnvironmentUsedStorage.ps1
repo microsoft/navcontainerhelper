@@ -25,7 +25,7 @@ function Get-BcEnvironmentUsedStorage {
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = ('', 'BusinessCentral')[$PSBoundParameters.ContainsKey('environment')],
         [string] $environment = "",
-        [string] $apiVersion = "v2.15"
+        [string] $apiversion = "v2.19"
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()

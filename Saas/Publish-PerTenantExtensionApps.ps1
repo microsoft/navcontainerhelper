@@ -60,7 +60,7 @@ try {
     }
 
     if ($PsCmdlet.ParameterSetName -eq "CC") {
-        if ($clientId -is [SecureString]) { $clientID = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientID)) }
+        if ($clientId -is [SecureString]) { $clientID = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($clientID)) }
         if ($clientId -isnot [String]) { throw "ClientID needs to be a SecureString or a String" }
         if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
         if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
@@ -88,6 +88,9 @@ try {
             throw "No company $companyName"
         }
         $companyId = $company.id
+        if ($companyName -eq "") {
+            $companyName = $company.name
+        }
         Write-Host "Company '$companyName' has id $companyId"
         
         Write-Host "$automationApiUrl/companies($companyId)/extensions"
@@ -122,11 +125,8 @@ try {
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
                 Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
-                $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
-                Extract-AppFileToFolder -appFilename $_ -appFolder $tempFolder -generateAppJson 6> $null
-                $appJsonFile = Join-Path $tempFolder "app.json"
-                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                Remove-Item -Path $tempFolder -Force -Recurse
+                $appJson = Get-AppJsonFromAppFile -appFile $_
+                
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
                 if ($existingApp) {
                     if ($existingApp.isInstalled) {

@@ -38,7 +38,7 @@ function Copy-BcEnvironment {
         [ValidateSet('Sandbox', 'Production')]
         [string] $environmentType = "Sandbox",
         [string] $applicationInsightsKey = "",
-        [string] $apiVersion = "v2.15",
+        [string] $apiversion = "v2.19",
         [switch] $force,
         [switch] $doNotWait
     )

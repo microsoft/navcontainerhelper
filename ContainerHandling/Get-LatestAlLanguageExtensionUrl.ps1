@@ -17,7 +17,8 @@ function Get-LatestAlLanguageExtensionUrl {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    GetLatestAlLanguageExtensionUrl -allowPrerelease:$allowPrerelease
+    $version, $url = GetLatestAlLanguageExtensionVersionAndUrl -allowPrerelease:$allowPrerelease
+    return $url
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

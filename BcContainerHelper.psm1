@@ -17,11 +17,13 @@ param(
 if ($isMacOS) {
     throw "BcContainerHelper isn't supported on MacOS"
 }
-elseif ($isLinux) {
-    Write-Host "Running on Linux"
-}
-elseif ($isPsCore) {
-    Write-Host "Running on PowerShell 7"
+elseif (!$silent) {
+    if ($isLinux) {
+        Write-Host "Running on Linux, PowerShell $($PSVersionTable.PSVersion)"
+    }
+    else {
+        Write-Host "Running on Windows, PowerShell $($PSVersionTable.PSVersion)"
+    }
 }
 
 if ($useVolumes -or $isInsideContainer) {
@@ -31,12 +33,22 @@ if ($useVolumes -or $isInsideContainer) {
 $hypervState = ""
 function Get-HypervState {
     if ($isAdministrator -and $hypervState -eq "") {
-        $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
-        if ($feature) {
-            $script:hypervState = $feature.State
+        try {
+            $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
+            if ($feature) {
+                $script:hypervState = $feature.State
+            }
+            else {
+                $script:hypervState = "Disabled"
+            }
         }
-        else {
-            $script:hypervState = "Disabled"
+        catch {
+            if ($_.Exception.Message -match "Class not registered") {
+                Write-Host "Cannot check Hyper-V status."
+            }
+            else {
+                throw $_
+            }    
         }
     }
     return $script:hypervState
@@ -206,6 +218,9 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "AppHandling\Convert-BcAppsToRuntimePackages.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Get-NavContainerApp.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Extract-AppFileToFolder.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Get-AppJsonFromAppFile.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Create-SymbolsFileFromAppFile.ps1")
+. (Join-Path $PSScriptRoot "AppHandling\Copy-AppFilesToFolder.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Replace-DependenciesInAppFile.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-TestsInNavContainer.ps1")
 . (Join-Path $PSScriptRoot "AppHandling\Run-BCPTTestsInBcContainer.ps1")
@@ -271,21 +286,3 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
-
-# Alpaca Container Handling
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Remove-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Stop-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Start-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Get-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Wait-AlpacaBcContainerReady.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\New-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Invoke-ScriptInAlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Get-AlpacaBcContainerEventlog.ps1")
-
-# Cloud Container Handling
-. (Join-Path $PSScriptRoot "CloudBcContainer\HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Copy-FileToCloudBcContainer.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Copy-FileFromCloudBcContainer.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Get-CloudBcContainerServerConfiguration.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Get-CloudBcContainerEventLog.ps1")

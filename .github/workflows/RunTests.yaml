@@ -19,7 +19,7 @@ permissions:
   checks: write
 
 concurrency:
-  group: 'runTests-${{ github.ref }}'
+  group: 'runTests-${{ github.event.inputs.ref }}'
   cancel-in-progress: true
 
 defaults:
@@ -33,7 +33,7 @@ jobs:
       tests: ${{ steps.Analyze.outputs.tests }}
       linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -65,7 +65,7 @@ jobs:
         test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
       fail-fast: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -75,7 +75,11 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -100,7 +104,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -110,7 +114,11 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -135,7 +143,7 @@ jobs:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref }}
           lfs: true
@@ -145,7 +153,11 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"

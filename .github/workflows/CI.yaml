@@ -13,6 +13,7 @@ permissions:
   actions: read
   pull-requests: write
   checks: write
+  id-token: write
 
 concurrency:
   group: 'runTests-${{ github.ref }}'
@@ -31,7 +32,7 @@ jobs:
       linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
     
@@ -55,7 +56,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
     
@@ -64,7 +65,11 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -88,7 +93,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
     
@@ -97,7 +102,11 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -121,7 +130,7 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           lfs: true
     
@@ -130,7 +139,11 @@ jobs:
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -147,8 +160,22 @@ jobs:
     needs: [ PS5, PS7, Linux ]
     if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
+      - name: 'Az CLI login'
+        uses: azure/login@v2
+        with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            enable-AzPSSession: true
+            
+      - name: Install Azure Powershell Modules
+        run: |
+          if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
+            Install-Module -Name 'Az.Storage' -Force -AllowClobber
+          }
+
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Deploy
         run: |
@@ -198,10 +225,12 @@ jobs:
                                   -FunctionsToExport $functionsToExport `
                                   -AliasesToExport $aliasesToExport `
                                   -CompanyName "Microsoft" `
-                                  -ReleaseNotes $versionReleaseNotes
+                                  -ReleaseNotes $versionReleaseNotes `
+                                  -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/master/LICENSE' `
+                                  -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
 
             $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
-            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
+            [System.IO.File]::WriteAllBytes($certFileName, ([Convert]::FromBase64String('${{ secrets.CodeSignCertificatePfx }}')))
 
             Remove-Module BcContainerHelper
           
@@ -214,12 +243,12 @@ jobs:
             Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
 
             Write-Host "Upload to storage (preview)"
-            $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
-            New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+            $storageContext = New-AzStorageContext -StorageAccountName 'bccontainerhelper' -UseConnectedAccount
+            New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
           
             Compress-Archive -path $path -DestinationPath "$($path).zip"
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
           
             Write-Host "Publishing Module"
             Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags

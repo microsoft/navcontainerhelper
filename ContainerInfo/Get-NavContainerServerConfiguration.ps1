@@ -13,37 +13,19 @@ Function Get-BcContainerServerConfiguration {
         [String] $ContainerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-    $ResultObjectArray = @()
-    $config = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{
-        Get-NavServerInstance | Get-NAVServerConfiguration -AsXml
-    }
-    
-    $Object = New-Object -TypeName PSObject -Property @{
-        ContainerName = $ContainerName
-    }
-
-    if ($config) {
-        $Config.configuration.appSettings.add | ForEach-Object{
-            $Object | Add-Member -MemberType NoteProperty -Name $_.Key -Value $_.Value
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{ Param($ContainerName)
+        $config = Get-NavServerInstance | Get-NAVServerConfiguration -AsXml
+        $object = [ordered]@{ "ContainerName" = $ContainerName }
+        if ($config) {
+            $Config.configuration.appSettings.add | ForEach-Object{
+                $object += @{ "$($_.Key)" = $_.Value }
+            }
         }
-    }
-    else {
-        $Object | Add-Member -MemberType NoteProperty -Name "ServerInstance" -Value ""
-    }
-
-    $ResultObjectArray += $Object
-    
-    Write-Output $ResultObjectArray
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+        else {
+            $object += @{ "ServerInstance" = "" }
+        }
+        $object | ConvertTo-Json -Depth 99 -compress
+    } -argumentList $containerName | ConvertFrom-Json
 }
 Set-Alias -Name Get-NavContainerServerConfiguration -Value Get-BcContainerServerConfiguration
 Export-ModuleMember -Function Get-BcContainerServerConfiguration -Alias Get-NavContainerServerConfiguration

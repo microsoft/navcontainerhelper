@@ -17,8 +17,6 @@ function Get-BcContainers {
         [String] $ContainerName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
     if ($includeLabels) {
         if ($ContainerName) {
                 $containers = @()
@@ -52,14 +50,6 @@ try {
         }
     }
     $containers            
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainers -Value Get-BcContainers
 Export-ModuleMember -Function Get-BcContainers -Alias Get-NavContainers

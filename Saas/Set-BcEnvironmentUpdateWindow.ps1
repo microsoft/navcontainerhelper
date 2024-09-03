@@ -32,7 +32,7 @@ function Set-BcEnvironmentUpdateWindow {
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [string] $environment,
-        [string] $apiVersion = "v2.18",
+        [string] $apiversion = "v2.19",
         [Parameter(Mandatory = $true)]
         [ValidatePattern("^([0-1]?[0-9]|2[0-3]):(00|30)$")] 
         [string] $preferredStartTime,

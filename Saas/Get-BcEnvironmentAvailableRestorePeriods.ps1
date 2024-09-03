@@ -24,7 +24,7 @@ function Get-BcEnvironmentAvailableRestorePeriods {
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [string] $environment = "",
-        [string] $apiVersion = "v2.15"
+        [string] $apiversion = "v2.19"
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()

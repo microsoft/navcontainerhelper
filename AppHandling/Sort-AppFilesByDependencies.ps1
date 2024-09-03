@@ -9,6 +9,12 @@
   Array of AppIds. If specified, then include Only Apps in the specified AppFile array or archive which is contained in this Array and their dependencies
  .Parameter unknownDependencies
   If specified, this reference parameter will contain unresolved dependencies after sorting
+ .Parameter excludeRuntimePackages
+  If specified, runtime packages will be ignored
+ .Parameter includeSystemDependencies
+  If specified, dependencies on Microsoft.Application and Microsoft.Platform will be included
+ .Parameter includeDependencyVersion
+  If specified, the version of the dependencies will be included in the output
  .Example
   $files = Sort-AppFilesByDependencies -appFiles @($app1, $app2)
 #>
@@ -22,67 +28,45 @@ function Sort-AppFilesByDependencies {
         $excludeInstalledApps = @(),
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies,
-        [switch] $excludeRuntimePackages
+        [switch] $excludeRuntimePackages,
+        [switch] $includeSystemDependencies,
+        [switch] $includeDependencyVersion
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
-    if (!$appFiles) {
-        return @()
-    }
-
-    $sharedFolder = ""
-    if ($containerName) {
-        $sharedFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\$([Guid]::NewGuid().ToString())"
-        New-Item $sharedFolder -ItemType Directory | Out-Null
-    }
+    $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+
+        if (!$appFiles) {
+            return @()
+        }
+
         # Read all app.json objects, populate $apps
         $apps = $()
         $files = @{}
         $appFiles | ForEach-Object {
             $appFile = $_
             $includeIt = $true
-            if ($excludeRuntimePackages -or !(Test-BcContainer -containerName $containerName)) {
-                $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-                try {
-                    Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
-                    $appJsonFile = Join-Path $tmpFolder "app.json"
-                    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                }
-                catch {
-                    if ($_.exception.message -eq "You cannot extract a runtime package") {
-                        if ($excludeRuntimePackages) {
-                            $includeIt = $false
-                        }
-                        else {
-                            throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
-                        }
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+            try {
+                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
+                $appJsonFile = Join-Path $tmpFolder "app.json"
+                $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+            }
+            catch {
+                if ($_.exception.message -eq "You cannot extract a runtime package") {
+                    if ($excludeRuntimePackages) {
+                        $includeIt = $false
                     }
                     else {
-                        throw "Unable to extract and analyze appFile $appFile"
+                        $appJson = Get-AppJsonFromAppFile -appFile $appFile
                     }
                 }
-                finally {
-                    Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+                else {
+                    throw "Unable to extract and analyze appFile $appFile"
                 }
             }
-            else {
-                $destFile = Join-Path $sharedFolder ([System.IO.Path]::GetFileName($appFile))
-                Copy-Item -Path $appFile -Destination $destFile
-                $appJson = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appFile)
-                    Get-NavAppInfo -Path $appFile | ConvertTo-Json -Depth 99
-                } -argumentList (Get-BcContainerPath -containerName $containerName -path $destFile) | ConvertFrom-Json
-                Remove-Item -Path $destFile
-                $appJson.Version = "$($appJson.Version.Major).$($appJson.Version.Minor).$($appJson.Version.Build).$($appJson.Version.Revision)"
-                $appJson | Add-Member -NotePropertyName 'Id' -NotePropertyValue $appJson.AppId.Value
-                if ($appJson.Dependencies) {
-                    $appJson.Dependencies | ForEach-Object { if ($_) { 
-                        $_ | Add-Member -NotePropertyName 'Id' -NotePropertyValue $_.AppId
-                        $_ | Add-Member -NotePropertyName 'Version' -NotePropertyValue "$($_.MinVersion.Major).$($_.MinVersion.Minor).$($_.MinVersion.Build).$($_.MinVersion.Revision)"
-                    } }
-                }
+            finally {
+                Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
             }
             if ($includeIt) {
                 $key = "$($appJson.Id):$($appJson.Version)"
@@ -133,6 +117,24 @@ try {
                         $anApp.Dependencies | ForEach-Object { AddDependency -Dependency $_ }
                     }
                 }
+                if ($includeSystemDependencies.IsPresent) {
+                    if ($anApp.psobject.Members | Where-Object name -eq "application") {
+                        AddDependency -dependency ([PSCustomObject]@{
+                            "publisher" = "Microsoft"
+                            "name" = "Application"
+                            "version" = $anApp.Application
+                            "id" = 'Microsoft.Application'
+                        })
+                    }
+                    if ($anApp.psobject.Members | Where-Object name -eq "platform") {
+                        AddDependency -dependency ([PSCustomObject]@{
+                            "publisher" = "Microsoft"
+                            "name" = "Platform"
+                            "version" = $anApp.Platform
+                            "id" = 'Microsoft.Platform'
+                        })
+                    }
+                }
             }
         }
         
@@ -176,8 +178,14 @@ try {
         if ($includeOnlyAppIds) {
             $script:sortedApps | ForEach-Object { $_ | Add-Member -NotePropertyName 'Included' -NotePropertyValue $false }
             $includeOnlyAppIds | ForEach-Object { MarkSortedApps -AppId $_ }
-            $script:sortedApps | Where-Object { $_.Included } | ForEach-Object {
-                $files["$($_.id):$($_.version)"]
+            $script:sortedApps | ForEach-Object {
+                if ($_.Included) {
+                    $files["$($_.id):$($_.version)"]
+                }
+                else {
+                    $appName = [System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"])
+                    Write-Host "$appName (AppId=$($_.id)) is skipped as it is not referenced"
+                }
             }
         }
         else {
@@ -187,22 +195,16 @@ try {
         }
         if ($unknownDependencies) {
             $unknownDependencies.value = @($script:unresolvedDependencies | ForEach-Object { if ($_) { 
-    			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
+    			"$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id }):$(if($includeDependencyVersion.IsPresent){"$($_.Version):"})" + $("$($_.publisher)_$($_.name)_$($_.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '')
     		} })
         }
     }
-    finally {
-        if ($sharedFolder) {
-            Remove-Item $sharedFolder -Recurse -Force
-        }
+    catch {
+        TrackException -telemetryScope $telemetryScope -errorRecord $_
+        throw
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
+    finally {
+        TrackTrace -telemetryScope $telemetryScope
+    }
 }
 Export-ModuleMember -Function Sort-AppFilesByDependencies

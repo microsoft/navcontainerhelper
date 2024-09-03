@@ -44,7 +44,7 @@ function New-BcEnvironment {
         [string] $ringName = "PROD",
         [string] $applicationVersion = "",
         [string] $applicationInsightsKey = "",
-        [string] $apiVersion = "v2.18",
+        [string] $apiversion = "v2.19",
         [switch] $doNotWait,
         [switch] $doNotGetCompanyInfo
     )

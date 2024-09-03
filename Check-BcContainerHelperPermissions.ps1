@@ -29,6 +29,19 @@ function Check-BcContainerHelperPermissions {
     )
 
     if (!$isAdministrator -or $Fix) {
+
+        $startProcessParams = @{
+            "Verb" = "RunAs"
+            "Wait" = $true
+            "WindowStyle" = "Hidden"
+            "PassThru" = $true
+        }
+        if ($isPsCore) {
+            $startProcessParams += @{ "FilePath" = "pwsh" }
+        }
+        else {
+            $startProcessParams += @{ "FilePath" = "powershell" }
+        }
         if (!$silent) {
             if ($isAdministrator) {
                 Write-Host "Running as administrator"
@@ -58,15 +71,15 @@ function Check-BcContainerHelperPermissions {
                     Param($myUsername, $hostHelperFolder)
                     try {
                         $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 3, 'InheritOnly', 'Allow')
-                        $acl = [System.IO.Directory]::GetAccessControl($hostHelperFolder)
+                        $acl = Get-Acl -Path $hostHelperFolder
                         $acl.AddAccessRule($rule)
-                        [System.IO.Directory]::SetAccessControl($hostHelperFolder,$acl) 
+                        Set-Acl -Path $hostHelperFolder -AclObject $acl
                         EXIT 0
                     } catch {
                         EXIT 1
                     }
                 }
-                $exitCode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostHelperFolder '$($bcContainerHelperConfig.hostHelperFolder)'" -Verb RunAs -wait -WindowStyle Hidden -PassThru).ExitCode
+                $exitCode = (Start-Process @startProcessParams -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostHelperFolder '$($bcContainerHelperConfig.hostHelperFolder)'").ExitCode
                 if ($exitcode -eq 0) {
                     Write-Host -ForegroundColor Green "Permissions successfully added"
                 } else {
@@ -98,15 +111,15 @@ function Check-BcContainerHelperPermissions {
                         Param($myUsername, $hostsFile)
                         try {
                             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'Modify', 'Allow')
-                            $acl = [System.IO.Directory]::GetAccessControl($hostsFile)
+                            $acl = Get-Acl -Path $hostsFile
                             $acl.AddAccessRule($rule)
-                            [System.IO.Directory]::SetAccessControl($hostsFile,$acl) 
+                            Set-Acl -Path $hostsFile -AclObject $acl
                             EXIT 0
                         } catch {
                             EXIT 1
                         }
                     }
-                    $exitcode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostsFile '$hostsFile'" -Verb RunAs -wait -PassThru -WindowStyle Hidden).ExitCode
+                    $exitcode = (Start-Process @startProcessParams -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -hostsFile '$hostsFile'").ExitCode
                     if ($exitcode -eq 0) {
                         Write-Host -ForegroundColor Green "Permissions successfully added"
                     } else {
@@ -166,16 +179,16 @@ function Check-BcContainerHelperPermissions {
                         Param($myUsername, $npipe)
                         try {
                             $rule = New-Object System.Security.AccessControl.FileSystemAccessRule($myUsername,'FullControl', 'Allow')
-                            $acl = [System.IO.Directory]::GetAccessControl($npipe)
+                            $acl = Get-Acl -Path $npipe
                             $acl.AddAccessRule($rule)
-                            [System.IO.Directory]::SetAccessControl($npipe,$acl) 
+                            Set-Acl -Path $npipe -AclObject $acl
                             exit 0
                         } catch {
                             exit 1
                         }
                     }
             
-                    $exitcode = (Start-Process powershell -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -npipe '$npipe'" -Verb RunAs -wait -PassThru).ExitCode
+                    $exitcode = (Start-Process @startProcessParams -ArgumentList "-command & {$scriptblock} -myUsername '$myUsername' -npipe '$npipe'").ExitCode
                     if ($exitcode -eq 0) {
                         Write-Host -ForegroundColor Green "Permissions successfully added"
                     } else {

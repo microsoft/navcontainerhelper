@@ -35,8 +35,7 @@
  .Parameter doNotIgnoreInfos
   Include this switch if you don't want to ignore Infos (if you want to include Infos)
  .Parameter sasToken
-  OBSOLETE - sasToken is no longer needed
-  Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
+  OBSOLETE - sasToken is no longer supported
  .Parameter countries
   Array or comma separated list of country codes to validate against
  .Parameter affixes
@@ -96,7 +95,7 @@ Param(
     [switch] $failOnError,
     [switch] $includeWarnings,
     [switch] $doNotIgnoreInfos,
-    [Obsolete("sasToken is no longer needed")]
+    [Obsolete("sasToken is no longer supported")]
     [string] $sasToken = "",
     [Parameter(Mandatory=$true)]
     $countries,
@@ -152,7 +151,7 @@ Write-Host -ForegroundColor Yellow @'
                     $ver = [Version]$url.Split('/')[4]
                     if ($minver -eq $null -or $ver -lt $minver) {
                         $minver = $ver
-                        $minsto = $url.Split('/')[2].Split('.')[0]
+                        $minsto = (ReplaceCDN -sourceUrl $url.Split('/')[2] -useBlobUrl).Split('.')[0]
                         $minsel = "Latest"
                     }
                 }
@@ -174,37 +173,6 @@ Write-Host -ForegroundColor Yellow @'
     }
     Write-Host "Using $($artifactUrl.Split('?')[0])"
     $artifactUrl
-}
-
-function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
-    $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-    try {
-        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
-        $appJsonFile = Join-Path $tmpFolder "app.json"
-        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-    }
-    catch {
-        Write-Host -ForegroundColor Red "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package, ignoring application dependency check"
-        return $minVersion
-    }
-    finally {
-        if (Test-Path $tmpFolder) {
-            Remove-Item $tmpFolder -Recurse -Force
-        }
-    }
-    if ($appJson.PSObject.Properties.Name -eq "Application") {
-        $version = $appJson.application
-    }
-    else {
-        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | ForEach-Object { $_.Version }
-        if (!$version) {
-            $version = $minVersion
-        }
-    }
-    if ([System.Version]$version -lt [System.Version]$minVersion) {
-        $version = $minVersion
-    }
-    $version
 }
 
 function GetFilePath( [string] $path ) {
@@ -291,7 +259,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "validateVersion                 "
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCurrent                 "; Write-Host $validateCurrent
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMinor               "; Write-Host $validateNextMinor
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMajor               "; Write-Host $validateNextMajor
-Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                        "; if ($sasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "countries                       "; Write-Host ([string]::Join(',',$countries))
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCountries               "; Write-Host ([string]::Join(',',$validateCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "affixes                         "; Write-Host ([string]::Join(',',$affixes))
@@ -411,10 +378,10 @@ elseif ($_ -eq 1 -and $validateVersion) {
     $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
 }
 elseif ($_ -eq 2 -and $validateNextMinor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor
 }
 elseif ($_ -eq 3 -and $validateNextMajor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor
 }
 
 if ($artifactUrl) {

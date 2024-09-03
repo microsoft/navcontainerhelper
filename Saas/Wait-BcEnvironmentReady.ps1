@@ -23,7 +23,7 @@ function Wait-BcEnvironmentsReady {
         [string] $applicationFamily = "BusinessCentral",
         [Parameter(Mandatory = $true)]
         [string[]] $environments = @(),
-        [string] $apiVersion = "v2.15"
+        [string] $apiversion = "v2.19"
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()

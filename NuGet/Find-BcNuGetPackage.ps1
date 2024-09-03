@@ -53,18 +53,19 @@ Function Find-BcNuGetPackage {
 
     $bestmatch = $null
     # Search all trusted feeds for the package
-    foreach($feed in (@(@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
+    foreach($feed in (@([PSCustomObject]@{ "Url" = $nuGetServerUrl; "Token" = $nuGetToken; "Patterns" = @('*'); "Fingerprints" = @() })+$bcContainerHelperConfig.TrustedNuGetFeeds)) {
         if ($feed -and $feed.Url) {
             Write-Host "Search NuGetFeed $($feed.Url)"
-            if (!$feed.ContainsKey('Token')) { $feed.Token = '' }
-            if (!$feed.ContainsKey('Patterns')) { $feed.Patterns = @('*') }
-            if (!$feed.ContainsKey('Fingerprints')) { $feed.Fingerprints = @() }
+            if (!($feed.PSObject.Properties.Name -eq 'Token')) { $feed | Add-Member -MemberType NoteProperty -Name 'Token' -Value '' }
+            if (!($feed.PSObject.Properties.Name -eq 'Patterns')) { $feed | Add-Member -MemberType NoteProperty -Name 'Patterns' -Value @('*') }
+            if (!($feed.PSObject.Properties.Name -eq 'Fingerprints')) { $feed | Add-Member -MemberType NoteProperty -Name 'Fingerprints' -Value @() }
             $nuGetFeed = [NuGetFeed]::Create($feed.Url, $feed.Token, $feed.Patterns, $feed.Fingerprints)
-            $packageIds = $nuGetFeed.Search($packageName)
-            if ($packageIds) {
-                foreach($packageId in $packageIds) {
+            $packages = $nuGetFeed.Search($packageName)
+            if ($packages) {
+                foreach($package in $packages) {
+                    $packageId = $package.Id
                     Write-Host "PackageId: $packageId"
-                    $packageVersion = $nuGetFeed.FindPackageVersion($packageId, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
+                    $packageVersion = $nuGetFeed.FindPackageVersion($package, $version, $excludeVersions, $select, $allowPrerelease.IsPresent)
                     if (!$packageVersion) {
                         Write-Host "No package found matching version '$version' for package id $($packageId)"
                         continue
@@ -82,7 +83,7 @@ Function Find-BcNuGetPackage {
                     }
                     elseif ($select -eq 'Exact') {
                         # We only have a match if the version is exact
-                        if ($packageVersion -eq $version) {
+                        if ([NuGetFeed]::NormalizeVersionStr($packageVersion) -eq [NuGetFeed]::NormalizeVersionStr($version)) {
                             $bestmatch = [PSCustomObject]@{
                                 "Feed" = $nuGetFeed
                                 "PackageId" = $packageId

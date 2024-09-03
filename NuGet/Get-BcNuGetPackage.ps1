@@ -53,6 +53,7 @@ Function Get-BcNuGetPackage {
         [switch] $allowPrerelease
     )
 
+try {    
     $feed, $packageId, $packageVersion = Find-BcNugetPackage -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -excludeVersions $excludeVersions -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:($allowPrerelease.IsPresent)
     if (-not $feed) {
         Write-Host "No package found matching package name $($packageName) Version $($version)"
@@ -62,5 +63,10 @@ Function Get-BcNuGetPackage {
         Write-Host "Best match for package name $($packageName) Version $($version): $packageId Version $packageVersion from $($feed.Url)"
         return $feed.DownloadPackage($packageId, $packageVersion)
     }
+}
+catch {
+    Write-Host -ForegroundColor Red "Error Message: $($_.Exception.Message.Replace("`r",'').Replace("`n",' '))`r`nStackTrace: $($_.ScriptStackTrace)"
+    throw
+}
 }
 Export-ModuleMember -Function Get-BcNuGetPackage

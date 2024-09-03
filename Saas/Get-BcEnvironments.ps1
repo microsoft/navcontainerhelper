@@ -25,7 +25,7 @@ function Get-BcEnvironments {
         [Hashtable] $bcAuthContext,
         [string] $applicationFamily = "BusinessCentral",
         [string] $environment = "",
-        [string] $apiVersion = "v2.15"
+        [string] $apiversion = "v2.19"
     )
 
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()

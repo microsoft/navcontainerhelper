@@ -7,6 +7,8 @@
   Url from which the file will get downloaded
  .Parameter destinationFile
   Destinatin for the downloaded file
+ .Parameter description
+  Description for the download process
  .Parameter Headers
   Specify a custom header for the request
  .Parameter dontOverwrite
@@ -22,26 +24,11 @@ function Download-File {
         [string] $sourceUrl,
         [Parameter(Mandatory=$true)]
         [string] $destinationFile,
+        [string] $description = '',
         [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [switch] $dontOverwrite,
-        [int]    $timeout = 100
+        [int]    $timeout = $bccontainerHelperConfig.defaultDownloadTimeout
     )
-
-function ReplaceCDN {
-    Param(
-        [string] $sourceUrl
-    )
-
-    $cdnStr = '.azureedge.net'
-    if ($sourceUrl -like "https://bcartifacts$cdnStr/*" -or $sourceUrl -like "https://bcinsider$cdnStr/*" -or $sourceUrl -like "https://bcprivate$cdnStr/*" -or $sourceUrl -like "https://bcpublicpreview$cdnStr/*") {
-        $idx = $sourceUrl.IndexOf("$cdnStr/",[System.StringComparison]::InvariantCultureIgnoreCase)
-        $sourceUrl = $sourceUrl.Substring(0,$idx) + '.blob.core.windows.net' + $sourceUrl.Substring($idx + $cdnStr.Length)
-    }
-    $sourceUrl
-}
-
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
 
     $replaceUrls = @{
         "https://go.microsoft.com/fwlink/?LinkID=844461" = "https://bcartifacts.azureedge.net/prerequisites/DotNetCore.1.0.4_1.1.1-WindowsHosting.exe"
@@ -73,27 +60,34 @@ try {
         New-Item -Path $path -ItemType Directory -Force | Out-Null
     }
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-    Write-Host "Downloading $destinationFile"
+    if ($description) {
+        Write-Host "Downloading $description to $destinationFile"
+    }
+    else {
+        Write-Host "Downloading $destinationFile"
+    }
     if ($sourceUrl -like "https://*.sharepoint.com/*download=1*") {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider.azureedge.net/*') {
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
             # Do not use CDN when configured or bcinsider
-            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
+            $timeout += $timeout
         }
         try {
-            DownloadFileLow -sourceUrl $sourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+            DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
         }
         catch {
             try {
                 $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
-                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl
+                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
                 if ($sourceUrl -eq $newSourceUrl) {
                     Write-Host "Error downloading..., retrying in $waittime seconds..."
                 }
                 else {
                     Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
+                    $timeout += $timeout
                 }
                 Start-Sleep -Seconds $waittime
                 DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
@@ -103,13 +97,5 @@ try {
             }
         }
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Export-ModuleMember -Function Download-File
