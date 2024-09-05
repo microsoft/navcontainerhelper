@@ -376,7 +376,7 @@ function GetTestToolkitApps {
             $apps += @('Microsoft_Any', 'Microsoft_Library Assert', 'Microsoft_Library Variable Storage')
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries')
+                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries','Microsoft_AI Test Toolkit')
                 if (!$includeTestLibrariesOnly) {
                     # Add Tests
                     if ($version -ge [Version]"18.0.0.0") {
@@ -414,7 +414,7 @@ function GetTestToolkitApps {
     
                 if (!$includeTestFrameworkOnly) {
                     # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app' | ForEach-Object {
                         @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                     }
         
