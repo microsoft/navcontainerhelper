@@ -286,21 +286,3 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
-
-# Alpaca Container Handling
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Remove-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Stop-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Start-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Get-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Wait-AlpacaBcContainerReady.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\New-AlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Invoke-ScriptInAlpacaBcContainer.ps1")
-. (Join-Path $PSScriptRoot "AlpacaBcContainer\Get-AlpacaBcContainerEventlog.ps1")
-
-# Cloud Container Handling
-. (Join-Path $PSScriptRoot "CloudBcContainer\HelperFunctions.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Copy-FileToCloudBcContainer.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Copy-FileFromCloudBcContainer.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Get-CloudBcContainerServerConfiguration.ps1")
-. (Join-Path $PSScriptRoot "CloudBcContainer\Get-CloudBcContainerEventLog.ps1")
