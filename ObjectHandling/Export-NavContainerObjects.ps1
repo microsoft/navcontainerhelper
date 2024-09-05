@@ -107,7 +107,7 @@ try {
 
         $params = @{ 'ExportTxtSkipUnlicensed' = $true }
         if ($sqlCredential) {
-            $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         if ($exportTo.Contains('(new syntax)')) {
             $params += @{ 'ExportToNewSyntax' = $true }
