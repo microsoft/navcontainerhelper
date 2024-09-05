@@ -246,7 +246,7 @@ try {
             $accessToken = ""
             $userCode = ""
             $message = ""
-            $cnt = 0
+            $interval = 5
     
             if ($deviceCode -eq "") {
                 $DeviceCodeRequestParams = @{
@@ -262,10 +262,11 @@ try {
                 Write-Host "Attempting authentication to $Scopes using device login..."
                 $DeviceCodeRequest = Invoke-RestMethod @DeviceCodeRequestParams -UseBasicParsing
                 Write-Host $DeviceCodeRequest.message -ForegroundColor Yellow
-                Write-Host -NoNewline "Waiting for authentication"
                 $deviceCode = $DeviceCodeRequest.device_code
                 $userCode = $DeviceCodeRequest.user_code
+                $interval = $DeviceCodeRequest.interval
                 $message = $DeviceCodeRequest.message
+                Write-Host -NoNewline "Waiting for authentication (interval=$interval)"
             }
 
             $TokenRequestParams = @{
@@ -280,7 +281,7 @@ try {
             }
 
             while ($accessToken -eq "" -and ([DateTime]::Now.Subtract($deviceLoginStart) -lt $deviceLoginTimeout)) {
-                Start-Sleep -Seconds 1
+                Start-Sleep -Seconds $interval
                 try {
                     $TokenRequest = Invoke-RestMethod @TokenRequestParams -UseBasicParsing
                     $accessToken = $TokenRequest.access_token
@@ -308,9 +309,7 @@ try {
                             throw $errorRecord
                         }
                         elseif ($err -eq "authorization_pending") {
-                            if ($cnt++ % 5 -eq 0) {
-                                Write-Host -NoNewline "."
-                            }
+                            Write-Host -NoNewline "."
                         }
                         else {
                             Write-Host
