@@ -44,7 +44,7 @@ function New-ClientContext {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
-        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
@@ -99,6 +99,28 @@ function Set-ExtensionId
     }
     $extensionIdControl = $ClientContext.GetControlByName($Form, "ExtensionId")
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
+}
+
+function Set-TestCodeunitRange
+(
+    [string] $testCodeunitRange,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+) {
+    Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    if (!$testCodeunitRange) { return }
+    if ($testCodeunitRange -eq "*") { $testCodeunitRange = "0.." }
+
+    if ($debugMode) {
+        Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    }
+    $testCodeunitRangeControl = $ClientContext.GetControlByName($Form, "TestCodeunitRangeFilter")
+    if ($null -eq $testCodeunitRangeControl) { 
+        if ($debugMode) { Write-Host "Test codeunit range control not found on test page" }
+        return 
+    }
+    $ClientContext.SaveValue($testCodeunitRangeControl, $testCodeunitRange)
 }
 
 function Set-TestRunnerCodeunitId
@@ -304,6 +326,7 @@ function Get-Tests {
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $extensionId = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
@@ -345,6 +368,7 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
@@ -473,12 +497,26 @@ function Run-ConnectionTest {
     Write-Host "Extension Management successfully closed"
 }
 
+function GetDT {
+    Param(
+        $val
+    )
+
+    if ($val -is [DateTime]) {
+        $val
+    }
+    else {
+        [DateTime]::Parse($val)
+    }
+}
+
 function Run-Tests {
     Param(
         [ClientContext] $clientContext,
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
@@ -545,6 +583,7 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
@@ -661,8 +700,8 @@ function Run-Tests {
                 $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
                 $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
-                $XUnitAssembly.SetAttribute("run-date", [DateTime]::Parse($result.startTime).ToString("yyyy-MM-dd"))
-                $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH':'mm':'ss"))
+                $XUnitAssembly.SetAttribute("run-date", (GetDT -val $result.startTime).ToString("yyyy-MM-dd"))
+                $XUnitAssembly.SetAttribute("run-time", (GetDT -val $result.startTime).ToString("HH':'mm':'ss"))
                 $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
                 $XUnitCollection = $XUnitDoc.CreateElement("collection")
                 $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
@@ -687,6 +726,13 @@ function Run-Tests {
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
 
+                if ($extensionid) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","extensionid")
+                    $property.SetAttribute("value", $extensionId)
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
+
                 if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
                     $property.SetAttribute("name","processinfo.start")
@@ -694,12 +740,7 @@ function Run-Tests {
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
                     if ($extensionid) {
-                        $property = $JUnitDoc.CreateElement("property")
-                        $property.SetAttribute("name","extensionid")
-                        $property.SetAttribute("value", $extensionId)
-                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
-
-                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId.Value)" -eq $extensionId } | ForEach-Object { $_.Name })"
+                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
                         if ($appname) {
                             $property = $JUnitDoc.CreateElement("property")
                             $property.SetAttribute("name","appName")
@@ -715,7 +756,7 @@ function Run-Tests {
                         $property.SetAttribute("value", "{ ""Version"": ""$($VersionInfo.ProductVersion)"" }")
                         $JunitTestSuiteProperties.AppendChild($property) | Out-Null
     
-                        Get-NavAppInfo -ServerInstance $serverInstance | % {
+                        Get-NavAppInfo -ServerInstance $serverInstance | ForEach-Object {
                             $property = $JUnitDoc.CreateElement("property")
                             $property.SetAttribute("name", "app.info")
                             $property.SetAttribute("value", "{ ""Name"": ""$($_.Name)"", ""Publisher"": ""$($_.Publisher)"", ""Version"": ""$($_.Version)"" }")
@@ -724,13 +765,12 @@ function Run-Tests {
                         $dumpAppsToTestOutput = $false
                     }
                 }
-
             }
         
             $totalduration = [Timespan]::Zero
             if ($result.PSobject.Properties.name -eq "testResults") {
-                $result.testResults | % {
-                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                $result.testResults | ForEach-Object {
+                    $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
                     $totalduration += $testduration
                 }
@@ -752,8 +792,8 @@ function Run-Tests {
             $skipped = 0
         
             if ($result.PSobject.Properties.name -eq "testResults") {
-                $result.testResults | % {
-                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                $result.testResults | ForEach-Object {
+                    $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
         
                     if ($XUnitResultFileName) {

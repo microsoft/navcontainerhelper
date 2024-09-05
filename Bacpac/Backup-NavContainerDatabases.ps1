@@ -39,7 +39,9 @@ try {
     }
     elseif (!$bakFolder.Contains('\')) {
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-        if ((Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
+        if ($isBcSandbox) {
             $folderPrefix = "sandbox"
         }
         else {
@@ -49,7 +51,7 @@ try {
     }
     $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
+    Invoke-ScriptInBcContainer -containerName $containerName -usesession:$false -usepwsh:$false -ScriptBlock { Param($containerBakfolder, $bakFolder, $tenant, $databasecredential, $compress)
        
         function Backup {
             Param (
@@ -67,7 +69,7 @@ try {
             Write-Host "Backing up $database to $bakFile"
             $params = @{}
             if ($compress) { $params += @{ "CompressionOption" = "On" } }
-            if ($databaseCredential) { $params += @{ "credential" = $databaseCredential } }
+            if ($databaseCredential) { $databaseCredential.Password.MakeReadOnly(); $params += @{ "credential" = $databaseCredential } }
             Backup-SqlDatabase -ServerInstance $serverInstance -database $database -BackupFile $bakFile @params
         }
 

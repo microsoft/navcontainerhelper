@@ -49,6 +49,7 @@
 function Import-TestToolkitToBcContainer {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [string] $compilerFolder = '',
         [PSCredential] $sqlCredential = $null,
         [PSCredential] $credential = $null,
         [switch] $includeTestLibrariesOnly,
@@ -89,34 +90,49 @@ try {
         }
     }
 
-    $inspect = docker inspect $containerName | ConvertFrom-Json
-    if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
-        throw "Container $containerName is not a Business Central container"
-    }
-    [System.Version]$version = $inspect.Config.Labels.version
-    $country = $inspect.Config.Labels.country
-
-    $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
-
-    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-
     if ($bcAuthContext -and $environment) {
-        
-        $appFiles = GetTestToolkitApps -containerName $containerName -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+        $appFiles = GetTestToolkitApps -containerName $containerName -compilerFolder $compilerFolder -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+        $installedApps = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.state -eq "installed" }
         $appFiles | ForEach-Object {
-            $appInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile)
-                Get-NAVAppInfo -Path $appFile
-            } -argumentList $_ | Where-Object { $_ -isnot [System.String] }
+            if ($compilerFolder) {
+                $appInfo = Get-AppJsonFromAppFile -appFile $_
+                $appVersion = [Version]$appInfo.Version
+                $appId = $appInfo.Id
+            }
+            else {
+                $appInfo = Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($appFile)
+                    Get-NAVAppInfo -Path $appFile
+                } -argumentList $_ | Where-Object { $_ -isnot [System.String] }
+                $appVersion = $appInfo.Version
+                $appId = $appInfo.AppId
+            }
 
             $targetVersion = ""
-            if ($appInfo.Version.Major -eq 18 -and $appInfo.Version.Minor -eq 0) {
+            if ($appVersion.Major -eq 18 -and $appVersion.Minor -eq 0) {
                 $targetVersion = "18.0.23013.23913"
             }
-            Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appInfo.AppId -appVersion $targetVersion -acceptIsvEula -installOrUpdateNeededDependencies
+            $installedApp = $installedApps | Where-Object { $_.id -eq $appId -and (($targetVersion -eq "") -or ([Version]($_.version) -ge [Version]$targetVersion)) }
+            if ($installedApp) {
+                Write-Host "Skipping app '$($installedApp.name)' as it is already installed"
+            }
+            else {
+                Install-BcAppFromAppSource -bcAuthContext $bcauthcontext -environment $environment -appId $appId -appVersion $targetVersion -acceptIsvEula -installOrUpdateNeededDependencies
+            }
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully published"
     }
     else {
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
+            throw "Container $containerName is not a Business Central container"
+        }
+        [System.Version]$version = $inspect.Config.Labels.version
+        $country = $inspect.Config.Labels.country
+    
+        $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
+    
+        $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+
         $doNotUpdateSymbols = $doNotUpdateSymbols -or (!(([bool]($customConfig.PSobject.Properties.name -eq "EnableSymbolLoadingAtServerStartup")) -and $customConfig.EnableSymbolLoadingAtServerStartup -eq "True"))
     
         $generateSymbols = $false
@@ -124,8 +140,7 @@ try {
             $generateSymbols = $true
             $doNotUpdateSymbols = $true
         }
-    
-    
+
         if ($version.Major -ge 15) {
             if ($version -lt [Version]("15.0.35528.0")) {
                 throw "Container $containerName (platform version $version) doesn't support the Test Toolkit yet, you need a laster version"
@@ -246,7 +261,7 @@ try {
            
                 $params = @{}
                 if ($sqlCredential) {
-                    $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                    $params = @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
                 }
                 if ($testToolkitCountry) {
                     $fileFilter = "*.$testToolkitCountry.fob"

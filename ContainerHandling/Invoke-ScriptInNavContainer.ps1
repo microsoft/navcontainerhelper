@@ -10,6 +10,10 @@
   A pre-compiled PowerShell scriptblock to invoke
  .Parameter argumentList
   Arguments to transfer to the scriptblock in form of an object[]
+ .Parameter useSession
+  If true, the scriptblock will be invoked in a PowerShell session in the container. If false, the scriptblock will be invoked using docker exec
+ .Parameter usePwsh
+  If true, the scriptblock will be invoked using pwsh instead of powershell (when BC version is 24 or later)
  .Example
   Invoke-ScriptInBcContainer -containerName dev -scriptblock { $env:UserName }
  .Example
@@ -22,32 +26,28 @@ function Invoke-ScriptInBcContainer {
         [ScriptBlock] $scriptblock,
         [Parameter(Mandatory=$false)]
         [Object[]] $argumentList,
-        [bool] $useSession = $bcContainerHelperConfig.usePsSession
+        [bool] $useSession = $bcContainerHelperConfig.usePsSession,
+        [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
-    $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
-    $containerFile = ""
+    $file = ''
     if (!$useSession) {
-        if ($isInsideContainer) {
+        $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+        $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        if ($isInsideContainer -or "$containerFile" -eq "") {
             $useSession = $true
-        }
-        else {
-            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
-            if ("$containerFile" -eq "") {
-                $useSession = $true
-            }
         }
     }
 
     if ($useSession) {
         try {
-            $session = Get-BcContainerSession -containerName $containerName -silent
+            $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
         }
         catch {
             if ($isInsideContainer) {
                 Write-Host "Error trying to establish session, retrying in 5 seconds"
                 Start-Sleep -Seconds 5
-                $session = Get-BcContainerSession -containerName $containerName -silent
+                $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
             }
             else {
                 $useSession = $false
@@ -73,6 +73,7 @@ function Invoke-ScriptInBcContainer {
                $isOutOfMemory = Invoke-Command -Session $session -ScriptBlock { Param($containerName, $startTime)
                     $cimInstance = Get-CIMInstance Win32_OperatingSystem
                     Write-Host "`nContainer Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+                    Get-PSDrive C | ForEach-Object { Write-Host "Disk C: Free $([Math]::Round($_.Free / 1GB))Gb from $([Math]::Round(($_.Free+$_.Used) / 1GB))Gb" }
                     $any = $false
                     Write-Host "`nServices in container $($containerName):"
                     Get-Service |
@@ -112,8 +113,19 @@ function Invoke-ScriptInBcContainer {
             throw $errorMessage
         }
     } else {
+        if ($file -eq '') {
+            $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
+            $containerFile = Get-BcContainerPath -containerName $containerName -path $file
+        }
         if ("$containerFile" -eq "") {
-            $containerFile = Get-BcContainerPath -containerName $containerName -path $file -throw
+            throw "$($bcContainerHelperConfig.hostHelperFolder) is not shared with the container, cannot invoke scripts in container without using a session"
+        }
+        $shell = 'powershell'
+        if ($usePwsh) {
+            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ($platformVersion -ge [System.Version]"24.0.0.0") {
+                $shell = 'pwsh'
+            }
         }
         $hostOutputFile = "$file.output"
         $containerOutputFile = "$containerFile.output"
@@ -224,6 +236,7 @@ if ($exception) {
        $isOutOfMemory = Invoke-Command -ScriptBlock { Param($containerName, $startTime)
             $cimInstance = Get-CIMInstance Win32_OperatingSystem
             Write-Host "Container Free Physical Memory: $(($cimInstance.FreePhysicalMemory/1024/1024).ToString('F1',[CultureInfo]::InvariantCulture))Gb"
+            Get-PSDrive C | ForEach-Object { Write-Host "Disk C: Free $([Math]::Round($_.Free / 1GB))Gb from $([Math]::Round(($_.Free+$_.Used) / 1GB))Gb" }
             $any = $false
             Write-Host "`nServices in container $($containerName):"
             Get-Service |
@@ -273,7 +286,7 @@ if ($exception) {
                 $ErrorActionPreference = "Stop"
                 #$file | Out-Host
                 #Get-Content -encoding utf8 -path $file | Out-Host
-                docker exec $containerName powershell $containerFile | Out-Host
+                docker exec $containerName $shell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
                     Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue
@@ -294,7 +307,7 @@ if ($exception) {
                 '$result = Invoke-Command -ScriptBlock {' + $scriptblock.ToString() + '} -ArgumentList $argumentList' | Add-Content -Encoding $encoding -Path $file
                 'if ($result) { [System.Management.Automation.PSSerializer]::Serialize($result) | Set-Content -Encoding utf8 "'+$containerOutputFile+'" }' | Add-Content -Encoding $encoding -Path $file
                 $ErrorActionPreference = "Stop"
-                docker exec $containerName powershell $containerFile | Out-Host
+                docker exec $containerName $shell $containerFile | Out-Host
                 if($LASTEXITCODE -ne 0) {
                     Remove-Item $file -Force -ErrorAction SilentlyContinue
                     Remove-Item $hostOutputFile -Force -ErrorAction SilentlyContinue

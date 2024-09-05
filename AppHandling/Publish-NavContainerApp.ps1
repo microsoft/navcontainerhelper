@@ -108,7 +108,6 @@ try {
     if ($containerName -eq "" -and (!($bcAuthContext -and $environment))) {
         $containerName = $bcContainerHelperConfig.defaultContainerName
     }
-    $isCloudBcContainer = isCloudBcContainer -authContext $bcAuthContext -containerId $environment
     $installedApps = @()
     if ($containerName) {
         $customconfig = Get-BcContainerServerConfiguration -ContainerName $containerName
@@ -130,7 +129,7 @@ try {
         if ($checkAlreadyInstalled) {
             # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
             $installedApps = Get-BcContainerAppInfo -containerName $containerName -installedOnly | Where-Object { (-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global') } | ForEach-Object {
-                @{ "id" = $_.appId; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
+                @{ "id" = "$($_.appId)"; "publisher" = $_.publisher; "name" = $_.name; "version" = $_.Version }
             }
         }
     }
@@ -139,22 +138,13 @@ try {
         $appFiles = CopyAppFilesToFolder -appFiles $appFile -folder $appFolder
         $force = $true
         if ($checkAlreadyInstalled) {
-            if ($isCloudBcContainer) {
-                # Get Installed apps (if UseDevEndpoint is specified, only get global apps)
-                $installedApps = Invoke-ScriptInCloudBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
-                    Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true -and ((-not $useDevEndpoint.IsPresent) -or ($_.Scope -eq 'Global')) } | ForEach-Object { 
-                        Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id $_.AppId -publisher $_.publisher -name $_.name -version $_.Version }
-                }
-            }
-            else {
-                # Get Installed apps (if UseDevEndpoint is specified, only get global apps or PTEs)
-                # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
-                $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
-                Write-Host "InstalledApps:"
-                $installedApps | ForEach-Object { Write-Host "- $($_.id) $($_.displayName) $($_.VersionMajor).$($_.VersionMinor).$($_.VersionBuild).$($_.VersionRevision) '$($_.PublishedAs)' $($_.IsInstalled) $($_.publisher)" }
-                $installedApps = $installedApps | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
-                    @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
-                }
+            # Get Installed apps (if UseDevEndpoint is specified, only get global apps or PTEs)
+            # PublishedAs is either "Global", " PTE" or " Dev" (with leading space)
+            $installedApps = Get-BcInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment
+            Write-Host "InstalledApps:"
+            $installedApps | ForEach-Object { Write-Host "- $($_.id) $($_.displayName) $($_.VersionMajor).$($_.VersionMinor).$($_.VersionBuild).$($_.VersionRevision) '$($_.PublishedAs)' $($_.IsInstalled) $($_.publisher)" }
+            $installedApps = $installedApps | Where-Object { $_.IsInstalled -and ((-not $useDevEndpoint.IsPresent) -or ($_.PublishedAs -ne ' Dev')) } | ForEach-Object {
+                @{ "id" = $_.id; "publisher" = $_.publisher; "name" = $_.displayName; "version" = [System.Version]::new($_.VersionMajor,$_.VersionMinor,$_.VersionBuild,$_.VersionRevision) }
             }
         }
     }
@@ -177,13 +167,11 @@ try {
                 Copy-Item -Path $appFile -Destination $copyInstalledAppsToFolder -force
             }
         
-            if (!$isCloudBcContainer) {
-                if ($bcAuthContext -and $environment) {
-                    $useDevEndpoint = $true
-                }
-                elseif ($customconfig.ServerInstance -eq "") {
-                    throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
-                }
+            if ($bcAuthContext -and $environment) {
+                $useDevEndpoint = $true
+            }
+            elseif ($customconfig.ServerInstance -eq "") {
+                throw "You cannot publish an app to a filesOnly container. Specify bcAuthContext and environemnt to publish to an online tenant"
             }
 
             if ($useDevEndpoint) {
@@ -195,20 +183,13 @@ try {
                 $sslVerificationDisabled = $false
                 if ($bcAuthContext -and $environment) {
                     $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-                    if ($isCloudBcContainer) {
-
-                        throw "TODO"
-                    }
-                    else {
-                        $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
-                        $tenant = ""
-            
-                        $handler = New-Object System.Net.Http.HttpClientHandler
-                        $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-                        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
-                        $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-                        $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-                    }
+                    $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/v2.0/$environment"
+                    $tenant = ""
+                    $handler = New-Object System.Net.Http.HttpClientHandler
+                    $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+                    $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", $bcAuthContext.AccessToken)
+                    $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+                    $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
                 }
                 else {
                     $handler = New-Object System.Net.Http.HttpClientHandler
@@ -231,7 +212,7 @@ try {
                         if (!($credential)) {
                             throw "You need to specify credentials when you are not using Windows Authentication"
                         }
-                        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+                        $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
                         $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
                         $base64 = [System.Convert]::ToBase64String($bytes)
                         $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64);
@@ -308,6 +289,7 @@ try {
             }
             else {
                 [ScriptBlock] $scriptblock = { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
+                    $prevPreference = $ProgressPreference; $ProgressPreference = "SilentlyContinue"
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
                         $publishArgs += @{ "Scope" = $scope }
@@ -392,22 +374,12 @@ try {
                             Start-NavAppDataUpgrade -ServerInstance $ServerInstance -Publisher $appPublisher -Name $appName -Version $appVersion -Tenant $tenant @installArgs
                         }
                     }
+                    $ProgressPreference = $prevPreference
                 }
-                if ($isCloudBcContainer) {
-                    $containerPath = Join-Path 'C:\DL' ([System.IO.Path]::GetFileName($appfile))
-                    Copy-FileToCloudBcContainer -authContext $bcAuthContext -containerId $environment -localPath $appFile -containerPath $containerPath
-                    Invoke-ScriptInCloudBcContainer `
-                        -authContext $bcAuthContext `
-                        -containerId $environment `
-                        -ScriptBlock $scriptblock `
-                        -ArgumentList $containerPath, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
-                }
-                else {
-                    Invoke-ScriptInBcContainer `
-                        -containerName $containerName `
-                        -ScriptBlock $scriptblock `
-                        -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
-                }
+                Invoke-ScriptInBcContainer `
+                    -containerName $containerName `
+                    -ScriptBlock $scriptblock `
+                    -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
             }
             Write-Host -ForegroundColor Green "App $([System.IO.Path]::GetFileName($appFile)) successfully published"
         }
