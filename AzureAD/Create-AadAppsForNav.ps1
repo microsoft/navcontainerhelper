@@ -52,6 +52,10 @@ function Create-AadAppsForNav {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    Write-Host -ForegroundColor Red 'Create-AadAppsForBC is deprecated, please use New-AadAppsForBc instead'
+    Write-Host -ForegroundColor Red 'Create-AadAppsForBC is using AzureAD to create AAD Apps (which is deprecated)'
+    Write-Host -ForegroundColor Red 'New-AadAppsForBC is using Microsoft.Graph to create AAD Apps'
+
     $publicWebBaseUrl = "$($publicWebBaseUrl.TrimEnd('/'))/"
 
     if (!(Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction Ignore)) {
@@ -78,7 +82,7 @@ try {
     }
     else {
         if ($AadAdminCredential) {
-            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
+            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
             if ($password.Length -gt 100) {
                 $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
             }

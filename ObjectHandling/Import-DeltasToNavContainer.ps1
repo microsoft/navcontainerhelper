@@ -37,12 +37,12 @@ try {
     }
 
     $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-    $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion"
-    $mergeResultFile  = Join-Path $ExtensionsFolder "$containerName\mergeresult.txt"
+    $originalFolder   = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion"
+    $mergeResultFile  = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\mergeresult.txt"
     Remove-Item $mergeResultFile -Force -ErrorAction Ignore
-    $mergedObjectsFile  = Join-Path $ExtensionsFolder "$containerName\mergedobjects.txt"
+    $mergedObjectsFile  = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\mergedobjects.txt"
     Remove-Item $mergedObjectsFile -Force -ErrorAction Ignore
-    $myOriginalFolder = Join-Path $ExtensionsFolder "$containerName\original"
+    $myOriginalFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\original"
     Remove-Item $myOriginalFolder -Force -Recurse -ErrorAction Ignore
 
     Create-MyOriginalFolder -originalFolder $originalFolder `

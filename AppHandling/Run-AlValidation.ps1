@@ -25,9 +25,9 @@
  .Parameter ValidateCurrent
   Include this switch if you want to also validate against current version of Business Central
  .Parameter ValidateNextMinor
-  Include this switch if you want to also validate against next minor version of Business Central. If you include this switch you need to specify a sasToken for insider builds as well.
+  Include this switch if you want to also validate against next minor version of Business Central.
  .Parameter ValidateNextMajor
-  Include this switch if you want to also validate against next major version of Business Central. If you include this switch you need to specify a sasToken for insider builds as well.
+  Include this switch if you want to also validate against next major version of Business Central.
  .Parameter failOnError
   Include this switch if you want to fail on the first error instead of returning all errors to the caller
  .Parameter includeWarnings
@@ -35,7 +35,7 @@
  .Parameter doNotIgnoreInfos
   Include this switch if you don't want to ignore Infos (if you want to include Infos)
  .Parameter sasToken
-  Shared Access Service Token for accessing insider artifacts of Business Central. Available on http://aka.ms/collaborate
+  OBSOLETE - sasToken is no longer supported
  .Parameter countries
   Array or comma separated list of country codes to validate against
  .Parameter affixes
@@ -47,7 +47,7 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
-  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEULA) to get latest insider .vsix
   Use . to specify that you want to use the AL Language extension from the container spun up for validation
   Default is to use the latest AL Language extension from Marketplace for non-insider containers and the Language extension in the container for insider containers
  .Parameter skipVerification
@@ -95,6 +95,7 @@ Param(
     [switch] $failOnError,
     [switch] $includeWarnings,
     [switch] $doNotIgnoreInfos,
+    [Obsolete("sasToken is no longer supported")]
     [string] $sasToken = "",
     [Parameter(Mandatory=$true)]
     $countries,
@@ -121,7 +122,6 @@ function DetermineArtifactsToUse {
     Param(
         [string] $version = "",
         [string] $select = "Current",
-        [string] $sasToken = "",
         [string[]] $countries = @("us"),
         [switch] $throw
     )
@@ -138,11 +138,10 @@ Write-Host -ForegroundColor Yellow @'
     
     $minsto = 'bcartifacts'
     $minsel = $select
-    $mintok = $sasToken
     if ($countries) {
         $minver = $null
         $countries | ForEach-Object {
-            $url = Get-BCArtifactUrl -version $version -country $_ -select $select -sasToken $sasToken | Select-Object -First 1
+            $url = Get-BCArtifactUrl -version $version -country $_ -select $select -accept_insiderEula | Select-Object -First 1
             if (!($url)) {
                 Write-Host -ForegroundColor Yellow "WARNING: NextMajor artifacts doesn't exist for $_"
             }
@@ -152,9 +151,8 @@ Write-Host -ForegroundColor Yellow @'
                     $ver = [Version]$url.Split('/')[4]
                     if ($minver -eq $null -or $ver -lt $minver) {
                         $minver = $ver
-                        $minsto = $url.Split('/')[2].Split('.')[0]
+                        $minsto = (ReplaceCDN -sourceUrl $url.Split('/')[2] -useBlobUrl).Split('.')[0]
                         $minsel = "Latest"
-                        $mintok = $url.Split('?')[1]; if ($mintok) { $mintok = "?$mintok" }
                     }
                 }
             }
@@ -169,42 +167,12 @@ Write-Host -ForegroundColor Yellow @'
             $version = $minver.ToString()
         }
     }
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -version $version -country $countries[0] -select $minsel -sasToken $mintok | Select-Object -First 1
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -version $version -country $countries[0] -select $minsel -accept_insiderEula | Select-Object -First 1
     if (!($artifactUrl)) {
         if ($throw) { throw "Unable to locate artifacts" }
     }
     Write-Host "Using $($artifactUrl.Split('?')[0])"
     $artifactUrl
-}
-
-function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {
-    $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
-    try {
-        Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson
-        $appJsonFile = Join-Path $tmpFolder "app.json"
-        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-    }
-    catch {
-        throw "Cannot unpack app $([System.IO.Path]::GetFileName($appFile)), it might be a runtime package."
-    }
-    finally {
-        if (Test-Path $tmpFolder) {
-            Remove-Item $tmpFolder -Recurse -Force
-        }
-    }
-    if ($appJson.PSObject.Properties.Name -eq "Application") {
-        $version = $appJson.application
-    }
-    else {
-        $version = $appJson.dependencies | Where-Object { $_.Name -eq "Base Application" -and $_.Publisher -eq "Microsoft" } | % { $_.Version }
-        if (!$version) {
-            $version = $minVersion
-        }
-    }
-    if ([System.Version]$version -lt [System.Version]$minVersion) {
-        $version = $minVersion
-    }
-    $version
 }
 
 function GetFilePath( [string] $path ) {
@@ -291,7 +259,6 @@ Write-Host -NoNewLine -ForegroundColor Yellow "validateVersion                 "
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCurrent                 "; Write-Host $validateCurrent
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMinor               "; Write-Host $validateNextMinor
 Write-Host -NoNewLine -ForegroundColor Yellow "validateNextMajor               "; Write-Host $validateNextMajor
-Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                        "; if ($sasToken) { Write-Host "Specified" } else { Write-Host "Not Specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "countries                       "; Write-Host ([string]::Join(',',$countries))
 Write-Host -NoNewLine -ForegroundColor Yellow "validateCountries               "; Write-Host ([string]::Join(',',$validateCountries))
 Write-Host -NoNewLine -ForegroundColor Yellow "affixes                         "; Write-Host ([string]::Join(',',$affixes))
@@ -310,7 +277,7 @@ if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
 else {
-    $DockerPull = { Param($imageName) docker pull $imageName }
+    $DockerPull = { Param($imageName) docker pull $imageName --quiet }
 }
 if ($NewBcContainer) {
     Write-Host -ForegroundColor Yellow "NewBccontainer override"; Write-Host $NewBcContainer.ToString()
@@ -327,6 +294,8 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
+
+$vsixFile = DetermineVsixFile -vsixFile $vsixFile
 
 $currentArtifactUrl = ""
 
@@ -348,7 +317,7 @@ $version = [System.Version]::new($currentArtifactUrl.Split('/')[4])
 $currentVersion = "$($version.Major).$($version.Minor)"
 $validateVersion = "17.0"
 
-$tmpAppsFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+$tmpAppsFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
 @(CopyAppFilesToFolder -appFiles @($installApps+$apps) -folder $tmpAppsFolder) | % {
     $appFile = $_
     $version = GetApplicationDependency -appFile $appFile -minVersion $validateVersion
@@ -409,10 +378,10 @@ elseif ($_ -eq 1 -and $validateVersion) {
     $artifactUrl = DetermineArtifactsToUse -version $validateVersion -countries $validateCountries -select Latest
 }
 elseif ($_ -eq 2 -and $validateNextMinor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMinor
 }
 elseif ($_ -eq 3 -and $validateNextMajor) {
-    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor -sasToken $sasToken
+    $artifactUrl = DetermineArtifactsToUse -countries $validateCountries -select NextMajor
 }
 
 if ($artifactUrl) {
@@ -420,7 +389,7 @@ if ($artifactUrl) {
 $prevProgressPreference = $progressPreference
 $progressPreference = 'SilentlyContinue'
 
-$appPackagesFolder = Join-Path $hosthelperfolder ([Guid]::NewGuid().ToString())
+$appPackagesFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder ([Guid]::NewGuid().ToString())
 New-Item $appPackagesFolder -ItemType Directory | Out-Null
 
 try {
@@ -449,6 +418,7 @@ Measure-Command {
 
     $Parameters = @{
         "accept_eula" = $true
+        "accept_insiderEula" = $true
         "containerName" = $containerName
         "artifactUrl" = $artifactUrl
         "useGenericImage" = $useGenericImage

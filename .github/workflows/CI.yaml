@@ -4,36 +4,50 @@ on:
   workflow_dispatch:
   push:
     paths-ignore:
-      - 'README.md'
+      - '**.md'
       - '.github/**'
     branches: [ master ]
 
 permissions:
   contents: read
+  actions: read
+  pull-requests: write
+  checks: write
+  id-token: write
 
-concurrency: CI
+concurrency:
+  group: 'runTests-${{ github.ref }}'
+  cancel-in-progress: true
 
 defaults:
   run:
-    shell: PowerShell
+    shell: powershell
 
 jobs:
   AnalyzeTests:
+    if: github.repository == 'Microsoft/NavContainerHelper'
     runs-on: [ windows-latest ]
     outputs:
       tests: ${{ steps.Analyze.outputs.tests }}
+      linuxtests: ${{ steps.Analyze.outputs.linuxtests }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+    
       - name: Analyze
         id: Analyze
         run: |
+          $errorActionPreference = "stop"
           $tests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
-          Write-Host "::set-output name=tests::$tests"
-          Write-Host "set-output name=tests::$tests"
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "tests=$tests"
+          Write-Host "tests=$tests"
+          $linuxtests = @(Get-ChildItem -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\*.Tests.ps1') | ForEach-Object { $_.BaseName }) | ConvertTo-Json -compress
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "linuxtests=$linuxtests"
+          Write-Host "linuxtests=$linuxtests"
 
-  RunTests:
+  PS5:
     runs-on: [ windows-latest ]
     needs: [ AnalyzeTests ]
     strategy:
@@ -42,14 +56,94 @@ jobs:
       fail-fast: false
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+    
       - name: Run Tests
         run: |
           try {
             $errorActionPreference = "stop"
             Set-StrictMode -version 2.0
-            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = '${{ secrets.licensefile }}'; "buildLicenseFile" = '${{ secrets.buildLicenseFile }}'; "insiderSasToken" = '${{ secrets.insiderSasToken }}' }
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  PS7:
+    runs-on: [ windows-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.tests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'Tests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
+            $result = Invoke-Pester -Container $pesterContainer -passthru
+            if ($result.FailedCount -gt 0) {
+              Write-Host "::Error::$($result.FailedCount) tests are failing"
+              $host.SetShouldExit(1)
+            }
+          }
+          catch {
+            Write-Host "::Error::Exception when running tests. The Error was $($_.Exception.Message)"
+            $host.SetShouldExit(1)
+          }
+
+  Linux:
+    runs-on: [ ubuntu-latest ]
+    defaults:
+      run:
+        shell: pwsh
+    needs: [ AnalyzeTests ]
+    strategy:
+      matrix:
+        test: ${{fromJson(needs.AnalyzeTests.outputs.linuxtests)}}
+      fail-fast: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+    
+      - name: Run Tests
+        run: |
+          try {
+            $errorActionPreference = "stop"
+            Set-StrictMode -version 2.0
+            $licenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($licenseFile, ([Convert]::FromBase64String('${{ secrets.licensefile }}')))
+            $buildLicenseFile = "$([System.IO.Path]::GetTempFileName()).flf"
+            [System.IO.File]::WriteAllBytes($buildLicenseFile, ([Convert]::FromBase64String('${{ secrets.buildLicensefile }}')))
+            $pesterContainer = New-PesterContainer -Path (Join-Path $ENV:GITHUB_WORKSPACE 'LinuxTests\${{ matrix.test }}.ps1') -Data @{ "licenseFile" = $licenseFile; "buildLicenseFile" = $buildLicenseFile }
             $result = Invoke-Pester -Container $pesterContainer -passthru
             if ($result.FailedCount -gt 0) {
               Write-Host "::Error::$($result.FailedCount) tests are failing"
@@ -63,15 +157,30 @@ jobs:
 
   Deploy:
     runs-on: [ windows-latest ]
-    needs: [ RunTests ]
+    needs: [ PS5, PS7, Linux ]
+    if: github.repository_owner == 'microsoft' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
+      - name: 'Az CLI login'
+        uses: azure/login@v2
+        with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            enable-AzPSSession: true
+            
+      - name: Install Azure Powershell Modules
+        run: |
+          if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
+            Install-Module -Name 'Az.Storage' -Force -AllowClobber
+          }
+
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Deploy
         run: |
           try {
-            $path = Join-Path $ENV:TEMP "BcContainerHelper"
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "BcContainerHelper"
             New-Item -path $path -itemType Directory | Out-Null
             Copy-Item -path (Join-Path $ENV:GITHUB_WORKSPACE "*") -Destination $path -Recurse -Force
 
@@ -116,19 +225,30 @@ jobs:
                                   -FunctionsToExport $functionsToExport `
                                   -AliasesToExport $aliasesToExport `
                                   -CompanyName "Microsoft" `
-                                  -ReleaseNotes $versionReleaseNotes
-          
+                                  -ReleaseNotes $versionReleaseNotes `
+                                  -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/master/LICENSE' `
+                                  -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
+
+            $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
+            [System.IO.File]::WriteAllBytes($certFileName, ([Convert]::FromBase64String('${{ secrets.CodeSignCertificatePfx }}')))
+
             Remove-Module BcContainerHelper
           
             Write-Host $path
+           
+            Write-Host "Signing scripts"
+            $cert = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certFileName, '${{ secrets.CodeSignCertificatePassword }}')
+            $filesToSign = @((Get-ChildItem $path -Filter "*.ps1" -Recurse -Depth 99).FullName)+
+                           @((Get-ChildItem $path -Filter "*.psm1" -Recurse -Depth 99).FullName)
+            Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
 
             Write-Host "Upload to storage (preview)"
-            $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
-            New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+            $storageContext = New-AzStorageContext -StorageAccountName 'bccontainerhelper' -UseConnectedAccount
+            New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
           
             Compress-Archive -path $path -DestinationPath "$($path).zip"
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version-$prerelease.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "preview.zip" -Force | Out-Null
           
             Write-Host "Publishing Module"
             Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags
@@ -137,5 +257,3 @@ jobs:
             Write-Host "::Error::Error publishing module. Error was $($_.Exception.Message)"
             $host.SetShouldExit(1)
           }
-
-          

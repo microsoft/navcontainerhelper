@@ -1,7 +1,6 @@
 ﻿Param(
     [string] $licenseFile,
-    [string] $buildlicenseFile,
-    [string] $insiderSasToken
+    [string] $buildlicenseFile
 )
 
 BeforeAll {
@@ -25,13 +24,12 @@ Describe 'Run-AlPipeline' {
         Run-AlPipeline `
             -pipelineName nch `
             -baseFolder $baseFolder `
-            -licenseFile $buildlicenseFile `
             -containerName $bccontainerName `
             -credential $credential `
-            -installApps @("https://businesscentralapps.blob.core.windows.net/hidestuff/latest/hidestuff-apps.zip") `
+            -installApps @("https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/24.0.0/bcsamples-bingmaps.pte-main-Apps-24.0.169.0.zip") `
             -appFolders "app,base" `
             -testFolders @("test") `
-            -previousApps @("https://businesscentralapps.blob.core.windows.net/githubhelloworld/2.0.32.0/apps.zip") `
+            -previousApps @((Join-Path $PSScriptRoot 'helloworld-previousapps.zip')) `
             -additionalCountries "dk,de" `
             -appBuild ([int32]::MaxValue) `
             -appRevision 0 `

@@ -1,4 +1,4 @@
-<# 
+<#
  .Synopsis
   Run AL Pipeline
  .Description
@@ -11,8 +11,13 @@
   If a folder on the host computer is specified in the sharedFolder parameter, it will be shared with the container as c:\shared
  .Parameter licenseFile
   License file to use for AL Pipeline.
+ .Parameter accept_insiderEula
+  Switch, which you need to specify if you are going to create a container with an insider build of Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=2245051)
  .Parameter containerName
   This is the containerName going to be used for the build/test container. If not specified, the container name will be the pipeline name followed by -bld.
+ .Parameter generateErrorLog
+  Switch parameter on whether to generate an alerts log file. Default is false.
+  If set to true, the `errorLog` argument is used when compiling the apps. The generated file will be named <appname>.errorLog.json and is placed in the same folder as the app file.
  .Parameter imageName
   If imageName is specified it will be used to build an image, which serves as a cache for faster container generation.
   Only speficy imagename if you are going to create multiple containers from the same artifacts.
@@ -68,6 +73,8 @@
   ApplicationInsightsConnectionString to be stamped into app.json for all apps
  .Parameter buildOutputFile
   Filename in which you want the build output to be written. Default is none, meaning that build output will not be written to a file, but only on screen.
+ .Parameter containerEventLogFile
+  Filename in which you want the build output to be written. Default is none, meaning that build output will not be written to a file, but only on screen.
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
@@ -75,11 +82,11 @@
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
-  This is the folder (relative to base folder) where symbols are downloaded  and compiled apps are placed. Only relevant when not using useDevEndpoint.
+  This is the folder (relative to base folder) where symbols are downloaded  and compiled apps are placed. Only relevant when not using useDevEndpoint
  .Parameter outputFolder
   This is the folder (relative to base folder) where compiled apps are placed. Only relevant when not using useDevEndpoint.
  .Parameter artifact
-  The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select/sastoken, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
+  The description of which artifact to use. This can either be a URL (from Get-BcArtifactUrl) or in the format storageAccount/type/version/country/select, where these values are transferred as parameters to Get-BcArtifactUrl. Default value is ///us/current.
  .Parameter useGenericImage
   Specify a private (or special) generic image to use for the Container OS. Default is calling Get-BestGenericImageName.
  .Parameter buildArtifactFolder
@@ -102,6 +109,8 @@
   Include this switch if you want compile errors and test errors to surface directly in GitHubActions.
  .Parameter Failon
   Specify if you want Compilation to fail on Error or Warning
+ .Parameter TreatTestFailuresAsWarnings
+  Include this switch if you want to treat test failures as warnings instead of errors
  .Parameter useDevEndpoint
   Including the useDevEndpoint switch will cause the pipeline to publish apps through the development endpoint (like VS Code). This should ONLY be used when running the pipeline locally and will cause some changes in how things are done.
  .Parameter doNotBuildTests
@@ -116,16 +125,20 @@
   Include this switch to indicate that you do not want to publish the app. Including this switch will also mean that upgrade won't happen and tests won't run.
  .Parameter uninstallRemovedApps
   Include this switch to indicate that you want to uninstall apps, which are included in previousApps, but not included (upgraded) in apps, i.e. removed apps
+ .Parameter useCompilerFolder
+  Include this switch to indicate that you want to use the compiler folder instead of creating a docker container for app compilation.
  .Parameter reUseContainer
   Including the reUseContainer switch causes pipeline to reuse the container with the given name if it exists
  .Parameter keepContainer
   Including the keepContainer switch causes the container to not be deleted after the pipeline finishes.
  .Parameter updateLaunchJson
   Specifies the name of the configuration in launch.json, which should be updated with container information to be able to start debugging right away.
+ .Parameter artifactCachePath
+  Artifacts Cache folder (if needed)
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
-  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter enableCodeCop
   Include this switch to include Code Cop Rules during compilation.
  .Parameter enableAppSourceCop
@@ -134,12 +147,16 @@
   Include this switch to include UI Cop during compilation.
  .Parameter enablePerTenantExtensionCop
   Only relevant for Per Tenant Extensions. Include this switch to include Per Tenant Extension Cop during compilation.
+. Parameter enableCodeAnalyzersOnTestApps
+  Include this switch to include CodeCops and other analyzers during compilation of test apps.
  .Parameter customCodeCops
   Use custom AL Cops into the container and include them, in addidtion to the default cops, during compilation.
  .Parameter useDefaultAppSourceRuleSet
   Apply the default ruleset for passing AppSource validation
  .Parameter rulesetFile
   Filename of the custom ruleset file
+ .Parameter enableExternalRulesets
+  Include this switch to enable external rulesets when compiling
  .Parameter preProcessorSymbols
   PreProcessorSymbols to set when compiling the app.
  .Parameter generatecrossreferences
@@ -151,11 +168,25 @@
  .Parameter escapeFromCops
   If One of the cops causes an error in an app, then show the error, recompile the app without cops and continue
  .Parameter AppSourceCopMandatoryAffixes
-  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app. 
+  Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with comma separated list) of affixes used in the app.
  .Parameter AppSourceCopSupportedCountries
   Only relevant for AppSource Apps when AppSourceCop is enabled. This needs to be an array (or a string with a comma seperated list) of supported countries for this app.
  .Parameter obsoleteTagMinAllowedMajorMinor
   Only relevant for AppSource Apps. Objects that are pending obsoletion with an obsolete tag version lower than the minimum set in the AppSourceCop.json file are not allowed. (AS0105)
+ .Parameter features
+  Features to set when compiling the app.
+ .Parameter SourceRepositoryUrl
+  Repository holding the source code for the app. Will be stamped into the app manifest.
+ .Parameter SourceCommit
+  The commit identifier for the source code for the app. Will be stamped into the app manifest.
+ .Parameter BuildBy
+  Information about which product built the app. Will be stamped into the app manifest.
+ .Parameter BuildUrl
+  The URL for the build job, which built the app. Will be stamped into the app manifest.
+ .Parameter PipelineInitialize
+  Override for Pipeline Initialize
+ .Parameter PipelineFinalize
+  Override for Pipeline Finalize 
  .Parameter DockerPull
   Override function parameter for docker pull
  .Parameter NewBcContainer
@@ -166,6 +197,46 @@
   Override function parameter for Import-TestToolkitToBcContainer
  .Parameter CompileAppInBcContainer
   Override function parameter for Compile-AppInBcContainer
+ .Parameter CompileAppWithBcCompilerFolder
+  Override function parameter for Compile-AppWithBcCompilerFolder
+ .Parameter PreCompileApp
+  Custom script to run before compiling an app.
+  The script should accept the type of the app and a reference to the compilation parameters.
+  Possible values for $appType are: app, testApp, bcptApp
+  Example:
+  {
+    param(
+        [string] $appType,
+        [ref] $compilationParams
+    )
+    ...
+    # Change the output folder based on the app type
+    switch($appType) {
+        "app" {
+            $compilationParams.Value.appOutputFolder = "MyApps"
+        }
+        "testApp" {
+            $compilationParams.Value.appOutputFolder = "MyTestApps"
+        }
+        "bcptApp" {
+            $compilationParams.Value.appOutputFolder = "MyBcptApps"
+        }
+    }
+    ...
+  }
+ .Parameter PostCompileApp
+  Custom script to run after compiling an app.
+  The script should accept the file path of the produced .app file, the type of the app, and a hashtable of the compilation parameters.
+  Possible values for $appType are: app, testApp, bcptApp
+  Example:
+  {
+    param(
+        [string] $appFilePath,
+        [string] $appType,
+        [hashtable] $compilationParams
+    )
+    ...
+  }
  .Parameter GetBcContainerAppInfo
   Override function parameter for Get-BcContainerAppInfo
  .Parameter PublishBcContainerApp
@@ -184,12 +255,18 @@
   Override function parameter Get-BcContainerAppRuntimePackage
  .Parameter RemoveBcContainer
   Override function parameter for Remove-BcContainer
+ .Parameter GetBestGenericImageName
+  Override function parameter for Get-BestGenericImageName
+ .Parameter GetBcContainerEventLog
+  Override function parameter for Get-BcContainerEventLog
+ .Parameter InstallMissingDependencies
+  Override function parameter for Installing missing dependencies
  .Example
   Please visit https://www.freddysblog.com for descriptions
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld for Per Tenant Extension example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.pte for Per Tenant Extension example
  .Example
-  Please visit https://dev.azure.com/businesscentralapps/HelloWorld.AppSource for AppSource example
+  Please visit https://github.com/microsoft/bcsamples-bingmaps.appsource for AppSource example
 
 #>
 function Run-AlPipeline {
@@ -198,6 +275,7 @@ Param(
     [string] $baseFolder = "",
     [string] $sharedFolder = "",
     [string] $licenseFile,
+    [switch] $accept_insiderEula,
     [string] $containerName = "$($pipelineName.Replace('.','-') -replace '[^a-zA-Z0-9---]', '')-bld".ToLowerInvariant(),
     [string] $imageName = 'my',
     [switch] $enableTaskScheduler,
@@ -221,6 +299,7 @@ Param(
     $appFolders = @("app", "application"),
     $testFolders = @("test", "testapp"),
     $bcptTestFolders = @("bcpttest", "bcpttestapp"),
+    $bcptTestSuites = @(),
     $additionalCountries = @(),
     [string] $appVersion = "",
     [int] $appBuild = 0,
@@ -228,6 +307,7 @@ Param(
     [string] $applicationInsightsKey,
     [string] $applicationInsightsConnectionString,
     [string] $buildOutputFile = "",
+    [string] $containerEventLogFile = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
     [Parameter(Mandatory=$false)]
@@ -245,11 +325,12 @@ Param(
     [switch] $installPerformanceToolkit,
     [switch] $CopySymbolsFromContainer,
     [switch] $UpdateDependencies,
-    [switch] $azureDevOps,
-    [switch] $gitLab,
-    [switch] $gitHubActions,
+    [switch] $azureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
+    [switch] $gitLab = $bcContainerHelperConfig.IsGitLab,
+    [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
     [ValidateSet('none','error','warning')]
     [string] $failOn = "none",
+    [switch] $treatTestFailuresAsWarnings,
     [switch] $useDevEndpoint,
     [switch] $doNotBuildTests,
     [switch] $doNotRunTests,
@@ -257,17 +338,22 @@ Param(
     [switch] $doNotPerformUpgrade,
     [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
+    [switch] $useCompilerFolder = $bcContainerHelperConfig.useCompilerFolder,
     [switch] $reUseContainer,
     [switch] $keepContainer,
     [string] $updateLaunchJson = "",
+    [string] $artifactCachePath = "",
     [string] $vsixFile = "",
     [switch] $enableCodeCop,
     [switch] $enableAppSourceCop,
     [switch] $enableUICop,
     [switch] $enablePerTenantExtensionCop,
+    [switch] $enableCodeAnalyzersOnTestApps,
     $customCodeCops = @(),
     [switch] $useDefaultAppSourceRuleSet,
     [string] $rulesetFile = "",
+    [switch] $generateErrorLog,
+    [switch] $enableExternalRulesets,
     [string[]] $preProcessorSymbols = @(),
     [switch] $generatecrossreferences,
     [switch] $escapeFromCops,
@@ -276,11 +362,20 @@ Param(
     $AppSourceCopMandatoryAffixes = @(),
     $AppSourceCopSupportedCountries = @(),
     [string] $obsoleteTagMinAllowedMajorMinor = "",
+    [string[]] $features = @(),
+    [string] $sourceRepositoryUrl = '',
+    [string] $sourceCommit = '',
+    [string] $buildBy = "BcContainerHelper,$BcContainerHelperVersion",
+    [string] $buildUrl = '',
+    [scriptblock] $PipelineInitialize,
     [scriptblock] $DockerPull,
     [scriptblock] $NewBcContainer,
     [scriptblock] $SetBcContainerKeyVaultAadAppAndCertificate,
     [scriptblock] $ImportTestToolkitToBcContainer,
     [scriptblock] $CompileAppInBcContainer,
+    [scriptblock] $CompileAppWithBcCompilerFolder,
+    [scriptblock] $PreCompileApp,
+    [scriptblock] $PostCompileApp,
     [scriptblock] $GetBcContainerAppInfo,
     [scriptblock] $PublishBcContainerApp,
     [scriptblock] $UnPublishBcContainerApp,
@@ -290,12 +385,16 @@ Param(
     [scriptblock] $RunTestsInBcContainer,
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
-    [scriptblock] $RemoveBcContainer
+    [scriptblock] $RemoveBcContainer,
+    [scriptblock] $GetBestGenericImageName,
+    [scriptblock] $GetBcContainerEventLog,
+    [scriptblock] $InstallMissingDependencies,
+    [scriptblock] $PipelineFinalize
 )
 
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
-    if ($path) {
-        if (!$path.contains(':')) {
+    if ($path -and $path -notlike 'https://*') {
+        if (-not [System.IO.Path]::IsPathRooted($path)) {
             if (Test-Path -path (Join-Path $baseFolder $path)) {
                 $path = Join-Path $baseFolder $path -Resolve
             }
@@ -317,7 +416,7 @@ function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, 
     $path
 }
 
-Function UpdateLaunchJson {
+function UpdateLaunchJson {
     Param(
         [string] $launchJsonFile,
         [System.Collections.Specialized.OrderedDictionary] $launchSettings
@@ -338,7 +437,7 @@ Function UpdateLaunchJson {
     $launchSettings | ConvertTo-Json | Out-Host
     $oldSettings = $launchJson.configurations | Where-Object { $_.name -eq $launchsettings.name }
     if ($oldSettings) {
-        $oldSettings.PSObject.Properties | % {
+        $oldSettings.PSObject.Properties | ForEach-Object {
             $prop = $_.Name
             if (!($launchSettings.Keys | Where-Object { $_ -eq $prop } )) {
                 $launchSettings += @{ "$prop" = $oldSettings."$prop" }
@@ -351,8 +450,40 @@ Function UpdateLaunchJson {
 
 }
 
+function GetInstalledAppIds {
+    Param(
+        [bool] $useCompilerFolder,
+        [string] $packagesFolder,
+        [string] $compilerFolder,
+        [bool] $filesOnly,
+        [hashtable] $Parameters
+    )
+    if ($useCompilerFolder) {
+        $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
+        $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
+        $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
+        $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
+    }
+    elseif (!$filesOnly) {
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+    }
+    else {
+        $installedApps = @()
+    }
+    Write-GroupStart -Message "Installed Apps"
+    $installedApps | ForEach-Object {
+        Write-Host "- $($_.AppId):$($_.Name)"
+        "$($_.AppId)"
+    }
+    Write-GroupEnd
+}
+
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
+
+if ($PipelineInitialize) {
+    Invoke-Command -ScriptBlock $PipelineInitialize
+}
 
 $warningsToShow = @()
 
@@ -361,6 +492,17 @@ if (!$baseFolder -or !(Test-Path $baseFolder -PathType Container)) {
 }
 if ($sharedFolder -and !(Test-Path $sharedFolder -PathType Container)) {
     throw "If sharedFolder is specified, it must be an existing folder"
+}
+
+if($keepContainer -and !$credential) {
+    # If keepContainer is specified, credentials must also be specified, as otherwise the container will be created with a random password and there will be no way to access it.
+    throw "If keepContainer is specified, you must also specify credentials"
+}
+
+if(!$credential) {
+    # Create a random password to use, as the container will not be kept after the pipeline finishes.
+    $password = GetRandomPassword
+    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
 }
 
 if ($memoryLimit -eq "") {
@@ -381,23 +523,33 @@ if ($customCodeCops                 -is [String]) { $customCodeCops = @($customC
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
-$customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { Test-Path $_ } )
+$customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { $_ -like 'https://*' -or (Test-Path $_) } )
 $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
+$containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 
-$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
+$containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
     if ($_ -and (Test-Path $_)) {
         Remove-Item -Path $_ -Force
     }
 }
 
-if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object {
-    if (-not (Test-Path (Join-Path $_ "bcptSuite.json"))) {
-        throw "no bcptsuite.json found in bcpt test folder $_"        
+$addBcptTestSuites = $true
+if ($bcptTestSuites) {
+    $addBcptTestSuites = $false
+}
+if ($bcptTestFolders) {
+    $bcptTestFolders | ForEach-Object {
+        if (-not (Test-Path (Join-Path $_ "bcptSuite.json"))) {
+            throw "no bcptsuite.json found in bcpt test folder $_"
+        }
+        if ($addBcptTestSuites) {
+            $bcptTestSuites += @((Join-Path $_ "bcptSuite.json"))
+        }
     }
-} }
+}
 
 $artifactUrl = ""
 $filesOnly = $false
@@ -412,13 +564,19 @@ if ($bcAuthContext) {
         Write-Host -ForegroundColor Yellow "Uninstalling removed apps from online environments are not supported"
         $uninstallRemovedApps = $false
     }
-    $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-    $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
-    if (!($bcEnvironment)) {
-        throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
+    if ($environment -notlike ('https://*')) {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+        $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
+        if (!($bcEnvironment)) {
+            throw "Environment $environment doesn't exist in the current context or it is not a Sandbox environment."
+        }
+        $parameters = @{
+            bcAuthContext = $bcAuthContext
+            environment = $environment
+        }
+        $bcBaseApp = Get-BcPublishedApps @Parameters | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
+        $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     }
-    $bcBaseApp = Get-BcPublishedApps -bcAuthContext $bcauthcontext -environment $environment | Where-Object { $_.Name -eq "Base Application" -and $_.state -eq "installed" }
-    $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     $filesOnly = $true
 }
 
@@ -428,16 +586,18 @@ if ($updateLaunchJson) {
     }
 }
 
-if ($useDevEndpoint) {
-    $packagesFolder = ""
-    $outputFolder = ""
-}
-else {
+if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
     $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
     if (Test-Path $packagesFolder) {
         Remove-Item $packagesFolder -Recurse -Force
     }
+    New-Item $packagesFolder -ItemType Directory | Out-Null
+}
 
+if ($useDevEndpoint) {
+    $outputFolder = ""
+}
+else {
     $outputFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $outputFolder -name "outputFolder"
     if (Test-Path $outputFolder) {
         Remove-Item $outputFolder -Recurse -Force
@@ -471,24 +631,21 @@ else {
     $version = $segments[2]
     $country = $segments[3]; if ($country -eq "") { $country = "us" }
     $select = $segments[4]; if ($select -eq "") { $select = "latest" }
-    $sasToken = $segments[5]
 
     Write-Host "Determining artifacts to use"
     $minsto = $storageAccount
     $minsel = $select
-    $mintok = $sasToken
     if ($additionalCountries) {
         $minver = $null
         @($country)+$additionalCountries | ForEach-Object {
-            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -sasToken $sasToken | Select-Object -First 1
+            $url = Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $version -country $_.Trim() -select $select -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
             Write-Host "Found $($url.Split('?')[0])"
             if ($url) {
                 $ver = [Version]$url.Split('/')[4]
                 if ($minver -eq $null -or $ver -lt $minver) {
                     $minver = $ver
-                    $minsto = $url.Split('/')[2].Split('.')[0]
+                    $minsto = (ReplaceCDN -sourceUrl $url.Split('/')[2] -useBlobUrl).Split('.')[0]
                     $minsel = "Latest"
-                    $mintok = $url.Split('?')[1]; if ($mintok) { $mintok = "?$mintok" }
                 }
             }
         }
@@ -497,7 +654,7 @@ else {
         }
         $version = $minver.ToString()
     }
-    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -sasToken $mintok | Select-Object -First 1
+    $artifactUrl = Get-BCArtifactUrl -storageAccount $minsto -type $type -version $version -country $country -select $minsel -accept_insiderEula:$accept_insiderEula | Select-Object -First 1
     if (!($artifactUrl)) {
         throw "Unable to locate artifacts"
     }
@@ -505,37 +662,32 @@ else {
 
 $escapeFromCops = $escapeFromCops -and ($enableCodeCop -or $enableAppSourceCop -or $enableUICop -or $enablePerTenantExtensionCop)
 
-if ($gitHubActions) { Write-Host "::group::Parameters" }
+Write-GroupStart -Message "Parameters"
 Write-Host -ForegroundColor Yellow @'
-  _____                               _                
- |  __ \                             | |               
- | |__) |_ _ _ __ __ _ _ __ ___   ___| |_ ___ _ __ ___ 
+  _____                               _
+ |  __ \                             | |
+ | |__) |_ _ _ __ __ _ _ __ ___   ___| |_ ___ _ __ ___
  |  ___/ _` | '__/ _` | '_ ` _ \ / _ \ __/ _ \ '__/ __|
  | |  | (_| | | | (_| | | | | | |  __/ |_  __/ |  \__ \
  |_|   \__,_|_|  \__,_|_| |_| |_|\___|\__\___|_|  |___/
 
 '@
-Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name               "; Write-Host $pipelineName
-Write-Host -NoNewLine -ForegroundColor Yellow "Container name              "; Write-Host $containerName
-Write-Host -NoNewLine -ForegroundColor Yellow "Image name                  "; Write-Host $imageName
-Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                 "; Write-Host $artifactUrl.Split('?')[0]
-Write-Host -NoNewLine -ForegroundColor Yellow "SasToken                    "; if ($artifactUrl.Contains('?')) { Write-Host "Specified" } else { Write-Host "Not Specified" }
-Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext               "; if ($bcauthcontext) { Write-Host "Specified" } else { Write-Host "Not Specified" }
-Write-Host -NoNewLine -ForegroundColor Yellow "Environment                 "; Write-Host $environment
-Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer              "; Write-Host $reUseContainer
-Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer               "; Write-Host $keepContainer
-Write-Host -NoNewLine -ForegroundColor Yellow "Auth                        "; Write-Host $auth
-Write-Host -NoNewLine -ForegroundColor Yellow "Credential                  ";
-if ($credential) {
-    Write-Host "Specified"
-}
-else {
-    $password = GetRandomPassword
-    Write-Host "admin/$password"
-    $credential= (New-Object pscredential 'admin', (ConvertTo-SecureString -String $password -AsPlainText -Force))
-}
+Write-Host -NoNewLine -ForegroundColor Yellow "Pipeline name                   "; Write-Host $pipelineName
+Write-Host -NoNewLine -ForegroundColor Yellow "Container name                  "; Write-Host $containerName
+Write-Host -NoNewLine -ForegroundColor Yellow "Image name                      "; Write-Host $imageName
+Write-Host -NoNewLine -ForegroundColor Yellow "ArtifactUrl                     "; Write-Host $artifactUrl.Split('?')[0]
+Write-Host -NoNewLine -ForegroundColor Yellow "BcAuthContext                   "; if ($bcauthcontext) { Write-Host "Specified" } else { Write-Host "Not Specified" }
+Write-Host -NoNewLine -ForegroundColor Yellow "Environment                     "; Write-Host $environment
+Write-Host -NoNewLine -ForegroundColor Yellow "ReUseContainer                  "; Write-Host $reUseContainer
+Write-Host -NoNewLine -ForegroundColor Yellow "KeepContainer                   "; Write-Host $keepContainer
+Write-Host -NoNewLine -ForegroundColor Yellow "useCompilerFolder               "; Write-Host $useCompilerFolder
+Write-Host -NoNewLine -ForegroundColor Yellow "artifactCachePath               "; Write-Host $artifactCachePath
+Write-Host -NoNewLine -ForegroundColor Yellow "useDevEndpoint                  "; Write-Host $useDevEndpoint
+Write-Host -NoNewLine -ForegroundColor Yellow "Auth                            "; Write-Host $auth
 Write-Host -NoNewLine -ForegroundColor Yellow "CompanyName                     "; Write-Host $companyName
 Write-Host -NoNewLine -ForegroundColor Yellow "MemoryLimit                     "; Write-Host $memoryLimit
+Write-Host -NoNewLine -ForegroundColor Yellow "FailOn                          "; Write-Host $failOn
+Write-Host -NoNewLine -ForegroundColor Yellow "TreatTestFailuresAsWarnings     "; Write-Host $treatTestFailuresAsWarnings
 Write-Host -NoNewLine -ForegroundColor Yellow "Enable Task Scheduler           "; Write-Host $enableTaskScheduler
 Write-Host -NoNewLine -ForegroundColor Yellow "Assign Premium Plan             "; Write-Host $assignPremiumPlan
 Write-Host -NoNewLine -ForegroundColor Yellow "Install Test Runner             "; Write-Host $installTestRunner
@@ -549,6 +701,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeCop                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "enableAppSourceCop              "; Write-Host $enableAppSourceCop
 Write-Host -NoNewLine -ForegroundColor Yellow "enableUICop                     "; Write-Host $enableUICop
 Write-Host -NoNewLine -ForegroundColor Yellow "enablePerTenantExtensionCop     "; Write-Host $enablePerTenantExtensionCop
+Write-Host -NoNewLine -ForegroundColor Yellow "enableCodeAnalyzersOnTestApps   "; Write-Host $enableCodeAnalyzersOnTestApps
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPerformUpgrade             "; Write-Host $doNotPerformUpgrade
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotPublishApps                "; Write-Host $doNotPublishApps
 Write-Host -NoNewLine -ForegroundColor Yellow "uninstallRemovedApps            "; Write-Host $uninstallRemovedApps
@@ -558,9 +711,12 @@ Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests                   "
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "; Write-Host $doNotRunBcptTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
+Write-Host -NoNewLine -ForegroundColor Yellow "generateErrorLog                "; Write-Host $generateErrorLog
+Write-Host -NoNewLine -ForegroundColor Yellow "enableExternalRulesets          "; Write-Host $enableExternalRulesets
 Write-Host -NoNewLine -ForegroundColor Yellow "azureDevOps                     "; Write-Host $azureDevOps
 Write-Host -NoNewLine -ForegroundColor Yellow "gitLab                          "; Write-Host $gitLab
 Write-Host -NoNewLine -ForegroundColor Yellow "gitHubActions                   "; Write-Host $gitHubActions
+Write-Host -NoNewLine -ForegroundColor Yellow "vsixFile                        "; Write-Host $vsixFile
 Write-Host -NoNewLine -ForegroundColor Yellow "License file                    "; if ($licenseFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxFile             "; if ($codeSignCertPfxFile) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "CodeSignCertPfxPassword         "; if ($codeSignCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
@@ -569,6 +725,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxFile             "
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultCertPfxPassword         "; if ($keyVaultCertPfxPassword) { Write-Host "Specified" } else { "Not specified" }
 Write-Host -NoNewLine -ForegroundColor Yellow "KeyVaultClientId                "; Write-Host $keyVaultClientId
 Write-Host -NoNewLine -ForegroundColor Yellow "BuildOutputFile                 "; Write-Host $buildOutputFile
+Write-Host -NoNewLine -ForegroundColor Yellow "ContainerEventLogFile           "; Write-Host $containerEventLogFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFile                 "; Write-Host $testResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "BcptTestResultsFile             "; Write-Host $bcptTestResultsFile
 Write-Host -NoNewLine -ForegroundColor Yellow "TestResultsFormat               "; Write-Host $testResultsFormat
@@ -580,6 +737,10 @@ Write-Host -NoNewLine -ForegroundColor Yellow "CreateRuntimePackages           "
 Write-Host -NoNewLine -ForegroundColor Yellow "AppVersion                      "; Write-Host $appVersion
 Write-Host -NoNewLine -ForegroundColor Yellow "AppBuild                        "; Write-Host $appBuild
 Write-Host -NoNewLine -ForegroundColor Yellow "AppRevision                     "; Write-Host $appRevision
+Write-Host -NoNewLine -ForegroundColor Yellow "SourceRepositoryUrl             "; Write-Host $sourceRepositoryUrl
+Write-Host -NoNewLine -ForegroundColor Yellow "SourceCommit                    "; Write-Host $sourceCommit
+Write-Host -NoNewLine -ForegroundColor Yellow "BuildBy                         "; Write-Host $buildBy
+Write-Host -NoNewLine -ForegroundColor Yellow "BuildUrl                        "; Write-Host $buildUrl
 if ($enableAppSourceCop) {
     Write-Host -NoNewLine -ForegroundColor Yellow "Mandatory Affixes               "; Write-Host ($AppSourceCopMandatoryAffixes -join ',')
     Write-Host -NoNewLine -ForegroundColor Yellow "Supported Countries             "; Write-Host ($AppSourceCopSupportedCountries -join ',')
@@ -597,17 +758,41 @@ Write-Host -ForegroundColor Yellow "Test application folders"
 if ($testFolders) { $testFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "BCPT Test application folders"
 if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "BCPT Test suites"
+if ($bcptTestSuites) { $bcptTestSuites | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
-if ($doNotPublishApps) {
-    $doNotBuildTests = $true
-    $doNotPerformUpgrade = $true
+$vsixFile = DetermineVsixFile -vsixFile $vsixFile
+$compilerFolder = ''
+$createContainer = $true
+
+if ($useCompilerFolder) {
+    # We are using CompilerFolder, no need for a filesOnly Container
+    # If we are to create a container, it is for publishing and testing
+    $filesOnly = $false
+    $updateLaunchJson = ''
+    $createContainer = !($doNotPublishApps -or ($bcAuthContext -and $environment))
+    if (!$createContainer) { $containerName = ''}
+}
+elseif ($doNotPublishApps) {
+    # We are not using CompilerFolder, but we are not publishing apps either
+    # we can use FilesOnly container
     $filesOnly = $true
     $CopySymbolsFromContainer = $true
+    $testToolkitInstalled = $true
+}
+
+if ($doNotPublishApps) {
+    # If we are not going to publish apps, we also cannot run upgrade tests or tests
+    $doNotRunTests = $true
+    $doNotRunBcptTests = $true
+    $doNotPerformUpgrade = $true
 }
 
 if ($doNotBuildTests) {
+    # If we are not going to build tests, set test folders to empty
+    # and set doNotRunTests and doNotRunBcptTests to true
     $testFolders = @()
     $bcptTestFolders = @()
     $installTestRunner = $false
@@ -622,7 +807,7 @@ if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
 else {
-    $DockerPull = { Param($imageName) docker pull $imageName }
+    $DockerPull = { Param($imageName) docker pull $imageName --quiet }
 }
 if ($NewBcContainer) {
     Write-Host -ForegroundColor Yellow "NewBccontainer override"; Write-Host $NewBcContainer.ToString()
@@ -648,6 +833,21 @@ if ($CompileAppInBcContainer) {
 else {
     $CompileAppInBcContainer = { Param([Hashtable]$parameters) Compile-AppInBcContainer @parameters }
 }
+if ($CompileAppWithBcCompilerFolder) {
+    Write-Host -ForegroundColor Yellow "CompileAppWithBcCompilerFolder override"; Write-Host $CompileAppWithBcCompilerFolder.ToString()
+}
+else {
+    $CompileAppWithBcCompilerFolder = { Param([Hashtable]$parameters) Compile-AppWithBcCompilerFolder @parameters }
+}
+
+if ($PreCompileApp) {
+    Write-Host -ForegroundColor Yellow "Custom pre-compilation script defined."; Write-Host $PreCompileApp.ToString()
+}
+
+if ($PostCompileApp) {
+    Write-Host -ForegroundColor Yellow "Custom post-compilation script defined."; Write-Host $PostCompileApp.ToString()
+}
+
 if ($GetBcContainerAppInfo) {
     Write-Host -ForegroundColor Yellow "GetBcContainerAppInfo override"; Write-Host $GetBcContainerAppInfo.ToString()
 }
@@ -687,7 +887,7 @@ if ($RunTestsInBcContainer) {
 else {
     $RunTestsInBcContainer = { Param([Hashtable]$parameters) Run-TestsInBcContainer @parameters }
 }
-if ($RunBCPTTestsInBcContainer) {
+if ($RunBCPTTestsInBcContainer ) {
     Write-Host -ForegroundColor Yellow "RunBCPTTestsInBcContainer override"; Write-Host $RunBCPTTestsInBcContainer.ToString()
 }
 else {
@@ -705,37 +905,55 @@ if ($RemoveBcContainer) {
 else {
     $RemoveBcContainer = { Param([Hashtable]$parameters) Remove-BcContainer @parameters }
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+if ($GetBestGenericImageName) {
+    Write-Host -ForegroundColor Yellow "GetBestGenericImageName override"; Write-Host $GetBestGenericImageName.ToString()
+}
+else {
+    $GetBestGenericImageName = { Param([Hashtable]$parameters) Get-BestGenericImageName @parameters }
+}
+if ($GetBcContainerEventLog) {
+    Write-Host -ForegroundColor Yellow "GetBcContainerEventLog override"; Write-Host $GetBcContainerEventLog.ToString()
+}
+else {
+    $GetBcContainerEventLog = { Param([Hashtable]$parameters) Get-BcContainerEventLog @parameters }
+}
+if ($InstallMissingDependencies) {
+    Write-Host -ForegroundColor Yellow "InstallMissingDependencies override"; Write-Host $InstallMissingDependencies.ToString()
+}
+Write-GroupEnd
 
 $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
-if (!$reUseContainer -and $artifactUrl) {
-if ($gitHubActions) { Write-Host "::group::Pulling Generic Image" }
+if ( $artifactUrl -and !$reUseContainer -and $createContainer) {
+Write-GroupStart -Message "Pulling generic image"
 Measure-Command {
 Write-Host -ForegroundColor Yellow @'
 
-  _____       _ _ _                                          _        _                            
- |  __ \     | | (_)                                        (_)      (_)                           
- | |__) |   _| | |_ _ __   __ _    __ _  ___ _ __   ___ _ __ _  ___   _ _ __ ___   __ _  __ _  ___ 
+  _____       _ _ _                                          _        _
+ |  __ \     | | (_)                                        (_)      (_)
+ | |__) |   _| | |_ _ __   __ _    __ _  ___ _ __   ___ _ __ _  ___   _ _ __ ___   __ _  __ _  ___
  |  ___/ | | | | | | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '__| |/ __| | | '_ ` _ \ / _` |/ _` |/ _ \
  | |   | |_| | | | | | | | (_| | | (_| |  __/ | | |  __/ |  | | (__  | | | | | | | (_| | (_| |  __/
  |_|    \__,_|_|_|_|_| |_|\__, |  \__, |\___|_| |_|\___|_|  |_|\___| |_|_| |_| |_|\__,_|\__, |\___|
-                           __/ |   __/ |                                                 __/ |     
-                          |___/   |___/                                                 |___/      
+                           __/ |   __/ |                                                 __/ |
+                          |___/   |___/                                                 |___/
 
 '@
 
 if (!$useGenericImage) {
-    $useGenericImage = Get-BestGenericImageName -filesOnly:$filesOnly
+    $Parameters = @{
+        "filesOnly" = $filesOnly
+    }
+    $useGenericImage = Invoke-Command -ScriptBlock $GetBestGenericImageName -ArgumentList $Parameters
 }
 
 Write-Host "Pulling $useGenericImage"
 
 Invoke-Command -ScriptBlock $DockerPull -ArgumentList $useGenericImage
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPulling generic image took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 $err = $null
@@ -744,22 +962,39 @@ $progressPreference = 'SilentlyContinue'
 
 try {
 
-@("")+$additionalCountries | % {
+@("")+$additionalCountries | ForEach-Object {
 $testCountry = $_.Trim()
+$testToolkitInstalled = $false
 
-if ($gitHubActions) { Write-Host "::group::Creating Container" }
-Write-Host -ForegroundColor Yellow @'
+if ($useCompilerFolder) {
+    Write-GroupStart -Message "Creating container"
+    Write-Host -ForegroundColor Yellow @'
 
-   _____                _   _                               _        _                 
-  / ____|              | | (_)                             | |      (_)                
- | |     _ __ ___  __ _| |_ _ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __ 
- | |    | '__/ _ \/ _` | __| | '_ \ / _` |  / __/ _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
- | |____| | |  __/ (_| | |_| | | | | (_| | | (__ (_) | | | | |_ (_| | | | | |  __/ |   
-  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|   
-                                     __/ |                                             
-                                    |___/                                              
+   _____                _   _                _____                      _ _           ______    _     _
+  / ____|              | | (_)              / ____|                    (_) |         |  ____|  | |   | |
+ | |     _ __ ___  __ _| |_ _ _ __   __ _  | |     ___  _ __ ___  _ __  _| | ___ _ __| |__ ___ | | __| | ___ _ __
+ | |    | '__/ _ \/ _` | __| | '_ \ / _` | | |    / _ \| '_ ` _ \| '_ \| | |/ _ \ '__|  __/ _ \| |/ _` |/ _ \ '__|
+ | |____| | |  __/ (_| | |_| | | | | (_| | | |___| (_) | | | | | | |_) | | |  __/ |  | | | (_) | | (_| |  __/ |
+  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \_____\___/|_| |_| |_| .__/|_|_|\___|_|  |_|  \___/|_|\__,_|\___|_|
+                                     __/ |                       | |
+                                    |___/                        |_|
+'@
+}
+else {
+    if ($gitHubActions) { Write-Host "::group::Creating container" }
+    Write-Host -ForegroundColor Yellow @'
+
+   _____                _   _                _____            _        _
+  / ____|              | | (_)              / ____|          | |      (_)
+ | |     _ __ ___  __ _| |_ _ _ __   __ _  | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __
+ | |    | '__/ _ \/ _` | __| | '_ \ / _` | | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
+ | |____| | |  __/ (_| | |_| | | | | (_| | | |___| (_) | | | | || (_| | | | | |  __/ |
+  \_____|_|  \___|\__,_|\__|_|_| |_|\__, |  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|
+                                     __/ |
+                                    |___/
 
 '@
+}
 
 Measure-Command {
 
@@ -772,142 +1007,208 @@ Measure-Command {
     $Parameters = @{}
     $useExistingContainer = $false
 
-    if (Test-BcContainer -containerName $containerName) {
-        if ($bcAuthContext) {
-            if ($artifactUrl -eq (Get-BcContainerArtifactUrl -containerName $containerName)) {
-                $useExistingContainer = ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -ne "")
-            }
-        }
-        elseif ($reUseContainer) {
-            $containerArtifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
-            if ($artifactUrl -ne $containerArtifactUrl) {
-                Write-Host "WARNING: Reusing a container based on $($containerArtifactUrl.Split('?')[0]), should be $($ArtifactUrl.Split('?')[0])"
-            }
-            if ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -eq "") {
-                throw "$baseFolder is not shared with container $containerName"
-            }
-            $useExistingContainer = $true
-        }
+    $compilerFolder = ''
+    if ($useCompilerFolder) {
+        Write-Host "Creating CompilerFolder"
+        $compilerFolder = New-BcCompilerFolder `
+            -artifactUrl $artifactUrl `
+            -cacheFolder $artifactCachePath `
+            -vsixFile $vsixFile `
+            -containerName $containerName
+        Write-Host "CompilerFolder $compilerFolder created"
     }
-
-    if ($useExistingContainer) {
-        Write-Host "Reusing existing container"
-    }
-    else {
-        $Parameters += @{
-            "FilesOnly" = $filesOnly
-        }
-
-        if ($imageName)   { $Parameters += @{ "imageName"   = $imageName } }
-        if ($memoryLimit) { $Parameters += @{ "memoryLimit" = $memoryLimit } }
-
-        $Parameters += @{
-            "accept_eula" = $true
-            "containerName" = $containerName
-            "artifactUrl" = $artifactUrl
-            "useGenericImage" = $useGenericImage
-            "Credential" = $credential
-            "auth" = $auth
-            "vsixFile" = $vsixFile
-            "updateHosts" = !$IsInsideContainer
-            "licenseFile" = $licenseFile
-            "EnableTaskScheduler" = $enableTaskScheduler
-            "AssignPremiumPlan" = $assignPremiumPlan
-            "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
-        }
-        if ($sharedFolder) {
-            $Parameters.additionalParameters += @("--volume ""$($sharedFolder):c:\shared""")
-        }
-        Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
-
-        if (-not $bcAuthContext) {
-            if ($keyVaultCertPfxFile -and $KeyVaultClientId -and $keyVaultCertPfxPassword) {
-                $Parameters = @{
-                    "containerName" = $containerName
-                    "pfxFile" = $keyVaultCertPfxFile
-                    "pfxPassword" = $keyVaultCertPfxPassword
-                    "clientId" = $keyVaultClientId
+    if ($createContainer -and ($filesOnly -or !$doNotPublishApps)) {
+        # If we are going to build using a filesOnly container or we are going to publish apps, we need a container
+        if (Test-BcContainer -containerName $containerName) {
+            if ($bcAuthContext) {
+                if ($artifactUrl -eq (Get-BcContainerArtifactUrl -containerName $containerName)) {
+                    $useExistingContainer = ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -ne "")
                 }
-                Invoke-Command -ScriptBlock $SetBcContainerKeyVaultAadAppAndCertificate -ArgumentList $Parameters
+            }
+            elseif ($reUseContainer) {
+                $containerArtifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
+                if ($artifactUrl -ne $containerArtifactUrl) {
+                    Write-Host "WARNING: Reusing a container based on $($containerArtifactUrl.Split('?')[0]), should be $($ArtifactUrl.Split('?')[0])"
+                }
+                if ((Get-BcContainerPath -containerName $containerName -path $baseFolder) -eq "") {
+                    throw "$baseFolder is not shared with container $containerName"
+                }
+                $useExistingContainer = $true
             }
         }
-    }
 
-    if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq $tenant })) {
-
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenantId" = $tenant
+        if ($useExistingContainer) {
+            Write-Host "Reusing existing docker container"
         }
-        New-BcContainerTenant @Parameters
-
-        $Parameters = @{
-            "containerName" = $containerName
-            "tenant" = $tenant
-            "credential" = $credential
-            "permissionsetId" = "SUPER"
-            "ChangePasswordAtNextLogOn" = $false
-            "assignPremiumPlan" = $assignPremiumPlan            
-        }
-        New-BcContainerBcUser @Parameters
-
-        $tenantApps = Get-BcContainerAppInfo -containerName $containerName -tenant $tenant -tenantSpecificProperties -sort DependenciesFirst
-        Get-BcContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | % {
-            $name = $_.Name
-            $version = $_.Version
-            $tenantApp = $tenantApps | Where-Object { $_.Name -eq $name -and $_.Version -eq $version }
-            if ($tenantApp.SyncState -eq "NotSynced" -or $tenantApp.SyncState -eq 3) {
-                Sync-BcContainerApp -containerName $containerName -tenant $tenant -appName $Name -appVersion $Version -Mode ForceSync -Force
+        else {
+            Write-Host "Creaing docker container"
+            $Parameters += @{
+                "FilesOnly" = $filesOnly
             }
-            if (-not $tenantApp.IsInstalled) {
-                Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
+
+            if ($imageName)   { $Parameters += @{ "imageName"   = $imageName } }
+            if ($memoryLimit) { $Parameters += @{ "memoryLimit" = $memoryLimit } }
+
+            $Parameters += @{
+                "accept_eula" = $true
+                "accept_insiderEula" = $accept_insiderEula
+                "containerName" = $containerName
+                "artifactUrl" = $artifactUrl
+                "useGenericImage" = $useGenericImage
+                "Credential" = $credential
+                "auth" = $auth
+                "vsixFile" = $vsixFile
+                "updateHosts" = !$IsInsideContainer
+                "licenseFile" = $licenseFile
+                "EnableTaskScheduler" = $enableTaskScheduler
+                "AssignPremiumPlan" = $assignPremiumPlan
+                "additionalParameters" = @("--volume ""$($baseFolder):c:\sources""")
+            }
+            if ($sharedFolder) {
+                $Parameters.additionalParameters += @("--volume ""$($sharedFolder):c:\shared""")
+            }
+            Invoke-Command -ScriptBlock $NewBcContainer -ArgumentList $Parameters
+
+            if ($createContainer -and -not $bcAuthContext) {
+                if ($keyVaultCertPfxFile -and $KeyVaultClientId -and $keyVaultCertPfxPassword) {
+                    $Parameters = @{
+                        "containerName" = $containerName
+                        "pfxFile" = $keyVaultCertPfxFile
+                        "pfxPassword" = $keyVaultCertPfxPassword
+                        "clientId" = $keyVaultClientId
+                    }
+                    Invoke-Command -ScriptBlock $SetBcContainerKeyVaultAadAppAndCertificate -ArgumentList $Parameters
+                }
+            }
+        }
+
+        if ($tenant -ne 'default' -and -not (Get-BcContainerTenants -containerName $containerName | Where-Object { $_.id -eq $tenant })) {
+
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenantId" = $tenant
+            }
+            New-BcContainerTenant @Parameters
+
+            $Parameters = @{
+                "containerName" = $containerName
+                "tenant" = $tenant
+                "credential" = $credential
+                "permissionsetId" = "SUPER"
+                "ChangePasswordAtNextLogOn" = $false
+                "assignPremiumPlan" = $assignPremiumPlan
+            }
+            New-BcContainerBcUser @Parameters
+
+            $tenantApps = Get-BcContainerAppInfo -containerName $containerName -tenant $tenant -tenantSpecificProperties -sort DependenciesFirst
+            Get-BcContainerAppInfo -containerName $containerName -tenant "default" -tenantSpecificProperties -sort DependenciesFirst | Where-Object { $_.IsInstalled } | ForEach-Object {
+                $name = $_.Name
+                $version = $_.Version
+                $tenantApp = $tenantApps | Where-Object { $_.Name -eq $name -and $_.Version -eq $version }
+                if ($tenantApp.SyncState -eq "NotSynced" -or $tenantApp.SyncState -eq 3) {
+                    Sync-BcContainerApp -containerName $containerName -tenant $tenant -appName $Name -appVersion $Version -Mode ForceSync -Force
+                }
+                if (-not $tenantApp.IsInstalled) {
+                    Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
+                }
             }
         }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
-if ($gitHubActions) { Write-Host "::group::Resolving dependencies" }
+Write-GroupStart -Message "Resolving dependencies"
 Write-Host -ForegroundColor Yellow @'
 
- _____                _       _                   _                           _                 _          
-|  __ \              | |     (_)                 | |                         | |               (_)         
-| |__) |___ ___  ___ | |_   ___ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___ ___ 
+ _____                _       _                   _                           _                 _
+|  __ \              | |     (_)                 | |                         | |               (_)
+| |__) |___ ___  ___ | |_   ___ _ __   __ _    __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___ ___
 |  _  // _ \ __|/ _ \| \ \ / / | '_ \ / _` |  / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \ __|
 | | \ \  __\__ \ (_) | |\ V /| | | | | (_| | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __\__ \
 |_|  \_\___|___/\___/|_| \_/ |_|_| |_|\__, |  \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___|___/
-                                       __/ |            | |                                                
-                                      |___/             |_|                                                
+                                       __/ |            | |
+                                      |___/             |_|
 
 '@
-$unknownDependencies = @()
-$sortedFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownDependencies))
-Write-Host "Sorted folders"
-$sortedFolders | ForEach-Object { Write-Host "- $_" }
+$unknownAppDependencies = @()
+$unknownTestAppDependencies = @()
+$sortedAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownAppDependencies))
+$sortedTestAppFolders = @(Sort-AppFoldersByDependencies -appFolders ($appFolders+$testFolders+$bcptTestFolders) -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownTestAppDependencies) | Where-Object { $appFolders -notcontains $_ })
+Write-Host "Sorted App folders"
+$sortedAppFolders | ForEach-Object { Write-Host "- $_" }
 Write-Host "External dependencies"
-if ($unknownDependencies) {
-    $unknownDependencies | ForEach-Object { Write-Host "- $_" }
-    $unknownDependencies = $unknownDependencies | ForEach-Object { $_.Split(':')[0] }
+if ($unknownAppDependencies) {
+    $unknownAppDependencies | ForEach-Object { Write-Host "- $_" }
+    $missingAppDependencies = $unknownAppDependencies | ForEach-Object { $_.Split(':')[0] }
 }
 else {
     Write-Host "- None"
-    $unknownDependencies = @([GUID]::Empty.ToString())
+    $missingAppDependencies = @()
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+$missingTestAppDependencies = @()
+Write-Host "Sorted TestApp folders"
+if ($sortedTestAppFolders.count -eq 0) {
+    Write-Host "- None"
+}
+else {
+    $sortedTestAppFolders | ForEach-Object { Write-Host "- $_" }
+    Write-Host "External TestApp dependencies"
+    if ($unknownTestAppDependencies) {
+        $unknownTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+        $missingTestAppDependencies = $unknownTestAppDependencies | ForEach-Object { $_.Split(':')[0] }
+    }
+    else {
+        Write-Host "- None"
+    }
+}
+# Include unknown app dependencies from previous apps (which doesn't already exist in unknown app dependencies)
+if ($previousApps) {
+    Write-Host "Copying previous apps to packages folder"
+    $tempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+    try {
+        $unknownPreviousAppDependencies = @()
+        $appList = CopyAppFilesToFolder -appFiles $previousApps -folder $tempFolder
+        $sortedPreviousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName -WarningAction SilentlyContinue -unknownDependencies ([ref]$unknownPreviousAppDependencies)
+        Write-Host "Previous apps"
+        $sortedPreviousApps | ForEach-Object { Write-Host "- $([System.IO.Path]::GetFileName($_))" }
+        Write-Host "External previous app dependencies"
+        if ($unknownPreviousAppDependencies) {
+            # Add unknown Previous App Dependencies to missingAppDependencies
+            foreach($appDependency in $unknownPreviousAppDependencies) {
+                $appId = $appDependency.Split(':')[0]
+                if ($appId -ne ([guid]::Empty.ToString())) {
+                    Write-Host "- $appDependency"
+                    if ($missingAppDependencies -notcontains $appId) {
+                        $missingAppDependencies += @($appId)
+                        $unknownAppDependencies += @($appDependency)
+                    }
+                }
+            }
+        }
+        else {
+            Write-Host "- None"
+        }
+    }
+    finally {
+        Remove-Item -Path $tempFolder -recurse -force
+    }
+}
+
+Write-GroupEnd
 
 if ($installApps) {
-if ($gitHubActions) { Write-Host "::group::Installing apps" }
+Write-GroupStart -Message "Installing apps"
 Write-Host -ForegroundColor Yellow @'
 
-  _____           _        _ _ _                                     
- |_   _|         | |      | | (_)                                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __  ___ 
+  _____           _        _ _ _
+ |_   _|         | |      | | (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __  ___
    | | | '_ \/ __| __/ _` | | | | '_ \ / _` |  / _` | '_ \| '_ \/ __|
   _| |_| | | \__ \ |_ (_| | | | | | | | (_| | | (_| | |_) | |_) \__ \
  |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-                                        __/ |       | |   | |        
-                                       |___/        |_|   |_|        
+                                        __/ |       | |   | |
+                                       |___/        |_|   |_|
 
 '@
 Measure-Command {
@@ -916,7 +1217,10 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
-    $tmpAppFolder = Join-Path (Get-TempDir) ([guid]::NewGuid().ToString())
+    if ($generateDependencyArtifact) {
+        $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+    }
+    $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
         $appId = [Guid]::Empty
@@ -927,7 +1231,7 @@ Measure-Command {
             if ($generateDependencyArtifact) {
                 Write-Host -ForegroundColor Red "Cannot add AppSource Apps to dependency artifacts"
             }
-            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+            if ((!$installOnlyReferencedApps) -or ($missingAppDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
@@ -938,9 +1242,17 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
-        elseif ($filesOnly -and (-not $bcAuthContext)) {
+        elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
-                Write-Host "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
+                if ($generateDependencyArtifact) {
+                    Write-Host -NoNewline " and dependencies folder"
+                    if (!(Test-Path $dependenciesFolder)) {
+                        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
+                    }
+                    Copy-Item -Path $_ -Destination $dependenciesFolder -Force
+                }
+                Write-Host
             }
         }
         else {
@@ -960,12 +1272,12 @@ Measure-Command {
         }
         if ($installOnlyReferencedApps) {
             $parameters += @{
-                "includeOnlyAppIds" = $unknownDependencies
+                "includeOnlyAppIds" = $missingAppDependencies
             }
         }
         if ($generateDependencyArtifact -and !($testCountry)) {
             $parameters += @{
-                "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+                "CopyInstalledAppsToFolder" = $dependenciesFolder
             }
         }
         if ($bcAuthContext) {
@@ -974,59 +1286,116 @@ Measure-Command {
                 "environment" = $environment
             }
         }
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        if (!$doNotPublishApps) {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+        if (!$testCountry -and $compilerFolder) {
+            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+        }
+
         Remove-Item -Path $tmpAppFolder -Recurse -Force
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
-if (($testCountry) -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
-if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
+if ($InstallMissingDependencies) {
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+}
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
+$missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+if ($missingAppDependencies) {
+Write-GroupStart -Message "Installing app dependencies"
 Write-Host -ForegroundColor Yellow @'
-  _____                            _   _               _______       _     _______          _ _    _ _   
- |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
-   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _     | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
-   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` |    | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
-  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| |    | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
- |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |    |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
-                 | |                            __/ |                                                    
-                 |_|                           |___/                                                     
+  _____           _        _ _ _                                       _                           _                 _
+ |_   _|         | |      | | (_)                                     | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |       | |   | |                | |
+                                       |___/        |_|   |_|                |_|
+'@
+Measure-Command {
+    Write-Host "Missing App dependencies"
+    $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
+    $Parameters = @{
+        "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
+    }
+    if ($useCompilerFolder -or $filesOnly) {
+        $Parameters += @{
+            "appSymbolsFolder" = $packagesFolder
+        }
+    }
+    else {
+        $Parameters += @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+        }
+    }
+    if ($generateDependencyArtifact -and !($testCountry)) {
+        $parameters += @{
+            "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+        }
+    }
+    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling app dependencies took $([int]$_.TotalSeconds) seconds" }
+Write-GroupEnd
+}
+}
+
+if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+Write-GroupStart -Message "Importing test toolkit"
+Write-Host -ForegroundColor Yellow @'
+  _____                            _   _               _            _     _              _ _    _ _
+ |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_  | |_ ___   ___ | | | ___| |_
+   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` | | __/ _ \/ __| __| | __/ _ \ / _ \| | |/ / | __|
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | || (_) | (_) | |   <| | |_
+ |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |  \__\___||___/\__|  \__\___/ \___/|_|_|\_\_|\__|
+                 | |                            __/ |
+                 |_|                           |___/
 '@
 Measure-Command {
     Write-Host -ForegroundColor Yellow "Importing Test Toolkit for additional country $testCountry"
     $Parameters = @{
         "containerName" = $containerName
+        "compilerFolder" = $compilerFolder
         "includeTestLibrariesOnly" = $installTestLibraries
         "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
         "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
         "includePerformanceToolkit" = $installPerformanceToolkit
         "doNotUseRuntimePackages" = $true
+        "useDevEndpoint" = $useDevEndpoint
     }
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
         }
+    } elseif($useDevEndpoint) {
+        $Parameters += @{
+            "credential" = $credential
+        }
     }
     Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
 if ($installTestApps) {
-if ($gitHubActions) { Write-Host "::group::Installing Test Apps" }
+Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
-
-  _____           _        _ _ _               _______       _                              
- |_   _|         | |      | | (_)             |__   __|     | |       /\                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     | | ___ ___| |_     /  \   _ __  _ __  ___ 
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |    | |/ _ \ __| __|   / /\ \ | '_ \| '_ \/ __|
-  _| |_| | | \__ \ |_ (_| | | | | | | | (_| |    | |  __\__ \ |_   / ____ \| |_) | |_) \__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |    |_|\___|___/\__| /_/    \_\ .__/| .__/|___/
-                                        __/ |                              | |   | |        
-                                       |___/                               |_|   |_|        
-
+  _____           _        _ _ _               _            _
+ |_   _|         | |      | | (_)             | |          | |
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) \__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/|___/
+                                        __/ |                          | |   | |
+                                       |___/                           |_|   |_|
 '@
 Measure-Command {
 
@@ -1037,7 +1406,7 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+            if ((!$installOnlyReferencedApps) -or ($missingTestAppDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
@@ -1060,7 +1429,7 @@ Measure-Command {
             }
             if ($installOnlyReferencedApps) {
                 $parameters += @{
-                    "includeOnlyAppIds" = $unknownDependencies
+                    "includeOnlyAppIds" = $missingTestAppDependencies
                 }
             }
             if ($bcAuthContext) {
@@ -1069,28 +1438,76 @@ Measure-Command {
                     "environment" = $environment
                 }
             }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            }
+            if (!$testCountry -and $compilerFolder) {
+                Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+            }
         }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
+}
+}
+
+
+if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+}
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+if ($missingTestAppDependencies) {
+Write-GroupStart -Message "Installing test app dependencies"
+Write-Host -ForegroundColor Yellow @'
+  _____           _        _ _ _               _            _                             _                           _                 _
+ |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |                          | |   | |                | |
+                                       |___/                           |_|   |_|                |_|
+'@
+Measure-Command {
+    Write-Host "Missing TestApp dependencies"
+    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+    $Parameters = @{
+        "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+    }
+    if ($useCompilerFolder -or $filesOnly) {
+        $Parameters += @{
+            "appSymbolsFolder" = $packagesFolder
+        }
+    }
+    else {
+        $Parameters += @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+        }
+    }
+    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
+Write-GroupEnd
 }
 }
 
 if (-not $testCountry) {
 if ($appFolders -or $testFolders -or $bcptTestFolders) {
-if ($gitHubActions) { Write-Host "::group::Compiling apps" }
+Write-GroupStart -Message "Compiling apps"
 Write-Host -ForegroundColor Yellow @'
 
-   _____                      _ _ _                                     
-  / ____|                    (_) (_)                                    
- | |     ___  _ __ ___  _ __  _| |_ _ __   __ _    __ _ _ __  _ __  ___ 
+   _____                      _ _ _
+  / ____|                    (_) (_)
+ | |     ___  _ __ ___  _ __  _| |_ _ __   __ _    __ _ _ __  _ __  ___
  | |    / _ \| '_ ` _ \| '_ \| | | | '_ \ / _` |  / _` | '_ \| '_ \/ __|
  | |____ (_) | | | | | | |_) | | | | | | | (_| | | (_| | |_) | |_) \__ \
   \_____\___/|_| |_| |_| .__/|_|_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
-                       | |                 __/ |       | |   | |        
-                       |_|                |___/        |_|   |_|        
+                       | |                 __/ |       | |   | |
+                       |_|                |___/        |_|   |_|
 
 '@
 }
@@ -1102,41 +1519,46 @@ $appsFolder = @{}
 $apps = @()
 $testApps = @()
 $bcptTestApps = @()
-$testToolkitInstalled = $false
-$sortedFolders | Select-Object -Unique | ForEach-Object {
+$sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
-if ($gitHubActions) { Write-Host "::endgroup::" }
-if ($gitHubActions) { Write-Host "::group::Importing Test Toolkit" }
+Write-GroupEnd
+Write-GroupStart -Message "Importing test toolkit"
 Write-Host -ForegroundColor Yellow @'
-  _____                            _   _               _______       _     _______          _ _    _ _   
- |_   _|                          | | (_)             |__   __|     | |   |__   __|        | | |  (_) |  
-   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _     | | ___ ___| |_     | | ___   ___ | | | ___| |_ 
-   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` |    | |/ _ \ __| __|    | |/ _ \ / _ \| | |/ / | __|
-  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| |    | |  __\__ \ |_     | | (_) | (_) | |   <| | |_ 
- |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |    |_|\___|___/\__|    |_|\___/ \___/|_|_|\_\_|\__|
-                 | |                            __/ |                                                    
-                 |_|                           |___/                                                     
+  _____                            _   _               _            _     _              _ _    _ _
+ |_   _|                          | | (_)             | |          | |   | |            | | |  (_) |
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_  | |_ ___   ___ | | | ___| |_
+   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` | | __/ _ \/ __| __| | __/ _ \ / _ \| | |/ / | __|
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | || (_) | (_) | |   <| | |_
+ |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |  \__\___||___/\__|  \__\___/ \___/|_|_|\_\_|\__|
+                 | |                            __/ |
+                 |_|                           |___/
 '@
 Measure-Command {
         $measureText = ", test apps and importing test toolkit"
         $Parameters = @{
             "containerName" = $containerName
+            "compilerFolder" = $compilerFolder
             "includeTestLibrariesOnly" = $installTestLibraries
             "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
             "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
             "includePerformanceToolkit" = $installPerformanceToolkit
             "doNotUseRuntimePackages" = $true
+            "useDevEndpoint" = $useDevEndpoint
         }
         if ($bcAuthContext) {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
                 "environment" = $environment
+            }
+        } elseif ($useDevEndpoint) {
+            $Parameters += @{
+                "credential" = $credential
             }
         }
         Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
@@ -1144,19 +1566,17 @@ Measure-Command {
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 
 if ($installTestApps) {
-if ($gitHubActions) { Write-Host "::endgroup::" }
-if ($gitHubActions) { Write-Host "::group::Installing Test Apps" }
+Write-GroupEnd
+Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
-
-  _____           _        _ _ _               _______       _                              
- |_   _|         | |      | | (_)             |__   __|     | |       /\                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _     | | ___ ___| |_     /  \   _ __  _ __  ___ 
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` |    | |/ _ \ __| __|   / /\ \ | '_ \| '_ \/ __|
-  _| |_| | | \__ \ |_ (_| | | | | | | | (_| |    | |  __\__ \ |_   / ____ \| |_) | |_) \__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |    |_|\___|___/\__| /_/    \_\ .__/| .__/|___/
-                                        __/ |                              | |   | |        
-                                       |___/                               |_|   |_|        
-
+  _____           _        _ _ _               _            _
+ |_   _|         | |      | | (_)             | |          | |
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) \__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/|___/
+                                        __/ |                          | |   | |
+                                       |___/                           |_|   |_|
 '@
 Measure-Command {
 
@@ -1167,7 +1587,7 @@ Measure-Command {
             if (-not $bcAuthContext) {
                 throw "InstallApps can only specify AppIds for AppSource Apps when running against a cloud instance"
             }
-            if ((!$installOnlyReferencedApps) -or ($unknownDependencies -contains $appId)) {
+            if ((!$installOnlyReferencedApps) -or ($missingTestAppDependencies -contains $appId)) {
                 $Parameters = @{
                     "bcAuthContext" = $bcAuthContext
                     "environment" = $environment
@@ -1190,7 +1610,7 @@ Measure-Command {
             }
             if ($installOnlyReferencedApps) {
                 $parameters += @{
-                    "includeOnlyAppIds" = $unknownDependencies
+                    "includeOnlyAppIds" = $missingTestAppDependencies
                 }
             }
             if ($bcAuthContext) {
@@ -1199,39 +1619,86 @@ Measure-Command {
                     "environment" = $environment
                 }
             }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            }
+            if ($compilerFolder) {
+                Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+            }
         }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 }
+Write-GroupEnd
 
-if ($gitHubActions) { Write-Host "::endgroup::" }
-if ($gitHubActions) { Write-Host "::group::Compiling test apps" }
+if ($InstallMissingDependencies) {
+$Parameters = @{
+    "containerName" = $containerName
+    "tenant" = $tenant
+}
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder $compilerFolder -packagesFolder $packagesFolder -Parameters $Parameters)
+$missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
+if ($missingTestAppDependencies) {
+Write-GroupStart -Message "Installing test app dependencies"
 Write-Host -ForegroundColor Yellow @'
-   _____                      _ _ _               _           _                           
-  / ____|                    (_) (_)             | |         | |                          
- | |     ___  _ __ ___  _ __  _| |_ _ __   __ _  | |_ ___ ___| |_    __ _ _ __  _ __  ___ 
+  _____           _        _ _ _               _            _                             _                           _                 _
+ |_   _|         | |      | | (_)             | |          | |                           | |                         | |               (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |_ ___  ___| |_    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | __/ _ \/ __| __|  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | ||  __/\__ \ |_  | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, |  \__\___||___/\__|  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                        __/ |                          | |   | |                | |
+                                       |___/                           |_|   |_|                |_|
+'@
+Measure-Command {
+    Write-Host "Missing TestApp dependencies"
+    $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+    $Parameters = @{
+        "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+    }
+    if ($useCompilerFolder -or $filesOnly) {
+        $Parameters += @{
+            "appSymbolsFolder" = $packagesFolder
+        }
+    }
+    else {
+        $Parameters += @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+        }
+    }
+    Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
+Write-GroupEnd
+}
+}
+
+Write-GroupStart -Message "Compiling test apps"
+Write-Host -ForegroundColor Yellow @'
+   _____                      _ _ _               _           _
+  / ____|                    (_) (_)             | |         | |
+ | |     ___  _ __ ___  _ __  _| |_ _ __   __ _  | |_ ___ ___| |_    __ _ _ __  _ __  ___
  | |    / _ \| '_ ` _ \| '_ \| | | | '_ \ / _` | | __/ _ \ __| __|  / _` | '_ \| '_ \/ __|
  | |____ (_) | | | | | | |_) | | | | | | | (_| | | |_  __\__ \ |_  | (_| | |_) | |_) \__ \
   \_____\___/|_| |_| |_| .__/|_|_|_|_| |_|\__, |  \__\___|___/\__|  \__,_| .__/| .__/|___/
-                       | |                 __/ |                         | |   | |        
-                       |_|                |___/                          |_|   |_|        
+                       | |                 __/ |                         | |   | |
+                       |_|                |___/                          |_|   |_|
 '@
     }
 
     $Parameters = @{ }
     $CopParameters = @{ }
 
-    if ($bcAuthContext) {
+    if ($bcAuthContext -and !$useCompilerFolder) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
         }
     }
 
-    if ($app) {
-        $CopParameters += @{ 
+    if ($app -or $enableCodeAnalyzersOnTestApps) {
+        $CopParameters += @{
             "EnableCodeCop" = $enableCodeCop
             "EnableAppSourceCop" = $enableAppSourceCop
             "EnableUICop" = $enableUICop
@@ -1245,6 +1712,11 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
 
+        if ($enableExternalRulesets) {
+            $CopParameters += @{
+                "EnableExternalRulesets" = $true
+            }
+        }
         if ("$rulesetFile" -ne "" -or $useDefaultAppSourceRuleSet) {
             if ($useDefaultAppSourceRuleSet) {
                 Write-Host "Creating ruleset for pipeline"
@@ -1255,14 +1727,14 @@ Write-Host -ForegroundColor Yellow @'
                 }
                 if ($rulesetFile) {
                     Write-Host "Including custom ruleset"
-                    $ruleset.includedRuleSets += @(@{ 
+                    $ruleset.includedRuleSets += @(@{
                         "action" = "Default"
                         "path" = Get-BcContainerPath -containerName $containerName -path $ruleSetFile
                     })
                 }
                 $appSourceRulesetFile = Join-Path $folder "appsource.default.ruleset.json"
-                Download-File -sourceUrl "https://bcartifacts.azureedge.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
-                $ruleset.includedRuleSets += @(@{ 
+                Download-File -sourceUrl "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
+                $ruleset.includedRuleSets += @(@{
                     "action" = "Default"
                     "path" = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
                 })
@@ -1334,7 +1806,7 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($appJsonChanges) {
-        $appJsonContent = $appJson | ConvertTo-Json -Depth 99 
+        $appJsonContent = $appJson | ConvertTo-Json -Depth 99
         [System.IO.File]::WriteAllLines($appJsonFile, $appJsonContent)
     }
 
@@ -1348,23 +1820,52 @@ Write-Host -ForegroundColor Yellow @'
         $Parameters += @{ "CopyAppToSymbolsFolder" = $true }
     }
 
+    if ($useCompilerFolder) {
+        $Parameters += @{
+            "compilerFolder" = $compilerFolder
+        }
+    }
+    else {
+        $Parameters += @{
+            "containerName" = $containerName
+            "tenant" = $tenant
+            "credential" = $credential
+            "CopySymbolsFromContainer" = $CopySymbolsFromContainer
+        }
+    }
+
+    if ($generateDependencyArtifact -and !$filesOnly -and !$useCompilerFolder) {
+        $depFolder = Join-Path $buildArtifactFolder "Dependencies"
+        Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
+        if (Test-Path $depFolder) {
+            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
+                $destName = Join-Path $appPackagesFolder $_.Name
+                if (Test-Path $destName) {
+                    Write-Host "- $destName already exists"
+                }
+                else {
+                    Write-Host "+ Copying $($_.FullName) to $destName"
+                    Copy-Item -Path $_.FullName -Destination $destName -Force
+                }
+            }
+        }
+    }
+
     $Parameters += @{
-        "containerName" = $containerName
-        "tenant" = $tenant
-        "credential" = $credential
         "appProjectFolder" = $folder
         "appOutputFolder" = $appOutputFolder
         "appSymbolsFolder" = $appPackagesFolder
         "AzureDevOps" = $azureDevOps
         "GitHubActions" = $gitHubActions
-        "CopySymbolsFromContainer" = $CopySymbolsFromContainer
         "preProcessorSymbols" = $preProcessorSymbols
         "generatecrossreferences" = $generatecrossreferences
         "updateDependencies" = $UpdateDependencies
+        "features" = $features
+        "generateErrorLog" = $generateErrorLog
     }
 
     if ($buildOutputFile) {
-        $parameters.OutputTo = { Param($line) 
+        $parameters.OutputTo = { Param($line)
             Write-Host $line
             if ($line -like "$($folder)*") {
                 Add-Content -Path $buildOutputFile -Value $line.SubString($folder.Length+1) -Encoding UTF8
@@ -1386,17 +1887,38 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList -containerName $containerName
                 $previousApps | ForEach-Object {
                     $appFile = $_
-
-                    $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
-                        param($appFile)
-
-                        Get-NavAppInfo -Path $appFile
-                    } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                    if (Test-BcContainer -containerName $containerName) {
+                        $appInfo = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+                            param($appFile)
+                            Get-NavAppInfo -Path $appFile
+                        } -argumentList (Get-BcContainerPath -containerName $containerName -path $appFile)
+                        $appId = $appInfo.AppId.ToString()
+                    }
+                    else {
+                        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+                        try {
+                            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
+                            $appJsonFile = Join-Path $tmpFolder "app.json"
+                            $appInfo = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+                            $appId = $appInfo.Id
+                        }
+                        catch {
+                            if ($_.exception.message -eq "You cannot extract a runtime package") {
+                                throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
+                            }
+                            else {
+                                throw "Unable to extract and analyze appFile $appFile"
+                            }
+                        }
+                        finally {
+                            Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
+                        }
+                    }
 
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                     $previousAppInfos += @(@{
-                        "AppId" = $appInfo.AppId.ToLowerInvariant()
+                        "AppId" = $appId.ToLowerInvariant()
                         "Publisher" = $appInfo.Publisher
                         "Name" = $appInfo.Name
                         "Version" = $appInfo.Version
@@ -1405,7 +1927,7 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
     }
-    
+
     if ($enableAppSourceCop -and $app) {
         $appSourceCopJson = @{}
         $saveit = $false
@@ -1445,18 +1967,79 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
 
+    $appType = switch ($true) {
+        $app { "app" }
+        $testApp { "testApp" }
+        $bcptTestApp { "bcptApp" }
+        Default { "app" }
+    }
+
+    $Parameters += @{
+        "sourceRepositoryUrl" = $sourceRepositoryUrl
+        "sourceCommit" = $sourceCommit
+        "buildBy" = $buildBy
+        "buildUrl" = $buildUrl
+    }
+
+    $compilationParams = $Parameters + $CopParameters
+
+    # Run pre-compile script if specified
+    if($PreCompileApp) {
+        Write-Host "Running custom pre-compilation script..."
+
+        Invoke-Command -ScriptBlock $PreCompileApp -ArgumentList $appType, ([ref] $compilationParams)
+    }
+
     try {
-        Write-Host "`nCompiling $($Parameters.appProjectFolder)"
-        $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList ($Parameters+$CopParameters)
+        Write-Host "`nCompiling $($compilationParams.appProjectFolder)"
+        if ($useCompilerFolder) {
+            $appFile = Invoke-Command -ScriptBlock $CompileAppWithBcCompilerFolder -ArgumentList $compilationParams
+        }
+        else {
+            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
+        }
     }
     catch {
         if ($escapeFromCops) {
             Write-Host "Retrying without Cops"
-            $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $Parameters
+
+            # Remove Cops parameters
+            $compilationParamsCopy = $compilationParams.Clone()
+            $compilationParamsCopy.Keys | Where-Object {$_ -in $CopParameters.Keys} | ForEach-Object { $compilationParams.Remove($_) }
+
+            if ($useCompilerFolder) {
+                $appFile = Invoke-Command -ScriptBlock $CompileAppWithBcCompilerFolder -ArgumentList $compilationParams
+            }
+            else {
+                $appFile = Invoke-Command -ScriptBlock $CompileAppInBcContainer -ArgumentList $compilationParams
+            }
         }
         else {
             throw $_
         }
+    }
+    finally {
+        # Copy error logs to build artifact folder
+        if($generateErrorLog -and $buildArtifactFolder) {
+            # Define destination folder for error logs
+            $destFolder = Join-Path $buildArtifactFolder "ErrorLogs"
+            if (!(Test-Path $destFolder -PathType Container)) {
+                New-Item $destFolder -ItemType Directory | Out-Null
+            }
+
+            $errorLogFile = Join-Path $appOutputFolder '*.errorLog.json' -Resolve -ErrorAction Ignore
+            if($errorLogFile) {
+                Write-Host "Copying error logs to $destFolder"
+                Copy-Item $errorLogFile $destFolder -Force
+            }
+        }
+    }
+
+    # Run post-compile script if specified
+    if($PostCompileApp) {
+        Write-Host "Running custom post-compilation script..."
+
+        Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $appFile, $appType, $compilationParams
     }
 
     if ($useDevEndpoint) {
@@ -1478,7 +2061,12 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
 
-        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        if (!$doNotPublishApps) {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+        if ($compilerFolder) {
+            Copy-AppFilesToCompilerFolder -compilerFolder $compilerFolder -appFiles $Parameters.appFile
+        }
 
         if ($updateLaunchJson) {
             $launchJsonFile = Join-Path $folder ".vscode\launch.json"
@@ -1517,7 +2105,7 @@ Write-Host -ForegroundColor Yellow @'
                     $port = $config.DeveloperServicesPort
                     $serverInstance = $webUri.AbsolutePath.Trim('/')
                 }
-        
+
                 $launchSettings = [ordered]@{
                     "type" = 'al'
                     "request" = 'launch'
@@ -1526,7 +2114,7 @@ Write-Host -ForegroundColor Yellow @'
                     "serverInstance" = $serverInstance
                     "port" = [int]$Port
                     "tenant" = $tenant
-                    "authentication" =  'UserPassword'
+                    "authentication" =  $auth
                 }
             }
             UpdateLaunchJson -launchJsonFile $launchJsonFile -launchSettings $launchSettings
@@ -1545,21 +2133,19 @@ Write-Host -ForegroundColor Yellow @'
     }
 }
 } | ForEach-Object { if ($appFolders -or $testFolders -or $bcptTestFolders) { Write-Host -ForegroundColor Yellow "`nCompiling apps$measureText took $([int]$_.TotalSeconds) seconds" } }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 
-if ($signApps -and !$useDevEndpoint) {
-if ($gitHubActions) { Write-Host "::group::Signing Apps" }
+if ($signApps -and !$useDevEndpoint -and !$useCompilerFolder) {
+Write-GroupStart -Message "Signing apps"
 Write-Host -ForegroundColor Yellow @'
-
-   _____ _             _                                        
-  / ____(_)           (_)                 /\                    
- | (___  _  __ _ _ __  _ _ __   __ _     /  \   _ __  _ __  ___ 
-  \___ \| |/ _` | '_ \| | '_ \ / _` |   / /\ \ | '_ \| '_ \/ __|
-  ____) | | (_| | | | | | | | | (_| |  / ____ \| |_) | |_) \__ \
- |_____/|_|\__, |_| |_|_|_| |_|\__, | /_/    \_\ .__/| .__/|___/
-            __/ |               __/ |          | |   | |        
-           |___/               |___/           |_|   |_|        
-
+  _____ _             _
+ / ____(_)           (_)
+ | (__  _  __ _ _ __  _ _ __   __ _    __ _ _ __  _ __  ___
+ \___ \| |/ _` | '_ \| | '_ \ / _` |  / _` | '_ \| '_ \/ __|
+ ____) | | (_| | | | | | | | | (_| | | (_| | |_) | |_) \__ \
+|_____/|_|\__, |_| |_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
+           __/ |               __/ |       | |   | |
+          |___/               |___/        |_|   |_|
 '@
 Measure-Command {
 $apps | ForEach-Object {
@@ -1576,7 +2162,7 @@ $apps | ForEach-Object {
 
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nSigning apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
@@ -1584,18 +2170,16 @@ $previousAppsInstalled = @()
 if (!$useDevEndpoint) {
 
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
-if ($gitHubActions) { Write-Host "::group::Installing Previous Apps" }
+Write-GroupStart -Message "Installing previous apps"
 Write-Host -ForegroundColor Yellow @'
-
-  _____           _        _ _ _               _____                _                                            
- |_   _|         | |      | | (_)             |  __ \              (_)                     /\                    
-   | |  _ __  ___| |_ __ _| | |_ _ __   __ _  | |__) | __ _____   ___  ___  _   _ ___     /  \   _ __  _ __  ___ 
-   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | |  ___/ '__/ _ \ \ / / |/ _ \| | | / __|   / /\ \ | '_ \| '_ \/ __|
-  _| |_| | | \__ \ |_ (_| | | | | | | | (_| | | |   | | |  __/\ V /| | (_) | |_| \__ \  / ____ \| |_) | |_) \__ \
- |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, | |_|   |_|  \___| \_/ |_|\___/ \__,_|___/ /_/    \_\ .__/| .__/|___/
-                                        __/ |                                                   | |   | |        
-                                       |___/                                                    |_|   |_|        
-
+  _____           _        _ _ _                                    _
+ |_   _|         | |      | | (_)                                  (_)
+   | |  _ __  ___| |_ __ _| | |_ _ __   __ _   _ __  _ __ _____   ___  ___  _   _ ___    __ _ _ __  _ __  ___
+   | | | '_ \/ __| __/ _` | | | | '_ \ / _` | | '_ \| '__/ _ \ \ / / |/ _ \| | | / __|  / _` | '_ \| '_ \/ __|
+  _| |_| | | \__ \ || (_| | | | | | | | (_| | | |_) | | |  __/\ V /| | (_) | |_| \__ \ | (_| | |_) | |_) \__ \
+ |_____|_| |_|___/\__\__,_|_|_|_|_| |_|\__, | | .__/|_|  \___| \_/ |_|\___/ \__,_|___/  \__,_| .__/| .__/|___/
+                                        __/ | | |                                            | |   | |
+                                       |___/  |_|                                            |_|   |_|
 '@
 Measure-Command {
     if ($testCountry) {
@@ -1620,7 +2204,9 @@ Measure-Command {
                     "replacePackageId" = $true
                 }
             }
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+            }
         }
         if ($bcAuthContext) {
             Write-Host "Wait for online environment to process apps"
@@ -1629,22 +2215,20 @@ Measure-Command {
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if ((!$doNotPublishApps) -and ($apps+$testApps+$bcptTestApps)) {
-if ($gitHubActions) { Write-Host "::group::Publishing Apps" }
+Write-GroupStart -Message "Publishing apps"
 Write-Host -ForegroundColor Yellow @'
-
-  _____       _     _ _     _     _                                        
- |  __ \     | |   | (_)   | |   (_)                 /\                    
- | |__) |   _| |__ | |_ ___| |__  _ _ __   __ _     /  \   _ __  _ __  ___ 
- |  ___/ | | | '_ \| | / __| '_ \| | '_ \ / _` |   / /\ \ | '_ \| '_ \/ __|
- | |   | |_| | |_) | | \__ \ | | | | | | | (_| |  / ____ \| |_) | |_) \__ \
- |_|    \__,_|_.__/|_|_|___/_| |_|_|_| |_|\__, | /_/    \_\ .__/| .__/|___/
-                                           __/ |          | |   | |        
-                                          |___/           |_|   |_|        
-
+  _____       _     _ _     _     _
+ |  __ \     | |   | (_)   | |   (_)
+ | |__) |   _| |__ | |_ ___| |__  _ _ __   __ _    __ _ _ __  _ __  ___
+ |  ___/ | | | '_ \| | / __| '_ \| | '_ \ / _` |  / _` | '_ \| '_ \/ __|
+ | |   | |_| | |_) | | \__ \ | | | | | | | (_| | | (_| | |_) | |_) \__ \
+ |_|    \__,_|_.__/|_|_|___/_| |_|_|_| |_|\__, |  \__,_| .__/| .__/|___/
+                                           __/ |       | |   | |
+                                          |___/        |_|   |_|
 '@
 Measure-Command {
 if ($testCountry) {
@@ -1662,14 +2246,14 @@ if (!($bcAuthContext)) {
 
 $upgradedApps = @()
 $apps | ForEach-Object {
-   
+
     $folder = $appsFolder[$_]
     $appJsonFile = Join-Path $folder "app.json"
     $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     $upgradedApps += @($appJson.Id.ToLowerInvariant())
 
     $installedApp = $false
-    if ($installedApps | Where-Object { $_.AppId -eq $appJson.Id }) {
+    if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
         $installedApp = $true
     }
 
@@ -1691,7 +2275,9 @@ $apps | ForEach-Object {
         }
     }
 
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    if (!$doNotPublishApps) {
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
 }
 
 if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
@@ -1707,14 +2293,16 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
                 "version" = $_.Version
                 "uninstall" = $true
             }
-        
-            Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
+
+            if (!$doNotPublishApps) {
+                Invoke-Command -ScriptBlock $UnPublishBcContainerApp -ArgumentList $Parameters
+            }
         }
     }
 }
 
 $testApps+$bcptTestApps | ForEach-Object {
-   
+
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
@@ -1732,27 +2320,28 @@ $testApps+$bcptTestApps | ForEach-Object {
         }
     }
 
-    Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-
+    if (!$doNotPublishApps) {
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+    }
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing apps took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 }
 
 if (!($doNotRunTests -and $doNotRunBcptTests)) {
 if ($ImportTestDataInBcContainer) {
-if ($gitHubActions) { Write-Host "::group::Importing Test Data" }
+Write-GroupStart -Message "Importing test data"
 Write-Host -ForegroundColor Yellow @'
-  _____                            _   _               _______       _     _____        _        
- |_   _|                          | | (_)             |__   __|     | |   |  __ \      | |       
-   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _     | | ___ ___| |_  | |  | | __ _| |_ __ _ 
-   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` |    | |/ _ \ __| __| | |  | |/ _` | __/ _` |
-  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| |    | |  __\__ \ |_  | |__| | (_| | |_ (_| |
- |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |    |_|\___|___/\__| |_____/ \__,_|\__\__,_|
-                 | |                            __/ |                                            
-                 |_|                           |___/                                             
+  _____                            _   _               _            _         _       _
+ |_   _|                          | | (_)             | |          | |       | |     | |
+   | |  _ __ ___  _ __   ___  _ __| |_ _ _ __   __ _  | |_ ___  ___| |_    __| | __ _| |_ __ _
+   | | | '_ ` _ \| '_ \ / _ \| '__| __| | '_ \ / _` | | __/ _ \/ __| __|  / _` |/ _` | __/ _` |
+  _| |_| | | | | | |_) | (_) | |  | |_| | | | | (_| | | ||  __/\__ \ |_  | (_| | (_| | || (_| |
+ |_____|_| |_| |_| .__/ \___/|_|   \__|_|_| |_|\__, |  \__\___||___/\__|  \__,_|\__,_|\__\__,_|
+                 | |                            __/ |
+                 |_|                           |___/
 '@
 if (!$enableTaskScheduler) {
     Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
@@ -1782,24 +2371,22 @@ if (!$enableTaskScheduler) {
         }
     }
 }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
 if (!$doNotRunTests -and (($testFolders) -or ($installTestApps))) {
-if ($gitHubActions) { Write-Host "::group::Running Tests" }
+Write-GroupStart -Message "Running tests"
 Write-Host -ForegroundColor Yellow @'
-
-  _____                   _               _______       _       
- |  __ \                 (_)             |__   __|     | |      
- | |__) |   _ _ __  _ __  _ _ __   __ _     | | ___ ___| |_ ___ 
- |  _  / | | | '_ \| '_ \| | '_ \ / _` |    | |/ _ \ __| __/ __|
- | | \ \ |_| | | | | | | | | | | | (_| |    | |  __\__ \ |_\__ \
- |_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, |    |_|\___|___/\__|___/
-                                   __/ |                        
-                                  |___/                         
-
+  _____                   _               _            _
+ |  __ \                 (_)             | |          | |
+ | |__) |   _ _ __  _ __  _ _ __   __ _  | |_ ___  ___| |_ ___
+ |  _  / | | | '_ \| '_ \| | '_ \ / _` | | __/ _ \/ __| __/ __|
+ | | \ \ |_| | | | | | | | | | | | (_| | | ||  __/\__ \ |_\__ \
+ |_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, |  \__\___||___/\__|___/
+                                   __/ |
+                                  |___/
 '@
 Measure-Command {
 if ($testCountry) {
@@ -1820,7 +2407,7 @@ $installTestApps | ForEach-Object {
     else {
         $appFile = $_
         if ($appFile -eq "$_".Trim('()')) {
-            $tmpFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             try {
                 $appList = CopyAppFilesToFolder -appFiles $_ -folder $tmpFolder
                 $appList | ForEach-Object {
@@ -1870,20 +2457,26 @@ $testAppIds.Keys | ForEach-Object {
     }
     if ($folder) {
         Get-ChildItem -Path $folder -Filter "disabledTests.json" -Recurse | ForEach-Object {
-            $disabledTestsStr = Get-Content $_.FullName -Raw
+            $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
             Write-Host "Disabled Tests:`n$disabledTestsStr"
             $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
         }
     }
+    Get-ChildItem -Path $baseFolder -Filter "$id.disabledTests.json" -Recurse | ForEach-Object {
+        $disabledTestsStr = Get-Content $_.FullName -Raw -Encoding utf8
+        Write-Host "Disabled Tests:`n$disabledTestsStr"
+        $disabledTests += ($disabledTestsStr | ConvertFrom-Json)
+    }
     $Parameters = @{
         "containerName" = $containerName
+        "compilerFolder" = $compilerFolder
         "tenant" = $tenant
         "credential" = $credential
         "companyName" = $companyName
         "extensionId" = $id
         "disabledTests" = $disabledTests
-        "AzureDevOps" = "$(if($azureDevOps){'error'}else{'no'})"
-        "GitHubActions" = "$(if($githubActions){'error'}else{'no'})"
+        "AzureDevOps" = "$(if($azureDevOps){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
+        "GitHubActions" = "$(if($githubActions){if($treatTestFailuresAsWarnings){'warning'}else{'error'}}else{'no'})"
         "detailed" = $true
         "returnTrueIfAllPassed" = $true
     }
@@ -1905,6 +2498,7 @@ $testAppIds.Keys | ForEach-Object {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
             "environment" = $environment
+            "ConnectFromHost" = !$createContainer
         }
     }
 
@@ -1917,37 +2511,35 @@ $testAppIds.Keys | ForEach-Object {
 if ($buildArtifactFolder -and (Test-Path $resultsFile)) {
     Write-Host "Copying test results to output"
     Copy-Item -Path $resultsFile -Destination $buildArtifactFolder -Force
-} 
-if ($gitHubActions) { Write-Host "::endgroup::" }
+}
+Write-GroupEnd
 }
 
-if (!$doNotRunBcptTests -and $bcptTestFolders) {
-if ($gitHubActions) { Write-Host "::group::Running BCPT Tests" }
+if (!$doNotRunBcptTests -and $bcptTestSuites) {
+Write-GroupStart -Message "Running BCPT tests"
 Write-Host -ForegroundColor Yellow @'
-
-  _____                   _                ____   _____ _____ _______   _______       _       
- |  __ \                 (_)              |  _ \ / ____|  __ \__   __| |__   __|     | |      
- | |__) |   _ _ __  _ __  _ _ __   __ _   | |_) | |    | |__) | | |       | | ___ ___| |_ ___ 
- |  _  / | | | '_ \| '_ \| | '_ \ / _` |  |  _ <| |    |  ___/  | |       | |/ _ \ __| __/ __|
- | | \ \ |_| | | | | | | | | | | | (_| |  | |_) | |____| |      | |       | |  __\__ \ |_\__ \
- |_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, |  |____/ \_____|_|      |_|       |_|\___|___/\__|___/
-                                   __/ |                                                      
-                                  |___/                                                       
-
+  _____                   _               ____   _____ _____ _______   _            _
+ |  __ \                 (_)             |  _ \ / ____|  __ \__   __| | |          | |
+ | |__) |   _ _ __  _ __  _ _ __   __ _  | |_) | |    | |__) | | |    | |_ ___  ___| |_ ___
+ |  _  / | | | '_ \| '_ \| | '_ \ / _` | |  _ <| |    |  ___/  | |    | __/ _ \/ __| __/ __|
+ | | \ \ |_| | | | | | | | | | | | (_| | | |_) | |____| |      | |    | ||  __/\__ \ |_\__ \
+ |_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, | |____/ \_____|_|      |_|     \__\___||___/\__|___/
+                                   __/ |
+                                  |___/
 '@
 Measure-Command {
 if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running BCPT Tests for additional country $testCountry"
 }
 
-$bcptTestFolders | ForEach-Object {
+$bcptTestSuites | ForEach-Object {
     $Parameters = @{
         "containerName" = $containerName
         "tenant" = $tenant
         "credential" = $credential
         "companyName" = $companyName
         "connectFromHost" = $true
-        "BCPTsuite" = [System.IO.File]::ReadAllLines((Join-Path $_ "bcptSuite.json")) | ConvertFrom-Json
+        "BCPTsuite" = [System.IO.File]::ReadAllLines($_) | ConvertFrom-Json
     }
 
     if ($bcAuthContext) {
@@ -1963,27 +2555,29 @@ $bcptTestFolders | ForEach-Object {
 if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
     Write-Host "Copying bcpt test results to output"
     Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
-} 
-if ($gitHubActions) { Write-Host "::endgroup::" }
+}
+Write-GroupEnd
 }
 
 if (($gitLab -or $gitHubActions) -and !$allPassed) {
-    throw "There are test failures!"
+    if (-not $treatTestFailuresAsWarnings) {
+        throw "There are test failures!"
+    }
 }
 }
 }
 
 if ($buildArtifactFolder) {
-if ($gitHubActions) { Write-Host "::group::Copy to Build Artifacts" }
+Write-GroupStart -Message "Copy to build artifacts"
 Write-Host -ForegroundColor Yellow @'
-   _____                    _          ____        _ _     _                 _   _  __           _       
-  / ____|                  | |        |  _ \      (_) |   | |     /\        | | (_)/ _|         | |      
- | |     ___  _ __  _   _  | |_ ___   | |_) |_   _ _| | __| |    /  \   _ __| |_ _| |_ __ _  ___| |_ ___ 
- | |    / _ \| '_ \| | | | | __/ _ \  |  _ <| | | | | |/ _` |   / /\ \ | '__| __| |  _/ _` |/ __| __/ __|
- | |____ (_) | |_) | |_| | | |_ (_) | | |_) | |_| | | | (_| |  / ____ \| |  | |_| | || (_| | (__| |_\__ \
-  \_____\___/| .__/ \__, |  \__\___/  |____/ \__,_|_|_|\__,_| /_/    \_\_|   \__|_|_| \__,_|\___|\__|___/
-             | |     __/ |                                                                               
-             |_|    |___/                                                                                
+  _____                     _          _           _ _     _              _   _  __           _
+ / ____|                   | |        | |         (_) |   | |            | | (_)/ _|         | |
+ | |     ___  _ __  _   _  | |_ ___   | |__  _   _ _| | __| |   __ _ _ __| |_ _| |_ __ _  ___| |_ ___
+ | |    / _ \| '_ \| | | | | __/ _ \  | '_ \| | | | | |/ _` |  / _` | '__| __| |  _/ _` |/ __| __/ __|
+ | |___| (_) | |_) | |_| | | || (_) | | |_) | |_| | | | (_| | | (_| | |  | |_| | || (_| | (__| |_\__ \
+ \______\___/| .__/ \__, |  \__\___/  |_.__/ \__,_|_|_|\__,_|  \__,_|_|   \__|_|_| \__,_|\___|\__|___/
+             | |     __/ |
+             |_|    |___/
 '@
 
 Measure-Command {
@@ -2002,6 +2596,7 @@ if (!(Test-Path $destFolder -PathType Container)) {
 $testApps | ForEach-Object {
     Copy-Item -Path $_ -Destination $destFolder -Force
 }
+
 if ($createRuntimePackages) {
     $destFolder = Join-Path $buildArtifactFolder "RuntimePackages"
     if (!(Test-Path $destFolder -PathType Container)) {
@@ -2034,7 +2629,7 @@ if ($createRuntimePackages) {
                 "pfxFile" = $codeSignCertPfxFile
                 "pfxPassword" = $codeSignCertPfxPassword
             }
-            
+
             Invoke-Command -ScriptBlock $SignBcContainerApp -ArgumentList $Parameters
         }
 
@@ -2048,7 +2643,7 @@ Write-Host "Files in build artifacts folder:"
 Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 } catch {
@@ -2058,31 +2653,47 @@ finally {
     $progressPreference = $prevProgressPreference
 }
 
-if (!$keepContainer) {
-if ($gitHubActions) { Write-Host "::group::Removing Container" }
+if ($useCompilerFolder -and $compilerFolder) {
+    Remove-BcCompilerFolder -compilerFolder $compilerFolder
+}
+
+if ($createContainer -and !$keepContainer) {
+Write-GroupStart -Message "Removing container"
 if (!($err)) {
 Write-Host -ForegroundColor Yellow @'
-
-  _____                           _                _____            _        _                 
- |  __ \                         (_)              / ____|          | |      (_)                
- | |__) |___ _ __ ___   _____   ___ _ __   __ _  | |     ___  _ __ | |_ __ _ _ _ __   ___ _ __ 
- |  _  // _ \ '_ ` _ \ / _ \ \ / / | '_ \ / _` | | |    / _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
- | | \ \  __/ | | | | | (_) \ V /| | | | | (_| | | |____ (_) | | | | |_ (_| | | | | |  __/ |   
- |_|  \_\___|_| |_| |_|\___/ \_/ |_|_| |_|\__, |  \_____\___/|_| |_|\__\__,_|_|_| |_|\___|_|   
-                                           __/ |                                               
-                                          |___/                                                
-
+  _____                           _                               _        _
+ |  __ \                         (_)                             | |      (_)
+ | |__) |___ _ __ ___   _____   ___ _ __   __ _    ___ ___  _ __ | |_ __ _ _ _ __   ___ _ __
+ |  _  // _ \ '_ ` _ \ / _ \ \ / / | '_ \ / _` |  / __/ _ \| '_ \| __/ _` | | '_ \ / _ \ '__|
+ | | \ \  __/ | | | | | (_) \ V /| | | | | (_| | | (_| (_) | | | | || (_| | | | | |  __/ |
+ |_|  \_\___|_| |_| |_|\___/ \_/ |_|_| |_|\__, |  \___\___/|_| |_|\__\__,_|_|_| |_|\___|_|
+                                           __/ |
+                                          |___/
 '@
 }
 Measure-Command {
 
-    $Parameters = @{
-        "containerName" = $containerName
+    if (!$doNotPublishApps) {
+        if (!$filesOnly -and $containerEventLogFile) {
+            try {
+                Write-Host "Get Event Log from container"
+                $Parameters = @{
+                    "containerName" = $containerName
+                    "doNotOpen" = $true
+                }
+                $eventlogFile = Invoke-Command -ScriptBlock $GetBcContainerEventLog -ArgumentList $Parameters
+                Copy-Item -Path $eventLogFile -Destination $containerEventLogFile
+            }
+            catch {}
+        }
+
+        $Parameters = @{
+            "containerName" = $containerName
+        }
+        Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
     }
-    Invoke-Command -ScriptBlock $RemoveBcContainer -ArgumentList $Parameters
-   
 } | ForEach-Object { if (!($err)) { Write-Host -ForegroundColor Yellow "`nRemoving container took $([int]$_.TotalSeconds) seconds" } }
-if ($gitHubActions) { Write-Host "::endgroup::" }
+Write-GroupEnd
 }
 
 if ($warningsToShow) {
@@ -2094,6 +2705,10 @@ if ($err) {
 }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nAL Pipeline finished in $([int]$_.TotalSeconds) seconds" }
+
+if ($PipelineFinalize) {
+    Invoke-Command -ScriptBlock $PipelineFinalize
+}
 
 }
 catch {

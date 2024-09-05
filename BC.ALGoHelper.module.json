@@ -1,0 +1,20 @@
+{
+    "GUID": "fa5f4d08-53be-4ca0-bf16-26da89afa20f",
+    "Author": "Freddy Kristiansen",
+    "Copyright":  "(c) 2022 Microsoft. All rights reserved.",
+    "Description": "PowerShell module with AL-Go helper functions for Business Central Development",
+    "CompanyName": "Microsoft",
+    "CompatiblePSEditions": [
+        "Core",
+        "Desktop"
+    ],
+    "RequiredModules": [
+        "BC.HelperFunctions"
+    ],
+    "files": [
+        "InitializeModule.ps1",
+        "HelperFunctions.ps1",
+        "BC.ALGoHelper.ps1",
+        "AL-Go\\*"
+    ]
+}

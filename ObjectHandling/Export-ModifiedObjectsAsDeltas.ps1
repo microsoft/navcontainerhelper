@@ -46,8 +46,8 @@ try {
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
 
-    if ((Get-NavContainerSharedFolders -containerName $containerName)[$hostHelperFolder] -ne $containerHelperFolder) {
-        throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $hostHelperFolder to $containerHelperFolder in the container (docker run ... -v ${hostHelperFolder}:$containerHelperFolder ... <image>)."
+    if ((Get-NavContainerSharedFolders -containerName $containerName)[$bcContainerHelperConfig.hostHelperFolder] -ne $bcContainerHelperConfig.containerHelperFolder) {
+        throw "In order to run Export-ModifiedObjectsAsDeltas you need to have shared $($bcContainerHelperConfig.hostHelperFolder) to $($bcContainerHelperConfig.containerHelperFolder) in the container (docker run ... -v $($bcContainerHelperConfig.hostHelperFolder):$($bcContainerHelperConfig.containerHelperFolder) ... <image>)."
     }
 
     $suffix = ""
@@ -58,16 +58,16 @@ try {
     }
     if (!$originalFolder) {
       $navversion = Get-NavContainerNavversion -containerOrImageName $containerName
-      $originalFolder   = Join-Path $ExtensionsFolder "Original-$navversion$suffix"
+      $originalFolder   = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion$suffix"
     }
     
     if (!(Test-Path $originalFolder)) {
         throw "Folder $originalFolder must contain all Nav base objects (original). You can use Export-NavContainerObjects on a fresh container or create your development container using New-CSideDevContainer, which does this automatically."
     }
 
-    $modifiedFolder   = Join-Path $ExtensionsFolder "$containerName\modified$suffix"
-    $myOriginalFolder = Join-Path $ExtensionsFolder "$containerName\original$suffix"
-    $myDeltaFolder    = Join-Path $ExtensionsFolder "$containerName\delta$suffix"
+    $modifiedFolder   = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\modified$suffix"
+    $myOriginalFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\original$suffix"
+    $myDeltaFolder    = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\delta$suffix"
 
     # Export my objects
     Export-NavContainerObjects -containerName $containerName `

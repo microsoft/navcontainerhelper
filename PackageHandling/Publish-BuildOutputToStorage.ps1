@@ -3,7 +3,7 @@
   Function for publishing build output from Run-AlPipeline to storage account
  .Description
   Function for publishing build output to storage account
-  The function will publish artifacts in the format of https://businesscentralapps.blob.core.windows.net/bingmaps/16.0.10208.0/apps.zip
+  The function will publish artifacts in the format of https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/19.0.0/bcsamples-bingmaps.pte-main-Apps-19.0.168.0.zip
   Please consult the CI/CD Workshop document at http://aka.ms/cicdhol to learn more about this function
  .Parameter StorageConnectionString
   A connectionstring with access to the storage account in which you want to publish artifacts (SecureString or String)
@@ -42,7 +42,7 @@ function Publish-BuildOutputToStorage {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    if ($StorageConnectionString -is [SecureString]) { $StorageConnectionString = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StorageConnectionString)) }
+    if ($StorageConnectionString -is [SecureString]) { $StorageConnectionString = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($StorageConnectionString)) }
     if ($StorageConnectionString -isnot [string]) { throw "StorageConnectionString needs to be a SecureString or a String" }
     $projectName = $projectName.ToLowerInvariant()
     $appVersion = $appVersion.ToLowerInvariant()
@@ -60,7 +60,7 @@ try {
         $subFolder = $_
         if (Test-Path (Join-Path $path "$subFolder\*")) {
 
-            $tempFile = Join-Path (Get-TempDir) "$([Guid]::newguid().ToString()).zip"
+            $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::newguid().ToString()).zip"
             try {
                 Compress-Archive -path (Get-Item (Join-Path $path $_)).FullName -DestinationPath $tempFile
 

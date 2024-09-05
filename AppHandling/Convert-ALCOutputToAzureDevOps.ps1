@@ -8,8 +8,12 @@
   One or more lines of outout from the AL Compiler
  .Parameter Failon
   Specify if you want the AzureDevOps output to fail on Error or Warning
+ .Parameter GitHubActions
+  Include this switch, if you are running GitHub Actions
  .Parameter DoNotWriteToHost
   Include this switch to return the converted result instead of outputting the result to the Host
+ .Parameter basePath
+  Base Path of the files in the ALC output, to convert file paths to relative paths
  .Example
   Compile-AppInBcContainer -containerName test -credential $credential -appProjectFolder "C:\Users\freddyk\Documents\AL\Test" -AzureDevOps
  .Example
@@ -24,25 +28,32 @@ Function Convert-AlcOutputToDevOps {
         [Parameter(Position=1)]
         [ValidateSet('none','error','warning')]
         [string] $FailOn,
-        [switch] $gitHubActions,
-        [switch] $doNotWriteToHost
+        [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
+        [switch] $doNotWriteToHost,
+        [string] $basePath = ''
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    if ($basePath) {
+        $basePath = "$($basePath.TrimEnd('\'))\"
+    }
     $hasError = $false
     $hasWarning = $false
 
     foreach($line in $AlcOutput) {
         switch -regex ($line) {
-            "^warning (\w{2}\d{4}):(.*('.*').*|.*)$" {
+            "^warning (\w{2,3}\d{4}):(.*('.*').*|.*)$" {
                 if ($null -ne $Matches[3]) {
+                    $file = $Matches[3]
+                    if ($file -like "$($basePath)*") {
+                        $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
+                    }
                     if ($gitHubActions) {
-                        $newLine = "::warning file=$($Matches[3])::code=$($Matches[1]) $($Matches[2])"
+                        $newLine = "::warning file=$($file)::code=$($Matches[1]) $($Matches[2])"
                     }
                     else {
-                        $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[3]);$($Matches[1]);]$($Matches[2])"
+                        $newLine = "##vso[task.logissue type=warning;sourcepath=$($file);$($Matches[1]);]$($Matches[2])"
                     }
                 } else {
                     if ($gitHubActions) {
@@ -59,16 +70,20 @@ try {
             "^(.*)\((\d+),(\d+)\): error (\w{2,3}\d{4}): (.*)$"
             #Objects\codeunit\Cod50130.name.al(62,30): error AL0118: The name '"Parent Object"' does not exist in the current context        
             {
+                $file = $Matches[1]
+                if ($file -like "$($basePath)*") {
+                    $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
+                }
                 if ($gitHubActions) {
-                    $newLine = "::error file=$($Matches[1]),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                    $newLine = "::error file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
-                    $newLine = "##vso[task.logissue type=error;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $newLine = "##vso[task.logissue type=error;sourcepath=$($file);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                 }
                 $hasError = $true
                 break
             }
-            "^(.*)error (\w{2}\d{4}): (.*)$"
+            "^(.*)error (\w{2,3}\d{4}): (.*)$"
             #error AL0999: Internal error: System.AggregateException: One or more errors occurred. ---> System.InvalidOperationException
             {
                 if ($gitHubActions) {
@@ -80,15 +95,19 @@ try {
                 $hasError = $true
                 break
             }
-            "^(.*)\((\d+),(\d+)\): warning (\w{2}\d{4}): (.*)$"
+            "^(.*)\((\d+),(\d+)\): warning (\w{2,3}\d{4}): (.*)$"
             #Prepared for unified warning format
             #Objects\codeunit\Cod50130.name.al(62,30): warning AL0118: The name '"Parent Object"' does not exist in the current context        
             {
+                $file = $Matches[1]
+                if ($file -like "$($basePath)*") {
+                    $file = ".\$($file.SubString($basePath.Length))".Replace('\','/')
+                }
                 if ($gitHubActions) {
-                    $newLine = "::warning file=$($Matches[1]),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
+                    $newLine = "::warning file=$($file),line=$($Matches[2]),col=$($Matches[3])::$($Matches[4]) $($Matches[5])"
                 }
                 else {
-                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($Matches[1]);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
+                    $newLine = "##vso[task.logissue type=warning;sourcepath=$($file);linenumber=$($Matches[2]);columnnumber=$($Matches[3]);code=$($Matches[4]);]$($Matches[5])"
                 }
                 $hasWarning = $true
                 break
@@ -107,7 +126,13 @@ try {
     }
 
     $errLine = ""
-    if (-not $gitHubActions) {
+    if ($gitHubActions) {
+        if ($FailOn -eq 'warning' -and $hasWarning) {
+            $errLine = "::Error::Failing build as warnings exists"
+            $host.SetShouldExit(1)
+        }
+    }
+    else {
         if (($FailOn -eq 'error' -and $hasError) -or ($FailOn -eq 'warning' -and ($hasError -or $hasWarning))) {
             $errLine = "##vso[task.complete result=Failed;]Failed."
         }

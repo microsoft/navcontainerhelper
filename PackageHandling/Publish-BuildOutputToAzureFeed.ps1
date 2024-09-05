@@ -3,7 +3,7 @@
   Function for publishing build output from Run-AlPipeline to storage account
  .Description
   Function for publishing build output to storage account
-  The function will publish artifacts in the format of https://businesscentralapps.blob.core.windows.net/bingmaps/16.0.10208.0/apps.zip
+  The function will publish artifacts in the format of https://github.com/microsoft/bcsamples-bingmaps.pte/releases/download/19.0.0/bcsamples-bingmaps.pte-main-Apps-19.0.168.0.zip
   Please consult the CI/CD Workshop document at http://aka.ms/cicdhol to learn more about this function
  .Parameter Organization
   A connectionstring with access to the storage account in which you want to publish artifacts (SecureString or String)
@@ -25,17 +25,20 @@ function Publish-BuildOutputToAzureFeed {
         [string] $feed,
         [Parameter(Mandatory = $true)]
         [string] $path,
-        [Parameter(Mandatory = $true)]
-        [string] $pat
+        [Parameter(Mandatory = $false)]
+        [string] $pat = ''
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    if($pat -ne '') {
+        Write-Warning "Enviroment Variable AZURE_DEVOPS_EXT_PAT is overridden";
+        $env:AZURE_DEVOPS_EXT_PAT = $pat
+    }
     Get-Childitem –Path (Join-Path $path "\Apps\*.app") | % {
         $basename = $_.Basename
 
-        $tempAppFolder = Join-Path ((Get-Item -Path $env:temp).FullName) ([Guid]::NewGuid().ToString())
+        $tempAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         $tempAppOutFolder = Join-Path $tempAppFolder "out"
         $tempAppSourceFolder = Join-Path $tempAppFolder "source"
         try {

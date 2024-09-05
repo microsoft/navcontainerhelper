@@ -24,6 +24,7 @@
 function Replace-BcServerContainer {
     Param (
         [string] $artifactUrl = "",
+        [string] $licenseFileUri = "",
         [string] $imageName = "",
         [switch] $alwaysPull,
         [ValidateSet('Yes','No','Default')]
@@ -53,6 +54,12 @@ try {
 
     $newArtifactUrl = $artifactUrl
     Remove-Variable -Name 'artifactUrl'
+
+    if ($licenseFileUri) {
+        $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$licenseFileUri = ') }
+        $settings += ('$licenseFileUri = "'+$licenseFileUri+'"')
+        Set-Content -Path $settingsScript -Value $settings
+    }
 
     if ($enableSymbolLoading -ne "Default") {
         $settings = Get-Content -path $settingsScript | Where-Object { !$_.Startswith('$enableSymbolLoading = ') }
@@ -109,7 +116,7 @@ try {
         $imageName = Get-BestBcContainerImageName -imageName $imageName
         if ($alwaysPull) {
             Write-Host "Pulling docker Image $imageName"
-            docker pull $imageName
+            docker pull $imageName --quiet
         }
     }
     elseif ($navDockerImage) {
@@ -117,7 +124,7 @@ try {
         $imageName = Get-BestBcContainerImageName -imageName $imageName
         if ($alwaysPull) {
             Write-Host "Pulling docker Image $imageName"
-            docker pull $imageName
+            docker pull $imageName --quiet
         }
     }
 

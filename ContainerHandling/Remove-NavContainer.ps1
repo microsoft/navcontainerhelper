@@ -43,7 +43,7 @@ try {
         if ($dotidx -eq -1) { $dotidx = $hostname.Length }
         $tenantHostname = $hostname.insert($dotidx,"-*")
 
-        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
         $allVolumes = @(docker volume ls --format "{{.Mountpoint}}|{{.Name}}")
         $myVolumeName = "$containerName-my"
         $myVolume = $allVolumes | Where-Object { $_ -like "*|$myVolumeName" }
@@ -60,6 +60,19 @@ try {
             Write-Host "Removing entries from hosts"
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $hostname -theIpAddress ""
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
+        }
+
+        if ($isAdministrator -and ($bcContainerHelperConfig.useWinRmSession -ne 'never') -and (-not $bccontainerHelperConfig.useSslForWinRmSession)) {
+            # If not using SSL for WinRm, we need to remove the container from the trusted hosts
+            try {
+                [xml]$conf = winrm get winrm/config/client -format:pretty
+                $trustedHosts = $conf.Client.TrustedHosts.Split(',')
+                if ($trustedHosts -contains $containerName) {
+                    Write-Host "Removing $containerName from trusted hosts ($($trustedHosts -join ','))"
+                    winrm set winrm/config/client "@{TrustedHosts=""$(@($trustedHosts | Where-Object { $_ -ne $containerName }) -join ',')""}" | Out-Null
+                }
+            }
+            catch {}
         }
 
         if ($myVolume) {

@@ -16,6 +16,9 @@ function Get-BcContainerSession {
     [CmdletBinding()]
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [switch] $tryWinRmSession = ($bccontainerHelperConfig.useWinRmSession -ne 'never'),
+        [switch] $alwaysUseWinRmSession = ($bccontainerHelperConfig.useWinRmSession -eq 'always'),
+        [switch] $usePwsh = $bccontainerHelperConfig.usePwshForBc24,
         [switch] $silent,
         [switch] $reinit
     )
@@ -26,8 +29,18 @@ function Get-BcContainerSession {
         if ($sessions.ContainsKey($containerName)) {
             $session = $sessions[$containerName]
             try {
-                Invoke-Command -Session $session -ScriptBlock { $true } | Out-Null
-                if (!$reinit) { return $session }
+                $platformVersion = Invoke-Command -Session $session -ScriptBlock { [System.Version](get-item 'C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe').Versioninfo.FileVersion }
+                if ($platformVersion.Major -ge 24 -and ($usePwsh -xor $session.ConfigurationName -eq 'PowerShell.7')) {
+                    # Cannot use existing session
+                    Remove-PSSession -Session $session
+                    $sessions.Remove($containerName)
+                    $session = $null
+                }
+                else {
+                    if (!$reinit) {
+                        return $session
+                    }
+                }
             }
             catch {
                 Remove-PSSession -Session $session
@@ -36,12 +49,40 @@ function Get-BcContainerSession {
             }
         }
         if (!$session) {
+            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ($platformVersion.Major -lt 24) {
+                $usePwsh = $false
+            }
+            $configurationName = 'Microsoft.PowerShell'
+            if ($usePwsh) {
+                $configurationName = 'PowerShell.7'
+            }
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
-            else {
-                $containerId = Get-BcContainerId -containerName $containerName
-                $session = New-PSSession -ContainerId $containerId -RunAsAdministrator
+            elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
+                try {
+                    $containerId = Get-BcContainerId -containerName $containerName
+                    $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
+                }
+                catch {}
+            }
+            if (!$session) {
+                if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
+                    throw "Unable to create session for container $containerName (cannot use WinRm)"
+
+                }
+                $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
+                $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
+                $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $winRmPassword -AsPlainText -force)
+                if ($useSSL) {
+                    $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
+                    $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
+                }
+                else {
+                    $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US'
+                    $Session = New-PSSession -ConnectionUri "http://$($containerName):5985" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
+                }
             }
             $newsession = $true
         }

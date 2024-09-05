@@ -1,6 +1,5 @@
 ﻿function New-ALGoRepo {
     Param(
-        $tmpFolder = (Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())),
         [Parameter(Mandatory=$true)]
         $org,
         [Parameter(Mandatory=$true)]
@@ -12,23 +11,20 @@
         [Parameter(Mandatory=$true)]
         [ValidateSet('public','private')]
         $accessControl,
-        [Parameter(Mandatory=$true)]
-        [string] $country,
+        $algoBranch = 'main',
+        $description = $repo,
         $apps = @(),
-        [int] $versioningStrategy = 16,
-        [switch] $updateDependencies,
-        [switch] $generateDependencyArtifact,
-        [string] $repoVersion = "",
+        [HashTable] $addRepoSettings = @{},
+        [HashTable] $addProjectSettings = @{},
         $readme = "# $repo",
-        $gitHubRunner = "windows-latest",
         [string] $keyVaultName,
         [switch] $useOrgSecrets,
-        [string[]] $additionalCountries = @(),
+        [HashTable] $secrets = @{},
         [switch] $additionalCountriesAlways,
-        [string] $nextMajorSchedule,
-        [string] $nextMinorSchedule,
-        [string] $currentschedule,
-        [HashTable] $secrets
+        [switch] $openFolder,
+        [switch] $openVSCode,
+        [switch] $openBrowser,
+        $tmpFolder = (Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString()))
     )
 
     # Well known AppIds
@@ -88,7 +84,7 @@
         $tempdir = $false
         if ($path -like "https://*" -or $path -like "http://*") {
             $url = $path
-            $path = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString()).app"
+            $path = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).app"
             $tempdir = $true
             Download-File -sourceUrl $url -destinationFile $path
             if (!(Test-Path -Path $path)) {
@@ -111,13 +107,13 @@
             if (Test-Path (Join-Path $path 'app.json')) {
                 $appFolders += @($path)
             }
-            Get-ChildItem $path -Directory -Recurse | Where-Object { Test-Path -Path (Join-Path $_.FullName 'app.json') } | ForEach-Object {
+            Get-ChildItem $path -Recurse | Where-Object { $_.PSIsContainer -and (Test-Path -Path (Join-Path $_.FullName 'app.json')) } | ForEach-Object {
                 if (!($appFolders -contains $_.Parent.FullName)) {
                     $appFolders += @($_.FullName)
                 }
             }
             $appFolders | ForEach-Object {
-                $newFolder = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
+                $newFolder = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
                 write-Host "$_ -> $newFolder"
                 Copy-Item -Path $_ -Destination $newFolder -Force -Recurse
                 Write-Host "done"
@@ -130,9 +126,9 @@
         elseif (-not (Test-Path -Path $path -PathType Leaf)) {
             throw "Path $path does not exist"
         }    
-        elseif ([string]::new([char[]](Get-Content $path -Encoding byte -TotalCount 2)) -eq "PK") {
+        elseif ([string]::new([char[]](Get-Content $path @byteEncodingParam -TotalCount 2)) -eq "PK") {
             # .zip file
-            $destinationPath = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
+            $destinationPath = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
             Expand-7zipArchive -path $path -destinationPath $destinationPath
             $directoryInfo = Get-ChildItem $destinationPath | Measure-Object
             if ($directoryInfo.count -eq 0) {
@@ -141,8 +137,8 @@
             expandfile -path $destinationPath
             Remove-Item -Path $destinationPath -Force -Recurse -ErrorAction SilentlyContinue
         }
-        elseif ([string]::new([char[]](Get-Content $path -Encoding byte -TotalCount 4)) -eq "NAVX") {
-            $destinationPath = Join-Path $env:TEMP "$([Guid]::NewGuid().ToString())"
+        elseif ([string]::new([char[]](Get-Content $path @byteEncodingParam -TotalCount 4)) -eq "NAVX") {
+            $destinationPath = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
             Extract-AppFileToFolder -appFilename $path -appFolder $destinationPath -generateAppJson
             $destinationPath        
         }
@@ -183,12 +179,12 @@
         throw "Specified folder already exists"
     }
 
-    if ($repoVersion) {
+    if ($addRepoSettings.ContainsKey('repoVersion')) {
         try {
-            $version = [Version]"$repoVersion.0.0"
+            $version = [Version]"$($addRepoSettings.repoVersion).0.0"
         }
         catch {
-            throw "repoVersion is not correctly formatted, needs to be major.minor"
+            throw "addRepoSettings.repoVersion is not correctly formatted, needs to be major.minor"
         }
     }
     else {
@@ -210,18 +206,18 @@
     Set-Location $tmpFolder
 
     $repository = "$org/$repo"
-    invoke-gh repo create $repository --$accessControl --clone
+    invoke-gh repo create $repository --$accessControl --clone --description $description
     $folder = Join-Path $tmpFolder $repo
     Set-Location $folder
 
     Write-Host "Downloading and applying AL-Go-$AppType template"
-    $templateUrl = "https://github.com/microsoft/AL-Go-$AppType/archive/refs/heads/main.zip"
-    $tempZip = Join-Path (Get-TempDir) "$([Guid]::NewGuid().ToString()).zip"
+    $templateUrl = "https://github.com/microsoft/AL-Go-$AppType/archive/refs/heads/$($algoBranch).zip"
+    $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
     Download-File -sourceUrl $templateUrl -destinationFile $tempZip
     Expand-7zipArchive -Path $tempZip -DestinationPath $folder
     Remove-Item -Path $tempZip -Force
-    Copy-Item -Path "AL-Go-$appType-main\*" -Recurse -Destination . -Force
-    Remove-Item -Path "AL-Go-$appType-main" -Recurse -Force
+    Copy-Item -Path "AL-Go-$appType-$algoBranch\*" -Recurse -Destination . -Force
+    Remove-Item -Path "AL-Go-$appType-$algoBranch" -Recurse -Force
 
     Write-Host "Committing and pushing template"
     invoke-git -silent add *
@@ -241,14 +237,16 @@
     $workspaceFile = Join-Path $folder "$repo.code-workspace"
     $workspace = Get-Content $workspaceFile -Encoding UTF8 | ConvertFrom-Json
 
-    Write-Host "Updating settings"
-    if ($gitHubRunner -and $gitHubRunner -ne "Windows-Latest") {
-        SetSetting -settings $repoSettings -name "GitHubRunner" -value $gitHubRunner
+    if (-not $addProjectSettings.ContainsKey('VersioningStrategy')) {
+        $addProjectSettings.VersioningStrategy = 16
     }
 
-    SetSetting -settings $projectSettings -name "Country" -value $country
-    if ($additionalCountriesAlways) {
-        SetSetting -settings $projectSettings -name "AdditionalCountries" -value $additionalCountries
+    [string[]] $additionalCountries = @()
+    if ($addProjectSettings.ContainsKey('AdditionalCountries')) {
+        $additionalCountries = [string[]] $addProjectSettings.AdditionalCountries
+        if (!$additionalCountriesAlways) {
+            $addProjectSettings.AdditionalCountries = @()
+        }
     }
 
     if ($apps) {
@@ -350,10 +348,10 @@
         }
     }
 
-    if (($VersioningStrategy -band 16) -eq 16) {
-        if (-not ($repoVersion)) {
-            $repoVersion = "$($maxVersionNumber.Major).$($maxVersionNumber.Minor+1)"
-            $version = [Version]"$repoVersion.0.0"
+    if (($addProjectSettings.VersioningStrategy -band 16) -eq 16) {
+        if (-not $addRepoSettings.ContainsKey('repoVersion')) {
+            $addRepoSettings.repoVersion = "$($maxVersionNumber.Major).$($maxVersionNumber.Minor+1)"
+            $version = [Version]"$($addRepoSettings.repoVersion).0.0"
         }
         $projectSettings.AppFolders+$projectSettings.TestFolders | ForEach-Object {
             $appJsonFile = Join-Path $folder "$_\app.json"
@@ -367,15 +365,23 @@
         }
     }
     else {
-        $repoVersion = "1.0"
-        if (($versioningStrategy -band 15) -eq 0) {
+        $addRepoSettings.repoVersion = "1.0"
+        if (($addProjectSettings.VersioningStrategy -band 15) -eq 0) {
             SetSetting -settings $repoSettings -name "RunNumberOffset" -value $maxBuildNo
         }
     }
 
-    SetSetting -settings $repoSettings -name "RepoVersion" -value $repoVersion
-    SetSetting -settings $repoSettings -name "UpdateDependencies" -value $updateDependencies.IsPresent
-    SetSetting -settings $repoSettings -name "GenerateDependencyArtifact" -value $generateDependencyArtifact.IsPresent
+    Write-Host "Updating Repo Settings"
+    $addRepoSettings.Keys | ForEach-Object {
+        Write-Host "- $_ = $($addRepoSettings."$_")"
+        SetSetting -settings $repoSettings -name $_ -value $addRepoSettings."$_"
+    }
+
+    Write-Host "Updating Project Settings"
+    $addProjectSettings.Keys | ForEach-Object {
+        Write-Host "- $_ = $($addProjectSettings."$_")"
+        SetSetting -settings $projectSettings -name $_ -value $addProjectSettings."$_"
+    }
 
     $orgSecrets = @(invoke-gh -returnValue secret list --org $Org -ErrorAction SilentlyContinue)
 
@@ -428,21 +434,23 @@
 
     'NextMajor','NextMinor','Current' | ForEach-Object {
         $name = "$($_)Schedule"
-        $value = (Get-Variable $name).Value
-        $workflowFile = ".github\workflows\$_.yaml"
-        $srcContent = (Get-Content -Path $workflowFile -Encoding UTF8 -Raw).Replace("`r", "").TrimEnd("`n").Replace("`n", "`r`n")
-        if ($value) {
-            SetSetting -settings $repoSettings -name $name -value $value
-            $srcPattern = "on:`r`n  workflow_dispatch:`r`n"
-            $replacePattern = "on:`r`n  schedule:`r`n  - cron: '$($value)'`r`n  workflow_dispatch:`r`n"
-            $srcContent = $srcContent.Replace($srcPattern, $replacePattern)
-            Set-Content -Path $workflowFile -Encoding UTF8 -Value $srcContent
-        }
-        if (!$additionalCountriesAlways) {
-            $workflowSettingsFile = Join-Path $folder ".github\$($srcContent.Split("`r")[0].Substring(6)).settings.json"
-            $workflowSettings = Get-Content $workflowSettingsFile -Encoding UTF8 | ConvertFrom-Json
-            SetSetting -settings $workflowSettings -name "AdditionalCountries" -value $additionalCountries
-            $workflowSettings | ConvertTo-Json -Depth 99 | Set-Content -Path $workflowSettingsFile -Encoding UTF8
+        if ($addRepoSettings.ContainsKey($name)) {
+            $value = $repoSettings."$name"
+            $workflowFile = ".github\workflows\$_.yaml"
+            $srcContent = (Get-Content -Path $workflowFile -Encoding UTF8 -Raw).Replace("`r", "").TrimEnd("`n").Replace("`n", "`r`n")
+            if ($value) {
+                SetSetting -settings $repoSettings -name $name -value $value
+                $srcPattern = "on:`r`n  workflow_dispatch:`r`n"
+                $replacePattern = "on:`r`n  schedule:`r`n  - cron: '$($value)'`r`n  workflow_dispatch:`r`n"
+                $srcContent = $srcContent.Replace($srcPattern, $replacePattern)
+                Set-Content -Path $workflowFile -Encoding UTF8 -Value $srcContent
+            }
+            if (!$additionalCountriesAlways -and $additionalCountries) {
+                $workflowSettingsFile = Join-Path $folder ".github\$($srcContent.Split("`r")[0].Substring(6).Trim("'").Trim(' ')).settings.json"
+                $workflowSettings = Get-Content $workflowSettingsFile -Encoding UTF8 | ConvertFrom-Json
+                SetSetting -settings $workflowSettings -name "AdditionalCountries" -value $additionalCountries
+                $workflowSettings | ConvertTo-Json -Depth 99 | Set-Content -Path $workflowSettingsFile -Encoding UTF8
+            }
         }
     }
 
@@ -459,6 +467,19 @@
     invoke-git -silent commit --allow-empty -m "initial commit"
     invoke-git -silent push
 
-    $tmpFolder
+    Write-Host "https://github.com/$repository"
+    if ($openBrowser) {
+        Start-Process "https://github.com/$repository"
+    }
+
+    if ($openVSCode) {
+        code "$tmpFolder\$repo\$repo.code-workspace"
+    }
+    elseif ($openFolder) {
+        Start-Process "$tmpFolder\$repo"
+    }
+    else {
+        $tmpFolder
+    }
 }
 Export-ModuleMember -Function New-ALGoRepo

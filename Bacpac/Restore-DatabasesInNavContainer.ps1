@@ -53,19 +53,21 @@ try {
         throw "You need to specify bakFile when you specify databaseName"
     }
     else {
-        $containerFolder = Join-Path $ExtensionsFolder $containerName
+        $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
         if ("$bakFolder" -eq "") {
             $bakFolder = $containerFolder
         }
         elseif (!$bakFolder.Contains('\')) {
             $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-            if ((Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { $env:IsBcSandbox }) -eq "Y") {
+            $inspect = docker inspect $containerName | ConvertFrom-Json
+            $isBcSandbox = $inspect.Config.Env | Where-Object { $_ -eq "IsBcSandbox=Y" }
+            if ($isBcSandbox) {
                 $folderPrefix = "sandbox"
             }
             else {
                 $folderPrefix = "onprem"
             }
-            $bakFolder = Join-Path $containerHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
+            $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "$folderPrefix-$NavVersion-bakFolders\$bakFolder"
         }
         $containerBakFolder = Get-BcContainerPath -containerName $containerName -path $bakFolder -throw
     }

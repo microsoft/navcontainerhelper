@@ -19,9 +19,6 @@ function Get-BcContainerImageTags {
         [int] $pageSize = -1
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
     $webclient = New-Object System.Net.WebClient
 
@@ -36,7 +33,7 @@ try {
 
     } elseif ($registryCredential) {
 
-        $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
+        $credentials = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($registryCredential.UserName + ":" + [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($registryCredential.Password))))
         $authorization = "Basic $credentials"
         if ($pageSize -eq -1) {
             $pageSize = 1000
@@ -50,7 +47,7 @@ try {
 
         $repository = "$registry/$repository"
         $registry = "registry.hub.docker.com"
-        $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:${repository}:pull&service=registry.docker.io") | ConvertFrom-Json).token
+        $token = ($webclient.DownloadString("https://auth.docker.io/token?scope=repository:$($repository):pull&service=registry.docker.io") | ConvertFrom-Json).token
         $authorization = "Bearer $token"
 
     }
@@ -63,10 +60,10 @@ try {
     try {
         $url = "https://$registry/v2/$repository/tags/list"
         if ($pageSize -gt 0) {
-            $sometags = ($webclient.DownloadString("${url}?n=$pageSize") | ConvertFrom-Json)
+            $sometags = ($webclient.DownloadString("$($url)?n=$pageSize") | ConvertFrom-Json)
             $tags = $sometags
             while ($sometags.tags.Count -gt 0) {
-                $sometags = ($webclient.DownloadString("${url}?n=$pageSize&last=$($sometags.tags[$sometags.tags.Count-1])") | ConvertFrom-Json)
+                $sometags = ($webclient.DownloadString("$($url)?n=$pageSize&last=$($sometags.tags[$sometags.tags.Count-1])") | ConvertFrom-Json)
                 $tags.tags += $sometags.tags
             }
         } else {
@@ -76,14 +73,6 @@ try {
     }
     catch {
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerImageTags -Value Get-BcContainerImageTags
 Export-ModuleMember -Function Get-BcContainerImageTags -Alias Get-NavContainerImageTags

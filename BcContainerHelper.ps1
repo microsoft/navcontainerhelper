@@ -5,10 +5,4 @@
     [switch] $useVolumes
 )
 
-Get-ChildItem -Path $PSScriptRoot -Recurse | % { Unblock-File -Path $_.FullName }
-
-Remove-Module NavContainerHelper -ErrorAction Ignore
-Remove-Module BcContainerHelper -ErrorAction Ignore
-
-$modulePath = Join-Path $PSScriptRoot "BcContainerHelper.psm1"
-Import-Module $modulePath -DisableNameChecking -ArgumentList $Silent, $ExportTelemetryFunctions, $bcContainerHelperConfigFile, $useVolumes
+. (Join-Path $PSScriptRoot 'Import-BcContainerHelper.ps1') -Silent:$silent -ExportTelemetryFunctions:$ExportTelemetryFunctions -bcContainerHelperConfigFile $bcContainerHelperConfigFile -useVolumes:$useVolumes

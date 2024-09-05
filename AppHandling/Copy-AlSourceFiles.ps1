@@ -39,6 +39,7 @@ try {
         $files | Where-Object { ($extensions.Contains($_.Extension.ToLowerInvariant())) -and !($_.Attributes.HasFlag([System.IO.FileAttributes]::Directory)) } | ForEach-Object {
     
             $filename = $_.Name
+            $directoryname = $_.DirectoryName
             $content = [System.IO.File]::ReadAllLines($_.FullName)
 
             try {
@@ -128,12 +129,15 @@ try {
                     if ($type -eq "report") {
                         0..($content.Count-1) | % {
                             $line = $content[$_]
-                            if ($line.Trim() -like "RDLCLayout = '*';" -or $line.Trim() -like "WordLayout = '*';") {
+                            if ($line.Trim() -like "RDLCLayout = '*';" -or $line.Trim() -like "WordLayout = '*';" -or $line.Trim() -like "LayoutFile = '*';") {
                                 $startIdx = $line.IndexOf("'")+1
                                 $endIdx = $line.LastIndexOf("'")
                                 $layoutFilename = $line.SubString($startIdx, $endIdx-$startIdx)
                                 $layoutFilename = $layoutFilename.SubString($layoutFilename.LastIndexOfAny(@('\','/'))+1)
-                                $layoutFile = $Files | Where-Object { $_.name -eq $layoutFilename }
+                                $layoutFile = $Files | Where-Object { ($_.name -eq $layoutFilename) -and ($_.DirectoryName -eq $DirectoryName)} 
+                                if (!($layoutFile)){
+                                    $layoutFile = $Files | Where-Object { $_.name -eq $layoutFilename }
+                                }
                                 if ($layoutFile) {
                                     $layoutcontent = [System.IO.File]::ReadAllBytes($layoutFile.FullName)
         

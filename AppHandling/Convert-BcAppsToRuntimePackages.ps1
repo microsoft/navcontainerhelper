@@ -41,7 +41,7 @@ function Convert-BcAppsToRuntimePackages {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $appsFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+    $appsFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
     try {
 
         $apps = @(Sort-AppFilesByDependencies -appFiles (CopyAppFilesToFolder -appFiles $apps -folder $appsFolder) -WarningAction SilentlyContinue)
@@ -53,7 +53,7 @@ try {
         }
     
         if (!($destinationFolder)) {
-            $destinationFolder = Join-Path (Get-TempDir) ([Guid]::NewGuid().ToString())
+            $destinationFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
             New-Item -Path $destinationFolder -ItemType Directory | Out-Null
         }
         elseif (Test-Path $destinationFolder) {

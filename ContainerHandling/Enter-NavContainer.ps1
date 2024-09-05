@@ -19,18 +19,23 @@ function Enter-BcContainer {
 
     Process {
         if ($bcContainerHelperConfig.usePsSession) {
-            $session = Get-BcContainerSession -containerName $containerName -silent
+            try {
+                $session = Get-BcContainerSession -containerName $containerName -silent
+            }
+            catch {
+                $session = $null
+            }
+        }
+        if ($session) {
             Enter-PSSession -Session $session
-            Invoke-Command -Session $session -ScriptBlock {
-                function prompt {"[$env:COMPUTERNAME] PS $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+            if ($session.ComputerType -eq 'Container') {
+                Invoke-Command -Session $session -ScriptBlock {
+                    function prompt {"[$env:COMPUTERNAME]: PS5 $($executionContext.SessionState.Path.CurrentLocation)$('>' * ($nestedPromptLevel + 1)) "}
+                }
             }
-        } else {
-            if ($isAdministrator) {
-                Write-Host "UsePsSession is false, running Open-BcContainer instead"
-            }
-            else {
-                Write-Host "Enter-BcContainer needs administrator privileges, running Open-BcContainer instead"
-            }
+        }
+        else {
+            Write-Host "Could not create a session, running Open-BcContainer instead"
             Open-BcContainer $containerName
         }
     }

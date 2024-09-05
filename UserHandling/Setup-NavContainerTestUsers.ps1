@@ -48,7 +48,7 @@
  .Example
   Setup-BcContainerTestUsers -password $securePassword
  .Example
-  Setup-BcContainerTestUsers containerName test -tenant default -password $Credential.Password -credential $Credential
+  Setup-BcContainerTestUsers -containerName test -tenant default -password $Credential.Password -credential $Credential
 #>
 function Setup-BcContainerTestUsers {
     Param (
@@ -75,7 +75,7 @@ try {
 
     if ($version.Major -ge 13) {
 
-        $appfile = Join-Path (Get-TempDir) "CreateTestUsers.app"
+        $appfile = Join-Path ([System.IO.Path]::GetTempPath()) "CreateTestUsers.app"
         if (([System.Version]$version).Major -ge 15) {
             Import-TestToolkitToBcContainer -containerName $containerName -tenant $tenant -includeTestFrameworkOnly -replaceDependencies $replaceDependencies -doNotUseRuntimePackages
             $systemAppTestLibrary = get-BcContainerappinfo -containername $containerName -tenant $tenant | Where-Object { $_.Name -eq "System Application Test Library" }
@@ -97,17 +97,20 @@ try {
                 }
             }
             if ($createTestUsersAppUrl -eq '') {
-                if (([System.Version]$version).Major -ge 16) {
-                    $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/16.0.7.0/createtestusers-testapps.zip"
+                if (([System.Version]$version).Major -ge 22) {
+                    $createTestUsersAppUrl = "https://github.com/BusinessCentralApps/CreateTestUsers/releases/download/22.0.30/CreateTestUsers-main-TestApps-22.0.30.0.zip"
+                }
+                elseif (([System.Version]$version).Major -ge 16) {
+                    $createTestUsersAppUrl = "https://github.com/BusinessCentralApps/CreateTestUsers/releases/download/16.0.7/CreateTestUsers-TestApps-16.0.7.0.zip"
                 }
                 else {
-                    $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/15.0.6.0/createtestusers-testapps.zip"
+                    $createTestUsersAppUrl = "https://github.com/BusinessCentralApps/CreateTestUsers/releases/download/15.0.6/CreateTestUsers-TestApps-15.0.6.0.zip"
                 }
             }
         }
         else {
             if ($createTestUsersAppUrl -eq '') {
-                $createTestUsersAppUrl = "https://businesscentralapps.blob.core.windows.net/createtestusers/Microsoft_CreateTestUsers_13.0.0.0.app"
+                $createTestUsersAppUrl = "https://github.com/BusinessCentralApps/CreateTestUsers/releases/download/13.0.0/Microsoft_CreateTestUsers_13.0.0.0.zip"
             }
             $select = ''
         }
@@ -118,7 +121,7 @@ try {
 
         $parameters = @{ 
             "name" = "CreateTestUsers$select"
-            "value" = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
+            "value" = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($Password)))
         }
         Invoke-BcContainerApi -containerName $containerName -tenant $tenant -credential $credential -APIPublisher "Microsoft" -APIGroup "Setup" -APIVersion "beta" -CompanyId $companyId -Method "POST" -Query "testUsers" -body $parameters | Out-Null
 

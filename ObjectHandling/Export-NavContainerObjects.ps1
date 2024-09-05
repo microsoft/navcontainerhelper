@@ -49,8 +49,8 @@ try {
         $exportTo = 'txt folder'
     }
 
-    if ("$objectsFolder" -eq "$hostHelperFolder" -or "$objectsFolder" -eq "$hostHelperFolder\") {
-        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    if ("$objectsFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)" -or "$objectsFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)\") {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $bcContainerHelperConfig.hostHelperFolder"
     }
 
     $sqlCredential = Get-DefaultSqlCredential -containerName $containerName -sqlCredential $sqlCredential -doNotAskForCredential
@@ -107,7 +107,7 @@ try {
 
         $params = @{ 'ExportTxtSkipUnlicensed' = $true }
         if ($sqlCredential) {
-            $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+            $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
         }
         if ($exportTo.Contains('(new syntax)')) {
             $params += @{ 'ExportToNewSyntax' = $true }

@@ -34,12 +34,11 @@ function Set-BcContainerKeyVaultAadAppAndCertificate {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
-    $ExtensionsFolder = Join-Path $hosthelperfolder "Extensions"
-    $sharedPfxFile = Join-Path $ExtensionsFolder "$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
+    $sharedPfxFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\my\$([GUID]::NewGuid().ToString()).pfx"
     $removeSharedPfxFile = $true
     if ($pfxFile -like "https://*" -or $pfxFile -like "http://*") {
         Write-Host "Downloading certificate file to container"
-        (New-Object System.Net.WebClient).DownloadFile($pfxFile, $sharedPfxFile)
+        DownloadFileLow -sourceUrl $pfxFile -destinationFile $sharedPfxFile
     }
     else {
         if (Get-BcContainerPath -containerName $containerName -path $pfxFile) {
@@ -66,7 +65,13 @@ try {
             # Give SYSTEM permission to use the PFX file's private key
             $keyName = $importedPfxCertificate.PrivateKey.CspKeyContainerInfo.UniqueKeyContainerName
             $keyPath = "C:\ProgramData\Microsoft\Crypto\RSA\MachineKeys\$keyName"
-            $acl = (Get-Item $keyPath).GetAccessControl('Access')
+            if ($PSVersionTable.PSVersion -ge "6.0.0") {
+                Import-Module Microsoft.PowerShell.Security -Force
+                $acl = [System.IO.FileSystemAclExtensions]::GetAccessControl([System.IO.DirectoryInfo]::new($keyPath), 'Access')
+            }
+            else {
+                $acl = (Get-Item $keyPath).GetAccessControl('Access')
+            }
             $permission = 'NT AUTHORITY\SYSTEM',"Full","Allow"
             $accessRule = new-object System.Security.AccessControl.FileSystemAccessRule $permission
             $acl.AddAccessRule($accessRule)

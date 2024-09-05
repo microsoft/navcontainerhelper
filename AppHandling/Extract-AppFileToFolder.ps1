@@ -29,19 +29,19 @@ function Extract-AppFileToFolder {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    Set-StrictMode -Off
     if ($appFolder -eq "") {
         if ($openFolder) {
             $generateAppJson = $true
-            $appFolder = Join-Path $env:TEMP ([Guid]::NewGuid().ToString())
+            $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         }
         else {
             $appFolder = "$($appFilename).source"
         }
     }
 
-    if ("$appFolder" -eq "$hostHelperFolder" -or "$appFolder" -eq "$hostHelperFolder\") {
-        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $hostHelperFolder"
+    if ("$appFolder" -eq "($bcContainerHelperConfig.hostHelperFolder)" -or "$appFolder" -eq "$($bcContainerHelperConfig.hostHelperFolder)\") {
+        throw "The folder specified in ObjectsFolder will be erased, you cannot specify $($bcContainerHelperConfig.hostHelperFolder)"
     }
 
     if (!(Test-Path $appFileName)) {
@@ -112,9 +112,15 @@ try {
     }
 
     if ($generateAppJson) {
-        #Set-StrictMode -Off
         $manifest = [xml](Get-Content -path (Join-Path $appFolder "NavxManifest.xml") -Encoding UTF8)
-        $runtime = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        $runtimeStr = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Runtime" } | % { $_.Value } )"
+        if ($runtimeStr) {
+            $runtime = [System.Version]$runtimeStr
+        }
+        else {
+            $runtime = [System.Version]"9.2"
+        }
+
         $application = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "Application" } | % { $_.Value } )"
         $appJson = [ordered]@{
             "id" = $manifest.Package.App.Id
@@ -130,10 +136,10 @@ try {
                 "application" = $application
             }
         }
-        if ($latestSupportedRuntimeVersion) {
-            Write-Host "App Runtime Version is $runtime"
-            if ([System.Version]$runtime -gt [System.Version]$latestSupportedRuntimeVersion) {
-                throw "App is using runtime version $runtime, latest supported runtime version is $latestSupportedRuntimeVersion."
+        if ($latestSupportedRuntimeVersion -and $runtimeStr) {
+            Write-Host "App Runtime Version is '$runtimeStr'"
+            if ($runtime -gt [System.Version]$latestSupportedRuntimeVersion) {
+                throw "App is using runtime version $runtimeStr, latest supported runtime version is $latestSupportedRuntimeVersion."
             }
         }
         if ($excludeRuntimeProperty.IsPresent) {
@@ -141,7 +147,7 @@ try {
         }
         else {
             $appJson += @{
-                "runtime" = $runtime
+                "runtime" = "$($runtime.Major).$($runtime.Minor)"
             }
         }
         $appJson += [ordered]@{
@@ -157,35 +163,65 @@ try {
             "features" = @()
         }
 
-        if ($runtime -lt 8.0)  {
+        if ($runtime -lt [System.Version]"8.0")  {
             $appJson += @{
                 "showMyCode" = "$($manifest.Package.App.Attributes | Where-Object { $_.name -eq "ShowMyCode" } | % { $_.Value } )" -eq "True"
             }
         }
         else {
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "ResourceExposurePolicy" } | % { 
-                $xmlResExp = [ordered]@{}
                 $resExp = [ordered]@{}
-                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile" | % {
+                "allowDebugging", "allowDownloadingSource", "includeSourceInSymbolFile","applyToDevExtension" | % {
                     $prop = $_
-                    if ($xmlResExp.PSObject.Properties.Name -eq $prop) {
+                    if ($manifest.Package.ResourceExposurePolicy.Attributes | Where-Object { $_.name -eq $prop } | % { $_.Value -eq "true" }) {
                         $resExp += @{
-                            "$prop" = $xmlResExp."$prop" -eq "true"
+                            "$prop" = $true
                         }
                     }
                 }
                 $appJson += @{ "resourceExposurePolicy" = $resExp }
             }
-       
         }
-        if ($runtime -ge 5.0)  {
+        if ($runtime -ge [System.Version]"12.0")  {
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Source" } | % { 
+                $node = $_
+                $ht = [ordered]@{}
+                "repositoryUrl", "commit" | % {
+                    $prop = $_
+                    if ($node) {
+                        $node.Attributes | Where-Object { $_.name -eq $prop } | % {
+                            $ht += @{
+                                "$prop" = $_.Value
+                            }
+                        }
+                    }
+                }
+                $appJson += @{ "source" = $ht }
+            }
+            $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Build" } | % { 
+                $node = $_
+                $ht = [ordered]@{}
+                "by", "url" | % {
+                    $prop = $_
+                    if ($node) {
+                        $node.Attributes | Where-Object { $_.name -eq $prop } | % {
+                            $ht += @{
+                                "$prop" = $_.Value
+                            }
+                        }
+                    }
+                }
+                $appJson += @{ "build" = $ht }
+            }
+        }
+        if ($runtime -ge [System.Version]"5.0")  {
             $appInsightsKey = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsKey" } | % { $_.Value } 
             if ($appInsightsKey) {
                 $appJson += @{
                     "applicationInsightsKey" = "$appInsightsKey"
                 }
             }
-            elseif ($runtime -ge 7.2)  {
+            elseif ($runtime -ge [System.Version]"7.2")  {
                 $appInsightsConnectionString = $manifest.Package.App.Attributes | Where-Object { $_.name -eq "applicationInsightsConnectionString" } | % { $_.Value } 
                 if ($appInsightsConnectionString) {
                     $appJson += @{
@@ -202,7 +238,7 @@ try {
         }
         $manifest.Package.ChildNodes | Where-Object { $_.name -eq "Dependencies" } | % { 
             $_.GetEnumerator() | % {
-                if ($runtime -gt 4.1) {
+                if ($runtime -gt [System.Version]"4.1") {
                     $propname = "id"
                 }
                 else {
@@ -244,7 +280,7 @@ try {
                 $appJson.supportedLocales += @($_.Local)
             }
         }
-        if ($runtime -ge 4.0)  {
+        if ($runtime -ge [System.Version]"4.0")  {
             $first = $true
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "internalsVisibleTo" } | % { 
                 if ($first) {
@@ -261,7 +297,7 @@ try {
                 }
             }
         }
-        if ($runtime -ge 6.0)  {
+        if ($runtime -ge [System.Version]"6.0") {
             $manifest.Package.ChildNodes | Where-Object { $_.name -eq "preprocessorSymbols" } | % { 
                 $first = $true
                 $_.GetEnumerator() | % {
@@ -280,7 +316,6 @@ try {
             }
         }
         $appJson | convertTo-json | Set-Content -Path (Join-Path $appFolder "app.json") -Encoding UTF8
-        Set-StrictMode -Version 2.0
     }
 
     if ($openFolder) {
@@ -292,6 +327,7 @@ catch {
     throw
 }
 finally {
+    Set-StrictMode -Version 2.0
     TrackTrace -telemetryScope $telemetryScope
 }
 }

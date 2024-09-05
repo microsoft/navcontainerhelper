@@ -6,6 +6,8 @@
   Adds shortcut on the desktop for Web Client and Container PowerShell prompt
  .Parameter accept_eula
   Switch, which you need to specify if you accept the eula for running NAV or Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=861843)
+ .Parameter accept_insiderEula
+  Switch, which you need to specify if you are going to create a container with an insider build of Business Central on Docker containers (See https://go.microsoft.com/fwlink/?linkid=2245051)
  .Parameter accept_outdated
   Specify accept_outdated to ignore error when running containers which are older than 90 days
  .Parameter containerName
@@ -33,7 +35,7 @@
  .Parameter AuthenticationEmail
   AuthenticationEmail of the admin user
  .Parameter memoryLimit
-  Memory limit for the container (default is unlimited for process isolation and 8G for hyperv isolation containers)
+  Memory limit for the container (default is unlimited for process isolation and 8G for HyperV isolation containers)
  .Parameter sqlMemoryLimit
   Memory limit for the SQL inside the container (default is no limit)
   Value can be specified as 50%, 1.5G, 1500M
@@ -174,11 +176,13 @@
  .Parameter vsixFile
   Specify a URL or path to a .vsix file in order to override the .vsix file in the image with this.
   Use Get-LatestAlLanguageExtensionUrl to get latest AL Language extension from Marketplace.
-  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -sasToken $insiderSasToken) to get latest insider .vsix
+  Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
  .Example
   New-BcContainer -accept_eula -containerName test
+ .Example
+  New-BcContainer -accept_eula -containerName test -accept_insiderEula -artifactUrl (Get-BcArtifactUrl -accept_insiderEula -country dk -select NextMajor)
  .Example
   New-BcContainer -accept_eula -containerName test -multitenant
  .Example
@@ -191,6 +195,7 @@
 function New-BcContainer {
     Param (
         [switch] $accept_eula,
+        [switch] $accept_insiderEula,
         [switch] $accept_outdated = $true,
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
         [string] $imageName = "",
@@ -421,7 +426,10 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 22621) {
+    if ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 22000) { 
@@ -480,7 +488,7 @@ try {
     Write-Host "BcContainerHelper is version $BcContainerHelperVersion"
     if ($isAdministrator) {
         Write-Host "BcContainerHelper is running as administrator"
-        Write-Host "Hyper-V is $(Get-HypervState)"
+        Write-Host "HyperV is $(Get-HypervState)"
     }
     else {
         Write-Host "BcContainerHelper is not running as administrator"
@@ -488,12 +496,15 @@ try {
     if ($isInsideContainer) {
         Write-Host "BcContainerHelper is running inside a Container"
     }
-    Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
-    Write-Host "Host is $($os.Caption) - $hostOs"
+    Write-Host "Host is $($os.Caption) - $hostOsVersion"
+    Write-Host "UsePsSession is $($bcContainerHelperConfig.usePsSession)"
+    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.usePwshForBc24)"
+    Write-Host "UseWinRmSession is $($bcContainerHelperConfig.useWinRmSession)"
+    Write-Host "UseSslForWinRmSession is $($bcContainerHelperConfig.useSslForWinRmSession)"
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerProcess)) {
-        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers."
+        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers. If Docker Desktop is already installed, open the system tray, right-click on the Docker icon, and select 'Switch to Windows containers...'"
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
@@ -531,6 +542,12 @@ try {
         # When using artifacts, you always use best container os - no need to replatform
         $useBestContainerOS = $false
 
+        if ($artifactUrl -like 'https://bcinsider*') {
+            if (!$accept_insiderEULA) {
+                throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula"
+            }
+        }
+
         $artifactPaths = Download-Artifacts -artifactUrl $artifactUrl -includePlatform -forceRedirection:$alwaysPull
         $appArtifactPath = $artifactPaths[0]
         $platformArtifactPath = $artifactPaths[1]
@@ -542,10 +559,10 @@ try {
             Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
             $country = $appManifest.Country.ToLowerInvariant()
             if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
-                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+                $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/$country/3048953.bclicense"
             }
             else {
-                $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+                $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/w1/3048953.bclicense"
             }
         }
 
@@ -764,7 +781,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.13") {
+                if ($genericTagVersion -lt [Version]"1.0.2.20") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -903,7 +920,7 @@ try {
         $parameters += '--no-healthcheck'
     }
 
-    $containerFolder = Join-Path $ExtensionsFolder $containerName
+    $containerFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName"
     Remove-Item -Path $containerFolder -Force -Recurse -ErrorAction Ignore
     New-Item -Path $containerFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
@@ -1111,6 +1128,9 @@ try {
     elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
         $containerOs = "21H2"
     }
+    elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+        $containerOs = "22H2"
+    }
     elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
         $containerOs = "ltsc2022"
     }
@@ -1150,7 +1170,7 @@ try {
 
         if ("$dvdPath" -eq "" -and "$artifactUrl" -eq "") {
             # Extract files from image if not already done
-            $dvdPath = Join-Path $containerHelperFolder "$($NavVersion)-Files"
+            $dvdPath = Join-Path $bcContainerHelperConfig.hostHelperFolder "$($NavVersion)-Files"
 
             if (!(Test-Path "$dvdPath\allextracted")) {
                 Extract-FilesFromBcContainerImage -imageName $imageName -path $dvdPath -force
@@ -1199,15 +1219,6 @@ try {
             }
         }
 
-        if (($version.Major -eq 13 -or $version.Major -eq 14) -and $useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
-            Write-Host "Patching navinstall.ps1 for 13.x and 14.x (issue #907)"
-            $myscripts += @("https://bcdocker.blob.core.windows.net/public/130-patch/navinstall.ps1")
-        }
-        elseif ($useGenericImageTagVersion -le [System.Version]"0.0.9.99") {
-            Write-Host "Patching navinstall.ps1 to stop the Service Tier for reconfiguration"
-            $myscripts += @( @{ "navinstall.ps1" = '. "c:\run\navinstall.ps1"; Stop-Service -Name $NavServiceName -WarningAction Ignore' } )
-        }
-
         $containerOsVersion = [Version]"$($inspect.Config.Labels.osversion)"
     
         if ("$containerOsVersion".StartsWith('10.0.14393.')) {
@@ -1243,6 +1254,9 @@ try {
         elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
             $containerOs = "21H2"
         }
+        elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+            $containerOs = "22H2"
+        }
         elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
             $containerOs = "ltsc2022"
         }
@@ -1256,11 +1270,6 @@ try {
         Write-Host "Generic Tag of better generic: $genericTagVersion"
     }
 
-    if ($version.Major -lt 15 -and ($genericTag -eq [Version]"1.0.1.7")) {
-        Write-Host "Patching start.ps1 due to issue #2130"
-        $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/start.ps1" )
-    }
-
     if ($hostOsVersion -eq $containerOsVersion) {
         if ($isolation -eq "") {
             $isolation = "process"
@@ -1268,17 +1277,13 @@ try {
     }
     elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
         if ($isolation -eq "") {
-            if ($containerOsVersion -le $hostOsVersion) {
-                $isolation = "process"
-            }
-            else {
-                $isolation = "hyperv"
-            }
+            Write-Host -ForegroundColor Yellow "WARNING: Container and host OS build is 20348 or above, defaulting to process isolation. If you encounter issues, you could try to install HyperV."
+            $isolation = "process"
         }
     }
-    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
         if ($isolation -eq "") {
-            Write-Host -ForegroundColor Yellow "WARNING: Host OS is 21H1 and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
+            Write-Host -ForegroundColor Yellow "WARNING: Host OS is Windows 10 21H1 or newer and Container OS is 2004, defaulting to process isolation. If you experience problems, add -isolation hyperv."
             $isolation = "process"
         }
     }
@@ -1290,12 +1295,12 @@ try {
                 }
                 else {
                     $isolation = "process"
-                    Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and Hyper-V is not installed. If you encounter issues, you could try to install Hyper-V."
+                    Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match and HyperV is not installed. If you encounter issues, you could try to install HyperV."
                 }
             }
             else {
                 $isolation = "hyperv"
-                Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have Hyper-V installed or you encounter issues, you could try to specify -isolation process"
+                Write-Host -ForegroundColor Yellow "WARNING: Host OS and Base Image Container OS doesn't match, defaulting to hyperv. If you do not have HyperV installed or you encounter issues, you could try to specify -isolation process"
             }
 
         }
@@ -1305,8 +1310,8 @@ try {
     }
     Write-Host "Using $isolation isolation"
 
-    if ($isolation -eq "process" -and !$isServerHost -and ($version.Major -lt 15 -or $genericTag -lt [Version]"1.0.2.4")) {
-        Write-Host -ForegroundColor Yellow "WARNING: Using process isolation on Windows Desktop OS with generic image version prior to 1.0.2.4 or NAV/BC versions prior to 15.0, might require you to use HyperV isolation or disable Windows Defender while creating the container"
+    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631) -and $useSSL) {
+        Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
     }
 
     AddTelemetryProperty -telemetryScope $telemetryScope -key "isolation" -value $isolation
@@ -1407,13 +1412,13 @@ try {
     $restoreBakFolder = $false
     if ($bakFolder) {
         if (!$bakFolder.Contains('\')) {
-            $bakFolder = Join-Path $containerHelperFolder "$bcStyle-$($NavVersion)-bakFolders\$bakFolder"
+            $bakFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "$bcStyle-$($NavVersion)-bakFolders\$bakFolder"
         }
         if (Test-Path (Join-Path $bakFolder "*.bak")) {
             $restoreBakFolder = $true
             if (!$multitenant) {
                 $bakFile = Join-Path $bakFolder "database.bak"
-                $parameters += "--env bakfile=$bakFile"
+                $parameters += "--env bakfile=""$bakFile"""
             }
         }
     }
@@ -1432,16 +1437,18 @@ try {
             throw "Database backup $bakFile doesn't exist"
         }
         
-        if (-not $bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+        if (-not $bakFile.StartsWith($bcContainerHelperConfig.hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
             $containerBakFile = Join-Path $containerFolder "database.bak"
             Copy-Item -Path $bakFile -Destination $containerBakFile
             $bakFile = $containerBakFile
         }
-        if ($bakFile.StartsWith($hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
-            $bakFile = "$containerHelperFolder$($bakFile.Substring($hostHelperFolder.Length))"
+        if ($bakFile.StartsWith($bcContainerHelperConfig.hostHelperFolder, [StringComparison]::OrdinalIgnoreCase)) {
+            $bakFile = "$($bcContainerHelperConfig.containerHelperFolder)$($bakFile.Substring($bcContainerHelperConfig.hostHelperFolder.Length))"
         }
-        $parameters += "--env bakfile=$bakFile"
+        $parameters += "--env bakfile=""$bakFile"""
     }
+
+    $vsixFile = DetermineVsixFile -vsixFile $vsixFile
 
     if ($vsixFile) {
         $vsixUrl = $vsixFile
@@ -1461,6 +1468,7 @@ try {
     }
 
     if (!$restoreBakFolder) {
+        $ext = ''
         if ("$licensefile" -eq "") {
             if ($includeCSide -and !$doNotExportObjectsToText) {
                 throw "You must specify a license file when creating a CSide Development container or use -doNotExportObjectsToText to avoid baseline generation."
@@ -1487,6 +1495,9 @@ try {
             $containerLicenseFile = "c:\run\my\license$ext"
         }
         $parameters += @( "--env licenseFile=""$containerLicenseFile""" )
+        if ($ext -eq '.flf' -and $version.major -ge 22) {
+            throw "The .flf license file format is not supported in Business Central version 22 and later."
+        }
     }
 
     $parameters += @(
@@ -1498,7 +1509,7 @@ try {
                     "--env locale=$locale",
                     "--env databaseServer=""$databaseServer""",
                     "--env databaseInstance=""$databaseInstance""",
-                    (getVolumeMountParameter -volumes $allVolumes -hostPath $hostHelperFolder -containerPath $containerHelperFolder),
+                    (getVolumeMountParameter -volumes $allVolumes -hostPath $bcContainerHelperConfig.hostHelperFolder -containerPath $bcContainerHelperConfig.containerHelperFolder),
                     (getVolumeMountParameter -volumes $allVolumes -hostPath $myFolder -containerPath "C:\Run\my"),
                     "--isolation $isolation",
                     "--restart $restart"
@@ -1584,12 +1595,80 @@ if (!$restartingInstance) {
     winrm create winrm/config/Listener?Address=*+Transport=HTTPS (''@{Hostname="dontcare"; CertificateThumbprint="'' + $cert.Thumbprint + ''"}'')
     winrm set winrm/config/service/Auth ''@{Basic="true"}''
     Write-Host "Creating Container user $username"
-    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
     Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-
     }
+    elseif ($bcContainerHelperConfig.useWinRmSession -ne 'never') {
+        # UseWinRmSession is allow or always - add winrm configuration to container
+        $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
+        ('
+if (!$restartingInstance) {
+    Write-Host "Enable PSRemoting and setup user for winrm"
+    Enable-PSRemoting | Out-Null
+    Get-PSSessionConfiguration | Out-null
+    pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
+    $credential = New-Object PSCredential -ArgumentList "winrm", (ConvertTo-SecureString -string "'+$winRmPassword+'" -AsPlainText -force)
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
+    Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
+    winrm set winrm/config/service/Auth ''@{Basic="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    if ($bccontainerHelperConfig.useSslForWinRmSession) {
+        $additionalParameters += @("--expose 5986")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Creating self-signed certificate for winrm"
+    $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $env:computername -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$env:computername""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+    else {
+        $additionalParameters += @("--expose 5985")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Allow unencrypted communication to container"
+    winrm set winrm/config/service ''@{AllowUnencrypted="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+
+    if (-not $bccontainerHelperConfig.useSslForWinRmSession) {
+        try {
+            [xml]$conf = winrm get winrm/config/client -format:pretty
+            $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
+            if (-not $trustedHosts) {
+                $trustedHosts = @()
+            }
+            $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
+            if (!($isTrusted)) {
+                if (!$isAdministrator) {
+                    Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
+                }
+                else {
+                    Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
+                    $trustedHosts += $containerName
+                    winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
+                }
+            }
+            if ($conf.Client.AllowUnencrypted -eq 'false') {
+                if (!$isAdministrator) {
+                    Write-Host "Unencrypted communication is not allowed. You need to get an administrator to allow unencrypted communication"
+                }
+                else {
+                    Write-Host "Allow unencrypted communication"
+                    winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
+                }
+            }
+        }
+        catch {
+            Write-Host "Unexpected error when checking winrm configuration, you might not be able to connect to the container using winrm unencrypted"
+        }
+    }
+    }
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -1648,8 +1727,8 @@ if (!(Test-Path "c:\navpfiles\*")) {
     if ($assignPremiumPlan -and !$restoreBakFolder -and !$skipDatabase) {
         if (!(Test-Path -Path "$myfolder\SetupNavUsers.ps1")) {
             ('# Invoke default behavior
-              . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-            ') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
+. "c:\run\SetupNavUsers.ps1"
+') | Set-Content -Path "$myfolder\SetupNavUsers.ps1"
         }
      
         if ($version.Major -ge 15) {
@@ -1689,8 +1768,42 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 
     if (!(Test-Path -Path "$myfolder\SetupVariables.ps1")) {
         ('# Invoke default behavior
-          . (Join-Path $runPath $MyInvocation.MyCommand.Name)
-        ') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+. "c:\run\SetupVariables.ps1"
+') | Set-Content -Path "$myfolder\SetupVariables.ps1"
+    }
+    if (!(Test-Path -Path "$myfolder\HelperFunctions.ps1")) {
+        ('# Invoke default behavior
+. "c:\run\HelperFunctions.ps1"
+') | Set-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($version.Major -ge 24 -and $genericTag -eq [System.Version]"1.0.2.15") {
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/98c0702dbd607580880a3c9248cd76591868447d/generic/Run/Prompt.ps1" -destinationFile (Join-Path $myFolder "Prompt.ps1")
+    }
+
+    if ($version.Major -ge 24 -and $genericTag -lt [System.Version]"1.0.2.17") {
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/240/navinstall.ps1" -destinationFile (Join-Path $myFolder "navinstall.ps1")
+        Download-File -source "https://raw.githubusercontent.com/microsoft/nav-docker/4123cbcd197df57a5d94fa15b976356c11f4bcac/generic/Run/navstart.ps1" -destinationFile (Join-Path $myFolder "navstart.ps1")
+    }
+
+    if ($version.Major -ge 15 -and $version.Major -le 18 -and $genericTag -ge [System.Version]"1.0.2.15") {
+        Write-Host "Patching container to install ASP.NET Core 1.1"
+        Download-File -source "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -destinationFile (Join-Path $myFolder "dotnetcore.exe")
+        ('
+if (!(dotnet --list-runtimes | Where-Object { $_ -like "Microsoft.NetCore.App 1.1.*" })) { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet }
+') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($genericTag -lt [System.Version]"1.0.2.21") {
+        @'
+# Patch Microsoft.PowerShell.Archive to use en-US UI Culture (see https://github.com/PowerShell/Microsoft.PowerShell.Archive/pull/46)
+$psarchiveModule = 'C:\Windows\System32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psm1'
+if (Test-Path $psarchiveModule) {
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule((whoami),'Modify', 'Allow')
+    $acl = Get-Acl -Path $psarchiveModule; $acl.AddAccessRule($rule); Set-Acl -Path $psarchiveModule -AclObject $acl
+    Set-Content -encoding utf8 -path $psarchiveModule -value (Get-Content -encoding utf8 -raw -path $psarchiveModule).Replace("`r`nImport-LocalizedData  LocalizedData -filename ArchiveResources`r`n","`r`nImport-LocalizedData LocalizedData -filename ArchiveResources -UICulture 'en-US'`r`n")
+}
+'@ | Add-Content -Path "$myfolder\SetupVariables.ps1"
     }
 
     if ($updateHosts) {
@@ -1701,7 +1814,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    Get-NavTenant -serverInstance $serverInstance | % {
+    Get-NavTenant -serverInstance $serverInstance | ForEach-Object {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\driversetc\hosts" -theHostname $tenantHostname -theIpAddress $ip
         . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress $ip
@@ -1721,7 +1834,7 @@ if ($multitenant) {
 if ($multitenant) {
     $dotidx = $hostname.indexOf(".")
     if ($dotidx -eq -1) { $dotidx = $hostname.Length }
-    Get-NavTenant -serverInstance $serverInstance | % {
+    Get-NavTenant -serverInstance $serverInstance | ForEach-Object {
         $tenantHostname = $hostname.insert($dotidx,"-$($_.Id)")
         . (Join-Path $PSScriptRoot "updatecontainerhosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress "127.0.0.1"
     }
@@ -1734,11 +1847,11 @@ if ($multitenant) {
     }
 
     if ($useTraefik) {
-        $restPart = "/${containerName}rest" 
-        $soapPart = "/${containerName}soap"
-        $devPart = "/${containerName}dev"
-        $snapPart = "/${containerName}snap"
-        $dlPart = "/${containerName}dl"
+        $restPart = "/$($containerName)rest" 
+        $soapPart = "/$($containerName)soap"
+        $devPart = "/$($containerName)dev"
+        $snapPart = "/$($containerName)snap"
+        $dlPart = "/$($containerName)dl"
         $webclientPart = "/$containerName"
 
         $baseUrl = "https://$publicDnsName"
@@ -1764,11 +1877,11 @@ if ($multitenant) {
         }
 
         $webclientRule="PathPrefix:$webclientPart"
-        $soapRule="PathPrefix:${soapPart};ReplacePathRegex: ^${soapPart}(.*) /$ServerInstance`$1"
-        $restRule="PathPrefix:${restPart};ReplacePathRegex: ^${restPart}(.*) /$ServerInstance`$1"
-        $devRule="PathPrefix:${devPart};ReplacePathRegex: ^${devPart}(.*) /$ServerInstance`$1"
-        $snapRule="PathPrefix:${snapPart};ReplacePathRegex: ^${snapPart}(.*) /$ServerInstance`$1"
-        $dlRule="PathPrefixStrip:${dlPart}"
+        $soapRule="PathPrefix:$($soapPart);ReplacePathRegex: ^$($soapPart)(.*) /$ServerInstance`$1"
+        $restRule="PathPrefix:$($restPart);ReplacePathRegex: ^$($restPart)(.*) /$ServerInstance`$1"
+        $devRule="PathPrefix:$($devPart);ReplacePathRegex: ^$($devPart)(.*) /$ServerInstance`$1"
+        $snapRule="PathPrefix:$($snapPart);ReplacePathRegex: ^$($snapPart)(.*) /$ServerInstance`$1"
+        $dlRule="PathPrefixStrip:$($dlPart)"
 
         $webPort = "443"
         if ($forceHttpWithTraefik) {
@@ -1811,7 +1924,7 @@ if (-not `$restartingInstance) {
 ") | Add-Content -Path "$myfolder\AdditionalOutput.ps1"
     }
 
-    $containerContainerFolder = Join-Path $containerHelperFolder "Extensions\$containerName"
+    $containerContainerFolder = Join-Path $bcContainerHelperConfig.ContainerHelperFolder "Extensions\$containerName"
 
     ("
 if (-not `$restartingInstance) {
@@ -1834,7 +1947,7 @@ if (-not `$restartingInstance) {
         $customNavSettingsAdded = $false
         $cnt = $additionalParameters.Count-1
         if ($cnt -ge 0) {
-            0..$cnt | % {
+            0..$cnt | ForEach-Object {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customnavsettings=')
                 if ($idx -gt 0) {
                     $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customNavSettings))"
@@ -1851,7 +1964,7 @@ if (-not `$restartingInstance) {
         $customWebSettingsAdded = $false
         $cnt = $additionalParameters.Count-1
         if ($cnt -ge 0) {
-            0..$cnt | % {
+            0..$cnt | ForEach-Object {
                 $idx = $additionalParameters[$_].ToLowerInvariant().IndexOf('customwebsettings=')
                 if ($idx -gt 0) {
                     $additionalParameters[$_] = "$($additionalParameters[$_]),$([string]::Join(',',$customWebSettings))"
@@ -1865,15 +1978,15 @@ if (-not `$restartingInstance) {
     }
 
     #Write-Host "Parameters:"
-    #$Parameters | % { if ($_) { Write-Host "$_" } }
+    #$Parameters | ForEach-Object { if ($_) { Write-Host "$_" } }
 
     if ($additionalParameters) {
         Write-Host "Additional Parameters:"
-        $additionalParameters | % { if ($_) { Write-Host "$_" } }
+        $additionalParameters | ForEach-Object { if ($_) { Write-Host "$_" } }
     }
 
     Write-Host "Files in $($myfolder):"
-    get-childitem -Path $myfolder | % { Write-Host "- $($_.Name)" }
+    get-childitem -Path $myfolder | ForEach-Object { Write-Host "- $($_.Name)" }
 
     Write-Host "Creating container $containerName from image $imageName"
 
@@ -1905,7 +2018,7 @@ if (-not `$restartingInstance) {
                             )
 
             if ("$databaseServer" -ne "" -and $bcContainerHelperConfig.useSharedEncryptionKeys -and !$encryptionKeyExists) {
-                $sharedEncryptionKeyFile = Join-Path $hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
+                $sharedEncryptionKeyFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
                 if (Test-Path $sharedEncryptionKeyFile) {
                     Write-Host "Using Shared Encryption Key file"
                     Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
@@ -1986,9 +2099,14 @@ if (-not `$restartingInstance) {
             if (Test-Path $certPath) {
                 try {
                     Write-Host "Importing certificate in host's certificate store"
-                    $verb = @{}
+                    if ($isPsCore) {
+                        $params = @{ "FilePath" = "pwsh" }
+                    }
+                    else {
+                        $params = @{ "FilePath"  = "powershell" }
+                    }
                     if (!$isAdministrator) {
-                        $verb = @{ "Verb" = "runAs" }
+                        $params += @{ "Verb" = "runAs" }
                     }
                     $scriptblock = { 
                         Param($certPath, $containerFolder)
@@ -1998,7 +2116,7 @@ if (-not `$restartingInstance) {
                             Set-Content -Path (Join-Path $containerFolder "thumbprint.txt") -Value "$($cert.Thumbprint)"
                         }
                     }
-                    Start-Process Powershell @verb -ArgumentList "-command & {$scriptBlock} -certPath '$certPath' -containerFolder '$containerFolder'" -Wait -PassThru | Out-Null
+                    Start-Process @params -ArgumentList "-command & {$scriptBlock} -certPath '$certPath' -containerFolder '$containerFolder'" -Wait -PassThru | Out-Null
                 }
                 catch {
                     Write-Host -ForegroundColor Yellow "Unable to import certificate $certPath in Trusted Root Certification Authorities, you will need to do this manually"
@@ -2059,7 +2177,7 @@ if (-not `$restartingInstance) {
         if ($version -eq [System.Version]"14.10.40471.0") {
             Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
             $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
-            Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
+            Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/patch/14.10.40471.0/Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
                 Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
             } -argumentList (Get-BcContainerPath -containerName $containerName -path $idepsm)
@@ -2067,7 +2185,7 @@ if (-not `$restartingInstance) {
         }
     
         if ((($version -eq [System.Version]"16.0.11240.12076") -or ($version -eq [System.Version]"16.0.11240.12085")) -and $devCountry -ne "W1") {
-            $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
+            $url = "https://bcartifacts.blob.core.windows.net/patch/16.0.11240.12076/$($devCountry.ToUpper()).zip"
             Write-Host "Downloading new test apps for this version from $url"
             $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
             Download-File -sourceUrl $url -destinationFile "$zipName.zip"
@@ -2087,7 +2205,7 @@ if (-not `$restartingInstance) {
         if ($restoreBakFolder) {
             if ($multitenant) {
                 $dbs = Get-ChildItem -Path $bakFolder -Filter "*.bak"
-                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | % { $_.BaseName }
+                $tenants = $dbs | Where-Object { $_.Name -ne "app.bak" } | ForEach-Object { $_.BaseName }
                 Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
                     Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName "Multitenant" -KeyValue "true" -ApplyTo ConfigFile
                 }
@@ -2162,7 +2280,7 @@ if (-not `$restartingInstance) {
             # Include newsyntax if NAV Version is greater than NAV 2017
     
             if ($includeCSide) {
-                $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion"
+                $originalFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion"
                 if (!(Test-Path $originalFolder)) {
                     # Export base objects
                     Export-NavContainerObjects -containerName $containerName `
@@ -2174,7 +2292,7 @@ if (-not `$restartingInstance) {
             }
     
             if ($version.Major -ge 15) {
-                $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                $alFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-al"
                 if (!(Test-Path $alFolder) -or (Get-ChildItem -Path $alFolder -Recurse | Measure-Object).Count -eq 0) {
                     if (!(Test-Path $alFolder)) {
                         New-Item $alFolder -ItemType Directory | Out-Null
@@ -2196,7 +2314,7 @@ if (-not `$restartingInstance) {
                         } -argumentList (Get-BCContainerPath -containerName $containerName -path $alFolder), $devCountry
                     }
                     else {
-                        $appFile = Join-Path $ExtensionsFolder "BaseApp-$navVersion.app"
+                        $appFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\BaseApp-$navVersion.app"
                         $appName = "Base Application"
                         if ($version -lt [Version]("15.0.35659.0")) {
                             $appName = "BaseApp"
@@ -2207,7 +2325,7 @@ if (-not `$restartingInstance) {
                                             -appFile $appFile `
                                             -credential $credential
         
-                        $appFolder = Join-Path $ExtensionsFolder "BaseApp-$navVersion"
+                        $appFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\BaseApp-$navVersion"
                         Extract-AppFileToFolder -appFilename $appFile -appFolder $appFolder
         
                         'layout','src','translations' | ForEach-Object {
@@ -2222,7 +2340,7 @@ if (-not `$restartingInstance) {
                 }
             }
             elseif ($version.Major -gt 10) {
-                $originalFolder = Join-Path $ExtensionsFolder "Original-$navversion-newsyntax"
+                $originalFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-newsyntax"
                 if (!(Test-Path $originalFolder)) {
                     # Export base objects as new syntax
                     Export-NavContainerObjects -containerName $containerName `
@@ -2232,7 +2350,7 @@ if (-not `$restartingInstance) {
                                                -ExportTo 'txt folder (new syntax)'
                 }
                 if ($version.Major -ge 14 -and $includeAL) {
-                    $alFolder = Join-Path $ExtensionsFolder "Original-$navversion-al"
+                    $alFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\Original-$navversion-al"
                     if ($runTxt2AlInContainer -ne $containerName) {
                         Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
                         if (Test-Path $alFolder) {
@@ -2241,7 +2359,7 @@ if (-not `$restartingInstance) {
                         }
                     }
                     if (!(Test-Path $alFolder)) {
-                        $dotNetAddInsPackage = Join-Path $ExtensionsFolder "$containerName\coredotnetaddins.al"
+                        $dotNetAddInsPackage = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\coredotnetaddins.al"
                         Copy-Item -Path (Join-Path $PSScriptRoot "..\ObjectHandling\coredotnetaddins.al") -Destination $dotNetAddInsPackage -Force
                         if ($runTxt2AlInContainer -ne $containerName) {
                             Write-Host "Using container $runTxt2AlInContainer to convert .txt to .al"
@@ -2253,16 +2371,33 @@ if (-not `$restartingInstance) {
         }
     }
     
+    if ($Version.Major -ge 22) {
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
+            Write-Host "Cleanup old dotnet core assemblies"
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\1.1.*' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.NETCore.App\5.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+            Remove-Item -Path 'C:\Program Files\dotnet\shared\Microsoft.AspNetCore.App\5.0.*' -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+
     if ($includeAL) {
         $dotnetAssembliesFolder = Join-Path $containerFolder ".netPackages"
         New-Item -Path $dotnetAssembliesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
 
-        Write-Host "Creating .net Assembly Reference Folder for VS Code"
+        Write-Host "Creating .net Assembly Reference Folder"
         Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($dotnetAssembliesFolder, [System.Version] $Version)
 
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
 
-            $paths = @("C:\Windows\assembly", "C:\Windows\Microsoft.NET\assembly", $serviceTierFolder)
+            $paths = @()
+            if ($Version.Major -lt 22) {
+                $paths += @('C:\Windows\assembly', 'C:\Windows\Microsoft.NET\assembly')
+            }
+            else {
+                $paths += @('C:\Program Files\dotnet\Shared')
+            }
+            $paths += @($serviceTierFolder)
 
             $rtcFolder = "C:\Program Files (x86)\Microsoft Dynamics NAV\*\RoleTailored Client"
             if (Test-Path $rtcFolder -PathType Container) {
@@ -2276,17 +2411,30 @@ if (-not `$restartingInstance) {
                 $paths += "C:\Program Files (x86)\Open XML SDK"
             }
 
-            $paths | % {
-                $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
-                if (!(Test-Path $localPath)) {
-                    New-Item -Path $localPath -ItemType Directory -Force | Out-Null
-                }
+            $paths | ForEach-Object {
                 Write-Host "Copying DLLs from $_ to assemblyProbingPath"
-                Get-ChildItem -Path $_ -Filter *.dll -Recurse | % {
-                    if (!(Test-Path (Join-Path $localPath $_.Name))) {
-                        Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                if ($version.Major -ge 22) {
+                    Copy-Item -Path $_ -filter '*.dll' -Destination $dotnetAssembliesFolder -Recurse -Force -ErrorAction SilentlyContinue
+                }
+                else {
+                    $localPath = Join-Path $dotnetAssembliesFolder ([System.IO.Path]::GetFileName($_))
+                    if (!(Test-Path $localPath)) {
+                        New-Item -Path $localPath -ItemType Directory -Force | Out-Null
+                    }
+                    Get-ChildItem -Path $_ -Filter '*.dll' -Recurse | ForEach-Object {
+                        if (!(Test-Path (Join-Path $localPath $_.Name))) {
+                            Copy-Item -Path $_.FullName -Destination $localPath -Force -ErrorAction SilentlyContinue
+                        }
                     }
                 }
+            }
+
+            if ($version.Major -ge 22) {
+                Write-Host "Removing dotnet Framework Assemblies"
+                $dotnetServiceFolder = Join-Path $dotnetAssembliesFolder "Service"
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'Management') -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'SideServices') -Recurse -Force -ErrorAction SilentlyContinue
+                Remove-Item -Path (Join-Path $dotnetserviceFolder 'WindowsServiceInstaller') -Recurse -Force -ErrorAction SilentlyContinue
             }
 
             $serviceTierAddInsFolder = Join-Path $serviceTierFolder "Add-ins"
@@ -2296,7 +2444,7 @@ if (-not `$restartingInstance) {
                 }
             }
 
-            if ($version.Major -ge 21) {
+            if ($version.Major -eq 21) {
                 Remove-Item -Path (Join-Path $dotnetAssembliesFolder 'assembly\DocumentFormat.OpenXml.dll') -Force -ErrorAction SilentlyContinue
             }
         } -argumentList (Get-BcContainerPath -containerName $containerName -path $dotnetAssembliesFolder), $version

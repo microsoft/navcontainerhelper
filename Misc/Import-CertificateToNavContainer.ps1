@@ -42,7 +42,7 @@ try {
         if ($certificatePath -like "http://*" -or $certificatePath -like "https://*") {
             $cerUrl = $certificatePath
             $certificatePath = Join-Path "c:\run" "$([Guid]::NewGuid().ToString()).cer"
-            (New-Object System.Net.WebClient).DownloadFile($cerUrl, $certificatePath)
+            DownloadFileLow -sourceUrl $cerUrl -destinationFile $certificatePath
             $copied = $true
         }
 

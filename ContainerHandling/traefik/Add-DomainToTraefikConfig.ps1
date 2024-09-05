@@ -16,7 +16,7 @@ function Add-DomainToTraefikConfig {
 
     Write-Host "Looking up for dns Name '$PublicDnsName' in Traefik configuration . . ."
 
-    $tomlFile = (Join-Path -Path $hostHelperFolder -ChildPath "traefikforbc\config\traefik.toml")
+    $tomlFile = (Join-Path -Path $bcContainerHelperConfig.hostHelperFolder -ChildPath "traefikforbc\config\traefik.toml")
     if (-not (Test-Path -Path $tomlFile)) {
         throw "Traefik configuration could not been found! Please call Setup-TraefikContainerForBcContainers before using -useTraefik"
     }

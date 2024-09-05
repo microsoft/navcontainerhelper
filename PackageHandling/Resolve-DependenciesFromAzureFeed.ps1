@@ -28,6 +28,8 @@ function Resolve-DependenciesFromAzureFeed {
         [string] $feed,
         [Parameter(Mandatory = $true)]
         [string] $appsFolder,
+        [Parameter(Mandatory = $false)]
+        [string] $pat = '',
         [string] $outputFolder = (Join-Path $appsFolder '.alpackages'),
         [switch] $runtimePackages,
         [int] $lvl = -1,
@@ -36,7 +38,10 @@ function Resolve-DependenciesFromAzureFeed {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-
+    if($pat -ne '') {
+        Write-Warning "Enviroment Variable AZURE_DEVOPS_EXT_PAT is overridden";
+        $env:AZURE_DEVOPS_EXT_PAT = $pat
+    }
     $spaces = ''
     $lvl++
 
@@ -74,7 +79,7 @@ try {
             Write-Host "$($spaces)$($_.Name)"
         }
         # Create temp folders
-        $tempAppFolder = Join-Path ((Get-Item -Path $env:temp).FullName) ([Guid]::NewGuid().ToString())
+        $tempAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
         $tempAppDependenciesFolder = Join-Path $tempAppFolder 'dependencies'
         try {
             New-Item -path $tempAppFolder -ItemType Directory -Force | Out-Null

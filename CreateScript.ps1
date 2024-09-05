@@ -320,7 +320,12 @@ if (($pswindow.BufferSize) -and ($pswindow.WindowSize) -and ($pswindow.WindowSiz
 $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
 $isAdministrator = $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $randompw = Get-RandomPassword
-$bestContainerOsVersion = [System.Version]((Get-BestGenericImageName).Split(':')[1]).Split('-')[0]
+$os = (Get-CimInstance Win32_OperatingSystem)
+if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
+    throw "Unknown Host Operating System"
+}
+$UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
+$hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
 $ErrorActionPreference = "STOP"
 
 $script:wizardStep = 0
@@ -333,7 +338,6 @@ $Step = @{
     "Authentication"     = 3
     "ContainerName"      = 4
     "Version"            = 5
-    "SasToken"           = 6
     "Version2"           = 7
     "Country"            = 8
     "TestToolkit"        = 9
@@ -531,9 +535,8 @@ $Step.Version {
         -options ([ordered]@{
             "LatestSandbox" = "Latest Business Central Sandbox"
             "LatestOnPrem" = "Latest Business Central OnPrem"
-            "Public Preview" = "Public Preview of Business Central Sandbox is typically available one month before we ship next major"
-            "Next Major" = "Insider Business Central Sandbox for Next Major release (requires insider SAS token from http://aka.ms/collaborate)"
-            "Next Minor" = "Insider Business Central Sandbox for Next Minor release (requires insider SAS token from http://aka.ms/collaborate)"
+            "Next Major" = "Insider Business Central Sandbox for Next Major release (you automatically accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by using this option)"
+            "Next Minor" = "Insider Business Central Sandbox for Next Minor release (you automatically accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by using this option)"
             "SpecificSandbox" = "Specific Business Central Sandbox build (requires version number)"
             "SpecificOnPrem" = "Specific Business Central OnPrem build (requires version number)"
             "NAV2018" = "Specific NAV 2018 version"
@@ -549,30 +552,6 @@ $Step.Version {
     }
 }
 
-$Step."SasToken" {
-
-    $sasToken = ""
-    if ($predef -like "Next*") {
-        $sasToken = Enter-Value `
-            -title @'
-   _____          _____   _______    _              
-  / ____|  /\    / ____| |__   __|  | |             
- | (___   /  \  | (___      | | ___ | | _____ _ __  
-  \___ \ / /\ \  \___ \     | |/ _ \| |/ / _ \ '_ \ 
-  ____) / ____ \ ____) |    | | (_) |   <  __/ | | |
- |_____/_/    \_\_____/     |_|\___/|_|\_\___|_| |_|
-
-'@ `
-            -description "Creating container with $predef are released for partners under NDA only.`n`nA SAS (Shared Access Signature) Token is required in order to download insider artifacts.`nA SAS Token can be found on http://aka.ms/collaborate in this document:`nhttps://partner.microsoft.com/en-us/dashboard/collaborate/packages/9387" `
-            -question "SAS Token" `
-            -previousStep `
-            -doNotConvertToLower
-        if ($script:wizardStep -eq $script:thisStep+1) {
-            $script:prevSteps.Push($script:thisStep)
-        }
-    }
-}
-
 $Step.Version2 {
 
     $fullVersionNo = $false
@@ -582,12 +561,6 @@ $Step.Version2 {
     if ($predef -like "latest*") {
         $type = $predef.Substring(6)
         $version = ''
-    }
-    elseif ($predef -like "Public Preview") {
-        $type = "Sandbox"
-        $version = ''
-        $storageAccount = "bcpublicpreview"
-        $select = 'latest'
     }
     elseif ($predef -like "Next*") {
         $type = "Sandbox"
@@ -705,16 +678,17 @@ $Step.Version2 {
 
 $Step.Country {
 
+    Write-Host "Analyzing artifacts"
     $versionno = $version
     if ($versionno -eq "") {
         $searchCountry = "us"
-        if ($type -eq 'sandbox') { "at" }
-        $aurl = Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country $searchCountry -sasToken $sasToken -select $select
+        if ($type -eq 'sandbox') { $searchCountry = "at" }
+        $aurl = Get-BcArtifactUrl -storageAccount $storageAccount -type $type -country $searchCountry -select $select -accept_insiderEula
         $versionno = $aurl.split('/')[4]
     }
     $majorVersion = [int]($versionno.Split('.')[0])
     $countries = @()
-    Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $versionno -select All -sasToken $sasToken | ForEach-Object {
+    Get-BCArtifactUrl -storageAccount $storageAccount -type $type -version $versionno -select All -accept_insiderEula | ForEach-Object {
         $countries += $_.SubString($_.LastIndexOf('/')+1).Split('?')[0]
     }
     $description = ""
@@ -837,7 +811,7 @@ $Step.PremiumPlan {
 
 $step.IncludeAL {
     $includeAL = "N"
-    if ($majorVersion -gt 14) {
+    if ($hosting -eq 'local' -and $majorVersion -gt 14) {
 
         $includeAL = Enter-Value `
             -title @'
@@ -889,7 +863,7 @@ $step.ExportAlSource {
 $step.IncludeCSIDE {
     $includeCSIDE = "N"
 
-    if ($majorVersion -le 14) {
+    if ($hosting -eq 'local' -and $majorVersion -le 14) {
 
         if ($majorVersion -lt 14) {
             $product = "NAV"
@@ -947,7 +921,7 @@ $step.ExportCAlSource {
 $Step.Vsix {
 
     $vsix = "N"
-    if ($majorVersion -gt 14) {
+    if ($hosting -eq 'local' -and $majorVersion -gt 14) {
         $vsix = Enter-Value `
             -title @'
            _        _                                                ______      _                 _             
@@ -1046,9 +1020,12 @@ $Step.License {
 }
 
 $Step.Database {
-   
-    $database = Select-Value `
-        -title @'
+    if ($hosting -ne "Local") {
+        $database = "default"
+    }
+    else {
+        $database = Select-Value `
+            -title @'
   _____        _        _                    
  |  __ \      | |      | |                   
  | |  | | __ _| |_ __ _| |__   __ _ ___  ___ 
@@ -1057,73 +1034,72 @@ $Step.Database {
  |_____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|
 
 '@ `
-        -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
-        -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
-        -question "Database" `
-        -default "default" `
-        -previousStep
-    if ($script:wizardStep -eq $script:thisStep+1) {
-        $script:prevSteps.Push($script:thisStep)
-    }
-    
-    if ($database -eq "bakfile") {
-        $bakFile = Enter-Value `
-            -title "Database Backup" `
-            -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
-            -question "Database Backup" `
+            -description "When running Business Central on Docker the default behavior is to run the Cronus Demo database inside the container, using the instance of SQLEXPRESS, which is installed there.`nYou can change the database by specifying a database backup or you can configure the container to connect to a database server (which might be on the host)." `
+            -options ([ordered]@{"default" = "Use Cronus demo database on SQLEXPRESS inside the container"; "bakfile" = "Restore a database backup on SQLEXPRESS inside the container (must be the correct version)"; "connect" = "Connect to an existing database on a database server (which might be on the host)" }) `
+            -question "Database" `
+            -default "default" `
             -previousStep
-        $bakFile = $bakFile.Trim(@('"'))
-    }
-    elseif ($database -eq "connect") {
+        if ($script:wizardStep -eq $script:thisStep+1) {
+            $script:prevSteps.Push($script:thisStep)
+        }
     
-        $err = $false
-        do {
-            $params = @{}
-            if ($err) {
-                $params = @{ "doNotClearHost" = $true }
-            }
-            $connectionString = Enter-Value @params `
-                -title "Database Connection String" `
-                -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
-                -question "Database Connection String" `
-                -doNotConvertToLower `
+        if ($database -eq "bakfile") {
+            $bakFile = Enter-Value `
+                -title "Database Backup" `
+                -description "Please specify the full path and filename of the database backup (.bak file) you want to use.`n`nNote: The database backup must be from the same version as the version running in the container" `
+                -question "Database Backup" `
                 -previousStep
-            if ($connectionString -eq "back") {
-                $err = $false
-            }
-            else {
-                $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
-                $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
-                $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
-                $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
-            
-                $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
+            $bakFile = $bakFile.Trim(@('"'))
+        }
+        elseif ($database -eq "connect") {
+            $err = $false
+            do {
+                $params = @{}
                 if ($err) {
-                    Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
-                    Write-Host
+                    $params = @{ "doNotClearHost" = $true }
                 }
+                $connectionString = Enter-Value @params `
+                    -title "Database Connection String" `
+                    -description "Please enter the connection string for your database connection.`n`nFormat: Server|Data Source=myServerName\myServerInstance;Database|Initial Catalog=myDataBase;User Id=myUsername;Password=myPassword`n`nNote: Specify localhost or . as myServerName if the database server is the host.`nNote: The connection string cannot use integrated security, it must include username and password." `
+                    -question "Database Connection String" `
+                    -doNotConvertToLower `
+                    -previousStep
+                if ($connectionString -eq "back") {
+                    $err = $false
+                }
+                else {
+                    $databaseServer = $connectionString.Split(';')   | Where-Object { $_ -like "Server=*" -or $_ -like "Data Source=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                    $databaseName = $connectionString.Split(';')     | Where-Object { $_ -like "Database=*" -or $_ -like "Initial Catalog=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                    $databaseUserName = $connectionString.Split(';') | Where-Object { $_ -like "User Id=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                    $databasePassword = $connectionString.Split(';')   | Where-Object { $_ -like "Password=*" } | % { $_.SubString($_.indexOf('=')+1) }
+                
+                    $err = !(($databaseServer) -and ($databaseName) -and ($databaseUserName) -and ($databasePassword))
+                    if ($err) {
+                        Write-Host -ForegroundColor Red "You need to specify a connection string, which contains all 4 elements described"
+                        Write-Host
+                    }
+                }
+            } while ($err)
+            if ($connectionString -ne "back") {
+                $idx = $databaseServer.IndexOf('\')
+                if ($idx -ge 0) {
+                    $databaseInstance = $databaseServer.Substring($idx+1)
+                    $databaseServer = $databaseServer.Substring(0,$idx)
+                }
+                else {
+                    $databaseInstance = ""
+                }
+                if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
+                    $databaseServer = "host.containerhelper.internal"
+                }
+                $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
             }
-        } while ($err)
-        if ($connectionString -ne "back") {
-            $idx = $databaseServer.IndexOf('\')
-            if ($idx -ge 0) {
-                $databaseInstance = $databaseServer.Substring($idx+1)
-                $databaseServer = $databaseServer.Substring(0,$idx)
-            }
-            else {
-                $databaseInstance = ""
-            }
-            if ($databaseServer -eq "" -or $databaseServer -eq "." -or $databaseServer -eq "localhost") {
-                $databaseServer = "host.containerhelper.internal"
-            }
-            $databaseName = $databaseName.TrimStart('[').TrimEnd(']')
         }
     }
 }
 
 $step.Multitenant {
-    $multitenant = ""
-    if ($database -ne "Connect") {
+    if ($database -ne "Connect" -and $hosting -eq 'local') {
         if ($type -eq "Sandbox") {
             $description = "You are running a sandbox container, which by default is multitenant.`nBy specifying -multitenant:`$false, you can switch the container to single tenancy."
             $default = "Y"
@@ -1213,43 +1189,8 @@ $Step.SSL {
 
 $Step.Isolation {
     if ($hosting -eq "Local") {
-
-        $os = (Get-CimInstance Win32_OperatingSystem)
-        if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {
-            throw "Unknown Host Operating System"
-        }
-    
-        $UBR = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion' -Name UBR).UBR
-        $hostOsVersion = [System.Version]::Parse("$($os.Version).$UBR")
-    
-        try {
-            $bestContainerOS = "The image, which matches your host OS best is $($bestContainerOsVersion.ToString())"
-            if ($hostOsVersion.Major -eq $bestContainerOsVersion.Major -and $hostOsVersion.Minor -eq $bestContainerOsVersion.Minor -and $hostOsVersion.Build -eq $bestContainerOsVersion.Build) {
-                $defaultIsolation = "Process"
-            }
-            else {
-                $defaultIsolation = "Hyper-V"
-            }
-        }
-        catch {
-            $bestContainerOsVersion = [System.Version]"0.0.0.0"
-            $bestContainerOS = "Unable to determine the image which matches your OS best"
-            $defaultIsolation = "Hyper-V"
-        }
-    
-        $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf an image with a matching OS is found, Process isolation will be favoured, else Hyper-V will be selected.`n`nYour host OS is Windows $($hostOSVersion.ToString())`n$bestContainerOS`n"
-
-        if ($isAdministrator) {
-            $hyperv = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
-            if ($hyperv) {
-                $description += "Hyper-V is enabled"
-            }
-            else {
-                $description += "Hyper-V is NOT enabled (you will not be able to use Hyper-V isolation on this host)"
-                $defaultIsolation = "Process"
-            }
-        }
-        $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use (on this host, this will be $defaultIsolation isolation)"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
+        $description = "Containers can run in process isolation or hyperv isolation, see more here: https://docs.microsoft.com/en-us/virtualization/windowscontainers/manage-containers/hyperv-container`nIf not specified, the ContainerHelper will try to detect which isolation mode will work for your OS.`nIf your host OS is updated and a matching container OS is found, Process isolation will be favoured, else Hyper-V will be selected."
+        $options = [ordered]@{"default" = "Allow the ContainerHelper to decide which isolation mode to use"; "process" = "Force Process isolation"; "hyperv" = "Force Hyper-V isolation" }
     
         $isolation = Select-Value `
             -title @'
@@ -1291,27 +1232,24 @@ $Step.Memory {
         if ($newBaseApp) {
             $description += "- $($newBaseApp)G for base app development`n"
         }
-        if ($isolation -eq "process" -or ($isolation -eq "default" -and $defaultIsolation -eq "Process")) {
-            $description += "`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host.`nMemory no longer needed by the processes in the container are given back to the host`nYou can set a limit to the amount of memory, the container is allowed to use."
-            $defaultDescription = "blank means no limit"
+        $description += "`n`nWhen running Process isolation, the container will only use the actual amount of memory used by the processes running in the container from the host. Memory no longer needed by the processes in the container are given back to the host. You can set a limit to the amount of memory, the container is allowed to use. "
+        $description += "(blank means no limit)"
+
+        $description += "`n`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container. "
+        if ($hostOsVersion.Build -ge 17763) {
+            $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed. Memory no longer needed will be freed from physical memory again. "
+            try {
+                $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
+                if ($CompSysResults.AutomaticManagedPagefile) {
+                    $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file. "
+                }
+            }
+            catch {}
         }
         else {
-            $description += "`nWhen running Hyper-V isolation, the container will pre-allocate the full amount of memory given to the container.`n"
-            if ($hostOsVersion.Build -ge 17763) {
-                $description += "Windows Server 2019 / Windows 10 1809 and later Windows versions are doing this by reserving the memory in the paging file and only using physical memory when needed.`nMemory no longer needed will be freed from physical memory again.`n"
-                try {
-                    $CompSysResults = Get-CimInstance win32_computersystem -ComputerName $computer -Namespace 'root\cimv2'
-                    if ($CompSysResults.AutomaticManagedPagefile) {
-                        $description += "Your paging file settings indicate that your paging file is automatically managed, you could consider changing this if you get problems with the size of the paging file.`n"
-                    }
-                }
-                catch {}
-            }
-            else {
-                $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool.`n"
-            }
-            $defaultDescription = "blank will use ContainerHelper default which is 4G"
+            $description += "Windows Server 2016 and Windows 10 versions before 1809 is doing this by allocating the memory from the main memory pool. "
         }
+        $description += "(blank will use ContainerHelper default which is 4G)"
     
         $memoryLimit = Enter-Value `
             -title @'
@@ -1325,7 +1263,7 @@ $Step.Memory {
                                    |___/                            
 '@ `
             -description $description `
-            -question "Specify the amount of memory the container is allowed to use? ($defaultDescription)" `
+            -question "Specify the amount of memory the container is allowed to use?" `
             -default 'blank' `
             -previousStep
         if ($script:wizardStep -eq $script:thisStep+1) {
@@ -1336,7 +1274,7 @@ $Step.Memory {
             $memoryLimit = ""
         }
         else {
-            $memoryLimit = "$($memoryLimit.Trim().ToLowerInvariant().TrimEnd('gb').TrimEnd('g'))G"
+            $memoryLimit = "$($memoryLimit.ToLowerInvariant().Trim(' gb'))G"
         }
     }
 }
@@ -1422,8 +1360,8 @@ $step.Final {
             }
         }
         elseif ($predef -like "Next*") {
-            $script += "`$sasToken = '$sasToken'"
-            $script += "`$artifactUrl = Get-BcArtifactUrl -storageAccount '$storageAccount' -type '$type' -country '$country' -select '$select' -sasToken `$sasToken"
+            $script += "`$artifactUrl = Get-BcArtifactUrl -storageAccount '$storageAccount' -type '$type' -country '$country' -select '$select' -accept_insiderEula"
+            $parameters += "-accept_insiderEula"
         }
         else {
             if ($version) {

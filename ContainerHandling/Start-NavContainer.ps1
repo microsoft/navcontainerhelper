@@ -18,6 +18,11 @@ function Start-BcContainer {
         [int] $timeout = 1800
     )
 
+    if ((docker inspect -f '{{.State.Running}}' $containerName) -eq "true") {
+        Write-Host "Container $containerName is already running"
+        return
+    }
+    
     $logs = @(docker logs $containerName)
     $startlog = [string]::Join("`r`n",$logs)
 

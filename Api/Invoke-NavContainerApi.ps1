@@ -30,13 +30,13 @@
  .Parameter silent
   Include the silent switch to avoid the printout of the URL invoked
  .Example
-  $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
+  $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion "v2.0" -Query "companies?`$filter=$companyFilter" -credential $credential
  .Example
-  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "v2.0" -Query "customers" -credential $credential | Select-Object -ExpandProperty value
  .Example 
-  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers?`$filter=$([Uri]::EscapeDataString("number eq '10000'"))" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "v2.0" -Query "customers?`$filter=$([Uri]::EscapeDataString("number eq '10000'"))" -credential $credential | Select-Object -ExpandProperty value
  .Example
-  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "v2.0" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
 #>
 function Invoke-BcContainerApi {
     Param (
@@ -107,7 +107,7 @@ try {
     
     $ip = Get-BcContainerIpAddress -containerName $containerName
     if ($ip) {
-        $url = "${protocol}${ip}:$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
+        $url = "$($protocol)$($ip):$($customConfig.ODataServicesPort)/$($customConfig.ServerInstance)/api"
     }
     else {
         $url = $customconfig.PublicODataBaseUrl.Replace("/OData","/api")
@@ -115,19 +115,13 @@ try {
 
     $sslVerificationDisabled = ($protocol -eq "https://")
     if ($sslVerificationDisabled) {
-        if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
-        {
-            Add-Type -TypeDefinition "
-                using System.Net.Security;
-                using System.Security.Cryptography.X509Certificates;
-                public static class SslVerification
-                {
-                    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-                    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-                    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-                }"
+        if ($isPsCore) {
+            $parameters += @{ "SkipCertificateCheck" = $true }
+            $sslVerificationDisabled = $false
         }
-        [SslVerification]::Disable()
+        else {
+            [SslVerification]::Disable()
+        }
     }
 
     if ($method -eq "POST" -and !$body) {
@@ -172,7 +166,7 @@ try {
     if (!$silent) {
         Write-Host "Invoke $Method on $url"
     }
-    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters
+    Invoke-RestMethod -Method $Method -uri "$url" -Headers $headers @parameters @allowUnencryptedAuthenticationParam
 
     if ($sslverificationdisabled) {
         [SslVerification]::Enable()

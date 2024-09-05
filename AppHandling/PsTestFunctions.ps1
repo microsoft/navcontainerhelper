@@ -44,7 +44,7 @@ function New-ClientContext {
         if ($Credential -eq $null -or $credential -eq [System.Management.Automation.PSCredential]::Empty) {
             throw "You need to specify credentials (Username and AccessToken) if using AAD authentication"
         }
-        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
+        $accessToken = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password))
         $clientContext = [ClientContext]::new($serviceUrl, $accessToken, $interactionTimeout, $culture, $timezone)
     }
     else {
@@ -101,6 +101,28 @@ function Set-ExtensionId
     $ClientContext.SaveValue($extensionIdControl, $ExtensionId)
 }
 
+function Set-TestCodeunitRange
+(
+    [string] $testCodeunitRange,
+    [ClientContext] $ClientContext,
+    [switch] $debugMode,
+    $Form
+) {
+    Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    if (!$testCodeunitRange) { return }
+    if ($testCodeunitRange -eq "*") { $testCodeunitRange = "0.." }
+
+    if ($debugMode) {
+        Write-Host "Setting test codeunit range '$testCodeunitRange'"
+    }
+    $testCodeunitRangeControl = $ClientContext.GetControlByName($Form, "TestCodeunitRangeFilter")
+    if ($null -eq $testCodeunitRangeControl) { 
+        if ($debugMode) { Write-Host "Test codeunit range control not found on test page" }
+        return 
+    }
+    $ClientContext.SaveValue($testCodeunitRangeControl, $testCodeunitRange)
+}
+
 function Set-TestRunnerCodeunitId
 (
     [string] $testRunnerCodeunitId,
@@ -152,12 +174,159 @@ function Set-RunFalseOnDisabledTests
     }
 }
 
+function Set-CCTrackingType
+{
+    param (
+        [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
+        [string] $Value,
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    $TypeValues = @{
+        Disabled = 0
+        PerRun = 1
+        PerCodeunit=2
+        PerTest=3
+    }
+    $suiteControl = $ClientContext.GetControlByName($Form, "CCTrackingType")
+    $ClientContext.SaveValue($suiteControl, $TypeValues[$Value])
+}
+
+function Set-CCExporterID
+{
+    param (
+        [string] $Value,
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    if($Value){
+        $suiteControl = $ClientContext.GetControlByName($Form, "CCExporterID");
+        $ClientContext.SaveValue($suiteControl, $Value)
+    }
+}
+
+function Set-CCProduceCodeCoverageMap
+{
+
+    param (
+        [ValidateSet('Disabled', 'PerCodeunit', 'PerTest')]
+        [string] $Value,
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    $TypeValues = @{
+        Disabled = 0
+        PerCodeunit = 1
+        PerTest=2
+    }
+    $suiteControl = $ClientContext.GetControlByName($Form, "CCMap")
+    $ClientContext.SaveValue($suiteControl, $TypeValues[$Value])
+}
+
+function Clear-CCResults
+{
+    param (
+        [ClientContext] $ClientContext,
+        $Form
+    )
+    $ClientContext.InvokeAction($ClientContext.GetActionByName($Form, "ClearCodeCoverage"))
+}
+
+function CollectCoverageResults {
+    param (
+        [ValidateSet('PerRun', 'PerCodeunit', 'PerTest')]
+        [string] $TrackingType,
+        [string] $OutputPath,
+        [switch] $DisableSSLVerification,
+        [ValidateSet('Windows','NavUserPassword','AAD')]
+        [string] $AutorizationType = $script:DefaultAuthorizationType,
+        [Parameter(Mandatory=$false)]
+        [pscredential] $Credential,
+        [Parameter(Mandatory=$true)]
+        [string] $ServiceUrl,
+        [string] $CodeCoverageFilePrefix
+    )
+    try{
+        $clientContext = Open-ClientSessionWithWait -DisableSSLVerification:$DisableSSLVerification -AuthorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
+        $form = Open-TestForm -TestPage $TestPage -ClientContext $clientContext
+        do {
+            $clientContext.InvokeAction($clientContext.GetActionByName($form, "GetCodeCoverage"))
+
+            $CCResultControl = $clientContext.GetControlByName($form, "CCResultsCSVText")
+            $CCInfoControl = $clientContext.GetControlByName($form, "CCInfo")
+            $CCResult = $CCResultControl.StringValue
+            $CCInfo = $CCInfoControl.StringValue
+            if($CCInfo -ne $script:CCCollectedResult){
+                $CCInfo = $CCInfo -replace ",","-"
+                $CCOutputFilename = $CodeCoverageFilePrefix +"_$CCInfo.dat"
+                Write-Host "Storing coverage results of $CCCodeunitId in:  $OutputPath\$CCOutputFilename"
+                Set-Content -Path "$OutputPath\$CCOutputFilename" -Value $CCResult
+            }
+        } while ($CCInfo -ne $script:CCCollectedResult)
+       
+        if($ProduceCodeCoverageMap -ne 'Disabled') {
+            $codeCoverageMapPath = Join-Path $OutputPath "TestCoverageMap"
+            SaveCodeCoverageMap -OutputPath $codeCoverageMapPath  -DisableSSLVerification:$DisableSSLVerification -AutorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
+        }
+
+        $clientContext.CloseForm($form)
+    }
+    finally{
+        if($clientContext){
+            $clientContext.Dispose()
+        }
+    }
+}
+
+function SaveCodeCoverageMap {
+    param (
+        [string] $OutputPath,
+        [switch] $DisableSSLVerification,
+        [ValidateSet('Windows','NavUserPassword','AAD')]
+        [string] $AutorizationType = $script:DefaultAuthorizationType,
+        [Parameter(Mandatory=$false)]
+        [pscredential] $Credential,
+        [Parameter(Mandatory=$true)]
+        [string] $ServiceUrl
+    )
+    try{
+        $clientContext = Open-ClientSessionWithWait -DisableSSLVerification:$DisableSSLVerification -AuthorizationType $AutorizationType -Credential $Credential -ServiceUrl $ServiceUrl
+        $form = Open-TestForm -TestPage $TestPage -ClientContext $clientContext
+
+        $clientContext.InvokeAction($clientContext.GetActionByName($form, "GetCodeCoverageMap"))
+
+        $CCResultControl = $clientContext.GetControlByName($form, "CCMapCSVText")
+        $CCMap = $CCResultControl.StringValue
+
+        if (-not (Test-Path $OutputPath))
+        {
+            New-Item $OutputPath -ItemType Directory
+        }
+        
+        $codeCoverageMapFileName = Join-Path $codeCoverageMapPath "TestCoverageMap.txt"
+        if (-not (Test-Path $codeCoverageMapFileName))
+        {
+            New-Item $codeCoverageMapFileName -ItemType File
+        }
+
+        Add-Content -Path $codeCoverageMapFileName -Value $CCMap
+
+        $clientContext.CloseForm($form)
+    }
+    finally{
+        if($clientContext){
+            $clientContext.Dispose()
+        }
+    }
+}
+
 function Get-Tests {
     Param(
         [ClientContext] $clientContext,
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $extensionId = "",
         [string] $testRunnerCodeunitId = "",
         [array]  $disabledtests = @(),
@@ -199,6 +368,7 @@ function Get-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
@@ -327,17 +497,36 @@ function Run-ConnectionTest {
     Write-Host "Extension Management successfully closed"
 }
 
+function GetDT {
+    Param(
+        $val
+    )
+
+    if ($val -is [DateTime]) {
+        $val
+    }
+    else {
+        [DateTime]::Parse($val)
+    }
+}
+
 function Run-Tests {
     Param(
         [ClientContext] $clientContext,
         [int] $testPage = 130409,
         [string] $testSuite = "DEFAULT",
         [string] $testCodeunit = "*",
+        [string] $testCodeunitRange = "",
         [string] $testGroup = "*",
         [string] $testFunction = "*",
         [string] $extensionId = "",
         [string] $testRunnerCodeunitId,
         [array]  $disabledtests = @(),
+        [ValidateSet('Disabled', 'PerRun', 'PerCodeunit', 'PerTest')]
+        [string] $CodeCoverageTrackingType = 'Disabled',
+        [ValidateSet('Disabled','PerCodeunit','PerTest')]
+        [string] $ProduceCodeCoverageMap = 'Disabled',
+        [string] $CodeCoverageExporterId,
         [switch] $detailed,
         [switch] $debugMode,
         [string] $XUnitResultFileName = "",
@@ -349,7 +538,8 @@ function Run-Tests {
         [string] $AzureDevOps = 'no',
         [ValidateSet('no','error','warning')]
         [string] $GitHubActions = 'no',
-        [switch] $connectFromHost
+        [switch] $connectFromHost,
+        [scriptblock] $renewClientContext
     )
 
     if ($testPage -eq 130455) {
@@ -393,9 +583,16 @@ function Run-Tests {
 
     if ($testPage -eq 130455) {
         Set-ExtensionId -ExtensionId $extensionId -Form $form -ClientContext $clientContext -debugMode:$debugMode
+        Set-TestCodeunitRange -testCodeunitRange $testCodeunitRange -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-TestRunnerCodeunitId -TestRunnerCodeunitId $testRunnerCodeunitId -Form $form -ClientContext $clientContext -debugMode:$debugMode
         Set-RunFalseOnDisabledTests -DisabledTests $DisabledTests -Form $form -ClientContext $clientContext -debugMode:$debugMode
         $clientContext.InvokeAction($clientContext.GetActionByName($form, 'ClearTestResults'))
+        if($CodeCoverageTrackingType -ne 'Disabled'){
+            Set-CCTrackingType -Value $CodeCoverageTrackingType -Form $form -ClientContext $clientContext
+            Set-CCExporterID -Value $CodeCoverageExporterId -Form $form -ClientContext $clientContext
+            Clear-CCResults -Form $form -ClientContext $clientContext
+            Set-CCProduceCodeCoverageMap -Value $ProduceCodeCoverageMap -Form $form -ClientContext $clientContext
+        }
     }
 
     $process = $null
@@ -453,6 +650,8 @@ function Run-Tests {
             Write-Host "Using new test-runner mechanism"
         }
 
+        $hostname = hostname
+
         while ($true) {
         
             if ($process) {
@@ -469,6 +668,13 @@ function Run-Tests {
             if ($debugMode) {
                 Write-Host "Invoke RunNextTest"
             }
+
+            if ($renewClientContext) {
+                $clientContext.CloseForm($form)
+                $clientContext = Invoke-Command -ScriptBlock $renewClientContext
+                $form = $clientContext.OpenForm($testPage)
+            }
+
             $clientContext.InvokeAction($clientContext.GetActionByName($form, "RunNextTest"))
             $testResultControl = $clientContext.GetControlByName($form, "TestResultJson")
             $testResultJson = $testResultControl.StringValue
@@ -494,8 +700,8 @@ function Run-Tests {
                 $XUnitAssembly = $XUnitDoc.CreateElement("assembly")
                 $XUnitAssembly.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $XUnitAssembly.SetAttribute("test-framework", "PS Test Runner")
-                $XUnitAssembly.SetAttribute("run-date", [DateTime]::Parse($result.startTime).ToString("yyyy-MM-dd"))
-                $XUnitAssembly.SetAttribute("run-time", [DateTime]::Parse($result.startTime).ToString("HH':'mm':'ss"))
+                $XUnitAssembly.SetAttribute("run-date", (GetDT -val $result.startTime).ToString("yyyy-MM-dd"))
+                $XUnitAssembly.SetAttribute("run-time", (GetDT -val $result.startTime).ToString("HH':'mm':'ss"))
                 $XUnitAssembly.SetAttribute("total", $result.testResults.Count)
                 $XUnitCollection = $XUnitDoc.CreateElement("collection")
                 $XUnitAssembly.AppendChild($XUnitCollection) | Out-Null
@@ -512,13 +718,20 @@ function Run-Tests {
                 $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
                 $JUnitTestSuite.SetAttribute("name","$($result.codeUnit) $($result.name)")
                 $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
-                $JUnitTestSuite.SetAttribute("hostname", (hostname))
+                $JUnitTestSuite.SetAttribute("hostname", $hostname)
 
                 $JUnitTestSuite.SetAttribute("time", 0)
                 $JUnitTestSuite.SetAttribute("tests", $result.testResults.Count)
 
                 $JunitTestSuiteProperties = $JUnitDoc.CreateElement("properties")
                 $JUnitTestSuite.AppendChild($JunitTestSuiteProperties) | Out-Null
+
+                if ($extensionid) {
+                    $property = $JUnitDoc.CreateElement("property")
+                    $property.SetAttribute("name","extensionid")
+                    $property.SetAttribute("value", $extensionId)
+                    $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                }
 
                 if ($process) {
                     $property = $JUnitDoc.CreateElement("property")
@@ -527,10 +740,13 @@ function Run-Tests {
                     $JunitTestSuiteProperties.AppendChild($property) | Out-Null
 
                     if ($extensionid) {
-                        $property = $JUnitDoc.CreateElement("property")
-                        $property.SetAttribute("name","extensionid")
-                        $property.SetAttribute("value", $extensionId)
-                        $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                        $appname = "$(Get-NavAppInfo -ServerInstance $serverInstance | Where-Object { "$($_.AppId)" -eq $extensionId } | ForEach-Object { $_.Name })"
+                        if ($appname) {
+                            $property = $JUnitDoc.CreateElement("property")
+                            $property.SetAttribute("name","appName")
+                            $property.SetAttribute("value", $appName)
+                            $JunitTestSuiteProperties.AppendChild($property) | Out-Null
+                        }
                     }
 
                     if ($dumpAppsToTestOutput) {
@@ -540,7 +756,7 @@ function Run-Tests {
                         $property.SetAttribute("value", "{ ""Version"": ""$($VersionInfo.ProductVersion)"" }")
                         $JunitTestSuiteProperties.AppendChild($property) | Out-Null
     
-                        Get-NavAppInfo -ServerInstance $serverInstance | % {
+                        Get-NavAppInfo -ServerInstance $serverInstance | ForEach-Object {
                             $property = $JUnitDoc.CreateElement("property")
                             $property.SetAttribute("name", "app.info")
                             $property.SetAttribute("value", "{ ""Name"": ""$($_.Name)"", ""Publisher"": ""$($_.Publisher)"", ""Version"": ""$($_.Version)"" }")
@@ -549,13 +765,12 @@ function Run-Tests {
                         $dumpAppsToTestOutput = $false
                     }
                 }
-
             }
         
             $totalduration = [Timespan]::Zero
             if ($result.PSobject.Properties.name -eq "testResults") {
-                $result.testResults | % {
-                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                $result.testResults | ForEach-Object {
+                    $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
                     $totalduration += $testduration
                 }
@@ -577,8 +792,8 @@ function Run-Tests {
             $skipped = 0
         
             if ($result.PSobject.Properties.name -eq "testResults") {
-                $result.testResults | % {
-                    $testduration = [DateTime]::Parse($_.finishTime).Subtract([DateTime]::Parse($_.startTime))
+                $result.testResults | ForEach-Object {
+                    $testduration = (GetDT -val $_.finishTime).Subtract((GetDT -val $_.startTime))
                     if ($testduration.TotalSeconds -lt 0) { $testduration = [timespan]::Zero }
         
                     if ($XUnitResultFileName) {
@@ -704,7 +919,9 @@ function Run-Tests {
         if ($debugMode -and $testpage -eq 130455) {
             Write-Host "Using repeater based test-runner"
         }
-        
+
+        $hostname = hostname
+
         $filterControl = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientFilterLogicalControl])
         $repeater = $clientContext.GetControlByType($form, [Microsoft.Dynamics.Framework.UI.Client.ClientRepeaterControl])
         $index = 0
@@ -916,7 +1133,7 @@ function Run-Tests {
                             $JUnitTestSuite = $JUnitDoc.CreateElement("testsuite")
                             $JUnitTestSuite.SetAttribute("name","$codeunitId $Name")
                             $JUnitTestSuite.SetAttribute("timestamp", (Get-Date -Format s))
-                            $JUnitTestSuite.SetAttribute("hostname", (hostname))
+                            $JUnitTestSuite.SetAttribute("hostname", $hostname)
                             $JUnitTestSuite.SetAttribute("time", 0)
                             $JUnitTestSuite.SetAttribute("tests", 0)
                             $JUnitTestSuite.SetAttribute("failures", 0)
@@ -1066,16 +1283,18 @@ function Disable-SslVerification
 {
     if (-not ([System.Management.Automation.PSTypeName]"SslVerification").Type)
     {
-        Add-Type -TypeDefinition  @"
-using System.Net.Security;
-using System.Security.Cryptography.X509Certificates;
-public static class SslVerification
-{
-    private static bool ValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
-    public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = ValidationCallback; }
-    public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
-}
+$sslCallbackCode = @"
+    using System.Net.Security;
+    using System.Security.Cryptography.X509Certificates;
+
+    public static class SslVerification
+    {
+        public static bool DisabledServerCertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors) { return true; }
+        public static void Disable() { System.Net.ServicePointManager.ServerCertificateValidationCallback = DisabledServerCertificateValidationCallback; }
+        public static void Enable()  { System.Net.ServicePointManager.ServerCertificateValidationCallback = null; }
+    }
 "@
+        Add-Type -TypeDefinition $sslCallbackCode
     }
     [SslVerification]::Disable()
 }
