@@ -129,7 +129,7 @@ try {
                     if ($type -eq "report") {
                         0..($content.Count-1) | % {
                             $line = $content[$_]
-                            if ($line.Trim() -like "RDLCLayout = '*';" -or $line.Trim() -like "WordLayout = '*';") {
+                            if ($line.Trim() -like "RDLCLayout = '*';" -or $line.Trim() -like "WordLayout = '*';" -or $line.Trim() -like "LayoutFile = '*';") {
                                 $startIdx = $line.IndexOf("'")+1
                                 $endIdx = $line.LastIndexOf("'")
                                 $layoutFilename = $line.SubString($startIdx, $endIdx-$startIdx)
