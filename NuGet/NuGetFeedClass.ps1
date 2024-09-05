@@ -180,6 +180,8 @@ class NuGetFeed {
     }
 
     static [Int32] CompareVersions([string] $version1, [string] $version2) {
+        $version1 = [NuGetFeed]::NormalizeVersionStr($version1)
+        $version2 = [NuGetFeed]::NormalizeVersionStr($version2)
         $ver1 = $version1 -replace '-.+$' -as [System.Version]
         $ver2 = $version2 -replace '-.+$' -as [System.Version]
         if ($ver1 -eq $ver2) {
@@ -199,6 +201,7 @@ class NuGetFeed {
     # Test if version is included in NuGet version range
     # https://learn.microsoft.com/en-us/nuget/concepts/package-versioning#version-ranges
     static [bool] IsVersionIncludedInRange([string] $versionStr, [string] $nuGetVersionRange) {
+        $versionStr = [NuGetFeed]::NormalizeVersionStr($versionStr)
         $version = $versionStr -replace '-.+$' -as [System.Version]
         if ($nuGetVersionRange -match '^\s*([\[(]?)([\d\.]*)(,?)([\d\.]*)([\])]?)\s*$') {
             $inclFrom = $matches[1] -ne '('
@@ -208,7 +211,7 @@ class NuGetFeed {
                 $range = $true
             }
             if ($matches[2]) {
-                $fromver = [System.Version]$matches[2]
+                $fromver = [System.Version]([NuGetFeed]::NormalizeVersionStr($matches[2]))
             }
             else {
                 $fromver = [System.Version]::new(0,0,0,0)
@@ -218,7 +221,7 @@ class NuGetFeed {
                 }
             }
             if ($matches[4]) {
-                $tover = [System.Version]$matches[4]
+                $tover = [System.Version]([NuGetFeed]::NormalizeVersionStr($matches[4]))
             }
             elseif ($range) {
                 $tover = [System.Version]::new([int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue,[int32]::MaxValue)
