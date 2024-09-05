@@ -23,8 +23,7 @@
  .Parameter storageAccount
   The storageAccount that is being used where artifacts are stored (default is bcartifacts, usually should not be changed).
  .Parameter sasToken
-  The token that for accessing protected Azure Blob Storage. Make sure to set the right storageAccount!
-  Note that Business Central Insider artifacts doesn't require a sasToken after October 1st 2023, you can use the switch -accept_insiderEula to accept the EULA instead.
+  OBSOLETE - sasToken is no longer supported
  .Parameter accept_insiderEula
   Accept the EULA for Business Central Insider artifacts. This is required for using Business Central Insider artifacts without providing a SAS token after October 1st 2023.
  .Example
@@ -46,6 +45,7 @@ function Get-BCArtifactUrl {
         [DateTime] $after,
         [DateTime] $before,
         [String] $storageAccount = '',
+        [Obsolete("sasToken is no longer supported")]
         [String] $sasToken = '',
         [switch] $accept_insiderEula,
         [switch] $doNotCheckPlatform
@@ -116,7 +116,7 @@ try {
         }
 
         if (-not $country) { $country = 'w1' }
-        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
+        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
         $nextmajor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
         $nextminor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
 
@@ -128,43 +128,20 @@ try {
         }
     }
     else {
-        if ($sasToken) {
-            TestSasToken -url $sasToken
-        }
-
         if ($storageAccount -eq '') {
             $storageAccount = 'bcartifacts'
         }
 
         if (-not $storageAccount.Contains('.')) {
-            $storageAccount += ".azureedge.net"
+            $storageAccount += ".blob.core.windows.net"
         }
-        $BaseUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
-        $storageAccount = $storageAccount -replace ".azureedge.net", ".blob.core.windows.net"
+        $BaseUrl = ReplaceCDN -sourceUrl "https://$storageAccount/$($Type.ToLowerInvariant())/" -useBlobUrl:($bcContainerHelperConfig.DoNotUseCdnForArtifacts)
+        $storageAccount = ReplaceCDN -sourceUrl $storageAccount -useBlobUrl
 
-        if ($storageAccount -eq 'bcinsider.blob.core.windows.net') {
-            if (!$accept_insiderEULA) {
-                if ($sasToken) {
-                    Write-Host -ForegroundColor Yellow "After October 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
-                }
-                else {
-                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
-                }
-            }
+        if ($storageAccount -eq 'bcinsider.blob.core.windows.net' -and !$accept_insiderEULA) {
+            throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
         }
-
-        $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
-
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts) {
-            $BaseUrl = $GetListUrl
-        }
-
-        if (!([string]::IsNullOrEmpty($sasToken))) {
-            $GetListUrl += $sasToken + "&comp=list&restype=container"
-        }
-        else {
-            $GetListUrl += "?comp=list&restype=container"
-        }
+        $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/?comp=list&restype=container"
     
         $upMajorFilter = ''
         $upVersionFilter = ''
@@ -197,117 +174,90 @@ try {
             $upVersionFilter = $version.Substring($version.Length).TrimStart('.')
         }
 
-        if ($bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject) {
-            $feedApiUrl = "https://feeds.dev.azure.com/$($bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject)/_apis/packaging/feeds/$($storageAccount.Split('.')[0])"
-            $query = "&packageNameQuery=$type"
-            if ($country) {
-                $query += ".$country"
-                if ($upMajorFilter) {
-                    $query += ".$upMajorFilter"
-                }
+        $Artifacts = @()
+        $nextMarker = ''
+        $currentMarker = ''
+        $downloadAttempt = 1
+        $downloadRetryAttempts = 10
+        do {
+            if ($currentMarker -ne $nextMarker)
+            {
+                $currentMarker = $nextMarker
+                $downloadAttempt = 1
             }
-            # Universal packages only supports semantic version numbers (3 digits)
-            # Since Business Central artifact version numbers uses 4 digits, we name the packages: "type.country.major" and the version number is then "minor.build.revision"
-            $result = invoke-restmethod -UseBasicParsing -Uri "$feedApiUrl/packages?api-version=7.0$query&includeAllVersions=$(($select -ne 'latest').ToString().ToLowerInvariant())"
-            $Artifacts = @($result.value | ForEach-Object {
-                # package name is type.country.major
-                $null, $country, $major = $_.name.Split('.')
-                if (!$upMajorFilter -or $upMajorFilter -eq $major) {
-                    $_.versions | Where-Object { (!$upVersionFilter) -or ($_.version.StartsWith($upVersionFilter)) } | ForEach-Object {
-                        # version number is minor.build.revision
-                        return "$major.$($_.version)/$country"
-                    }
+            Write-Verbose "Download String $GetListUrl$nextMarker"
+            try
+            {
+                $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
+                if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
+                    # Remove UTF8 BOM
+                    $response = $response.Substring(3)
                 }
-            })
-        }
-        else {
-            $Artifacts = @()
-            $nextMarker = ''
-            $currentMarker = ''
-            $downloadAttempt = 1
-            $downloadRetryAttempts = 10
-            do {
-                if ($currentMarker -ne $nextMarker)
-                {
-                    $currentMarker = $nextMarker
-                    $downloadAttempt = 1
+                if (([int]$Response[0]) -eq 65279) {
+                    # Remove Unicode BOM (PowerShell 7.4)
+                    $response = $response.Substring(1)
                 }
-                Write-Verbose "Download String $GetListUrl$nextMarker"
-                try
-                {
-                    $Response = Invoke-RestMethod -UseBasicParsing -ContentType "application/json; charset=UTF8" -Uri "$GetListUrl$nextMarker"
-                    if (([int]$Response[0]) -eq 239 -and ([int]$Response[1]) -eq 187 -and ([int]$Response[2]) -eq 191) {
-                        # Remove UTF8 BOM
-                        $response = $response.Substring(3)
-                    }
-                    if (([int]$Response[0]) -eq 65279) {
-                        # Remove Unicode BOM (PowerShell 7.4)
-                        $response = $response.Substring(1)
-                    }
-                    $enumerationResults = ([xml]$Response).EnumerationResults
-    
-                    if ($enumerationResults.Blobs) {
-                        if (($After) -or ($Before)) {
-                            $artifacts += $enumerationResults.Blobs.Blob | % {
-                                if ($after) {
-                                    $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                                    if ($before) {
-                                        if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
-                                            $_.Name
-                                        }
-                                    }
-                                    elseif ($blobModifiedDate -gt $after) {
+                $enumerationResults = ([xml]$Response).EnumerationResults
+
+                if ($enumerationResults.Blobs) {
+                    if (($After) -or ($Before)) {
+                        $artifacts += $enumerationResults.Blobs.Blob | % {
+                            if ($after) {
+                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                if ($before) {
+                                    if ($blobModifiedDate -lt $before -and $blobModifiedDate -gt $after) {
                                         $_.Name
                                     }
                                 }
-                                else {
-                                    $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
-                                    if ($blobModifiedDate -lt $before) {
-                                        $_.Name
-                                    }
+                                elseif ($blobModifiedDate -gt $after) {
+                                    $_.Name
+                                }
+                            }
+                            else {
+                                $blobModifiedDate = [DateTime]::Parse($_.Properties."Last-Modified")
+                                if ($blobModifiedDate -lt $before) {
+                                    $_.Name
                                 }
                             }
                         }
-                        else {
-                            $artifacts += $enumerationResults.Blobs.Blob.Name
-                        }
                     }
-                    $nextMarker = $enumerationResults.NextMarker
-                    if ($nextMarker) {
-                        $nextMarker = "&marker=$nextMarker"
+                    else {
+                        $artifacts += $enumerationResults.Blobs.Blob.Name
                     }
                 }
-                catch
+                $nextMarker = $enumerationResults.NextMarker
+                if ($nextMarker) {
+                    $nextMarker = "&marker=$nextMarker"
+                }
+            }
+            catch
+            {
+                $downloadAttempt += 1
+                Write-Host "Error querying artifacts. Error message was $($_.Exception.Message)"
+                Write-Host
+
+                if ($downloadAttempt -le $downloadRetryAttempts)
                 {
-                    $downloadAttempt += 1
-                    Write-Host "Error querying artifacts. Error message was $($_.Exception.Message)"
+                    Write-Host "Repeating download attempt (" $downloadAttempt.ToString() " of " $downloadRetryAttempts.ToString() ")..."
                     Write-Host
-    
-                    if ($downloadAttempt -le $downloadRetryAttempts)
-                    {
-                        Write-Host "Repeating download attempt (" $downloadAttempt.ToString() " of " $downloadRetryAttempts.ToString() ")..."
-                        Write-Host
-                    }
-                    else
-                    {
-                        throw
-                    }                
                 }
-            } while ($nextMarker)
-        }
+                else
+                {
+                    throw
+                }                
+            }
+        } while ($nextMarker)
 
         if (!([string]::IsNullOrEmpty($country))) {
-            if (-not $bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject) {
-                # avoid confusion between base and se
-                $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
-                if (!$countryArtifacts) {
-                    if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
-                        $country = $bcContainerHelperConfig.mapCountryCode."$country"
-                        $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
-                    }
+            # avoid confusion between base and se
+            $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
+            if (!$countryArtifacts) {
+                if (($type -eq "sandbox") -and ($bcContainerHelperConfig.mapCountryCode.PSObject.Properties.Name -eq $country)) {
+                    $country = $bcContainerHelperConfig.mapCountryCode."$country"
+                    $countryArtifacts = $Artifacts | Where-Object { $_.EndsWith("/$country", [System.StringComparison]::InvariantCultureIgnoreCase) -and ($doNotCheckPlatform -or ($Artifacts.Contains("$($_.Split('/')[0])/platform"))) }
                 }
-                $Artifacts = $countryArtifacts
             }
+            $Artifacts = $countryArtifacts
         }
         else {
             $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }

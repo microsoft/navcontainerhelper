@@ -39,6 +39,7 @@ try {
             -refreshToken $bcAuthContext.RefreshToken `
             -Scopes $bcAuthContext.Scopes `
             -clientSecret $bcAuthContext.clientSecret `
+            -clientAssertion $bcAuthContext.clientAssertion `
             -credential $bcAuthContext.Credential `
             -includeDeviceLogin:$bcAuthContext.includeDeviceLogin `
             -deviceLoginTimeout $bcAuthContext.deviceLoginTimeout `

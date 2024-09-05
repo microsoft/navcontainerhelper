@@ -146,7 +146,15 @@ try {
             $nuspec | ForEach-Object { Write-Verbose $_ }
             $manifest = [xml]$nuspec
             $appId = ''
-            $appName = $manifest.package.metadata.title
+            if ($manifest.package.metadata.PSObject.Properties.Name -eq 'title') {
+                $appName = $manifest.package.metadata.title
+            }
+            elseif ($manifest.package.metadata.PSObject.Properties.Name -eq 'description') {
+                $appName = $manifest.package.metadata.description
+            }
+            else {
+                $appName = $manifest.package.metadata.id
+            }
             if ($manifest.package.metadata.id -match '^.*([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
                 # If packageId ends in a GUID (AppID) then use the AppId for the packageId
                 $appId = "$($matches[1])"
