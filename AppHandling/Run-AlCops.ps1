@@ -123,8 +123,14 @@ function Run-AlCops {
 
         $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
         $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
-        $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
-        Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
+        $latestSupportedRuntimeVersion = ''
+        try {
+            $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
+            Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
+        }
+        catch {
+            Write-Host -ForegroundColor Yellow "Cannot determine latest supported runtime version, will skip runtime version compatibility check"
+        }
 
         $global:_validationResult = @()
         $apps | ForEach-Object {
@@ -156,7 +162,7 @@ function Run-AlCops {
                     }
                 }
 
-                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -excludeRuntimeProperty -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
+                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
                 $appJson = [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "app.json")) | ConvertFrom-Json
 
                 $ruleset = $null

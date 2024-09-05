@@ -11,6 +11,7 @@
     1. [Use SSL with a self-signed certificate](#SSLSelfSigned)
     1. [Use SSL with a LetsEncrypt certificate](#SSLLetsEncrypt)
     1. [Use a certificate, issued by a trusted authority](#SSLTrusted)
+    1. [Use Traefik for Multiple Business Central Containers](##Traefik)
     1. [Specify username and password for your NAV SUPER user](#UserPassword)
     1. [Setup Windows Authentication with the Windows User on the host computer](#WinAuth)
     1. [Publishing ports on the host and specifying a hostname using NAT network settings](#PublishPorts)
@@ -311,6 +312,56 @@ Example:
 **Note**, for this to work, the publicdnsname (here test.navdemo.net) specified in the script needs to exist in the DNS and point to the host computer, typically this is done by creating a CNAME record.
 
 **Note**, New-NavContainer creates a folder for the files specified in -myscripts and shares this folder to the c:\run\my folder in a container using *--volume \<hostfolder\>:c:\run\my*.
+
+[Back to TOC](#toc)
+
+## <a name="Traefik"></a>Use Traefik for Multiple Business Central Containers
+
+Docker containers are given an internal IP address on a special internal network on the local machine and they can only be reached locally. [Traefik](https://traefik.io) is an application proxy that allows you to run multiple Business Central Docker containers on a single server and make them accessible externally. A Business Central Service such as Web Client, SOAP, OData, Dev, Snapshot Debugger, etc., will receive external names for each internal port of a service.
+
+To make this accessible, there are two ways of providing an SSL certificate:
+
+- You can use Let's Encrypt. This option requires your server to be publicly accessible.
+- Or you can bring your own certificate.
+
+#### Let's Encrypt
+```PowerShell
+Setup-TraefikContainerForBcContainers -ContactEMailForLetsEncrypt admin@mycompany.com -PublicDnsName dockerhub.mycompany.com
+```
+
+#### Bring Your Own Certificate
+
+To use an SSL certificate, you can use [OpenSSL](https://slproweb.com/products/Win32OpenSSL.html) to convert your PFX file into a CRT and KEY file. After installing OpenSSL, you can use the console to transfer them.
+
+```sh
+openssl pkcs12 -in "certificate.pfx" -clcerts -nokeys -out "certificate.crt"
+```
+- This step requires the PFX passphrase.
+
+```sh
+openssl pkcs12 -in "certificate.pfx" -nocerts -out "certificate-encrypted.key"
+```
+- This step requires the PFX passphrase.
+- Set a passphrase for the key file.
+
+```sh
+openssl rsa -in "certificate-encrypted.key" -out "certificate.key"
+```
+- This step requires the passphrase for the key file.
+
+To set up Traefik, you need to run:
+
+```PowerShell
+Setup-TraefikContainerForBCContainers -PublicDnsName dockerhub.mycompany.com -CrtFile certificate.crt -CrtKeyFile certificate.key
+```
+
+After that, you need to add `-useTraefik` when creating a Docker Container:
+
+```PowerShell
+$url = Get-BCArtifactUrl -select Latest -type OnPrem -country w1
+$cred = Get-Credential
+New-BcContainer -accept_eula -artifactUrl $url -Credential $cred -auth UserPassword -useTraefik -useSSL
+```
 
 [Back to TOC](#toc)
 
@@ -810,7 +861,7 @@ In this example, it gets the .mdf and .ldf files from the latest cumulative upda
     $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
     $databaseName = "CRONUS"
     $attach_dbs = (ConvertTo-Json -Compress -Depth 99 @(@{"dbName" = "$databaseName"; "dbFiles" = @("c:\temp\${databaseName}.mdf", "c:\temp\${databaseName}.ldf") })).replace('"',"'")
-    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp" -e attach_dbs="$attach_dbs" microsoft/mssql-server-windows-developer
     $databaseServer = $dbserverid.SubString(0,12)
     $databaseInstance = ""
@@ -826,7 +877,7 @@ The following script sample, will create a new SQL Server container and restore 
 
     $hostFolder = "c:\temp\navdbfiles"
     $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
-    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp" microsoft/mssql-server-windows-express
     $databaseServer = $dbserverid.SubString(0,12)
     $databaseInstance = ""
@@ -852,7 +903,7 @@ Then you will have the variables $databaseServer, $databaseInstance, $databaseNa
 
 If you have created your external database through other means, please set these variables in PowerShell. Please try the following script to see whether a docker container can connect to your database:
 
-    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $databaseServerInstance = @{ $true = "$databaseServer\$databaseInstance"; $false = "$databaseServer"}["$databaseInstance" -ne ""]
     docker run -it --name sqlconnectiontest microsoft/mssql-server-windows-developer powershell -command "Invoke-Sqlcmd -ServerInstance '$databaseServerInstance' -Username '$($databaseCredential.Username)' -Password '$dbPassword' -Database '$databaseName' -Query 'SELECT COUNT(*) FROM [dbo].[User]'"
 

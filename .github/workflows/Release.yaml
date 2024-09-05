@@ -5,6 +5,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency: Release
 
@@ -17,6 +18,20 @@ jobs:
     if: github.repository == 'Microsoft/NavContainerHelper'
     runs-on: [ windows-latest ]
     steps:
+      - name: 'Az CLI login'
+        uses: azure/login@v2
+        with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+            enable-AzPSSession: true
+            
+      - name: Install Azure Powershell Modules
+        run: |
+          if(-not (Get-Module 'Az.Storage' -ListAvailable)) {
+            Install-Module -Name 'Az.Storage' -Force -AllowClobber
+          }
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -72,7 +87,7 @@ jobs:
                                   -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
 
             $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
-            Download-File -sourceUrl '${{ secrets.CodeSignCertificateUrl }}' -destinationFile $certFileName
+            [System.IO.File]::WriteAllBytes($certFileName, ([Convert]::FromBase64String('${{ secrets.CodeSignCertificatePfx }}')))
             
             Remove-Module BcContainerHelper
             
@@ -85,12 +100,12 @@ jobs:
             Set-AuthenticodeSignature -Certificate $cert -HashAlgorithm SHA256 -TimestampServer "http://timestamp.digicert.com" -FilePath $filesToSign
             
             Write-Host "Upload to storage (preview)"
-            $storageContext = New-AzureStorageContext -ConnectionString '${{ secrets.BchStorageConnectionString }}'
-            New-AzureStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
-            
+            $storageContext = New-AzStorageContext -StorageAccountName 'bccontainerhelper' -UseConnectedAccount
+            New-AzStorageContainer -Name 'public' -Context $storageContext -Permission 'Container' -ErrorAction Ignore | Out-Null
+          
             Compress-Archive -path $path -DestinationPath "$($path).zip"
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
-            Set-AzureStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "$version.zip" -Force | Out-Null
+            Set-AzStorageBlobContent -File "$($path).zip" -Context $storageContext -Container 'public' -Blob "latest.zip" -Force | Out-Null
             
             Write-Host "Publishing Module"
             Publish-Module -Path $path -NuGetApiKey '${{ secrets.NugetKey }}' -SkipAutomaticTags

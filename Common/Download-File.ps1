@@ -27,7 +27,7 @@ function Download-File {
         [string] $description = '',
         [hashtable] $headers = @{"UserAgent" = "BcContainerHelper $bcContainerHelperVersion" },
         [switch] $dontOverwrite,
-        [int]    $timeout = 100
+        [int]    $timeout = $bccontainerHelperConfig.defaultDownloadTimeout
     )
 
     $replaceUrls = @{
@@ -73,6 +73,7 @@ function Download-File {
         if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
             # Do not use CDN when configured or bcinsider
             $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
+            $timeout += $timeout
         }
         try {
             DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
@@ -86,6 +87,7 @@ function Download-File {
                 }
                 else {
                     Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
+                    $timeout += $timeout
                 }
                 Start-Sleep -Seconds $waittime
                 DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
