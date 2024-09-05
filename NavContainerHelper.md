@@ -861,7 +861,7 @@ In this example, it gets the .mdf and .ldf files from the latest cumulative upda
     $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
     $databaseName = "CRONUS"
     $attach_dbs = (ConvertTo-Json -Compress -Depth 99 @(@{"dbName" = "$databaseName"; "dbFiles" = @("c:\temp\${databaseName}.mdf", "c:\temp\${databaseName}.ldf") })).replace('"',"'")
-    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp" -e attach_dbs="$attach_dbs" microsoft/mssql-server-windows-developer
     $databaseServer = $dbserverid.SubString(0,12)
     $databaseInstance = ""
@@ -877,7 +877,7 @@ The following script sample, will create a new SQL Server container and restore 
 
     $hostFolder = "c:\temp\navdbfiles"
     $databaseCredential = New-Object System.Management.Automation.PSCredential -argumentList "sa", (ConvertTo-SecureString -String "P@ssword1" -AsPlainText -Force)
-    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $dbserverid = docker run -d -e sa_password="$dbPassword" -e ACCEPT_EULA=Y -v "${hostFolder}:C:/temp" microsoft/mssql-server-windows-express
     $databaseServer = $dbserverid.SubString(0,12)
     $databaseInstance = ""
@@ -903,7 +903,7 @@ Then you will have the variables $databaseServer, $databaseInstance, $databaseNa
 
 If you have created your external database through other means, please set these variables in PowerShell. Please try the following script to see whether a docker container can connect to your database:
 
-    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+    $dbPassword = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
     $databaseServerInstance = @{ $true = "$databaseServer\$databaseInstance"; $false = "$databaseServer"}["$databaseInstance" -ne ""]
     docker run -it --name sqlconnectiontest microsoft/mssql-server-windows-developer powershell -command "Invoke-Sqlcmd -ServerInstance '$databaseServerInstance' -Username '$($databaseCredential.Username)' -Password '$dbPassword' -Database '$databaseName' -Query 'SELECT COUNT(*) FROM [dbo].[User]'"
 

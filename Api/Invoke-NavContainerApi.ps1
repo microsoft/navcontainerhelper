@@ -30,13 +30,13 @@
  .Parameter silent
   Include the silent switch to avoid the printout of the URL invoked
  .Example
-  $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion "beta" -Query "companies?`$filter=$companyFilter" -credential $credential
+  $result = Invoke-BcContainerApi -containerName $containerName -tenant $tenant -APIVersion "v2.0" -Query "companies?`$filter=$companyFilter" -credential $credential
  .Example
-  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "v2.0" -Query "customers" -credential $credential | Select-Object -ExpandProperty value
  .Example 
-  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "customers?`$filter=$([Uri]::EscapeDataString("number eq '10000'"))" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "v2.0" -Query "customers?`$filter=$([Uri]::EscapeDataString("number eq '10000'"))" -credential $credential | Select-Object -ExpandProperty value
  .Example
-  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "beta" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
+  Invoke-BcContainerApi -containerName $containerName -CompanyId $companyId -APIVersion "v2.0" -Query "salesInvoices?`$filter=$([Uri]::EscapeDataString("status eq 'Open' and totalAmountExcludingTax gt 1000.00"))" -credential $credential | Select-Object -ExpandProperty value
 #>
 function Invoke-BcContainerApi {
     Param (
