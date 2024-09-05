@@ -45,9 +45,6 @@ function Get-BcContainerDebugInfo {
         [switch] $CopyToClipboard
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     $debugInfo = @{}
     $inspect = docker inspect $containerName | ConvertFrom-Json
 
@@ -106,14 +103,6 @@ try {
     }
     
     return $debugInfoJson
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerDebugInfo -Value Get-BcContainerDebugInfo
 Export-ModuleMember -Function Get-BcContainerDebugInfo -Alias Get-NavContainerDebugInfo

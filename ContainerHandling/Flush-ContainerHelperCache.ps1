@@ -178,12 +178,12 @@ try {
                     $artifactUrl = $inspect.config.Env | Where-Object { $_ -like "artifactUrl=*" }
                     if ($artifactUrl) {
                         $artifactUrl = $artifactUrl.Split('?')[0]
-                        "artifactUrl=https://bcartifacts.azureedge.net/",
-                        "artifactUrl=https://bcinsider.azureedge.net/",
-                        "artifactUrl=https://bcprivate.azureedge.net/",
-                        "artifactUrl=https://bcpublicpreview.azureedge.net/" | ForEach-Object {
+                        "artifactUrl=https://bcartifacts*.net/",
+                        "artifactUrl=https://bcinsider*.net/",
+                        "artifactUrl=https://bcprivate*.net/",
+                        "artifactUrl=https://bcpublicpreview*.net/" | ForEach-Object {
                             if ($artifactUrl -like "$($_)*") {
-                                $cacheFolder = Join-Path $artifactsCacheFolder $artifactUrl.SubString($_.Length)
+                                $cacheFolder = Join-Path $artifactsCacheFolder $artifactUrl.Substring($artifactUrl.IndexOf('/',$_.Length)+1)
                                 if (-not (Test-Path $cacheFolder)) {
                                     Write-Host "$imageName was built on artifacts which was removed from the cache, removing image"
                                     if (-not (DockerDo -command rmi -parameters @("--force") -imageName $imageID -ErrorAction SilentlyContinue)) {

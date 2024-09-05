@@ -14,12 +14,12 @@ function Get-PlainText() {
         [parameter(ValueFromPipeline, Mandatory = $true)]
         [System.Security.SecureString] $SecureString
     )
-    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString);
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($SecureString)
     try {
-        return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr);
+        return [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
     }
     finally {
-        [Runtime.InteropServices.Marshal]::FreeBSTR($bstr);
+        [Runtime.InteropServices.Marshal]::FreeBSTR($bstr)
     }
 }
 Export-ModuleMember -Function Get-PlainText
