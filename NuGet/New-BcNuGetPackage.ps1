@@ -171,6 +171,9 @@ Function New-BcNuGetPackage {
                 $applicationDependency = GetDependencyVersionStr -template $applicationDependency -version ([System.Version]::Parse($appJson.Application))
             }
         }
+        elseif ($applicationDependency.Contains('{')) {
+            $applicationDependency = ''
+        }
         if ($appJson.PSObject.Properties.Name -eq 'Platform' -and $appJson.Platform) {
             if (-not $platformDependency) {
                 $platformDependency = $appJson.Platform
@@ -178,6 +181,9 @@ Function New-BcNuGetPackage {
             else {
                 $platformDependency = GetDependencyVersionStr -template $platformDependency -version ([System.Version]::Parse($appJson.Platform))
             }
+        }
+        elseif ($platformDependency.Contains('{')) {
+            $platformDependency = ''
         }
 
         if ($prereleaseTag) {
