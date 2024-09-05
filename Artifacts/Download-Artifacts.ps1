@@ -30,7 +30,7 @@ function Download-Artifacts {
         [switch] $force,
         [switch] $forceRedirection,
         [string] $basePath = "",
-        [int]    $timeout = 300
+        [int]    $timeout = $bccontainerHelperConfig.artifactDownloadTimeout
     )
 
     function DownloadPackage {
@@ -42,50 +42,31 @@ function Download-Artifacts {
 
         $tmpFolder = Join-Path ([System.IO.Path]::GetDirectoryName($destinationPath)) ([System.IO.Path]::GetRandomFileName())
         $zipFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString()).zip"
-        if ($bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject -and ($artifactUrl -like 'https://bcartifacts.*' -or $artifactUrl -like 'https://bcinsider.*')) {
-            # artifactUrl should be either:
-            # https://storageaccount.azureedge.net/type/version/country
-            # or
-            # https://storageaccount.blob.core.windows.net/type/version/country
-            if (-not ($artifactUrl -match '^https:\/\/([^.]+)\..*\.net\/([^\/]+)\/([^\/]+)\/([a-zA-Z0-9]+)$')) {
-                throw "Invalid artifact url '$artifactUrl'"
+        $retry = $false
+        do {
+            Download-File -sourceUrl $artifactUrl -destinationFile $zipFile -timeout $timeout
+            Write-Host "Unpacking artifact to tmp folder " -NoNewline
+            try {
+                Expand-7zipArchive -Path $zipFile -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
+                $retry = $false
             }
-            $organization, $project = $bcContainerHelperConfig.ArtifactsFeedOrganizationAndProject.Split('/')
-            New-Item -Path $tmpFolder -ItemType Directory | Out-Null
-            $artifactVersion = [System.Version]"$($Matches[3])"
-            $feed = $Matches[1]
-            $packageName = "$($Matches[2]).$($Matches[4]).$($artifactVersion.Major)"
-            $packageVersion = "$($artifactVersion.Minor).$($artifactVersion.Build).$($artifactVersion.Revision)"
-            Write-Host "Using az artifacts universal download --organization https://dev.azure.com/$organization --project $project --scope project --feed $feed --name $packageName --version $packageVersion"
-            az artifacts universal download --organization "https://dev.azure.com/$organization" --project $project --scope project --feed $feed --name $packageName --version $packageVersion --path $tmpFolder
-        }
-        else {
-            $retry = $false
-            do {
-                Download-File -sourceUrl $artifactUrl -destinationFile $zipFile -timeout $timeout
-                Write-Host "Unpacking artifact to tmp folder " -NoNewline
-                try {
-                    Expand-7zipArchive -Path $zipFile -DestinationPath $tmpFolder -use7zipIfAvailable:(!$retry)
-                    $retry = $false
+            catch {
+                Remove-Item -path $zipFile -force
+                if (Test-Path $tmpFolder) {
+                    Remove-Item $tmpFolder -Recurse -Force
                 }
-                catch {
-                    Remove-Item -path $zipFile -force
-                    if (Test-Path $tmpFolder) {
-                        Remove-Item $tmpFolder -Recurse -Force
-                    }
-                    if ($retry) {
-                        throw "Error trying to unpack artifact, downloaded package is corrupt"
-                    }
-                    else {
-                        if ($artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
-                            Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
-                            $artifactUrl = "https://$($Matches[1]).blob.core.windows.net/$($Matches[2])"
-                            $retry = $true
-                        }
+                if ($retry) {
+                    throw "Error trying to unpack artifact, downloaded package is corrupt"
+                }
+                else {
+                    if ($artifactUrl -match '^https:\/\/(.+)\.azureedge\.net\/(.*)$') {
+                        Write-Host "Error unpacking platform artifact downloaded from CDN, retrying download from direct download URL"
+                        $artifactUrl = "https://$($Matches[1]).blob.core.windows.net/$($Matches[2])"
+                        $retry = $true
                     }
                 }
-            } while ($retry)
-        }
+            }
+        } while ($retry)
         $result = $false
         try {
             $attempts = 0
@@ -162,7 +143,6 @@ try {
             }
             if (-not $exists) {
                 Write-Host "Downloading artifact $($appUri.AbsolutePath)"
-                TestSasToken -url $artifactUrl
                 DownloadPackage -artifactUrl $artifactUrl -destinationPath $appArtifactPath -timeout $timeout | Out-Null
             }
             try { [System.IO.File]::WriteAllText((Join-Path $appArtifactPath 'lastused'), "$([datetime]::UtcNow.Ticks)") } catch {}
@@ -240,9 +220,7 @@ try {
                 }
                 if (-not $exists) {
                     Write-Host "Downloading platform artifact $($platformUri.AbsolutePath)"
-                    TestSasToken -url $platformUrl
                     $downloadprereqs = DownLoadPackage -ArtifactUrl $platformUrl -DestinationPath $platformArtifactPath -timeout $timeout
-                    $downloadprereqs = $false
                     if ($downloadprereqs) {
                         $prerequisiteComponentsFile = Join-Path $platformArtifactPath "Prerequisite Components.json"
                         if (Test-Path $prerequisiteComponentsFile) {
@@ -266,14 +244,14 @@ try {
                                 Download-File -sourceUrl "https://go.microsoft.com/fwlink/?LinkID=844461" -destinationFile (Join-Path $dotnetCoreFolder "DotNetCore.1.0.4_1.1.1-WindowsHosting.exe") -timeout $timeout
                             }
                         }
-                        # Patch potential wrong version of NewtonSoft.json.DLL
-                        $newtonSoftDllPath = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\210\Service\Newtonsoft.json.dll'
+                        # Patch potential wrong version of Newtonsoft.Json.dll
+                        $newtonSoftDllPath = Join-Path $platformArtifactPath 'ServiceTier\program files\Microsoft Dynamics NAV\210\Service\Newtonsoft.Json.dll'
                         if (Test-Path $newtonSoftDllPath) {
-                            'Applications\testframework\TestRunner\Internal\Newtonsoft.json.dll','Test Assemblies\Newtonsoft.json.dll' | ForEach-Object {
+                            'Applications\testframework\TestRunner\Internal\Newtonsoft.Json.dll','Test Assemblies\Newtonsoft.Json.dll' | ForEach-Object {
                                 $dstFile = Join-Path $platformArtifactPath $_
                                 $file = Get-item -Path $dstFile -ErrorAction SilentlyContinue
                                 if ($file -and $file.Length -eq 686000) {
-                                    Write-Host "INFO: Patching wrong version of NewtonSoft.json.DLL in $dstFile"
+                                    Write-Host "INFO: Patching wrong version of Newtonsoft.Json.dll in $dstFile"
                                     Copy-Item -Path $newtonSoftDllPath -Destination $dstFile -Force 
                                 }
                             }

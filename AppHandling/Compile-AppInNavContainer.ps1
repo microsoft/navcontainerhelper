@@ -104,8 +104,8 @@ function Compile-AppInBcContainer {
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
-        [switch] $AzureDevOps,
-        [switch] $gitHubActions,
+        [switch] $AzureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
+        [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
@@ -224,11 +224,15 @@ try {
     $CustomCodeCopFiles = @()
     if ($CustomCodeCops.Count -gt 0) {
         $CustomCodeCops | ForEach-Object {
-            $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
-            if ("$customCopPath" -eq "") {
-                throw "The custom code cop ($_) is not shared with the container."
+            if ($_ -like 'https://*') {
+                $customCopPath = $_
             }
-
+            else {
+                $customCopPath = Get-BcContainerPath -containerName $containerName -path $_
+                if ("$customCopPath" -eq "") {
+                    throw "The custom code cop ($_) is not shared with the container."
+                }
+            }
             $CustomCodeCopFiles += $customCopPath
         }
     }
@@ -272,6 +276,7 @@ try {
                     "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app"
                     "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
                     "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
+                    "C:\Applications.*\Microsoft_Business Foundation_*.app,C:\Applications\BusinessFoundation\source\Microsoft_Business Foundation.app"
                 )
             }
             $paths | ForEach-Object {
@@ -422,7 +427,7 @@ try {
                 throw "You need to specify credentials when you are not using Windows Authentication"
             }
 
-            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
             $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
             $base64 = [System.Convert]::ToBase64String($bytes)
             $basicAuthValue = "Basic $base64"
@@ -436,7 +441,7 @@ try {
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
             if ($platformversion -ge [System.Version]"19.0.0.0") {
-                ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
+                ((($dependency.appId -ne '' -and $_.AppId.ToString() -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
             }
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
@@ -495,7 +500,7 @@ try {
                 if (Test-Path -Path $symbolsFile) {
                     $addDependencies = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($symbolsFile, $platformversion)
                         # Wait for file to be accessible in container
-                        While (-not (Test-Path $symbolsFile)) { Start-Sleep -Seconds 1 }
+                        While (-not (Test-Path $symbolsFile)) { Start-Sleep -Milliseconds 100 }
 
                         if ($platformversion.Major -ge 15) {
                             Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -606,7 +611,7 @@ try {
                     $dependency = $_
                     $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
                     Write-Host "Dependency: Id=$dependencyAppId, Publisher=$($dependency.Publisher), Name=$($dependency.Name), Version=$($dependency.Version)"
-                    $existingApps | Where-Object { $_.AppId -eq [System.Guid]$dependencyAppId -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
+                    $existingApps | Where-Object { "$($_.AppId)" -eq $dependencyAppId -and $_.Version -gt [System.Version]$dependency.Version } | ForEach-Object {
                         $dependency.Version = "$($_.Version)"
                         Write-Host "- Set dependency version to $($_.Version)"
                         $changes = $true
@@ -670,7 +675,14 @@ try {
         }
 
         if ($CustomCodeCops.Count -gt 0) {
-            $CustomCodeCops | ForEach-Object { $alcParameters += @("/analyzer:$_") }
+            $CustomCodeCops | ForEach-Object {
+                $analyzerFileName = $_
+                if ($_ -like 'https://*') {
+                    $analyzerFileName = Join-Path $binPath "Analyzers/$(Split-Path $_ -Leaf)"
+                    Download-File -SourceUrl $_ -destinationFile $analyzerFileName
+                }
+                $alcParameters += @("/analyzer:$analyzerFileName")
+            }
         }
 
         if ($rulesetFile) {

@@ -138,7 +138,10 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 22621) {
+    if ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 22000) { 
@@ -202,10 +205,10 @@ try {
         Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
         $country = $appManifest.Country.ToLowerInvariant()
         if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
-            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+            $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/$country/3048953.bclicense"
         }
         else {
-            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+            $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/w1/3048953.bclicense"
         }
     }
 
@@ -270,7 +273,7 @@ try {
                     $labels = Get-BcContainerImageLabels -imageName $baseImage -registryCredential $registryCredential
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                    if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
+                    if ((ReplaceCDN -sourceUrl $imageArtifactUrl -useBlobUrl) -ne (ReplaceCDN -sourceUrl $artifactUrl.Split('?')[0] -useBlobUrl)) {
                         Write-Host "Image $imageName was built with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
                         $forceRebuild = $true
                     }
@@ -327,7 +330,7 @@ try {
             $startTime = [DateTime]::Now
             
             if ($populateBuildFolder) {
-                $genericTag = [Version]"1.0.2.14"
+                $genericTag = [Version]"1.0.2.15"
             }
             else {
                 if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
@@ -408,12 +411,8 @@ try {
                 }
                 elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
                     if ($isolation -eq "") {
-                        if ($containerOsVersion -le $hostOsVersion) {
-                            $isolation = "process"
-                        }
-                        else {
-                            $isolation = "hyperv"
-                        }
+                        Write-Host -ForegroundColor Yellow "WARNING: Container and host OS build is 20348 or above, defaulting to process isolation. If you encounter issues, you could try to install HyperV."
+                        $isolation = "process"
                     }
                 }
                 elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
@@ -492,6 +491,11 @@ try {
                     $myScripts += @( "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" )
                     Write-Host "Base image is generic image 1.0.2.15 or higher, installing ASP.NET Core 1.1"
                     $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -ArgumentList /quiet'
+                }
+
+                if ($genericTag -eq [Version]"1.0.2.15" -and [Version]$appManifest.Version -ge [Version]"24.0.0.0") {
+                    $myScripts += @( 'https://raw.githubusercontent.com/microsoft/nav-docker/4b8870e6c023c399d309e389bf32fde44fcb1871/generic/Run/240/navinstall.ps1' )
+                    Write-Host "Patching installer from generic image 1.0.2.15"
                 }
 
                 $myScripts | ForEach-Object {
