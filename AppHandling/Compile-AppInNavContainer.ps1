@@ -104,8 +104,8 @@ function Compile-AppInBcContainer {
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
-        [switch] $AzureDevOps,
-        [switch] $gitHubActions,
+        [switch] $AzureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
+        [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
@@ -427,7 +427,7 @@ try {
                 throw "You need to specify credentials when you are not using Windows Authentication"
             }
 
-            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
+            $pair = ("$($Credential.UserName):"+[System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($credential.Password)))
             $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
             $base64 = [System.Convert]::ToBase64String($bytes)
             $basicAuthValue = "Basic $base64"
