@@ -101,7 +101,7 @@ try {
                 $sqlparams += @{
                     "ServerInstance" = $databaseServerInstance
                     "Username" = $databaseCredential.Username
-                    "Password" = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
+                    "Password" = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))
                 }
             }
         }

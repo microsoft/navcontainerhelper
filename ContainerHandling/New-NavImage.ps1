@@ -138,7 +138,10 @@ try {
         $baseImage = $bestGenericImageName
     }
 
-    if ($os.BuildNumber -eq 22621) {
+    if ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
         $hostOs = "22H2"
     }
     elseif ($os.BuildNumber -eq 22000) { 
@@ -202,10 +205,10 @@ try {
         Write-Host "The CRONUS Demo License shipped in Version 21.0 artifacts doesn't contain sufficient rights to all Test Libraries objects. Patching the license file."
         $country = $appManifest.Country.ToLowerInvariant()
         if (@('at','au','be','ca','ch','cz','de','dk','es','fi','fr','gb','in','is','it','mx','nl','no','nz','ru','se','us') -contains $country) {
-            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/$country/3048953.bclicense"
+            $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/$country/3048953.bclicense"
         }
         else {
-            $licenseFile = "https://bcartifacts.azureedge.net/prerequisites/21demolicense/w1/3048953.bclicense"
+            $licenseFile = "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/prerequisites/21demolicense/w1/3048953.bclicense"
         }
     }
 
@@ -270,7 +273,7 @@ try {
                     $labels = Get-BcContainerImageLabels -imageName $baseImage -registryCredential $registryCredential
             
                     $imageArtifactUrl = ($inspect.config.env | ? { $_ -like "artifactUrl=*" }).SubString(12).Split('?')[0]
-                    if ("$imageArtifactUrl".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/') -ne "$($artifactUrl.Split('?')[0])".ToLowerInvariant().Replace('.blob.core.windows.net/','.azureedge.net/'))  {
+                    if ((ReplaceCDN -sourceUrl $imageArtifactUrl -useBlobUrl) -ne (ReplaceCDN -sourceUrl $artifactUrl.Split('?')[0] -useBlobUrl)) {
                         Write-Host "Image $imageName was built with artifactUrl $imageArtifactUrl, should be $($artifactUrl.Split('?')[0])"
                         $forceRebuild = $true
                     }
@@ -327,7 +330,7 @@ try {
             $startTime = [DateTime]::Now
             
             if ($populateBuildFolder) {
-                $genericTag = [Version]"1.0.2.14"
+                $genericTag = [Version]"1.0.2.15"
             }
             else {
                 if ($baseImage -like 'mcr.microsoft.com/businesscentral:*') {
@@ -408,12 +411,8 @@ try {
                 }
                 elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
                     if ($isolation -eq "") {
-                        if ($containerOsVersion -le $hostOsVersion) {
-                            $isolation = "process"
-                        }
-                        else {
-                            $isolation = "hyperv"
-                        }
+                        Write-Host -ForegroundColor Yellow "WARNING: Container and host OS build is 20348 or above, defaulting to process isolation. If you encounter issues, you could try to install HyperV."
+                        $isolation = "process"
                     }
                 }
                 elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
@@ -476,15 +475,27 @@ try {
                     $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
                     Write-Host "Patching prompt.ps1 due to issue #2891"
                     $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
-                    $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/0cb3c095-c4f4-4d55-929b-3b4888a7b5f1/4156664d6bfcb46b63916a8cd43f8305/dotnet-hosting-6.0.13-win.exe" )
-                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.13"
-                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.13-win.exe" -ArgumentList /quiet'
+                    $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/04389c24-12a9-4e0e-8498-31989f30bb22/141aef28265938153eefad0f2398a73b/dotnet-hosting-6.0.27-win.exe" )
+                    Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.27"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.27-win.exe" -ArgumentList /quiet'
                 }
 
                 if ($genericTag -le [Version]"1.0.2.14" -and [Version]$appManifest.Version -ge [Version]"24.0.0.0") {
-                    $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/2a7ae819-fbc4-4611-a1ba-f3b072d4ea25/32f3b931550f7b315d9827d564202eeb/dotnet-hosting-8.0.0-win.exe" )
-                    Write-Host "Base image is generic image 1.0.2.14 or below, installing dotnet 8.0.0"
-                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-8.0.0-win.exe" -ArgumentList /quiet'
+                    $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/98ff0a08-a283-428f-8e54-19841d97154c/8c7d5f9600eadf264f04c82c813b7aab/dotnet-hosting-8.0.2-win.exe" )
+                    $myScripts += @( "https://github.com/PowerShell/PowerShell/releases/download/v7.4.1/PowerShell-7.4.1-win-x64.msi" )
+                    Write-Host "Base image is generic image 1.0.2.14 or below, installing dotnet 8.0.2"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-8.0.2-win.exe" -ArgumentList /quiet ; start-process -Wait -FilePath c:\run\powershell-7.4.1-win-x64.msi -ArgumentList /quiet'
+                }
+
+                if ($genericTag -ge [Version]"1.0.2.15" -and [Version]$appManifest.Version -ge [Version]"15.0.0.0" -and [Version]$appManifest.Version -lt [Version]"19.0.0.0") {
+                    $myScripts += @( "https://download.microsoft.com/download/6/F/B/6FB4F9D2-699B-4A40-A674-B7FF41E0E4D2/DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" )
+                    Write-Host "Base image is generic image 1.0.2.15 or higher, installing ASP.NET Core 1.1"
+                    $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\DotNetCore.1.0.7_1.1.4-WindowsHosting.exe" -ArgumentList /quiet'
+                }
+
+                if ($genericTag -eq [Version]"1.0.2.15" -and [Version]$appManifest.Version -ge [Version]"24.0.0.0") {
+                    $myScripts += @( 'https://raw.githubusercontent.com/microsoft/nav-docker/4b8870e6c023c399d309e389bf32fde44fcb1871/generic/Run/240/navinstall.ps1' )
+                    Write-Host "Patching installer from generic image 1.0.2.15"
                 }
 
                 $myScripts | ForEach-Object {

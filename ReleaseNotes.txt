@@ -1,9 +1,129 @@
+6.0.21
+Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
+Issue #3617 Regression File Newtonsoft.Json.dll not found when copying item for New-BcCompilerFolder
+Remove functions for supporting Alpaca and Cloud Containers - integration between alpaca and cloud containers with AL-Go for GitHub will NOT be done through BcContainerHelper
+Issue #2623 New-BcContainer for BC25.1 or BC26 insider with includeTestToolkit AI Test Toolkit dependency missing
+
+6.0.20
+Add trustServerCertificate is the parameter exists in various functions that might be running on the host
+Issue #3594 Run-AlCops says unknown platform version
+Add information about apps excluded due to not being referenced during Publish-BcContainerApp
+Run-AlPipeline to support CompilerFolder and online environments for building and testing
+Added 2 new overrides in Run-AlPipeline: PipelineInitialize and PipelineFinalize
+Add parameter CompilerFolder to Run-TestsInBcContainer and Import-TestToolkitToBcContainer for running tests using CompilerFolder bits from the host
+Replace all occurrences of [System.Runtime.InteropServices.Marshal]::PtrToStringAuto with [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR as the Auto function doesn't always do what's expected under Linux
+Ensure correct casing of Newtonsoft.Json.dll for Linux
+Always add extensionId (when specified) to Properties section in test results xml
+If environment is specified as a Web Client URL, and BcAuthContext contains username/password in Run-AlPipeline, then tests will run against this environment. PublishBcContainerApp and ImportTestToolkitToBcContainer needs to be overridden for this to work with full pipeline.
+Including caching of appinfos in CompilerFolder cache (to save time when caching on GitHub Actions)
+
+6.0.19
+Issue #3560 Backup-BcContainerDatabases fails - password must be marked as read only bug
+Issue #3559 ALCops can't find "Business Foundation" app and doesn't start because of it
+Support for federated credentials in Azure
+Issue 1093 from AL-Go repo, generateDependencyArtifact doesn't work when useCompilerFolder is true
+
+6.0.18
+Use altool from prerelease AL Language extension
+Display disk free inside container on error
+Create AppInfo cache on creating a new compiler folder
+Add support for using `TestCodeunitRangeFilter` field in `Run-TestsInBcContainer` and `Get-TestsFromBcContainer`
+Issue 3206 Auto-Consent the Permissions requested after using New-AadAppsForBc
+Issue 3544 Copy-AlSourceFiles.ps1 does not copy RDLC and DOCS Files with the new report layout definition
+Issue 3550 Run-AlValidation is checking wrong runtime version
+Issue 3555 Increase default timeout
+
+6.0.17
+Issue 3518 If WinRm is not running on the host, a container couldn't be created
+Issue 3519 New-BcContainer fails due to password complexity on some computers
+Issue 3522 The 'Expand-Archive' command was found in the module 'Microsoft.PowerShell.Archive',...
+Issue 3523 Copy-FileToBcContainer fails for BcContainerHelper 6.0.16 (added resilience)
+
+6.0.16
+Issue 3477 Regression: Error: App filenames must be unique
+Issue 3478 New-bccontainer fails on BC24 using option -UseNewDatabase
+Allow CustomCodeCops to be a URL for just-in-time download instead of a file shared with the container
+
+6.0.15
+Issue 3467 Can't create a backup of a container with the Backup-BCContainerDatabases commandlet
+Use PowerShell 5 in places where invoke-sqlcmd or other functions from the SqlServer PowerShell module are used
+
+6.0.14
+Issue 3465 Regression: Flush-ContainerHelperCache calculates wrong CacheFolder
+
+6.0.13
+Issue 3452 Error when running Run-AlValidation : Unable to load one or more of the requested types. Retrieve the LoaderExceptions property for more information.
+Issue 3454 DockerDo : Cannot bind argument to parameter 'imageName' because it is an empty string.
+Issue 3354 Regression : Compile Folder removal of symbols folder fails: The process cannot access the file
+Issue 3460 Do not install SqlServer PowerShell module
+
+6.0.12
+Issue 3432 New-BcContainerWizard stopped working after generic images with ltsc2016, ltsc2019 and ltsc2022 was introduced
+Make parameters in Copy-AppFilesToFolder mandatory
+Support .zip files in folders in Copy-AppFilesToFolder
+Issue 3431 Run-TestsInBcContainer, Get-TestsFromBcContainer and Run-ConnectionTest doesn't work if container is using SSL
+Issue 3427 New-BCContainer in version 6.0.11 failed to run completely
+Issue 3444 Container Creation fails at "Installing ASP.NET Core 1.1"
+
+6.0.11
+Issue 3420 New-BcImage uses hyperv even if it is disabled
+Issue 3411 Run-AlPipeline: Exception calling "Parse" with "1" argument(s): "String '' was not recognized as a valid DateTime.
+
+6.0.10
+Issue 3415 Use process isolation
+
+6.0.9
+Issue 3404 New-BcContainerBcUser fails with 'Invoke-SqlCmd' error when running BC24
+Remove support for pre 1.0.2.15 generic images
+Issue 3406 Regression - Set-BcContainerKeyVaultAadAppAndCertificate only worked when running pwsh in container
+Issue 3407 Export-NavContainerDatabasesAsBacpac fails using PS7x (and with tenants on BC24 altogether)
+Issue 3409 Invoke-RestMethod -SkipCertificateCheck for PowerShell 7
+By default use mcr.microsoft.com/businesscentral:ltscXXXX instead of mcr.microsoft.com/businesscentral:10.0.osbuild.osrevision as generic image
+
+6.0.8
+Fix error where Publish-BcNuGetPackageToContainer doesn't work with BC 24
+
+6.0.7
+Issue 3347 Download-BcNuGetPackageToFolder to support package description for app name if title is not specified
+Support dependency version templates on NuGet packages
+Issue 3349 NuGet package files section name is wrong when using azure blob storage direct download url
+Issue 3358 Run-TestsInBcContainer using Windows Authentication doesn't work if exactly one user exists in the tenant
+Fix error in Get-BcContainerAppInfo in NextMajor
+Check-BcContainerHelperPermissions didn't work on PS7
+Issue #3379 Adding -installCertificateOnHost to New-BcContainer didn't work when running PS7 (silently failed)
+Issue #3376 Regression - Download-Artifacts stopped downloading pre-requisites
+Issue 3371 Unable to get companyname from Windows Users when running tests
+Disallow invoking Run-ALPipeline with `keepContainer` without specifying credentials to use
+Issue 3369 Patch images version 1.0.2.15 with an updated installer
+Add awareness of Windows 11 23H2
+Patch images version 1.0.2.15 with an updated prompt.ps1, which loads PowerShell 7 modules when running pwsh
+Add new setting usePwshForBC24, which is default true to instruct Invoke-ScriptInBcContainer to use pwsh (PS7) instead of powershell (PS5) when invoking scripts in BC 24+ containers
+Add parameter usePwsh to Open-BcContainer and Invoke-ScriptInBcContainer, defaulted to the value of the usePwshForBC24 setting
+
+6.0.6
+Include Microsoft_Business Foundation Test Libraries.app when importing test libraries (and tests)
+Include Microsoft_System Application Test.app and Microsoft_Business Foundation Tests.app when importing tests
+Bug when running Publish-BcContainerApp against a cloud container ($authContext not defined)
+Remove the need for a Container when using Replace-DependenciesInAppFile (containername parameter is now obsolete)
+Two new parameters on Sort-AppFilesByDependencies (includeSystemDependencies and includeDependencyVersion)
+Add Public Microsoft NuGet Feeds as settings constants
+Fix issues in Download-BcNuGetPackageToFolder, where extensive amounts of NuGet searches was performed to locate packages
+Download-BcNuGetPackageToFolder now returns an array of apps downloaded instead of True/False
+JIT install PowerShell 7 in container when using BC version 24 or above (if not already installed in container)
+JIT install ASP.NET Core 1.1 when using BC 15 - 18 on Generic 1.0.2.15 or above
+
 6.0.5
+Proof of concept support for hosting artifacts as Universal Packages
 Add new function Get-BcNuGetPackageId to get a NuGet Package Id based on publisher, name, id and version
 Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib'
 Give better error message if GitHub CLI, GIT or dotnet is not installed
-Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4) 
+Issue 3301 Run-AlValidation fails running AppsourceCop "Could not load type 'System.Object' from assembly 'System.Private.CoreLib' (Regression in 6.0.4)
 Issue 3313 Strange error in Copy-BcEnvironment
+Issue 3318 Download-BcNuGetPackageToFolder fails when no dependencies defined
+Add Stacktrace output to high level functions Download-BcNuGetPackageToFolder and Get-BcNuGetPackage
+Fix for AL-Go issue 913 (https://github.com/microsoft/AL-Go/issues/913)
+Issue 3322 Default country for nextminor and nextmajor should be w1, not whatever country was the last one generated
+Encoding problems when using Invoke-ScriptInBcContainer with PowerShell 7.4.1
 
 6.0.4
 Rename AppInfoCache.json to cache_AppInfo.json (which by default is covered by .gitignore in AL-Go for GitHub)
@@ -332,7 +452,7 @@ Use a PowerShell Job to run bcpt tests to be able to remove files afterwards
 Allow Get-BcContainerAppInfo to be used without explicitely specifying -containerName $containerName, allowing just $containerName
 Add new function Set-BcContainerServerConfiguration to directly configure settings of the Business Central Server instance (without needing Invoke-ScriptInBcContainer)
 Add new function Restart-BcContainerServiceTier to restart only the service tier after configuration changes (often necessary)
-Patch wrong version of Newtonsoft.json.dll in current insider builds (until this is fixed in the platform)
+Patch wrong version of Newtonsoft.Json.dll in current insider builds (until this is fixed in the platform)
 
 3.0.8
 Add new function Get-ALGoAuthContext to get AL-Go for GitHub compatible auth context from bcAuthContext obtained from New-BcAuthContext

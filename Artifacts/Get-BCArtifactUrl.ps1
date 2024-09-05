@@ -23,8 +23,7 @@
  .Parameter storageAccount
   The storageAccount that is being used where artifacts are stored (default is bcartifacts, usually should not be changed).
  .Parameter sasToken
-  The token that for accessing protected Azure Blob Storage. Make sure to set the right storageAccount!
-  Note that Business Central Insider artifacts doesn't require a sasToken after October 1st 2023, you can use the switch -accept_insiderEula to accept the EULA instead.
+  OBSOLETE - sasToken is no longer supported
  .Parameter accept_insiderEula
   Accept the EULA for Business Central Insider artifacts. This is required for using Business Central Insider artifacts without providing a SAS token after October 1st 2023.
  .Example
@@ -46,6 +45,7 @@ function Get-BCArtifactUrl {
         [DateTime] $after,
         [DateTime] $before,
         [String] $storageAccount = '',
+        [Obsolete("sasToken is no longer supported")]
         [String] $sasToken = '',
         [switch] $accept_insiderEula,
         [switch] $doNotCheckPlatform
@@ -115,7 +115,8 @@ try {
             $nextminorversion = $nextmajorversion
         }
 
-        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -sasToken $sasToken -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
+        if (-not $country) { $country = 'w1' }
+        $insiders = Get-BcArtifactUrl -country $country -storageAccount bcinsider -select All -doNotCheckPlatform:$doNotCheckPlatform -accept_insiderEula:$accept_insiderEula
         $nextmajor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextmajorversion) } | Select-Object -Last 1
         $nextminor = $insiders | Where-Object { $_.Split('/')[4].StartsWith($nextminorversion) } | Select-Object -Last 1
 
@@ -127,44 +128,23 @@ try {
         }
     }
     else {
-        if ($sasToken) {
-            TestSasToken -url $sasToken
-        }
-
         if ($storageAccount -eq '') {
             $storageAccount = 'bcartifacts'
         }
 
         if (-not $storageAccount.Contains('.')) {
-            $storageAccount += ".azureedge.net"
+            $storageAccount += ".blob.core.windows.net"
         }
-        $BaseUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
-        $storageAccount = $storageAccount -replace ".azureedge.net", ".blob.core.windows.net"
+        $BaseUrl = ReplaceCDN -sourceUrl "https://$storageAccount/$($Type.ToLowerInvariant())/" -useBlobUrl:($bcContainerHelperConfig.DoNotUseCdnForArtifacts)
+        $storageAccount = ReplaceCDN -sourceUrl $storageAccount -useBlobUrl
 
-        if ($storageAccount -eq 'bcinsider.blob.core.windows.net') {
-            if (!$accept_insiderEULA) {
-                if ($sasToken) {
-                    Write-Host -ForegroundColor Yellow "After October 1st 2023, you can specify -accept_insiderEula to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) for Business Central Insider artifacts instead of providing a SAS token."
-                }
-                else {
-                    throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
-                }
-            }
+        if ($storageAccount -eq 'bcinsider.blob.core.windows.net' -and !$accept_insiderEULA) {
+            throw "You need to accept the insider EULA (https://go.microsoft.com/fwlink/?linkid=2245051) by specifying -accept_insiderEula or by providing a SAS token to get access to insider builds"
         }
-
-        $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/"
-
-        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts) {
-            $BaseUrl = $GetListUrl
-        }
-
-        if (!([string]::IsNullOrEmpty($sasToken))) {
-            $GetListUrl += $sasToken + "&comp=list&restype=container"
-        }
-        else {
-            $GetListUrl += "?comp=list&restype=container"
-        }
+        $GetListUrl = "https://$storageAccount/$($Type.ToLowerInvariant())/?comp=list&restype=container"
     
+        $upMajorFilter = ''
+        $upVersionFilter = ''
         if ($select -eq 'SecondToLastMajor') {
             if ($version) {
                 throw "You cannot specify a version when asking for the Second To Last Major version"
@@ -180,6 +160,8 @@ try {
                 throw "Version number must be in the format 1.2.3.4 when you want to get the closes artifact Url"
             }
             $GetListUrl += "&prefix=$($closestToVersion.Major).$($closestToVersion.Minor)."
+            $upMajorFilter = "$($closestToVersion.Major)"
+            $upVersionFilter = "$($closestToVersion.Minor)."
         }
         elseif (!([string]::IsNullOrEmpty($version))) {
             $dots = ($version.ToCharArray() -eq '.').Count
@@ -188,8 +170,10 @@ try {
                 $version = "$($version.TrimEnd('.'))."
             }
             $GetListUrl += "&prefix=$($Version)"
+            $upMajorFilter = $version.Split('.')[0]
+            $upVersionFilter = $version.Substring($version.Length).TrimStart('.')
         }
-        
+
         $Artifacts = @()
         $nextMarker = ''
         $currentMarker = ''
@@ -278,9 +262,7 @@ try {
         else {
             $Artifacts = $Artifacts | Where-Object { !($_.EndsWith("/platform", [System.StringComparison]::InvariantCultureIgnoreCase)) }
         }
-    
-        $Artifacts = $Artifacts | Sort-Object { [Version]($_.Split('/')[0]) }
-    
+
         switch ($Select) {
             'All' {  
                 $Artifacts = $Artifacts |
