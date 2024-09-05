@@ -652,7 +652,7 @@ If you only publish the app, you can use *Sync-NavContainerApp* and *Install-Nav
 
 Subsequently you also have functions to uninstall and unpublish apps from a container. The Unpublish-NavContainerApp also have a switch to uninstall the app.
 
-If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/AppHandling/Publish-NavContainerApp.ps1).
+If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/navcontainerhelper/blob/main/AppHandling/Publish-NavContainerApp.ps1).
 
 [Back to TOC](#toc)
 
@@ -664,7 +664,7 @@ Example:
 
     Import-ObjectsToNavContainer -containerName "test" -objectsFile "C:\temp\mysolution.fob" -sqlCredential $databaseCredential
 
-You can also import a .txt file, simply by specifying a .txt file. This will leave the objects uncompiled. If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/ObjectHandling/Import-ObjectsToNavContainer.ps1).
+You can also import a .txt file, simply by specifying a .txt file. This will leave the objects uncompiled. If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/navcontainerhelper/blob/main/ObjectHandling/Import-ObjectsToNavContainer.ps1).
 
 You can also import a folder with .delta files using the *Import-DeltasToNavContainer* function. 
 
@@ -673,7 +673,7 @@ Example:
     $oldDeltaFolder = "C:\ProgramData\NavContainerHelper\Extensions\old\deltas"
     Import-DeltasToNavContainer -containerName "test" -deltaFolder $deltaFolder
 
-you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/ObjectHandling/Import-DeltasToNavContainer.ps1).
+you can find the source [here](https://github.com/microsoft/navcontainerhelper/blob/main/ObjectHandling/Import-DeltasToNavContainer.ps1).
 
 You can use *Compile-ObjectsInNavContainer* to compile objects in the NavContainer.
 
@@ -687,7 +687,7 @@ Example:
 
     Compile-ObjectsInNavContainer -containerName "test" -filter "modified=1" -sqlCredential $databaseCredential
 
-If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/ObjectHandling/Compile-ObjectsInNavContainer.ps1).
+If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/navcontainerhelper/blob/main/ObjectHandling/Compile-ObjectsInNavContainer.ps1).
 
 [Back to TOC](#toc)
 
