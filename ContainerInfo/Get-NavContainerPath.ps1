@@ -21,8 +21,6 @@ function Get-BcContainerPath {
         [switch] $throw
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
     $containerPath = ""
     if ($path.StartsWith(":")) {
         $path =$path.Substring(1)
@@ -49,14 +47,6 @@ try {
         }
     }
     return $containerPath
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerPath -Value Get-BcContainerPath
 Export-ModuleMember -Function Get-BcContainerPath -Alias Get-NavContainerPath

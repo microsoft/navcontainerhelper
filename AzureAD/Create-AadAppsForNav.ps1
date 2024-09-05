@@ -82,7 +82,7 @@ try {
     }
     else {
         if ($AadAdminCredential) {
-            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
+            $password = [System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($AadAdminCredential.Password))
             if ($password.Length -gt 100) {
                 $account = Connect-AzureAD -AadAccessToken $password -AccountId $AadAdminCredential.UserName
             }

@@ -18,9 +18,6 @@ function Get-BcContainerIpAddress {
         [string] $networkName = ""
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     $ip = Invoke-ScriptInBcContainer -containerName $containerName -scriptblock {
         $ip = ""
         $ips = Get-NetIPAddress | Where-Object { $_.AddressFamily -eq "IPv4" -and $_.IPAddress -ne "127.0.0.1" }
@@ -46,14 +43,6 @@ try {
         }
     }
     return $ip
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerIpAddress -Value Get-BcContainerIpAddress
 Export-ModuleMember -Function Get-BcContainerIpAddress -Alias Get-NavContainerIpAddress

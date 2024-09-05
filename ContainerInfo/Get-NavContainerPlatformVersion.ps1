@@ -18,8 +18,6 @@ function Get-BcContainerPlatformVersion {
         [string] $containerOrImageName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
     $inspect = docker inspect $containerOrImageName | ConvertFrom-Json
     if ($inspect.Config.Labels.psobject.Properties.Match('maintainer').Count -eq 0 -or $inspect.Config.Labels.maintainer -ne "Dynamics SMB") {
         throw "Container $containerOrImageName is not a NAV/BC container"
@@ -29,14 +27,6 @@ try {
     } else {
         return ""
     }
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerPlatformVersion -Value Get-BcContainerPlatformVersion
 Export-ModuleMember -Function Get-BcContainerPlatformVersion -Alias Get-NavContainerPlatformVersion

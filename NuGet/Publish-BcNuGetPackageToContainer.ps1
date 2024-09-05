@@ -66,19 +66,10 @@ Function Publish-BcNuGetPackageToContainer {
 
     $installedApps = @()
     if ($bcAuthContext -and $environment) {
-        $isCloudBcContainer = isCloudBcContainer -authContext $bcAuthContext -containerId $environment
-        if ($isCloudBcContainer) {
-            $installedApps = @(Invoke-ScriptInCloudBcContainer -authContext $bcAuthContext -containerId $environment -scriptblock {
-                Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' | Where-Object { $_.IsInstalled -eq $true } | ForEach-Object { Get-NAVAppInfo -ServerInstance $serverInstance -TenantSpecificProperties -tenant 'default' -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version }
-            } | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.Name; "Id" = "$($_.AppId)"; "Version" = $_.Version } } )
-            # Get Country and Platform from the container
-        }
-        else {
-            $envInfo = Get-BcEnvironments -bcAuthContext $bcAuthContext -environment $environment
-            $installedPlatform = [System.Version]$envInfo.platformVersion
-            $installedCountry = $envInfo.countryCode.ToLowerInvariant()
-            $installedApps = @(Get-BcEnvironmentInstalledExtensions -bcAuthContext $authContext -environment $environment | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.displayName; "Id" = $_.Id; "Version" = [System.Version]::new($_.VersionMajor, $_.VersionMinor, $_.VersionBuild, $_.VersionRevision) } })
-        }
+        $envInfo = Get-BcEnvironments -bcAuthContext $bcAuthContext -environment $environment
+        $installedPlatform = [System.Version]$envInfo.platformVersion
+        $installedCountry = $envInfo.countryCode.ToLowerInvariant()
+        $installedApps = @(Get-BcEnvironmentInstalledExtensions -bcAuthContext $authContext -environment $environment | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.displayName; "Id" = $_.Id; "Version" = [System.Version]::new($_.VersionMajor, $_.VersionMinor, $_.VersionBuild, $_.VersionRevision) } })
     }
     else {
         $installedApps = @(Get-BcContainerAppInfo -containerName $containerName -installedOnly | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.Name; "Id" = "$($_.AppId)"; "Version" = $_.Version } } )
