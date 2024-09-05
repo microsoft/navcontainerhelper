@@ -19,9 +19,6 @@ function Get-BcContainerSharedFolders {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     $inspect = docker inspect $containerName | ConvertFrom-Json
     $sharedFolders = @{}
     if ($inspect.HostConfig.Binds) {
@@ -49,14 +46,6 @@ try {
         }
     }
     return $sharedFolders
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerSharedFolders -Value Get-BcContainerSharedFolders
 Export-ModuleMember -Function Get-BcContainerSharedFolders -Alias Get-NavContainerSharedFolders

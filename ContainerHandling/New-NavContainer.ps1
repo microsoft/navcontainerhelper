@@ -496,13 +496,15 @@ try {
     if ($isInsideContainer) {
         Write-Host "BcContainerHelper is running inside a Container"
     }
-    Write-Host "UsePsSession is $($bcContainerHelperConfig.UsePsSession)"
-    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.UsePwshForBc24)"
     Write-Host "Host is $($os.Caption) - $hostOsVersion"
+    Write-Host "UsePsSession is $($bcContainerHelperConfig.usePsSession)"
+    Write-Host "UsePwshForBc24 is $($bcContainerHelperConfig.usePwshForBc24)"
+    Write-Host "UseWinRmSession is $($bcContainerHelperConfig.useWinRmSession)"
+    Write-Host "UseSslForWinRmSession is $($bcContainerHelperConfig.useSslForWinRmSession)"
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerProcess)) {
-        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers."
+        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers. If Docker Desktop is already installed, open the system tray, right-click on the Docker icon, and select 'Switch to Windows containers...'"
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
@@ -779,7 +781,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.15") {
+                if ($genericTagVersion -lt [Version]"1.0.2.20") {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -1593,12 +1595,80 @@ if (!$restartingInstance) {
     winrm create winrm/config/Listener?Address=*+Transport=HTTPS (''@{Hostname="dontcare"; CertificateThumbprint="'' + $cert.Thumbprint + ''"}'')
     winrm set winrm/config/service/Auth ''@{Basic="true"}''
     Write-Host "Creating Container user $username"
-    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
     Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
-
     }
+    elseif ($bcContainerHelperConfig.useWinRmSession -ne 'never') {
+        # UseWinRmSession is allow or always - add winrm configuration to container
+        $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
+        ('
+if (!$restartingInstance) {
+    Write-Host "Enable PSRemoting and setup user for winrm"
+    Enable-PSRemoting | Out-Null
+    Get-PSSessionConfiguration | Out-null
+    pwsh.exe -Command "Enable-PSRemoting -WarningAction SilentlyContinue | Out-Null; Get-PSSessionConfiguration | Out-Null"
+    $credential = New-Object PSCredential -ArgumentList "winrm", (ConvertTo-SecureString -string "'+$winRmPassword+'" -AsPlainText -force)
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $credential.UserName -Name $credential.UserName -Password $credential.Password | Out-Null
+    Add-LocalGroupMember -Group administrators -Member $credential.UserName | Out-Null
+    winrm set winrm/config/service/Auth ''@{Basic="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    if ($bccontainerHelperConfig.useSslForWinRmSession) {
+        $additionalParameters += @("--expose 5986")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Creating self-signed certificate for winrm"
+    $cert = New-SelfSignedCertificate -CertStoreLocation cert:\localmachine\my -DnsName $env:computername -NotBefore (get-date).AddDays(-1) -NotAfter (get-date).AddYears(5) -Provider "Microsoft RSA SChannel Cryptographic Provider" -KeyLength 2048
+    winrm create winrm/config/Listener?Address=*+Transport=HTTPS ("@{Hostname=""$env:computername""; CertificateThumbprint=""$($cert.Thumbprint)""}") | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+    else {
+        $additionalParameters += @("--expose 5985")
+        ('
+if (!$restartingInstance) {
+    Write-Host "Allow unencrypted communication to container"
+    winrm set winrm/config/service ''@{AllowUnencrypted="true"}'' | Out-Null
+}
+') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
+    }
+
+    if (-not $bccontainerHelperConfig.useSslForWinRmSession) {
+        try {
+            [xml]$conf = winrm get winrm/config/client -format:pretty
+            $trustedHosts = @($conf.Client.TrustedHosts.Split(','))
+            if (-not $trustedHosts) {
+                $trustedHosts = @()
+            }
+            $isTrusted = $trustedHosts | Where-Object { $containerName -like $_ }
+            if (!($isTrusted)) {
+                if (!$isAdministrator) {
+                    Write-Host "$containerName is not a trusted host. You need to get an administrator to add $containerName to the trusted winrm hosts on your machine"
+                }
+                else {
+                    Write-Host "Adding $containerName to trusted hosts ($($trustedHosts -join ','))"
+                    $trustedHosts += $containerName
+                    winrm set winrm/config/client "@{TrustedHosts=""$($trustedHosts -join ',')""}" | Out-Null
+                }
+            }
+            if ($conf.Client.AllowUnencrypted -eq 'false') {
+                if (!$isAdministrator) {
+                    Write-Host "Unencrypted communication is not allowed. You need to get an administrator to allow unencrypted communication"
+                }
+                else {
+                    Write-Host "Allow unencrypted communication"
+                    winrm set winrm/config/client '@{AllowUnencrypted="true"}' | Out-Null
+                }
+            }
+        }
+        catch {
+            Write-Host "Unexpected error when checking winrm configuration, you might not be able to connect to the container using winrm unencrypted"
+        }
+    }
+    }
+
     if ($includeCSide) {
         $programFilesFolder = Join-Path $containerFolder "Program Files"
         New-Item -Path $programFilesFolder -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -1722,6 +1792,18 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default |? LicenseType
         ('
 if (!(dotnet --list-runtimes | Where-Object { $_ -like "Microsoft.NetCore.App 1.1.*" })) { Write-Host "Installing ASP.NET Core 1.1"; start-process -Wait -FilePath "c:\run\my\dotnetcore.exe" -ArgumentList /quiet }
 ') | Add-Content -Path "$myfolder\HelperFunctions.ps1"
+    }
+
+    if ($genericTag -lt [System.Version]"1.0.2.21") {
+        @'
+# Patch Microsoft.PowerShell.Archive to use en-US UI Culture (see https://github.com/PowerShell/Microsoft.PowerShell.Archive/pull/46)
+$psarchiveModule = 'C:\Windows\System32\WindowsPowerShell\v1.0\Modules\Microsoft.PowerShell.Archive\Microsoft.PowerShell.Archive.psm1'
+if (Test-Path $psarchiveModule) {
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule((whoami),'Modify', 'Allow')
+    $acl = Get-Acl -Path $psarchiveModule; $acl.AddAccessRule($rule); Set-Acl -Path $psarchiveModule -AclObject $acl
+    Set-Content -encoding utf8 -path $psarchiveModule -value (Get-Content -encoding utf8 -raw -path $psarchiveModule).Replace("`r`nImport-LocalizedData  LocalizedData -filename ArchiveResources`r`n","`r`nImport-LocalizedData LocalizedData -filename ArchiveResources -UICulture 'en-US'`r`n")
+}
+'@ | Add-Content -Path "$myfolder\SetupVariables.ps1"
     }
 
     if ($updateHosts) {
@@ -1936,7 +2018,7 @@ if (-not `$restartingInstance) {
                             )
 
             if ("$databaseServer" -ne "" -and $bcContainerHelperConfig.useSharedEncryptionKeys -and !$encryptionKeyExists) {
-                $sharedEncryptionKeyFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
+                $sharedEncryptionKeyFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
                 if (Test-Path $sharedEncryptionKeyFile) {
                     Write-Host "Using Shared Encryption Key file"
                     Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
@@ -2095,7 +2177,7 @@ if (-not `$restartingInstance) {
         if ($version -eq [System.Version]"14.10.40471.0") {
             Write-Host "Patching Microsoft.Dynamics.Nav.Ide.psm1 in container due to issue #859"
             $idepsm = Join-Path $containerFolder "14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1"
-            Download-File -sourceUrl 'https://bcdocker.blob.core.windows.net/public/14.10.40471.0-Patch-Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
+            Download-File -sourceUrl 'https://bcartifacts.blob.core.windows.net/patch/14.10.40471.0/Microsoft.Dynamics.Nav.Ide.psm1' -destinationFile $idepsm
             Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($idepsm)
                 Copy-Item -Path $idepsm -Destination 'C:\Program Files (x86)\Microsoft Dynamics NAV\140\RoleTailored Client\Microsoft.Dynamics.Nav.Ide.psm1' -Force
             } -argumentList (Get-BcContainerPath -containerName $containerName -path $idepsm)
@@ -2103,7 +2185,7 @@ if (-not `$restartingInstance) {
         }
     
         if ((($version -eq [System.Version]"16.0.11240.12076") -or ($version -eq [System.Version]"16.0.11240.12085")) -and $devCountry -ne "W1") {
-            $url = "https://bcdocker.blob.core.windows.net/public/12076-patch/$($devCountry.ToUpper()).zip"
+            $url = "https://bcartifacts.blob.core.windows.net/patch/16.0.11240.12076/$($devCountry.ToUpper()).zip"
             Write-Host "Downloading new test apps for this version from $url"
             $zipName = Join-Path $containerFolder "16.0.11240.12076-$devCountry-Tests-Patch"
             Download-File -sourceUrl $url -destinationFile "$zipName.zip"

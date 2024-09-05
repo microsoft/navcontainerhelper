@@ -37,7 +37,7 @@ try {
         $ProcessArguments += "Command=generatesymbolreference, Database=""$databaseName"", ServerName=""$databaseServer"""
         if ($sqlCredential) {
             Write-Host "Adding SQL-Server credentials for authentication"
-            $ProcessArguments += ", ntauthentication=0, username=""$($sqlCredential.UserName)"", password=""$([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))"""
+            $ProcessArguments += ", ntauthentication=0, username=""$($sqlCredential.UserName)"", password=""$([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))"""
         }
 
         Write-Host "Creating application symbols in $containerName"

@@ -84,8 +84,8 @@ function Compile-AppWithBcCompilerFolder {
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
-        [switch] $AzureDevOps,
-        [switch] $gitHubActions,
+        [switch] $AzureDevOps = $bcContainerHelperConfig.AzureDevOps,
+        [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
         [switch] $EnablePerTenantExtensionCop,
@@ -366,7 +366,14 @@ try {
     }
 
     if ($CustomCodeCops.Count -gt 0) {
-        $CustomCodeCops | ForEach-Object { $alcParameters += @("/analyzer:$_") }
+        $CustomCodeCops | ForEach-Object {
+            $analyzerFileName = $_
+            if ($_ -like 'https://*') {
+                $analyzerFileName = Join-Path $binPath "Analyzers/$(Split-Path $_ -Leaf)"
+                Download-File -SourceUrl $_ -destinationFile $analyzerFileName
+            }
+            $alcParameters += @("/analyzer:$analyzerFileName")
+        }
     }
 
     if ($rulesetFile) {

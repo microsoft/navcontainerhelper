@@ -96,7 +96,7 @@ try {
             $copyTables += @("Entitlement", "Entitlement Set", "Membership Entitlement")
         }
 
-        Invoke-ScriptInBCContainer -containerName $containerName -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables, $multitenant)
+        Invoke-ScriptInBCContainer -containerName $containerName -useSession $false -usePwsh $false -scriptblock { Param($platformVersion, $databaseName, $databaseServer, $databaseInstance, $copyTables, $multitenant)
         
             Write-Host "Stopping ServiceTier in order to replace database"
             Set-NavServerInstance -ServerInstance $ServerInstance -stop
