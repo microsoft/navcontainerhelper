@@ -376,7 +376,7 @@ function GetTestToolkitApps {
             $apps += @('Microsoft_Any', 'Microsoft_Library Assert', 'Microsoft_Library Variable Storage')
             if (!$includeTestFrameworkOnly) {
                 # Add Test Libraries
-                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries')
+                $apps += @('Microsoft_System Application Test Library', 'Microsoft_Business Foundation Test Libraries', 'Microsoft_Tests-TestLibraries','Microsoft_AI Test Toolkit')
                 if (!$includeTestLibrariesOnly) {
                     # Add Tests
                     if ($version -ge [Version]"18.0.0.0") {
@@ -414,7 +414,7 @@ function GetTestToolkitApps {
     
                 if (!$includeTestFrameworkOnly) {
                     # Add Test Libraries
-                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app" | ForEach-Object {
+                    $apps += "Microsoft_System Application Test Library.app", "Microsoft_Business Foundation Test Libraries.app", "Microsoft_Tests-TestLibraries.app", 'Microsoft_AI Test Toolkit.app' | ForEach-Object {
                         @(get-childitem -Path "C:\Applications\*.*" -recurse -filter $_)
                     }
         
@@ -1051,7 +1051,7 @@ function GetAppInfo {
         }
         Set-Location (Split-Path $cacheAppInfoPath -parent)
     }
-    Write-Host "::group::Getting .app info $cacheAppInfoPath"
+    Write-GroupStart -Message "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
@@ -1166,7 +1166,7 @@ function GetAppInfo {
         }
         Pop-Location
     }
-    Write-Host "::endgroup::"
+    Write-GroupEnd
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
@@ -1338,4 +1338,19 @@ function ReplaceCDN {
         }
     }
     $sourceUrl
+}
+
+function Write-GroupStart([string] $Message) {
+    switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::group::$Message"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[group]$Message"; break }
+        Default { Write-Host $Message}
+    }
+}
+
+function Write-GroupEnd {
+     switch ($true) {
+        $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
+        $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
+    }
 }
