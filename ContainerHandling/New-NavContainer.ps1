@@ -504,7 +504,7 @@ try {
 
     $dockerProcess = (Get-Process "dockerd" -ErrorAction Ignore)
     if (!($dockerProcess)) {
-        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers."
+        Write-Host -ForegroundColor Red "Dockerd process not found. Docker might not be started, not installed or not running Windows Containers. If Docker Desktop is already installed, open the system tray, right-click on the Docker icon, and select 'Switch to Windows containers...'"
     }
 
     $dockerVersion = docker version -f "{{.Server.Os}}/{{.Client.Version}}/{{.Server.Version}}"
@@ -1595,7 +1595,7 @@ if (!$restartingInstance) {
     winrm create winrm/config/Listener?Address=*+Transport=HTTPS (''@{Hostname="dontcare"; CertificateThumbprint="'' + $cert.Thumbprint + ''"}'')
     winrm set winrm/config/service/Auth ''@{Basic="true"}''
     Write-Host "Creating Container user $username"
-    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
+    New-LocalUser -AccountNeverExpires -PasswordNeverExpires -FullName $username -Name '+$bcContainerHelperConfig.WinRmCredentials.UserName+' -Password (ConvertTo-SecureString -string "'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($bcContainerHelperConfig.WinRmCredentials.Password)))+'" -AsPlainText -force) | Out-Null
     Add-LocalGroupMember -Group administrators -Member '+$bcContainerHelperConfig.WinRmCredentials.UserName+'
 }
 ') | Add-Content -Path "$myfolder\AdditionalSetup.ps1"
@@ -2018,7 +2018,7 @@ if (-not `$restartingInstance) {
                             )
 
             if ("$databaseServer" -ne "" -and $bcContainerHelperConfig.useSharedEncryptionKeys -and !$encryptionKeyExists) {
-                $sharedEncryptionKeyFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
+                $sharedEncryptionKeyFile = Join-Path $bcContainerHelperConfig.hostHelperFolder "EncryptionKeys\$(-join [security.cryptography.sha256managed]::new().ComputeHash([Text.Encoding]::Utf8.GetBytes(([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($databaseCredential.Password))))).ForEach{$_.ToString("X2")})\DynamicsNAV-v$($version.Major).key"
                 if (Test-Path $sharedEncryptionKeyFile) {
                     Write-Host "Using Shared Encryption Key file"
                     Copy-Item -Path $sharedEncryptionKeyFile -Destination $containerEncryptionKeyFile
