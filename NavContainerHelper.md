@@ -263,7 +263,7 @@ The Web Client and Dev. Server are both secured with a self-signed certificate (
 
 LetsEncrypt is a certificate provider which issues free SSL certificates for services. Furthermore, there is a PowerShell module, which enables you to do this automatically.
 
-This PowerShell module is being used in the NAV ARM Templates (like http://aka.ms/getnav) and the code can be found [here](https://github.com/Microsoft/nav-arm-templates/blob/master/initialize.ps1) (search for LetsEncrypt).
+This PowerShell module is being used in the NAV ARM Templates (like http://aka.ms/getnav) and the code can be found [here](https://github.com/microsoft/nav-arm-templates/blob/main/initialize.ps1) (search for LetsEncrypt).
 
 The code to import and use the certificate is the same as you use when using a certificate issued by a trusted authority.
 
@@ -652,7 +652,7 @@ If you only publish the app, you can use *Sync-NavContainerApp* and *Install-Nav
 
 Subsequently you also have functions to uninstall and unpublish apps from a container. The Unpublish-NavContainerApp also have a switch to uninstall the app.
 
-If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/AppHandling/Publish-NavContainerApp.ps1).
+If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/AppHandling/Publish-NavContainerApp.ps1).
 
 [Back to TOC](#toc)
 
@@ -664,7 +664,7 @@ Example:
 
     Import-ObjectsToNavContainer -containerName "test" -objectsFile "C:\temp\mysolution.fob" -sqlCredential $databaseCredential
 
-You can also import a .txt file, simply by specifying a .txt file. This will leave the objects uncompiled. If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Import-ObjectsToNavContainer.ps1).
+You can also import a .txt file, simply by specifying a .txt file. This will leave the objects uncompiled. If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/ObjectHandling/Import-ObjectsToNavContainer.ps1).
 
 You can also import a folder with .delta files using the *Import-DeltasToNavContainer* function. 
 
@@ -673,7 +673,7 @@ Example:
     $oldDeltaFolder = "C:\ProgramData\NavContainerHelper\Extensions\old\deltas"
     Import-DeltasToNavContainer -containerName "test" -deltaFolder $deltaFolder
 
-you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Import-DeltasToNavContainer.ps1).
+you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/ObjectHandling/Import-DeltasToNavContainer.ps1).
 
 You can use *Compile-ObjectsInNavContainer* to compile objects in the NavContainer.
 
@@ -687,7 +687,7 @@ Example:
 
     Compile-ObjectsInNavContainer -containerName "test" -filter "modified=1" -sqlCredential $databaseCredential
 
-If you are curious to see what happens inside this function, you can find the source [here](https://github.com/Microsoft/navcontainerhelper/blob/master/ObjectHandling/Compile-ObjectsInNavContainer.ps1).
+If you are curious to see what happens inside this function, you can find the source [here](https://github.com/microsoft/NavContainerHelper/blob/main/ObjectHandling/Compile-ObjectsInNavContainer.ps1).
 
 [Back to TOC](#toc)
 
@@ -1038,26 +1038,26 @@ The output of the container should be something like:
 
 The list below is all the overridable scripts in the c:\run folder, a link to the source code and a description of their responsibility.
 
-1. [navstart.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/navstart.ps1) - navstart is the very first script to run and is responsible for running the following scripts.
-2. [Helperfunctions.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/HelperFunctions.ps1) - set of helper functions.
-3. [SetupVariables.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupVariables.ps1) - read environment variables and set PowerShell variables.
-4. [SetupDatabase.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupDatabase.ps1) - setup the database used for this container.
-5. [SetupCertificate.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupCertificate.ps1) - setup certificate to use.
-6. [SetupConfiguration.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupConfiguration.ps1) - setup configuration for service tier.
-7. [SetupAddIns.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupAddIns.ps1) - setup addins in service tier and roletailored client folders.
-8. [SetupLicense.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupLicense.ps1) - setup license to use.
-9. [SetupTenant.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupTenant.ps1) - setup tenant (if multitenancy).
-10. [SetupWebClient.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/110/SetupWebClient.ps1) - setup Web Client (this script is different for different versions of NAV).
-11. [SetupWebConfiguration.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupWebConfiguration.ps1) - setup Web Client configuration (default file is empty).
-12. [SetupFileShare.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupFileShare.ps1) - setup file share with certificate, vsix file and more.
-13. [SetupWindowsUsers.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupWindowsUsers.ps1) - setup Windows users.
-14. [SetupSqlUsers.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupSqlUsers.ps1) - setup SQL users.
-15. [SetupNavUsers.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupNavUsers.ps1) - setup NAV users.
-16. [SetupClickOnce.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/110/SetupClickOnce.ps1) - setup ClickOnce deployed Windows Client (this script is different for different versions of NAV).
-17. [SetupClickOnceDirectory.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/110/SetupClickOnceDirectory.ps1) - setup ClickOnce directory with the necessary files for Windows Client deployment.
-18. [AdditionalSetup.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/AdditionalSetup.ps1) - additional setup script (default file is empty).
-19. [AdditionalOutput.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/AdditionalOutput.ps1) - additional output script (default file is empty).
-20. [MainLoop.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/MainLoop.ps1) - NAV container main loop, exiting the main loop will terminate the container.
+1. [navstart.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/navstart.ps1) - navstart is the very first script to run and is responsible for running the following scripts.
+2. [Helperfunctions.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/HelperFunctions.ps1) - set of helper functions.
+3. [SetupVariables.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupVariables.ps1) - read environment variables and set PowerShell variables.
+4. [SetupDatabase.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupDatabase.ps1) - setup the database used for this container.
+5. [SetupCertificate.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupCertificate.ps1) - setup certificate to use.
+6. [SetupConfiguration.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupConfiguration.ps1) - setup configuration for service tier.
+7. [SetupAddIns.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupAddIns.ps1) - setup addins in service tier and roletailored client folders.
+8. [SetupLicense.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupLicense.ps1) - setup license to use.
+9. [SetupTenant.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupTenant.ps1) - setup tenant (if multitenancy).
+10. [SetupWebClient.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/110/SetupWebClient.ps1) - setup Web Client (this script is different for different versions of NAV).
+11. [SetupWebConfiguration.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupWebConfiguration.ps1) - setup Web Client configuration (default file is empty).
+12. [SetupFileShare.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupFileShare.ps1) - setup file share with certificate, vsix file and more.
+13. [SetupWindowsUsers.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupWindowsUsers.ps1) - setup Windows users.
+14. [SetupSqlUsers.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupSqlUsers.ps1) - setup SQL users.
+15. [SetupNavUsers.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupNavUsers.ps1) - setup NAV users.
+16. [SetupClickOnce.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/110/SetupClickOnce.ps1) - setup ClickOnce deployed Windows Client (this script is different for different versions of NAV).
+17. [SetupClickOnceDirectory.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/110/SetupClickOnceDirectory.ps1) - setup ClickOnce directory with the necessary files for Windows Client deployment.
+18. [AdditionalSetup.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/AdditionalSetup.ps1) - additional setup script (default file is empty).
+19. [AdditionalOutput.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/AdditionalOutput.ps1) - additional output script (default file is empty).
+20. [MainLoop.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/MainLoop.ps1) - NAV container main loop, exiting the main loop will terminate the container.
 
 When overriding scripts, you need to determine whether or not you are going to invoke the default behavior. Some script overrides (like SetupCertificate.ps1) will typically not invoke the default script, others (like SetupConfiguration.ps1) typically will invoke the default behavior.
 
@@ -1084,7 +1084,7 @@ The following variables are parameters, which are defined when running the image
 
 Please go through the navstart.ps1 script to understand how this works and how the overridable scripts are launched.
 
-## [navstart.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/navstart.ps1)
+## [navstart.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/navstart.ps1)
 
 navstart.ps1 is the main script runner, which will invoke all the other scripts.
 
@@ -1096,7 +1096,7 @@ Invoke scripts in the order mentioned above.
 
 - If you want to change behavior of the NAV container totally, then this can be done by specifying another navstart.ps1.
 
-## [Helperfunctions.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/HelperFunctions.ps1)
+## [Helperfunctions.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/HelperFunctions.ps1)
 
 HelperFunctions is a library of helper functions, used by the scripts.
 
@@ -1108,7 +1108,7 @@ You should always invoke the default helperfunctions script.
 
 - Override functions in helperfunctions.
 
-## [SetupVariables.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupVariables.ps1)
+## [SetupVariables.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupVariables.ps1)
 
 When running the NAV container image, most parameters are specified by using -e parameter=value. This will actually set the environment variable parameter to value and in the SetupVariables script, these environment variables are transferred to PowerShell variables.
 
@@ -1120,7 +1120,7 @@ The script will transfer all known parameters from environment variables to Powe
 
 - Hardcode variables
 
-## [SetupDatabase.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupDatabase.ps1)
+## [SetupDatabase.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupDatabase.ps1)
 
 The responsibility of SetupDatabase is to make sure that a database is ready for the NAV Service Tier to open. The script will not be executed if a $databaseServer and $databaseName parameter is specified as environment variables.
 
@@ -1139,7 +1139,7 @@ The script will be executed when running the generic or a specific image, and it
 - Place your database file on a file share on the Docker host
 - Connect to a SQL Azure Database or another SQL Server
 
-## [SetupCertificate.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupCertificate.ps1)
+## [SetupCertificate.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupCertificate.ps1)
 
 The responsibility of the SetupCertificate script is to make sure that a certificate for secure communication is in place. The certificate will be used for the communication between Client and Server (if necessary) and for securing communication to the Web Client and to Web Services (unless UseSSL has been set to N).
 
@@ -1161,7 +1161,7 @@ The default script will create a self-signed certificate, and use this for secur
 
 - Using a certificate issues by a trusted authority.
 
-## [SetupConfiguration.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupConfiguration.ps1)
+## [SetupConfiguration.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupConfiguration.ps1)
 
 The SetupConfiguration script will setup the NAV Service Tier configuration file. The script also adds port reservations if the configuration is setup for SSL.
 
@@ -1182,7 +1182,7 @@ Example:
     $customConfig.SelectSingleNode("//appSettings/add[@key='MaxConcurrentCalls']").Value = "10"
     $CustomConfig.Save($CustomConfigFile)
 
-## [SetupAddIns.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupAddIns.ps1)
+## [SetupAddIns.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupAddIns.ps1)
 
 SetupAddIns must make sure that custom add-ins are available to the Service Tier and in the RoleTailored Client folder.
 
@@ -1198,7 +1198,7 @@ If you override this script, you should execute the default behavior before doin
 
 - Copy Add-Ins from a network location
 
-## [SetupLicense.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupLicense.ps1)
+## [SetupLicense.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupLicense.ps1)
 
 The responsibility of the SetupLicense script is to ensure that a license is available for the NAV Service Tier.
 
@@ -1215,7 +1215,7 @@ In all specific NAV container images, the license is already imported. If you ar
 - If you have moved the database or you are using a different database
 - Import the license to a different location (default is NavDatabase)
 
-## [SetupTenant.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupTenant.ps1)
+## [SetupTenant.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupTenant.ps1)
 
 This script will create a tenant database as a copy of the tenant template database.
 
@@ -1228,7 +1228,7 @@ Copy the tenant template database and mount it as a new tenant.
 - Use a different tenant template.
 - Initialize tenant after mount.
 
-## [SetupWebClient.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/110/SetupWebClient.ps1)
+## [SetupWebClient.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/110/SetupWebClient.ps1)
 
 This script is used to setup the WebClient. This script is different for different versions of NAV.
 
@@ -1240,7 +1240,7 @@ Setup the WebClient under IIS.
 
 - If you want to setup the WebClient as a service and not under IIS.
 
-## [SetupWebConfiguration.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupWebConfiguration.ps1)
+## [SetupWebConfiguration.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupWebConfiguration.ps1)
 
 The responsibility of the SetupWebConfiguration is to do final configuration changes to Web config.
 
@@ -1252,7 +1252,7 @@ The default script is left empty, base Web Configuration is done in SetupWebClie
 
 - Change things in the Web configuration, which isn't supported by parameters already.
 
-## [SetupFileShare.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupFileShare.ps1)
+## [SetupFileShare.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupFileShare.ps1)
 
 The SetupFileShare script needs to copy files, which you want to be available to the user to the file share folder.
 
@@ -1267,7 +1267,7 @@ You should always invoke the default behavior if you override this script (unles
 
 - Add additional files to the file share (Copy files need to $httpPath)
 
-## [SetupWindowsUsers.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupWindowsUsers.ps1)
+## [SetupWindowsUsers.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupWindowsUsers.ps1)
 
 This script will create the user specified as a Windows user in the container in order to allow Windows authentication to work.
 
@@ -1279,7 +1279,7 @@ Create the Windows user.
 
 - avoid creating the Windows user.
 
-## [SetupSqlUsers.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupSqlUsers.ps1)
+## [SetupSqlUsers.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupSqlUsers.ps1)
 
 The SetupSqlUsers script must make sure that the necessary users are created in the SQL Server.
 
@@ -1298,7 +1298,7 @@ If you override this script, you might or might not need to invoke the default b
 
 - Change configurations to SQL Server
 
-## [SetupNavUsers.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/SetupNavUsers.ps1)
+## [SetupNavUsers.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/SetupNavUsers.ps1)
 
 The responsibility of the SetupNavUsers script is to setup users in NAV.
 
@@ -1316,7 +1316,7 @@ If you override this script, you might or might not need to invoke the default b
 
 - Create multiple users in NAV for demo purposes
 
-## [SetupClickOnce.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/110/SetupClickOnce.ps1)
+## [SetupClickOnce.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/110/SetupClickOnce.ps1)
 
 The SetupClickOnce script will setup a ClickOnce manifest in the download area.
 
@@ -1328,7 +1328,7 @@ Create a ClickOnce manifest of the Windows Client
 
 - This script is rarely overridden, but If you want to create an additional ClickOnce manifest, this is where you would do it.
 
-## [SetupClickOnceDirectory.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/110/SetupClickOnceDirectory.ps1)
+## [SetupClickOnceDirectory.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/110/SetupClickOnceDirectory.ps1)
 
 The responsibility of the SetupClickOnceDirectory script is to copy the files needed for the ClickOnce manifest from the RoleTailored Client directory to the ClickOnce ApplicationFiles directory.
 
@@ -1347,7 +1347,7 @@ Example:
 
     Copy-Item "$roleTailoredClientFolder\Newtonsoft.Json.dll" -Destination "$ClickOnceApplicationFilesDirectory"
 
-## [AdditionalSetup.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/AdditionalSetup.ps1)
+## [AdditionalSetup.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/AdditionalSetup.ps1)
 
 This script is added to allow you to add additional setup to your Docker container, which gets run after everything else is setup. You will see, that in the scenarios, the AdditionalSetup script is frequently overridden to achieve things.
 
@@ -1361,7 +1361,7 @@ This script is the last script, which gets executed before the output section an
 
  - If you need to perform additional setup when running the docker container
 
-## [AdditionalOutput.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/AdditionalOutput.ps1)
+## [AdditionalOutput.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/AdditionalOutput.ps1)
 
 This script is added to allow you to add additional output to your Docker container.
 
@@ -1375,7 +1375,7 @@ If you override this script there is no need to call the default behavior.
 
 If you need to output information to the user running the Docker Container, you can write stuff to the host in this script and it will be visible to the user running the container.
 
-## [MainLoop.ps1](https://github.com/Microsoft/nav-docker/blob/master/generic/Run/MainLoop.ps1)
+## [MainLoop.ps1](https://github.com/microsoft/nav-docker/blob/main/generic/Run/MainLoop.ps1)
 
 The responsibility of the MainLoop script is to make sure that the container doesn't exit. If no "message" loop is running, the container will stop running and be marked as Exited.
 

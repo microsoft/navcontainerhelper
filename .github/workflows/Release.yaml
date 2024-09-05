@@ -83,7 +83,7 @@ jobs:
                                   -AliasesToExport $aliasesToExport `
                                   -CompanyName "Microsoft" `
                                   -ReleaseNotes $versionReleaseNotes `
-                                  -LicenseUri 'https://github.com/microsoft/navcontainerhelper/blob/master/LICENSE' `
+                                  -LicenseUri 'https://github.com/microsoft/NavContainerHelper/blob/main/LICENSE' `
                                   -ProjectUri 'https://github.com/microsoft/navcontainerhelper'
 
             $certFileName = Join-Path ([System.IO.Path]::GetTempPath()) "$([GUID]::NewGuid().ToString()).pfx"
