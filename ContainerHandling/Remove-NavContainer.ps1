@@ -62,6 +62,19 @@ try {
             . (Join-Path $PSScriptRoot "updatehosts.ps1") -hostsFile "c:\windows\system32\drivers\etc\hosts" -theHostname $tenantHostname -theIpAddress ""
         }
 
+        if ($isAdministrator -and ($bcContainerHelperConfig.useWinRmSession -ne 'never') -and (-not $bccontainerHelperConfig.useSslForWinRmSession)) {
+            # If not using SSL for WinRm, we need to remove the container from the trusted hosts
+            try {
+                [xml]$conf = winrm get winrm/config/client -format:pretty
+                $trustedHosts = $conf.Client.TrustedHosts.Split(',')
+                if ($trustedHosts -contains $containerName) {
+                    Write-Host "Removing $containerName from trusted hosts ($($trustedHosts -join ','))"
+                    winrm set winrm/config/client "@{TrustedHosts=""$(@($trustedHosts | Where-Object { $_ -ne $containerName }) -join ',')""}" | Out-Null
+                }
+            }
+            catch {}
+        }
+
         if ($myVolume) {
             Write-Host "Removing volume $myVolumeName"
             docker volume remove $myVolumeName

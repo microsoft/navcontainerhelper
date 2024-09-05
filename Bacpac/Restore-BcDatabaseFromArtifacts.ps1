@@ -107,15 +107,23 @@ try {
                     throw "You need to have a local installation of SQL or you need the SqlServer PowerShell module installed"
                 }
             }
-
-            $DefaultDataPath = (Invoke-SqlCmd `
-                -ServerInstance $databaseServerInstance `
+            $sqlParams = @{
+                "ServerInstance" = $databaseserverinstance
+            }
+            $function = Get-Command 'Invoke-SqlCmd' -ErrorAction SilentlyContinue
+            if ($null -eq $function) {
+                throw "Invoke-SqlCmd not found, please install the SqlServer module"
+            }
+            if ($function.Parameters.ContainsKey('TrustServerCertificate')) {
+                $sqlParams += @{ "TrustServerCertificate" = $true }
+            }
+        
+            $DefaultDataPath = (Invoke-SqlCmd @sqlParams `
                 -Query "SELECT SERVERPROPERTY('InstanceDefaultDataPath') AS InstanceDefaultDataPath" ).InstanceDefaultDataPath
 
             if($databaseServer -ne 'localhost'){
                 # Copy local database to SQL Server
-                $defaultBackupPath = (Invoke-SqlCmd `
-                    -ServerInstance $databaseServerInstance `
+                $defaultBackupPath = (Invoke-SqlCmd @sqlParams `
                     -Query "SELECT SERVERPROPERTY('InstanceDefaultBackupPath') AS InstanceDefaultBackupPath" ).InstanceDefaultBackupPath
 
                 $qualifier = $defaultBackupPath | Split-Path -Qualifier

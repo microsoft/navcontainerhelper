@@ -17,6 +17,8 @@
   Include this parameter to avoid checking entitlements. Entitlements are needed if the .bacpac file is to be used for cloud deployments.
  .Parameter includeDacPac
   Use this parameter to export databases as dacpac
+ .Parameter dacPacOnly
+  Use this parameter to export databases as dacpac only (skip Bacpac)
  .Parameter commandTimeout
   Timeout in seconds for the export command for every database. Default is 1 hour (3600).
  .Parameter diagnostics
@@ -43,6 +45,7 @@ function Export-BcContainerDatabasesAsBacpac {
         [string[]] $tenant = @("default"),
         [int] $commandTimeout = 3600,
         [switch] $includeDacPac,
+        [switch] $dacPacOnly,
         [switch] $diagnostics,
         [switch] $doNotCheckEntitlements,
         [string[]] $additionalArguments = @()
@@ -64,7 +67,7 @@ try {
     }
     $containerBacpacFolder = Get-BcContainerPath -containerName $containerName -path $bacpacFolder -throw
 
-    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
+    Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([PSCredential]$sqlCredential, $bacpacFolder, $tenant, $commandTimeout, $includeDacPac, $dacPacOnly, $diagnostics, $additionalArguments, $doNotCheckEntitlements)
     
         function CmdDo {
             Param(
@@ -190,7 +193,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove Network Service User from $DatabaseName"
@@ -216,7 +219,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove Windows Users from $DatabaseName"
@@ -246,7 +249,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove Application Roles from $DatabaseName"
@@ -277,7 +280,7 @@ try {
             Write-Host "Checking Entitlements"
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
 
             'Membership Entitlement', 'Entitlement Set', 'Entitlement' | % {
@@ -300,7 +303,7 @@ try {
          
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             Write-Host "Remove data from System Tables database $DatabaseName"
@@ -333,7 +336,7 @@ try {
 
             $params = @{ 'ErrorAction' = 'Ignore'; 'ServerInstance' = $databaseServer }
             if ($sqlCredential) {
-                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
+                $params += @{ 'Username' = $sqlCredential.UserName; 'Password' = ([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password))) }
             }
         
             if (!($KeepUserData)) {
@@ -388,40 +391,43 @@ try {
                 [Parameter(Mandatory=$false)]
                 [int] $commandTimeout = 3600,
                 [switch] $includeDacPac,
+                [switch] $dacPacOnly,
                 [switch] $diagnostics,
                 [Parameter(Mandatory=$false)]
                 [string[]] $additionalArguments = @()
             )
 
-            Write-Host "Exporting as BacPac..."
+            if (!$dacPacOnly) {
+                Write-Host "Exporting as BacPac..."
             
-            $arguments = @(
-                ('/Action:Export'),
-                ('/TargetFile:"'+$targetFile+'"'), 
-                ('/SourceDatabaseName:"'+$databaseName+'"'),
-                ('/SourceServerName:"'+$databaseServer+'"'),
-                ('/OverwriteFiles:True')
-                ("/p:CommandTimeout=$commandTimeout")
-            )
-
-            if ($diagnostics) {
-                $arguments += @('/Diagnostics:True')
-            }
-
-            if ($sqlCredential) {
-                $arguments += @(
-                    ('/SourceUser:"'+$sqlCredential.UserName+'"'),
-                    ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                $arguments = @(
+                    ('/Action:Export'),
+                    ('/TargetFile:"'+$targetFile+'"'), 
+                    ('/SourceDatabaseName:"'+$databaseName+'"'),
+                    ('/SourceServerName:"'+$databaseServer+'"'),
+                    ('/OverwriteFiles:True')
+                    ("/p:CommandTimeout=$commandTimeout")
                 )
+    
+                if ($diagnostics) {
+                    $arguments += @('/Diagnostics:True')
+                }
+    
+                if ($sqlCredential) {
+                    $arguments += @(
+                        ('/SourceUser:"'+$sqlCredential.UserName+'"'),
+                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                    )
+                }
+    
+                if ($additionalArguments) {
+                    $arguments += $additionalArguments
+                }
+    
+                CmdDo -command $sqlpackageExe -arguments ($arguments -join ' ')
             }
-
-            if ($additionalArguments) {
-                $arguments += $additionalArguments
-            }
-
-            CmdDo -command $sqlpackageExe -arguments ($arguments -join ' ')
            
-            if ($includeDacPac) {
+            if ($includeDacPac -or $dacPacOnly) {
                 Write-Host "Extracting as DacPac..."
                 $arguments = @(
                     ('/Action:Extract'),
@@ -441,7 +447,7 @@ try {
                 if ($sqlCredential) {
                     $arguments += @(
                         ('/SourceUser:"'+$sqlCredential.UserName+'"'),
-                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
+                        ('/SourcePassword:"'+([System.Runtime.InteropServices.Marshal]::PtrToStringBSTR([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($sqlCredential.Password)))+'"')
                     )
                 }
 
@@ -481,7 +487,7 @@ try {
             Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempAppDatabaseName -sqlCredential $sqlCredential -targetFile $appBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -dacPacOnly:$dacPacOnly -diagnostics:$diagnostics -additionalArguments $additionalArguments
             
             $tenant | ForEach-Object {
                 $sourceDatabase = $_
@@ -499,7 +505,7 @@ try {
                 Remove-WindowsUsers -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
                 Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential
-                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
+                Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempTenantDatabaseName -sqlCredential $sqlCredential -targetFile $tenantBacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -dacPacOnly:$dacPacOnly -diagnostics:$diagnostics -additionalArguments $additionalArguments
             }
         } else {
             $tempDatabaseName = "temp$DatabaseName"
@@ -512,9 +518,9 @@ try {
             Remove-ApplicationRoles -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavDatabaseSystemTableData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
             Remove-NavTenantDatabaseUserData -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential
-            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -diagnostics:$diagnostics -additionalArguments $additionalArguments
+            Do-Export -DatabaseServer $databaseServerInstance -DatabaseName $tempDatabaseName -sqlCredential $sqlCredential -targetFile $bacpacFileName -commandTimeout $commandTimeout -includeDacPac:$includeDacPac -dacPacOnly:$dacPacOnly -diagnostics:$diagnostics -additionalArguments $additionalArguments
         }
-    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $includeDacPac, $diagnostics, $additionalArguments, $doNotCheckEntitlements
+    } -ArgumentList $sqlCredential, $containerBacpacFolder, $tenant, $commandTimeout, $includeDacPac, $dacPacOnly, $diagnostics, $additionalArguments, $doNotCheckEntitlements
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_

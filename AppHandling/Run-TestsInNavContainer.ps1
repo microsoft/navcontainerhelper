@@ -22,6 +22,13 @@
   Only supported in 14.x containers or older. Name of test group to run. Wildcards (? and *) are supported. Default is *.
  .Parameter testCodeunit
   Name or ID of test codeunit to run. Wildcards (? and *) are supported. Default is *.
+  This parameter will not populate the test suite with the specified codeunit. This is used as a filter on the tests that are already present
+  (or otherwise loaded) in the suite.
+  This is not to be confused with -testCodeunitRange.
+ .Parameter testCodeunitRange
+  A BC-compatible filter string to use for loading test codeunits (similar to -extensionId). This is not to be confused with -testCodeunit.
+  If you set this parameter to '*', all test codeunits will be loaded.
+  This might not work on all versions of BC and only works when using the command-line-testtool.
  .Parameter testFunction
   Name of test function to run. Wildcards (? and *) are supported. Default is *.
  .Parameter ExtensionId
@@ -80,6 +87,7 @@
 function Run-TestsInBcContainer {
     Param (
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName,
+        [string] $compilerFolder = '',
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
         [Parameter(Mandatory=$false)]
@@ -98,6 +106,8 @@ function Run-TestsInBcContainer {
         [string] $testGroup = "*",
         [Parameter(Mandatory=$false)]
         [string] $testCodeunit = "*",
+        [Parameter(Mandatory=$false)]
+        [string] $testCodeunitRange = "",
         [Parameter(Mandatory=$false)]
         [string] $testFunction = "*",
         [string] $extensionId = "",
@@ -132,23 +142,60 @@ function Run-TestsInBcContainer {
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
-    
-    $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-    $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-    $version = [System.Version]($navversion.split('-')[0])
+
+    if ($containerName) {
+        Write-Host "Using Container"
+        $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+        $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
+        $version = [System.Version]($navversion.split('-')[0])
+        $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
+
+    }
+    elseif ($compilerFolder) {
+        Write-Host "Using CompilerFolder"
+        $customConfig = $null
+        $symbolsFolder = Join-Path $compilerFolder "symbols"
+        $baseAppInfo = Get-AppJsonFromAppFile -appFile (Get-ChildItem -Path $symbolsFolder -Filter 'Microsoft_Base Application_*.*.*.*.app').FullName
+        $version = [Version]$baseAppInfo.version
+        $PsTestToolFolder = Join-Path ([System.IO.Path]::GetTempPath()) "$([Guid]::NewGuid().ToString())"
+        New-Item $PsTestToolFolder -ItemType Directory | Out-Null
+        $testDlls = Join-Path $compilerFolder "dlls/Test Assemblies/*.dll"
+        Copy-Item $testDlls -Destination $PsTestToolFolder -Force
+        Copy-Item -Path (Join-Path $PSScriptRoot "PsTestFunctions.ps1") -Destination $PsTestToolFolder -Force
+        Copy-Item -Path (Join-Path $PSScriptRoot "ClientContext.ps1") -Destination $PsTestToolFolder -Force
+    }
+    else {
+        throw "You must specify either containerName or compilerFolder"
+    }
 
     if ($bcAuthContext -and $environment) {
-        $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
-        if($response.status -ne 'Ready') {
-            throw "environment not ready, status is $($response.status)"
+        if ($environment -like 'https://*') {
+            $useUrl = $environment
+            if ($bcAuthContext.ContainsKey('Username') -and $bcAuthContext.ContainsKey('Password')) {
+                $credential = New-Object System.Management.Automation.PSCredential -ArgumentList $bcAuthContext.Username, $bcAuthContext.Password
+                $clientServicesCredentialType = "NavUserPassword"
+            }
+            if ($bcAuthContext.ContainsKey('ClientServicesCredentialType')) {
+                $clientServicesCredentialType = $bcAuthContext.ClientServicesCredentialType
+            }
+            $testPage = 130455
         }
-        $useUrl = $response.data.Split('?')[0]
-        $tenant = ($response.data.Split('?')[1]).Split('=')[1]
-
-        if ($testPage) {
-            throw "You cannot specify testPage when running tests in an Online tenant"
+        else {
+            $response = Invoke-RestMethod -Method Get -Uri "$($bcContainerHelperConfig.baseUrl.TrimEnd('/'))/$($bcAuthContext.tenantID)/$environment/deployment/url"
+            if($response.status -ne 'Ready') {
+                throw "environment not ready, status is $($response.status)"
+            }
+            $useUrl = $response.data
+            if ($testPage) {
+                throw "You cannot specify testPage when running tests in an Online tenant"
+            }
+            $testPage = 130455
         }
-        $testPage = 130455
+        $uri = [Uri]::new($useUrl)
+        $useUrl = $useUrl.Split('?')[0]
+        $dict = [System.Web.HttpUtility]::ParseQueryString($uri.Query)
+        if ($dict['tenant']) { $tenant = $dict['tenant'] }
+        if ($dict['testpage']) { $testpage = [int]$dict['testpage'] }
     }
     else {
         $clientServicesCredentialType = $customConfig.ClientServicesCredentialType
@@ -211,13 +258,12 @@ try {
         } -argumentList $interactionTimeout.ToString()
     }
 
-    if ($bcAuthContext) {
+    if ($bcAuthContext -and ($environment -notlike 'https://*')) {
         $bcAuthContext = Renew-BcAuthContext $bcAuthContext
         $accessToken = $bcAuthContext.accessToken
         $credential = New-Object pscredential -ArgumentList $bcAuthContext.upn, (ConvertTo-SecureString -String $accessToken -AsPlainText -Force)
     }
 
-    $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
     $PsTestFunctionsPath = Join-Path $PsTestToolFolder "PsTestFunctions.ps1"
     $ClientContextPath = Join-Path $PsTestToolFolder "ClientContext.ps1"
     $fobfile = Join-Path $PsTestToolFolder "PSTestToolPage.fob"
@@ -264,24 +310,30 @@ try {
         try
         {
             if ($connectFromHost) {
-                $newtonSoftDllPath = Join-Path $PsTestToolFolder "NewtonSoft.json.dll"
+                if ($PSVersionTable.PSVersion.Major -lt 7) {
+                    throw "Using ConnectFromHost requires PowerShell 7"
+                }
+                $newtonSoftDllPath = Join-Path $PsTestToolFolder "Newtonsoft.Json.dll"
                 $clientDllPath = Join-Path $PsTestToolFolder "Microsoft.Dynamics.Framework.UI.Client.dll"
-    
-                Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
-                
-                    if (!(Test-Path $myNewtonSoftDllPath)) {
-                        $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
-                        if (!(Test-Path $newtonSoftDllPath)) {
-                            $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
-                        }
-                        $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
-                        Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
+                if ($containerName) {
+                    if (!((Test-Path $newtonSoftDllPath) -and (Test-Path $clientDllPath))) {
+                        Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
+                    
+                            if (!(Test-Path $myNewtonSoftDllPath)) {
+                                $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
+                                if (!(Test-Path $newtonSoftDllPath)) {
+                                    $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll"
+                                }
+                                $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
+                                Copy-Item -Path $newtonSoftDllPath -Destination $myNewtonSoftDllPath
+                            }
+                            $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
+                            if (!(Test-Path $myClientDllPath)) {
+                                Copy-Item -Path $clientDllPath -Destination $myClientDllPath
+                            }
+                        } -argumentList $newtonSoftDllPath, $clientDllPath
                     }
-                    $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
-                    if (!(Test-Path $myClientDllPath)) {
-                        Copy-Item -Path $clientDllPath -Destination $myClientDllPath
-                    }
-                } -argumentList $newtonSoftDllPath, $clientDllPath
+                }
     
                 if ($useUrl) {
                     $publicWebBaseUrl = $useUrl.TrimEnd('/')
@@ -330,6 +382,7 @@ try {
                               -TestSuite $testSuite `
                               -TestGroup $testGroup `
                               -TestCodeunit $testCodeunit `
+                              -TestCodeunitRange $testCodeunitRange `
                               -TestFunction $testFunction `
                               -ExtensionId $extensionId `
                               -TestRunnerCodeunitId $testRunnerCodeunitId `
@@ -374,11 +427,11 @@ try {
                     }
                 }
 
-                $result = Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $tenant, [string] $companyName, [string] $profile, [pscredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [System.Management.Automation.PSCredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
     
-                    $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\NewtonSoft.json.dll"
+                    $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
                     if (!(Test-Path $newtonSoftDllPath)) {
-                        $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\NewtonSoft.json.dll"
+                        $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Newtonsoft.Json.dll"
                     }
                     $newtonSoftDllPath = (Get-Item $newtonSoftDllPath).FullName
                     $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
@@ -452,6 +505,7 @@ try {
                                   -TestSuite $testSuite `
                                   -TestGroup $testGroup `
                                   -TestCodeunit $testCodeunit `
+                                  -TestCodeunitRange $testCodeunitRange `
                                   -TestFunction $testFunction `
                                   -ExtensionId $extensionId `
                                   -TestRunnerCodeunitId $testRunnerCodeunitId `
@@ -480,7 +534,7 @@ try {
                         }
                     }
             
-                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests.IsPresent
+                } -argumentList $tenant, $companyName, $profile, $credential, $accessToken, $testSuite, $testGroup, $testCodeunit, $testCodeunitRange, $testFunction, (Get-BcContainerPath -containerName $containerName -Path $PsTestFunctionsPath), (Get-BCContainerPath -containerName $containerName -path $ClientContextPath), $containerXUnitResultFileName, $AppendToXUnitResultFile, $containerJUnitResultFileName, $AppendToJUnitResultFile, $ReRun, $AzureDevOps, $GitHubActions, $detailed, $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests.IsPresent
             }
             if ($result -is [array]) {
                 0..($result.Count-2) | % { Write-Host $result[$_] }
