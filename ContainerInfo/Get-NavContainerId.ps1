@@ -15,9 +15,6 @@ function Get-BcContainerId {
         [string] $containerName = $bcContainerHelperConfig.defaultContainerName
     )
 
-$telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
-try {
-
     $id = ""
     docker ps --format "{{.ID}}:{{.Names}}" -a --no-trunc | ForEach-Object {
         $ps = $_.split(':')
@@ -35,14 +32,6 @@ try {
         throw "Container $containerName does not exist"
     }
     $id
-}
-catch {
-    TrackException -telemetryScope $telemetryScope -errorRecord $_
-    throw
-}
-finally {
-    TrackTrace -telemetryScope $telemetryScope
-}
 }
 Set-Alias -Name Get-NavContainerId -Value Get-BcContainerId
 Export-ModuleMember -Function Get-BcContainerId -Alias Get-NavContainerId

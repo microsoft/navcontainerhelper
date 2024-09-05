@@ -122,28 +122,16 @@ function Run-AlCops {
         }
 
         $artifactUrl = Get-BcContainerArtifactUrl -containerName $containerName
+        $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
+        $latestSupportedRuntimeVersion = ''
         try {
-            $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
-            # unpack compiler
-            $latestSupportedRuntimeVersion = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param([string] $bcversion)
-                if (!(Test-Path "c:\build" -PathType Container)) {
-                    $tempZip = Join-Path ([System.IO.Path]::GetTempPath()) "alc.zip"
-                    Copy-item -Path (Get-Item -Path "c:\run\*.vsix").FullName -Destination $tempZip
-                    Expand-Archive -Path $tempZip -DestinationPath "c:\build\vsix"
-                }
-                $dllPath = 'C:\build\vsix\extension\bin\Microsoft.Dynamics.Nav.CodeAnalysis.dll'
-                if (-not (Test-Path $dllPath)) {
-                    $dllPath = 'C:\build\vsix\extension\bin\win32\Microsoft.Dynamics.Nav.CodeAnalysis.dll'
-                }
-                Add-Type -Path $dllPath | Out-Null
-                [Microsoft.Dynamics.Nav.CodeAnalysis.ReleaseVersion]::LatestSupportedRuntimeVersions[$bcversion]
-            } -argumentList "$($artifactVersion.Major).$($artifactVersion.Minor)"
+            $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
+            Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
         }
         catch {
-            $latestSupportedRuntimeVersion = ""
+            Write-Host -ForegroundColor Yellow "Cannot determine latest supported runtime version, will skip runtime version compatibility check"
         }
 
-        Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
         $global:_validationResult = @()
         $apps | ForEach-Object {
             $appFile = $_
@@ -174,7 +162,7 @@ function Run-AlCops {
                     }
                 }
 
-                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -excludeRuntimeProperty -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
+                Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson -latestSupportedRuntimeVersion $latestSupportedRuntimeVersion
                 $appJson = [System.IO.File]::ReadAllLines((Join-Path $tmpFolder "app.json")) | ConvertFrom-Json
 
                 $ruleset = $null
@@ -227,7 +215,7 @@ function Run-AlCops {
                     $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content (Join-Path $tmpFolder "appSourceCop.json") -Encoding UTF8
 
                     $appSourceRulesetFile = Join-Path $tmpFolder "appsource.default.ruleset.json"
-                    Download-File -sourceUrl "https://bcartifacts.azureedge.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
+                    Download-File -sourceUrl "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
                     $ruleset.includedRuleSets += @(@{
                             "action" = "Default"
                             "path"   = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
