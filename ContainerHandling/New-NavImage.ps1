@@ -472,9 +472,9 @@ try {
                 $InstallDotNet = ""
                 if ($genericTag -le [Version]"1.0.2.13" -and [Version]$appManifest.Version -ge [Version]"22.0.0.0") {
                     Write-Host "Patching SetupConfiguration.ps1 due to issue #2874"
-                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/210-new/SetupConfiguration.ps1" )
+                    $myscripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/main/generic/Run/210-new/SetupConfiguration.ps1" )
                     Write-Host "Patching prompt.ps1 due to issue #2891"
-                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/master/generic/Run/Prompt.ps1" )
+                    $myScripts += @( "https://raw.githubusercontent.com/microsoft/nav-docker/main/generic/Run/Prompt.ps1" )
                     $myScripts += @( "https://download.visualstudio.microsoft.com/download/pr/04389c24-12a9-4e0e-8498-31989f30bb22/141aef28265938153eefad0f2398a73b/dotnet-hosting-6.0.27-win.exe" )
                     Write-Host "Base image is generic image 1.0.2.13 or below, installing dotnet 6.0.27"
                     $InstallDotNet = 'RUN start-process -Wait -FilePath "c:\run\dotnet-hosting-6.0.27-win.exe" -ArgumentList /quiet'

@@ -45,7 +45,7 @@ function Get-BcNuGetPackageId {
     if ($nname -eq '') { throw "App name is invalid: '$name'" }
     if ($npublisher -eq '') { throw "App publisher is invalid: '$publisher'" }
 
-    $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('{version}',$version).replace('..','.').TrimEnd('.')
+    $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('{version}',$version.Replace('.', '-')).Replace('..', '.').TrimEnd('.')
     # Max. Length of NuGet Package Id is 100 - we shorten the name part of the id if it is too long
     $packageId = $packageIdTemplate.replace('{name}',$nname)
     if ($packageId.Length -ge 100) {
