@@ -1,3 +1,5 @@
+6.0.22
+
 6.0.21
 Main branch is now main instead of master
 Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO
