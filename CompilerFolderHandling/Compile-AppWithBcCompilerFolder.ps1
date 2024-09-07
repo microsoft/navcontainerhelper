@@ -84,7 +84,7 @@ function Compile-AppWithBcCompilerFolder {
         [switch] $CopyAppToSymbolsFolder,
         [ValidateSet('Yes','No','NotSpecified')]
         [string] $GenerateReportLayout = 'NotSpecified',
-        [switch] $AzureDevOps = $bcContainerHelperConfig.AzureDevOps,
+        [switch] $AzureDevOps = $bcContainerHelperConfig.IsAzureDevOps,
         [switch] $gitHubActions = $bcContainerHelperConfig.IsGitHubActions,
         [switch] $EnableCodeCop,
         [switch] $EnableAppSourceCop,
