@@ -1,3 +1,5 @@
+6.0.23
+
 6.0.22
 Issue #3660 Error about missing 'azuredevops' property when using Compile-AppWithBcCompilerFolder
 
