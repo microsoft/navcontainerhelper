@@ -74,13 +74,10 @@ try {
                             $SQLRecord = Invoke-Sqlcmd -Database $databaseName -Query "SELECT * FROM [dbo].[Tenant Feature Key] where ID = '$featureKey'"
                             if ([String]::IsNullOrEmpty($SQLRecord))
                             {
-                                Write-host -NoNewline "Creating record for feature ID '$featureKey' - "
+                                Write-host "Creating record for feature ID '$featureKey'"
                                 $SQLcolumns = "ID, Enabled"
                                 $SQLvalues = "'$featureKey',0"
-                                Invoke-Sqlcmd -Database $databaseName -Query "INSERT INTO [CRONUS].[dbo].[Tenant Feature Key]($SQLcolumns) VALUES ($SQLvalues)"
-                                if ($result[0] -eq "1") {
-                                    Write-Host " Created"
-                                }
+                                Invoke-Sqlcmd -Database $databaseName -Query "INSERT INTO [CRONUS].[dbo].[Tenant Feature Key] ($SQLcolumns) VALUES ($SQLvalues)" -Verbose
                             }
                             Write-Host -NoNewline "Setting feature key $featureKey to $enabledStr - "
                             $result = Invoke-Sqlcmd -Database $databaseName -Query "UPDATE [dbo].[Tenant Feature Key] set Enabled = $enabled where ID = '$featureKey';Select @@ROWCOUNT"
