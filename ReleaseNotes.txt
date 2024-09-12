@@ -1,3 +1,8 @@
+6.0.23
+
+6.0.22
+Issue #3660 Error about missing 'azuredevops' property when using Compile-AppWithBcCompilerFolder
+
 6.0.21
 Main branch is now main instead of master
 Issue 3613 aka.ms/getbc fallback to NAVUserPassword because token expired when setting up SSO

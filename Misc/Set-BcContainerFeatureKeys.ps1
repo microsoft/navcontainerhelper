@@ -70,6 +70,18 @@ try {
                     }
                     if ($enabled -ne -1) {
                         try {
+                            #Create new record in table of feature setup table [Tenant Feature Key] in case it is missing
+                            $SQLRecord = Invoke-Sqlcmd -Database $databaseName -Query "SELECT * FROM [dbo].[Tenant Feature Key] where ID = '$featureKey'"
+                            if ([String]::IsNullOrEmpty($SQLRecord))
+                            {
+                                Write-host -NoNewline "Creating record for feature ID '$featureKey' - "
+                                $SQLcolumns = "ID, Enabled"
+                                $SQLvalues = "'$featureKey',0"
+                                Invoke-Sqlcmd -Database $databaseName -Query "INSERT INTO [CRONUS].[dbo].[Tenant Feature Key]($SQLcolumns) VALUES ($SQLvalues)"
+                                if ($result[0] -eq "1") {
+                                    Write-Host " Created"
+                                }
+                            }
                             Write-Host -NoNewline "Setting feature key $featureKey to $enabledStr - "
                             $result = Invoke-Sqlcmd -Database $databaseName -Query "UPDATE [dbo].[Tenant Feature Key] set Enabled = $enabled where ID = '$featureKey';Select @@ROWCOUNT"
                             if ($result[0] -eq "1") {
