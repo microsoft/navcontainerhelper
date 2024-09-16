@@ -81,7 +81,8 @@ try {
                             }
                             Write-Host -NoNewline "Setting feature key $featureKey to $enabledStr - "
                             $result = Invoke-Sqlcmd -Database $databaseName -Query "UPDATE [dbo].[Tenant Feature Key] set Enabled = $enabled where ID = '$featureKey';Select @@ROWCOUNT"
-                            if ($result[0] -eq "1") {
+                            $result2 = Invoke-Sqlcmd -Database $databaseName -Query $("UPDATE [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] set [Feature Status] = $enabled,[Data Update Required] = '0' where [Feature Key] = '$featureKey';Select @@ROWCOUNT")
+                            if (($result[0] -eq "1") -and ($result2[0] -ge "1")) {
                                 Write-Host " Success"
                             }
                             else {
