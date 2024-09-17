@@ -458,17 +458,29 @@ function GetInstalledAppIds {
         [bool] $filesOnly,
         [hashtable] $Parameters
     )
-    if ($useCompilerFolder -or $filesOnly) {
+    if ($useCompilerFolder) {
         $existingAppFiles = @(Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | Select-Object -ExpandProperty FullName)
         $installedApps = @(GetAppInfo -AppFiles $existingAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $packagesFolder 'cache_AppInfo.json'))
-        if ($useCompilerFolder) {
-            $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
-            $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
+        $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
+        $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
+    }
+    elseif ($filesOnly) {
+        $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
+            $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
+            @{
+                "appId"                 = $appJson.id
+                "publisher"             = $appJson.publisher
+                "name"                  = $appJson.name
+                "version"               = $appJson.version
+                "dependencies"          = $appJson.dependencies
+                "application"           = $appJson.application
+                "platform"              = $appJson.platform
+                "propagateDependencies" = ($appJson.PSObject.Properties.name -eq 'propagateDependencies' -and $appJson.propagateDependencies)
+            }
         }
     }
     else {
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
-
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
