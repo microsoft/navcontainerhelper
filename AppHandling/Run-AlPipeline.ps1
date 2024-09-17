@@ -1334,6 +1334,9 @@ Measure-Command {
     }
     if ($CopySymbolsFromContainer) {
         $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
+        if ("$containerSymbolsFolder" -eq "") {
+            throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
+        }
         CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
         $CopySymbolsFromContainer = $false
     }
