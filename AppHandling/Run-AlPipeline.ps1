@@ -1324,13 +1324,9 @@ Measure-Command {
     $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
