@@ -1480,7 +1480,7 @@ Measure-Command {
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
         "appSymbolsFolder" = $packagesFolder
     }
-    if (!($useCompilerFolder -or $filesOnly)) 
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
