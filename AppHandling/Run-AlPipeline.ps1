@@ -1331,11 +1331,11 @@ Measure-Command {
             "containerName" = $containerName
             "tenant" = $tenant
         }
-        if ($CopySymbolsFromContainer) {
-            $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
-            CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
-            $CopySymbolsFromContainer = $false
-        }
+    }
+    if ($CopySymbolsFromContainer) {
+        $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
+        CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
+        $CopySymbolsFromContainer = $false
     }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
