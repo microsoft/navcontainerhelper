@@ -1331,6 +1331,11 @@ Measure-Command {
             "containerName" = $containerName
             "tenant" = $tenant
         }
+        if ($CopySymbolsFromContainer) {
+            $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
+            CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
+            $CopySymbolsFromContainer = $false
+        }
     }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
@@ -1473,13 +1478,9 @@ Measure-Command {
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) 
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -1652,13 +1653,9 @@ Measure-Command {
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
