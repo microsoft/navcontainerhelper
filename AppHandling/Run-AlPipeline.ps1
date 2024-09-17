@@ -967,7 +967,7 @@ $testCountry = $_.Trim()
 $testToolkitInstalled = $false
 
 if ($useCompilerFolder) {
-    Write-GroupStart -Message "Creating container"
+    Write-GroupStart -Message "Creating CompilerFolder"
     Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                _____                      _ _           ______    _     _
@@ -981,7 +981,7 @@ if ($useCompilerFolder) {
 '@
 }
 else {
-    if ($gitHubActions) { Write-Host "::group::Creating container" }
+    Write-GroupStart -Message "Creating Container"
     Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                _____            _        _
@@ -1112,6 +1112,14 @@ Measure-Command {
                     Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
                 }
             }
+        }
+        if ($CopySymbolsFromContainer) {
+            $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
+            if ("$containerSymbolsFolder" -eq "") {
+                throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
+            }
+            CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
+            $CopySymbolsFromContainer = $false
         }
     }
 
@@ -1331,14 +1339,6 @@ Measure-Command {
             "containerName" = $containerName
             "tenant" = $tenant
         }
-    }
-    if ($CopySymbolsFromContainer) {
-        $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
-        if ("$containerSymbolsFolder" -eq "") {
-            throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
-        }
-        CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
-        $CopySymbolsFromContainer = $false
     }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
