@@ -467,15 +467,9 @@ function GetInstalledAppIds {
     elseif ($filesOnly) {
         $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
             $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
-            @{
+            return @{
                 "appId"                 = $appJson.id
-                "publisher"             = $appJson.publisher
                 "name"                  = $appJson.name
-                "version"               = $appJson.version
-                "dependencies"          = $appJson.dependencies
-                "application"           = $appJson.application
-                "platform"              = $appJson.platform
-                "propagateDependencies" = ($appJson.PSObject.Properties.name -eq 'propagateDependencies' -and $appJson.propagateDependencies)
             }
         }
     }
