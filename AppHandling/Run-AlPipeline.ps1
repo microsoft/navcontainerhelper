@@ -464,11 +464,17 @@ function GetInstalledAppIds {
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
     }
-    elseif (!$filesOnly) {
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+    elseif ($filesOnly) {
+        $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
+            $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
+            return @{
+                "appId"                 = $appJson.id
+                "name"                  = $appJson.name
+            }
+        }
     }
     else {
-        $installedApps = @()
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -967,7 +973,7 @@ $testCountry = $_.Trim()
 $testToolkitInstalled = $false
 
 if ($useCompilerFolder) {
-    Write-GroupStart -Message "Creating container"
+    Write-GroupStart -Message "Creating CompilerFolder"
     Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                _____                      _ _           ______    _     _
@@ -981,7 +987,7 @@ if ($useCompilerFolder) {
 '@
 }
 else {
-    if ($gitHubActions) { Write-Host "::group::Creating container" }
+    Write-GroupStart -Message "Creating Container"
     Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                _____            _        _
@@ -1112,6 +1118,14 @@ Measure-Command {
                     Install-BcContainerApp -containerName $containerName -tenant $tenant -appName $_.Name -appVersion $_.Version
                 }
             }
+        }
+        if ($CopySymbolsFromContainer) {
+            $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
+            if ("$containerSymbolsFolder" -eq "") {
+                throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
+            }
+            CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
+            $CopySymbolsFromContainer = $false
         }
     }
 
@@ -1324,13 +1338,9 @@ Measure-Command {
     $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -1477,13 +1487,9 @@ Measure-Command {
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -1656,13 +1662,9 @@ Measure-Command {
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant

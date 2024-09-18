@@ -56,6 +56,7 @@ Function Publish-BcNuGetPackageToContainer {
         [string] $environment,
         [Parameter(Mandatory=$false)]
         [string] $tenant = "default",
+        [string] $appSymbolsFolder = "",
         [string] $copyInstalledAppsToFolder = "",
         [switch] $skipVerification
     )
@@ -80,7 +81,12 @@ Function Publish-BcNuGetPackageToContainer {
     New-Item $tmpFolder -ItemType Directory | Out-Null
     try {
         if (Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $packageName -version $version -appSymbolsFolder $tmpFolder -installedApps $installedApps -installedPlatform $installedPlatform -installedCountry $installedCountry -verbose:($VerbosePreference -eq 'Continue') -select $select) {
-            $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | Select-Object -ExpandProperty FullName
+            $appFiles = Get-Item -Path (Join-Path $tmpFolder '*.app') | ForEach-Object {
+                if ($appSymbolsFolder) {
+                    Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force
+                }
+                $_.FullName
+            }
             Publish-BcContainerApp -containerName $containerName -bcAuthContext $bcAuthContext -environment $environment -tenant $tenant -appFile $appFiles -sync -install -upgrade -checkAlreadyInstalled -skipVerification -copyInstalledAppsToFolder $copyInstalledAppsToFolder
         }
         else {
