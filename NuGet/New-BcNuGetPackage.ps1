@@ -217,41 +217,43 @@ Function New-BcNuGetPackage {
             $XmlObjectWriter.WriteAttributeString("url", $githubRepository)
             $XmlObjectWriter.WriteEndElement()
         }
-        $XmlObjectWriter.WriteStartElement("dependencies")
-        if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
-            $appJson.dependencies | ForEach-Object {
-                if ($_.PSObject.Properties.name -eq 'id') {
-                    $dependencyId = $_.id
-                } else {
-                    $dependencyId = $_.appId
+        if ($dependencyIdTemplate) {
+            $XmlObjectWriter.WriteStartElement("dependencies")
+            if ($appJson.PSObject.Properties.Name -eq 'dependencies') {
+                $appJson.dependencies | ForEach-Object {
+                    if ($_.PSObject.Properties.name -eq 'id') {
+                        $dependencyId = $_.id
+                    } else {
+                        $dependencyId = $_.appId
+                    }
+                    $id = Get-BcNuGetPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
+                    $XmlObjectWriter.WriteStartElement("dependency")
+                    $XmlObjectWriter.WriteAttributeString("id", $id)
+                    $XmlObjectWriter.WriteAttributeString("version", (GetDependencyVersionStr -template $dependencyVersionTemplate -version ([System.Version]::Parse($_.version))))
+                    $XmlObjectWriter.WriteEndElement()
                 }
-                $id = Get-BcNuGetPackageId -packageIdTemplate $dependencyIdTemplate -publisher $_.publisher -name $_.name -id $dependencyId -version $_.version.replace('.','-')
+            }
+            if ($applicationDependency) {
                 $XmlObjectWriter.WriteStartElement("dependency")
-                $XmlObjectWriter.WriteAttributeString("id", $id)
-                $XmlObjectWriter.WriteAttributeString("version", (GetDependencyVersionStr -template $dependencyVersionTemplate -version ([System.Version]::Parse($_.version))))
+                $XmlObjectWriter.WriteAttributeString("id", $applicationDependencyId)
+                $XmlObjectWriter.WriteAttributeString("version", $applicationDependency)
                 $XmlObjectWriter.WriteEndElement()
             }
-        }
-        if ($applicationDependency) {
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $XmlObjectWriter.WriteAttributeString("id", $applicationDependencyId)
-            $XmlObjectWriter.WriteAttributeString("version", $applicationDependency)
+            if ($platformDependency) {
+                $XmlObjectWriter.WriteStartElement("dependency")
+                $XmlObjectWriter.WriteAttributeString("id", $platformDependencyId)
+                $XmlObjectWriter.WriteAttributeString("version", $platformDependency)
+                $XmlObjectWriter.WriteEndElement()
+            }
+            if ($isIndirectPackage.IsPresent) {
+                $XmlObjectWriter.WriteStartElement("dependency")
+                $id = Get-BcNuGetPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
+                $XmlObjectWriter.WriteAttributeString("id", $id)
+                $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
+                $XmlObjectWriter.WriteEndElement()
+            }
             $XmlObjectWriter.WriteEndElement()
         }
-        if ($platformDependency) {
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $XmlObjectWriter.WriteAttributeString("id", $platformDependencyId)
-            $XmlObjectWriter.WriteAttributeString("version", $platformDependency)
-            $XmlObjectWriter.WriteEndElement()
-        }
-        if ($isIndirectPackage.IsPresent) {
-            $XmlObjectWriter.WriteStartElement("dependency")
-            $id = Get-BcNuGetPackageId -packageIdTemplate $runtimeDependencyId -publisher $appJson.publisher -name $appJson.name -id $appJson.id -version $appJson.version.replace('.','-')
-            $XmlObjectWriter.WriteAttributeString("id", $id)
-            $XmlObjectWriter.WriteAttributeString("version", '1.0.0.0')
-            $XmlObjectWriter.WriteEndElement()
-        }
-        $XmlObjectWriter.WriteEndElement()
         $XmlObjectWriter.WriteEndElement()
         if (!$isIndirectPackage.IsPresent) {
             $XmlObjectWriter.WriteStartElement("files")
