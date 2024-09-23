@@ -95,7 +95,14 @@ class NuGetFeed {
                     "Authorization" = "Bearer $($this.token)"
                 }
             }
-            $queryUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page="
+            $orgMetadata = Invoke-RestMethod -Method GET -Uri "https://api.github.com/users/$organization"
+            if ($orgMetadata.type -eq 'Organization') {
+                $orgType = 'orgs'
+            }
+            else {
+                $orgType = 'users'
+            }
+            $queryUrl = "https://api.github.com/$orgType/$organization/packages?package_type=nuget&per_page=100&page="
             $page = 1
             Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
             $matching = @()
