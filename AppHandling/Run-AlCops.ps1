@@ -125,7 +125,7 @@ function Run-AlCops {
         $artifactVersion = [System.Version]$artifactUrl.Split('/')[4]
         $latestSupportedRuntimeVersion = ''
         try {
-            $latestSupportedRuntimeVersion = RunAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
+            $latestSupportedRuntimeVersion = RunAlTool -usePrereleaseAlTool -arguments @('GetLatestSupportedRuntimeVersion',"$($artifactVersion.Major).$($artifactVersion.Minor)")
             Write-Host "Latest Supported Runtime Version: $latestSupportedRuntimeVersion"
         }
         catch {
