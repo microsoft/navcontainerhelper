@@ -95,7 +95,7 @@ class NuGetFeed {
                     "Authorization" = "Bearer $($this.token)"
                 }
             }
-            $orgMetadata = Invoke-RestMethod -Method GET -Uri "https://api.github.com/users/$organization"
+            $orgMetadata = Invoke-RestMethod -Method GET -Headers $headers -Uri "https://api.github.com/users/$organization"
             if ($orgMetadata.type -eq 'Organization') {
                 $orgType = 'orgs'
             }
