@@ -1,4 +1,8 @@
+6.0.24
+Use pre-release altool when running alcops (to be able to get runtime version of nextmajor)
+
 6.0.23
+Issue 3573 GitHub NuGet Handling fails for User Feeds
 
 6.0.22
 Issue #3660 Error about missing 'azuredevops' property when using Compile-AppWithBcCompilerFolder

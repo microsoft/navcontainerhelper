@@ -14,6 +14,8 @@ class NuGetFeed {
     [string] $packagePublishUrl
     [string] $packageBaseAddressUrl
 
+    [hashtable] $orgType = @{}
+
     NuGetFeed([string] $nuGetServerUrl, [string] $nuGetToken, [string[]] $patterns, [string[]] $fingerprints) {
         $this.url = $nuGetServerUrl
         $this.token = $nuGetToken
@@ -95,7 +97,16 @@ class NuGetFeed {
                     "Authorization" = "Bearer $($this.token)"
                 }
             }
-            $queryUrl = "https://api.github.com/orgs/$organization/packages?package_type=nuget&per_page=100&page="
+            if (-not $this.orgType.ContainsKey($organization)) {
+                $orgMetadata = Invoke-RestMethod -Method GET -Headers $headers -Uri "https://api.github.com/users/$organization"
+                if ($orgMetadata.type -eq 'Organization') {
+                    $this.orgType[$organization] = 'orgs'
+                }
+                else {
+                    $this.orgType[$organization] = 'users'
+                }
+            }
+            $queryUrl = "https://api.github.com/$($this.orgType[$organization])/$organization/packages?package_type=nuget&per_page=100&page="
             $page = 1
             Write-Host -ForegroundColor Yellow "Search package using $queryUrl$page"
             $matching = @()
