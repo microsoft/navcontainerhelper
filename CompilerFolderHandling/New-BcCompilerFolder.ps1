@@ -267,7 +267,7 @@ try {
                     $newAlcConfig | ConvertTo-Json | Set-Content -Path $alcConfigPath -Encoding utf8NoBOM
                 }
             }
-        }       
+        }
     }
 
     Write-Host "Enumerating Apps in $symbolsPath"
