@@ -615,8 +615,8 @@ if ($buildArtifactFolder) {
         New-Item $buildArtifactFolder -ItemType Directory | Out-Null
     }
 }
-$dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
 if ($generateDependencyArtifact) {
+    $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
     if (!(Test-Path $dependenciesFolder)) {
         New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
     }
