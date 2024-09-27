@@ -615,6 +615,12 @@ if ($buildArtifactFolder) {
         New-Item $buildArtifactFolder -ItemType Directory | Out-Null
     }
 }
+$dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+if ($generateDependencyArtifact) {
+    if (!(Test-Path $dependenciesFolder)) {
+        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
+    }
+}
 
 if (!($appFolders)) {
     Write-Host "WARNING: No app folders found"
@@ -1231,9 +1237,6 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
-    if ($generateDependencyArtifact) {
-        $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
-    }
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
@@ -1261,9 +1264,6 @@ Measure-Command {
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
                     Write-Host -NoNewline " and dependencies folder"
-                    if (!(Test-Path $dependenciesFolder)) {
-                        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
-                    }
                     Copy-Item -Path $_ -Destination $dependenciesFolder -Force
                 }
                 Write-Host
@@ -1348,7 +1348,7 @@ Measure-Command {
     }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
-            "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+            "CopyInstalledAppsToFolder" = $dependenciesFolder
         }
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
@@ -1837,18 +1837,15 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($generateDependencyArtifact -and !$filesOnly -and !$useCompilerFolder) {
-        $depFolder = Join-Path $buildArtifactFolder "Dependencies"
-        Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
-        if (Test-Path $depFolder) {
-            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
-                $destName = Join-Path $appPackagesFolder $_.Name
-                if (Test-Path $destName) {
-                    Write-Host "- $destName already exists"
-                }
-                else {
-                    Write-Host "+ Copying $($_.FullName) to $destName"
-                    Copy-Item -Path $_.FullName -Destination $destName -Force
-                }
+        Write-Host "Copying dependencies from $dependenciesFolder to $appPackagesFolder"
+        Get-ChildItem -Path $dependenciesFolder -Recurse -file -Filter '*.app' | ForEach-Object {
+            $destName = Join-Path $appPackagesFolder $_.Name
+            if (Test-Path $destName) {
+                 Write-Host "- $destName already exists"
+            }
+            else {
+                Write-Host "+ Copying $($_.FullName) to $destName"
+                Copy-Item -Path $_.FullName -Destination $destName -Force
             }
         }
     }
