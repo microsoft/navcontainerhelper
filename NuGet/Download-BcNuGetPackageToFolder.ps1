@@ -277,8 +277,10 @@ try {
                 $appFiles = Get-Item -Path (Join-Path $package "*.app")
             }
             foreach($appFile in $appFiles) {
+                Write-Host "Copying $appFile to $folder"
                 Copy-Item $appFile.FullName -Destination $folder -Force
                 if ($copyInstalledAppsToFolder) {
+                    Write-Host "Copying $appFile to $copyInstalledAppsToFolder"
                     Copy-Item $appFile.FullName -Destination $copyInstalledAppsToFolder -Force
                 }
             }
