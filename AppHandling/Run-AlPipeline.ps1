@@ -1753,8 +1753,9 @@ Write-Host -ForegroundColor Yellow @'
                         "path" = Get-BcContainerPath -containerName $containerName -path $ruleSetFile
                     })
                 }
-                $appSourceRulesetFile = Join-Path $folder "appsource.default.ruleset.json"
-                Download-File -sourceUrl "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
+                $appSourceRuleSetName = 'appsource.default.ruleset.json'
+                $appSourceRulesetFile = Join-Path $folder $appSourceRuleSetName
+                Copy-Item -Path (Join-Path $PSScriptRoot $appSourceRuleSetName) -Destination $appSourceRulesetFile -Force
                 $ruleset.includedRuleSets += @(@{
                     "action" = "Default"
                     "path" = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
