@@ -5,7 +5,7 @@
         {
             "id": "AS0075",
             "action": "Hidden",
-            "justification":  "Specifying the Obsolete Reason is a good practice, but does not have any impact in production."
+            "justification":  "Specifying the Obsolete Reason is a good practice, but usage of obsolete tags isn't enforced in AppSource submissions."
         },
         {
             "id": "AS0089",
