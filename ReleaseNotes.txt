@@ -1,5 +1,6 @@
 6.0.25
 Fix issue where generateDependencyArtifact doesn't result in dependencies if useCompilerFolder is true or filesonly containers are used in Run-AlPipeline
+Issue 3686 PowerShell container shortcuts for >= BC24 using wrong PowerShell version
 Issue 3666 Run-AlCops + Run-AlPipeline using outdated appsource default ruleset
 
 6.0.24
