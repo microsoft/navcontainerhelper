@@ -59,6 +59,10 @@
   Array or comma separated list of folders with apps to be compiled, signed and published
  .Parameter testFolders
   Array or comma separated list of folders with test apps to be compiled, published and run
+ .Parameter bcptTestFolders
+  Array or comma separated list of folders with bcpt test apps to be compiled, published and run
+ .Parameter pageScriptingTests
+  Array or comma separated list of filespecs with pageScripting tests, to be run after the apps have been compiled and tested
  .Parameter additionalCountries
   Array or comma separated list of countries to test
  .Parameter appVersion
@@ -78,7 +82,9 @@
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
-  Filename in which you want the bcpt test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
+  Filename in which you want the bcpt test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunBcptTests is included.
+ .Parameter pageScriptingTestResultsFolder
+  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test results will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -119,6 +125,8 @@
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
  .Parameter doNotRunBcptTests
   Include this switch to indicate that you do not want to execute bcpt tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
+ .Parameter doNotRunPageScriptingTests
+  Include this switch to indicate that you do not want to execute page scripting tests.
  .Parameter doNotPerformUpgrade
   Include this switch to indicate that you do not want to perform the upgrade. This means that the previousApps are never actually published to the container.
  .Parameter doNotPublishApps
@@ -300,6 +308,7 @@ Param(
     $testFolders = @("test", "testapp"),
     $bcptTestFolders = @("bcpttest", "bcpttestapp"),
     $bcptTestSuites = @(),
+    $pageScriptingTests = @(),
     $additionalCountries = @(),
     [string] $appVersion = "",
     [int] $appBuild = 0,
@@ -310,6 +319,7 @@ Param(
     [string] $containerEventLogFile = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
+    [string] $pageScriptingTestResultsFolder = "PageScriptingTestResults",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
     [string] $testResultsFormat = "JUnit",
@@ -335,6 +345,7 @@ Param(
     [switch] $doNotBuildTests,
     [switch] $doNotRunTests,
     [switch] $doNotRunBcptTests,
+    [switch] $doNotRunPageScriptingTests,
     [switch] $doNotPerformUpgrade,
     [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
@@ -521,6 +532,7 @@ if ($previousApps                   -is [String]) { $previousApps = @($previousA
 if ($appFolders                     -is [String]) { $appFolders = @($appFolders.Split(',').Trim()  | Where-Object { $_ }) }
 if ($testFolders                    -is [String]) { $testFolders = @($testFolders.Split(',').Trim() | Where-Object { $_ }) }
 if ($bcptTestFolders                -is [String]) { $bcptTestFolders = @($bcptTestFolders.Split(',').Trim() | Where-Object { $_ }) }
+if ($pageScriptingTests             -is [String]) { $pageScriptingTests = @($pageScriptingTests.Split(',').Trim() | Where-Object { $_ }) }
 if ($additionalCountries            -is [String]) { $additionalCountries = @($additionalCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
@@ -534,12 +546,16 @@ $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $shar
 $containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
+$pageScriptingTestResultsFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $pageScriptingTestResultsFolder -name "pageScriptingTestResultsFolder"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 
 $containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
     if ($_ -and (Test-Path $_)) {
         Remove-Item -Path $_ -Force
     }
+}
+if ($pageScriptingTestResultsFolder -and (Test-Path $pageScriptingTestResultsFolder)) {
+    Remove-Item -Path $pageScriptingTestResultsFolder -Recurse -Force
 }
 
 $addBcptTestSuites = $true
@@ -721,6 +737,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops                  "
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotBuildTests                 "; Write-Host $doNotBuildTests
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests                   "; Write-Host $doNotRunTests
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "; Write-Host $doNotRunBcptTests
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunPageScriptingTests      "; Write-Host $doNotRunPageScriptingTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
 Write-Host -NoNewLine -ForegroundColor Yellow "generateErrorLog                "; Write-Host $generateErrorLog
@@ -772,6 +789,8 @@ Write-Host -ForegroundColor Yellow "BCPT Test application folders"
 if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "BCPT Test suites"
 if ($bcptTestSuites) { $bcptTestSuites | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "Page Scripting Tests"
+if ($pageScriptingTests) { $pageScriptingTests | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
@@ -2329,7 +2348,7 @@ Write-GroupEnd
 }
 }
 
-if (!($doNotRunTests -and $doNotRunBcptTests)) {
+if (!($doNotRunTests -and $doNotRunBcptTests -and $doNotRunPageScriptingTests)) {
 if ($ImportTestDataInBcContainer) {
 Write-GroupStart -Message "Importing test data"
 Write-Host -ForegroundColor Yellow @'
@@ -2531,6 +2550,10 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running BCPT Tests for additional country $testCountry"
 }
 
+if ($bcAuthContext) {
+    throw "BCPT Tests are not supported on cloud pipelines yet!"
+}
+
 $bcptTestSuites | ForEach-Object {
     $Parameters = @{
         "containerName" = $containerName
@@ -2539,10 +2562,6 @@ $bcptTestSuites | ForEach-Object {
         "companyName" = $companyName
         "connectFromHost" = $true
         "BCPTsuite" = [System.IO.File]::ReadAllLines($_) | ConvertFrom-Json
-    }
-
-    if ($bcAuthContext) {
-        throw "BCPT Tests are not supported on cloud pipelines yet!"
     }
 
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
@@ -2555,6 +2574,57 @@ if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
     Write-Host "Copying bcpt test results to output"
     Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
 }
+Write-GroupEnd
+}
+
+if (!$doNotRunPageScriptingTests -and $pageScriptingTests) {
+Write-GroupStart -Message "Running Page Scripting Tests"
+Write-Host -ForegroundColor Yellow @'
+ _____                   _               _____                  _____           _       _   _               _______        _
+|  __ \                 (_)             |  __ \                / ____|         (_)     | | (_)             |__   __|      | |
+| |__) |   _ _ __  _ __  _ _ __   __ _  | |__) |_ _  __ _  ___| (___   ___ _ __ _ _ __ | |_ _ _ __   __ _     | | ___  ___| |_ ___
+|  _  / | | | '_ \| '_ \| | '_ \ / _` | |  ___/ _` |/ _` |/ _ \\___ \ / __| '__| | '_ \| __| | '_ \ / _` |    | |/ _ \/ __| __/ __|
+| | \ \ |_| | | | | | | | | | | | (_| | | |  | (_| | (_| |  __/____) | (__| |  | | |_) | |_| | | | | (_| |    | |  __/\__ \ |_\__ \
+|_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, | |_|   \__,_|\__, |\___|_____/ \___|_|  |_| .__/ \__|_|_| |_|\__, |    |_|\___||___/\__|___/
+                                  __/ |              __/ |                       | |                 __/ |
+                                 |___/              |___/                        |_|                |___/
+'@
+Measure-Command {
+if ($testCountry) {
+    Write-Host -ForegroundColor Yellow "Running Page Scripting Tests for additional country $testCountry"
+}
+if ($bcAuthContext) {
+    throw "Page scripting Tests are not supported on cloud pipelines yet!"
+}
+
+# Install npm package for page scripting tests
+pwsh -command { npm i @microsoft/bc-replay --save }
+
+${env:containerUsername} = $credential.UserName
+${env:containerPassword} = $credential.Password | Get-PlainText
+${env:startAddress} = "http://$containerName/BC?tenant=default"
+
+$pageScriptingTests | ForEach-Object {
+    $testSpec = $_
+    $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
+    $path = $testSpec
+    if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
+    if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
+    Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
+    ${env:tests} = $path
+    $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
+    if (Test-Path $resultsFolder) { throw "PageScriptingTests contains two similar test specs (resulting in identical results folders)" }
+    New-Item -Path $resultsFolder -ItemType Directory | Out-Null
+    ${env:resultsFolder} = $resultsFolder
+    try {
+        pwsh -command { npx replay $env:tests -ResultDir $env:resultsFolder -StartAddress $env:startAddress -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword' }
+    }
+    catch {
+        Write-Host "Page Scripting Tests failed for $testSpec"
+        $allPassed = $false
+    }
+}
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
 
