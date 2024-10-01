@@ -214,8 +214,9 @@ function Run-AlCops {
                     }
                     $appSourceCopJson | ConvertTo-Json -Depth 99 | Set-Content (Join-Path $tmpFolder "appSourceCop.json") -Encoding UTF8
 
-                    $appSourceRulesetFile = Join-Path $tmpFolder "appsource.default.ruleset.json"
-                    Download-File -sourceUrl "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
+                    $appSourceRuleSetName = 'appsource.default.ruleset.json'
+                    $appSourceRulesetFile = Join-Path $tmpFolder $appSourceRuleSetName
+                    Copy-Item -Path (Join-Path $PSScriptRoot $appSourceRuleSetName) -Destination $appSourceRulesetFile -Force
                     $ruleset.includedRuleSets += @(@{
                             "action" = "Default"
                             "path"   = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
