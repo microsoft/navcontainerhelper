@@ -2168,10 +2168,15 @@ if (-not `$restartingInstance) {
                 $vs = "NAV"
             }
             $cmdPrompt = "/S /K ""prompt [$($containerName.ToUpperInvariant())] `$p`$g & echo Welcome to the $vs Container Command prompt & echo Microsoft Windows Version $($containerOsVersion.ToString())"
-            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; Write-Host 'Welcome to the $vs Container PowerShell prompt'; Write-Host 'Microsoft Windows Version $($containerOsVersion.ToString())'; Write-Host 'Windows PowerShell Version $($PSVersionTable.psversion.ToString())'; Write-Host; . 'c:\run\prompt.ps1' -silent"""
+            $psPrompt = """function prompt {'[$($containerName.ToUpperInvariant())] PS '+`$executionContext.SessionState.Path.CurrentLocation+('>'*(`$nestedPromptLevel+1))+' '}; Write-Host 'Welcome to the $vs Container PowerShell prompt'; Write-Host 'Microsoft Windows Version $($containerOsVersion.ToString())'; "+'Write-Host "Windows PowerShell Version $($PSVersionTable.psversion.ToString())"; Write-Host; . "c:\run\prompt.ps1" -silent"'
 
             New-DesktopShortcut -Name "$containerName Command Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName cmd $cmdPrompt" -Shortcuts $shortcuts
-            New-DesktopShortcut -Name "$containerName PowerShell Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit $psPrompt" -Shortcuts $shortcuts
+            $psname = "PowerShell"
+            if ($version.Major -ge 24) {
+                New-DesktopShortcut -Name "$containerName $psname Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName pwsh -noexit -command $psPrompt" -Shortcuts $shortcuts
+                $psname = "PS5"
+            }
+            New-DesktopShortcut -Name "$containerName $psname Prompt" -TargetPath "CMD.EXE" -Arguments "/C docker.exe exec -it $containerName powershell -noexit $psPrompt" -Shortcuts $shortcuts
         }
 
         if ($version -eq [System.Version]"14.10.40471.0") {

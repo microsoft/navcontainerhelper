@@ -107,6 +107,7 @@ try {
         Remove-DesktopShortcut -Name "$containerName CSIDE"
         Remove-DesktopShortcut -Name "$containerName Command Prompt"
         Remove-DesktopShortcut -Name "$containerName PowerShell Prompt"
+        Remove-DesktopShortcut -Name "$containerName PS5 Prompt"
 
         if (Test-Path $containerFolder) {
             $wait = 10
