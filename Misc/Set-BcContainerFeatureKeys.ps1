@@ -1,4 +1,4 @@
-﻿<# 
+<# 
  .Synopsis
   Set Feature Keys in container
  .Description
@@ -9,8 +9,11 @@
   Tenant in which you want to set feature keys
  .Parameter featureKeys
   Hashtable of featureKeys you want to set
+ .Parameter EnableInCompany
+  Enables/disables features for given company name. No data update is initiated.
  .Example
   Set-BcContainerFeatureKeys -containerName test2 -featureKeys @{"EmailHandlingImprovements" = "None"}
+  Set-BcContainerFeatureKeys -containerName test2 -featureKeys @{"EmailHandlingImprovements" = "None"} -EnableInCompany 'CRONUS International Ltd.'
 #>
 function Set-BcContainerFeatureKeys {
    Param (
@@ -19,14 +22,16 @@ function Set-BcContainerFeatureKeys {
         [Parameter(Mandatory=$false)]
         [string] $tenant = "*",
         [Parameter(Mandatory=$true)]
-        [hashtable] $featureKeys
+        [hashtable] $featureKeys,
+        [Parameter(Mandatory=$false)]
+        [string] $EnableInCompany
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @("featureKeys")
 try {
-
+    
     if ($featureKeys.Keys.Count -ne 0) {    
-        Invoke-ScriptInBCContainer -containerName $containerName -ScriptBlock { Param([string] $tenant, [hashtable] $featureKeys) 
+        Invoke-ScriptInBCContainer -containerName $containerName -ScriptBlock { Param([string] $tenant, [hashtable] $featureKeys, $EnableInCompany) 
             $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
             [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
             $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
@@ -55,6 +60,15 @@ try {
             $databases | % {
                 $databaseName = $_
                 Write-Host "Setting feature keys on database: $databaseName"
+                # Just information about 'mode' of Feature Key update
+                if ([String]::IsNullOrEmpty($EnableInCompany))
+                {
+                    Write-Host "Setting feature keys globally, but not for any company" -ForegroundColor Yellow
+                }
+                else
+                {
+                    Write-Host "Setting feature keys globally and for company "$EnableInCompany -ForegroundColor Yellow
+                }
                 $featureKeys.Keys | % {
                     $featureKey = $_
                     $enabledStr = $featureKeys[$featureKey]
@@ -68,21 +82,37 @@ try {
                         $enabled = -1
                         Write-Host "WARNING: Unknown value ($enabledStr) for feature key $featureKey"
                     }
-                    if ($enabled -ne -1) {
+                    
+                    # Test if feature which has to be updated is available in table "Feature Data Update Status$63ca2fa4-4f03-4f2b-a480-172fef340d3f"
+                    $FeatureExistsInDestination = Invoke-Sqlcmd -Database $databaseName -Query $("SELECT COUNT(*) FROM [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] where [Feature Key] = '$featureKey'")
+
+                    if(($FeatureExistsInDestination[0].ToString()) -eq "0")
+                    {
+                        Write-host "Feature $featureKey doesn't exist in database"
+                    }
+
+                    # Feature key is updated just in case that status is correct and respective feature is available in table
+                    if (($enabled -ne -1) -and ($FeatureExistsInDestination[0].ToString() -ne "0")){
                         try {
-                            #Create new record in table of feature setup table [Tenant Feature Key] in case it is missing
+                            #Create new record in table "Tenant Feature Key" in case it is missing
                             $SQLRecord = Invoke-Sqlcmd -Database $databaseName -Query "SELECT * FROM [dbo].[Tenant Feature Key] where ID = '$featureKey'"
                             if ([String]::IsNullOrEmpty($SQLRecord))
                             {
-                                Write-host "Creating record for feature ID '$featureKey'"
+                                Write-host "Creating record for feature $featureKey"
                                 $SQLcolumns = "ID, Enabled"
                                 $SQLvalues = "'$featureKey',0"
                                 Invoke-Sqlcmd -Database $databaseName -Query "INSERT INTO [CRONUS].[dbo].[Tenant Feature Key] ($SQLcolumns) VALUES ($SQLvalues)" -Verbose
                             }
                             Write-Host -NoNewline "Setting feature key $featureKey to $enabledStr - "
                             $result = Invoke-Sqlcmd -Database $databaseName -Query "UPDATE [dbo].[Tenant Feature Key] set Enabled = $enabled where ID = '$featureKey';Select @@ROWCOUNT"
-                            $result2 = Invoke-Sqlcmd -Database $databaseName -Query $("UPDATE [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] set [Feature Status] = $enabled,[Data Update Required] = '0' where [Feature Key] = '$featureKey';Select @@ROWCOUNT")
-                            if (($result[0] -eq "1") -and ($result2[0] -ge "1")) {
+                            
+                            # Update record in table "Feature Data Update Status$63ca2fa4-4f03-4f2b-a480-172fef340d3f" if it is requested for particular company
+                            $result2 = ''
+                            if (![String]::IsNullOrEmpty($EnableInCompany))
+                            {
+                                $result2 = Invoke-Sqlcmd -Database $databaseName -Query $("UPDATE [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] set [Feature Status] = $enabled where [Feature Key] = '$featureKey' AND [Company Name] = '$EnableInCompany';Select @@ROWCOUNT")
+                            }
+                            if (($result[0] -eq "1") -and ((($result2[0] -eq "1") -and ![String]::IsNullOrEmpty($EnableInCompany)) -or ([String]::IsNullOrEmpty($EnableInCompany)))) {
                                 Write-Host " Success"
                             }
                             else {
@@ -96,7 +126,7 @@ try {
                     }
                 }
             }
-        } -argumentList $tenant, $featureKeys
+        } -argumentList $tenant, $featureKeys, $EnableInCompany
     }
 }
 catch {
