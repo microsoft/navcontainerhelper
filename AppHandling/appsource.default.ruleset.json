@@ -1,0 +1,21 @@
+{
+    "description": "Default AppSource ruleset.",
+    "name": "AppSource rules",
+    "rules": [
+        {
+            "id": "AS0075",
+            "action": "Hidden",
+            "justification":  "Specifying the Obsolete Reason is a good practice, but the usage of obsolete tags isn't enforced in AppSource submissions."
+        },
+        {
+            "id": "AS0089",
+            "action": "Warning",
+            "justification": "[Evergreen] Removing a page customization, an entitlement, or a control add-in is allowed because AL currently does not support obsoleting them."
+        },
+        {
+            "id": "AS0099",
+            "action": "Hidden",
+            "justification":  "This is an Info diagnostic about IDs being out of range, mainly for enum extension values (which is often due to constraints from dataverse integration)."
+        }
+    ]
+}

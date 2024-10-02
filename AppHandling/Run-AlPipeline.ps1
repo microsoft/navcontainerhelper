@@ -464,11 +464,17 @@ function GetInstalledAppIds {
         $compilerFolderAppFiles = @(Get-ChildItem -Path (Join-Path $compilerFolder 'symbols/*.app') | Select-Object -ExpandProperty FullName)
         $installedApps += @(GetAppInfo -AppFiles $compilerFolderAppFiles -compilerFolder $compilerFolder -cacheAppinfoPath (Join-Path $compilerFolder 'symbols/cache_AppInfo.json'))
     }
-    elseif (!$filesOnly) {
-        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
+    elseif ($filesOnly) {
+        $installedApps = Get-ChildItem -Path (Join-Path $packagesFolder '*.app') | ForEach-Object {
+            $appJson = Get-AppJsonFromAppFile -appFile $_.FullName
+            return @{
+                "appId"                 = $appJson.id
+                "name"                  = $appJson.name
+            }
+        }
     }
     else {
-        $installedApps = @()
+        $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
     }
     Write-GroupStart -Message "Installed Apps"
     $installedApps | ForEach-Object {
@@ -607,6 +613,12 @@ else {
 if ($buildArtifactFolder) {
     if (!(Test-Path $buildArtifactFolder)) {
         New-Item $buildArtifactFolder -ItemType Directory | Out-Null
+    }
+}
+if ($generateDependencyArtifact) {
+    $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
+    if (!(Test-Path $dependenciesFolder)) {
+        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
     }
 }
 
@@ -967,7 +979,7 @@ $testCountry = $_.Trim()
 $testToolkitInstalled = $false
 
 if ($useCompilerFolder) {
-    Write-GroupStart -Message "Creating container"
+    Write-GroupStart -Message "Creating CompilerFolder"
     Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                _____                      _ _           ______    _     _
@@ -981,7 +993,7 @@ if ($useCompilerFolder) {
 '@
 }
 else {
-    if ($gitHubActions) { Write-Host "::group::Creating container" }
+    Write-GroupStart -Message "Creating Container"
     Write-Host -ForegroundColor Yellow @'
 
    _____                _   _                _____            _        _
@@ -1113,6 +1125,14 @@ Measure-Command {
                 }
             }
         }
+        if ($CopySymbolsFromContainer) {
+            $containerSymbolsFolder = Get-BcContainerPath -containerName $containerName -path $packagesFolder
+            if ("$containerSymbolsFolder" -eq "") {
+                throw "The appSymbolsFolder ($appSymbolsFolder) is not shared with the container."
+            }
+            CopySymbolsFromContainer -containerName $containerName -containerSymbolsFolder $containerSymbolsFolder
+            $CopySymbolsFromContainer = $false
+        }
     }
 
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCreating container took $([int]$_.TotalSeconds) seconds" }
@@ -1217,9 +1237,6 @@ Measure-Command {
         Write-Host -ForegroundColor Yellow "Installing apps for additional country $testCountry"
     }
 
-    if ($generateDependencyArtifact) {
-        $dependenciesFolder = Join-Path $buildArtifactFolder "Dependencies"
-    }
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
     $installApps | ForEach-Object{
@@ -1247,9 +1264,6 @@ Measure-Command {
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
                     Write-Host -NoNewline " and dependencies folder"
-                    if (!(Test-Path $dependenciesFolder)) {
-                        New-Item -ItemType Directory -Path $dependenciesFolder | Out-Null
-                    }
                     Copy-Item -Path $_ -Destination $dependenciesFolder -Force
                 }
                 Write-Host
@@ -1324,13 +1338,9 @@ Measure-Command {
     $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -1338,7 +1348,7 @@ Measure-Command {
     }
     if ($generateDependencyArtifact -and !($testCountry)) {
         $parameters += @{
-            "CopyInstalledAppsToFolder" = Join-Path $buildArtifactFolder "Dependencies"
+            "CopyInstalledAppsToFolder" = $dependenciesFolder
         }
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
@@ -1477,13 +1487,9 @@ Measure-Command {
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -1656,13 +1662,9 @@ Measure-Command {
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
+        "appSymbolsFolder" = $packagesFolder
     }
-    if ($useCompilerFolder -or $filesOnly) {
-        $Parameters += @{
-            "appSymbolsFolder" = $packagesFolder
-        }
-    }
-    else {
+    if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
             "containerName" = $containerName
             "tenant" = $tenant
@@ -1732,8 +1734,9 @@ Write-Host -ForegroundColor Yellow @'
                         "path" = Get-BcContainerPath -containerName $containerName -path $ruleSetFile
                     })
                 }
-                $appSourceRulesetFile = Join-Path $folder "appsource.default.ruleset.json"
-                Download-File -sourceUrl "https://bcartifacts-exdbf9fwegejdqak.b02.azurefd.net/rulesets/appsource.default.ruleset.json" -destinationFile $appSourceRulesetFile
+                $appSourceRuleSetName = 'appsource.default.ruleset.json'
+                $appSourceRulesetFile = Join-Path $folder $appSourceRuleSetName
+                Copy-Item -Path (Join-Path $PSScriptRoot $appSourceRuleSetName) -Destination $appSourceRulesetFile -Force
                 $ruleset.includedRuleSets += @(@{
                     "action" = "Default"
                     "path" = Get-BcContainerPath -containerName $containerName -path $appSourceRulesetFile
@@ -1835,18 +1838,15 @@ Write-Host -ForegroundColor Yellow @'
     }
 
     if ($generateDependencyArtifact -and !$filesOnly -and !$useCompilerFolder) {
-        $depFolder = Join-Path $buildArtifactFolder "Dependencies"
-        Write-Host "Copying dependencies from $depFolder to $appPackagesFolder"
-        if (Test-Path $depFolder) {
-            Get-ChildItem -Path $depFolder -Recurse -file -Filter '*.app' | ForEach-Object {
-                $destName = Join-Path $appPackagesFolder $_.Name
-                if (Test-Path $destName) {
-                    Write-Host "- $destName already exists"
-                }
-                else {
-                    Write-Host "+ Copying $($_.FullName) to $destName"
-                    Copy-Item -Path $_.FullName -Destination $destName -Force
-                }
+        Write-Host "Copying dependencies from $dependenciesFolder to $appPackagesFolder"
+        Get-ChildItem -Path $dependenciesFolder -Recurse -file -Filter '*.app' | ForEach-Object {
+            $destName = Join-Path $appPackagesFolder $_.Name
+            if (Test-Path $destName) {
+                 Write-Host "- $destName already exists"
+            }
+            else {
+                Write-Host "+ Copying $($_.FullName) to $destName"
+                Copy-Item -Path $_.FullName -Destination $destName -Force
             }
         }
     }

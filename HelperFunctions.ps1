@@ -1058,6 +1058,12 @@ function GetAppInfo {
         $alToolExe = Join-Path $alcPath 'altool'
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
     }
+    elseif ($isMacOS) {
+        $alcPath = Join-Path $binPath 'darwin'
+        $alToolExe = Join-Path $alcPath 'altool'
+        Write-Host "Setting execute permissions on altool"
+        & chmod +x $alToolExe
+    }
     else {
         $alcPath = Join-Path $binPath 'win32'
         $alToolExe = Join-Path $alcPath 'altool.exe'
@@ -1067,7 +1073,7 @@ function GetAppInfo {
     }
     $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
     $alcDllPath = $alcPath
-    if (!$isLinux -and !$isPsCore) {
+    if (!($isLinux -or $isMacOS) -and !$isPsCore) {
         $alcDllPath = $binPath
     }
 
@@ -1276,6 +1282,11 @@ function RunAlTool {
     if ($isLinux) {
         $alToolExe = Join-Path $path 'extension/bin/linux/altool'
         & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+    } 
+    elseif ($isMacOS) {
+        $alToolExe = Join-Path $path 'extension/bin/darwin/altool'
+        Write-Host "Setting execute permissions on altool"
+        & chmod +x $alToolExe
     }
     else {
         $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
@@ -1353,4 +1364,45 @@ function Write-GroupEnd {
         $bcContainerHelperConfig.IsGitHubActions { Write-Host "::endgroup::"; break }
         $bcContainerHelperConfig.IsAzureDevOps { Write-Host "##[endgroup]"; break }
     }
+}
+
+function CopySymbolsFromContainer {
+    Param(
+        [string] $containerName,
+        [string] $containerSymbolsFolder
+    )
+
+    Invoke-ScriptInBcContainer -containerName $containerName -scriptblock { Param($appSymbolsFolder)
+        if (Test-Path "C:\Extensions\*.app") {
+            $paths = @(
+                "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                "C:\Extensions\*.app"
+            )
+        }
+        else {
+            $paths = @(
+                "C:\Program Files\Microsoft Dynamics NAV\*\AL Development Environment\System.app"
+                "C:\Applications.*\Microsoft_Application_*.app,C:\Applications\Application\Source\Microsoft_Application.app"
+                "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
+                "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
+                "C:\Applications.*\Microsoft_Business Foundation_*.app,C:\Applications\BusinessFoundation\source\Microsoft_Business Foundation.app"
+            )
+        }
+        $paths | ForEach-Object {
+            $appFiles = $_.Split(',')
+            $appFile = ""
+            if (Test-Path -Path $appFiles[0]) {
+                $appFile = $appFiles[0]
+            }
+            elseif (Test-Path -path $appFiles[1]) {
+                $appFile = $appFiles[1]
+            }
+            if ($appFile) {
+                Get-Item -Path $appFile | ForEach-Object {
+                    Write-Host "Copying $([System.IO.Path]::GetFileName($_.FullName)) from Container"
+                    Copy-Item -Path $_.FullName -Destination $appSymbolsFolder -Force
+                }
+            }
+        }
+    } -argumentList $containerSymbolsFolder
 }
