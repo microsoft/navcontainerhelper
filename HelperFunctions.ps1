@@ -1058,7 +1058,7 @@ function GetAppInfo {
         $alcPath = Join-Path $binPath 'linux'
         $command = Join-Path $alcPath 'altool'
         if (Test-Path $command) {
-            Write-json "Setting execute permissions on altool"
+            Write-Host "Setting execute permissions on altool"
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
             $alToolExists = $true
         }
