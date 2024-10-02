@@ -149,7 +149,7 @@ try {
         Write-Host "got config"
         $customConfig | Out-Host
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-        Write-Host "got navversion $navversion""
+        Write-Host "got navversion $navversion"
         $version = [System.Version]($navversion.split('-')[0])
         $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
         Write-Host "got PsTestToolFolder $PsTestToolFolder"
