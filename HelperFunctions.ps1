@@ -1063,6 +1063,7 @@ function GetAppInfo {
             $alToolExists = $true
         }
         else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
             $alToolDll = Join-Path $alcPath 'altool.dll'
             $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
@@ -1077,6 +1078,7 @@ function GetAppInfo {
             $alToolExists = $true
         }
         else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
             $alToolDll = Join-Path $alcPath 'altool.dll'
             $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
@@ -1308,6 +1310,7 @@ function RunAlTool {
             & /usr/bin/env sudo pwsh -command "& chmod +x $command"
         }
         else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
             $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
         }
@@ -1319,6 +1322,7 @@ function RunAlTool {
             & chmod +x $command
         }
         else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
             $command = 'dotnet'
             $arguments = @(Join-Path $path 'extension/bin/darwin/altool.dll') + $arguments
         }
