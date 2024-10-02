@@ -198,8 +198,10 @@ try {
         if ($dict['testpage']) { $testpage = [int]$dict['testpage'] }
     }
     else {
+        Write-Host "Determine credential type"
         $clientServicesCredentialType = $customConfig.ClientServicesCredentialType
 
+        Write-Host "Determine traefik"
         $useTraefik = $false
         $inspect = docker inspect $containerName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
@@ -239,6 +241,7 @@ try {
             }
         }
     
+        Write-Host "Set web.config requestTimeout"
         Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
             $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
             try {
@@ -275,6 +278,7 @@ try {
     }
 
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
+        Write-Host "Populate PSTestToolFolder"
         try {
             New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
     
@@ -307,9 +311,11 @@ try {
     }
 
     while ($true) {
+        Write-Host "While true..."
         try
         {
             if ($connectFromHost) {
+                Write-Host "Connecting from host"
                 if ($PSVersionTable.PSVersion.Major -lt 7) {
                     throw "Using ConnectFromHost requires PowerShell 7"
                 }
@@ -410,7 +416,7 @@ try {
                 }
             }
             else {
-
+                Write-Host "Running inside container"
                 $containerXUnitResultFileName = ""
                 if ($XUnitResultFileName) {
                     $containerXUnitResultFileName = Get-BcContainerPath -containerName $containerName -path $XUnitResultFileName
@@ -475,7 +481,8 @@ try {
                     if ($profile) {
                         $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))"
                     }
-            
+
+                    Write-Host "Init PS Test Functions"
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
                     Write-Host "Connecting to $serviceUrl"

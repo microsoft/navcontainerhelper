@@ -350,6 +350,13 @@ try {
     }   
         
     $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
+    if (!(Test-Path -Path $alcItem.FullName)) {
+        $alcCmd = "dotnet"
+        $alcExe = 'alc.dll'
+        $alcParameters += @((Join-Path $alcPath $alcExe))
+        Write-Host "No alc executable in $compilerPlatform. Using dotnet to run alc.dll."
+        $alcItem = Get-Item -Path (Join-Path $alcPath $alcExe)
+    }
     [System.Version]$alcVersion = $alcItem.VersionInfo.FileVersion
 
     $alcParameters += @("/project:""$($appProjectFolder.TrimEnd('/\'))""", "/packagecachepath:""$($appSymbolsFolder.TrimEnd('/\'))""", "/out:""$appOutputFile""")
