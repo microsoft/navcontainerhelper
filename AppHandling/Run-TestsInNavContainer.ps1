@@ -144,7 +144,9 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($containerName) {
-        Write-Host "Using Container"
+        Write-Host "Using Container1"
+        Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Write-Host "Running in container" }
+        Write-Host "Using Container2"
         $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
         Write-Host "got config"
         $customConfig | Out-Host

@@ -13,17 +13,22 @@ Function Get-BcContainerServerConfiguration {
         [String] $ContainerName = $bcContainerHelperConfig.defaultContainerName
     )
 
+    Write-Host "Get Server Configuration for container $ContainerName"
     Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock{ Param($ContainerName)
+        Write-Host "get it"
         $config = Get-NavServerInstance | Get-NAVServerConfiguration -AsXml
+        Write-Host "make obj"
         $object = [ordered]@{ "ContainerName" = $ContainerName }
         if ($config) {
             $Config.configuration.appSettings.add | ForEach-Object{
+                Write-Host "$($_.Key) = $($_.Value)"
                 $object += @{ "$($_.Key)" = $_.Value }
             }
         }
         else {
             $object += @{ "ServerInstance" = "" }
         }
+        Write-Host "return it"
         $object | ConvertTo-Json -Depth 99 -compress
     } -argumentList $containerName | ConvertFrom-Json
 }
