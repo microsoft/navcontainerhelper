@@ -30,8 +30,6 @@ function Invoke-ScriptInBcContainer {
         [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
-    Write-Host "UseSession $useSession"
-    Write-Host "UsePwsh $usePwsh"
     $file = ''
     if (!$useSession) {
         $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
@@ -43,9 +41,7 @@ function Invoke-ScriptInBcContainer {
 
     if ($useSession) {
         try {
-            Write-Host "get session"
             $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
-            Write-Host "got session"
         }
         catch {
             if ($isInsideContainer) {
@@ -61,11 +57,8 @@ function Invoke-ScriptInBcContainer {
     if ($useSession) {
         $startTime = [DateTime]::Now
         try {
-            Write-Host "Invoke-Command1"
             Invoke-Command -Session $session -ScriptBlock { param($a) $WarningPreference = $a } -ArgumentList $bcContainerHelperConfig.WarningPreference
-            Write-Host "Invoke-Command2"
             Invoke-Command -Session $session -ScriptBlock $scriptblock -ArgumentList $argumentList
-            Write-Host "After Invoke-Command"
         }
         catch {
             $errorMessage = $_.Exception.Message
@@ -120,7 +113,6 @@ function Invoke-ScriptInBcContainer {
             throw $errorMessage
         }
     } else {
-        Write-Host "NOT using session"
         if ($file -eq '') {
             $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
             $containerFile = Get-BcContainerPath -containerName $containerName -path $file
