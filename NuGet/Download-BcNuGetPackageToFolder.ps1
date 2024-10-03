@@ -231,7 +231,7 @@ try {
                         }
                     }
                     elseif ($downloadDependencies -eq 'own') {
-                        $downloadIt = ($dependencyPublisher -eq $manifest.package.authors)
+                        $downloadIt = ($dependencyPublisher -eq $manifest.package.metadata.authors)
                     }
                     elseif ($downloadDependencies -eq 'allButMicrosoft') {
                         # Download if publisher isn't Microsoft (including if publisher is empty)
