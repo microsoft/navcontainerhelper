@@ -144,17 +144,11 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 
     if ($containerName) {
-        Write-Host "Using Container1"
-        Invoke-ScriptInBcContainer -containerName $containerName -scriptBlock { Write-Host "Running in container" }
-        Write-Host "Using Container2"
+        Write-Host "Using Container"
         $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
-        Write-Host "got config"
-        $customConfig | Out-Host
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
-        Write-Host "got navversion $navversion"
         $version = [System.Version]($navversion.split('-')[0])
         $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
-        Write-Host "got PsTestToolFolder $PsTestToolFolder"
     }
     elseif ($compilerFolder) {
         Write-Host "Using CompilerFolder"
@@ -203,10 +197,8 @@ try {
         if ($dict['testpage']) { $testpage = [int]$dict['testpage'] }
     }
     else {
-        Write-Host "Determine credential type"
         $clientServicesCredentialType = $customConfig.ClientServicesCredentialType
 
-        Write-Host "Determine traefik"
         $useTraefik = $false
         $inspect = docker inspect $containerName | ConvertFrom-Json
         if ($inspect.Config.Labels.psobject.Properties.Match('traefik.enable').Count -gt 0) {
@@ -283,7 +275,6 @@ try {
     }
 
     If (!(Test-Path -Path $PsTestToolFolder -PathType Container)) {
-        Write-Host "Populate PSTestToolFolder"
         try {
             New-Item -Path $PsTestToolFolder -ItemType Directory | Out-Null
     
@@ -316,11 +307,9 @@ try {
     }
 
     while ($true) {
-        Write-Host "While true..."
         try
         {
             if ($connectFromHost) {
-                Write-Host "Connecting from host"
                 if ($PSVersionTable.PSVersion.Major -lt 7) {
                     throw "Using ConnectFromHost requires PowerShell 7"
                 }
@@ -329,7 +318,6 @@ try {
                 if ($containerName) {
                     if (!((Test-Path $newtonSoftDllPath) -and (Test-Path $clientDllPath))) {
                         Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
-                    
                             if (!(Test-Path $myNewtonSoftDllPath)) {
                                 $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
                                 if (!(Test-Path $newtonSoftDllPath)) {
@@ -421,7 +409,6 @@ try {
                 }
             }
             else {
-                Write-Host "Running inside container"
                 $containerXUnitResultFileName = ""
                 if ($XUnitResultFileName) {
                     $containerXUnitResultFileName = Get-BcContainerPath -containerName $containerName -path $XUnitResultFileName
@@ -487,7 +474,6 @@ try {
                         $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))"
                     }
 
-                    Write-Host "Init PS Test Functions"
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
                     Write-Host "Connecting to $serviceUrl"
