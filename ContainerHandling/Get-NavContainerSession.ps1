@@ -26,50 +26,35 @@ function Get-BcContainerSession {
     Process {
         $newsession = $false
         $session = $null
-        if ($sessions.ContainsKey($containerName)) {
-            Write-Host "Session cached"
-            $session = $sessions[$containerName]
+        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+        if ($platformVersion.Major -lt 24) {
+            $usePwsh = $false
+        }
+        $configurationName = 'Microsoft.PowerShell'
+        if ($usePwsh) {
+            $configurationName = 'PowerShell.7'
+        }
+        $cacheName = "$containerName-$configurationName"
+        if ($sessions.ContainsKey($cacheName)) {
+            $session = $sessions[$cacheName]
             try {
-                Write-Host "Get platform version"
-                $platformVersion = Invoke-Command -Session $session -ScriptBlock { [System.Version](get-item 'C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe').Versioninfo.FileVersion }
-                Write-Host "$platformVersion"
-                if ($platformVersion.Major -ge 24 -and ($usePwsh -xor $session.ConfigurationName -eq 'PowerShell.7')) {
-                    # Cannot use existing session
-                    Write-Host "Remove session"
-                    Remove-PSSession -Session $session
-                    $sessions.Remove($containerName)
-                    $session = $null
-                }
-                else {
-                    if (!$reinit) {
-                        return $session
-                    }
+                Invoke-Command -Session $session -ScriptBlock { $PID } | Out-Null
+                if (!$reinit) {
+                    return $session
                 }
             }
             catch {
-                Write-Host "Exception - Remove session"
-                Remove-PSSession -Session $session
-                $sessions.Remove($containerName)
+                $sessions.Remove($cacheName)
                 $session = $null
             }
         }
         if (!$session) {
-            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
-            if ($platformVersion.Major -lt 24) {
-                $usePwsh = $false
-            }
-            $configurationName = 'Microsoft.PowerShell'
-            if ($usePwsh) {
-                $configurationName = 'PowerShell.7'
-            }
             if ($isInsideContainer) {
                 $session = New-PSSession -Credential $bcContainerHelperConfig.WinRmCredentials -ComputerName $containerName -Authentication Basic -UseSSL -SessionOption (New-PSSessionOption -SkipCACheck -SkipCNCheck)
             }
             elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
                 try {
-                    Write-Host "Get Container ID"
                     $containerId = Get-BcContainerId -containerName $containerName
-                    Write-Host "Create session for container $containerName ($containerId) using $configurationName"
                     $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
                 }
                 catch {}
@@ -79,24 +64,20 @@ function Get-BcContainerSession {
                     throw "Unable to create session for container $containerName (cannot use WinRm)"
 
                 }
-                Write-Host "Use WinRm"
                 $useSSL = $bcContainerHelperConfig.useSslForWinRmSession
                 $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $winRmPassword -AsPlainText -force)
                 if ($useSSL) {
-                    Write-Host "Use SSL"
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
                     $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
                 }
                 else {
-                    Write-Host "No SSL"
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US'
                     $Session = New-PSSession -ConnectionUri "http://$($containerName):5985" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
                 }
             }
             $newsession = $true
         }
-        $session | Out-Host
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
@@ -112,16 +93,11 @@ function Get-BcContainerSession {
                 }
             }
 
-            Write-Host "set securityprotocol"
             [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
-            Write-Host "Prompt"
             . (Get-MyFilePath "prompt.ps1") -silent:$silent | Out-Null
-            Write-Host "ServiceSettings"
             . (Get-MyFilePath "ServiceSettings.ps1") | Out-Null
-            Write-Host "HelperFunctions"
             . (Get-MyFilePath "HelperFunctions.ps1") | Out-Null
-            Write-Host "Done"
 
             $txt2al = ""
             if ($roleTailoredClientFolder) {
@@ -132,11 +108,9 @@ function Get-BcContainerSession {
             }
 
             Set-Location $runPath
-            Write-Host (Get-Location).Path
         } -ArgumentList $silent | Out-Host
         if ($newsession) {
-            Write-Host "Cache session"
-            $sessions.Add($containerName, $session)
+            $sessions.Add($cacheName, $session)
         }
         return $session
     }

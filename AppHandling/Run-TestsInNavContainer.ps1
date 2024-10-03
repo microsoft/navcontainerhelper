@@ -238,7 +238,6 @@ try {
             }
         }
     
-        Write-Host "Set web.config requestTimeout"
         Invoke-ScriptInBCContainer -containerName $containerName -scriptBlock { Param($timeoutStr)
             $webConfigFile = "C:\inetpub\wwwroot\$WebServerInstance\web.config"
             try {
