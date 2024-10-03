@@ -108,7 +108,7 @@ function Get-BcContainerSession {
             }
 
             Set-Location $runPath
-        } -ArgumentList $silent | Out-Host
+        } -ArgumentList $silent
         if ($newsession) {
             $sessions.Add($cacheName, $session)
         }
