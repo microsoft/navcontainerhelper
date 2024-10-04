@@ -1569,6 +1569,9 @@ try {
             $AadTenantId = $AadTenant
             if (!$AadTenantId) { $AadTenantId = "Common" }
             $customWebSettings += @("AadApplicationId=$AadAppId","AadAuthorityUri=https://login.microsoftonline.com/$AADTenantId")
+            if ($version.Major -ge 25) {
+                $customWebSettings += @("AadValidAudience=https://api.businesscentral.dynamics.com")
+            }
         }
     }
 
