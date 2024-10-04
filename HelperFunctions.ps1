@@ -1124,7 +1124,7 @@ function GetAppInfo {
                         "application"           = "$(if($manifest.PSObject.Properties.Name -eq 'application'){$manifest.application})"
                         "platform"              = "$(if($manifest.PSObject.Properties.Name -eq 'platform'){$manifest.Platform})"
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
-                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
+                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
                     Write-Host " (succeeded using altool)"
                 }

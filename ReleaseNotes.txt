@@ -1,3 +1,9 @@
+6.0.26
+As minimum, always use the generic tag version which was available when shipping BcContainerHelper
+Add awareness of Windows 11 24H2
+Issue #3697 Running tests fails with 401 when running on a BC25 sandbox container with AAD authentication
+Issue #3701 Compile-AppWithBcCompilerFolder, ALTool returns dependencies.appId for older apps
+
 6.0.25
 Fix issue where generateDependencyArtifact doesn't result in dependencies if useCompilerFolder is true or filesonly containers are used in Run-AlPipeline
 Issue 3686 PowerShell container shortcuts for >= BC24 using wrong PowerShell version

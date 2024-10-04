@@ -199,6 +199,9 @@ jobs:
             $modulePath = Join-Path $ENV:GITHUB_WORKSPACE "BcContainerHelper.psm1"
             Import-Module $modulePath -DisableNameChecking
           
+            $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+            Set-Content -Path (Join-Path $path 'LatestGenericTagVersion.txt') -value $labels.tag
+            
             $functionsToExport = (get-module -Name BcContainerHelper).ExportedFunctions.Keys | Sort-Object
             $aliasesToExport = (get-module -Name BcContainerHelper).ExportedAliases.Keys | Sort-Object
           
