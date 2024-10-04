@@ -426,7 +426,10 @@ try {
 
     $isServerHost = $os.ProductType -eq 3
 
-    if ($os.BuildNumber -eq 22631) {
+    if ($os.BuildNumber -eq 26100) {
+        $hostOs = "24H2"
+    }
+    elseif ($os.BuildNumber -eq 22631) {
         $hostOs = "23H2"
     }
     elseif ($os.BuildNumber -eq 22621) {
@@ -781,7 +784,7 @@ try {
             $imageName = $bestImageName
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
-                if ($genericTagVersion -lt [Version]"1.0.2.20") {
+                if ($genericTagVersion -lt [Version]$LatestGenericTagVersion) {
                     Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
@@ -1310,7 +1313,7 @@ try {
     }
     Write-Host "Using $isolation isolation"
 
-    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631) -and $useSSL) {
+    if ($isolation -eq "process" -and !$isServerHost -and ($os.BuildNumber -eq 22621 -or $os.BuildNumber -eq 22631 -or $os.BuildNumber -eq 26100) -and $useSSL) {
         Write-Host -ForegroundColor Red "WARNING: Using SSL when running Windows 11 with process isolation might not work due to a bug in Windows 11. Please use HyperV isolation or disable SSL."
     }
 
