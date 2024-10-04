@@ -20,18 +20,24 @@ function Remove-BcContainerSession {
     )
 
     Process {
-        if ($sessions.ContainsKey($containerName)) {
-            $session = $sessions[$containerName]
-            try {
-                if ($killPsSessionProcess -and !$isInsideContainer) {
-                    $inspect = docker inspect $containerName | ConvertFrom-Json
-                    if ($inspect.HostConfig.Isolation -eq "process") {
-                        try {
-                            $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
-                            Stop-Process -Id $processID -Force
+        foreach($configurationName in @('Microsoft.PowerShell','PowerShell.7')) {
+            $cacheName = "$containerName-$configurationName"
+            if ($sessions.ContainsKey($cacheName)) {
+                $session = $sessions[$cacheName]
+                try {
+                    if ($killPsSessionProcess -and !$isInsideContainer) {
+                        $inspect = docker inspect $containerName | ConvertFrom-Json
+                        if ($inspect.HostConfig.Isolation -eq "process") {
+                            try {
+                                $processID = Invoke-Command -Session $session -ScriptBlock { $PID }
+                                Stop-Process -Id $processID -Force
+                            }
+                            catch {
+                                Write-Host "Error killing process in container"
+                                Remove-PSSession -Session $session
+                            }
                         }
-                        catch {
-                            Write-Host "Error killing process in container"
+                        else {
                             Remove-PSSession -Session $session
                         }
                     }
@@ -39,15 +45,11 @@ function Remove-BcContainerSession {
                         Remove-PSSession -Session $session
                     }
                 }
-                else {
-                    Remove-PSSession -Session $session
+                catch {
+                    Write-Host "Error removing session for container"
                 }
+                $sessions.Remove($cacheName)
             }
-            catch {
-                Write-Host "Error removing session for container"
-            }
-            
-            $sessions.Remove($containerName)
         }
     }
 }
