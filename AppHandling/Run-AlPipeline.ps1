@@ -559,6 +559,11 @@ $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $
 $pageScriptingTestResultsFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $pageScriptingTestResultsFolder -name "pageScriptingTestResultsFolder"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 
+$restoreDatabases | ForEach-Object {
+    if ($_ -notin @("BeforeBcpTests", "BeforeEachTestApp", "BeforeEachBcptTestApp", "BeforeEachPageScriptingTest", "BeforePageScriptingTests")) {
+        throw "restoreDatabases must be one of the following values: BeforeBcpTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforePageScriptingTests, BeforeEachPageScriptingTest"
+    }
+}
 $containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
     if ($_ -and (Test-Path $_)) {
         Remove-Item -Path $_ -Force
@@ -2690,6 +2695,11 @@ $pageScriptingTests | ForEach-Object {
     }
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
+if ($buildArtifactFolder -and (Test-Path $pageScriptingTestResultsFolder)) {
+    Write-Host "Copying page script test results to output"
+    Compress-Archive -Path "$pageScriptingTestResultsFolder\*" -DestinationPath "$pageScriptingTestResultsFolder.zip" -Force
+    Move-Item -Path "$pageScriptingTestResultsFolder.zip" -Destination $buildArtifactFolder -Force
+}
 Write-GroupEnd
 }
 
