@@ -65,6 +65,8 @@
   Array or comma separated list of filespecs with pageScripting tests, to be run after the apps have been compiled and tested
  .Parameter additionalCountries
   Array or comma separated list of countries to test
+ .Parameter restoreDatabases
+  Array or comma seperated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
  .Parameter appVersion
   Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
@@ -255,6 +257,10 @@
   Override function parameter for Install-BcAppFromAppSource
  .Parameter SignBcContainerApp
   Override function parameter for Sign-BcContainerApp
+ .Parameter BackupBcContainerDatabases
+  Override function parameter for Backup-BcContainerDatabases
+ .Parameter RestoreDatabasesInBcContainer
+  Override function parameter for Restore-DatabasesInBcContainer
  .Parameter RunTestsInBcContainer
   Override function parameter for Run-TestsInBcContainer
  .Parameter RunBCPTTestsInBcContainer
@@ -310,6 +316,7 @@ Param(
     $bcptTestSuites = @(),
     $pageScriptingTests = @(),
     $additionalCountries = @(),
+    $restoreDatabases = @(),
     [string] $appVersion = "",
     [int] $appBuild = 0,
     [int] $appRevision = 0,
@@ -393,6 +400,8 @@ Param(
     [scriptblock] $InstallBcAppFromAppSource,
     [scriptblock] $SignBcContainerApp,
     [scriptblock] $ImportTestDataInBcContainer,
+    [scriptblock] $BackupBcContainerDatabases,
+    [scriptblock] $RestoreDatabasesInBcContainer,
     [scriptblock] $RunTestsInBcContainer,
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
@@ -537,6 +546,7 @@ if ($additionalCountries            -is [String]) { $additionalCountries = @($ad
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($customCodeCops                 -is [String]) { $customCodeCops = @($customCodeCops.Split(',').Trim() | Where-Object { $_ }) }
+if ($restoreDatabases               -is [string]) { $restoreDatabases = @($restoreDatabases.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
@@ -834,6 +844,14 @@ if ($doNotBuildTests) {
     $doNotRunBcptTests = $true
 }
 
+if ($containerName -eq '' -or $filesOnly) {
+    # If we are not creating a full container, do not backup and restore databases
+    if ($restoreDatabases) {
+        Write-Host -ForegroundColor Yellow "WARNING: Ignoring restoreDatabases as we are not creating a full container"
+        $restoreDatabases = @()
+    }
+}
+
 if ($DockerPull) {
     Write-Host -ForegroundColor Yellow "DockerPull override"; Write-Host $DockerPull.ToString()
 }
@@ -911,6 +929,18 @@ else {
 }
 if ($ImportTestDataInBcContainer) {
     Write-Host -ForegroundColor Yellow "ImportTestDataInBcContainer override"; Write-Host $ImportTestDataInBcContainer.ToString()
+}
+if ($BackupBcContainerDatabases) {
+    Write-Host -ForegroundColor Yellow "BackupBcContainerDatabases override"; Write-Host $BackupBcContainerDatabases.ToString()
+}
+else {
+    $BackupBcContainerDatabases = { Param([Hashtable]$parameters) Backup-BcContainerDatabases @parameters }
+}
+if ($RestoreDatabasesInBcContainer) {
+    Write-Host -ForegroundColor Yellow "RestoreDatabasesInBcContainer override"; Write-Host $RestoreDatabasesInBcContainer.ToString()
+}
+else {
+    $RestoreDatabasesInBcContainer = { Param([Hashtable]$parameters) Restore-DatabasesInBcContainer @parameters }
 }
 if ($RunTestsInBcContainer) {
     Write-Host -ForegroundColor Yellow "RunTestsInBcContainer override"; Write-Host $RunTestsInBcContainer.ToString()
@@ -2392,6 +2422,14 @@ if (!$enableTaskScheduler) {
 }
 Write-GroupEnd
 }
+
+if ($restoreDatabases) {
+Write-GroupStart -Message "Backing up databases"
+Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = $containerName}
+Write-GroupEnd
+}
+
+
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
@@ -2520,6 +2558,11 @@ $testAppIds.Keys | ForEach-Object {
             "ConnectFromHost" = !$createContainer
         }
     }
+    if ($restoreDatabases -contains 'BeforeEachTestApp') {
+        Write-GroupStart -Message "Restoring databases before test app"
+        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+        Write-GroupEnd
+    }
 
     if (!(Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters)) {
         $allPassed = $false
@@ -2535,6 +2578,11 @@ Write-GroupEnd
 }
 
 if (!$doNotRunBcptTests -and $bcptTestSuites) {
+if ($restoreDatabases -contains 'BeforeBcpTests' -and $restoreDatabases -notcontains 'BeforeEachBcptTestApp') {
+    Write-GroupStart -Message "Restoring databases before bcpt tests"
+    Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+    Write-GroupEnd
+}
 Write-GroupStart -Message "Running BCPT tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               ____   _____ _____ _______   _            _
@@ -2565,6 +2613,12 @@ $bcptTestSuites | ForEach-Object {
         "BCPTsuite" = [System.IO.File]::ReadAllLines($_) | ConvertFrom-Json
     }
 
+    if ($restoreDatabases -contains 'BeforeEachBcptTestApp') {
+        Write-GroupStart -Message "Restoring databases before each bcpt test app"
+        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+        Write-GroupEnd
+    }
+
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
 
     Write-Host "Saving bcpt test results to $bcptResultsFile"
@@ -2579,6 +2633,11 @@ Write-GroupEnd
 }
 
 if (!$doNotRunPageScriptingTests -and $pageScriptingTests) {
+if ($restoreDatabases -contains 'BeforePageScriptingTests' -and $restoreDatabases -notcontains 'BeforeEachPageScriptingTest') {
+    Write-GroupStart -Message "Restoring databases before page scripting tests"
+    Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+    Write-GroupEnd
+}
 Write-GroupStart -Message "Running Page Scripting Tests"
 Write-Host -ForegroundColor Yellow @'
  _____                   _               _____                  _____           _       _   _               _______        _
@@ -2606,6 +2665,11 @@ ${env:containerPassword} = $credential.Password | Get-PlainText
 ${env:startAddress} = "http://$containerName/BC?tenant=default"
 
 $pageScriptingTests | ForEach-Object {
+    if ($restoreDatabases -contains 'BeforeEachPageScriptingTest') {
+        Write-GroupStart -Message "Restoring databases before each page scripting test"
+        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+        Write-GroupEnd
+    }
     $testSpec = $_
     $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
     $path = $testSpec
