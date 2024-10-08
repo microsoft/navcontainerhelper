@@ -1053,25 +1053,45 @@ function GetAppInfo {
     }
     Write-GroupStart -Message "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
+    $alToolDll = ''
     if ($isLinux) {
         $alcPath = Join-Path $binPath 'linux'
-        $alToolExe = Join-Path $alcPath 'altool'
-        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+        $command = Join-Path $alcPath 'altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & /usr/bin/env sudo pwsh -command "& chmod +x $command"
+            $alToolExists = $true
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $alToolDll = Join-Path $alcPath 'altool.dll'
+            $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
+        }
     }
     elseif ($isMacOS) {
         $alcPath = Join-Path $binPath 'darwin'
-        $alToolExe = Join-Path $alcPath 'altool'
-        Write-Host "Setting execute permissions on altool"
-        & chmod +x $alToolExe
+        $command = Join-Path $alcPath 'altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & chmod +x $command
+            $alToolExists = $true
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $alToolDll = Join-Path $alcPath 'altool.dll'
+            $alToolExists = Test-Path -Path $alToolDll -PathType Leaf
+        }
     }
     else {
         $alcPath = Join-Path $binPath 'win32'
-        $alToolExe = Join-Path $alcPath 'altool.exe'
+        $command = Join-Path $alcPath 'altool.exe'
+        $alToolExists = Test-Path -Path $command -PathType Leaf
     }
     if (-not (Test-Path $alcPath)) {
         $alcPath = $binPath
     }
-    $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
     $alcDllPath = $alcPath
     if (!($isLinux -or $isMacOS) -and !$isPsCore) {
         $alcDllPath = $binPath
@@ -1091,7 +1111,11 @@ function GetAppInfo {
             }
             else {
                 if ($alToolExists) {
-                    $manifest = CmdDo -Command $alToolExe -arguments @('GetPackageManifest', """$path""") -returnValue -silent | ConvertFrom-Json
+                    $arguments = @('GetPackageManifest', """$path""")
+                    if ($alToolDll) {
+                        $arguments = @($alToolDll) + $arguments
+                    }
+                    $manifest = CmdDo -Command $command -arguments $arguments -returnValue -silent | ConvertFrom-Json
                     $appInfo = @{
                         "appId"                 = $manifest.id
                         "publisher"             = $manifest.publisher
@@ -1100,7 +1124,7 @@ function GetAppInfo {
                         "application"           = "$(if($manifest.PSObject.Properties.Name -eq 'application'){$manifest.application})"
                         "platform"              = "$(if($manifest.PSObject.Properties.Name -eq 'platform'){$manifest.Platform})"
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
-                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { @{ "id" = $_.id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
+                        "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
                     Write-Host " (succeeded using altool)"
                 }
@@ -1280,18 +1304,33 @@ function RunAlTool {
     )
     $path = DownloadLatestAlLanguageExtension -allowPrerelease:$usePrereleaseAlTool
     if ($isLinux) {
-        $alToolExe = Join-Path $path 'extension/bin/linux/altool'
-        & /usr/bin/env sudo pwsh -command "& chmod +x $alToolExe"
+        $command = Join-Path $path 'extension/bin/linux/altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & /usr/bin/env sudo pwsh -command "& chmod +x $command"
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $arguments = @(Join-Path $path 'extension/bin/linux/altool.dll') + $arguments
+        }
     } 
     elseif ($isMacOS) {
-        $alToolExe = Join-Path $path 'extension/bin/darwin/altool'
-        Write-Host "Setting execute permissions on altool"
-        & chmod +x $alToolExe
+        $command = Join-Path $path 'extension/bin/darwin/altool'
+        if (Test-Path $command) {
+            Write-Host "Setting execute permissions on altool"
+            & chmod +x $command
+        }
+        else {
+            Write-Host "No altool executable found. Using dotnet to run altool.dll."
+            $command = 'dotnet'
+            $arguments = @(Join-Path $path 'extension/bin/darwin/altool.dll') + $arguments
+        }
     }
     else {
-        $alToolExe = Join-Path $path 'extension/bin/win32/altool.exe'
+        $command = Join-Path $path 'extension/bin/win32/altool.exe'
     }
-    CmdDo -Command $alToolExe -arguments $arguments -returnValue -silent
+    CmdDo -Command $command -arguments $arguments -returnValue -silent
 }
 
 function GetApplicationDependency( [string] $appFile, [string] $minVersion = "0.0" ) {

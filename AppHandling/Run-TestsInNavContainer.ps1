@@ -149,7 +149,6 @@ try {
         $navversion = Get-BcContainerNavversion -containerOrImageName $containerName
         $version = [System.Version]($navversion.split('-')[0])
         $PsTestToolFolder = Join-Path $bcContainerHelperConfig.hostHelperFolder "Extensions\$containerName\PsTestTool"
-
     }
     elseif ($compilerFolder) {
         Write-Host "Using CompilerFolder"
@@ -318,7 +317,6 @@ try {
                 if ($containerName) {
                     if (!((Test-Path $newtonSoftDllPath) -and (Test-Path $clientDllPath))) {
                         Invoke-ScriptInBcContainer -containerName $containerName { Param([string] $myNewtonSoftDllPath, [string] $myClientDllPath)
-                    
                             if (!(Test-Path $myNewtonSoftDllPath)) {
                                 $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
                                 if (!(Test-Path $newtonSoftDllPath)) {
@@ -410,7 +408,6 @@ try {
                 }
             }
             else {
-
                 $containerXUnitResultFileName = ""
                 if ($XUnitResultFileName) {
                     $containerXUnitResultFileName = Get-BcContainerPath -containerName $containerName -path $XUnitResultFileName
@@ -475,7 +472,7 @@ try {
                     if ($profile) {
                         $serviceUrl += "&profile=$([Uri]::EscapeDataString($profile))"
                     }
-            
+
                     . $PsTestFunctionsPath -newtonSoftDllPath $newtonSoftDllPath -clientDllPath $clientDllPath -clientContextScriptPath $ClientContextPath
 
                     Write-Host "Connecting to $serviceUrl"

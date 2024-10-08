@@ -37,7 +37,8 @@ else {
     $isAdministrator = ((id -u) -eq 0)
 }
 
-$BcContainerHelperVersion = Get-Content (Join-Path $PSScriptRoot "Version.txt")
+$BcContainerHelperVersion = (Get-Content (Join-Path $PSScriptRoot "Version.txt")).Trim()
+$LatestGenericTagVersion = (Get-Content (Join-Path $PSScriptRoot "LatestGenericTagVersion.txt")).Trim()
 if (!$silent) {
     Write-Host "$($moduleName.SubString(0,$moduleName.Length-5)) version $BcContainerHelperVersion"
 }
