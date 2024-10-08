@@ -21,8 +21,7 @@
   Id of the app you want to download
  .EXAMPLE
   $appSymbolsFolder = Join-Path $compilerFolder 'symbols'
-  $authContext = New-BcAuthContext -includeDeviceLogin -tenantID $tenant
-  $bcAuthContext = Renew-BcAuthContext -bcAuthContext $authContext
+  $bcAuthContext = New-BcAuthContext -includeDeviceLogin -tenantID $tenant
   $publishedApps = (Get-BcEnvironmentInstalledExtensions -bcAuthContext $bcAuthContext -environment $environment | ForEach-Object { @{ "Publisher" = $_.Publisher; "Name" = $_.displayName; "Id" = $_.Id; "Version" = [System.Version]::new($_.VersionMajor, $_.VersionMinor, $_.VersionBuild, $_.VersionRevision) } })
   foreach ($app in $publishedApps) {
     Download-BcEnvironmentInstalledExtensionToFolder -bcAuthContext $bcAuthContext -environment $environment -appName $app.Name -appId $app.Id -appVersion $app.Version -appPublisher $app.Publisher -folder $appSymbolsFolder
@@ -49,6 +48,7 @@ function Download-BcEnvironmentInstalledExtensionToFolder {
     )
     $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
     try {
+        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bearerAuthValue = "Bearer $($bcAuthContext.AccessToken)"
         $headers = @{ "Authorization" = $bearerAuthValue }
 
