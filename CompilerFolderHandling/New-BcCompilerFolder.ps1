@@ -146,7 +146,7 @@ try {
             if ($appAppsPath) {
                 $appApps = @(Get-ChildItem -Path $appAppsPath -Filter '*.app' -Recurse)
             }
-            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app' | ForEach-Object {
+            'Microsoft_Tests-*.app','Microsoft_Performance Toolkit Samples*.app','Microsoft_Performance Toolkit Tests*.app','Microsoft_System Application Test Library*.app','Microsoft_TestRunner-Internal*.app','Microsoft_Business Foundation Test Libraries*.app' | ForEach-Object {
                 $appName = $_
                 $apps = $appApps | Where-Object { $_.Name -like $appName }
                 if (!$apps) {
