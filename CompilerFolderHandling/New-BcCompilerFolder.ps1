@@ -2,7 +2,7 @@
  .SYNOPSIS
   Create a new Compiler Folder
  .DESCRIPTION
-  Create a folder containing all the necessary pieces from the artifatcs to compile apps without the need of a container
+  Create a folder containing all the necessary pieces from the artifacts to compile apps without the need of a container
   Returns a compilerFolder path, which can be used for functions like Compile-AppWithBcCompilerFolder or Remove-BcCompilerFolder
  .PARAMETER artifactUrl
   Artifacts URL to download the compiler and all .app files from
