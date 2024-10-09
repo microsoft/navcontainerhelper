@@ -2695,11 +2695,12 @@ $pageScriptingTests | ForEach-Object {
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
     ${env:resultsFolder} = $resultsFolder
     try {
-        pwsh -command { 
+        pwsh -command {
+            $ErrorActionPreference = 'stop'
             npx replay $env:tests -ResultDir $env:resultsFolder -StartAddress $env:startAddress -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
             $TestPass = $?
             if ($TestPass -ne "True") {
-                throw "Page Scripting Tests failed for $testSpec"
+                throw "Page Scripting Tests failed for $name"
             }
         }
     }
