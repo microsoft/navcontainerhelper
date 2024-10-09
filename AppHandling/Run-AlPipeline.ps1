@@ -85,6 +85,8 @@
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
   Filename in which you want the bcpt test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunBcptTests is included.
+ .Parameter pageScriptingTestResultsFile
+  File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
  .Parameter pageScriptingTestResultsFolder
   Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test results will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
@@ -326,6 +328,7 @@ Param(
     [string] $containerEventLogFile = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
+    [string] $pageScriptingTestResultsFile = "PageScriptingTestResults.xml",
     [string] $pageScriptingTestResultsFolder = "PageScriptingTestResults",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
@@ -556,6 +559,7 @@ $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $shar
 $containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
+$pageScriptingTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $pageScriptingTestResultsFile -name "pageScriptingTestResultsFile"
 $pageScriptingTestResultsFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $pageScriptingTestResultsFolder -name "pageScriptingTestResultsFolder"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 
@@ -572,6 +576,9 @@ $containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | 
 if ($pageScriptingTestResultsFolder -and (Test-Path $pageScriptingTestResultsFolder)) {
     Remove-Item -Path $pageScriptingTestResultsFolder -Recurse -Force
     New-Item -ItemType Directory -Path $pageScriptingTestResultsFolder | Out-Null
+}
+if ($pageScriptingTestResultsFile -and (Test-Path $pageScriptingTestResultsFile)) {
+    Remove-Item -Path $pageScriptingTestResultsFile -Force
 }
 
 $addBcptTestSuites = $true
@@ -2638,7 +2645,7 @@ if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
 Write-GroupEnd
 }
 
-if (!$doNotRunPageScriptingTests -and $pageScriptingTests) {
+if (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
 if ($restoreDatabases -contains 'BeforePageScriptingTests' -and $restoreDatabases -notcontains 'BeforeEachPageScriptingTest') {
     Write-GroupStart -Message "Restoring databases before page scripting tests"
     Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
@@ -2693,6 +2700,26 @@ $pageScriptingTests | ForEach-Object {
     catch {
         Write-Host "Page Scripting Tests failed for $testSpec"
         $allPassed = $false
+    }
+    $testResultsFile = Join-Path $resultsFolder "results.xml"
+    $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
+    if ((Test-Path $testResultsFile -PathType Leaf) -and (Test-Path $playwrightReportFolder -PathType Container)) {
+        if (Test-Path $pageScriptingTestResultsFile) {
+            # Merge results
+            $xml = [xml](Get-Content $pageScriptingTestResultsFile -encoding UTF8)
+            $xml2 = [xml](Get-Content $testResultsFile -encoding UTF8)
+            $xml2.testsuites.testsuite.ChildNodes | ForEach-Object {
+                $elm = $xml.ImportNode($_, $true)
+                $xml.testsuites.testsuite.AppendChild($elm)
+            }
+            $xml.Save($pageScriptingTestResultsFile)
+            Remove-Item $testResultsFile -Force
+        }
+        else {
+            Move-Item $testResultsFile $pageScriptingTestResultsFile -Force
+        }
+        Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
+        Remove-Item -Path $playwrightReportFolder -Force
     }
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
