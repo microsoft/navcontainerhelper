@@ -2688,7 +2688,7 @@ $pageScriptingTests | ForEach-Object {
     $testSpec = $_
     $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
     if ($usedNames -contains $name) {
-        throw "PageScriptingTests contains two similar test specs (resulting in identical results folders), please rename your test specs."
+        throw "PageScriptingTests contains two similar test specs (resulting in identical results folders), please rename your test specs ($testSpec)."
     }
     $usedNames += $name
     $path = $testSpec
@@ -2701,7 +2701,7 @@ $pageScriptingTests | ForEach-Object {
         npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
     } -args $path, $resultsFolder, $startAddress
     if ($? -ne "True") {
-        Write-Host "Page Scripting Tests failed for $name"
+        Write-Host "Page Scripting Tests failed for $testSpec"
         $allPassed = $false
         $thisFailed = $true
     }
@@ -2722,10 +2722,13 @@ $pageScriptingTests | ForEach-Object {
         $resultsXml.Save($pageScriptingTestResultsFile)
         Remove-Item $testResultsFile -Force
         if ($thisFailed) {
+            Write-Host "Moving Playwright report folder"
             Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
+            Write-Host "Removing Playwright report folder"
             Remove-Item -Path $playwrightReportFolder -Force
         }
         else {
+            Write-Host "Removing results folder"
             Remove-Item -Path $resultsFolder -Force
         }
     }
@@ -2813,10 +2816,6 @@ if ($createRuntimePackages) {
         $no++
     }
 }
-
-Write-Host "Files in build artifacts folder:"
-Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
-
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
@@ -2826,6 +2825,12 @@ Write-GroupEnd
 }
 finally {
     $progressPreference = $prevProgressPreference
+}
+
+if ($buildArtifactFolder) {
+    Write-GroupStart -Message "Files in build artifacts folder:"
+    Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
+    Write-GroupEnd
 }
 
 if ($useCompilerFolder -and $compilerFolder) {
