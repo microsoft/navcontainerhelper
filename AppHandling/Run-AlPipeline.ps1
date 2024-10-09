@@ -2675,7 +2675,7 @@ pwsh -command { npm i @microsoft/bc-replay --save }
 
 ${env:containerUsername} = $credential.UserName
 ${env:containerPassword} = $credential.Password | Get-PlainText
-${env:startAddress} = "http://$containerName/BC?tenant=default"
+$startAddress = "http://$containerName/BC?tenant=default"
 
 $pageScriptingTests | ForEach-Object {
     if ($restoreDatabases -contains 'BeforeEachPageScriptingTest') {
@@ -2689,23 +2689,20 @@ $pageScriptingTests | ForEach-Object {
     if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
     if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
     Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
-    ${env:tests} = $path
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
     if (Test-Path $resultsFolder) { throw "PageScriptingTests contains two similar test specs (resulting in identical results folders)" }
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
-    ${env:resultsFolder} = $resultsFolder
     try {
         pwsh -command {
-            $ErrorActionPreference = 'stop'
-            npx replay $env:tests -ResultDir $env:resultsFolder -StartAddress $env:startAddress -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+            npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
             $TestPass = $?
             if ($TestPass -ne "True") {
-                throw "Page Scripting Tests failed for $name"
+                throw "Page Scripting Tests failed for $($args[3])"
             }
-        }
+        } -args @($path, $resultsFolder, $startAddress, $name)
     }
     catch {
-        Write-Host $_.Exception.Message
+        Write-Host "Exception: $($_.Exception.Message)"
         $allPassed = $false
     }
     $testResultsFile = Join-Path $resultsFolder "results.xml"
