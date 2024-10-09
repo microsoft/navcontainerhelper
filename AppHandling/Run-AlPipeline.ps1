@@ -2695,11 +2695,6 @@ $pageScriptingTests | ForEach-Object {
     }
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
-if ($buildArtifactFolder -and (Test-Path $pageScriptingTestResultsFolder)) {
-    Write-Host "Copying page script test results to output"
-    Compress-Archive -Path "$pageScriptingTestResultsFolder\*" -DestinationPath "$pageScriptingTestResultsFolder.zip" -Force
-    Move-Item -Path "$pageScriptingTestResultsFolder.zip" -Destination $buildArtifactFolder -Force
-}
 Write-GroupEnd
 }
 
