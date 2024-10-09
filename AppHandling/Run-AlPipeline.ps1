@@ -571,6 +571,7 @@ $containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | 
 }
 if ($pageScriptingTestResultsFolder -and (Test-Path $pageScriptingTestResultsFolder)) {
     Remove-Item -Path $pageScriptingTestResultsFolder -Recurse -Force
+    New-Item -ItemType Directory -Path $pageScriptingTestResultsFolder | Out-Null
 }
 
 $addBcptTestSuites = $true
