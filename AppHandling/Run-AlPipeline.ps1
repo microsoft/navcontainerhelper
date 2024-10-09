@@ -2693,7 +2693,8 @@ $pageScriptingTests | ForEach-Object {
     if (Test-Path $resultsFolder) { throw "PageScriptingTests contains two similar test specs (resulting in identical results folders)" }
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
     try {
-        pwsh -command {
+        $ErrorActionPreference = 'stop'
+        pwsh -windowStyle Hidden -command {
             npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
             $TestPass = $?
             if ($TestPass -ne "True") {
