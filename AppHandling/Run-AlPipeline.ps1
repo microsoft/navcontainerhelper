@@ -2704,20 +2704,19 @@ $pageScriptingTests | ForEach-Object {
     $testResultsFile = Join-Path $resultsFolder "results.xml"
     $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
     if ((Test-Path $testResultsFile -PathType Leaf) -and (Test-Path $playwrightReportFolder -PathType Container)) {
+        $thisXml = [xml](Get-Content $testResultsFile -encoding UTF8)
+        $thisXml.testsuites.testsuite.Name = $name
+        $resultsXml = $thisXml
         if (Test-Path $pageScriptingTestResultsFile) {
-            # Merge results
-            $xml = [xml](Get-Content $pageScriptingTestResultsFile -encoding UTF8)
-            $xml2 = [xml](Get-Content $testResultsFile -encoding UTF8)
-            $xml2.testsuites.testsuite.ChildNodes | ForEach-Object {
-                $elm = $xml.ImportNode($_, $true)
-                $xml.testsuites.testsuite.AppendChild($elm)
-            }
-            $xml.Save($pageScriptingTestResultsFile)
-            Remove-Item $testResultsFile -Force
+            # Merge results and aggregate counts
+            $resultsXml = [xml](Get-Content $pageScriptingTestResultsFile -encoding UTF8)
+            $resultsXml.testsuites.AppendChild($resultsXml.ImportNode($thisXml.testsuites.testsuite, $true))
         }
-        else {
-            Move-Item $testResultsFile $pageScriptingTestResultsFile -Force
+        foreach($property in 'tests','failures','skipped','errors','time') {
+            $resultsXml.testsuites."$property" = "$(([double[]]$resultsXml.testsuites.testsuite."$property" | Measure-Object -Sum).Sum)"
         }
+        $resultsXml.Save($pageScriptingTestResultsFile)
+        Remove-Item $testResultsFile -Force
         Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
         Remove-Item -Path $playwrightReportFolder -Force
     }
