@@ -2695,10 +2695,16 @@ $pageScriptingTests | ForEach-Object {
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
     ${env:resultsFolder} = $resultsFolder
     try {
-        pwsh -command { npx replay $env:tests -ResultDir $env:resultsFolder -StartAddress $env:startAddress -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword' }
+        pwsh -command { 
+            npx replay $env:tests -ResultDir $env:resultsFolder -StartAddress $env:startAddress -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+            $TestPass = $?
+            if ($TestPass -ne "True") {
+                throw "Page Scripting Tests failed for $testSpec"
+            }
+        }
     }
     catch {
-        Write-Host "Page Scripting Tests failed for $testSpec"
+        Write-Host $_.Exception.Message
         $allPassed = $false
     }
     $testResultsFile = Join-Path $resultsFolder "results.xml"
