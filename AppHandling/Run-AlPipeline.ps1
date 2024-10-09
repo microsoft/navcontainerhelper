@@ -2692,18 +2692,11 @@ $pageScriptingTests | ForEach-Object {
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
     if (Test-Path $resultsFolder) { throw "PageScriptingTests contains two similar test specs (resulting in identical results folders)" }
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
-    try {
-        $ErrorActionPreference = 'stop'
-        pwsh -windowStyle Hidden -command {
-            npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
-            $TestPass = $?
-            if ($TestPass -ne "True") {
-                throw "Page Scripting Tests failed for $($args[3])"
-            }
-        } -args @($path, $resultsFolder, $startAddress, $name)
-    }
-    catch {
-        Write-Host "Exception: $($_.Exception.Message)"
+    pwsh -command {
+        npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+    } -args $path, $resultsFolder, $startAddress
+    if ($? -ne "True") {
+        Write-Host "Page Scripting Tests failed for $name"
         $allPassed = $false
     }
     $testResultsFile = Join-Path $resultsFolder "results.xml"
