@@ -2676,8 +2676,10 @@ pwsh -command { npm i @microsoft/bc-replay --save }
 ${env:containerUsername} = $credential.UserName
 ${env:containerPassword} = $credential.Password | Get-PlainText
 $startAddress = "http://$containerName/BC?tenant=default"
+$usedNames = @()
 
 $pageScriptingTests | ForEach-Object {
+    $thisFailed = $false
     if ($restoreDatabases -contains 'BeforeEachPageScriptingTest') {
         Write-GroupStart -Message "Restoring databases before each page scripting test"
         Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
@@ -2685,12 +2687,15 @@ $pageScriptingTests | ForEach-Object {
     }
     $testSpec = $_
     $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
+    if ($usedNames -contains $name) {
+        throw "PageScriptingTests contains two similar test specs (resulting in identical results folders), please rename your test specs."
+    }
+    $usedNames += $name
     $path = $testSpec
     if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
     if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
     Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
     $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
-    if (Test-Path $resultsFolder) { throw "PageScriptingTests contains two similar test specs (resulting in identical results folders)" }
     New-Item -Path $resultsFolder -ItemType Directory | Out-Null
     pwsh -command {
         npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
@@ -2698,6 +2703,7 @@ $pageScriptingTests | ForEach-Object {
     if ($? -ne "True") {
         Write-Host "Page Scripting Tests failed for $name"
         $allPassed = $false
+        $thisFailed = $true
     }
     $testResultsFile = Join-Path $resultsFolder "results.xml"
     $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
@@ -2715,8 +2721,13 @@ $pageScriptingTests | ForEach-Object {
         }
         $resultsXml.Save($pageScriptingTestResultsFile)
         Remove-Item $testResultsFile -Force
-        Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
-        Remove-Item -Path $playwrightReportFolder -Force
+        if ($thisFailed) {
+            Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
+            Remove-Item -Path $playwrightReportFolder -Force
+        }
+        else {
+            Remove-Item -Path $resultsFolder -Force
+        }
     }
 }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
