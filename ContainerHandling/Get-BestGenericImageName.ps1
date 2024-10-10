@@ -16,6 +16,12 @@ function Get-BestGenericImageName {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 
+    if ($LatestGenericTagVersion -eq '0.0.0.0') {
+        $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+        Write-Host "Setting LatestGenericTagVersion to $($labels.tag)"
+        $LatestGenericTagVersion = $labels.tag
+    }
+
     if ($hostOsVersion -eq $null) {
         $os = (Get-CimInstance Win32_OperatingSystem)
         if ($os.OSType -ne 18 -or !$os.Version.StartsWith("10.0.")) {

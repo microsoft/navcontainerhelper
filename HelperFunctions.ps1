@@ -1425,6 +1425,7 @@ function CopySymbolsFromContainer {
                 "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
                 "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
                 "C:\Applications.*\Microsoft_Business Foundation_*.app,C:\Applications\BusinessFoundation\source\Microsoft_Business Foundation.app"
+                "C:\Applications.*\Microsoft_AI Test Toolkit_*.app,C:\Applications\BusinessFoundation\source\Microsoft_AI Test Toolkit.app"
             )
         }
         $paths | ForEach-Object {

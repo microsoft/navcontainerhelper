@@ -418,7 +418,6 @@ try {
 
     # EMail App
     if ($IncludeEmailAadApp) {
-        Write-Host -ForegroundColor Yellow "-includeEmailAadApp is deprecated. Use -includeOtherServicesAadApp instead."
         # Remove "old" Email AD Application
         $EMailIdentifierUri = $appIdUri.Replace('://','://email.')
         Get-MgApplication -All | Where-Object { $_.IdentifierUris -contains $EMailIdentifierUri } | ForEach-Object { Remove-MgApplication -ApplicationId $_.Id }
