@@ -88,7 +88,7 @@
  .Parameter pageScriptingTestResultsFile
   File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
  .Parameter pageScriptingTestResultsFolder
-  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test results will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
+  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result detailss will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
