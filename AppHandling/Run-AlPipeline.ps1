@@ -2729,7 +2729,7 @@ $pageScriptingTests | ForEach-Object {
         }
         else {
             Write-Host "Removing results folder"
-            Remove-Item -Path $resultsFolder -Force
+            Remove-Item -Path $resultsFolder -Recurse -Force
         }
     }
 }
