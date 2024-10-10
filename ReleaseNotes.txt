@@ -3,7 +3,8 @@ As minimum, always use the generic tag version which was available when shipping
 Add awareness of Windows 11 24H2
 Issue #3697 Running tests fails with 401 when running on a BC25 sandbox container with AAD authentication
 Issue #3701 Compile-AppWithBcCompilerFolder, ALTool returns dependencies.appId for older apps
-Add new overrides to Run-AlPipeline: BackupBcContainerDatabases and RestoreDatabasesInBcContainer for backup up and restoring databases - only parameter is the containername
+Add new overrides to Run-AlPipeline: BackupBcContainerDatabases and RestoreDatabasesInBcContainer for backup up and restoring databases - only parameter transferred is containerName
+Add new parameter to Run-AlPipeline: restoreDatabases, indicating when (during the pipeline execution) a database restore is needed
 Add PageScripting test runner to Run-AlPipeline, adding three new parameters: pageScriptingTests, pageScriptingTestResultsFolder and doNotRunPageScriptingTests.
 
 6.0.25
