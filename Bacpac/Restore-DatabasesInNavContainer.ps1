@@ -132,11 +132,6 @@ try {
             }
     
             Set-NavServerInstance -ServerInstance $serverInstance -start
-            $boo = $true
-            while (Get-NAVServerInstance | Get-NavTenant | Where-Object { $_.State -eq "Mounting" }) {
-                if ($boo) { Write-Host "Waiting for tenants to be mounted"; $boo = $false }
-                Start-Sleep -Seconds 1
-            }
         }
     
     } -argumentList $containerBakFolder, $containerBakFile, $databaseName, $tenant, $databaseFolder, $sqlTimeout
