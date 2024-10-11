@@ -256,6 +256,10 @@ try {
                     }
                 }
                 if ($downloadIt) {
+                    if ($dependencyVersion.StartsWith('[') -and $select -eq 'Exact') {
+                        # Downloading Microsoft packages for a specific version
+                        $dependencyVersion = $version
+                    }
                     $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps+$returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
                 }
             }
