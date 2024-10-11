@@ -1425,6 +1425,7 @@ function CopySymbolsFromContainer {
                 "C:\Applications.*\Microsoft_Base Application_*.app,C:\Applications\BaseApp\Source\Microsoft_Base Application.app"
                 "C:\Applications.*\Microsoft_System Application_*.app,C:\Applications\System Application\source\Microsoft_System Application.app"
                 "C:\Applications.*\Microsoft_Business Foundation_*.app,C:\Applications\BusinessFoundation\source\Microsoft_Business Foundation.app"
+                "C:\Applications.*\Microsoft_AI Test Toolkit_*.app,C:\Applications\BusinessFoundation\source\Microsoft_AI Test Toolkit.app"
             )
         }
         $paths | ForEach-Object {
@@ -1444,4 +1445,184 @@ function CopySymbolsFromContainer {
             }
         }
     } -argumentList $containerSymbolsFolder
+}
+
+function GetIsolationMode {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [System.Version] $hostOsVersion,
+        [Parameter(Mandatory=$true)]
+        [System.Version] $containerOsVersion,
+        [Parameter(Mandatory=$true)]
+        [bool] $useSSL,
+        [string] $isolation = ''
+    )
+    if ($hostOsVersion -eq $containerOsVersion) {
+        $recommendation = "Host and container OS match, recommended isolation mode is process."
+        $recommendedIsolation = "process"
+    }
+    elseif ($hostOsVersion.Build -ge 26100) {
+        $recommendation = "Host OS is 26100 (24H2) or above, recommended isolation mode is hyperv."
+        $recommendedIsolation = "hyperv"
+    }
+    elseif ($hostOsVersion.Build -ge 22621 -and $useSSL) {
+        $recommendation = "Host OS is 22621 (22H2) or above and you are using SSL, recommended isolation mode is hyperv."
+        $recommendedIsolation = "hyperv"
+    }
+    elseif ($hostOsVersion.Build -ge 20348 -and $containerOsVersion.Build -ge 20348) {
+        $recommendation = "Container and host OS are 20348 or above, not using SSL, recommended isolation mode is process."
+        $recommendedIsolation = "process"
+    }
+    elseif (("$hostOsVersion".StartsWith('10.0.19043.') -or "$hostOsVersion".StartsWith('10.0.19044.') -or "$hostOsVersion".StartsWith('10.0.19045.')) -and "$containerOsVersion".StartsWith("10.0.19041.")) {
+        $recommendation = "Host OS is Windows 10 21H1 or newer and Container OS is 2004, recommended isolation mode is process."
+        $recommendedIsolation = "process"
+    }
+    else {
+        $recommendation = "Host OS and Base Image Container OS doesn't match, recommended isolation mode is hyperv."
+        $recommendedIsolation = "hyperv"
+    }
+
+    $hypervState = GetHypervState
+    if ($recommendedIsolation -eq "hyperv") {
+        if ($hypervState -eq "Disabled") {
+            $recommendation += ' HyperV is not installed, recommending process isolation instead.'
+            $recommendedIsolation = "process"
+        }
+        elseif ($hypervState -eq 'Unknown') {
+            $recommendation += ' HyperV state is unknown, if you encounter problems you might need to install HyperV.'
+        }
+    }
+
+    if ($isolation -eq '') {
+        $isolation = $recommendedIsolation
+        Write-Host $recommendation
+    }
+    elseif ($isolation -ne $recommendedIsolation) {
+        Write-Host -ForegroundColor Yellow "WARNING: You have specified isolation mode $isolation. $recommendation If you encounter issues you could try to specify -isolation $recommendedIsolation (or remove the -isolation parameter)."
+    }
+
+    return $isolation
+}
+
+function GetContainerOs {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [Version] $containerOsVersion
+    )
+    if ("$containerOsVersion".StartsWith('10.0.14393.')) {
+        $containerOs = "ltsc2016"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.15063.')) {
+        $containerOs = "1703"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.16299.')) {
+        $containerOs = "1709"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.17134.')) {
+        $containerOs = "1803"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.17763.')) {
+        $containerOs = "ltsc2019"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.18362.')) {
+        $containerOs = "1903"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.18363.')) {
+        $containerOs = "1909"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19041.')) {
+        $containerOs = "2004"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19042.')) {
+        $containerOs = "20H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19043.')) {
+        $containerOs = "21H1"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19044.')) {
+        $containerOs = "21H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.19045.')) {
+        $containerOs = "22H2"
+    }
+    elseif ("$containerOsVersion".StartsWith('10.0.20348.')) {
+        $containerOs = "ltsc2022"
+    }
+    else {
+        $containerOs = "unknown"
+    }
+    return $containerOs
+}
+
+function GetHostOs {
+    Param(
+        [Parameter(Mandatory=$true)]
+        [Version] $hostOsVersion,
+        [Parameter(Mandatory=$true)]
+        [bool] $isServerHost
+    )
+
+    $hostOs = "Unknown/Insider build"
+    if ($os.BuildNumber -eq 26100) {
+        $hostOs = "24H2"
+    }
+    elseif ($os.BuildNumber -eq 22631) {
+        $hostOs = "23H2"
+    }
+    elseif ($os.BuildNumber -eq 22621) {
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 22000) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 20348) { 
+        $hostOs = "ltsc2022"
+    }
+    elseif ($os.BuildNumber -eq 19045) { 
+        $hostOs = "22H2"
+    }
+    elseif ($os.BuildNumber -eq 19044) { 
+        $hostOs = "21H2"
+    }
+    elseif ($os.BuildNumber -eq 19043) { 
+        $hostOs = "21H1"
+    }
+    elseif ($os.BuildNumber -eq 19042) { 
+        $hostOs = "20H2"
+    }
+    elseif ($os.BuildNumber -eq 19041) { 
+        $hostOs = "2004"
+    }
+    elseif ($os.BuildNumber -eq 18363) { 
+        $hostOs = "1909"
+    }
+    elseif ($os.BuildNumber -eq 18362) { 
+        $hostOs = "1903"
+    }
+    elseif ($os.BuildNumber -eq 17763) { 
+        if ($isServerHost) {
+            $hostOs = "ltsc2019"
+        }
+        else {
+            $hostOs = "1809"
+        }
+    }
+    elseif ($os.BuildNumber -eq 17134) { 
+        $hostOs = "1803"
+    }
+    elseif ($os.BuildNumber -eq 16299) { 
+        $hostOs = "1709"
+    }
+    elseif ($os.BuildNumber -eq 15063) {
+        $hostOs = "1703"
+    }
+    elseif ($os.BuildNumber -eq 14393) {
+        if ($isServerHost) {
+            $hostOs = "ltsc2016"
+        }
+        else {
+            $hostOs = "1607"
+        }
+    }
+    return $hostOs
 }

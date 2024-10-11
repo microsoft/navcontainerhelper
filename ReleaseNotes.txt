@@ -3,6 +3,11 @@ As minimum, always use the generic tag version which was available when shipping
 Add awareness of Windows 11 24H2
 Issue #3697 Running tests fails with 401 when running on a BC25 sandbox container with AAD authentication
 Issue #3701 Compile-AppWithBcCompilerFolder, ALTool returns dependencies.appId for older apps
+Wait for databases to be mounted when running Restore-DatabasesInBcContainer
+Include AI Toolkit when copying symbols from container
+Issue 3714 Download-BcNuGetPackageToFolder - throws error when use "-select Exact"
+Issue 3621 New-AadAppsForBc shows "-includeEmailAadApp is deprecated. Use -includeOtherServicesAadApp instead." but includeOtherServicesAadApp us not setting email permissions
+Issue 3718 Business Central Web Client Fails to Load After Updating to Windows 24H2
 
 6.0.25
 Fix issue where generateDependencyArtifact doesn't result in dependencies if useCompilerFolder is true or filesonly containers are used in Run-AlPipeline
