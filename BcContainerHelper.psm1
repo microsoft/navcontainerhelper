@@ -31,9 +31,9 @@ if ($useVolumes -or $isInsideContainer) {
     $bcContainerHelperConfig.UseVolumes = $true
 }
 
-$hypervState = ""
-function Get-HypervState {
-    if ($isAdministrator -and $hypervState -eq "") {
+$hypervState = "Unknown"
+function GetHypervState {
+    if ($isAdministrator -and $hypervState -eq "Unknown") {
         try {
             $feature = Get-WindowsOptionalFeature -FeatureName Microsoft-Hyper-V -Online
             if ($feature) {
