@@ -56,16 +56,16 @@ function Download-BcEnvironmentInstalledExtensionToFolder {
         $symbolsName = "$($appPublisher)_$($appName)_$($appVersion).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
         Write-Host "Downloading symbols: $symbolsName"
 
-        $symbolsFile = (Join-Path $appSymbolsFolder $symbolsName)
+        $symbolsFile = (Join-Path $folder $symbolsName)
         Write-Host "symbolsFile: $symbolsFile"
 
         $devServerUrl = "$($bcContainerHelperConfig.apiBaseUrl.TrimEnd('/'))/$apiVersion/$environment"
 
         if ($appId) {
-            $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($appVersion)&tenant=$($tenant)"
+            $url = "$devServerUrl/dev/packages?appId=$($appId)&versionText=$($appVersion)"
         }
         else {
-            $url = "$devServerUrl/dev/packages?publisher=$($appPublisher)&appName=$($appName)&versionText=$($appVersion)&tenant=$($tenant)"
+            $url = "$devServerUrl/dev/packages?publisher=$($appPublisher)&appName=$($appName)&versionText=$($appVersion)"
         }
 
         Write-Host "url: $url"       
