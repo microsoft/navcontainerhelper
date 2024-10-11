@@ -61,12 +61,10 @@ try {
                 $databaseName = $_
                 Write-Host "Setting feature keys on database: $databaseName"
                 # Just information about 'mode' of Feature Key update
-                if ([String]::IsNullOrEmpty($EnableInCompany))
-                {
+                if ([String]::IsNullOrEmpty($EnableInCompany)) {
                     Write-Host "Setting feature keys globally, but not for any company" -ForegroundColor Yellow
                 }
-                else
-                {
+                else {
                     Write-Host "Setting feature keys globally and for company "$EnableInCompany -ForegroundColor Yellow
                 }
                 $featureKeys.Keys | % {
@@ -86,18 +84,16 @@ try {
                     # Test if feature which has to be updated is available in table "Feature Data Update Status$63ca2fa4-4f03-4f2b-a480-172fef340d3f"
                     $FeatureExistsInDestination = Invoke-Sqlcmd -Database $databaseName -Query $("SELECT COUNT(*) FROM [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] where [Feature Key] = '$featureKey'")
 
-                    if(($FeatureExistsInDestination[0].ToString()) -eq "0")
-                    {
-                        Write-host "Feature $featureKey doesn't exist in database"
+                    if(($FeatureExistsInDestination[0].ToString()) -eq "0") {
+                        Write-host "Feature $featureKey doesn't exist in database - Failure"
                     }
 
-                    # Feature key is updated just in case that status is correct and respective feature is available in table
-                    if (($enabled -ne -1) -and ($FeatureExistsInDestination[0].ToString() -ne "0")){
+                    # Feature key is updated just in case that status is correct and respective feature is available in table "Feature Data Update Status$63ca2fa4-4f03-4f2b-a480-172fef340d3f"
+                    if (($enabled -ne -1) -and ($FeatureExistsInDestination[0].ToString() -ne "0")) {
                         try {
                             #Create new record in table "Tenant Feature Key" in case it is missing
                             $SQLRecord = Invoke-Sqlcmd -Database $databaseName -Query "SELECT * FROM [dbo].[Tenant Feature Key] where ID = '$featureKey'"
-                            if ([String]::IsNullOrEmpty($SQLRecord))
-                            {
+                            if ([String]::IsNullOrEmpty($SQLRecord)) {
                                 Write-host "Creating record for feature $featureKey"
                                 $SQLcolumns = "ID, Enabled"
                                 $SQLvalues = "'$featureKey',0"
@@ -105,15 +101,20 @@ try {
                             }
                             Write-Host -NoNewline "Setting feature key $featureKey to $enabledStr - "
                             $result = Invoke-Sqlcmd -Database $databaseName -Query "UPDATE [dbo].[Tenant Feature Key] set Enabled = $enabled where ID = '$featureKey';Select @@ROWCOUNT"
-                            
-                            # Update record in table "Feature Data Update Status$63ca2fa4-4f03-4f2b-a480-172fef340d3f" if it is requested for particular company
-                            $result2 = ''
-                            if (![String]::IsNullOrEmpty($EnableInCompany))
-                            {
-                                $result2 = Invoke-Sqlcmd -Database $databaseName -Query $("UPDATE [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] set [Feature Status] = $enabled where [Feature Key] = '$featureKey' AND [Company Name] = '$EnableInCompany';Select @@ROWCOUNT")
-                            }
-                            if (($result[0] -eq "1") -and ((($result2[0] -eq "1") -and ![String]::IsNullOrEmpty($EnableInCompany)) -or ([String]::IsNullOrEmpty($EnableInCompany)))) {
-                                Write-Host " Success"
+                            if ($result[0] -eq "1") {
+                                # Update record in table "Feature Data Update Status$63ca2fa4-4f03-4f2b-a480-172fef340d3f" if it is requested for particular company
+                                if (![String]::IsNullOrEmpty($EnableInCompany)) {
+                                    $result = Invoke-Sqlcmd -Database $databaseName -Query $("UPDATE [dbo].[Feature Data Update Status"+'$'+"63ca2fa4-4f03-4f2b-a480-172fef340d3f] set [Feature Status] = $enabled where [Feature Key] = '$featureKey' AND [Company Name] = '$EnableInCompany';Select @@ROWCOUNT")
+                                    if ($result[0] -eq "1") {
+                                        Write-Host " Success"
+                                    }
+                                    else {
+                                        throw
+                                    }
+                                }
+                                else {
+                                    Write-Host " Success"
+                                }
                             }
                             else {
                                 throw
