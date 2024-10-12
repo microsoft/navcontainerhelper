@@ -14,7 +14,7 @@
     - All: will return all possible urls in the selection.
     - Latest: will sort on version, and return latest version.
     - Daily: will return the latest build from yesterday (ignoring builds from today). Daily only works with Sandbox artifacts.
-    - Weekly: will return the latest build from last week (ignoring builds from this wwek). Weekly only works with Sandbox artifacts.
+    - Weekly: will return the latest build from last week (ignoring builds from this week). Weekly only works with Sandbox artifacts.
     - Closest: will return the closest version to the version specified in version (must be a full version number).
     - SecondToLastMajor: will return the latest version where Major version number is second to Last (used to get Next Minor version from insider).
     - Current: will return the currently active sandbox release.
