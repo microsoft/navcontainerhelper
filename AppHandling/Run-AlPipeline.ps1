@@ -418,7 +418,7 @@ Param(
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path -and $path -notlike 'https://*') {
         if (-not [System.IO.Path]::IsPathRooted($path)) {
-            if (Test-Path -path (Join-Path $baseFolder $path)) {
+            if (Test-Path -path (Join-Path $baseFolder $path) -PathType Container) {
                 $path = Join-Path $baseFolder $path -Resolve
             }
             else {
@@ -554,6 +554,7 @@ if ($restoreDatabases               -is [string]) { $restoreDatabases = @($resto
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
+$pageScriptingTests = @($pageScriptingTests | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } | ForEach-Object { if (Test-Path -Path $_ -PathType Container) { return (Join-Path $_ '*.yml') } else { return $_ } } )
 $customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { $_ -like 'https://*' -or (Test-Path $_) } )
 $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
 $containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
