@@ -97,7 +97,7 @@ try {
                                 Write-host "Creating record for feature $featureKey"
                                 $SQLcolumns = "ID, Enabled"
                                 $SQLvalues = "'$featureKey',0"
-                                Invoke-Sqlcmd -Database $databaseName -Query "INSERT INTO [CRONUS].[dbo].[Tenant Feature Key] ($SQLcolumns) VALUES ($SQLvalues)" -Verbose
+                                Invoke-Sqlcmd -Database $databaseName -Query "INSERT INTO [dbo].[Tenant Feature Key] ($SQLcolumns) VALUES ($SQLvalues)" -Verbose
                             }
                             Write-Host -NoNewline "Setting feature key $featureKey to $enabledStr - "
                             $result = Invoke-Sqlcmd -Database $databaseName -Query "UPDATE [dbo].[Tenant Feature Key] set Enabled = $enabled where ID = '$featureKey';Select @@ROWCOUNT"
