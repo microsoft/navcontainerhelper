@@ -8,6 +8,7 @@ Include AI Toolkit when copying symbols from container
 Issue 3714 Download-BcNuGetPackageToFolder - throws error when use "-select Exact"
 Issue 3621 New-AadAppsForBc shows "-includeEmailAadApp is deprecated. Use -includeOtherServicesAadApp instead." but includeOtherServicesAadApp us not setting email permissions
 Issue 3718 Business Central Web Client Fails to Load After Updating to Windows 24H2
+Issue #3703 Missing Function Download-BcEnvironmentInstalledExtensionToFolder    
 
 6.0.25
 Fix issue where generateDependencyArtifact doesn't result in dependencies if useCompilerFolder is true or filesonly containers are used in Run-AlPipeline
