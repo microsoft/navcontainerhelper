@@ -42,7 +42,7 @@ function Download-BcEnvironmentInstalledExtensionToFolder {
         [Parameter(Mandatory = $true)]
         [string] $appName,
         [Parameter(Mandatory = $true)]        
-        [string] $appVersion = '0.0.0.0',
+        [string] $appVersion,
         [Parameter(Mandatory = $false)]
         [string] $appId
     )
