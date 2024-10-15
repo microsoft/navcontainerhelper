@@ -22,3 +22,4 @@
 . (Join-Path $PSScriptRoot "Saas\Set-BcEnvironmentApplicationInsightsKey.ps1")
 . (Join-Path $PSScriptRoot "Saas\Set-BcEnvironmentUpdateWindow.ps1")
 . (Join-Path $PSScriptRoot "Saas\Wait-BcEnvironmentReady.ps1")
+. (Join-Path $PSScriptRoot "Saas\Download-BcEnvironmentInstalledExtensionToFolder.ps1")
