@@ -157,7 +157,7 @@ try {
             $dots = ($version.ToCharArray() -eq '.').Count
             $closestToVersion = [Version]"0.0.0.0"
             if ($dots -ne 3 -or !([Version]::TryParse($version, [ref] $closestToVersion))) {
-                throw "Version number must be in the format 1.2.3.4 when you want to get the closes artifact Url"
+                throw "Version number must be in the format 1.2.3.4 when you want to get the closest artifact Url"
             }
             $GetListUrl += "&prefix=$($closestToVersion.Major).$($closestToVersion.Minor)."
             $upMajorFilter = "$($closestToVersion.Major)"
