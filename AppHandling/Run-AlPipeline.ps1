@@ -318,7 +318,8 @@ Param(
     $bcptTestSuites = @(),
     $pageScriptingTests = @(),
     $additionalCountries = @(),
-    $restoreDatabases = @(),
+    [ValidateSet('BeforeBcpTests', 'BeforePageScriptingTests', 'BeforeEachTestApp', 'BeforeEachBcptTestApp', 'BeforeEachPageScriptingTest')]
+    [string[]] $restoreDatabases = @(),
     [string] $appVersion = "",
     [int] $appBuild = 0,
     [int] $appRevision = 0,
@@ -554,7 +555,7 @@ if ($restoreDatabases               -is [string]) { $restoreDatabases = @($resto
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
-$pageScriptingTests = @($pageScriptingTests | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } | ForEach-Object { if (Test-Path -Path $_ -PathType Container) { return (Join-Path $_ '*.yml') } else { return $_ } } )
+$pageScriptingTests = @($pageScriptingTests | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "pageScriptingTests" } | Where-Object { Test-Path $_ } | ForEach-Object { if (Test-Path -Path $_ -PathType Container) { return (Join-Path $_ '*.yml') } else { return $_ } } )
 $customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { $_ -like 'https://*' -or (Test-Path $_) } )
 $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
 $containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
@@ -610,6 +611,13 @@ if ($bcAuthContext) {
         Write-Host -ForegroundColor Yellow "Uninstalling removed apps from online environments are not supported"
         $uninstallRemovedApps = $false
     }
+    if (!$doNotRunBcptTests -and $bcptTestSuites) {
+        throw "BCPT Tests are not supported on cloud pipelines yet!"
+    }
+    if (!$doNotRunPageScriptingTests -and $pageScriptingTests) {
+        throw "Page scripting Tests are not supported on cloud pipelines yet!"
+    }
+
     if ($environment -notlike ('https://*')) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
@@ -2613,10 +2621,6 @@ if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running BCPT Tests for additional country $testCountry"
 }
 
-if ($bcAuthContext) {
-    throw "BCPT Tests are not supported on cloud pipelines yet!"
-}
-
 $bcptTestSuites | ForEach-Object {
     $Parameters = @{
         "containerName" = $containerName
@@ -2666,9 +2670,6 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 if ($testCountry) {
     Write-Host -ForegroundColor Yellow "Running Page Scripting Tests for additional country $testCountry"
-}
-if ($bcAuthContext) {
-    throw "Page scripting Tests are not supported on cloud pipelines yet!"
 }
 
 # Install npm package for page scripting tests
@@ -2827,6 +2828,7 @@ Write-GroupEnd
 }
 finally {
     $progressPreference = $prevProgressPreference
+    ${env:containerPassword} = $null
 }
 
 if ($buildArtifactFolder) {
