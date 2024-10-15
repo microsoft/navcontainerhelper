@@ -722,7 +722,7 @@ try {
             if ($artifactUrl) {
                 $genericTagVersion = [Version](Get-BcContainerGenericTag -containerOrImageName $imageName)
                 if ($genericTagVersion -lt [Version]$LatestGenericTagVersion) {
-                    Write-Host "Generic image is version $genericTagVersion - pulling a newer image"
+                    Write-Host "Existing generic image is version $genericTagVersion - pulling a newer image"
                     $pullit = $true
                 }
             }
