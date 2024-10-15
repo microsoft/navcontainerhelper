@@ -287,3 +287,12 @@ if ($isWindows) {
 . (Join-Path $PSScriptRoot "PackageHandling\Publish-BuildOutputToStorage.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Get-AzureFeedWildcardVersion.ps1")
 . (Join-Path $PSScriptRoot "PackageHandling\Install-AzDevops.ps1")
+
+# In Development mode only
+if ($LatestGenericTagVersion -eq '0.0.0.0') {
+    $labels = Get-BcContainerImageLabels -imageName 'mcr.microsoft.com/businesscentral:ltsc2022'
+    if ($labels) {
+        $LatestGenericTagVersion = $labels.tag
+        Write-Host "LatestGenericTagVersion is $LatestGenericTagVersion"
+    }
+}
