@@ -2676,7 +2676,8 @@ pwsh -command { npm i @microsoft/bc-replay --save }
 
 ${env:containerUsername} = $credential.UserName
 ${env:containerPassword} = $credential.Password | Get-PlainText
-$startAddress = "http://$containerName/BC?tenant=default"
+$startAddress = "http://$containerName/BC?tenant=$tenant"
+
 $usedNames = @()
 
 $pageScriptingTests | ForEach-Object {
