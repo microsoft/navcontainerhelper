@@ -614,7 +614,7 @@ if ($bcAuthContext) {
     if (!$doNotRunBcptTests -and $bcptTestSuites) {
         throw "BCPT Tests are not supported on cloud pipelines yet!"
     }
-    if (!$doNotRunPageScriptingTests -and $pageScriptingTests) {
+    if (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
         throw "Page scripting Tests are not supported on cloud pipelines yet!"
     }
 
@@ -633,12 +633,20 @@ if ($bcAuthContext) {
     }
     $filesOnly = $true
 }
+elseif (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
+    $npmVersion = pwsh -command { npm --version }
+    if ($? -ne "True") {
+        throw "npm isn't installed - cannot run page scripting tests"
+    }
+    Write-Host "npm version $npmVersion is installed"
+}
 
 if ($updateLaunchJson) {
     if (!$useDevEndpoint) {
         throw "UpdateLaunchJson cannot be specified if not using DevEndpoint"
     }
 }
+
 
 if ($useCompilerFolder -or $filesOnly -or !$useDevEndpoint) {
     $packagesFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $packagesFolder -name "packagesFolder"
