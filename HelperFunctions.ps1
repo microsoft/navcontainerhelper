@@ -1428,6 +1428,12 @@ function CopySymbolsFromContainer {
                 "C:\Applications.*\Microsoft_AI Test Toolkit_*.app,C:\Applications\BusinessFoundation\source\Microsoft_AI Test Toolkit.app"
             )
         }
+        # Include Apps only available offline
+        "Microsoft_System Application Test Library", "Microsoft_Business Foundation Test Libraries", "Microsoft_Tests-TestLibraries" | ForEach-Object {
+            $paths += @(
+                "C:\Applications.*\$($_)_*.app,C:\Applications\BusinessFoundation\source\$($_).app"
+            )
+        }
         $paths | ForEach-Object {
             $appFiles = $_.Split(',')
             $appFile = ""

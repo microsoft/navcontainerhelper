@@ -8,6 +8,8 @@ Include AI Toolkit when copying symbols from container
 Issue 3714 Download-BcNuGetPackageToFolder - throws error when use "-select Exact"
 Issue 3621 New-AadAppsForBc shows "-includeEmailAadApp is deprecated. Use -includeOtherServicesAadApp instead." but includeOtherServicesAadApp us not setting email permissions
 Issue 3718 Business Central Web Client Fails to Load After Updating to Windows 24H2
+Issue #3703 Missing Function Download-BcEnvironmentInstalledExtensionToFolder    
+Fix for issue 1262 in AL-Go for GitHub
 Add new overrides to Run-AlPipeline: BackupBcContainerDatabases and RestoreDatabasesInBcContainer for backup up and restoring databases - only parameter transferred is containerName
 Add new parameter to Run-AlPipeline: restoreDatabases, indicating when (during the pipeline execution) a database restore is needed
 Add PageScripting test runner to Run-AlPipeline, adding 4 new parameters: pageScriptingTests, pageScriptingTestResultsFile, pageScriptingTestResultsFolder and doNotRunPageScriptingTests.
