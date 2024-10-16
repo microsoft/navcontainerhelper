@@ -207,6 +207,7 @@ try {
                             } 
                             $thisExtension | ForEach-Object {
                                 if ($_.status -ne $lastStatus) {
+                                    if (!$useNewLine) { Write-Host }
                                     Write-Host @newLine $_.status
                                     $lastStatus = $_.status
                                 }
