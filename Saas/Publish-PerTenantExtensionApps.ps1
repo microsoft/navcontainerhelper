@@ -193,6 +193,7 @@ try {
                     $completed = $false
                     $errCount = 0
                     $sleepSeconds = 30
+                    $lastStatus = ''
                     while (!$completed)
                     {
                         Start-Sleep -Seconds $sleepSeconds
@@ -205,7 +206,10 @@ try {
                                 throw "Unable to find extension deployment status"
                             } 
                             $thisExtension | ForEach-Object {
-                                Write-Host @newLine $_.status
+                                if ($_.status -ne $lastStatus) {
+                                    Write-Host @newLine $_.status
+                                    $lastStatus = $_.status
+                                }
                                 if ($_.status -eq "InProgress") {
                                     $errCount = 0
                                     $sleepSeconds = 5
@@ -224,6 +228,7 @@ try {
                             }
                         }
                         catch {
+                            if (!$useNewLine) { Write-Host }
                             if ($errCount++ -gt 4) {
                                 Write-Host $_.Exception.Message
                                 throw "Unable to publish app. Please open the Extension Deployment Status Details page in Business Central to see the detailed error message."
@@ -232,18 +237,17 @@ try {
                             Write-Host "Error: $($_.Exception.Message). Retrying in $sleepSeconds seconds"
                         }
                     }
-                    if ($completed) {
-                        Write-Host "completed"
-                    }
                 }
             }
         }
         catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
+            if (!$useNewLine) { Write-Host }
             Write-Host "ERROR $($_.Exception.Message)"
             Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
         }
         catch {
+            if (!$useNewLine) { Write-Host }
             Write-Host "ERROR: $($_.Exception.Message) [$($_.Exception.GetType().FullName)]"
             throw
         }
