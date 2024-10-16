@@ -187,8 +187,12 @@ try {
         $existingApp = $existingApps | Where-Object {
             ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
         }
+        $addDependencies = $()
         if ($existingApp) {
             Write-Host "Dependency App exists"
+            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies) {
+                $addDependencies += $existingApp.Dependencies
+            }
         }
         else {
             Write-Host "Dependency App not found"
@@ -208,20 +212,21 @@ try {
                 if (!($dependencies | where-Object { $_.Name -eq 'System'})) {
                     $dependencies += @{"publisher" = "Microsoft"; "name" = "System"; "appId" = ''; "version" = $copyCompilerFolderApp.Platform }
                 }
-                $copyCompilerFolderApp.Dependencies | ForEach-Object {
-                    $addDependency = $_
-                    try {
-                        $appId = $addDependency.id
-                    }
-                    catch {
-                        $appId = $addDependency.appid
-                    }
-                    $dependencyExists = $dependencies | Where-Object { $_.appId -eq $appId }
-                    if (-not $dependencyExists) {
-                        Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
-                        $dependencies += @($compilerFolderApps | Where-Object { $_.appId -eq $appId })
-                    }
-                }
+                $addDependencies += $copyCompilerFolderApp.Dependencies
+            }
+        }
+        $addDependencies | ForEach-Object {
+            $addDependency = $_
+            try {
+                $appId = $addDependency.id
+            }
+            catch {
+                $appId = $addDependency.appid
+            }
+            $dependencyExists = $dependencies | Where-Object { $_.appId -eq $appId }
+            if (-not $dependencyExists) {
+                Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
+                $dependencies += @($compilerFolderApps | Where-Object { $_.appId -eq $appId })
             }
         }
         $depidx++
@@ -348,7 +353,7 @@ try {
             $alcCmd = "./$alcExe"
         }
     }   
-        
+
     if (!(Test-Path -Path (Join-Path $alcPath $alcExe))) {
         $alcCmd = "dotnet"
         $alcExe = 'alc.dll'
