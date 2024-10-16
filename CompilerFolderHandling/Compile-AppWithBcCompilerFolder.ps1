@@ -186,11 +186,11 @@ try {
         Write-Host "Processing dependency $($dependency.Publisher)_$($dependency.Name)_$($dependency.Version) ($($dependency.AppId))"
         $existingApp = $existingApps | Where-Object {
             ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
-        }
+        } | Sort-Object { [System.Version]$_.Version } -Descending | Select-Object -First 1
         $addDependencies = $()
         if ($existingApp) {
             Write-Host "Dependency App exists"
-            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies) {
+            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies -and $existingApp.ContainsKey('Dependencies')) {
                 $addDependencies += $existingApp.Dependencies
             }
         }
