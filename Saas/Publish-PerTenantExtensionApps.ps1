@@ -67,13 +67,13 @@ try {
         if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
         if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
 
-        $script:bcauthContext = New-BcAuthContext `
+        $script:authContext = New-BcAuthContext `
             -clientID $clientID `
             -clientSecret $clientSecret `
             -tenantID $tenantId `
             -scopes "https://api.businesscentral.dynamics.com/.default"
 
-        if (-not ($script:bcAuthContext)) {
+        if (-not ($script:AuthContext)) {
             throw "Authentication failed"
         }
     }
