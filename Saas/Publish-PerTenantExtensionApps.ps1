@@ -238,7 +238,7 @@ try {
                 }
             }
         }
-        catch [System.Net.WebException],[System.Net.Http.HttpRequestException],[System.Management.Automation.RuntimeException] {
+        catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
             Write-Host "ERROR $($_.Exception.Message)"
             Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
