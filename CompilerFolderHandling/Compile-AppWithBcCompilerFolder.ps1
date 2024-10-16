@@ -190,7 +190,7 @@ try {
         $addDependencies = $()
         if ($existingApp) {
             Write-Host "Dependency App exists"
-            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies) {
+            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies -and $existingApp.ContainsKey('Dependencies')) {
                 $addDependencies += $existingApp.Dependencies
             }
         }
