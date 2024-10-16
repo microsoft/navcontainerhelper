@@ -51,8 +51,6 @@ function Publish-PerTenantExtensionApps {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
-    $script:authContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-
     function GetAuthHeaders {
         $script:authContext = Renew-BcAuthContext -bcAuthContext $script:authContext
         return @{ "Authorization" = "Bearer $($script:authContext.AccessToken)" }
@@ -69,15 +67,18 @@ try {
         if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
         if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
 
-        $bcauthContext = New-BcAuthContext `
+        $script:bcauthContext = New-BcAuthContext `
             -clientID $clientID `
             -clientSecret $clientSecret `
             -tenantID $tenantId `
             -scopes "https://api.businesscentral.dynamics.com/.default"
 
-        if (-not ($bcAuthContext)) {
+        if (-not ($script:bcAuthContext)) {
             throw "Authentication failed"
         }
+    }
+    else {
+        $script:authContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     }
 
     $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
