@@ -431,7 +431,7 @@ try {
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
             }
-        }
+        } | Sort-Object { [System.Version]$_.Version } -Descending | Select-Object -First 1
         $addDependencies = @()
         if ($existingApp) {
             Write-Host "Dependency App exists"
