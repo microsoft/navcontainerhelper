@@ -51,9 +51,11 @@ function Publish-PerTenantExtensionApps {
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
 try {
 	
+    $script:authContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
+
     function GetAuthHeaders {
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        return @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
+        $script:authContext = Renew-BcAuthContext -bcAuthContext $script:authContext
+        return @{ "Authorization" = "Bearer $($script:authContext.AccessToken)" }
     }
 
     $newLine = @{}
@@ -131,7 +133,7 @@ try {
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
-                Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
+                Write-Host @newline "$([System.IO.Path]::GetFileName($_)) - "
                 $appJson = Get-AppJsonFromAppFile -appFile $_
                 
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
@@ -185,7 +187,8 @@ try {
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
-                        -Headers ((GetAuthHeaders) + $ifMatchHeader) | Out-Null
+                        -Headers ((GetAuthHeaders) + $ifMatchHeader) `
+                        -ErrorAction SilentlyContinue | Out-Null
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
@@ -197,22 +200,28 @@ try {
                             $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers (GetAuthHeaders) -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
                             $extensionDeploymentStatuses = (ConvertFrom-Json $extensionDeploymentStatusResponse.Content).value
 
-                            $completed = $true
-                            $extensionDeploymentStatuses | Where-Object { $_.publisher -eq $appJson.publisher -and $_.name -eq $appJson.name -and $_.appVersion -eq $appJson.version } | % {
+                            $thisExtension = $extensionDeploymentStatuses | Where-Object { $_.publisher -eq $appJson.publisher -and $_.name -eq $appJson.name -and $_.appVersion -eq $appJson.version }
+                            if ($null -eq $thisExtension) {
+                                throw "Unable to find extension deployment status"
+                            } 
+                            $thisExtension | ForEach-Object {
+                                Write-Host @newLine $_.status
                                 if ($_.status -eq "InProgress") {
+                                    $errCount = 0
+                                    $sleepSeconds = 5
                                     Write-Host @newLine "."
-                                    $completed = $false
                                 }
                                 elseif ($_.Status -eq "Unknown") {
                                     throw "Unknown Error"
                                 }
-                                elseif ($_.Status -ne "Completed") {
+                                elseif ($_.Status -eq "Completed") {
+                                    $completed = $true
+                                }
+                                else {
                                     $errCount = 5
                                     throw $_.status
                                 }
                             }
-                            $errCount = 0
-                            $sleepSeconds = 5
                         }
                         catch {
                             if ($errCount++ -gt 4) {
@@ -220,7 +229,7 @@ try {
                                 throw "Unable to publish app. Please open the Extension Deployment Status Details page in Business Central to see the detailed error message."
                             }
                             $sleepSeconds += $sleepSeconds
-                            $completed = $false
+                            Write-Host "Error: $($_.Exception.Message). Retrying in $sleepSeconds seconds"
                         }
                     }
                     if ($completed) {
@@ -229,7 +238,7 @@ try {
                 }
             }
         }
-        catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
+        catch [System.Net.WebException],[System.Net.Http.HttpRequestException],[System.Management.Automation.RuntimeException] {
             Write-Host "ERROR $($_.Exception.Message)"
             Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
@@ -264,6 +273,7 @@ catch {
     throw
 }
 finally {
+    $script:authContext = $null
     TrackTrace -telemetryScope $telemetryScope
 }
 }
