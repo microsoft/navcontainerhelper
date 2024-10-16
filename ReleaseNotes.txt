@@ -1,5 +1,6 @@
 6.0.27
 Issue 3538 Compile-AppWithBcCompilerFolder fails when dependency does propagateDependencies
+Issue 3727 Regression - Release pipelines failing with SaaS environments due BcAuthContext
 
 6.0.26
 As minimum, always use the generic tag version which was available when shipping BcContainerHelper
