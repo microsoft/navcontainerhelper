@@ -220,6 +220,7 @@ try {
                                     throw "Unknown Error"
                                 }
                                 elseif ($_.Status -eq "Completed") {
+                                    if (!$useNewLine) { Write-Host }
                                     $completed = $true
                                 }
                                 else {
