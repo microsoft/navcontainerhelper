@@ -187,7 +187,7 @@ try {
         $existingApp = $existingApps | Where-Object {
             ((($dependency.appId -ne '' -and $_.AppId -eq $dependency.appId) -or ($dependency.appId -eq '' -and $_.Name -eq $dependency.Name)) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))
         } | Sort-Object { [System.Version]$_.Version } -Descending | Select-Object -First 1
-        $addDependencies = $()
+        $addDependencies = @()
         if ($existingApp) {
             Write-Host "Dependency App exists"
             if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies -and $existingApp.ContainsKey('Dependencies')) {
