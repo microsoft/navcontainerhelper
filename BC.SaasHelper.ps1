@@ -18,6 +18,7 @@
 . (Join-Path $PSScriptRoot "Saas\Remove-BcEnvironment.ps1")
 . (Join-Path $PSScriptRoot "Saas\Rename-BcEnvironment.ps1")
 . (Join-Path $PSScriptRoot "Saas\Reschedule-BcEnvironmentUpgrade.ps1")
+. (Join-Path $PSScriptRoot "Saas\Restart-BcEnvironment.ps1")
 . (Join-Path $PSScriptRoot "Saas\Restore-BcEnvironment.ps1")
 . (Join-Path $PSScriptRoot "Saas\Set-BcEnvironmentApplicationInsightsKey.ps1")
 . (Join-Path $PSScriptRoot "Saas\Set-BcEnvironmentUpdateWindow.ps1")
