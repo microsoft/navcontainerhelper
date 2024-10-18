@@ -318,8 +318,25 @@ try {
     if (!$updateSymbols) {
         $existingApps = Invoke-ScriptInBcContainer -containerName $containerName -ScriptBlock { Param($appSymbolsFolder)
             Get-ChildItem -Path (Join-Path $appSymbolsFolder '*.app') | ForEach-Object {
-                $appInfo = Get-NavAppInfo -Path $_.FullName
-                $appInfo
+                $alcPath = 'C:\build\vsix\extension\bin'
+                $alToolExe = Join-Path $alcPath 'win32\altool.exe'
+                $alToolExists = Test-Path -Path $alToolExe -PathType Leaf
+                if ($alToolExists) {
+                    $manifest = & "$alToolExe" GetPackageManifest "$($_.FullName)" | ConvertFrom-Json
+                    $dependencies = @()
+                    $propagateDependencies = $false
+                    if ($manifest.PSObject.Properties.Name -eq 'dependencies') {
+                        $dependencies = @($manifest.dependencies | ForEach-Object { @{ "Publisher" = $_.publisher; "Name" = $_.name; "Version" = $_.version; "AppId" = $_.id } })
+                    }
+                    if ($manifest.PSObject.Properties.Name -eq 'propagateDependencies') {
+                        $propagateDependencies = $manifest.propagateDependencies
+                    }
+                    return @{ "AppId" = $manifest.id; "Publisher" = $manifest.publisher; "Name" = $manifest.name; "Version" = $manifest.version; "PropagateDependencies" = $propagateDependencies; "Dependencies" = $dependencies }
+                }
+                else {
+                    $appInfo = Get-NavAppInfo -Path $_.FullName
+                    return @{ "AppId" = $appInfo.AppId; "Publisher" = $appInfo.publisher; "Name" = $appInfo.name; "Version" = $appInfo.version; "PropagateDependencies" = $false; "Dependencies" = @() }
+                }
             }
         } -ArgumentList $containerSymbolsFolder
     }
@@ -414,9 +431,13 @@ try {
             else {
                 (($_.Name -eq $dependency.name) -and ($_.Name -eq "Application" -or (($_.Publisher -eq $dependency.publisher) -and ([System.Version]$_.Version -ge [System.Version]$dependency.version))))
             }
-        }
+        } | Sort-Object { [System.Version]$_.Version } -Descending | Select-Object -First 1
+        $addDependencies = @()
         if ($existingApp) {
             Write-Host "Dependency App exists"
+            if ($existingApp.ContainsKey('PropagateDependencies') -and $existingApp.PropagateDependencies -and $existingApp.ContainsKey('Dependencies')) {
+                $addDependencies += $existingApp.Dependencies
+            }
         }
         if ($updateSymbols -or !$existingApp) {
             $publisher = $dependency.publisher
@@ -536,21 +557,20 @@ try {
                             }
                         }
                     } -ArgumentList (Get-BcContainerPath -containerName $containerName -path $symbolsFile), $platformversion
-
-                    $addDependencies | ForEach-Object {
-                        $addDependency = $_
-                        $found = $false
-                        $dependencies | ForEach-Object {
-                            if ((($_.appId) -and ($_.appId -eq $addDependency.appId)) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
-                                $found = $true
-                            }
-                        }
-                        if (!$found) {
-                            Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
-                            $dependencies += $addDependency
-                        }
-                    }
                 }
+            }
+        }
+        $addDependencies | ForEach-Object {
+            $addDependency = $_
+            $found = $false
+            $dependencies | ForEach-Object {
+                if ((($_.appId) -and ($_.appId -eq $addDependency.appId)) -or ($_.Publisher -eq $addDependency.Publisher -and $_.Name -eq $addDependency.Name)) {
+                    $found = $true
+                }
+            }
+            if (!$found) {
+                Write-Host "Adding dependency to $($addDependency.Name) from $($addDependency.Publisher)"
+                $dependencies += $addDependency
             }
         }
         $depidx++

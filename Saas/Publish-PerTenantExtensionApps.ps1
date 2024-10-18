@@ -52,8 +52,8 @@ $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -paramet
 try {
 	
     function GetAuthHeaders {
-        $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
-        return @{ "Authorization" = "Bearer $($bcAuthContext.AccessToken)" }
+        $script:authContext = Renew-BcAuthContext -bcAuthContext $script:authContext
+        return @{ "Authorization" = "Bearer $($script:authContext.AccessToken)" }
     }
 
     $newLine = @{}
@@ -67,15 +67,18 @@ try {
         if ($clientSecret -is [String]) { $clientSecret = ConvertTo-SecureString -String $clientSecret -AsPlainText -Force }
         if ($clientSecret -isnot [SecureString]) { throw "ClientSecret needs to be a SecureString or a String" }
 
-        $bcauthContext = New-BcAuthContext `
+        $script:authContext = New-BcAuthContext `
             -clientID $clientID `
             -clientSecret $clientSecret `
             -tenantID $tenantId `
             -scopes "https://api.businesscentral.dynamics.com/.default"
 
-        if (-not ($bcAuthContext)) {
+        if (-not ($script:AuthContext)) {
             throw "Authentication failed"
         }
+    }
+    else {
+        $script:authContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
     }
 
     $appFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
@@ -131,7 +134,7 @@ try {
         $streamHeader = @{ "Content-Type" = 'application/octet-stream'}
         try {
             Sort-AppFilesByDependencies -appFiles $appFiles -excludeRuntimePackages | ForEach-Object {
-                Write-Host -NoNewline "$([System.IO.Path]::GetFileName($_)) - "
+                Write-Host @newline "$([System.IO.Path]::GetFileName($_)) - "
                 $appJson = Get-AppJsonFromAppFile -appFile $_
                 
                 $existingApp = $extensions | Where-Object { $_.id -eq $appJson.id -and $_.isInstalled }
@@ -185,11 +188,13 @@ try {
                     Invoke-RestMethod `
                         -Method Post `
                         -Uri "$automationApiUrl/companies($companyId)/extensionUpload($($extensionUpload.systemId))/Microsoft.NAV.upload" `
-                        -Headers ((GetAuthHeaders) + $ifMatchHeader) | Out-Null
+                        -Headers ((GetAuthHeaders) + $ifMatchHeader) `
+                        -ErrorAction SilentlyContinue | Out-Null
                     Write-Host @newLine "."    
                     $completed = $false
                     $errCount = 0
                     $sleepSeconds = 30
+                    $lastStatus = ''
                     while (!$completed)
                     {
                         Start-Sleep -Seconds $sleepSeconds
@@ -197,44 +202,55 @@ try {
                             $extensionDeploymentStatusResponse = Invoke-WebRequest -Headers (GetAuthHeaders) -Method Get -Uri "$automationApiUrl/companies($companyId)/extensionDeploymentStatus" -UseBasicParsing
                             $extensionDeploymentStatuses = (ConvertFrom-Json $extensionDeploymentStatusResponse.Content).value
 
-                            $completed = $true
-                            $extensionDeploymentStatuses | Where-Object { $_.publisher -eq $appJson.publisher -and $_.name -eq $appJson.name -and $_.appVersion -eq $appJson.version } | % {
+                            $thisExtension = $extensionDeploymentStatuses | Where-Object { $_.publisher -eq $appJson.publisher -and $_.name -eq $appJson.name -and $_.appVersion -eq $appJson.version }
+                            if ($null -eq $thisExtension) {
+                                throw "Unable to find extension deployment status"
+                            } 
+                            $thisExtension | ForEach-Object {
+                                if ($_.status -ne $lastStatus) {
+                                    if (!$useNewLine) { Write-Host }
+                                    Write-Host @newLine $_.status
+                                    $lastStatus = $_.status
+                                }
                                 if ($_.status -eq "InProgress") {
+                                    $errCount = 0
+                                    $sleepSeconds = 5
                                     Write-Host @newLine "."
-                                    $completed = $false
                                 }
                                 elseif ($_.Status -eq "Unknown") {
                                     throw "Unknown Error"
                                 }
-                                elseif ($_.Status -ne "Completed") {
+                                elseif ($_.Status -eq "Completed") {
+                                    if (!$useNewLine) { Write-Host }
+                                    $completed = $true
+                                }
+                                else {
                                     $errCount = 5
                                     throw $_.status
                                 }
                             }
-                            $errCount = 0
-                            $sleepSeconds = 5
                         }
                         catch {
+                            if (!$useNewLine) { Write-Host }
                             if ($errCount++ -gt 4) {
                                 Write-Host $_.Exception.Message
                                 throw "Unable to publish app. Please open the Extension Deployment Status Details page in Business Central to see the detailed error message."
                             }
                             $sleepSeconds += $sleepSeconds
-                            $completed = $false
+                            Write-Host "Error: $($_.Exception.Message). Retrying in $sleepSeconds seconds"
                         }
-                    }
-                    if ($completed) {
-                        Write-Host "completed"
                     }
                 }
             }
         }
         catch [System.Net.WebException],[System.Net.Http.HttpRequestException] {
+            if (!$useNewLine) { Write-Host }
             Write-Host "ERROR $($_.Exception.Message)"
             Write-Host $_.ScriptStackTrace
             throw (GetExtendedErrorMessage $_)
         }
         catch {
+            if (!$useNewLine) { Write-Host }
             Write-Host "ERROR: $($_.Exception.Message) [$($_.Exception.GetType().FullName)]"
             throw
         }
@@ -264,6 +280,7 @@ catch {
     throw
 }
 finally {
+    $script:authContext = $null
     TrackTrace -telemetryScope $telemetryScope
 }
 }
