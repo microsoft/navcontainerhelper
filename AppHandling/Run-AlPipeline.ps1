@@ -59,8 +59,14 @@
   Array or comma separated list of folders with apps to be compiled, signed and published
  .Parameter testFolders
   Array or comma separated list of folders with test apps to be compiled, published and run
+ .Parameter bcptTestFolders
+  Array or comma separated list of folders with bcpt test apps to be compiled, published and run
+ .Parameter pageScriptingTests
+  Array or comma separated list of filespecs with pageScripting tests, to be run after the apps have been compiled and tested
  .Parameter additionalCountries
   Array or comma separated list of countries to test
+ .Parameter restoreDatabases
+  Array or comma seperated list of events, indicating when you want to start with clean databases in the container. Possible events are: BeforeBcpTests, BeforePageScriptingTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforeEachPageScriptingTest
  .Parameter appVersion
   Major and Minor version for build (ex. "18.0"). Will be stamped into the build part of the app.json version number property.
  .Parameter appBuild
@@ -78,7 +84,11 @@
  .Parameter testResultsFile
   Filename in which you want the test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
  .Parameter bcptTestResultsFile
-  Filename in which you want the bcpt test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunTests is included.
+  Filename in which you want the bcpt test results to be written. Default is TestResults.xml, meaning that test results will be written to this filename in the base folder. This parameter is ignored if doNotRunBcptTests is included.
+ .Parameter pageScriptingTestResultsFile
+  File in which you want the page scripting test results to be written in JUnit format. Default is PageScriptingTestResults.xml.
+ .Parameter pageScriptingTestResultsFolder
+  Folder in which you want the page scripting test results to be written. Default is PageScriptingTestResults, meaning that test result detailss will be written to folders underneath this folder, relative to the base folder. This parameter is ignored if doNotRunPageScriptingTests is included.
  .Parameter testResultsFormat
   Format of test results file. Possible values are XUnit or JUnit. Both formats are XML based test result formats.
  .Parameter packagesFolder
@@ -119,6 +129,8 @@
   Include this switch to indicate that you do not want to execute tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
  .Parameter doNotRunBcptTests
   Include this switch to indicate that you do not want to execute bcpt tests. Test Apps will still be published and installed, test execution can later be performed from the UI.
+ .Parameter doNotRunPageScriptingTests
+  Include this switch to indicate that you do not want to execute page scripting tests.
  .Parameter doNotPerformUpgrade
   Include this switch to indicate that you do not want to perform the upgrade. This means that the previousApps are never actually published to the container.
  .Parameter doNotPublishApps
@@ -247,6 +259,10 @@
   Override function parameter for Install-BcAppFromAppSource
  .Parameter SignBcContainerApp
   Override function parameter for Sign-BcContainerApp
+ .Parameter BackupBcContainerDatabases
+  Override function parameter for Backup-BcContainerDatabases
+ .Parameter RestoreDatabasesInBcContainer
+  Override function parameter for Restore-DatabasesInBcContainer
  .Parameter RunTestsInBcContainer
   Override function parameter for Run-TestsInBcContainer
  .Parameter RunBCPTTestsInBcContainer
@@ -300,7 +316,10 @@ Param(
     $testFolders = @("test", "testapp"),
     $bcptTestFolders = @("bcpttest", "bcpttestapp"),
     $bcptTestSuites = @(),
+    $pageScriptingTests = @(),
     $additionalCountries = @(),
+    [ValidateSet('BeforeBcpTests', 'BeforePageScriptingTests', 'BeforeEachTestApp', 'BeforeEachBcptTestApp', 'BeforeEachPageScriptingTest')]
+    [string[]] $restoreDatabases = @(),
     [string] $appVersion = "",
     [int] $appBuild = 0,
     [int] $appRevision = 0,
@@ -310,6 +329,8 @@ Param(
     [string] $containerEventLogFile = "",
     [string] $testResultsFile = "TestResults.xml",
     [string] $bcptTestResultsFile = "bcptTestResults.json",
+    [string] $pageScriptingTestResultsFile = "PageScriptingTestResults.xml",
+    [string] $pageScriptingTestResultsFolder = "PageScriptingTestResults",
     [Parameter(Mandatory=$false)]
     [ValidateSet('XUnit','JUnit')]
     [string] $testResultsFormat = "JUnit",
@@ -335,6 +356,7 @@ Param(
     [switch] $doNotBuildTests,
     [switch] $doNotRunTests,
     [switch] $doNotRunBcptTests,
+    [switch] $doNotRunPageScriptingTests,
     [switch] $doNotPerformUpgrade,
     [switch] $doNotPublishApps,
     [switch] $uninstallRemovedApps,
@@ -382,6 +404,8 @@ Param(
     [scriptblock] $InstallBcAppFromAppSource,
     [scriptblock] $SignBcContainerApp,
     [scriptblock] $ImportTestDataInBcContainer,
+    [scriptblock] $BackupBcContainerDatabases,
+    [scriptblock] $RestoreDatabasesInBcContainer,
     [scriptblock] $RunTestsInBcContainer,
     [scriptblock] $RunBCPTTestsInBcContainer,
     [scriptblock] $GetBcContainerAppRuntimePackage,
@@ -395,7 +419,7 @@ Param(
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path -and $path -notlike 'https://*') {
         if (-not [System.IO.Path]::IsPathRooted($path)) {
-            if (Test-Path -path (Join-Path $baseFolder $path)) {
+            if (Test-Path -path (Join-Path $baseFolder $path) -PathType Container) {
                 $path = Join-Path $baseFolder $path -Resolve
             }
             else {
@@ -521,25 +545,42 @@ if ($previousApps                   -is [String]) { $previousApps = @($previousA
 if ($appFolders                     -is [String]) { $appFolders = @($appFolders.Split(',').Trim()  | Where-Object { $_ }) }
 if ($testFolders                    -is [String]) { $testFolders = @($testFolders.Split(',').Trim() | Where-Object { $_ }) }
 if ($bcptTestFolders                -is [String]) { $bcptTestFolders = @($bcptTestFolders.Split(',').Trim() | Where-Object { $_ }) }
+if ($pageScriptingTests             -is [String]) { $pageScriptingTests = @($pageScriptingTests.Split(',').Trim() | Where-Object { $_ }) }
 if ($additionalCountries            -is [String]) { $additionalCountries = @($additionalCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopMandatoryAffixes   -is [String]) { $AppSourceCopMandatoryAffixes = @($AppSourceCopMandatoryAffixes.Split(',').Trim() | Where-Object { $_ }) }
 if ($AppSourceCopSupportedCountries -is [String]) { $AppSourceCopSupportedCountries = @($AppSourceCopSupportedCountries.Split(',').Trim() | Where-Object { $_ }) }
 if ($customCodeCops                 -is [String]) { $customCodeCops = @($customCodeCops.Split(',').Trim() | Where-Object { $_ }) }
+if ($restoreDatabases               -is [string]) { $restoreDatabases = @($restoreDatabases.Split(',').Trim() | Where-Object { $_ }) }
 
 $appFolders  = @($appFolders  | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "appFolders" } | Where-Object { Test-Path $_ } )
 $testFolders = @($testFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "testFolders" } | Where-Object { Test-Path $_ } )
 $bcptTestFolders = @($bcptTestFolders | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "bcptTestFolders" } | Where-Object { Test-Path $_ } )
+$pageScriptingTests = @($pageScriptingTests | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "pageScriptingTests" } | Where-Object { Test-Path $_ } | ForEach-Object { if (Test-Path -Path $_ -PathType Container) { return (Join-Path $_ '*.yml') } else { return $_ } } )
 $customCodeCops = @($customCodeCops | ForEach-Object { CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $_ -name "customCodeCops" } | Where-Object { $_ -like 'https://*' -or (Test-Path $_) } )
 $buildOutputFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $buildOutputFile -name "buildOutputFile"
 $containerEventLogFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $containerEventLogFile -name "containerEventLogFile"
 $testResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $testResultsFile -name "testResultsFile"
 $bcptTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $bcptTestResultsFile -name "bcptTestResultsFile"
+$pageScriptingTestResultsFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $pageScriptingTestResultsFile -name "pageScriptingTestResultsFile"
+$pageScriptingTestResultsFolder = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $pageScriptingTestResultsFolder -name "pageScriptingTestResultsFolder"
 $rulesetFile = CheckRelativePath -baseFolder $baseFolder -sharedFolder $sharedFolder -path $rulesetFile -name "rulesetFile"
 
+$restoreDatabases | ForEach-Object {
+    if ($_ -notin @("BeforeBcpTests", "BeforeEachTestApp", "BeforeEachBcptTestApp", "BeforeEachPageScriptingTest", "BeforePageScriptingTests")) {
+        throw "restoreDatabases must be one of the following values: BeforeBcpTests, BeforeEachTestApp, BeforeEachBcptTestApp, BeforePageScriptingTests, BeforeEachPageScriptingTest"
+    }
+}
 $containerEventLogFile,$buildOutputFile,$testResultsFile,$bcptTestResultsFile | ForEach-Object {
     if ($_ -and (Test-Path $_)) {
         Remove-Item -Path $_ -Force
     }
+}
+if ($pageScriptingTestResultsFolder -and (Test-Path $pageScriptingTestResultsFolder)) {
+    Remove-Item -Path $pageScriptingTestResultsFolder -Recurse -Force
+    New-Item -ItemType Directory -Path $pageScriptingTestResultsFolder | Out-Null
+}
+if ($pageScriptingTestResultsFile -and (Test-Path $pageScriptingTestResultsFile)) {
+    Remove-Item -Path $pageScriptingTestResultsFile -Force
 }
 
 $addBcptTestSuites = $true
@@ -570,6 +611,13 @@ if ($bcAuthContext) {
         Write-Host -ForegroundColor Yellow "Uninstalling removed apps from online environments are not supported"
         $uninstallRemovedApps = $false
     }
+    if (!$doNotRunBcptTests -and $bcptTestSuites) {
+        throw "BCPT Tests are not supported on cloud pipelines yet!"
+    }
+    if (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
+        throw "Page scripting Tests are not supported on cloud pipelines yet!"
+    }
+
     if ($environment -notlike ('https://*')) {
         $bcAuthContext = Renew-BcAuthContext -bcAuthContext $bcAuthContext
         $bcEnvironment = Get-BcEnvironments -bcAuthContext $bcAuthContext | Where-Object { $_.name -eq $environment -and $_.type -eq "Sandbox" }
@@ -584,6 +632,13 @@ if ($bcAuthContext) {
         $artifactUrl = Get-BCArtifactUrl -type Sandbox -country $bcEnvironment.countryCode -version $bcBaseApp.Version -select Closest
     }
     $filesOnly = $true
+}
+elseif (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
+    $npmVersion = pwsh -command { npm --version }
+    if ($? -ne "True") {
+        throw "npm isn't installed - cannot run page scripting tests"
+    }
+    Write-Host "npm version $npmVersion is installed"
 }
 
 if ($updateLaunchJson) {
@@ -721,6 +776,7 @@ Write-Host -NoNewLine -ForegroundColor Yellow "escapeFromCops                  "
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotBuildTests                 "; Write-Host $doNotBuildTests
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunTests                   "; Write-Host $doNotRunTests
 Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunBcptTests               "; Write-Host $doNotRunBcptTests
+Write-Host -NoNewLine -ForegroundColor Yellow "doNotRunPageScriptingTests      "; Write-Host $doNotRunPageScriptingTests
 Write-Host -NoNewLine -ForegroundColor Yellow "useDefaultAppSourceRuleSet      "; Write-Host $useDefaultAppSourceRuleSet
 Write-Host -NoNewLine -ForegroundColor Yellow "rulesetFile                     "; Write-Host $rulesetFile
 Write-Host -NoNewLine -ForegroundColor Yellow "generateErrorLog                "; Write-Host $generateErrorLog
@@ -772,6 +828,8 @@ Write-Host -ForegroundColor Yellow "BCPT Test application folders"
 if ($bcptTestFolders) { $bcptTestFolders | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "BCPT Test suites"
 if ($bcptTestSuites) { $bcptTestSuites | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
+Write-Host -ForegroundColor Yellow "Page Scripting Tests"
+if ($pageScriptingTests) { $pageScriptingTests | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 Write-Host -ForegroundColor Yellow "Custom CodeCops"
 if ($customCodeCops) { $customCodeCops | ForEach-Object { Write-Host "- $_" } } else { Write-Host "- None" }
 
@@ -813,6 +871,14 @@ if ($doNotBuildTests) {
     $installPerformanceToolkit = $false
     $doNotRunTests = $true
     $doNotRunBcptTests = $true
+}
+
+if ($containerName -eq '' -or $filesOnly) {
+    # If we are not creating a full container, do not backup and restore databases
+    if ($restoreDatabases) {
+        Write-Host -ForegroundColor Yellow "WARNING: Ignoring restoreDatabases as we are not creating a full container"
+        $restoreDatabases = @()
+    }
 }
 
 if ($DockerPull) {
@@ -892,6 +958,18 @@ else {
 }
 if ($ImportTestDataInBcContainer) {
     Write-Host -ForegroundColor Yellow "ImportTestDataInBcContainer override"; Write-Host $ImportTestDataInBcContainer.ToString()
+}
+if ($BackupBcContainerDatabases) {
+    Write-Host -ForegroundColor Yellow "BackupBcContainerDatabases override"; Write-Host $BackupBcContainerDatabases.ToString()
+}
+else {
+    $BackupBcContainerDatabases = { Param([Hashtable]$parameters) Backup-BcContainerDatabases @parameters }
+}
+if ($RestoreDatabasesInBcContainer) {
+    Write-Host -ForegroundColor Yellow "RestoreDatabasesInBcContainer override"; Write-Host $RestoreDatabasesInBcContainer.ToString()
+}
+else {
+    $RestoreDatabasesInBcContainer = { Param([Hashtable]$parameters) Restore-DatabasesInBcContainer @parameters }
 }
 if ($RunTestsInBcContainer) {
     Write-Host -ForegroundColor Yellow "RunTestsInBcContainer override"; Write-Host $RunTestsInBcContainer.ToString()
@@ -2330,7 +2408,7 @@ Write-GroupEnd
 }
 }
 
-if (!($doNotRunTests -and $doNotRunBcptTests)) {
+if (!($doNotRunTests -and $doNotRunBcptTests -and $doNotRunPageScriptingTests)) {
 if ($ImportTestDataInBcContainer) {
 Write-GroupStart -Message "Importing test data"
 Write-Host -ForegroundColor Yellow @'
@@ -2373,6 +2451,14 @@ if (!$enableTaskScheduler) {
 }
 Write-GroupEnd
 }
+
+if ($restoreDatabases) {
+Write-GroupStart -Message "Backing up databases"
+Invoke-Command -ScriptBlock $BackupBcContainerDatabases -ArgumentList @{"containerName" = $containerName}
+Write-GroupEnd
+}
+
+
 $allPassed = $true
 $resultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($testResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($testResultsFile))$testCountry.xml"
 $bcptResultsFile = Join-Path ([System.IO.Path]::GetDirectoryName($bcptTestResultsFile)) "$([System.IO.Path]::GetFileNameWithoutExtension($bcptTestResultsFile))$testCountry.json"
@@ -2501,6 +2587,11 @@ $testAppIds.Keys | ForEach-Object {
             "ConnectFromHost" = !$createContainer
         }
     }
+    if ($restoreDatabases -contains 'BeforeEachTestApp') {
+        Write-GroupStart -Message "Restoring databases before test app"
+        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+        Write-GroupEnd
+    }
 
     if (!(Invoke-Command -ScriptBlock $RunTestsInBcContainer -ArgumentList $Parameters)) {
         $allPassed = $false
@@ -2516,6 +2607,11 @@ Write-GroupEnd
 }
 
 if (!$doNotRunBcptTests -and $bcptTestSuites) {
+if ($restoreDatabases -contains 'BeforeBcpTests' -and $restoreDatabases -notcontains 'BeforeEachBcptTestApp') {
+    Write-GroupStart -Message "Restoring databases before bcpt tests"
+    Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+    Write-GroupEnd
+}
 Write-GroupStart -Message "Running BCPT tests"
 Write-Host -ForegroundColor Yellow @'
   _____                   _               ____   _____ _____ _______   _            _
@@ -2542,8 +2638,10 @@ $bcptTestSuites | ForEach-Object {
         "BCPTsuite" = [System.IO.File]::ReadAllLines($_) | ConvertFrom-Json
     }
 
-    if ($bcAuthContext) {
-        throw "BCPT Tests are not supported on cloud pipelines yet!"
+    if ($restoreDatabases -contains 'BeforeEachBcptTestApp') {
+        Write-GroupStart -Message "Restoring databases before each bcpt test app"
+        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+        Write-GroupEnd
     }
 
     $result = Invoke-Command -ScriptBlock $RunBCPTTestsInBcContainer -ArgumentList $Parameters
@@ -2556,6 +2654,96 @@ if ($buildArtifactFolder -and (Test-Path $bcptResultsFile)) {
     Write-Host "Copying bcpt test results to output"
     Copy-Item -Path $bcptResultsFile -Destination $buildArtifactFolder -Force
 }
+Write-GroupEnd
+}
+
+if (!$doNotRunPageScriptingTests -and $pageScriptingTests -and $pageScriptingTestResultsFolder -and $pageScriptingTestResultsFile) {
+if ($restoreDatabases -contains 'BeforePageScriptingTests' -and $restoreDatabases -notcontains 'BeforeEachPageScriptingTest') {
+    Write-GroupStart -Message "Restoring databases before page scripting tests"
+    Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+    Write-GroupEnd
+}
+Write-GroupStart -Message "Running Page Scripting Tests"
+Write-Host -ForegroundColor Yellow @'
+ _____                   _               _____                  _____           _       _   _               _______        _
+|  __ \                 (_)             |  __ \                / ____|         (_)     | | (_)             |__   __|      | |
+| |__) |   _ _ __  _ __  _ _ __   __ _  | |__) |_ _  __ _  ___| (___   ___ _ __ _ _ __ | |_ _ _ __   __ _     | | ___  ___| |_ ___
+|  _  / | | | '_ \| '_ \| | '_ \ / _` | |  ___/ _` |/ _` |/ _ \\___ \ / __| '__| | '_ \| __| | '_ \ / _` |    | |/ _ \/ __| __/ __|
+| | \ \ |_| | | | | | | | | | | | (_| | | |  | (_| | (_| |  __/____) | (__| |  | | |_) | |_| | | | | (_| |    | |  __/\__ \ |_\__ \
+|_|  \_\__,_|_| |_|_| |_|_|_| |_|\__, | |_|   \__,_|\__, |\___|_____/ \___|_|  |_| .__/ \__|_|_| |_|\__, |    |_|\___||___/\__|___/
+                                  __/ |              __/ |                       | |                 __/ |
+                                 |___/              |___/                        |_|                |___/
+'@
+Measure-Command {
+if ($testCountry) {
+    Write-Host -ForegroundColor Yellow "Running Page Scripting Tests for additional country $testCountry"
+}
+
+# Install npm package for page scripting tests
+pwsh -command { npm i @microsoft/bc-replay --save }
+
+${env:containerUsername} = $credential.UserName
+${env:containerPassword} = $credential.Password | Get-PlainText
+$startAddress = "http://$containerName/BC?tenant=$tenant"
+
+$usedNames = @()
+
+$pageScriptingTests | ForEach-Object {
+    $thisFailed = $false
+    if ($restoreDatabases -contains 'BeforeEachPageScriptingTest') {
+        Write-GroupStart -Message "Restoring databases before each page scripting test"
+        Invoke-Command -ScriptBlock $RestoreDatabasesInBcContainer -ArgumentList @{"containerName" = $containerName}
+        Write-GroupEnd
+    }
+    $testSpec = $_
+    $name = $testSpec -replace '[\\/]', '-' -replace ':', '' -replace '\*', 'all' -replace '\?', 'x' -replace '\.yml$', ''
+    if ($usedNames -contains $name) {
+        throw "PageScriptingTests contains two similar test specs (resulting in identical results folders), please rename your test specs ($testSpec)."
+    }
+    $usedNames += $name
+    $path = $testSpec
+    if (-not [System.IO.Path]::IsPathRooted($path)) { $path = Join-Path $baseFolder $path }
+    if (-not (Test-Path $path)) { throw "No page scripting tests found matching $testSpec" }
+    Write-Host "Running Page Scripting Tests for $testSpec (test name: $name)"
+    $resultsFolder = Join-Path $pageScriptingTestResultsFolder $name
+    New-Item -Path $resultsFolder -ItemType Directory | Out-Null
+    pwsh -command {
+        npx replay $args[0] -ResultDir $args[1] -StartAddress $args[2] -Authentication UserPassword -usernameKey 'containerUsername' -passwordkey 'containerPassword'
+    } -args $path, $resultsFolder, $startAddress
+    if ($? -ne "True") {
+        Write-Host "Page Scripting Tests failed for $testSpec"
+        $allPassed = $false
+        $thisFailed = $true
+    }
+    $testResultsFile = Join-Path $resultsFolder "results.xml"
+    $playwrightReportFolder = Join-Path $resultsFolder 'playwright-report'
+    if ((Test-Path $testResultsFile -PathType Leaf) -and (Test-Path $playwrightReportFolder -PathType Container)) {
+        $thisXml = [xml](Get-Content $testResultsFile -encoding UTF8)
+        $thisXml.testsuites.testsuite.Name = $name
+        $resultsXml = $thisXml
+        if (Test-Path $pageScriptingTestResultsFile) {
+            # Merge results and aggregate counts
+            $resultsXml = [xml](Get-Content $pageScriptingTestResultsFile -encoding UTF8)
+            $resultsXml.testsuites.AppendChild($resultsXml.ImportNode($thisXml.testsuites.testsuite, $true))
+        }
+        foreach($property in 'tests','failures','skipped','errors','time') {
+            $resultsXml.testsuites."$property" = "$(([double[]]$resultsXml.testsuites.testsuite."$property" | Measure-Object -Sum).Sum)"
+        }
+        $resultsXml.Save($pageScriptingTestResultsFile)
+        Remove-Item $testResultsFile -Force
+        if ($thisFailed) {
+            Write-Host "Moving Playwright report folder"
+            Move-Item -Path "$playwrightReportFolder/*" -Destination $resultsFolder -Force
+            Write-Host "Removing Playwright report folder"
+            Remove-Item -Path $playwrightReportFolder -Force
+        }
+        else {
+            Write-Host "Removing results folder"
+            Remove-Item -Path $resultsFolder -Recurse -Force
+        }
+    }
+}
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nRunning Page Scripting Tests took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
 
@@ -2638,10 +2826,6 @@ if ($createRuntimePackages) {
         $no++
     }
 }
-
-Write-Host "Files in build artifacts folder:"
-Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
-
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nCopying to Build Artifacts took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
@@ -2651,6 +2835,13 @@ Write-GroupEnd
 }
 finally {
     $progressPreference = $prevProgressPreference
+    ${env:containerPassword} = $null
+}
+
+if ($buildArtifactFolder) {
+    Write-GroupStart -Message "Files in build artifacts folder:"
+    Get-ChildItem $buildArtifactFolder -Recurse | Where-Object {!$_.PSIsContainer} | ForEach-Object { Write-Host "$($_.FullName.Substring($buildArtifactFolder.Length+1)) ($($_.Length) bytes)" }
+    Write-GroupEnd
 }
 
 if ($useCompilerFolder -and $compilerFolder) {
