@@ -118,6 +118,8 @@ function Get-ContainerHelperConfig {
             "IsGitHubActions" = ($env:GITHUB_ACTIONS -eq "true")
             "IsAzureDevOps" = ($env:TF_BUILD -eq "true")
             "IsGitLab" = ($env:GITLAB_CI -eq "true")
+            "useAzCopy" = $true
+            "useApproximateVersion" = $true
         }
 
         if ($isInsider) {
@@ -244,6 +246,31 @@ try {
     if (!$Silent) {
         Write-Host -ForegroundColor Yellow "Unable to load ApplicationInsights.dll"
     }
+}
+
+function useAzCopy {
+    if ($bcContainerHelperConfig.useAzCopy) {
+        if (Get-Variable -scope Script isAzCopyInstalled -ErrorAction SilentlyContinue) {
+            return $isAzCopyInstalled
+        }
+        else {
+            $script:isAzCopyInstalled = $false
+            try {
+                $str = azcopy --version --skip-version-check
+                if ("$LASTEXITCODE" -eq "0") {
+                    if ($str -is [string] -and $str -like "azcopy version 10.*.*") {
+                        Write-Host "$str is installed. Using AzCopy for faster downloads."
+                        $script:isAzCopyInstalled = $true
+                    }
+                }
+            }
+            catch {}
+            if (-not $script:isAzCopyInstalled) {
+                Write-Host "AzCopy version 10.x.y is not installed, using traditional download. Install AzCopy v10 for faster downloads."
+            }
+        }
+    }
+    return $false
 }
 
 . (Join-Path $PSScriptRoot "TelemetryHelper.ps1")

@@ -1,6 +1,8 @@
 6.0.27
 Issue 3538 Compile-AppWithBcCompilerFolder fails when dependency does propagateDependencies
 Issue 3727 Regression - Release pipelines failing with SaaS environments due BcAuthContext
+Increase performance when downloading artifacts by using azcopy if installed (set useAzCopy to false in settings to disable)
+Increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering (set useApproximateVersion to false in settings to disable)
 
 6.0.26
 As minimum, always use the generic tag version which was available when shipping BcContainerHelper
