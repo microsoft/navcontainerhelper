@@ -1,6 +1,9 @@
 6.0.27
 Issue 3538 Compile-AppWithBcCompilerFolder fails when dependency does propagateDependencies
 Issue 3727 Regression - Release pipelines failing with SaaS environments due BcAuthContext
+Add new overrides to Run-AlPipeline: BackupBcContainerDatabases and RestoreDatabasesInBcContainer for backup up and restoring databases - only parameter transferred is containerName
+Add new parameter to Run-AlPipeline: restoreDatabases, indicating when (during the pipeline execution) a database restore is needed
+Add PageScripting test runner to Run-AlPipeline, adding 4 new parameters: pageScriptingTests, pageScriptingTestResultsFile, pageScriptingTestResultsFolder and doNotRunPageScriptingTests.
 Increase performance when downloading artifacts by using azcopy if installed (set useAzCopy to false in settings to disable)
 Increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering (set useApproximateVersion to false in settings to disable)
 
