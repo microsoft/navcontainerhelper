@@ -145,13 +145,15 @@ try {
         if ($type -eq 'sandbox' -and $storageAccount -eq 'bcartifacts.blob.core.windows.net' -and $select -eq 'latest' -and $version -eq '' -and $bcContainerHelperConfig.useApproximateVersion) {
             # Temp fix / hack for Get-BcArtifact performance
             # If Microsoft changes versioning schema, this needs to change (or useApproximateVersion should be set to false)
-            $now = ([DateTime]::Now).AddDays(15)
+            $now = ([DateTime]::Now).AddMonths(1)
             $approximateMajor = 23+2*($now.Year-2024)+($now.Month -ge 4)+($now.Month -ge 10)
             $approximateMinor = ($now.Month - 4)%6
             $artifactUrl = Get-BCArtifactUrl -country $country -version "$approximateMajor.$approximateMinor" -select Latest -doNotCheckPlatform:$doNotCheckPlatform
-            if (-not $artifactUrl) {
+            $tryVersions = 3
+            while (-not $artifactUrl -and $tryVersions-- -gt 0) {
                 if ($approximateMinor -eq 0) {
                     $approximateMajor -= 1
+                    $approximateMinor = 5
                 }
                 else {
                     $approximateMinor -= 1
