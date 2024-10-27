@@ -145,20 +145,38 @@ try {
         if ($type -eq 'sandbox' -and $storageAccount -eq 'bcartifacts.blob.core.windows.net' -and $select -eq 'latest' -and $version -eq '' -and $bcContainerHelperConfig.useApproximateVersion) {
             # Temp fix / hack for Get-BcArtifact performance
             # If Microsoft changes versioning schema, this needs to change (or useApproximateVersion should be set to false)
-            $now = ([DateTime]::Now).AddMonths(1)
+            $now = ([DateTime]::Now).AddDays(15)
             $approximateMajor = 23+2*($now.Year-2024)+($now.Month -ge 4)+($now.Month -ge 10)
             $approximateMinor = ($now.Month - 4)%6
             $artifactUrl = Get-BCArtifactUrl -country $country -version "$approximateMajor.$approximateMinor" -select Latest -doNotCheckPlatform:$doNotCheckPlatform
-            $tryVersions = 3
-            while (-not $artifactUrl -and $tryVersions-- -gt 0) {
-                if ($approximateMinor -eq 0) {
-                    $approximateMajor -= 1
-                    $approximateMinor = 5
+            if ($artifactUrl) {
+                # We found an artifact - check if it is the latest
+                while ($artifactUrl) {
+                    $lastGoodArtifact = $artifactUrl
+                    if ($approximateMinor -eq 5) {
+                        $approximateMajor += 1
+                        $approximateMinor = 0
+                    }
+                    else {
+                        $approximateMinor += 1
+                    }
+                    $artifactUrl = Get-BCArtifactUrl -country $country -version "$approximateMajor.$approximateMinor" -select Latest -doNotCheckPlatform:$doNotCheckPlatform
                 }
-                else {
-                    $approximateMinor -= 1
+                $artifactUrl = $lastGoodArtifact
+            }
+            else {
+                # No artifact found - try previous 3 versions (else give up - maybe country is unavailable)
+                $tryVersions = 3
+                while (-not $artifactUrl -and $tryVersions-- -gt 0) {
+                    if ($approximateMinor -eq 0) {
+                        $approximateMajor -= 1
+                        $approximateMinor = 5
+                    }
+                    else {
+                        $approximateMinor -= 1
+                    }
+                    $artifactUrl = Get-BCArtifactUrl -country $country -version "$approximateMajor.$approximateMinor" -select Latest -doNotCheckPlatform:$doNotCheckPlatform
                 }
-                $artifactUrl = Get-BCArtifactUrl -country $country -version "$approximateMajor.$approximateMinor" -select Latest -doNotCheckPlatform:$doNotCheckPlatform
             }
             $artifactUrl
         }
