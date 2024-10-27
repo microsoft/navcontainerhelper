@@ -4,7 +4,7 @@ Issue 3727 Regression - Release pipelines failing with SaaS environments due BcA
 Add new overrides to Run-AlPipeline: BackupBcContainerDatabases and RestoreDatabasesInBcContainer for backup up and restoring databases - only parameter transferred is containerName
 Add new parameter to Run-AlPipeline: restoreDatabases, indicating when (during the pipeline execution) a database restore is needed
 Add PageScripting test runner to Run-AlPipeline, adding 4 new parameters: pageScriptingTests, pageScriptingTestResultsFile, pageScriptingTestResultsFolder and doNotRunPageScriptingTests.
-Increase performance when downloading artifacts by using azcopy if installed (set useAzCopy to true in settings to enable)
+Increase performance when downloading artifacts by using azcopy if installed (set useAzCopy to true in settings to enable). This works best if your machine is in the same location as the storage account (Europe) - else the traditional mechanism using CDNs might be faster.
 Increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering (set useApproximateVersion to false in settings to disable)
 
 6.0.26
