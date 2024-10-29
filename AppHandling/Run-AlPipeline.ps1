@@ -419,7 +419,7 @@ Param(
 function CheckRelativePath([string] $baseFolder, [string] $sharedFolder, $path, $name) {
     if ($path -and $path -notlike 'https://*') {
         if (-not [System.IO.Path]::IsPathRooted($path)) {
-            if (Test-Path -path (Join-Path $baseFolder $path) -PathType Container) {
+            if (Test-Path -Path (Join-Path $baseFolder $path)) {
                 $path = Join-Path $baseFolder $path -Resolve
             }
             else {
