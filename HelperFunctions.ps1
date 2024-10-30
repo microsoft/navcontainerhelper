@@ -912,6 +912,10 @@ Function CreatePsTestToolFolder {
         if (!(Test-Path $myClientDllPath)) {
             $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
             Copy-Item -Path $clientDllPath -Destination $myClientDllPath
+            $antiSSRFdll = Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'Microsoft.Internal.AntiSSRF.dll'
+            if (Test-Path $antiSSRFdll) {
+                Copy-Item -Path $antiSSRFdll -Destination ([System.IO.Path]::GetDirectoryName($myClientDllPath))
+            }
         }
     } -argumentList (Get-BcContainerPath -containerName $containerName -Path $newtonSoftDllPath), (Get-BcContainerPath -containerName $containerName -Path $clientDllPath)
 }

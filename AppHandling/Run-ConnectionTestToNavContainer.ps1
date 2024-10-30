@@ -151,6 +151,10 @@ try {
             $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
             if (!(Test-Path $myClientDllPath)) {
                 Copy-Item -Path $clientDllPath -Destination $myClientDllPath
+                $antiSSRFdll = Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'Microsoft.Internal.AntiSSRF.dll'
+                if (Test-Path $antiSSRFdll) {
+                    Copy-Item -Path $antiSSRFdll -Destination ([System.IO.Path]::GetDirectoryName($myClientDllPath))
+                }
             }
         } -argumentList $newtonSoftDllPath, $clientDllPath
     
