@@ -70,6 +70,7 @@ function Get-BcContainerSession {
                 catch {}
             }
             if (!$session) {
+                Write-Host "failed to create session - try WinRm"
                 if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
                     throw "Unable to create session for container $containerName (cannot use WinRm)"
 
@@ -78,10 +79,12 @@ function Get-BcContainerSession {
                 $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $winRmPassword -AsPlainText -force)
                 if ($useSSL) {
+                    Write-Host "use SSL"
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
                     $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
                 }
                 else {
+                    Write-Host "use HTTP"
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US'
                     $Session = New-PSSession -ConnectionUri "http://$($containerName):5985" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
                 }
