@@ -30,20 +30,27 @@ function Get-BcContainerSession {
         if ($platformVersion.Major -lt 24) {
             $usePwsh = $false
         }
+        Write-Host "PlatformVersion $platformVersion"
+        Write-Host "UsePwsh $usePwsh"
         $configurationName = 'Microsoft.PowerShell'
         if ($usePwsh) {
             $configurationName = 'PowerShell.7'
         }
+        Write-Host "ConfigurationName $configurationName"
         $cacheName = "$containerName-$configurationName"
+        Write-Host "CacheName $cacheName"
         if ($sessions.ContainsKey($cacheName)) {
+            Write-Host "found session"
             $session = $sessions[$cacheName]
             try {
+                Write-Host "invoke command"
                 Invoke-Command -Session $session -ScriptBlock { $PID } | Out-Null
                 if (!$reinit) {
                     return $session
                 }
             }
             catch {
+                Write-Host "remove session"
                 $sessions.Remove($cacheName)
                 $session = $null
             }
@@ -54,8 +61,11 @@ function Get-BcContainerSession {
             }
             elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
                 try {
+                    Write-Host "use ContainerId"
                     $containerId = Get-BcContainerId -containerName $containerName
+                    Write-Host "new session"
                     $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
+                    Write-Host "done"
                 }
                 catch {}
             }
