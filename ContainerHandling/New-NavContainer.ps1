@@ -1878,6 +1878,7 @@ if (-not `$restartingInstance) {
 
     Write-Host "Reading CustomSettings.config from $containerName"
     $customConfig = Get-BcContainerServerConfiguration -ContainerName $containerName
+    Write-Host "Config read"
     if ($customConfig.ServerInstance) {
         # Only if not -filesOnly
 

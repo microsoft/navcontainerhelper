@@ -78,6 +78,7 @@ function Get-BcContainerSession {
             }
             $newsession = $true
         }
+        Write-Host "Invoke command"
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
