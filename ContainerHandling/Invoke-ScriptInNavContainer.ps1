@@ -30,7 +30,6 @@ function Invoke-ScriptInBcContainer {
         [bool] $usePwsh = $bccontainerHelperConfig.usePwshForBc24
     )
 
-    Write-Host "usesession $usesession"
     $file = ''
     if (!$useSession) {
         $file = Join-Path $bcContainerHelperConfig.hostHelperFolder ([GUID]::NewGuid().Tostring()+'.ps1')
@@ -43,7 +42,6 @@ function Invoke-ScriptInBcContainer {
     if ($useSession) {
         try {
             $session = Get-BcContainerSession -containerName $containerName -silent -usePwsh:$usePwsh
-            Write-Host "got session"
         }
         catch {
             if ($isInsideContainer) {
@@ -56,7 +54,6 @@ function Invoke-ScriptInBcContainer {
             }
         }
     }
-    Write-Host "usesession is now $usesession"
     if ($useSession) {
         $startTime = [DateTime]::Now
         try {

@@ -37,27 +37,20 @@ function Get-BcContainerSession {
         if ($platformVersion.Major -lt 24) {
             $usePwsh = $false
         }
-        Write-Host "PlatformVersion $platformVersion"
-        Write-Host "UsePwsh $usePwsh"
         $configurationName = 'Microsoft.PowerShell'
         if ($usePwsh) {
             $configurationName = 'PowerShell.7'
         }
-        Write-Host "ConfigurationName $configurationName"
         $cacheName = "$containerName-$configurationName"
-        Write-Host "CacheName $cacheName"
         if ($sessions.ContainsKey($cacheName)) {
-            Write-Host "found session"
             $session = $sessions[$cacheName]
             try {
-                Write-Host "invoke command"
                 Invoke-Command -Session $session -ScriptBlock { $PID } | Out-Null
                 if (!$reinit) {
                     return $session
                 }
             }
             catch {
-                Write-Host "remove session"
                 $sessions.Remove($cacheName)
                 $session = $null
             }
@@ -68,11 +61,8 @@ function Get-BcContainerSession {
             }
             elseif ($isAdministrator -and !$alwaysUseWinRmSession) {
                 try {
-                    Write-Host "use ContainerId"
                     $containerId = Get-BcContainerId -containerName $containerName
-                    Write-Host "new session"
                     $session = New-PSSession -ContainerId $containerId -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
-                    Write-Host "done"
                 }
                 catch {}
             }
@@ -86,19 +76,16 @@ function Get-BcContainerSession {
                 $winRmPassword = "Bc$((Get-CimInstance win32_ComputerSystemProduct).UUID)!"
                 $credential = New-Object PSCredential -ArgumentList 'winrm', (ConvertTo-SecureString -string $winRmPassword -AsPlainText -force)
                 if ($useSSL) {
-                    Write-Host "use SSL"
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US' -SkipCACheck -SkipCNCheck
                     $Session = New-PSSession -ConnectionUri "https://$($containerName):5986" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
                 }
                 else {
-                    Write-Host "use HTTP"
                     $sessionOption = New-PSSessionOption -Culture 'en-US' -UICulture 'en-US'
                     $Session = New-PSSession -ConnectionUri "http://$($containerName):5985" -Credential $credential -Authentication Basic -SessionOption $sessionOption -ConfigurationName $configurationName
                 }
             }
             $newsession = $true
         }
-        Write-Host "Invoke command"
         Invoke-Command -Session $session -ScriptBlock { Param([bool]$silent)
 
             $ErrorActionPreference = 'Stop'
