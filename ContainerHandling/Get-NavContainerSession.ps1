@@ -26,7 +26,14 @@ function Get-BcContainerSession {
     Process {
         $newsession = $false
         $session = $null
-        [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+        $inspect = docker inspect $containerName | ConvertFrom-Json
+        if (!($inspect.Config.Labels.psobject.Properties.Name -eq 'maintainer' -and $inspect.Config.Labels.maintainer -eq "Dynamics SMB")) {
+            throw "Container $containerOrImageName is not a NAV/BC container"
+        }
+        [System.Version]$platformVersion = [System.Version]"$($inspect.Config.Labels.platform)"
+        if ($inspect.Config.Labels.PSObject.Properties.Name -eq 'filesonly' -and $inspect.Config.Labels.filesonly -eq 'yes') {
+            $tryWinRmSession = 'never'
+        }
         if ($platformVersion.Major -lt 24) {
             $usePwsh = $false
         }
