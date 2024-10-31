@@ -67,7 +67,6 @@ function Get-BcContainerSession {
                 catch {}
             }
             if (!$session) {
-                Write-Host "failed to create session - try WinRm"
                 if (!($alwaysUseWinRmSession -or $tryWinRmSession)) {
                     throw "Unable to create session for container $containerName (cannot use WinRm)"
 
