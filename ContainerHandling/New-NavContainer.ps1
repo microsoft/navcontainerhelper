@@ -1413,6 +1413,7 @@ try {
 
     if ($IsInsideContainer) {
         ('
+        Write-Host "--------------------------------------------------AdditionalSetup"
 if (!$restartingInstance) {
     $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My
     winrm create winrm/config/Listener?Address=*+Transport=HTTPS (''@{Hostname="dontcare"; CertificateThumbprint="'' + $cert.Thumbprint + ''"}'')
