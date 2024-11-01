@@ -2781,7 +2781,7 @@ $destFolder = Join-Path $buildArtifactFolder "TestApps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
-$testApps | ForEach-Object {
+$testApps+$bcptTestApps | ForEach-Object {
     Copy-Item -Path $_ -Destination $destFolder -Force
 }
 
