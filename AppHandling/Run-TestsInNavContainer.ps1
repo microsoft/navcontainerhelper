@@ -328,6 +328,10 @@ try {
                             $clientDllPath = "C:\Test Assemblies\Microsoft.Dynamics.Framework.UI.Client.dll"
                             if (!(Test-Path $myClientDllPath)) {
                                 Copy-Item -Path $clientDllPath -Destination $myClientDllPath
+                                $antiSSRFdll = Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'Microsoft.Internal.AntiSSRF.dll'
+                                if (Test-Path $antiSSRFdll) {
+                                    Copy-Item -Path $antiSSRFdll -Destination ([System.IO.Path]::GetDirectoryName($myClientDllPath))
+                                }
                             }
                         } -argumentList $newtonSoftDllPath, $clientDllPath
                     }
@@ -424,7 +428,7 @@ try {
                     }
                 }
 
-                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh $false -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [System.Management.Automation.PSCredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
+                $result = Invoke-ScriptInBcContainer -containerName $containerName -usePwsh ($version.Major -ge 26) -scriptBlock { Param([string] $tenant, [string] $companyName, [string] $profile, [System.Management.Automation.PSCredential] $credential, [string] $accessToken, [string] $testSuite, [string] $testGroup, [string] $testCodeunit, [string] $testCodeunitRange, [string] $testFunction, [string] $PsTestFunctionsPath, [string] $ClientContextPath, [string] $XUnitResultFileName, [bool] $AppendToXUnitResultFile, [string] $JUnitResultFileName, [bool] $AppendToJUnitResultFile, [bool] $ReRun, [string] $AzureDevOps, [string] $GitHubActions, [bool] $detailed, [timespan] $interactionTimeout, $testPage, $version, $culture, $timezone, $debugMode, $usePublicWebBaseUrl, $useUrl, $extensionId, $testRunnerCodeunitId, $disabledtests, $renewClientContextBetweenTests)
     
                     $newtonSoftDllPath = "C:\Program Files\Microsoft Dynamics NAV\*\Service\Management\Newtonsoft.Json.dll"
                     if (!(Test-Path $newtonSoftDllPath)) {

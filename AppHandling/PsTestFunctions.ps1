@@ -6,9 +6,14 @@
     [string] $clientContextScriptPath = $null
 )
 
+$antiSSRFdll = Join-Path ([System.IO.Path]::GetDirectoryName($clientDllPath)) 'Microsoft.Internal.AntiSSRF.dll'
+
 # Load DLL's
-Add-type -Path $clientDllPath
 Add-type -Path $newtonSoftDllPath
+if (Test-Path $antiSSRFdll) {
+    Add-Type -Path $antiSSRFdll
+}
+Add-type -Path $clientDllPath
 
 if (!($clientContextScriptPath)) {
     $clientContextScriptPath = Join-Path $PSScriptRoot "ClientContext.ps1"
