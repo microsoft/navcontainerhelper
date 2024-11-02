@@ -71,44 +71,29 @@ function Download-File {
     }
     else {
         $blobUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
-        if (useAzCopy -and $sourceUrl -ne $blobUrl) {
-            if ($dontOverwrite -and (Test-Path $destinationFile -PathType Leaf)) {
-                Write-Host "File already exists, skipping download"
-            }
-            else {
-                $output = azcopy copy $blobUrl $destinationFile --skip-version-check
-                if ($LASTEXITCODE -eq 0) {
-                    return
-                }
-                Write-Host $output
-                throw "AzCopy failed to download $blobUrl"
-            }
+        if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
+            # Do not use CDN when configured or bcinsider
+            $sourceUrl = $blobUrl
+            $timeout += $timeout
         }
-        else {
-            if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
-                # Do not use CDN when configured or bcinsider
-                $sourceUrl = $blobUrl
-                $timeout += $timeout
-            }
+        try {
+            DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+        }
+        catch {
             try {
-                DownloadFileLow -sourceUrl (ReplaceCDN -sourceUrl $sourceUrl) -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+                $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
+                if ($sourceUrl -eq $blobUrl) {
+                    Write-Host "Error downloading..., retrying in $waittime seconds..."
+                }
+                else {
+                    Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
+                    $timeout += $timeout
+                }
+                Start-Sleep -Seconds $waittime
+                DownloadFileLow -sourceUrl $blobUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
             }
             catch {
-                try {
-                    $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
-                    if ($sourceUrl -eq $blobUrl) {
-                        Write-Host "Error downloading..., retrying in $waittime seconds..."
-                    }
-                    else {
-                        Write-Host "Could not download from CDN..., retrying from blob storage in $waittime seconds..."
-                        $timeout += $timeout
-                    }
-                    Start-Sleep -Seconds $waittime
-                    DownloadFileLow -sourceUrl $blobUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
-                }
-                catch {
-                    throw (GetExtendedErrorMessage $_)
-                }
+                throw (GetExtendedErrorMessage $_)
             }
         }
     }

@@ -1,5 +1,4 @@
 6.0.28
-Increase performance when downloading artifacts by using azcopy if installed (set useAzCopy to true in settings to enable). This works best if your machine is in the same location as the storage account (Europe) - else the traditional mechanism using CDNs might be faster.
 Increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering (set useApproximateVersion to false in settings to disable)
 
 6.0.27
