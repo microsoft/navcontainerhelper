@@ -70,10 +70,9 @@ function Download-File {
         Invoke-WebRequest -UseBasicParsing -Uri $sourceUrl -OutFile $destinationFile
     }
     else {
-        $blobUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
         if ($bcContainerHelperConfig.DoNotUseCdnForArtifacts -or $sourceUrl -like 'https://bcinsider*.net/*') {
             # Do not use CDN when configured or bcinsider
-            $sourceUrl = $blobUrl
+            $sourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
             $timeout += $timeout
         }
         try {
@@ -82,7 +81,8 @@ function Download-File {
         catch {
             try {
                 $waittime = 2 + (Get-Random -Maximum 5 -Minimum 0)
-                if ($sourceUrl -eq $blobUrl) {
+                $newSourceUrl = ReplaceCDN -sourceUrl $sourceUrl -useBlobUrl
+                if ($sourceUrl -eq $newSourceUrl) {
                     Write-Host "Error downloading..., retrying in $waittime seconds..."
                 }
                 else {
@@ -90,7 +90,7 @@ function Download-File {
                     $timeout += $timeout
                 }
                 Start-Sleep -Seconds $waittime
-                DownloadFileLow -sourceUrl $blobUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
+                DownloadFileLow -sourceUrl $newSourceUrl -destinationFile $destinationFile -dontOverwrite:$dontOverwrite -timeout $timeout -headers $headers
             }
             catch {
                 throw (GetExtendedErrorMessage $_)
