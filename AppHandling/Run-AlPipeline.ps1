@@ -857,6 +857,7 @@ if ($doNotPublishApps) {
     # If we are not going to publish apps, we also cannot run upgrade tests or tests
     $doNotRunTests = $true
     $doNotRunBcptTests = $true
+    $doNotRunPageScriptingTests = $true
     $doNotPerformUpgrade = $true
 }
 
@@ -871,6 +872,7 @@ if ($doNotBuildTests) {
     $installPerformanceToolkit = $false
     $doNotRunTests = $true
     $doNotRunBcptTests = $true
+    $doNotRunPageScriptingTests = $true
 }
 
 if ($containerName -eq '' -or $filesOnly) {
@@ -2408,7 +2410,7 @@ Write-GroupEnd
 }
 }
 
-if (!($doNotRunTests -and $doNotRunBcptTests -and $doNotRunPageScriptingTests)) {
+if ($containerName -ne '' -and !($doNotRunTests -and $doNotRunBcptTests -and $doNotRunPageScriptingTests)) {
 if ($ImportTestDataInBcContainer) {
 Write-GroupStart -Message "Importing test data"
 Write-Host -ForegroundColor Yellow @'
