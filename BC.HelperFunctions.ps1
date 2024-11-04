@@ -118,6 +118,7 @@ function Get-ContainerHelperConfig {
             "IsGitHubActions" = ($env:GITHUB_ACTIONS -eq "true")
             "IsAzureDevOps" = ($env:TF_BUILD -eq "true")
             "IsGitLab" = ($env:GITLAB_CI -eq "true")
+            "useApproximateVersion" = $false
         }
 
         if ($isInsider) {
