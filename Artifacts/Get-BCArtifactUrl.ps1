@@ -147,7 +147,7 @@ try {
             # If Microsoft changes versioning schema, this needs to change (or useApproximateVersion should be set to false)
             $now = ([DateTime]::Now).AddDays(15)
             $approximateMajor = 23+2*($now.Year-2024)+($now.Month -ge 4)+($now.Month -ge 10)
-            $approximateMinor = ($now.Month - 4)%6
+            $approximateMinor = ($now.Month + 2)%6
             $artifactUrl = Get-BCArtifactUrl -country $country -version "$approximateMajor.$approximateMinor" -select Latest -doNotCheckPlatform:$doNotCheckPlatform
             if ($artifactUrl) {
                 # We found an artifact - check if it is the latest
