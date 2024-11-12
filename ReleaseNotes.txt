@@ -1,5 +1,8 @@
+6.0.29
+
 6.0.28
-Increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering (set useApproximateVersion to false in settings to disable)
+Set useApproximateVersion to true in settings to increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering on blobs
+Regression on Run-AlPipeline, when running containerless compile while having a ImportTestDataInBcContainer registered, would cause an error (AL-Go error 1291 and 1292)
 
 6.0.27
 Issue 3538 Compile-AppWithBcCompilerFolder fails when dependency does propagateDependencies
