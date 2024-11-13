@@ -1774,13 +1774,19 @@ Write-Host -ForegroundColor Yellow @'
     $appJsonChanges = $false
     $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
 
-    $prebuiltAppFileName = Join-Path $buildArtifactFolder ("$(if($app){"Apps"}else{"TestApps"})/$($appJson.Publisher)_$($appJson.Name)_".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '') + "*.*.*.*.app"
+    $prebuiltAppName = "$($appJson.Publisher)_$($appJson.Name)".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+    $prebuiltFolderName = Join-Path $buildArtifactFolder "$(if($app){"Apps"}else{"TestApps"})"
+    $prebuiltAppFileName = Join-Path $prebuiltFolderName "$($prebuiltAppName)_*.*.*.*.app"
     if (Test-Path $prebuiltAppFileName) {
         $prebuiltAppFileName = (Get-Item $prebuiltAppFileName).FullName
         if ($prebuiltAppFileName -is [Array]) {
             Write-Host "Multiple apps found for prebuilt app - rebuilding app!"
             $prebuiltAppFileName = ''
         }
+    }
+    else {
+        Write-Host "Prebuilt app $prebuiltAppFileName not found - building app!"
+        $prebuiltAppFileName = ''
     }
     if ($prebuiltAppFileName) {
         Write-Host "Using prebuilt app $prebuiltAppFileName"
