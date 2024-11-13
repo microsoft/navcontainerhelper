@@ -1824,10 +1824,12 @@ Write-Host -ForegroundColor Yellow @'
     $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
 
     $prebuiltAppFileName = ''
+    $prebuiltAppName = "$($appJson.Publisher)_$($appJson.Name)".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
+    Write-Host $prebuiltAppName
     if ($buildArtifactFolder) {
-        $prebuiltAppName = "$($appJson.Publisher)_$($appJson.Name)".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
         $prebuiltFolderName = Join-Path $buildArtifactFolder "$(if($app){"Apps"}else{"TestApps"})"
         $prebuiltAppFileName = Join-Path $prebuiltFolderName "$($prebuiltAppName)_*.*.*.*.app"
+        Write-Host "Test $prebuiltAppFileName"
         if (Test-Path $prebuiltAppFileName) {
             $prebuiltAppFileName = (Get-Item $prebuiltAppFileName).FullName
             if ($prebuiltAppFileName -is [Array]) {
