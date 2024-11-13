@@ -277,7 +277,7 @@ class NuGetFeed {
             if ($excludeVersions -contains $version) {
                 continue
             }
-            if (($select -eq 'Exact' -and [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange) -eq [NuGetFeed]::NormalizeVersionStr($version)) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange($version, $nuGetVersionRange))) {
+            if (($select -eq 'Exact' -and [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange) -eq [NuGetFeed]::NormalizeVersionStr($version)) -or ($select -ne 'Exact' -and [NuGetFeed]::IsVersionIncludedInRange([NuGetFeed]::NormalizeVersionStr($version), [NuGetFeed]::NormalizeVersionStr($nuGetVersionRange))) {
                 if ($nuGetVersionRange -eq '0.0.0.0') {
                     Write-Host "$select version is $version"
                 }
