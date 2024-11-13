@@ -1783,6 +1783,7 @@ Write-Host -ForegroundColor Yellow @'
         }
     }
     if ($prebuiltAppFileName) {
+        Write-Host "Using prebuilt app $prebuiltAppFileName"
         $prebuiltApps += @($prebuiltAppFileName)
         $appFile = $prebuiltAppFileName
     }
