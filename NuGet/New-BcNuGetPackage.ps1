@@ -286,7 +286,11 @@ Function New-BcNuGetPackage {
         if (Test-Path $nuPkgFile -PathType Leaf) {
             Remove-Item $nupkgFile -Force
         }
-        Compress-Archive -Path "$rootFolder\*" -DestinationPath "$nupkgFile.zip" -Force
+        if (Test-Path "$nupkgFile.zip" -PathType Leaf) {
+            Remove-Item "$nupkgFile.zip" -Force
+        }
+        Add-Type -AssemblyName System.IO.Compression.FileSystem
+        [System.IO.Compression.ZipFile]::CreateFromDirectory("$rootFolder", "$nupkgFile.zip", [System.IO.Compression.CompressionLevel]::Optimal, $false)
         Rename-Item -Path "$nupkgFile.zip" -NewName $nuPkgFileName
         
         $size = (Get-Item $nupkgFile).Length

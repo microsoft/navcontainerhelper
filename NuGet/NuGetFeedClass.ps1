@@ -353,17 +353,19 @@ class NuGetFeed {
             "X-NuGet-ApiKey" = $this.token
             "X-NuGet-Client-Version" = "6.3.0"
         }
-        $FileContent = [System.IO.File]::ReadAllBytes($package)
-        $boundary = [System.Guid]::NewGuid().ToString(); 
+        $boundary = [System.Guid]::NewGuid().ToString();
         $LF = "`r`n";
-        
-        $body  = [System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF")
-        $body += [System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)")
-        $body += $fileContent
-        $body += [System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF")
-        
         $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
-        [System.IO.File]::WriteAllBytes($tmpFile, $body)
+        $fs = [System.IO.File]::OpenWrite($tmpFile)
+        try {
+            $fs.Write([System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF"))
+            $fs.Write([System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)"))
+            $fs.Write([System.IO.File]::ReadAllBytes($package))
+            $fs.Write([System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF"))
+        } finally {
+            $fs.Close()
+        }
+        
         Write-Host "Submitting NuGet package"
         try {
             Invoke-RestMethod -UseBasicParsing -Uri $this.packagePublishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
