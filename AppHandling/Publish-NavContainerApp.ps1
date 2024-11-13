@@ -288,7 +288,7 @@ try {
                 }
             }
             else {
-                [ScriptBlock] $scriptblock = { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists)
+                [ScriptBlock] $scriptblock = { Param($appFile, $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists, $version)
                     $prevPreference = $ProgressPreference; $ProgressPreference = "SilentlyContinue"
                     $publishArgs = @{ "packageType" = $packageType }
                     if ($scope) {
@@ -328,7 +328,21 @@ try {
             
                     if ($publishIt) {
                         Write-Host "Publishing $appFile"
-                        Publish-NavApp -ServerInstance $ServerInstance -Path $appFile -SkipVerification:$SkipVerification @publishArgs
+                        $publishArgs += @{"serverInstance" = $serverInstance; "Path" = $appFile; "SkipVerification" = $skipVerification.IsPresent}
+                        if ($PSVersionTable.PSVersion.Major -lt 7 -and $version.Major -ge 24) {
+                            # GIANT HACK AHEAD...
+                            # To cope with this issue https://github.com/microsoft/navcontainerhelper/issues/3591 where the PS5 bridge to PS7 hangs when calling Publish-NavApp directly
+                            # and due to https://github.com/microsoft/navcontainerhelper/issues/3575 and https://github.com/PowerShell/PowerShell/issues/23982 we cannot use -usepwsh:$true
+                            $command = '$serviceTierFolder = (Get-Item ''C:\Program Files\Microsoft Dynamics NAV\*\Service'').FullName;Import-Module (Join-Path $serviceTierFolder ''Admin\Microsoft.Dynamics.Nav.Management.psm1'');Import-Module (Join-Path $serviceTierFolder ''Admin\Microsoft.BusinessCentral.Management.psd1'');Import-Module (Join-Path $serviceTierFolder ''Admin\Microsoft.BusinessCentral.Apps.Management.dll'');'
+                            $command += "Publish-NavApp $(($publishArgs.Keys | ForEach-Object { $v=$publishArgs."$_"; if($v -is [boolean]){"-$($_):`$$($publishArgs."$_")"}elseif($v -is [string]){"-$($_):'$($publishArgs."$_")'"}else{"-$($_):$($publishArgs."$_")"} }) -join ' ')"
+                            pwsh -command "$($command.Replace('"','""'))" | Out-Host
+                            if ($LASTEXITCODE -ne 0) {
+                                throw "Publish-NavApp failed"
+                            }
+                        }
+                        else {
+                            Publish-NavApp @publishArgs
+                        }
                     }
         
                     if ($sync -or $install -or $upgrade) {
@@ -379,7 +393,7 @@ try {
                 Invoke-ScriptInBcContainer `
                     -containerName $containerName `
                     -ScriptBlock $scriptblock `
-                    -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists
+                    -ArgumentList (Get-BcContainerPath -containerName $containerName -path $appFile), $skipVerification, $sync, $install, $upgrade, $tenant, $syncMode, $packageType, $scope, $language, $PublisherAzureActiveDirectoryTenantId, $force, $ignoreIfAppExists, $version
             }
             Write-Host -ForegroundColor Green "App $([System.IO.Path]::GetFileName($appFile)) successfully published"
         }

@@ -1,4 +1,5 @@
 6.0.29
+Issue 3591 When using Publish-NAVApp to publish an app, which fails compilation in the service, the command might hang forever - the fix for this is a temporary hack put in place for the versions which doesn't work.
 
 6.0.28
 Set useApproximateVersion to true in settings to increase performance of Get-BcArtifactUrl when selecting latest artifact, by using an approximate filtering on blobs
