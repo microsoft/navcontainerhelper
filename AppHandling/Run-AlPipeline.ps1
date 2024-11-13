@@ -6,7 +6,7 @@
  .Parameter pipelineName
   The name of the pipeline or project.
  .Parameter baseFolder
-  The baseFolder serves as the base Folder for all other parameters including a path (appFolders, testFolders, testResultFile, outputFolder, packagesFolder and buildArtifactsFodler). This folder will be shared with the container as c:\sources
+  The baseFolder serves as the base Folder for all other parameters including a path (appFolders, testFolders, testResultFile, outputFolder, packagesFolder and buildArtifactFolder). This folder will be shared with the container as c:\sources
  .Parameter sharedFolder
   If a folder on the host computer is specified in the sharedFolder parameter, it will be shared with the container as c:\shared
  .Parameter licenseFile
@@ -1602,6 +1602,7 @@ Measure-Command {
 $previousAppsCopied = $false
 $previousAppInfos = @()
 $appsFolder = @{}
+$prebuiltApps = @()
 $apps = @()
 $testApps = @()
 $bcptTestApps = @()
@@ -1769,6 +1770,23 @@ Write-Host -ForegroundColor Yellow @'
 '@
     }
 
+    $appJsonFile = Join-Path $folder "app.json"
+    $appJsonChanges = $false
+    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+
+    $prebuiltAppFileName = Join-Path $buildArtifactFolder ("$(if($app){"Apps"}else{"TestApps"})/$($appJson.Publisher)_$($appJson.Name)_".Split([System.IO.Path]::GetInvalidFileNameChars()) -join '') + "*.*.*.*.app"
+    if (Test-Path $prebuiltAppFileName) {
+        $prebuiltAppFileName = (Get-Item $prebuiltAppFileName).FullName
+        if ($prebuiltAppFileName -is [Array]) {
+            Write-Host "Multiple apps found for prebuilt app - rebuilding app!"
+            $prebuiltAppFileName = ''
+        }
+    }
+    if ($prebuiltAppFileName) {
+        $prebuiltApps += @($prebuiltAppFileName)
+        $appFile = $prebuiltAppFileName
+    }
+    else {
     $Parameters = @{ }
     $CopParameters = @{ }
 
@@ -1836,9 +1854,6 @@ Write-Host -ForegroundColor Yellow @'
         Write-Host -ForegroundColor Yellow "WARNING: A Test App cannot be published to production tenants online"
     }
 
-    $appJsonFile = Join-Path $folder "app.json"
-    $appJsonChanges = $false
-    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
     if ($appVersion -or $appBuild -or $appRevision) {
         if ($appVersion) {
             $version = [System.Version]"$($appVersion).$($appBuild).$($appRevision)"
@@ -2121,6 +2136,7 @@ Write-Host -ForegroundColor Yellow @'
 
         Invoke-Command -ScriptBlock $PostCompileApp -ArgumentList $appFile, $appType, $compilationParams
     }
+    }
 
     if ($useDevEndpoint) {
 
@@ -2228,7 +2244,7 @@ Write-Host -ForegroundColor Yellow @'
           |___/               |___/        |_|   |_|
 '@
 Measure-Command {
-$apps | ForEach-Object {
+$apps | Where-Object { $prebuiltApps -notcontains $_ } | ForEach-Object {
 
     $Parameters = @{
         "containerName" = $containerName
@@ -2776,14 +2792,14 @@ $destFolder = Join-Path $buildArtifactFolder "Apps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
-$apps | ForEach-Object {
+$apps | Where-Object { $prebuiltApps -notcontains $_ } | ForEach-Object {
     Copy-Item -Path $_ -Destination $destFolder -Force
 }
 $destFolder = Join-Path $buildArtifactFolder "TestApps"
 if (!(Test-Path $destFolder -PathType Container)) {
     New-Item $destFolder -ItemType Directory | Out-Null
 }
-$testApps+$bcptTestApps | ForEach-Object {
+$testApps+$bcptTestApps | Where-Object { $prebuiltApps -notcontains $_ } | ForEach-Object {
     Copy-Item -Path $_ -Destination $destFolder -Force
 }
 
