@@ -1681,6 +1681,12 @@ Measure-Command {
             "doNotUseRuntimePackages" = $true
             "useDevEndpoint" = $useDevEndpoint
         }
+        if ($createContainer) {
+            $Parameters += @{ "containerName" = (GetBuildContainer) }
+        }
+        if ($useCompilerFolder) {
+            $Parameters += @{ "compilerFolder" = (GetCompilerFolder) }
+        }
         if ($bcAuthContext) {
             $Parameters += @{
                 "bcAuthContext" = $bcAuthContext
