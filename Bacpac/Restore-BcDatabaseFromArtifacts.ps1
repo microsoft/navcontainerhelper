@@ -60,7 +60,7 @@ try {
     $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\Import-BcContainerHelper.ps1")).FullName
     Write-Host $containerHelperPath
 
-    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout )
+    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $sqlModuleToUse )
         $ErrorActionPreference = "Stop"
         try {
             . "$containerHelperPath"
@@ -228,7 +228,7 @@ try {
             throw
         }
     
-    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout
+    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $sqlModuleToUse
 
     if (!$async) {
         While ($job.State -eq "Running") {
