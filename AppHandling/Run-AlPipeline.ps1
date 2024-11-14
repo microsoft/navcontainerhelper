@@ -1825,11 +1825,9 @@ Write-Host -ForegroundColor Yellow @'
 
     $prebuiltAppFileName = ''
     $prebuiltAppName = "$($appJson.Publisher)_$($appJson.Name)".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-    Write-Host $prebuiltAppName
     if ($buildArtifactFolder) {
         $prebuiltFolderName = Join-Path $buildArtifactFolder "$(if($app){"Apps"}else{"TestApps"})"
         $prebuiltAppFileName = Join-Path $prebuiltFolderName "$($prebuiltAppName)_*.*.*.*.app"
-        Write-Host "Test $prebuiltAppFileName"
         if (Test-Path $prebuiltAppFileName) {
             $prebuiltAppFileName = (Get-Item $prebuiltAppFileName).FullName
             if ($prebuiltAppFileName -is [Array]) {
@@ -1838,7 +1836,6 @@ Write-Host -ForegroundColor Yellow @'
             }
         }
         else {
-            Write-Host "Prebuilt app $prebuiltAppFileName not found - building app!"
             $prebuiltAppFileName = ''
         }
     }
