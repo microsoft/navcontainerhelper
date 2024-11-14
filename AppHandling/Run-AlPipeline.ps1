@@ -1842,10 +1842,19 @@ Write-Host -ForegroundColor Yellow @'
             $prebuiltAppFileName = ''
         }
     }
+    if ($useDevEndpoint) {
+        $appPackagesFolder = Join-Path $folder ".alPackages"
+        $appOutputFolder = $folder
+    }
+    else {
+        $appPackagesFolder = $packagesFolder
+        $appOutputFolder = $outputFolder
+    }
     if ($prebuiltAppFileName) {
         Write-Host "Using prebuilt app $prebuiltAppFileName"
         $prebuiltApps += @($prebuiltAppFileName)
         $appFile = $prebuiltAppFileName
+        Copy-Item -Path $appFile -Destination $appPackagesFolder -Force
     }
     else {
     $Parameters = @{ }
@@ -1969,13 +1978,7 @@ Write-Host -ForegroundColor Yellow @'
         [System.IO.File]::WriteAllLines($appJsonFile, $appJsonContent)
     }
 
-    if ($useDevEndpoint) {
-        $appPackagesFolder = Join-Path $folder ".alPackages"
-        $appOutputFolder = $folder
-    }
-    else {
-        $appPackagesFolder = $packagesFolder
-        $appOutputFolder = $outputFolder
+    if (!$useDevEndpoint) {
         $Parameters += @{ "CopyAppToSymbolsFolder" = $true }
     }
 
