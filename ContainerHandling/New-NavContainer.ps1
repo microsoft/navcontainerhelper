@@ -179,6 +179,8 @@
   Use Get-AlLanguageExtensionFromArtifacts -artifactUrl (Get-BCArtifactUrl -select NextMajor -accept_insiderEula) to get latest insider .vsix
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
+ .Parameter sqlModuleToUse
+  SQL The SQL PowerShell module to use. The options are sqlps and sqlserver. The default is sqlps.
  .Example
   New-BcContainer -accept_eula -containerName test
  .Example
@@ -287,7 +289,8 @@ function New-BcContainer {
         [switch] $doNotUseRuntimePackages = $true,
         [string] $vsixFile = "",
         [string] $applicationInsightsKey,
-        [scriptblock] $finalizeDatabasesScriptBlock
+        [scriptblock] $finalizeDatabasesScriptBlock,
+        [ValidateSet('sqlps','sqlserver')][String] $sqlModuleToUse = "sqlps"
     )
 
 $telemetryScope = InitTelemetryScope `
@@ -526,7 +529,7 @@ try {
                 $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
             }
             Remove-BcDatabase -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName "$($databasePrefix)%"
-            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -bakFile $bakFile -async
+            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -bakFile $bakFile -sqlModuleToUse $sqlModuleToUse -async
             $createTenantAndUserInExternalDatabase = $true
             $bakFile = ""
             $successFileName = Join-Path $bcContainerHelperConfig.containerHelperFolder "$($databasePrefix)databasescreated.txt"
