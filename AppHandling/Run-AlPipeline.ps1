@@ -2434,14 +2434,16 @@ if (!($bcAuthContext)) {
 $upgradedApps = @()
 $apps | ForEach-Object {
 
-    $folder = $appsFolder[$_]
-    $appJsonFile = Join-Path $folder "app.json"
-    $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-    $upgradedApps += @($appJson.Id.ToLowerInvariant())
-
     $installedApp = $false
-    if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
-        $installedApp = $true
+    $folder = $appsFolder[$_]
+    if ($folder) {
+        $appJsonFile = Join-Path $folder "app.json"
+        $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
+        $upgradedApps += @($appJson.Id.ToLowerInvariant())
+    
+        if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
+            $installedApp = $true
+        }
     }
 
     $Parameters = @{
@@ -2449,7 +2451,7 @@ $apps | ForEach-Object {
         "tenant" = $tenant
         "credential" = $credential
         "appFile" = $_
-        "skipVerification" = !$signApps
+        "skipVerification" = ($null -eq $folder) -or !$signApps
         "sync" = $true
         "install" = !$installedApp
         "upgrade" = $installedApp
