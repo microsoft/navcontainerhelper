@@ -1502,12 +1502,16 @@ Measure-Command {
         "doNotUseRuntimePackages" = $true
         "useDevEndpoint" = $useDevEndpoint
     }
-    if ($createContainer) {
+    if ($useCompilerFolder) {
+        $Parameters += @{ "compilerFolder" = (GetCompilerFolder); "appSymbolsFolder" = $packagesFolder }
+    }
+    elseif ($createContainer) {
         $Parameters += @{ "containerName" = (GetBuildContainer) }
     }
-    if ($useCompilerFolder) {
-        $Parameters += @{ "compilerFolder" = (GetCompilerFolder) }
+    else {
+        throw "Neither useCompilerFolder nor createContainer is set"
     }
+
     if ($bcAuthContext) {
         $Parameters += @{
             "bcAuthContext" = $bcAuthContext
@@ -1679,11 +1683,14 @@ Measure-Command {
             "doNotUseRuntimePackages" = $true
             "useDevEndpoint" = $useDevEndpoint
         }
-        if ($createContainer) {
+        if ($useCompilerFolder) {
+            $Parameters += @{ "compilerFolder" = (GetCompilerFolder); "appSymbolsFolder" = $packagesFolder }
+        }
+        elseif ($createContainer) {
             $Parameters += @{ "containerName" = (GetBuildContainer) }
         }
-        if ($useCompilerFolder) {
-            $Parameters += @{ "compilerFolder" = (GetCompilerFolder) }
+        else {
+            throw "Neither useCompilerFolder nor createContainer is set"
         }
         if ($bcAuthContext) {
             $Parameters += @{

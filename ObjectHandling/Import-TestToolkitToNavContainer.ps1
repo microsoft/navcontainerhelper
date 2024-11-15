@@ -68,8 +68,8 @@ function Import-TestToolkitToBcContainer {
         [switch] $useDevEndpoint,
         [hashtable] $replaceDependencies = $null,
         [Hashtable] $bcAuthContext,
+        [string] $appSymbolsFolder,
         [string] $environment
-
     )
 
 $telemetryScope = InitTelemetryScope `
@@ -120,6 +120,12 @@ try {
             }
         }
         Write-Host -ForegroundColor Green "TestToolkit successfully published"
+    }
+    elseif ($compilerFolder) {
+        $appFiles = GetTestToolkitApps -compilerFolder $compilerFolder -includeTestRunnerOnly:$includeTestRunnerOnly -includeTestFrameworkOnly:$includeTestFrameworkOnly -includeTestLibrariesOnly:$includeTestLibrariesOnly -includePerformanceToolkit:$includePerformanceToolkit
+        $appFiles | ForEach-Object {
+            Copy-Item -Path $_ -Destination $appSymbolsFolder -Force
+        }
     }
     else {
         $inspect = docker inspect $containerName | ConvertFrom-Json
