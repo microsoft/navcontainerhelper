@@ -1684,7 +1684,7 @@ Measure-Command {
     }
     if ($useCompilerFolder -and !$bcAuthContext) {
         Write-Host "Get TestToolkit Apps"
-        $testApps = GetTestToolkitApps -compilerFolder $compilerFolder @Parameters
+        $testApps = GetTestToolkitApps @Parameters
     }
     else {
         if ($createContainer) {
