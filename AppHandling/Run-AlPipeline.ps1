@@ -478,8 +478,7 @@ function GetInstalledAppIds {
     Param(
         [bool] $useCompilerFolder,
         [string] $packagesFolder,
-        [bool] $filesOnly,
-        [hashtable] $Parameters
+        [bool] $filesOnly
     )
     if ($useCompilerFolder) {
         $compilerFolder = (GetCompilerFolder)
@@ -498,6 +497,10 @@ function GetInstalledAppIds {
         }
     }
     else {
+        $Parameters = @{
+            "containerName" = (GetBuildContainer)
+            "tenant" = $tenant
+        }
         $installedApps = @(Invoke-Command -ScriptBlock $GetBcContainerAppInfo -ArgumentList $Parameters)
     }
     Write-GroupStart -Message "Installed Apps"
@@ -1439,11 +1442,7 @@ Write-GroupEnd
 }
 
 if ($InstallMissingDependencies) {
-$Parameters = @{
-    "containerName" = (GetBuildContainer)
-    "tenant" = $tenant
-}
-$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder -Parameters $Parameters)
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
 $missingAppDependencies = @($missingAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingAppDependencies) {
 Write-GroupStart -Message "Installing app dependencies"
@@ -1592,11 +1591,7 @@ Write-GroupEnd
 
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
-$Parameters = @{
-    "containerName" = (GetBuildContainer)
-    "tenant" = $tenant
-}
-$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder -Parameters $Parameters)
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
@@ -1772,11 +1767,7 @@ Measure-Command {
 Write-GroupEnd
 
 if ($InstallMissingDependencies) {
-$Parameters = @{
-    "containerName" = (GetBuildContainer)
-    "tenant" = $tenant
-}
-$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder -Parameters $Parameters)
+$installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -packagesFolder $packagesFolder)
 $missingTestAppDependencies = @($missingTestAppDependencies | Where-Object { $installedAppIds -notcontains $_ })
 if ($missingTestAppDependencies) {
 Write-GroupStart -Message "Installing test app dependencies"
