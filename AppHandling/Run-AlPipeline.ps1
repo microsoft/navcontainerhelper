@@ -1241,10 +1241,9 @@ $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
-#TODO
-if ( $artifactUrl -and !$reUseContainer -and $createContainer) {
-# pull
-}
+$apps = @()
+$testApps = @()
+$bcptTestApps = @()
 
 $err = $null
 $prevProgressPreference = $progressPreference
@@ -1388,6 +1387,7 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
+                $apps += @($_)
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
                     Write-Host -NoNewline " and dependencies folder"
@@ -1459,9 +1459,16 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
     Write-Host "Missing App dependencies"
     $missingAppDependencies | ForEach-Object { Write-Host "- $_" }
+    if ($useCompilerFolder) {
+        $appSymbolsFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+        New-Item -Path $appSymbolsFolder -ItemType Directory -Force | Out-Null
+    }
+    else {
+        $appSymbolsFolder = $packagesFolder
+    }
     $Parameters = @{
         "missingDependencies" = @($unknownAppDependencies | Where-Object { $missingAppDependencies -contains "$_".Split(':')[0] })
-        "appSymbolsFolder" = $packagesFolder
+        "appSymbolsFolder" = $appSymbolsFolder
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
@@ -1475,6 +1482,14 @@ Measure-Command {
         }
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+    if ($useCompilerFolder) {
+        Write-Host "check $appSymbolsFolder"
+        Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
+            Write-Host "Move $($_.Name)"
+            Move-Item -Path $_.FullName -Destination $packagesFolder -Force
+        }
+        Remove-Item -Path $appSymbolsFolder -Recurse -Force
+    }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling app dependencies took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
@@ -1556,6 +1571,11 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
+        elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
+            CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
+                $apps += @($_)
+            }
+        }
         else {
             $Parameters = @{
                 "containerName" = (GetBuildContainer)
@@ -1580,17 +1600,12 @@ Measure-Command {
             if (!$doNotPublishApps) {
                 Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
             }
-            if (!$testCountry -and $useCompilerFolder) {
-                Copy-AppFilesToCompilerFolder -compilerFolder (GetCompilerFolder) -appFiles $Parameters.appFile
-            }
         }
     }
-
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
 }
-
 
 if ((($testCountry) -or !($appFolders -or $testFolders -or $bcptTestFolders)) -and ($InstallMissingDependencies)) {
 $installedAppIds = @(GetInstalledAppIds -useCompilerFolder $useCompilerFolder -filesOnly $filesOnly -compilerFolder (GetCompilerFolder) -packagesFolder $packagesFolder)
@@ -1610,9 +1625,16 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
     Write-Host "Missing TestApp dependencies"
     $missingTestAppDependencies | ForEach-Object { Write-Host "- $_" }
+    if ($useCompilerFolder) {
+        $appSymbolsFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
+        New-Item -Path $appSymbolsFolder -ItemType Directory -Force | Out-Null
+    }
+    else {
+        $appSymbolsFolder = $packagesFolder
+    }
     $Parameters = @{
         "missingDependencies" = @($unknownTestAppDependencies | Where-Object { $missingTestAppDependencies -contains "$_".Split(':')[0] })
-        "appSymbolsFolder" = $packagesFolder
+        "appSymbolsFolder" = $appSymbolsFolder
     }
     if (!($useCompilerFolder -or $filesOnly)) {
         $Parameters += @{
@@ -1621,6 +1643,10 @@ Measure-Command {
         }
     }
     Invoke-Command -ScriptBlock $InstallMissingDependencies -ArgumentList $Parameters
+    if ($useCompilerFolder) {
+        Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
+        Remove-Item -Path $appSymbolsFolder -Recurse -Force
+    }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
 }
@@ -1648,9 +1674,6 @@ $previousAppsCopied = $false
 $previousAppInfos = @()
 $appsFolder = @{}
 $prebuiltApps = @()
-$apps = @()
-$testApps = @()
-$bcptTestApps = @()
 $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object {
     $folder = $_
 
