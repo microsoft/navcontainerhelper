@@ -1672,40 +1672,41 @@ Write-Host -ForegroundColor Yellow @'
                  |_|                           |___/
 '@
 Measure-Command {
-        $measureText = ", test apps and importing test toolkit"
-        $Parameters = @{
-            "includeTestLibrariesOnly" = $installTestLibraries
-            "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
-            "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
-            "includePerformanceToolkit" = $installPerformanceToolkit
-        }
-        if ($useCompilerFolder) {
-            $Parameters += @{ "compilerFolder" = (GetCompilerFolder) }
-        }
-        if (!$bcAuthContext) {
-            $testApps = GetTestToolkitApps -compilerFolder $compilerFolder @Parameters
-        }
-        else {
-            if ($createContainer) {
-                $Parameters += @{
-                    "containerName" = (GetBuildContainer)
-                    "doNotUseRuntimePackages" = $true
-                    "useDevEndpoint" = $useDevEndpoint
-                }
+    $measureText = ", test apps and importing test toolkit"
+    $Parameters = @{
+        "includeTestLibrariesOnly" = $installTestLibraries
+        "includeTestFrameworkOnly" = !$installTestLibraries -and ($installTestFramework -or $installPerformanceToolkit)
+        "includeTestRunnerOnly" = !$installTestLibraries -and !$installTestFramework -and ($installTestRunner -or $installPerformanceToolkit)
+        "includePerformanceToolkit" = $installPerformanceToolkit
+    }
+    if ($useCompilerFolder) {
+        $Parameters += @{ "compilerFolder" = (GetCompilerFolder) }
+    }
+    if ($useCompilerFolder -and !$bcAuthContext) {
+        Write-Host "Get TestToolkit Apps"
+        $testApps = GetTestToolkitApps -compilerFolder $compilerFolder @Parameters
+    }
+    else {
+        if ($createContainer) {
+            $Parameters += @{
+                "containerName" = (GetBuildContainer)
+                "doNotUseRuntimePackages" = $true
+                "useDevEndpoint" = $useDevEndpoint
             }
-            if ($bcAuthContext) {
-                $Parameters += @{
-                    "bcAuthContext" = $bcAuthContext
-                    "environment" = $environment
-                }
-            } elseif ($useDevEndpoint) {
-                $Parameters += @{
-                    "credential" = $credential
-                }
-            }
-            Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
         }
-        $testToolkitInstalled = $true
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
+        } elseif ($useDevEndpoint) {
+            $Parameters += @{
+                "credential" = $credential
+            }
+        }
+        Invoke-Command -ScriptBlock $ImportTestToolkitToBcContainer -ArgumentList $Parameters
+    }
+    $testToolkitInstalled = $true
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
 
 if ($installTestApps) {
