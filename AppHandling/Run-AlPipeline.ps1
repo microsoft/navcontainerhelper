@@ -525,6 +525,7 @@ function PullGenericImage {
                           |___/   |___/                                                 |___/
 
 '@
+        Get-PSCallStack | ForEach-Object { Write-Host "$($_.FunctionName) Line $($_.ScriptLineNumber)" }
         if (!$useGenericImage) {
             $Parameters = @{
                 "filesOnly" = $filesOnly
@@ -560,6 +561,7 @@ function GetBuildContainer {
                                     |___/
 
 '@
+        Get-PSCallStack | ForEach-Object { Write-Host "$($_.FunctionName) Line $($_.ScriptLineNumber)" }
         $Parameters = @{}
         $useExistingContainer = $false
         if ($createContainer -and ($filesOnly -or !$doNotPublishApps)) {
@@ -703,6 +705,7 @@ function GetCompilerFolder {
                                      __/ |                       | |
                                     |___/                        |_|
 '@
+        Get-PSCallStack | ForEach-Object { Write-Host "$($_.FunctionName) Line $($_.ScriptLineNumber)" }
         Write-Host "Creating CompilerFolder '$artifactUrl'"
         $compilerFolder = New-BcCompilerFolder `
             -artifactUrl $artifactUrl `
