@@ -2977,7 +2977,7 @@ Write-Host -ForegroundColor Yellow @'
 }
 Measure-Command {
 
-    if (!$doNotPublishApps) {
+    if (!$doNotPublishApps -and ($script:existingContainerName)) {
         $containerName = GetBuildContainer
         if ($containerName) {
             if (!$filesOnly -and $containerEventLogFile) {
