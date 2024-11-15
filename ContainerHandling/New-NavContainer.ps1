@@ -180,7 +180,7 @@
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
  .Parameter useSqlServerModule
-  Switch, forces the use of the sqlserver module instead of the sqlps module
+  Switch, forces the use of the sqlserver module instead of the sqlps module. Default is to use the sqlps module. The default can be changed in the bcContainerHelperConfig file by setting "useSqlServerModule" = $false.
  .Example
   New-BcContainer -accept_eula -containerName test
  .Example
@@ -290,7 +290,7 @@ function New-BcContainer {
         [string] $vsixFile = "",
         [string] $applicationInsightsKey,
         [scriptblock] $finalizeDatabasesScriptBlock,
-        [switch] $useSqlServerModule
+        [switch] $useSqlServerModule = $bcContainerHelperConfig.useSqlServerModule
     )
 
 $telemetryScope = InitTelemetryScope `
@@ -529,7 +529,7 @@ try {
                 $multitenant = $bcContainerHelperConfig.sandboxContainersAreMultitenantByDefault
             }
             Remove-BcDatabase -databaseServer $databaseServer -databaseInstance $databaseInstance -databaseName "$($databasePrefix)%"
-            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -bakFile $bakFile -useSqlServerModule $useSqlServerModule -async
+            Restore-BcDatabaseFromArtifacts -artifactUrl $artifactUrl -databaseServer $databaseServer -databaseInstance $databaseInstance -databasePrefix $databasePrefix -databaseName $databaseName -multitenant:$multitenant -bakFile $bakFile -useSqlServerModule:$useSqlServerModule.IsPresent -async
             $createTenantAndUserInExternalDatabase = $true
             $bakFile = ""
             $successFileName = Join-Path $bcContainerHelperConfig.containerHelperFolder "$($databasePrefix)databasescreated.txt"

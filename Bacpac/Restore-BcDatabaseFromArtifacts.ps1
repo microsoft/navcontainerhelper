@@ -23,7 +23,7 @@
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
  .Parameter useSqlServerModule
-  Switch, forces the use of the sqlserver module instead of the sqlps module
+  Switch, forces the use of the sqlserver module instead of the sqlps module. Default is to use the sqlps module. The default can be changed in the bcContainerHelperConfig file by setting "useSqlServerModule" = $false.
 #>
 function Restore-BcDatabaseFromArtifacts {
     Param(
@@ -42,7 +42,7 @@ function Restore-BcDatabaseFromArtifacts {
         [switch] $multitenant,
         [switch] $async,
         [int] $sqlTimeout = -1,
-        [switch] $useSqlServerModule
+        [switch] $useSqlServerModule = $bcContainerHelperConfig.useSqlServerModule
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -101,6 +101,7 @@ try {
             if ($multitenant) {
                 $dbName = "$($databasePrefix)tenant"
             }
+            $sqlpsModule = $null
             if(-not $useSqlServerModule) {
                 Import-Module sqlps -ErrorAction SilentlyContinue
                 $sqlpsModule = get-module sqlps
@@ -227,7 +228,7 @@ try {
             throw
         }
     
-    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule
+    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule.IsPresent
 
     if (!$async) {
         While ($job.State -eq "Running") {
