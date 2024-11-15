@@ -1487,6 +1487,7 @@ Measure-Command {
         Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
             Write-Host "Move $($_.Name)"
             Move-Item -Path $_.FullName -Destination $packagesFolder -Force
+            $apps += @(Join-Path $packagesFolder $_.Name)
         }
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
     }
@@ -1646,6 +1647,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
+        $testapps += @(Join-Path $packagesFolder $_.Name)
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
@@ -1707,7 +1709,7 @@ Measure-Command {
     }
     if ($useCompilerFolder -and !$bcAuthContext) {
         Write-Host "Get TestToolkit Apps"
-        $testApps = GetTestToolkitApps @Parameters
+        $testApps += GetTestToolkitApps @Parameters
     }
     else {
         if ($createContainer) {
