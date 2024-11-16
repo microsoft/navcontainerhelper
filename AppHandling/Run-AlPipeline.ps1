@@ -1712,7 +1712,7 @@ Measure-Command {
     }
     if ($useCompilerFolder -and !$bcAuthContext) {
         Write-Host "Get TestToolkit Apps"
-        $testApps += GetTestToolkitApps @Parameters
+        $appsBeforeTestApps += GetTestToolkitApps @Parameters
     }
     else {
         if ($createContainer) {
