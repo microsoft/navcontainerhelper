@@ -22,6 +22,8 @@
   Include this parameter if you want to restore the database asynchronous. A file called <databasePrefix>databasescreated.txt will be created in the containerhelper folder when done
  .Parameter sqlTimeout
   SQL Timeout for database restore operations
+ .Parameter useSqlServerModule
+  Switch, forces the use of the sqlserver module instead of the sqlps module. Default is to use the sqlps module. The default can be changed in the bcContainerHelperConfig file by setting "useSqlServerModule" = $false.
 #>
 function Restore-BcDatabaseFromArtifacts {
     Param(
@@ -39,7 +41,8 @@ function Restore-BcDatabaseFromArtifacts {
         [string] $bakFile,
         [switch] $multitenant,
         [switch] $async,
-        [int] $sqlTimeout = -1
+        [int] $sqlTimeout = -1,
+        [switch] $useSqlServerModule = $bcContainerHelperConfig.useSqlServerModule
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -57,7 +60,7 @@ try {
     $containerHelperPath = (Get-Item (Join-Path $PSScriptRoot "..\Import-BcContainerHelper.ps1")).FullName
     Write-Host $containerHelperPath
 
-    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout )
+    $job = Start-Job -ScriptBlock { Param( $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule )
         $ErrorActionPreference = "Stop"
         try {
             . "$containerHelperPath"
@@ -98,8 +101,11 @@ try {
             if ($multitenant) {
                 $dbName = "$($databasePrefix)tenant"
             }
-            Import-Module sqlps -ErrorAction SilentlyContinue
-            $sqlpsModule = get-module sqlps
+            $sqlpsModule = $null
+            if(-not $useSqlServerModule) {
+                Import-Module sqlps -ErrorAction SilentlyContinue
+                $sqlpsModule = get-module sqlps
+            }
             if (-not $sqlpsModule) {
                 import-module SqlServer
                 $SqlModule = get-module SqlServer
@@ -222,7 +228,7 @@ try {
             throw
         }
     
-    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout
+    } -ArgumentList $containerHelperPath, $artifactUrl, $databaseServer, $databaseInstance, $databasePrefix, $databaseName, $multitenant, $successFileName, $bakFile, $sqlTimeout, $useSqlServerModule.IsPresent
 
     if (!$async) {
         While ($job.State -eq "Running") {

@@ -1,3 +1,7 @@
+6.0.30
+Issue 3762 Give Option to Choose SQL PowerShell Module When Restoring From BacPac
+There are instances where sqlps does not work as expected when it is installed. This change adds a switch parameter, useSqlServerModule, to Restore-BcDatabaseFromArtifacts, New-NavContainer, and the BcContainerHelper config file.
+
 6.0.29
 Issue 3591 When using Publish-NAVApp to publish an app, which fails compilation in the service, the command might hang forever - the fix for this is a temporary hack put in place for the versions which doesn't work.
 Improve performance and reduce memory consumption when creating and pushing NuGet packages
