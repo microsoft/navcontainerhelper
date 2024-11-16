@@ -1650,7 +1650,7 @@ Measure-Command {
     if ($useCompilerFolder) {
         Copy-Item -Path (Join-Path $appSymbolsFolder '*') -Destination $packagesFolder -Force
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
-        $testapps += @(Join-Path $packagesFolder $_.Name)
+        $appsBeforeTestApps += @(Join-Path $packagesFolder $_.Name)
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling testapp dependencies took $([int]$_.TotalSeconds) seconds" }
 Write-GroupEnd
