@@ -1241,7 +1241,10 @@ $signApps = ($codeSignCertPfxFile -ne "")
 
 Measure-Command {
 
+
+$appsBeforeApps = @()
 $apps = @()
+$appsBeforeTestApps = @()
 $testApps = @()
 $bcptTestApps = @()
 
@@ -1387,7 +1390,7 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles $_ -folder $packagesFolder | ForEach-Object {
-                $apps += @($_)
+                $appsBeforeApps += @($_)
                 Write-Host -NoNewline "Copying $($_.SubString($packagesFolder.Length+1)) to symbols folder"
                 if ($generateDependencyArtifact) {
                     Write-Host -NoNewline " and dependencies folder"
@@ -1487,7 +1490,7 @@ Measure-Command {
         Get-ChildItem -Path $appSymbolsFolder | ForEach-Object {
             Write-Host "Move $($_.Name)"
             Move-Item -Path $_.FullName -Destination $packagesFolder -Force
-            $apps += @(Join-Path $packagesFolder $_.Name)
+            $appsBeforeApps += @(Join-Path $packagesFolder $_.Name)
         }
         Remove-Item -Path $appSymbolsFolder -Recurse -Force
     }
@@ -1574,7 +1577,7 @@ Measure-Command {
         }
         elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
             CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
-                $apps += @($_)
+                $appsBeforeTestApps += @($_)
             }
         }
         else {
@@ -2432,15 +2435,15 @@ if (!($bcAuthContext)) {
 }
 
 $upgradedApps = @()
-$apps | ForEach-Object {
+$appsBeforeApps+$apps | ForEach-Object {
 
     $installedApp = $false
-    $folder = $appsFolder[$_]
-    if ($folder) {
+    if ($apps -contains $_) {
+        $folder = $appsFolder[$_]
         $appJsonFile = Join-Path $folder "app.json"
         $appJson = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
         $upgradedApps += @($appJson.Id.ToLowerInvariant())
-    
+
         if ($installedApps | Where-Object { "$($_.AppId)" -eq $appJson.Id }) {
             $installedApp = $true
         }
@@ -2451,7 +2454,7 @@ $apps | ForEach-Object {
         "tenant" = $tenant
         "credential" = $credential
         "appFile" = $_
-        "skipVerification" = ($null -eq $folder) -or !$signApps
+        "skipVerification" = !$signApps
         "sync" = $true
         "install" = !$installedApp
         "upgrade" = $installedApp
@@ -2490,7 +2493,7 @@ if ($uninstallRemovedApps -and !$doNotPerformUpgrade) {
     }
 }
 
-$testApps+$bcptTestApps | ForEach-Object {
+$appsBeforeTestApps+$testApps+$bcptTestApps | ForEach-Object {
 
     $Parameters = @{
         "containerName" = (GetBuildContainer)
