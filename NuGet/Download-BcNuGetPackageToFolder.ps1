@@ -57,7 +57,7 @@ Function Download-BcNuGetPackageToFolder {
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Earliest','Latest','LatestMatching','Exact','Any')]
+        [ValidateSet('Earliest','EarliestMatching','Latest','LatestMatching','Exact','Any')]
         [string] $select = 'Latest',
         [Parameter(Mandatory=$true)]
         [alias('appSymbolsFolder')]
@@ -80,6 +80,9 @@ try {
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
         $findSelect = 'Latest'
+    }
+    if ($select -eq 'EarliestMatching') {
+        $findSelect = 'Earliest'
     }
     $excludeVersions = @()
     if ($checkLocalVersion) {
@@ -246,7 +249,7 @@ try {
                     Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
                 }                   
                 if ($dependenciesErr) {
-                    if ($select -ne 'LatestMatching') {
+                    if (@('LatestMatching', 'EarliestMatching') -notcontains $select) {
                         throw $dependenciesErr
                     }
                     else {
