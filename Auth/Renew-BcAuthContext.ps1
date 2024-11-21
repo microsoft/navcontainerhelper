@@ -28,10 +28,10 @@ try {
 
     Test-BcAuthContext -bcAuthContext $bcAuthContext
 
-    if ($bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds -ge $minValidityPeriodInSeconds) {
-        $bcAuthContext
-    }
-    else {
+#    if ($bcAuthContext.UtcExpiresOn.Subtract([DateTime]::UtcNow).TotalSeconds -ge $minValidityPeriodInSeconds) {
+#        $bcAuthContext
+#    }
+#    else {
         if ($bcAuthContext.ContainsKey('clientAssertion') -and "$ENV:ACTIONS_ID_TOKEN_REQUEST_TOKEN" -ne "" -and "$ENV:ACTIONS_ID_TOKEN_REQUEST_URL" -ne "") {
             Write-Host "Renew federated token"
             $result = Invoke-RestMethod -Method GET -UseBasicParsing -Headers @{ "Authorization" = "bearer $ENV:ACTIONS_ID_TOKEN_REQUEST_TOKEN"; "Accept" = "application/vnd.github+json" } -Uri "$ENV:ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange"
@@ -49,7 +49,7 @@ try {
             -includeDeviceLogin:$bcAuthContext.includeDeviceLogin `
             -deviceLoginTimeout $bcAuthContext.deviceLoginTimeout `
             -silent:$silent
-    }
+#    }
 }
 catch {
     TrackException -telemetryScope $telemetryScope -errorRecord $_
