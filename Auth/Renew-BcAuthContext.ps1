@@ -19,7 +19,7 @@
 function Renew-BcAuthContext {
     Param(
         $bcAuthContext,
-        [int] $minValidityPeriodInSeconds = 300000,
+        [int] $minValidityPeriodInSeconds = 300,
         [switch] $silent
     )
 
