@@ -119,6 +119,7 @@ function Get-ContainerHelperConfig {
             "IsAzureDevOps" = ($env:TF_BUILD -eq "true")
             "IsGitLab" = ($env:GITLAB_CI -eq "true")
             "useApproximateVersion" = $false
+            "useSqlServerModule" = $false
         }
 
         if ($isInsider) {
