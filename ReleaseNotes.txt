@@ -2,6 +2,10 @@
 Issue 3762 Give Option to Choose SQL PowerShell Module When Restoring From BacPac
 There are instances where sqlps does not work as expected when it is installed. This change adds a switch parameter, useSqlServerModule, to Restore-BcDatabaseFromArtifacts, New-NavContainer, and the BcContainerHelper config file.
 Issue 1303 from AL-Go repository - renew federated token when access token needs renewal (works only for GitHub at this time)
+Two new parameter in Sort-AppFoldersByDependencies - onlyTheseAppFoldersPlusDepending and SkipApps. If specified, then only the appFolders specified in the first array plus the apps depending on these recursively will be sorted. The remaining folder not included in the sorted appfolders list will be returned in skipApps.
+Remove some excessive logging
+If Import-TestToolkitToBcContainer was running with useCompilerFolder, then it would require a container to be present at that time.
+Make Run-AlPipeline do just-in-time creation of CompilerFolder and Containers
 
 6.0.29
 Issue 3591 When using Publish-NAVApp to publish an app, which fails compilation in the service, the command might hang forever - the fix for this is a temporary hack put in place for the versions which doesn't work.
