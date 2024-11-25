@@ -254,7 +254,7 @@ try {
                         throw $dependenciesErr
                     }
                     else {
-                            # If we are looking for the earliest/latest matching version, then we can try to find another version
+                        # If we are looking for the earliest/latest matching version, then we can try to find another version
                         Write-Host "WARNING: $dependenciesErr"
                         break
                     }
@@ -264,11 +264,11 @@ try {
                         # Downloading Microsoft packages for a specific version
                         $dependencyVersion = $version
                     }
-                        $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                    $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
                 }
             }
             if ($dependenciesErr) {
-                    # If we are looking for the earliest/latest matching version, then we can try to find another version
+                # If we are looking for the earliest/latest matching version, then we can try to find another version
                 $excludeVersions += $packageVersion
                 Remove-Item -Path $package -Recurse -Force
                 continue
