@@ -347,6 +347,7 @@ class NuGetFeed {
         if (!($this.token)) {
             throw "NuGet token is required to push packages"
         }
+        Write-Host "Package $package"
         Write-Host "Preparing NuGet Package for submission"
         $headers = $this.GetHeaders()
         $headers += @{
@@ -370,6 +371,8 @@ class NuGetFeed {
         
         Write-Host "Submitting NuGet package"
         try {
+            Write-Host $boundary
+            Write-Host $this.packagePublishUrl
             Invoke-RestMethod -UseBasicParsing -Uri $this.packagePublishUrl -ContentType "multipart/form-data; boundary=$boundary" -Method Put -Headers $headers -inFile $tmpFile | Out-Host
             Write-Host -ForegroundColor Green "NuGet package successfully submitted"
         }
