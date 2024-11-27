@@ -357,11 +357,12 @@ class NuGetFeed {
         $LF = "`r`n";
         $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
         $fs = [System.IO.File]::OpenWrite($tmpFile)
+        $fs | Add-Member -MemberType ScriptMethod -Name WriteBytes -Value { param($bytes) $this.Write($bytes, 0, $bytes.Length) }
         try {
-            $fs.Write([System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF"))
-            $fs.Write([System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)"))
-            $fs.Write([System.IO.File]::ReadAllBytes($package))
-            $fs.Write([System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF"))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF"))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)"))
+            $fs.WriteBytes([System.IO.File]::ReadAllBytes($package))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF"))
         } finally {
             $fs.Close()
         }
