@@ -363,6 +363,7 @@ class NuGetFeed {
             $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)"))
             $fs.WriteBytes([System.IO.File]::ReadAllBytes($package))
             $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF"))
+            $fs.Flush()
         } finally {
             $fs.Close()
         }
