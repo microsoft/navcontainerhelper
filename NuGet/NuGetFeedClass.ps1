@@ -393,6 +393,5 @@ class NuGetFeed {
         finally {
             Remove-Item $tmpFile -Force -ErrorAction SilentlyContinue
         }
-    
     }
 }
