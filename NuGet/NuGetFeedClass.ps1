@@ -354,17 +354,19 @@ class NuGetFeed {
             "X-NuGet-ApiKey" = $this.token
             "X-NuGet-Client-Version" = "6.3.0"
         }
-        $FileContent = [System.IO.File]::ReadAllBytes($package)
-        $boundary = [System.Guid]::NewGuid().ToString(); 
+        $boundary = [System.Guid]::NewGuid().ToString();
         $LF = "`r`n";
-        
-        $body  = [System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF")
-        $body += [System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)")
-        $body += $fileContent
-        $body += [System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF")
-        
         $tmpFile = Join-Path ([System.IO.Path]::GetTempPath()) ([GUID]::NewGuid().ToString())
-        [System.IO.File]::WriteAllBytes($tmpFile, $body)
+        $fs = [System.IO.File]::OpenWrite($tmpFile)
+        $fs | Add-Member -MemberType ScriptMethod -Name WriteBytes -Value { param($bytes) $this.Write($bytes, 0, $bytes.Length) }
+        try {
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("--$boundary$LF"))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("Content-Type: application/octet-stream$($LF)Content-Disposition: form-data; name=package; filename=""$([System.IO.Path]::GetFileName($package))""$($LF)$($LF)"))
+            $fs.WriteBytes([System.IO.File]::ReadAllBytes($package))
+            $fs.WriteBytes([System.Text.Encoding]::UTF8.GetBytes("$LF--$boundary--$LF"))
+        } finally {
+            $fs.Close()
+        }
         
         Write-Host "Submitting NuGet package"
         try {
