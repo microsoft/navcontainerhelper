@@ -2,6 +2,7 @@
 Issue 3762 Give Option to Choose SQL PowerShell Module When Restoring From BacPac
 There are instances where sqlps does not work as expected when it is installed. This change adds a switch parameter, useSqlServerModule, to Restore-BcDatabaseFromArtifacts, New-NavContainer, and the BcContainerHelper config file.
 Issue 1303 from AL-Go repository - renew federated token when access token needs renewal (works only for GitHub at this time)
+Issue 3590 EarliestMatching select option added to Download-BcNuGetPackageToFolder
 Regression when from PR 3760 - Push-BcNuGetPackage doesn't work on PowerSHell 5
 
 6.0.29
