@@ -18,6 +18,7 @@
  .PARAMETER select
   Select the package to download if more than one package is found matching the name and version
   - Earliest: Select the earliest version
+  - EarliestMatching: Select the earliest version matching the already installed dependencies
   - Latest: Select the latest version (default)
   - LatestMatching: Select the latest version matching the already installed dependencies
   - Exact: Select the exact version
@@ -49,7 +50,7 @@ Function Publish-BcNuGetPackageToContainer {
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Earliest','Latest','LatestMatching','Exact','Any')]
+        [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
         [string] $select = 'Latest',
         [string] $containerName = "",
         [Hashtable] $bcAuthContext,
