@@ -23,7 +23,10 @@ function Sort-AppFoldersByDependencies {
         [Parameter(Mandatory=$false)]
         [ref] $unknownDependencies,
         [Parameter(Mandatory=$false)]
-        [ref] $knownApps
+        [ref] $knownApps,
+        [Parameter(Mandatory=$false)]
+        [ref] $skipApps,
+        [string[]] $onlyTheseAppFoldersPlusDepending = @()
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -40,6 +43,7 @@ try {
     # Read all app.json objects, populate $apps
     $apps = $()
     $folders = @{}
+    $script:rebuildAppIds = @()
     $appFolders | ForEach-Object {
         $appFolder = "$baseFolder$_"
         $appJsonFile = Join-Path $appFolder "app.json"
@@ -76,6 +80,9 @@ try {
 
             $folders += @{ "$($appJson.Id):$($appJson.Version)" = $appFolder }
             $apps += @($appJson)
+            if ($onlyTheseAppFoldersPlusDepending -contains $_) {
+                $script:rebuildAppIds += @($appJson.Id)
+            }
         }
     }
     
@@ -84,22 +91,32 @@ try {
     $script:unresolvedDependencies = $()
 
     function AddAnApp { Param($anApp) 
+        $rebuildThis = $false
         $alreadyAdded = $script:sortedApps | Where-Object { $_.Id -eq $anApp.Id }
         if (-not ($alreadyAdded)) {
-            AddDependencies -anApp $anApp
+            if (AddDependencies -anApp $anApp) {
+                if ($script:rebuildAppIds -notcontains $anApp.Id) { 
+                    $script:rebuildAppIds += @($anApp.Id)
+                }
+                $rebuildThis = $true
+            }
             $script:sortedApps += $anApp
         }
+        return $rebuildThis
     }
     
     function AddDependency { Param($dependency)
         $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
+        $rebuildThis = $script:rebuildAppIds -contains $dependencyAppId
         $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId } | Sort-Object -Property @{ "Expression" = "[System.Version]Version" }
         if ($dependentApp) {
             if ($dependentApp -is [Array]) {
                 Write-Host -ForegroundColor Yellow "AppFiles contains multiple versions of the app with AppId $dependencyAppId"
                 $dependentApp = $dependentApp | Select-Object -Last 1
             }
-            AddAnApp -AnApp $dependentApp
+            if (AddAnApp -AnApp $dependentApp) {
+                $rebuildThis = $true
+            }
         }
         else {
             if (-not ($script:unresolvedDependencies | Where-Object { $_ } | Where-Object { "$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id })" -eq $dependencyAppId })) {
@@ -110,23 +127,35 @@ try {
                 $script:unresolvedDependencies += @($dependency)
             }
         }
+        return $rebuildThis
     }
     
     function AddDependencies { Param($anApp)
+        $rebuildThis = $false
         if ($anApp) {
             if ($anApp.psobject.Members | Where-Object name -eq "dependencies") {
                 if ($anApp.Dependencies) {
-                    $anApp.Dependencies | ForEach-Object { AddDependency -Dependency $_ }
+                    $anApp.Dependencies | ForEach-Object {
+                        if (AddDependency -Dependency $_) {
+                            $rebuildThis = $true
+                        }
+                    }
                 }
             }
         }
+        return $rebuildThis
     }
     
-    $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
-    $apps | ForEach-Object { AddAnApp -AnApp $_ }
+    $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ | Out-Null }
+    $apps | ForEach-Object { AddAnApp -AnApp $_ | Out-Null }
 
     $script:sortedApps | ForEach-Object {
         ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
+    }
+    if ($skipApps -and $onlyTheseAppFoldersPlusDepending) {
+        $skipApps.value = $script:sortedApps | Where-Object { $script:rebuildAppIds -notcontains $_.id } | ForEach-Object {
+            ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
+        }
     }
     if ($knownApps) {
         $knownApps.value += @($script:sortedApps | ForEach-Object {
