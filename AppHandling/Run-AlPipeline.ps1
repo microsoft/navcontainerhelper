@@ -1685,9 +1685,10 @@ $sortedAppFolders+$sortedTestAppFolders | Select-Object -Unique | ForEach-Object
     $bcptTestApp = $bcptTestFolders.Contains($folder)
     $testApp = $testFolders.Contains($folder)
     $app = $appFolders.Contains($folder)
-    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and !$doNotPublishApps -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
+    if (($testApp -or $bcptTestApp) -and !$testToolkitInstalled -and ($installTestRunner -or $installTestFramework -or $installTestLibraries -or $installPerformanceToolkit)) {
 
 Write-GroupEnd
+if (!$doNotPublishApps) {
 Write-GroupStart -Message "Importing test toolkit"
 Write-Host -ForegroundColor Yellow @'
   _____                            _   _               _            _     _              _ _    _ _
@@ -1736,9 +1737,9 @@ Measure-Command {
     }
     $testToolkitInstalled = $true
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nImporting Test Toolkit took $([int]$_.TotalSeconds) seconds" }
-
-if ($installTestApps) {
 Write-GroupEnd
+}
+if ($installTestApps) {
 Write-GroupStart -Message "Installing test apps"
 Write-Host -ForegroundColor Yellow @'
   _____           _        _ _ _               _            _
