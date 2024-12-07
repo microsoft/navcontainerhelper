@@ -122,8 +122,14 @@ function Invoke-ScriptInBcContainer {
         }
         $shell = 'powershell'
         if ($usePwsh) {
-            [System.Version]$platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
-            if ($platformVersion -ge [System.Version]"24.0.0.0") {
+            $platformVersion = Get-BcContainerPlatformVersion -containerOrImageName $containerName
+            if ("$platformVersion" -eq '') {
+                $platformVersion = (Get-BcContainerNavVersion -containerOrImageName $containerName).Split('-')[0]
+            }
+            if ($platformVersion -eq '') {
+                Write-Host "WARNING: Unable to get docker platform or version labels"
+            }
+            if ([System.Version]$platformVersion -ge [System.Version]"24.0.0.0") {
                 $shell = 'pwsh'
             }
         }
