@@ -19,6 +19,7 @@
  .PARAMETER select
   Select the package to download if more than one package is found matching the name and version
   - Earliest: Select the earliest version
+  - EarliestMatching: Select the earliest version matching the already installed dependencies
   - Latest: Select the latest version (default)
   - LatestMatching: Select the latest version matching the already installed dependencies
   - Exact: Select the exact version
@@ -57,7 +58,7 @@ Function Download-BcNuGetPackageToFolder {
         [Parameter(Mandatory=$false)]
         [string] $version = '0.0.0.0',
         [Parameter(Mandatory=$false)]
-        [ValidateSet('Earliest','Latest','LatestMatching','Exact','Any')]
+        [ValidateSet('Earliest','EarliestMatching','Latest','LatestMatching','Exact','Any')]
         [string] $select = 'Latest',
         [Parameter(Mandatory=$true)]
         [alias('appSymbolsFolder')]
@@ -80,6 +81,9 @@ try {
     $findSelect = $select
     if ($select -eq 'LatestMatching') {
         $findSelect = 'Latest'
+    }
+    if ($select -eq 'EarliestMatching') {
+        $findSelect = 'Earliest'
     }
     $excludeVersions = @()
     if ($checkLocalVersion) {
@@ -246,11 +250,11 @@ try {
                     Write-Host "WARNING: NuGet package $packageId (version $packageVersion) requires $dependencyCountry application. You have $installedCountry application installed"
                 }                   
                 if ($dependenciesErr) {
-                    if ($select -ne 'LatestMatching') {
+                    if (@('LatestMatching', 'EarliestMatching') -notcontains $select) {
                         throw $dependenciesErr
                     }
                     else {
-                        # If we are looking for the latest matching version, then we can try to find another version
+                        # If we are looking for the earliest/latest matching version, then we can try to find another version
                         Write-Host "WARNING: $dependenciesErr"
                         break
                     }
@@ -260,11 +264,11 @@ try {
                         # Downloading Microsoft packages for a specific version
                         $dependencyVersion = $version
                     }
-                    $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps+$returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
+                    $returnValue += Download-BcNuGetPackageToFolder -nuGetServerUrl $nuGetServerUrl -nuGetToken $nuGetToken -packageName $dependencyId -version $dependencyVersion -folder $package -copyInstalledAppsToFolder $copyInstalledAppsToFolder -installedPlatform $installedPlatform -installedCountry $installedCountry -installedApps @($installedApps + $returnValue) -downloadDependencies $downloadDependencies -verbose:($VerbosePreference -eq 'Continue') -select $select -allowPrerelease:$allowPrerelease -checkLocalVersion
                 }
             }
             if ($dependenciesErr) {
-                # If we are looking for the latest matching version, then we can try to find another version
+                # If we are looking for the earliest/latest matching version, then we can try to find another version
                 $excludeVersions += $packageVersion
                 Remove-Item -Path $package -Recurse -Force
                 continue
