@@ -2360,28 +2360,26 @@ Write-Host -ForegroundColor Yellow @'
 '@
 Measure-Command {
 
-    $appsBeforeApps | ForEach-Object {
-        $Parameters = @{
-            "containerName" = (GetBuildContainer)
-            "tenant" = $tenant
-            "credential" = $credential
-            "appFile" = $_
-            "skipVerification" = $true
-            "sync" = $true
-            "install" = $true
-            "upgrade" = $false
-        }
+    $Parameters = @{
+        "containerName" = (GetBuildContainer)
+        "tenant" = $tenant
+        "credential" = $credential
+        "appFile" = $appsBeforeApps
+        "skipVerification" = $true
+        "sync" = $true
+        "install" = $true
+        "upgrade" = $false
+    }
     
-        if ($bcAuthContext) {
-            $Parameters += @{
-                "bcAuthContext" = $bcAuthContext
-                "environment" = $environment
-            }
+    if ($bcAuthContext) {
+        $Parameters += @{
+            "bcAuthContext" = $bcAuthContext
+            "environment" = $environment
         }
+    }
     
-        if (!$doNotPublishApps) {
-            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-        }
+    if (!$doNotPublishApps) {
+        Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing app dependencies took $([int]$_.TotalSeconds) seconds" }
 }
