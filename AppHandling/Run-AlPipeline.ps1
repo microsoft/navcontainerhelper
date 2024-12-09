@@ -1558,6 +1558,8 @@ Write-Host -ForegroundColor Yellow @'
 Measure-Command {
 
     Write-Host -ForegroundColor Yellow "Installing test apps for additional country $testCountry"
+    $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
+    $tmpAppFiles = @()
     $installTestApps | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
@@ -1581,29 +1583,33 @@ Measure-Command {
             }
         }
         else {
-            $Parameters = @{
-                "containerName" = (GetBuildContainer)
-                "tenant" = $tenant
-                "credential" = $credential
-                "appFile" = "$_".Trim('()')
-                "skipVerification" = $true
-                "sync" = $true
-                "install" = $true
+            $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
+        }
+    }
+
+    if ($tmpAppFiles) {
+        $Parameters = @{
+            "containerName" = (GetBuildContainer)
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $tmpAppFiles
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+        }
+        if ($installOnlyReferencedApps) {
+            $parameters += @{
+                "includeOnlyAppIds" = $missingTestAppDependencies
             }
-            if ($installOnlyReferencedApps) {
-                $parameters += @{
-                    "includeOnlyAppIds" = $missingTestAppDependencies
-                }
+        }
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
             }
-            if ($bcAuthContext) {
-                $Parameters += @{
-                    "bcAuthContext" = $bcAuthContext
-                    "environment" = $environment
-                }
-            }
-            if (!$doNotPublishApps) {
-                Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
-            }
+        }
+        if (!$doNotPublishApps) {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
         }
     }
 } | ForEach-Object { Write-Host -ForegroundColor Yellow "`nInstalling test apps took $([int]$_.TotalSeconds) seconds" }
