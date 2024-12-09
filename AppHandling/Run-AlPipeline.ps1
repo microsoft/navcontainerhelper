@@ -1756,8 +1756,6 @@ Measure-Command {
     Write-Host -ForegroundColor Yellow "Installing test apps"
     $tmpAppFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString())
     $tmpAppFiles = @()
-    Write-Host "installtestapps"
-    $installTestApps | ForEach-Object { Write-Host "'$_'" }
     $installTestApps | ForEach-Object{
         $appId = [Guid]::Empty
         if ([Guid]::TryParse($_, [ref] $appId)) {
@@ -1780,8 +1778,6 @@ Measure-Command {
         }
     }
 
-    Write-Host "tmpAppFiles"
-    $tmpAppFiles | ForEach-Object { Write-Host "'$_'" }
     if ($tmpAppFiles) {
         $Parameters = @{
             "containerName" = (GetBuildContainer)
