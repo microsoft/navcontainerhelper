@@ -1776,7 +1776,7 @@ Measure-Command {
             }
         }
         else {
-            $tmpAppFiles += @(CopyAppFilesToFolder -appfiles $_ -folder $tmpAppFolder | Where-Object { $_ } | ForEach-Object { "$_".Trim() } )
+            $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
         }
     }
 
