@@ -1633,5 +1633,5 @@ function GetHostOs {
 
 function Write-PSCallStack {
     Write-Host "PS Call Stack:"
-    Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) Line $($_.ScriptLineNumber)" }
+    Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) ($([System.IO.Path]::GetFileName($_.ScriptName))) Line $($_.ScriptLineNumber)" }
 }
