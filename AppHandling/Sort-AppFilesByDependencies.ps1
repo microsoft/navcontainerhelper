@@ -157,6 +157,8 @@ function Sort-AppFilesByDependencies {
             }
         }
 
+        Write-PSCallStack -Message 'Sort-AppFilesByDependencies'
+
         $apps | Where-Object { $_ } | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
         $apps | Where-Object { $_ } | ForEach-Object { AddAnApp -AnApp $_ }
         Write-Host "Sorted apps #1:"
