@@ -1773,6 +1773,11 @@ Measure-Command {
                 Invoke-Command -ScriptBlock $InstallBcAppFromAppSource -ArgumentList $Parameters
             }
         }
+        elseif (!$testCountry -and ($useCompilerFolder -or ($filesOnly -and (-not $bcAuthContext)))) {
+            CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $packagesFolder | ForEach-Object {
+                $appsBeforeTestApps += @($_)
+            }
+        }
         else {
             $tmpAppFiles += @(CopyAppFilesToFolder -appfiles "$_".Trim('()') -folder $tmpAppFolder)
         }
