@@ -139,13 +139,17 @@ function Sort-AppFilesByDependencies {
         }
         
         function MarkSortedApps { Param($AppId)
+            Write-Host6 "Mark $AppId"
             $script:sortedApps | Where-Object { $_.Id -eq $AppId } | ForEach-Object {
+                Write-Host "Set included"
                 $_.Included = $true
                 if ($_.Dependencies) {
+                    Write-Host "Enumerate dependencies"
                     $_.Dependencies | ForEach-Object {
                         $dependency = $_
                         if ($dependency) {
                             $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
+                            Write-Host $dependencyAppId
                             MarkSortedApps -AppId $dependencyAppId
                         }
                     }
@@ -155,6 +159,8 @@ function Sort-AppFilesByDependencies {
 
         $apps | Where-Object { $_ } | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ }
         $apps | Where-Object { $_ } | ForEach-Object { AddAnApp -AnApp $_ }
+        Write-Host "Sorted apps #1:"
+        $script:sortedApps | ForEach-Object { Write-Host "$([System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"]))" }
     
         if ($excludeInstalledApps) {
             $script:sortedApps = $script:sortedApps | ForEach-Object {
@@ -175,6 +181,8 @@ function Sort-AppFilesByDependencies {
                 }
             }
         }
+        Write-Host "Sorted apps #2:"
+        $script:sortedApps | ForEach-Object { Write-Host "$([System.IO.Path]::GetFileName($files["$($_.id):$($_.version)"]))" }
         if ($includeOnlyAppIds) {
             $script:sortedApps | ForEach-Object { $_ | Add-Member -NotePropertyName 'Included' -NotePropertyValue $false }
             $includeOnlyAppIds | ForEach-Object { MarkSortedApps -AppId $_ }
