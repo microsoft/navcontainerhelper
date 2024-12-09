@@ -139,7 +139,7 @@ function Sort-AppFilesByDependencies {
         }
         
         function MarkSortedApps { Param($AppId)
-            Write-Host6 "Mark $AppId"
+            Write-Host "Mark $AppId"
             $script:sortedApps | Where-Object { $_.Id -eq $AppId } | ForEach-Object {
                 Write-Host "Set included"
                 $_.Included = $true
