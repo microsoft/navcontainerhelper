@@ -2083,34 +2083,8 @@ Write-Host -ForegroundColor Yellow @'
                 $previousApps = Sort-AppFilesByDependencies -appFiles $appList
                 $previousApps | ForEach-Object {
                     $appFile = $_
-                    if (Test-BcContainer -containerName (GetBuildContainer)) {
-                        $appInfo = Invoke-ScriptInBcContainer -containerName (GetBuildContainer) -scriptblock {
-                            param($appFile)
-                            Get-NavAppInfo -Path $appFile
-                        } -argumentList (Get-BcContainerPath -containerName (GetBuildContainer) -path $appFile)
-                        $appId = $appInfo.AppId.ToString()
-                    }
-                    else {
-                        $tmpFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
-                        try {
-                            Extract-AppFileToFolder -appFilename $appFile -appFolder $tmpFolder -generateAppJson 6> $null
-                            $appJsonFile = Join-Path $tmpFolder "app.json"
-                            $appInfo = [System.IO.File]::ReadAllLines($appJsonFile) | ConvertFrom-Json
-                            $appId = $appInfo.Id
-                        }
-                        catch {
-                            if ($_.exception.message -eq "You cannot extract a runtime package") {
-                                throw "AppFile $appFile is a runtime package. You will have to specify a running container in containerName in order to analyze dependencies between runtime packages"
-                            }
-                            else {
-                                throw "Unable to extract and analyze appFile $appFile"
-                            }
-                        }
-                        finally {
-                            Remove-Item $tmpFolder -Recurse -Force -ErrorAction SilentlyContinue
-                        }
-                    }
-
+                    $appInfo = RunAlTool -arguments @('GetPackageManifest', """$appFile""") | ConvertFrom-Json
+                    $appId = $appInfo.Id
                     Write-Host "$($appInfo.Publisher)_$($appInfo.Name) = $($appInfo.Version.ToString())"
                     $previousAppVersions += @{ "$($appInfo.Publisher)_$($appInfo.Name)" = $appInfo.Version.ToString() }
                     $previousAppInfos += @(@{
