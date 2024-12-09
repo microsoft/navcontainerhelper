@@ -48,7 +48,7 @@ function Get-BcNuGetPackageId {
     $packageIdTemplate = $packageIdTemplate.replace('{id}',$id).replace('{publisher}',$npublisher).replace('{tag}',$tag).replace('{version}',$version.Replace('.', '-')).Replace('..', '.').TrimEnd('.')
     # Max. Length of NuGet Package Id is 100 - we shorten the name part of the id if it is too long
     $packageId = $packageIdTemplate.replace('{name}',$nname)
-    if ($packageId.Length -ge 100) {
+    if ($packageId.Length -gt 100) {
         if ($nname.Length -gt ($packageId.Length - 99)) {
             $nname = $nname.Substring(0, $nname.Length - ($packageId.Length - 99))
         }
