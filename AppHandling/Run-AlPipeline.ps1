@@ -2346,6 +2346,46 @@ Write-GroupEnd
 $previousAppsInstalled = @()
 if (!$useDevEndpoint) {
 
+if ((!$doNotPublishApps) -and ($appsBeforeApps)) {
+Write-GroupStart -Message "Publishing app dependencies"
+Write-Host -ForegroundColor Yellow @'
+  _____       _     _ _     _     _                                       _                           _                 _
+ |  __ \     | |   | (_)   | |   (_)                                     | |                         | |               (_)
+ | |__) |   _| |__ | |_ ___| |__  _ _ __   __ _    __ _ _ __  _ __     __| | ___ _ __   ___ _ __   __| | ___ _ __   ___ _  ___  ___
+ |  ___/ | | | '_ \| | / __| '_ \| | '_ \ / _` |  / _` | '_ \| '_ \   / _` |/ _ \ '_ \ / _ \ '_ \ / _` |/ _ \ '_ \ / __| |/ _ \/ __|
+ | |   | |_| | |_) | | \__ \ | | | | | | | (_| | | (_| | |_) | |_) | | (_| |  __/ |_) |  __/ | | | (_| |  __/ | | | (__| |  __/\__ \
+ |_|    \__,_|_.__/|_|_|___/_| |_|_|_| |_|\__, |  \__,_| .__/| .__/   \__,_|\___| .__/ \___|_| |_|\__,_|\___|_| |_|\___|_|\___||___/
+                                           __/ |       | |   | |                | |
+                                          |___/        |_|   |_|                |_|
+'@
+Measure-Command {
+
+    $appsBeforeApps | ForEach-Object {
+        $Parameters = @{
+            "containerName" = (GetBuildContainer)
+            "tenant" = $tenant
+            "credential" = $credential
+            "appFile" = $_
+            "skipVerification" = $true
+            "sync" = $true
+            "install" = $true
+            "upgrade" = $false
+        }
+    
+        if ($bcAuthContext) {
+            $Parameters += @{
+                "bcAuthContext" = $bcAuthContext
+                "environment" = $environment
+            }
+        }
+    
+        if (!$doNotPublishApps) {
+            Invoke-Command -ScriptBlock $PublishBcContainerApp -ArgumentList $Parameters
+        }
+    }
+} | ForEach-Object { Write-Host -ForegroundColor Yellow "`nPublishing app dependencies took $([int]$_.TotalSeconds) seconds" }
+}
+
 if ((!$doNotPerformUpgrade) -and ($previousApps)) {
 Write-GroupStart -Message "Installing previous apps"
 Write-Host -ForegroundColor Yellow @'
@@ -2422,7 +2462,7 @@ if (!($bcAuthContext)) {
 }
 
 $upgradedApps = @()
-$appsBeforeApps+$apps | ForEach-Object {
+$apps | ForEach-Object {
 
     $installedApp = $false
     if ($apps -contains $_) {
