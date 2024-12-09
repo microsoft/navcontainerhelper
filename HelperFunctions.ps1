@@ -524,6 +524,7 @@ function CopyAppFilesToFolder {
     }
     $appFiles | Where-Object { $_ } | ForEach-Object {
         $appFile = "$_"
+        Write-Host $appFile
         if ($appFile -like "http://*" -or $appFile -like "https://*") {
             $appUrl = $appFile
             $appFileFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([Guid]::NewGuid().ToString())
