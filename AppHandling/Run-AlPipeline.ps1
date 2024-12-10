@@ -1098,12 +1098,14 @@ if ($doNotBuildTests) {
     $doNotRunPageScriptingTests = $true
 }
 
-if ($containerName -eq '' -or $filesOnly) {
+if (!$createContainer -or $filesOnly) {
     # If we are not creating a full container, do not backup and restore databases
     if ($restoreDatabases) {
         Write-Host -ForegroundColor Yellow "WARNING: Ignoring restoreDatabases as we are not creating a full container"
         $restoreDatabases = @()
     }
+    # And do not test additional countries
+    $additionalCountries = @()
 }
 
 if ($DockerPull) {
@@ -1258,14 +1260,16 @@ try {
 $testCountry = $_.Trim()
 $testToolkitInstalled = $false
 
+RemoveCompilerFolder
+RemoveBuildContainer
+
 if ($testCountry) {
     $artifactSegments = $artifactUrl.Split('?')[0].Split('/')
     $artifactUrl = $artifactUrl.Replace("/$($artifactSegments[4])/$($artifactSegments[5])","/$($artifactSegments[4])/$testCountry")
     Write-Host -ForegroundColor Yellow "Creating container for additional country $testCountry"
+    # When testing additional countries, we are done compiling - no need for compilerfolder
+    $useCompilerFolder = $false
 }
-
-RemoveCompilerFolder
-RemoveBuildContainer
 
 Write-GroupStart -Message "Resolving dependencies"
 Write-Host -ForegroundColor Yellow @'
