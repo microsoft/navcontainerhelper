@@ -39,6 +39,8 @@
   Only Test Runner and Test Framework are/will be available in the online Business Central environment
  .Parameter environment
   Environment in which you want to import test toolkit.
+ .Parameter appSymbolsFolder
+  Folder where the app symbols should be stored when using compilerfolder
  .Example
   Import-TestToolkitToBcContainer -containerName test2
   .Example
@@ -68,8 +70,8 @@ function Import-TestToolkitToBcContainer {
         [switch] $useDevEndpoint,
         [hashtable] $replaceDependencies = $null,
         [Hashtable] $bcAuthContext,
-        [string] $appSymbolsFolder,
-        [string] $environment
+        [string] $environment,
+        [string] $appSymbolsFolder
     )
 
 $telemetryScope = InitTelemetryScope `

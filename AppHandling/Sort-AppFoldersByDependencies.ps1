@@ -11,6 +11,10 @@
   If specified, this reference parameter will contain unresolved dependencies after sorting
  .Parameter knownApps
   If specified, this reference parameter will contain all known appids
+ .Parameter skipApps
+  If specified, this reference parameter will contain all skipped appids
+ .Parameter selectSubordinates
+  If specified, this is the list of appFolders to include (together with subordinates - i.e. appFolders depending on these appFolders)
  .Example
   $folders = Sort-AppFoldersByDependencies -appFolders @($folder1, $folder2)
 #>
@@ -26,7 +30,7 @@ function Sort-AppFoldersByDependencies {
         [ref] $knownApps,
         [Parameter(Mandatory=$false)]
         [ref] $skipApps,
-        [string[]] $onlyTheseAppFoldersPlusDepending = @()
+        [string[]] $selectSubordinates = @()
     )
 
 $telemetryScope = InitTelemetryScope -name $MyInvocation.InvocationName -parameterValues $PSBoundParameters -includeParameters @()
@@ -43,7 +47,7 @@ try {
     # Read all app.json objects, populate $apps
     $apps = $()
     $folders = @{}
-    $script:rebuildAppIds = @()
+    $script:includeAppIds = @()
     $appFolders | ForEach-Object {
         $appFolder = "$baseFolder$_"
         $appJsonFile = Join-Path $appFolder "app.json"
@@ -72,16 +76,19 @@ try {
                 $appJson | Add-Member -Name "dependencies" -Type NoteProperty -Value @()
             }
             if ($appJson.psobject.Members | Where-Object name -eq "application") {
-                if ($appJson.Id -ne "63ca2fa4-4f03-4f2b-a480-172fef340d3f") {
+                if ($appJson.Id -ne "63ca2fa4-4f03-4f2b-a480-172fef340d3f" -and $appJson.Id -ne "f3552374-a1f2-4356-848e-196002525837" -and $appJson.Id -ne "437dbf0e-84ff-417a-965d-ed2bb9650972") {
                     $appJson.dependencies += @( New-Object psobject -Property ([ordered]@{ "appId" = "437dbf0e-84ff-417a-965d-ed2bb9650972"; "publisher" = "Microsoft"; "name" = "Base Application"; "version" = $appJson.application }) )
                     $appJson.dependencies += @( New-Object psobject -Property ([ordered]@{ "appId" = "63ca2fa4-4f03-4f2b-a480-172fef340d3f"; "publisher" = "Microsoft"; "name" = "System Application"; "version" = $appJson.application }) )
+                    if ([System.Version]$appJson.application -ge [System.Version]"24.0.0.0") {
+                        $appJson.dependencies += @( New-Object psobject -Property ([ordered]@{ "appId" = "f3552374-a1f2-4356-848e-196002525837"; "publisher" = "Microsoft"; "name" = "Business Foundation"; "version" = $appJson.application }) )
+                    }
                 }
             }
 
             $folders += @{ "$($appJson.Id):$($appJson.Version)" = $appFolder }
             $apps += @($appJson)
-            if ($onlyTheseAppFoldersPlusDepending -contains $_) {
-                $script:rebuildAppIds += @($appJson.Id)
+            if ($selectSubordinates -contains $_) {
+                $script:includeAppIds += @($appJson.Id)
             }
         }
     }
@@ -95,8 +102,8 @@ try {
         $alreadyAdded = $script:sortedApps | Where-Object { $_.Id -eq $anApp.Id }
         if (-not ($alreadyAdded)) {
             if (AddDependencies -anApp $anApp) {
-                if ($script:rebuildAppIds -notcontains $anApp.Id) { 
-                    $script:rebuildAppIds += @($anApp.Id)
+                if ($script:includeAppIds -notcontains $anApp.Id) { 
+                    $script:includeAppIds += @($anApp.Id)
                 }
                 $rebuildThis = $true
             }
@@ -107,7 +114,7 @@ try {
     
     function AddDependency { Param($dependency)
         $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
-        $rebuildThis = $script:rebuildAppIds -contains $dependencyAppId
+        $rebuildThis = $script:includeAppIds -contains $dependencyAppId
         $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId } | Sort-Object -Property @{ "Expression" = "[System.Version]Version" }
         if ($dependentApp) {
             if ($dependentApp -is [Array]) {
@@ -121,7 +128,7 @@ try {
         else {
             if (-not ($script:unresolvedDependencies | Where-Object { $_ } | Where-Object { "$(if ($_.PSObject.Properties.name -eq 'AppId') { $_.AppId } else { $_.Id })" -eq $dependencyAppId })) {
                 $appFileName = "$($dependency.publisher)_$($dependency.name)_$($dependency.version).app".Split([System.IO.Path]::GetInvalidFileNameChars()) -join ''
-                if ($dependencyAppid -ne '63ca2fa4-4f03-4f2b-a480-172fef340d3f' -and $dependencyAppId -ne '437dbf0e-84ff-417a-965d-ed2bb9650972') {
+                if ($dependencyAppid -ne '63ca2fa4-4f03-4f2b-a480-172fef340d3f' -and $dependencyAppId -ne '437dbf0e-84ff-417a-965d-ed2bb9650972' -and $dependencyAppId -ne 'f3552374-a1f2-4356-848e-196002525837') {
                     Write-Warning "Dependency $($dependencyAppId):$appFileName not found"
                 }
                 $script:unresolvedDependencies += @($dependency)
@@ -152,8 +159,8 @@ try {
     $script:sortedApps | ForEach-Object {
         ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
     }
-    if ($skipApps -and $onlyTheseAppFoldersPlusDepending) {
-        $skipApps.value = $script:sortedApps | Where-Object { $script:rebuildAppIds -notcontains $_.id } | ForEach-Object {
+    if ($skipApps -and $selectSubordinates) {
+        $skipApps.value = $script:sortedApps | Where-Object { $script:includeAppIds -notcontains $_.id } | ForEach-Object {
             ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
         }
     }

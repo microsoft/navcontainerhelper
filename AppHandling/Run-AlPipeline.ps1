@@ -688,7 +688,7 @@ function RemoveBuildContainer {
     }
 }
 
-# Create build container and return containerName
+# Create compilerFolder and return path
 function GetCompilerFolder {
     if (!$useCompilerFolder -or $script:existingCompilerFolder) {
         # Either we are not using CompilerFolder (return blank)
