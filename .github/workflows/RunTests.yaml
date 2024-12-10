@@ -131,7 +131,7 @@ jobs:
           }
 
   Linux:
-    runs-on: [ ubuntu-latest ]
+    runs-on: [ ubuntu-24.04 ]
     needs: [ AnalyzeTests ]
     if: needs.AnalyzeTests.outputs.linuxtests != '[]'
     strategy:
