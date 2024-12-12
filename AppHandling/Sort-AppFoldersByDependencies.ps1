@@ -11,7 +11,7 @@
   If specified, this reference parameter will contain unresolved dependencies after sorting
  .Parameter knownApps
   If specified, this reference parameter will contain all known appids
- .Parameter skipApps
+ .Parameter skippedApps
   If specified, this reference parameter will contain all skipped appids
  .Parameter selectSubordinates
   If specified, this is the list of appFolders to include (together with subordinates - i.e. appFolders depending on these appFolders)
@@ -29,7 +29,7 @@ function Sort-AppFoldersByDependencies {
         [Parameter(Mandatory=$false)]
         [ref] $knownApps,
         [Parameter(Mandatory=$false)]
-        [ref] $skipApps,
+        [ref] $skippedApps,
         [string[]] $selectSubordinates = @()
     )
 
@@ -98,23 +98,23 @@ try {
     $script:unresolvedDependencies = $()
 
     function AddAnApp { Param($anApp) 
-        $rebuildThis = $false
+        $includeThis = $false
         $alreadyAdded = $script:sortedApps | Where-Object { $_.Id -eq $anApp.Id }
         if (-not ($alreadyAdded)) {
             if (AddDependencies -anApp $anApp) {
                 if ($script:includeAppIds -notcontains $anApp.Id) { 
                     $script:includeAppIds += @($anApp.Id)
                 }
-                $rebuildThis = $true
+                $includeThis = $true
             }
             $script:sortedApps += $anApp
         }
-        return $rebuildThis
+        return $includeThis
     }
     
     function AddDependency { Param($dependency)
         $dependencyAppId = "$(if ($dependency.PSObject.Properties.name -eq 'AppId') { $dependency.AppId } else { $dependency.Id })"
-        $rebuildThis = $script:includeAppIds -contains $dependencyAppId
+        $includeThis = $script:includeAppIds -contains $dependencyAppId
         $dependentApp = $apps | Where-Object { $_.Id -eq $dependencyAppId } | Sort-Object -Property @{ "Expression" = "[System.Version]Version" }
         if ($dependentApp) {
             if ($dependentApp -is [Array]) {
@@ -122,7 +122,7 @@ try {
                 $dependentApp = $dependentApp | Select-Object -Last 1
             }
             if (AddAnApp -AnApp $dependentApp) {
-                $rebuildThis = $true
+                $includeThis = $true
             }
         }
         else {
@@ -134,23 +134,23 @@ try {
                 $script:unresolvedDependencies += @($dependency)
             }
         }
-        return $rebuildThis
+        return $includeThis
     }
     
     function AddDependencies { Param($anApp)
-        $rebuildThis = $false
+        $includeThis = $false
         if ($anApp) {
             if ($anApp.psobject.Members | Where-Object name -eq "dependencies") {
                 if ($anApp.Dependencies) {
                     $anApp.Dependencies | ForEach-Object {
                         if (AddDependency -Dependency $_) {
-                            $rebuildThis = $true
+                            $includeThis = $true
                         }
                     }
                 }
             }
         }
-        return $rebuildThis
+        return $includeThis
     }
     
     $apps | Where-Object { $_.Name -eq "Application" } | ForEach-Object { AddAnApp -anApp $_ | Out-Null }
@@ -159,8 +159,8 @@ try {
     $script:sortedApps | ForEach-Object {
         ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
     }
-    if ($skipApps -and $selectSubordinates) {
-        $skipApps.value = $script:sortedApps | Where-Object { $script:includeAppIds -notcontains $_.id } | ForEach-Object {
+    if ($skippedApps -and $selectSubordinates) {
+        $skippedApps.value = $script:sortedApps | Where-Object { $script:includeAppIds -notcontains $_.id } | ForEach-Object {
             ($folders["$($_.id):$($_.version)"]).SubString($baseFolder.Length)
         }
     }
