@@ -1055,7 +1055,7 @@ function GetAppInfo {
         }
         Set-Location (Split-Path $cacheAppInfoPath -parent)
     }
-    Write-GroupStart -Message "Getting .app info $cacheAppInfoPath"
+    Write-Host "Getting .app info $cacheAppInfoPath"
     $binPath = Join-Path $compilerFolder 'compiler/extension/bin'
     $alToolDll = ''
     if ($isLinux) {
@@ -1107,11 +1107,9 @@ function GetAppInfo {
     $package = $null
     try {
         foreach($path in $appFiles) {
-            Write-Host -NoNewline "- $([System.IO.Path]::GetFileName($path))"
             $relativePath = Resolve-Path -Path $path -Relative
             if ($appInfoCache -and $appInfoCache.PSObject.Properties.Name -eq $relativePath) {
                 $appInfo = $appInfoCache."$relativePath"
-                Write-Host " (cached)"
             }
             else {
                 if ($alToolExists) {
@@ -1130,7 +1128,6 @@ function GetAppInfo {
                         "propagateDependencies" = ($manifest.PSObject.Properties.Name -eq 'PropagateDependencies') -and $manifest.PropagateDependencies
                         "dependencies"          = @(if($manifest.PSObject.Properties.Name -eq 'dependencies'){$manifest.dependencies | ForEach-Object { if ($_.PSObject.Properties.Name -eq 'id') { $id = $_.id } else { $id = $_.AppId }; @{ "id" = $id; "name" = $_.name; "publisher" = $_.publisher; "version" = $_.version }}})
                     }
-                    Write-Host " (succeeded using altool)"
                 }
                 else {
                     if (!$assembliesAdded) {
@@ -1158,7 +1155,6 @@ function GetAppInfo {
                         "propagateDependencies" = $manifest.PropagateDependencies
                     }
                     $packageStream.Close()
-                    Write-Host " (succeeded using codeanalysis)"
                 }
                 if ($cacheAppInfoPath) {
                     $appInfoCache | Add-Member -MemberType NoteProperty -Name $relativePath -Value $appInfo
@@ -1183,7 +1179,6 @@ function GetAppInfo {
         }
     }
     catch [System.Reflection.ReflectionTypeLoadException] {
-        Write-Host " (failed)"
         if ($_.Exception.LoaderExceptions) {
             $_.Exception.LoaderExceptions | Select-Object -Property Message | Select-Object -Unique | ForEach-Object {
                 Write-Host "LoaderException: $($_.Message)"
@@ -1200,7 +1195,6 @@ function GetAppInfo {
         }
         Pop-Location
     }
-    Write-GroupEnd
 }
 
 function GetLatestAlLanguageExtensionVersionAndUrl {
@@ -1635,4 +1629,12 @@ function GetHostOs {
         }
     }
     return $hostOs
+}
+
+function Write-PSCallStack {
+    Param(
+        [string] $message
+    )
+    Write-Host "PS CallStack $message :"
+    Get-PSCallStack | ForEach-Object { Write-Host "- $($_.FunctionName) ($([System.IO.Path]::GetFileName($_.ScriptName)) Line $($_.ScriptLineNumber))" }
 }
